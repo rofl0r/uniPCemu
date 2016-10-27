@@ -438,6 +438,32 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	return 0; //Unsupported rate!
 }
 
+OPTINLINE void updateST3(byte drivenumber)
+{
+	FLOPPY.ST3.Track0 = (FLOPPY.currentcylinder[drivenumber] == 0); //Are we at track 0?
+
+	if (FLOPPY.geometries[drivenumber]) //Valid drive?
+	{
+		FLOPPY.ST3.DoubleSided = (FLOPPY.geometries[drivenumber]->sides==2)?1:0; //Are we double sided?
+	}
+	else //Apply default disk!
+	{
+		FLOPPY.ST3.DoubleSided = 1; //Are we double sided?
+	}
+	FLOPPY.ST3.Head1Active = FLOPPY.currenthead[drivenumber]; //Is head 1 active?
+	FLOPPY.ST3.DriveSelect = drivenumber; //Our selected drive!
+	FLOPPY.ST3.DriveReady = 1; //We're always ready on PC!
+	if (drivenumber<2) //Valid drive number?
+	{
+		FLOPPY.ST3.WriteProtection = drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0); //Read-only drive and tried to write?
+	}
+	else
+	{
+		FLOPPY.ST3.WriteProtection = 0; //Drive unsupported? No write protection!
+	}
+	FLOPPY.ST3.ErrorSignature = 0; //No errors here!
+}
+
 OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
 {
 	byte pending_size; //Our currently pending size to use!
@@ -468,6 +494,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
 			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current heads!
 			memset(FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
+			updateST3(0); //Update ST3 only!
 			FLOPPY.TC = 0; //Disable TC identifier!
 			if (!FLOPPY.Locked) //Are we not locked? Perform stuff that's not locked during reset!
 			{
@@ -596,11 +623,6 @@ OPTINLINE void clearDiskChanged()
 	FLOPPY.diskchanged[3] = 0; //Reset!
 }
 
-OPTINLINE void updateFloppyTrack0()
-{
-	FLOPPY.ST3.Track0 = (FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] == 0); //Are we at track 0?
-}
-
 OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 {
 	FLOPPY.ST1.data = (FLOPPY.ST1.data&~2); //Default: not write protected!
@@ -632,10 +654,11 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 				{
 					FLOPPY.currentcylinder[floppy] = 0; //Reset track number!
 				}
+				updateST3(floppy); //Update ST3 only!
 			}
 		}
 	}
-
+	
 	FLOPPY.ST0.CurrentHead = FLOPPY.currenthead[floppy]; //Our idea of the current head!
 
 	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
@@ -721,7 +744,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 
 	FLOPPY.ST0.UnitSelect = FLOPPY.DOR.DriveNumber; //Current unit!
 	FLOPPY.ST0.CurrentHead = (FLOPPY.commandbuffer[2] & 1); //Current head!
-	FLOPPY.ST0.NotReady = 1; //We're not ready yet!
+	FLOPPY.ST0.NotReady = 0; //We're not ready yet!
 	FLOPPY.ST0.UnitCheck = FLOPPY.ST0.SeekEnd = FLOPPY.ST0.InterruptCode = 0; //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber) || !FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //We don't support the rate or geometry?
@@ -926,7 +949,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 
 	FLOPPY.ST0.UnitSelect = FLOPPY.DOR.DriveNumber; //Current unit!
 	FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[FLOPPY.DOR.DriveNumber] & 1); //Current head!
-	FLOPPY.ST0.NotReady = 1; //We're not ready yet!
+	FLOPPY.ST0.NotReady = 0; //We're not ready yet!
 	FLOPPY.ST0.UnitCheck = FLOPPY.ST0.SeekEnd = FLOPPY.ST0.InterruptCode = 0; //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!(FLOPPY.DOR.MotorControl&(1 << FLOPPY.DOR.DriveNumber))) //Not motor ON?
@@ -1127,31 +1150,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 	}
 }
 
-OPTINLINE void updateST3()
-{
-	updateFloppyTrack0(); //Update track 0 bit!
-	if (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Valid drive?
-	{
-		FLOPPY.ST3.DoubleSided = (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]->sides==2)?1:0; //Are we double sided?
-	}
-	else //Apply default disk!
-	{
-		FLOPPY.ST3.DoubleSided = 1; //Are we double sided?
-	}
-	FLOPPY.ST3.Head1Active = FLOPPY.currenthead[FLOPPY.DOR.DriveNumber]; //Is head 1 active?
-	FLOPPY.ST3.DriveSelect = FLOPPY.DOR.DriveNumber; //Our selected drive!
-	FLOPPY.ST3.DriveReady = 1; //We're always ready!
-	if (FLOPPY.DOR.DriveNumber<2) //Valid drive number?
-	{
-		FLOPPY.ST3.WriteProtection = drivereadonly(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0); //Read-only drive and tried to write?
-	}
-	else
-	{
-		FLOPPY.ST3.WriteProtection = 0; //Drive unsupported? No write protection!
-	}
-	FLOPPY.ST3.ErrorSignature = 0; //No errors here!
-}
-
 OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
@@ -1168,12 +1166,14 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[4]; //Current sector!
+			updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
 			floppy_writesector(); //Start writing a sector!
 			break;
 		case READ_DATA: //Read sector
 			FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[4]; //Current sector!
+			updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
 			floppy_readsector(); //Start reading a sector!
 			break;
 		case SPECIFY: //Fix drive data/specify command
@@ -1188,6 +1188,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
 			FLOPPY.ST0.data = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
+			updateST3(FLOPPY.commandbuffer[1]); //Update ST3 only!
 			/*if (!is_mounted(FLOPPY.commandbuffer[1] ? FLOPPY1 : FLOPPY0)) //Media inserted?
 			{
 				FLOPPY.ST0.data |= 0x10; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
@@ -1256,17 +1257,19 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
 				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x20 | FLOPPY.DOR.DriveNumber; //Valid command!
+				updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Give an error!
 			}
 
 			//Invalid track?
-			FLOPPY.ST2.data |= 0x4; //Invalid seek!
+			FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x00 | FLOPPY.DOR.DriveNumber; //Valid command! Just don't report completion(invalid track to seek to)!
+			FLOPPY.ST2.data = 0x00; //Nothing to report! We're not completed!
 			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
-			updateST3(); //Update ST3 only!
+			updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
@@ -1296,7 +1299,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY.ST1.data = 0x00; //Clear ST1!
 				FLOPPY.ST2.data = 0x00; //Clear ST2!
-				updateFloppyTrack0(); //Update track 0!
+				updateST3(FLOPPY.DOR.DriveNumber); //Update track 0!
 				updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Update write protected related flags!
 				if (FLOPPY.geometries[FLOPPY.DOR.DriveNumber]) //Valid geometry?
 				{
@@ -1403,7 +1406,7 @@ OPTINLINE void floppy_abnormalpolling()
 {
 	FLOPPY_LOGD("FLOPPY: Abnormal termination because of abnormal polling!")
 	FLOPPY.ST0.InterruptCode = 3; //Abnormal termination by polling!
-	FLOPPY.ST0.NotReady = 1; //We became not ready!
+	FLOPPY.ST0.NotReady = 0; //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
 }
 
