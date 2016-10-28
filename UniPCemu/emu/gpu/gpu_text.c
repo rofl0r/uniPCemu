@@ -30,25 +30,6 @@ word TEXT_ydelta = 0; //Delta x,y!
 double render_xfactor=1.0, render_yfactor=1.0; //X and Y factor during rendering!
 double render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
 
-OPTINLINE void GPU_textcalcpixel(word *x, word *y, word *charx, word *chary, word rx, word ry)
-{
-	INLINEREGISTER word rx1, rx2, ry1, ry2;
-	rx1 = rx2 = rx;
-	ry1 = ry2 = ry;
-
-	//Calculate the loaded positions to 8x8 pixel characters!
-	rx1 >>= 3;
-	ry1 >>= 3; //Shift to the character!
-	rx2 &= 7;
-	ry2 &= 7; //Within this character!
-	//Apply the locations!
-
-	*charx = rx1; //Set!
-	*chary = ry1; //Set!
-	*x = rx2;
-	*y = ry2;
-}
-
 OPTINLINE static byte reverse8(INLINEREGISTER byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
 	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
@@ -70,7 +51,7 @@ OPTINLINE static byte getcharxy_8(byte character, word y) //Retrieve a character
 	{
 		if (character!=0x20) //Not space, which is also empty?
 		{
-			//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
+			//Don't do range checks, we're always within range!
 			location = 0x8000|(character << 3)|y; //The location to look up!
 
 			if (location!=lastcharinfo) //Last row not yet loaded?
@@ -99,19 +80,12 @@ OPTINLINE static uint_32 GPU_textgetcolor(GPU_TEXTSURFACE *surface, int x, int y
 {
 	if (allcleared) return 0; //Abort when all is cleared!
 	if ((x<0) || (y<0) || (x >= GPU_TEXTPIXELSX) || (y >= GPU_TEXTPIXELSY)) return TRANSPARENTPIXEL; //Invalid=Transparant!
-	word tx, ty;
-	word charx=0, chary=0;
-	GPU_textcalcpixel(&tx, &ty, &charx, &chary,x,y); //Calculate our info!
-	return border ? surface->border[chary][charx] : surface->font[chary][charx]; //Give the border or font of the character!
+	return border ? surface->border[y>>3][x>>3] : surface->font[y>>3][x>>3]; //Give the border or font of the character!
 }
 
-OPTINLINE static byte GPU_textget_pixel(GPU_TEXTSURFACE *surface, int x, int y) //Get direct pixel from handler (overflow handled)!
-{
-	word tx, ty;
-	word charx, chary;
-	GPU_textcalcpixel(&tx, &ty, &charx, &chary, x, y); //Calculate our info!
-	return surface->fontpixels[(chary<<3)|ty][(charx<<3)|tx]; //Give the pixel of the character!
-}
+//Get direct pixel from handler (overflow handled)!
+#define GPU_textget_pixel(surface,x,y) surface->fontpixels[(y<<9)|x]
+#define GPU_textget_pixelrowptr(surface,y) &surface->fontpixels[y<<9]
 
 OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 {
@@ -316,7 +290,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 
 		//First phase: get all pixels font, by walking through the text!
 		x = y = 0; //Init coordinates!
-		xfont = &tsurface->fontpixels[0][0]; //The font pixels to use! as output!
+		xfont = &tsurface->fontpixels[0]; //The font pixels to use! as output!
 		xchar = &tsurface->text[0][0]; //The font pixels to use! as output!
 
 		do //Process all rows!
@@ -344,7 +318,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			{
 				x = 0; //Reset horizontal coordinate!
 				++y; //Goto Next row!
-				xfont = &tsurface->fontpixels[y][0]; //Next row loaded!
+				xfont = GPU_textget_pixelrowptr(tsurface,y); //Next row loaded!
 				xchar = &tsurface->text[y>>3][0]; //Next row loaded!
 			}
 		} while (y != GPU_TEXTPIXELSY); //Stop searching now!	

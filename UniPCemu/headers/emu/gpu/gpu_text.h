@@ -38,7 +38,7 @@ uint_32 clickable[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface
 
 //Dirty flags and rendered data (internal).
 uint_32 notdirty[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //This is non-dirty, so use this then!
-byte fontpixels[GPU_TEXTPIXELSY][GPU_TEXTPIXELSX]; //Font pixels when set(1), else 0!
+byte fontpixels[GPU_TEXTPIXELSY*512]; //Font pixels when set(1), else 0! Aligned to a power of 2 for speedup!
 byte clickablefinger[GPU_TEXTSURFACE_HEIGHT][GPU_TEXTSURFACE_WIDTH]; //Text surface click status for the used finger for this!
 
 //List for checking for borders, set by allocator!
