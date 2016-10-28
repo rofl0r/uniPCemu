@@ -343,9 +343,10 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (check_surface(rendersurface)) //Valid to render to?
 	{
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
+		color = *renderpixel; //Init color to draw!
 		do //Process all rows!
 		{
-			if ((color = *renderpixel) != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
+			if (color != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
 			{
 				fx = sx; //x converted to destination factor!
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -375,6 +376,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					}
 					renderpixel = &tsurface->notdirty[y][0]; //Start with the first pixel in our (new) row!
 				}
+				color = *renderpixel; //Apply the new pixel to render!
 			}
 		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
 	}
