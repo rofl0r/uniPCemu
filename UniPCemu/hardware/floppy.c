@@ -57,7 +57,7 @@ struct
 		{
 			byte DriveNumber : 2; //What drive to address?
 			byte REST : 1; //Enable controller when set!
-			byte DMA : 1; //0=IRQ channel, 1=DMA mode
+			byte DMA_IRQ : 1; //0=IRQ channel(Disable IRQ), 1=DMA mode(Enable IRQ)
 			byte MotorControl : 4; //All drive motor statuses!
 		};
 		byte data; //DOR data!
@@ -407,7 +407,7 @@ void FLOPPY_notifyDiskChanged(int disk)
 OPTINLINE void FLOPPY_raiseIRQ() //Execute an IRQ!
 {
 	FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
-	raiseirq(FLOPPY_IRQ); //Execute the IRQ!
+	if (FLOPPY.DOR.DMA_IRQ) raiseirq(FLOPPY_IRQ); //Execute the IRQ when enabled!
 }
 
 OPTINLINE void FLOPPY_lowerIRQ()
@@ -419,7 +419,7 @@ OPTINLINE void FLOPPY_lowerIRQ()
 
 OPTINLINE byte FLOPPY_useDMA()
 {
-	return (FLOPPY.DOR.DMA && (!FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM)); //Are we using DMA?
+	return (FLOPPY.DOR.DMA_IRQ && (FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM==0)); //Are we using DMA?
 }
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
@@ -481,7 +481,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			}
 			FLOPPY.DOR.MotorControl = 0; //Reset motors!
 			FLOPPY.DOR.DriveNumber = 0; //Reset drives!
-			FLOPPY.DOR.DMA = 0; //IRQ channel!
+			FLOPPY.DOR.DMA_IRQ = 0; //IRQ channel!
 			FLOPPY.MSR.data = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
@@ -496,7 +496,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			memset(FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
 			updateST3(0); //Update ST3 only!
 			FLOPPY.TC = 0; //Disable TC identifier!
-			if (!FLOPPY.Locked) //Are we not locked? Perform stuff that's not locked during reset!
+			if (FLOPPY.Locked==0) //Are we not locked? Perform stuff that's not locked during reset!
 			{
 				FLOPPY.Configuration.Threshold = 0; //Reset threshold!
 				FLOPPY.Configuration.FIFODisable = 1; //Disable the FIFO!
