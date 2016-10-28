@@ -1159,7 +1159,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	FLOPPY.TC = 0; //Reset TC flag!
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
-	if (FLOPPY.DOR.DriveNumber & 2) goto invaliddrive;
 	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	updateFloppyGeometries(FLOPPY.DOR.DriveNumber, FLOPPY.currenthead[FLOPPY.DOR.DriveNumber], FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber]); //Update the floppy geometries!
 	switch (FLOPPY.commandbuffer[0]) //What command!
@@ -1191,10 +1190,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
 			FLOPPY.ST0.data = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
 			updateST3(FLOPPY.commandbuffer[1]); //Update ST3 only!
-			/*if (!is_mounted(FLOPPY.commandbuffer[1] ? FLOPPY1 : FLOPPY0)) //Media inserted?
+			if (((FLOPPY.DOR.MotorControl&(1<<(FLOPPY.commandbuffer[1]&3)))==0) || ((FLOPPY.commandbuffer[1]&3)>1)) //Motor not on or invalid drive?
 			{
-				FLOPPY.ST0.data |= 0x10; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
-			}*/ //We always report success!
+				FLOPPY.ST0.data |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
+			} //We always report success!
 			updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
 			FLOPPY_raiseIRQ(); //We're finished!
@@ -1240,32 +1239,32 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			updateFloppyWriteProtected(0,FLOPPY.DOR.DriveNumber); //Try to read with(out) protection!
 			if ((FLOPPY.DOR.DriveNumber >= 2) || (FLOPPY.DOR.DriveNumber!=(FLOPPY.commandbuffer[1]&3))) //Invalid drive specified?
 			{
-				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x32) | 0x14 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
-				FLOPPY.commandstep = 0; //Reset command!
-				clearDiskChanged(); //Clear the disk changed flag for the new command!
-				return; //Abort!
+				goto invalidtrackseek; //Error out!
 			}
 			if (!is_mounted(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
 			{
-				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x18 | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
+				FLOPPY.ST0.data = 0x20 | (FLOPPY.currenthead[FLOPPY.DOR.DriveNumber]<<2) | FLOPPY.DOR.DriveNumber; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
+				FLOPPY_raiseIRQ(); //Finished executing phase!
 				return; //Abort!
 			}
 			if (FLOPPY.commandbuffer[2] < floppy_tracks(disksize(FLOPPY.DOR.DriveNumber ? FLOPPY1 : FLOPPY0))) //Valid track?
 			{
 				FLOPPY.currentcylinder[FLOPPY.DOR.DriveNumber] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
-				FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x20 | FLOPPY.DOR.DriveNumber; //Valid command!
+				FLOPPY.ST0.data = 0x20 | (FLOPPY.currenthead[FLOPPY.DOR.DriveNumber]<<2) | FLOPPY.DOR.DriveNumber; //Valid command!
 				updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				return; //Give an error!
 			}
 
+			invalidtrackseek:
 			//Invalid track?
 			FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x00 | FLOPPY.DOR.DriveNumber; //Valid command! Just don't report completion(invalid track to seek to)!
 			FLOPPY.ST2.data = 0x00; //Nothing to report! We're not completed!
 			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
+			FLOPPY_raiseIRQ(); //Finished executing phase!
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
 			updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
@@ -1394,7 +1393,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case READ_TRACK: //Read complete track!
 		case WRITE_DELETED_DATA: //Write deleted sector
 		case READ_DELETED_DATA: //Read deleted sector
-			invaliddrive: //Invalid drive detected?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0.data = 0x40; //Invalid command!
 			break;
