@@ -124,13 +124,13 @@ struct
 		byte data; //ST1 register!
 		struct
 		{
-			byte EndOfCylinder : 1;
-			byte Always0 : 1;
-			byte DataError : 1;
-			byte TimeOut : 1;
-			byte NoData : 1;
-			byte NotWritableDuringWriteCommand : 1;
 			byte NoAddressMark : 1;
+			byte NotWritableDuringWriteCommand : 1;
+			byte NoData : 1;
+			byte TimeOut : 1;
+			byte DataError : 1;
+			byte Always0 : 1;
+			byte EndOfCylinder : 1;
 		};
 	} ST1;
 	union
@@ -138,14 +138,14 @@ struct
 		byte data; //ST2 register!
 		struct
 		{
-			byte unused : 1;
-			byte DeletedAddressMark : 1;
-			byte CRCError : 1;
-			byte WrongCyclinder : 1;
-			byte SeekEqual : 1;
-			byte SeekError : 1;
-			byte BadCyclinder : 1;
 			byte NoDataAddressMarkDAM : 1;
+			byte BadCyclinder : 1;
+			byte SeekError : 1;
+			byte SeekEqual : 1;
+			byte WrongCyclinder : 1;
+			byte CRCError : 1;
+			byte DeletedAddressMark : 1;
+			byte unused : 1;
 		};
 	} ST2;
 	union
@@ -153,13 +153,13 @@ struct
 		byte data; //ST3 register!
 		struct
 		{
-			byte ErrorSignature : 1;
-			byte WriteProtection : 1;
-			byte DriveReady : 1;
-			byte Track0 : 1;
-			byte DoubleSided : 1;
-			byte Head1Active : 1;
 			byte DriveSelect : 2;
+			byte Head1Active : 1;
+			byte DoubleSided : 1;
+			byte Track0 : 1;
+			byte DriveReady : 1;
+			byte WriteProtection : 1;
+			byte ErrorSignature : 1;
 		};
 	} ST3;
 	union
@@ -440,6 +440,7 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 
 OPTINLINE void updateST3(byte drivenumber)
 {
+	FLOPPY.ST3.data |= 0x28; //Always set according to Bochs!
 	FLOPPY.ST3.Track0 = (FLOPPY.currentcylinder[drivenumber] == 0); //Are we at track 0?
 
 	if (FLOPPY.geometries[drivenumber]) //Valid drive?
@@ -1271,6 +1272,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
+			FLOPPY_raiseIRQ(); //Raise an IRQ!
 			break;
 		case READ_ID: //Read sector ID
 			if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
