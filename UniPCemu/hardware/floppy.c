@@ -1268,7 +1268,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY_raiseIRQ(); //Finished executing phase!
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
-			updateST3(FLOPPY.DOR.DriveNumber); //Update ST3 only!
+			FLOPPY.currenthead[FLOPPY.commandbuffer[1]&3] = (FLOPPY.commandbuffer[1]&4)>>2; //Set the new head from the parameters!
+			updateST3(FLOPPY.commandbuffer[1]&3); //Update ST3 only!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
