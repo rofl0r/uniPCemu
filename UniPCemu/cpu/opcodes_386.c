@@ -54,11 +54,11 @@ extern uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
 extern byte debuggerINT; //Interrupt special trigger?
 
 //Prototypes for GRP code extensions!
-void op_grp3_32(); //Prototype!
-uint_32 op_grp2_32(byte cnt, byte varshift); //Prototype!
-void op_grp5_32(); //Prototype
+void op386_grp3_32(); //Prototype!
+uint_32 op386_grp2_32(byte cnt, byte varshift); //Prototype!
+void op386_grp5_32(); //Prototype
 
-OPTINLINE void INTdebugger8086() //Special INTerrupt debugger!
+OPTINLINE void INTdebugger80386() //Special INTerrupt debugger!
 {
 	if (DEBUGGER_LOG==DEBUGGERLOG_INT) //Interrupts only?
 	{
@@ -1723,7 +1723,7 @@ void CPU80386_OPC7() {uint_32 val = imm32; modrm_debugger32(&params,0,1); debugg
 void CPU80386_OPCA() {INLINEREGISTER int_32 popbytes = imm32();/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
 void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
 void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ CPU80386_INTERNAL_int(EXCEPTION_CPUBREAKPOINT,1);/*INT 3*/ }
-void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger8086(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU80386_INTERNAL_int(theimm,0);/*INT imm8*/ }
+void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU80386_INTERNAL_int(theimm,0);/*INT imm8*/ }
 void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ CPU80386_internal_INTO();/*INTO*/ }
 void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
 void CPU80386_OPD4() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAM",0,theimm,PARAM_IMM8);/*AAM*/ CPU80386_internal_AAM(theimm);/*AAM*/ }
@@ -1973,7 +1973,7 @@ void CPU80386_OPD1() //GRP2 Ev,1
 			break;
 		}
 	}
-	modrm_write32(&params,1,op_grp2_32(1,0));
+	modrm_write32(&params,1,op386_grp2_32(1,0));
 }
 
 void CPU80386_OPD3() //GRP2 Ev,CL
@@ -2015,7 +2015,7 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 			break;
 		}
 	}
-	modrm_write32(&params,1,op_grp2_32(REG_CL,1));
+	modrm_write32(&params,1,op386_grp2_32(REG_CL,1));
 }
 
 void CPU80386_OPF7() //GRP3b Ev
@@ -2058,7 +2058,7 @@ void CPU80386_OPF7() //GRP3b Ev
 			break;
 		}
 	}
-	op_grp3_32();
+	op386_grp3_32();
 	if ((thereg>1) && (thereg<4)) //NOT/NEG?
 	{
 		modrm_write32(&params,1,res32);
@@ -2113,7 +2113,7 @@ void CPU80386_OPFF() //GRP5 Ev
 			break;
 		}
 	}
-	op_grp5_32();
+	op386_grp5_32();
 }
 
 /*
@@ -2132,7 +2132,7 @@ void unkOP_80386() //Unknown opcode on 8086?
 
 //Now, the GRP opcodes!
 
-OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
+OPTINLINE void op386_grp2_cycles(byte cnt, byte varshift)
 {
 	switch (varshift) //What type of shift are we using?
 	{
@@ -2169,7 +2169,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 	}
 }
 
-uint_32 op_grp2_32(byte cnt, byte varshift) {
+uint_32 op386_grp2_32(byte cnt, byte varshift) {
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1d); //NEC V20/V30+ limits shift count
@@ -2252,7 +2252,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		}
 		break;
 	}
-	op_grp2_cycles(cnt, varshift|4);
+	op386_grp2_cycles(cnt, varshift|4);
 	return(s & 0xFFFF);
 }
 
@@ -2334,7 +2334,7 @@ OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor) {
 							  //regs.wordregs[regdx] = temp3;
 }
 
-void op_grp3_32() {
+void op386_grp3_32() {
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1d = signext(oper1b); oper2d = signext(oper2b);
@@ -2417,7 +2417,7 @@ void op_grp3_32() {
 	}
 }
 
-void op_grp5_32() {
+void op386_grp5_32() {
 	MODRM_PTR info; //To contain the info!
 	INLINEREGISTER byte tempCF;
 	word destCS;
