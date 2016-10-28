@@ -1273,7 +1273,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
-			FLOPPY_raiseIRQ(); //Raise an IRQ!
 			break;
 		case READ_ID: //Read sector ID
 			if (!FLOPPY_supportsrate(FLOPPY.DOR.DriveNumber)) //We don't support the rate?
