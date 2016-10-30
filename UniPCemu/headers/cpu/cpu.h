@@ -818,23 +818,7 @@ typedef struct PACKED
 #define F_NT F_NESTEDTASK
 #define F_RF F_RESUME
 
-
-
-
-
-
-
-
-
-
-
-
-
 //Now other structs we need:
-
-
-
-
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
@@ -851,26 +835,6 @@ typedef struct PACKED
 } wordsplitter; //Splits word in two bytes!
 #include "headers/endpacked.h" //End of packed type!
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
 {
@@ -885,7 +849,6 @@ typedef struct PACKED
 	};
 } dwordsplitter; //Splits dword (32 bits) in two words!
 #include "headers/endpacked.h" //End of packed type!
-
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
