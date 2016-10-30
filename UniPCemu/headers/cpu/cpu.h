@@ -473,41 +473,41 @@ AVL: available to the programmer:
 #define FLAGREGR_UNMAPPEDHI(registers) (registers->EFLAGS>>22)&0x3FF
 
 //Write versions
-#define FLAGREGW_CF(registers,val) ((registers->FLAGS&~F_CF)|(val&1))
+#define FLAGREGW_CF(registers,val) registers->FLAGS=((registers->FLAGS&~F_CF)|(val&1))
 //Unused. Value 1
-#define FLAGREGW_UNMAPPED2(registers,val) (((registers->FLAGS&~2)|((val&1)<<1)))
-#define FLAGREGW_PF(registers,val) (((registers->FLAGS&~4)|((val&1)<<2)))
+#define FLAGREGW_UNMAPPED2(registers,val) registers->FLAGS=(((registers->FLAGS&~2)|((val&1)<<1)))
+#define FLAGREGW_PF(registers,val) registers->FLAGS=(((registers->FLAGS&~4)|((val&1)<<2)))
 //Unused. Value 0
-#define FLAGREGW_UNMAPPED8(registers,val) (((registers->FLAGS&~8)|((val&1)<<3)))
-#define FLAGREGW_AF(registers,val) (((registers->FLAGS&~0x10)|((val&1)<<4)))
+#define FLAGREGW_UNMAPPED8(registers,val) registers->FLAGS=(((registers->FLAGS&~8)|((val&1)<<3)))
+#define FLAGREGW_AF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x10)|((val&1)<<4)))
 //Unused. Value 1 on 186-, 0 on later models.
-#define FLAGREGW_UNMAPPED32768(registers,val) (((registers->FLAGS&~0x8000)|((val&1)<<15)))
+#define FLAGREGW_UNMAPPED32768(registers,val) registers->FLAGS=(((registers->FLAGS&~0x8000)|((val&1)<<15)))
 //Unused. Value 0
-#define FLAGREGW_UNMAPPED32(registers,val) (((registers->FLAGS&~0x20)|((val&1)<<5)))
-#define FLAGREGW_ZF(registers,val) (((registers->FLAGS&~0x40)|((val&1)<<6)))
-#define FLAGREGW_SF(registers,val) (((registers->FLAGS&~0x80)|((val&1)<<7)))
-#define FLAGREGW_TF(registers,val) (((registers->FLAGS&~0x100)|((val&1)<<8)))
-#define FLAGREGW_IF(registers,val) (((registers->FLAGS&~0x200)|((val&1)<<9)))
-#define FLAGREGW_DF(registers,val) (((registers->FLAGS&~0x400)|((val&1)<<10)))
-#define FLAGREGW_OF(registers,val) (((registers->FLAGS&~0x800)|((val&1)<<11)))
+#define FLAGREGW_UNMAPPED32(registers,val) registers->FLAGS=(((registers->FLAGS&~0x20)|((val&1)<<5)))
+#define FLAGREGW_ZF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x40)|((val&1)<<6)))
+#define FLAGREGW_SF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x80)|((val&1)<<7)))
+#define FLAGREGW_TF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x100)|((val&1)<<8)))
+#define FLAGREGW_IF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x200)|((val&1)<<9)))
+#define FLAGREGW_DF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x400)|((val&1)<<10)))
+#define FLAGREGW_OF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x800)|((val&1)<<11)))
 //Always 1 on 186-
-#define FLAGREGW_IOPL(registers,val) (((registers->FLAGS&~0x3000)|((val&3)<<12)))
+#define FLAGREGW_IOPL(registers,val) registers->FLAGS=(((registers->FLAGS&~0x3000)|((val&3)<<12)))
 //Always 1 on 186-
-#define FLAGREGW_NT(registers,val) (((registers->FLAGS&~0x4000)|((val&1)<<14)))
+#define FLAGREGW_NT(registers,val) registers->FLAGS=(((registers->FLAGS&~0x4000)|((val&1)<<14)))
 //High nibble
 //Resume flag. 386+
-#define FLAGREGW_RF(registers,val) (((registers->EFLAGS&~0x10000)|((val&1)<<16)))
+#define FLAGREGW_RF(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x10000)|((val&1)<<16)))
 //Virtual 8086 mode flag (386+ only)
-#define FLAGREGW_V8(registers,val) (((registers->EFLAGS&~0x20000)|((val&1)<<17)))
+#define FLAGREGW_V8(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x20000)|((val&1)<<17)))
 //Alignment check (486SX+ only)
-#define FLAGREGW_AC(registers,val) (((registers->EFLAGS&~0x40000)|((val&1)<<18)))
+#define FLAGREGW_AC(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x40000)|((val&1)<<18)))
 //Virtual interrupt flag (Pentium+)
-#define FLAGREGW_VIF(registers,val) (((registers->EFLAGS&~0x80000)|((val&1)<<19)))
+#define FLAGREGW_VIF(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x80000)|((val&1)<<19)))
 //Virtual interrupt pending (Pentium+)
-#define FLAGREGW_VIP(registers,val) (((registers->EFLAGS&~0x100000)|((val&1)<<20)))
+#define FLAGREGW_VIP(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x100000)|((val&1)<<20)))
 //Able to use CPUID function (Pentium+)
-#define FLAGREGW_ID(registers,val) (((registers->EFLAGS&~0x200000)|((val&1)<<21)))
-#define FLAGREGW_UNMAPPEDHI(registers,val) ((registers->EFLAGS&0x3FFFFF)|((val&0x3FF)<<22))
+#define FLAGREGW_ID(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x200000)|((val&1)<<21)))
+#define FLAGREGW_UNMAPPEDHI(registers,val) registers->EFLAGS=((registers->EFLAGS&0x3FFFFF)|((val&0x3FF)<<22))
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
