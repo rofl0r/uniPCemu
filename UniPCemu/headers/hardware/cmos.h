@@ -20,32 +20,9 @@ typedef struct
 
 			//On-chip status information:
 
-			union
-			{
-				byte value;
-				struct
-				{
-					byte IntRateSelection : 4; //Rate selection bits for interrupt: 0:None;3:122ms(minimum);16:500ms;6:1024Hz(default).
-					byte Data_22StageDivider : 3; //2=32768 Time base (default)
-					byte UpdateInProgress : 1; //Time update in progress, data outputs undefined (read-only)
-				};
-			} STATUSREGISTERA; //CMOS 0Ah
+			byte STATUSREGISTERA; //CMOS 0Ah
 
-			union
-			{
-				byte value;
-				struct
-				{
-					byte DSTEnable : 1; //DST Enabled?
-					byte Enable24HourMode : 1; //24 hour mode enabled?
-					byte DataModeBinary : 1; //1=Binary, 0=BCD
-					byte EnableSquareWaveOutput : 1; //1=Enabled
-					byte EnabledUpdateEndedInterrupt : 1;
-					byte EnableAlarmInterrupt : 1;
-					byte EnablePeriodicInterrupt : 1;
-					byte EnableCycleUpdate : 1;
-				};
-			} STATUSREGISTERB;
+			byte STATUSREGISTERB;
 
 			byte ToDo[116]; //Still todo!
 		} info;
@@ -57,6 +34,28 @@ typedef struct
 	byte s10000; //Extra support for 10000th seconds!
 	byte extraRAMdata[8]; //Extra RAM data from XT RTC(UM82C8167), for 56 bits of extra RAM!
 } CMOSDATA;
+
+//SRA
+//Rate selection bits for interrupt: 0:None;3:122ms(minimum);16:500ms;6:1024Hz(default).
+#define SRA_IntRateSelection(SRA) (SRA&0xF)
+//2=32768 Time base (default)
+#define SRA_DATA_22STAGEDIVIDER(SRA) (SRA>>4&7)
+//Time update in progress, data outputs undefined (read-only)
+#define SRA_UPDATEINPROGRESS 0x80
+
+//SRB
+//DST Enabled?
+#define SRB_DSTENABLE 1
+//24 hour mode enabled?
+#define SRB_ENABLE24HOURMODE 2
+//1=Binary, 0=BCD
+#define SRB_DATAMODEBINARY 4
+//1=Enabled
+#define SRB_ENABLESQUAREWAVEOUTPUT 8
+#define SRB_ENABLEUPDATEENDEDINTERRUPT 0x10
+#define SRB_ENABLEALARMINTERRUPT 0x20
+#define SRB_ENABLEPERIODICINTERRUPT 0x40
+#define SRB_ENABLECYCLEUPDATE 0x80
 
 void initCMOS(); //Initialises CMOS (apply solid init settings&read init if possible)!
 void saveCMOS(); //Saves the CMOS, if any!

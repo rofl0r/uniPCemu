@@ -146,7 +146,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 	++CMOS.currentRate; //Increase the input divider to the next stage(22-bit divider at 64kHz(32kHz square wave))!
 	bitstoggled = CMOS.currentRate^oldrate; //What bits have been toggled!
 
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnablePeriodicInterrupt) //Enabled?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEPERIODICINTERRUPT) //Enabled?
 	{
 		if (bitstoggled&(CMOS.RateDivider<<1)) //Overflow on Rate(divided by 2 for our rate, since it's square wave signal converted to Hz)?
 		{
@@ -154,7 +154,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableSquareWaveOutput) //Square Wave generator enabled?
+	if (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLESQUAREWAVEOUTPUT) //Square Wave generator enabled?
 	{
 		if (bitstoggled&CMOS.RateDivider) //Overflow on Rate? We're generating a square wave at the specified frequency!
 		{
@@ -163,7 +163,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnabledUpdateEndedInterrupt && (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate == 0) && (CMOS.UpdatingInterruptSquareWave == 0)) //Enabled and updated?
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEUPDATEENDEDINTERRUPT) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE) == 0) && (CMOS.UpdatingInterruptSquareWave == 0)) //Enabled and updated?
 	{
 		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
 		{
@@ -176,7 +176,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 			((CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) || ((CMOS.DATA.DATA80.info.RTC_MinuteAlarm & 0xC0) == 0xC0)) && //Minute set or ignored?
 			((CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) || ((CMOS.DATA.DATA80.info.RTC_SecondAlarm & 0xC0) == 0xC0)) && //Second set or ignored?
 			(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed and check for alarm?
-			(CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableAlarmInterrupt)) //Alarm enabled?
+			(CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEALARMINTERRUPT)) //Alarm enabled?
 	{
 		RTC_AlarmInterrupt(); //Handle the alarm!
 	}
@@ -413,7 +413,7 @@ OPTINLINE void RTC_updateDateTime()
 	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
 	if (CMOS.UpdatingInterruptSquareWave==0) //Toggled twice? Update us!
 	{
-		if (CMOS.DATA.DATA80.info.STATUSREGISTERB.EnableCycleUpdate==0) //We're allowed to update the time?
+		if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) //We're allowed to update the time?
 		{
 			if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
 			{
@@ -564,11 +564,11 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			//Enable all interrupts for RTC again?
 			lowerirq(8); //Lower the IRQ, if raised!
 			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
-			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB.value&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
+			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
 			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
 		CMOS.ADDR = 0xD; //Reset address!
-		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary && (CMOS.ADDR<0xA)) //To convert to binary?
+		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert to binary?
 		{
 			data = decodeBCD8(data); //Decode the BCD data!
 		}
@@ -640,7 +640,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
-		if ((isXT==0) && CMOS.DATA.DATA80.info.STATUSREGISTERB.DataModeBinary && (CMOS.ADDR<0xA)) //To convert from binary?
+		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert from binary?
 		{
 			value = encodeBCD8(value); //Encode the binary data!
 		}
