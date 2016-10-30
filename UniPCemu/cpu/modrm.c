@@ -764,12 +764,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			if (curreg==1) //SIB?
 			{
 				//SIB
-				index = modrm_SIB_reg(params->SIB.index,MOD_MEM,unsigned2signed32(params->displacement.dword),0,&indexstr[0]);
-				base = modrm_SIB_reg(params->SIB.base,MOD_MEM,unsigned2signed32(params->displacement.dword),1,&basestr[0]);
+				index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM,unsigned2signed32(params->displacement.dword),0,&indexstr[0]);
+				base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM,unsigned2signed32(params->displacement.dword),1,&basestr[0]);
 
-				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
+				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = index*(1<<params->SIB.scale)+base;
+				result->mem_offset = (index*(1<<SIB_SCALE(params->SIB)))+base;
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return; //Give addr!
@@ -849,12 +849,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		case MODRM_MEM_SIB: //SIB/ESP?
 			if (curreg==1) //SIB?
 			{
-				index = modrm_SIB_reg(params->SIB.index,MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),0,indexstr);
-				base = modrm_SIB_reg(params->SIB.base,MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),1,basestr);
+				index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),0,indexstr);
+				base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),1,basestr);
 
-				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
+				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-				result->mem_offset = index*(1<<params->SIB.scale)+base;
+				result->mem_offset = index*(1<<SIB_SCALE(params->SIB))+base;
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return;
@@ -939,12 +939,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_SIB: //SIB/ESP?
 				if (curreg==1) //SIB?
 				{
-					index = modrm_SIB_reg(params->SIB.index,MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),0,indexstr);
-					base = modrm_SIB_reg(params->SIB.base,MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),1,basestr);
+					index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),0,indexstr);
+					base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),1,basestr);
 
-					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
+					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-					result->mem_offset = index*(1<<params->SIB.scale)+base;
+					result->mem_offset = index*(1<<SIB_SCALE(params->SIB))+base;
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 					return;
@@ -1029,12 +1029,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			case MODRM_MEM_SIB: //SIB/ESP?
 				if (curreg==1) //SIB?
 				{
-					index = modrm_SIB_reg(params->SIB.index,MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),0,indexstr);
-					base = modrm_SIB_reg(params->SIB.base,MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),1,basestr);
+					index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),0,indexstr);
+					base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),1,basestr);
 
-					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<params->SIB.scale),basestr); //Give addr!
+					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
-					result->mem_offset = index*(1<<params->SIB.scale)+base;
+					result->mem_offset = index*(1<<SIB_SCALE(params->SIB))+base;
 					result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 					result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 					return;
@@ -1907,7 +1907,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	param->error = 0; //Default: no errors detected during decoding!
 
 	param->modrm = CPU_readOP(); /* modrm byte first */
-	param->SIB.SIB = modrm_useSIB(param,size)?CPU_readOP():0; //Read SIB byte or 0!
+	param->SIB = modrm_useSIB(param,size)?CPU_readOP():0; //Read SIB byte or 0!
 	param->displacement.dword = 0; //Reset DWORD (biggest) value (reset value to 0)!
 
 	switch (modrm_useDisplacement(param,size)) //Displacement?

@@ -374,7 +374,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
-		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0_full&0xFFFF),0); //Store the MSW into the specified location!
+		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
@@ -387,8 +387,8 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		CPU[activeCPU].cycles_OP = 4*16; //Make sure we last long enough for the required JMP to be fully buffered!
 		oper1 = modrm_read16(&params,1); //Read the new register!
 		CPUPROT1
-		oper1 |= CPU[activeCPU].registers->CR0.PE; //Keep the protected mode bit on, this isn't toggable anymore once set!
-		CPU[activeCPU].registers->CR0_full = (CPU[activeCPU].registers->CR0_full&(~0xFFFF))|oper1; //Set the MSW!
+		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
+		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
 		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
 		CPUPROT2
 		break;
@@ -630,7 +630,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
-	CPU[activeCPU].registers->CR0_full = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0_full&1); //MSW! We cannot reenter real mode by clearing bit 0!
+	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0&CR0_PE); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
 	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
 	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
 	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.IP; //IP
@@ -672,7 +672,7 @@ void CPU286_OP0F06() //CLTS
 		THROWDESCGP(0,0,0); //Throw #GP!
 		return; //Abort!
 	}
-	CPU[activeCPU].registers->CR0.TS = 0; //Clear the Task Switched flag!
+	CPU[activeCPU].registers->CR0 &= ~CR0_TS; //Clear the Task Switched flag!
 }
 
 void CPU286_OP0F0B() //#UD instruction
@@ -699,14 +699,14 @@ void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
 void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
 
 
-void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
-void FPU80287_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
-void FPU80287_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0.EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
+void FPU80287_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
 
 void FPU80287_noCOOP() {
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");
-	if ((CPU[activeCPU].registers->CR0.EM) || (CPU[activeCPU].registers->CR0.MP && CPU[activeCPU].registers->CR0.TS)) //To be emulated or task switched?
+	if ((CPU[activeCPU].registers->CR0&CR0_EM) || ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched?
 	{
 		CPU_resetOP();
 		CPU_COOP_notavailable(); //Only on 286+!

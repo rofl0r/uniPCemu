@@ -673,31 +673,10 @@ typedef struct PACKED //The registers!
 			uint_32 CR[8];
 			struct
 			{
-				union
-				{
-					struct
-					{
-						byte PE : 1; //Protected mode enable
-						byte MP : 1; //Math coprocessor present
-						byte EM : 1; //Emulation: math instructions are to be emulated?
-						byte TS : 1; //Task Switched
-						byte ET : 1; //Extension Type: type of coprocessor present, 80286 or 80387
-						uint_32 CR0unk : 26; //Not used!
-						byte PG : 1; //Paging enable
-					} CR0;
-					uint_32 CR0_full;
-				};
+				uint_32 CR0;
 				uint_32 CR1; //Unused!
 				uint_32 CR2; //Page Fault Linear Address
-				union
-				{
-					struct
-					{
-						byte unused : 6; //Unused!
-						uint_32 PageDirectoryBase : 26; //Page directory base register!
-					} CR3;
-					uint_32 CR3_full;
-				};
+				uint_32 CR3;
 				uint_32 unusedCR[4]; //4 unused CRs!
 			}; //CR0-3!
 		}; //CR0-3!
@@ -717,6 +696,21 @@ typedef struct PACKED //The registers!
 	}; //Special registers!
 } CPU_registers; //Registers
 #include "headers/endpacked.h" //End of packed type!
+
+//Protected mode enable
+#define CR0_PE 0x00000001
+//Math coprocessor present
+#define CR0_MP 0x00000002 
+//Emulation: math instructions are to be emulated?
+#define CR0_EM 0x00000004
+//Task Switched
+#define CR0_TS 0x00000008 
+//Extension Type: type of coprocessor present, 80286 or 80387
+#define CR0_ET 0x00000010
+//26 unknown/unspecified bits
+//Bit 31
+//Paging enable
+ #define CR0_PG 0x80000000
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
@@ -925,19 +919,10 @@ typedef struct PACKED
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
-typedef struct PACKED
-{
-	union
-	{
-		byte SIB;
-		struct
-		{
-			byte base:3;
-			byte index:3;
-			byte scale:2;
-		};
-	};
-} SIBType; //SIB byte!
+#define SIB_BASE(SIB) (SIB&7)
+#define SIB_INDEX(SIB) ((SIB>>3)&7)
+#define SIB_SCALE(SIB) ((SIB>>6)&3)
+typedef byte SIBType; //SIB byte!
 #include "headers/endpacked.h" //End of packed type!
 
 #ifndef IS_CPU

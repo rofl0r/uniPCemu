@@ -287,7 +287,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->EBP = TSS32.TSS.EBP;
 		CPU[activeCPU].registers->ESI = TSS32.TSS.ESI;
 		CPU[activeCPU].registers->EDI = TSS32.TSS.EDI;
-		CPU[activeCPU].registers->CR3_full = TSS32.TSS.CR3; //Load the new CR3 register to use the new Paging table!
+		CPU[activeCPU].registers->CR3 = TSS32.TSS.CR3; //Load the new CR3 register to use the new Paging table!
 		CPU[activeCPU].registers->EFLAGS = TSS32.TSS.EFLAGS;
 		LDTsegment = TSS32.TSS.LDT; //LDT used!
 	}
@@ -348,7 +348,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: not an IDT!	
 	}
 
-	CPU[activeCPU].registers->CR0.TS |= 2; //Set the high bit of the TS bit(bit 3)!
+	CPU[activeCPU].registers->CR0 |= CR0_TS; //Set the high bit of the TS bit(bit 3)!
 
 	//Now, load all normal registers in order, keeping aborts possible!
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!

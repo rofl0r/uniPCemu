@@ -508,15 +508,15 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 	if (EMULATED_CPU == CPU_80286) //80286 CPU?
 	{
-		CPU[activeCPU].registers->CR0_full &= 0x7FFF0000; //Clear bit 32 and 4-0!
-		CPU[activeCPU].registers->CR0_full |= 0xFFF0; //The MSW is initialized to FFF0!
+		CPU[activeCPU].registers->CR0 &= 0x7FFF0000; //Clear bit 32 and 4-0!
+		CPU[activeCPU].registers->CR0 |= 0xFFF0; //The MSW is initialized to FFF0!
 	}
 	else //Default or 80386?
 	{
-		CPU[activeCPU].registers->CR0_full &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
+		CPU[activeCPU].registers->CR0 &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
 		if (EMULATED_CPU >= CPU_80386) //Diffent initialization?
 		{
-			CPU[activeCPU].registers->CR0_full &= ~0xFFFF; //The MSW is initialized to 0000!
+			CPU[activeCPU].registers->CR0 &= ~0xFFFF; //The MSW is initialized to 0000!
 		}
 	}
 
@@ -925,7 +925,7 @@ void CPU_resetMode() //Resets the mode!
 	//Always start in REAL mode!
 	if (!CPU[activeCPU].registers) return; //We can't work now!
 	CPU[activeCPU].registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
-	CPU[activeCPU].registers->CR0.PE = 0; //Real mode!
+	CPU[activeCPU].registers->CR0 &= ~CR0_PE; //Real mode!
 	updateCPUmode(); //Update the CPU mode!
 }
 
@@ -942,7 +942,7 @@ void updateCPUmode() //Update the CPU mode!
 	}
 	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
 	mode <<= 1;
-	mode |= CPU[activeCPU].registers->CR0.PE; //Protected mode?
+	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 }
 

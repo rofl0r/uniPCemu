@@ -367,7 +367,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
 		{
-			dolog(filename, "CR0: %04X", (registers->CR0_full&0xFFFF)); //Rest!
+			dolog(filename, "CR0: %04X", (registers->CR0&0xFFFF)); //Rest!
 		}
 		#endif
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -384,7 +384,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
-		dolog(filename, "CR0: %08X; CR1: %08X; CR2: %08X; CR3: %08X", registers->CR0_full, registers->CR1, registers->CR2, registers->CR3_full); //Rest!
+		dolog(filename, "CR0: %08X; CR1: %08X; CR2: %08X; CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
 		dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->unusedCR[0], registers->unusedCR[1], registers->unusedCR[2], registers->unusedCR[3]); //Rest!
 
 		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
@@ -590,7 +590,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			{
 				//Control registers!
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 8, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR0:%04X", (debuggerregisters.CR0_full&0xFFFF)); //Debug CR0!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR0:%04X", (debuggerregisters.CR0&0xFFFF)); //Debug CR0!
 			}
 		}
 		else //386+?
@@ -610,9 +610,9 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 			//Control Registers!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR0:%08X; CR1:%08X", debuggerregisters.CR0_full, debuggerregisters.CR1); //Debug CR0&CR1!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR0:%08X; CR1:%08X", debuggerregisters.CR0, debuggerregisters.CR1); //Debug CR0&CR1!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR2:%08X; CR3:%08X", debuggerregisters.CR2, debuggerregisters.CR3_full); //Debug CR2&CR3!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR2:%08X; CR3:%08X", debuggerregisters.CR2, debuggerregisters.CR3); //Debug CR2&CR3!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR4:%08X; CR5:%08X", debuggerregisters.unusedCR[0], debuggerregisters.unusedCR[1]); //Debug CR4&CR5!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
