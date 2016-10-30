@@ -114,7 +114,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 	if (Keyboard.has_command) return 0; //Have a command: command mode inhabits keyboard input?
 	if (Keyboard.keyboard_enabled) //Keyboard enabled?
 	{
-		if (!Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled) //We're enabled?
+		if (!PS2_FIRSTPORTDISABLED(Controller8042)) //We're enabled?
 		{
 			int i; //Counter for key codes!
 			byte scancodeset;

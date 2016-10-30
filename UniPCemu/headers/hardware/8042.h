@@ -15,18 +15,7 @@ typedef struct
 		byte RAM[0x20]; //A little RAM the user can use!
 		struct
 		{
-			struct
-			{
-				byte FirstPortInterruptEnabled : 1; //First PS/2 port interrupt Enabled
-				byte SecondPortInterruptEnabled : 1; //Second PS/2 port interrupt Enabled
-				byte SystemPassedPOST : 1; //System passed POST?
-				byte ShouldBeZero1 : 1; //Should be 0
-				byte FirstPortDisabled : 1; //First PS/2 port disabled?
-				byte SecondPortDisabled : 1; //Second PS/2 port disabled?
-				byte FirstPortTranslation : 1; //First port translation?
-				byte MustBeZero : 1; //Must be zero!
-			} PS2ControllerConfigurationByte;
-			byte data[0x19]; //Rest of RAM, unused by us!
+			byte data[0x20]; //Rest of RAM, unused by us!
 		};
 	};
 
@@ -88,6 +77,13 @@ typedef struct
 	byte WritePending; //A write is pending to port 0/1!
 	byte TranslationEscaped; //Are we an escaped (0xF0) output?
 } Controller8042_t; //The 8042 Controller!
+
+#define PS2_FIRSTPORTINTERRUPTENABLED(device) (device.data[0]&1)
+#define PS2_SECONDPORTINTERRUPTENABLED(device) ((device.data[0]&2)>>1)
+#define PS2_SYSTEMPASSEDPOST(device) ((device.data[0]&4)>>2)
+#define PS2_FIRSTPORTDISABLED(device) ((device.data[0]&0x10)>>4)
+#define PS2_SECONDPORTDISABLED(device) ((device.data[0]&0x20)>>5)
+#define PS2_FIRSTPORTTRANSLATION(device) ((device.data[0]&0x40)>>6)
 
 void BIOS_init8042(); //Init 8042&Load all BIOS!
 void BIOS_done8042(); //Deallocates the 8042!

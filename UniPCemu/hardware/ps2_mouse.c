@@ -138,7 +138,7 @@ byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated us
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!Mouse.supported) return 0; //PS/2 mouse not supported!
-	if (!Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) //We're enabled?
+	if (!PS2_SECONDPORTDISABLED(Controller8042)) //We're enabled?
 	{
 		if (add_mouse_packet(packet)) //Add a mouse packet, and according to timing!
 		{} //Do nothing when added!
@@ -158,7 +158,7 @@ int useMouseTimer()
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (MOUSE_DISABLED) return 0; //No usage!
-	if (Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled) return 0; //No usage!
+	if (PS2_SECONDPORTDISABLED(Controller8042)) return 0; //No usage!
 	return 1; //We're enabled!
 }
 

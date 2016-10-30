@@ -77,7 +77,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				byte whatport = ControllerPriorities[portorder]; //The port to check!
 				if (whatport < 2) //Port has priority and available?
 				{
-					if ((Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled|(Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled<<1))&(1<<whatport)) //Port disabled?
+					if ((PS2_FIRSTPORTDISABLED(Controller8042)|(PS2_SECONDPORTDISABLED(Controller8042)<<1))&(1<<whatport)) //Port disabled?
 						continue; //This port is disabled, don't receive!
 					if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
 					{
@@ -85,7 +85,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 						{
 							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
 							//Handle first port translation here, if needed!
-							if (Controller8042.PS2ControllerConfigurationByte.FirstPortTranslation) //Translating the first port?
+							if (PS2_FIRSTPORTTRANSLATION(Controller8042)) //Translating the first port?
 							{
 								if (Controller8042.output_buffer == 0xF0) //Escaped data?
 								{
@@ -102,7 +102,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 							if (whatport) //AUX port?
 							{
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
-								if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
+								if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
 								{
 									lowerirq(12); //Lower secondary IRQ!
 									if (flags&1) raiseirq(12); //Raise secondary IRQ!
@@ -125,7 +125,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 							{
 								Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 
-								if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+								if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
 								{
 									lowerirq(1); //Lower primary IRQ!
 									if (flags&1) raiseirq(1); //Raise primary IRQ!
@@ -158,7 +158,7 @@ void reset8042() //Reset 8042 up till loading BIOS!
 {
 	FIFOBUFFER *oldbuffer = Controller8042.buffer; //Our fifo buffer?
 	memset(&Controller8042,0,sizeof(Controller8042)); //Init to 0!
-	Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled = 1; //Enable first port interrupt by default!
+	Controller8042.RAM[0] = 1; //Enable first port interrupt by default!
 	Controller8042.buffer = oldbuffer; //Restore buffer!
 }
 
@@ -256,10 +256,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.securitykey = Controller8042.securitychecksum; //Set the new security key!
 		break;
 	case 0xA7: //Disable second PS/2 port! No ACK!
-		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 1; //Disabled!
+		Controller8042.data[0] |= 0x20; //Disabled!
 		break;
 	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
-		Controller8042.PS2ControllerConfigurationByte.SecondPortDisabled = 0; //Enabled!
+		Controller8042.data[0] &= ~0x20; //Enabled!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
@@ -305,10 +305,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		}
 		break;
 	case 0xAD: //Disable first PS/2 port! No ACK!
-		Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled = 1; //Disabled!
+		Controller8042.data[0] |= 0x10; //Disabled!
 		break;
 	case 0xAE: //Enable first PS/2 port! No ACK!
-		Controller8042.PS2ControllerConfigurationByte.FirstPortDisabled = 0; //Enabled!
+		Controller8042.data[0] &= ~0x10; //Enabled!
 		break;
 	case 0xC0: //Read controller input port?
 		input_lastwrite_8042(); //Force 0xFA to user!
@@ -403,7 +403,7 @@ void datawritten_8042() //Data has been written?
 		if (Controller8042.port60toSecondPS2Output) //AUX port?
 		{
 			Controller8042.status_buffer |= 0x20; //Set AUX bit!
-			if (Controller8042.PS2ControllerConfigurationByte.SecondPortInterruptEnabled)
+			if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
 			{
 				lowerirq(1); //Remove the keyboard IRQ!
 				acnowledgeIRQrequest(1); //Acnowledge!
@@ -414,7 +414,7 @@ void datawritten_8042() //Data has been written?
 		else //Non-AUX?
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
-			if (Controller8042.PS2ControllerConfigurationByte.FirstPortInterruptEnabled)
+			if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
 			{
 				lowerirq(12); //Remove the mouse IRQ!
 				acnowledgeIRQrequest(12); //Acnowledge!
@@ -588,7 +588,7 @@ byte read_8042(word port, byte *result)
 				fill8042_output_buffer(1); //Fill our output buffer immediately, don't depend on hardware timing!
 			}
 		}
-		*result = (Controller8042.status_buffer|0x10)|(Controller8042.PS2ControllerConfigurationByte.SystemPassedPOST<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
+		*result = (Controller8042.status_buffer|0x10)|(PS2_SYSTEMPASSEDPOST(Controller8042)<<2); //Read status buffer combined with the BIOS POST flag! We're never inhabited!
 		if (is_XT==0) //We're an AT?
 		{
 			if (Controller8042.WritePending) //Write is pending?
