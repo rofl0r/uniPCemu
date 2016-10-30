@@ -966,7 +966,7 @@ byte topdown_stack() //Top-down stack?
 	{
 		return 1; //Real mode!
 	}
-	return !(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].Type & 4); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
+	return !(GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]) & 4); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
 }
 
 OPTINLINE uint_32 getstackaddrsizelimiter()

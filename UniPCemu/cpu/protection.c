@@ -160,14 +160,14 @@ int get_segment_index(word *location)
 //getTYPE: gets the loaded descriptor type: 0=Code, 1=Exec, 2=System.
 int getLoadedTYPE(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 {
-	return loadeddescriptor->desc.S?loadeddescriptor->desc.EXECSEGMENT.ISEXEC:2; //Executable or data, else System?
+	return GENERALSEGMENT_S(loadeddescriptor->desc)?EXECSEGMENT_ISEXEC(loadeddescriptor->desc):2; //Executable or data, else System?
 }
 
 int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 {
 	if (getLoadedTYPE(loadeddescriptor)==2) //System?
 	{
-		switch (loadeddescriptor->desc.Type)
+		switch (GENERALSEGMENT_TYPE(loadeddescriptor->desc))
 		{
 		case AVL_SYSTEM_RESERVED_0: //NULL descriptor?
 			return 0; //NULL descriptor!
@@ -247,7 +247,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		{
 			return 0; //Not present: limit exceeded!
 		}
-		if (container->desc.Type != AVL_SYSTEM_LDT) //We're not an LDT?
+		if (GENERALSEGMENT_TYPE(container->desc) != AVL_SYSTEM_LDT) //We're not an LDT?
 		{
 			return 0; //Not present: limit exceeded!
 		}
@@ -255,8 +255,8 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	
 	if ((segment==CPU_SEGMENT_SS) && //SS is...
 		((getLoadedTYPE(container)==1) || //An executable segment? OR
-		(!getLoadedTYPE(container) && (container->desc.DATASEGMENT.W==0)) || //Read-only DATA segment? OR
-		(getCPL()!=container->desc.DPL) //Not the same privilege?
+		(!getLoadedTYPE(container) && (DATASEGMENT_W(container->desc)==0)) || //Read-only DATA segment? OR
+		(getCPL()!=GENERALSEGMENT_DPL(container->desc)) //Not the same privilege?
 		)
 		)
 	{
@@ -339,7 +339,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
 
-	if (LOADEDDESCRIPTOR.desc.P==0) //Not present?
+	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
@@ -356,7 +356,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		is_gated = 1; //We're gated!
 		memcpy(&GATEDESCRIPTOR, &LOADEDDESCRIPTOR, sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
-		if (MAX(getCPL(), getRPL(segmentval)) > GATEDESCRIPTOR.desc.DPL) //Gate has too high a privilege level?
+		if (MAX(getCPL(), getRPL(segmentval)) > GENERALSEGMENT_DPL(GATEDESCRIPTOR.desc)) //Gate has too high a privilege level?
 		{
 			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
@@ -368,7 +368,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			return NULL; //Error, by specified reason!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
-		if ((LOADEDDESCRIPTOR.desc.Type & 0x1D) == AVL_SYSTEM_TASKGATE) //Task gate?
+		if ((GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc) & 0x1D) == AVL_SYSTEM_TASKGATE) //Task gate?
 		{
 			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal!
 			{
@@ -378,9 +378,9 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 		else //Normal descriptor?
 		{
-			if (isJMPorCALL == 1 && !LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //JMP to a nonconforming segment?
+			if (isJMPorCALL == 1 && !EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //JMP to a nonconforming segment?
 			{
-				if (LOADEDDESCRIPTOR.desc.DPL != getCPL()) //Different CPL?
+				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc) != getCPL()) //Different CPL?
 				{
 					THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 					return NULL; //We are a different privilege level, so don't load!						
@@ -388,7 +388,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			}
 			else if (isJMPorCALL) //Call instruction (or JMP instruction to a conforming segment)
 			{
-				if (LOADEDDESCRIPTOR.desc.DPL > getCPL()) //We have a lower CPL?
+				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc) > getCPL()) //We have a lower CPL?
 				{
 					THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 					return NULL; //We are a different privilege level, so don't load!
@@ -411,7 +411,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		) &&
 		(
 		(getLoadedTYPE(&LOADEDDESCRIPTOR)==2) || //A System segment? OR ...
-		((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (LOADEDDESCRIPTOR.desc.EXECSEGMENT.R==0)) //An execute-only code segment?
+		((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (EXECSEGMENT_R(LOADEDDESCRIPTOR.desc)==0)) //An execute-only code segment?
 		)
 		)
 	{
@@ -421,9 +421,9 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
-		(!privilegedone && !equalprivilege && MAX(getCPL(),getRPL(segmentval))>LOADEDDESCRIPTOR.desc.DPL && !(segment==CPU_SEGMENT_CS && LOADEDDESCRIPTOR.desc.EXECSEGMENT.C)) || //We are a lower privilege level and non-conforming?
-		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(segmentval))!=LOADEDDESCRIPTOR.desc.DPL) && //We must be at the same privilege level?
-			!(LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Not conforming checking further ahead makes sure that we don't double check things?
+		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && !(segment==CPU_SEGMENT_CS && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc))) || //We are a lower privilege level and non-conforming?
+		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && //We must be at the same privilege level?
+			!(EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Not conforming checking further ahead makes sure that we don't double check things?
 			)
 		)
 	{
@@ -431,7 +431,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
-	switch (LOADEDDESCRIPTOR.desc.Type) //We're a TSS? We're to perform a task switch!
+	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc)) //We're a TSS? We're to perform a task switch!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 	case AVL_SYSTEM_BUSY_TSS32BIT:
@@ -454,7 +454,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		//Handle the task switch normally! We're allowed to use the TSS!
 	}
 
-	if (LOADEDDESCRIPTOR.desc.P==0) //Not present?
+	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
@@ -481,9 +481,9 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 	if ((segment == CPU_SEGMENT_CS) && (is_gated==0)) //Special stuff on normal CS register (conforming?), CPL.
 	{
-		if (LOADEDDESCRIPTOR.desc.EXECSEGMENT.C) //Conforming segment?
+		if (EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Conforming segment?
 		{
-			if (!privilegedone && LOADEDDESCRIPTOR.desc.DPL>getCPL()) //Target DPL must be less-or-equal to the CPL.
+			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)>getCPL()) //Target DPL must be less-or-equal to the CPL.
 			{
 				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
@@ -491,18 +491,18 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 		else //Non-conforming segment?
 		{
-			if (!privilegedone && LOADEDDESCRIPTOR.desc.DPL!=getCPL()) //Check for equal only when using Gate Descriptors?
+			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Check for equal only when using Gate Descriptors?
 			{
 				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
-			CPU[activeCPU].CPL = LOADEDDESCRIPTOR.desc.DPL; //New privilege level!
+			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc); //New privilege level!
 		}
 	}
 
 	if ((segment == CPU_SEGMENT_CS) && (getLoadedTYPE(&GATEDESCRIPTOR) == -1) && (is_gated)) //Gated CS?
 	{
-		switch (GATEDESCRIPTOR.desc.Type) //What type of gate are we using?
+		switch (GENERALSEGMENT_TYPE(GATEDESCRIPTOR.desc)) //What type of gate are we using?
 		{
 		case AVL_SYSTEM_CALLGATE16BIT: //16-bit call gate?
 			callgatetype = 1; //16-bit call gate!
@@ -525,7 +525,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
 			fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack to transfer!
-			if (LOADEDDESCRIPTOR.desc.DPL!=getCPL()) //Stack switch required?
+			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
 			{
 				*isdifferentCPL = 1; //We're a different level!
 				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
@@ -574,7 +574,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				if (CALLGATE_NUMARGUMENTS) //Stack switch is required?
 				{
 					TSSSize = 0; //Default to 16-bit TSS!
-					switch (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type) //What kind of TSS?
+					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_TSS32BIT:
@@ -582,7 +582,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_BUSY_TSS16BIT:
 					case AVL_SYSTEM_TSS16BIT:
 						TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
-						TSS_StackPos += (4<<TSSSize)*descriptor->DPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
+						TSS_StackPos += (4<<TSSSize)*GENERALSEGMENTPTR_DPL(descriptor); //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
 						stackval = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0); //Read (E)SP for the privilege level from the TSS!
 						if (TSSSize) //32-bit?
 						{
@@ -744,7 +744,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	//First: type checking!
 
-	if (descriptor->P==0) //Not present(invalid in the cache)?
+	if (GENERALSEGMENTPTR_P(descriptor)==0) //Not present(invalid in the cache)?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
@@ -758,15 +758,15 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
 	{
-		if (segment == CPU_SEGMENT_CS && !(descriptor->EXECSEGMENT.ISEXEC) && (forreading == 3)) //Non-executable segment execution?
+		if (segment == CPU_SEGMENT_CS && !(EXECSEGMENTPTR_ISEXEC(descriptor)) && (forreading == 3)) //Non-executable segment execution?
 		{
 			return 1; //Error!
 		}
-		else if (((descriptor->EXECSEGMENT.ISEXEC) || !(descriptor->DATASEGMENT.OTHERSTRUCT || descriptor->DATASEGMENT.W)) && (forreading==0)) //Writing to executable segment or read-only data segment?
+		else if (((EXECSEGMENTPTR_ISEXEC(descriptor)) || !(DATASEGMENTPTR_OTHERSTRUCT(descriptor) || DATASEGMENTPTR_W(descriptor))) && (forreading==0)) //Writing to executable segment or read-only data segment?
 		{
 			return 1; //Error!
 		}
-		else if (descriptor->EXECSEGMENT.ISEXEC && !descriptor->EXECSEGMENT.R && forreading == 1) //Reading execute-only segment?
+		else if (EXECSEGMENTPTR_ISEXEC(descriptor) && !EXECSEGMENTPTR_R(descriptor) && forreading == 1) //Reading execute-only segment?
 		{
 			return 1; //Error!	
 		}
@@ -787,9 +787,9 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	if (addrtest) //Execute address test?
 	{
 		isvalid = (offset<=limit); //Valid address range!
-		if ((descriptor->S == 1) && ((descriptor->Type & 4) == 0)) //Data/Code segment?
+		if ((GENERALSEGMENTPTR_S(descriptor) == 1) && ((GENERALSEGMENTPTR_TYPE(descriptor) & 4) == 0)) //Data/Code segment?
 		{
-			if (descriptor->DATASEGMENT.E) //Expand-down segment?
+			if (DATASEGMENTPTR_E(descriptor)) //Expand-down segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
 				if (SEGDESCPTR_NONCALLGATE_G(descriptor) == 0) //Small granularity?
@@ -830,7 +830,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if (segment!=CPU_SEGMENT_TR) //Not task register?
 		{
-			if (((MAX(getCPL(), getRPL(segmentval)) <= descriptor->DPL) || isconforming)==0) //Invalid privilege?
+			if (((MAX(getCPL(), getRPL(segmentval)) <= GENERALSEGMENTPTR_DPL(descriptor)) || isconforming)==0) //Invalid privilege?
 			{
 				return 1; //Not enough rights!
 			}
@@ -913,7 +913,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
 		//if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS16BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS16BIT)) //16-bit TSS?
-		if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS32BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
+		if ((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) << 16); //The limit of the descriptor!
@@ -1058,7 +1058,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return 0; //Error, by specified reason!
 			}
-			if (((newdescriptor.desc.S==0) || (newdescriptor.desc.EXECSEGMENT.ISEXEC==0)) || (newdescriptor.desc.EXECSEGMENT.R==0)) //Not readable, execute segment or is code/executable segment?
+			if (((GENERALSEGMENT_S(newdescriptor.desc)==0) || (EXECSEGMENT_ISEXEC(newdescriptor.desc)==0)) || (EXECSEGMENT_R(newdescriptor.desc)==0)) //Not readable, execute segment or is code/executable segment?
 			{
 				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
@@ -1069,7 +1069,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				return 0;
 			}
 
-			if ((newdescriptor.desc.EXECSEGMENT.C == 0) && (newdescriptor.desc.DPL < getCPL())) //Not enough rights, but conforming?
+			if ((EXECSEGMENT_C(newdescriptor.desc) == 0) && (GENERALSEGMENT_DPL(newdescriptor.desc) < getCPL())) //Not enough rights, but conforming?
 			{
 				//TODO
 			}

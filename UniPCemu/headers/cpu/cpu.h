@@ -108,33 +108,7 @@ typedef struct PACKED
 					u8 base_mid; //Mid base for non-Gate Descriptors!
 					u8 ParamCnt; //Number of (uint_32) stack arguments to copy on stack switch(Call Gate Descriptor). Bits 4-7 have to be 0 for gate descriptors.
 				};
-				union
-				{
-					struct
-					{
-						u8 Type : 4; //System segment type! Used when nonS==0
-						u8 S : 1; //Not system segment? 1=Memory segment, 0=System segments(unused, TSS, Gates)
-						u8 DPL : 2; //Descriptor Privilege level.
-						u8 P : 1; //Present in memory?
-					}; //General segment information!
-					struct
-					{
-						u8 A : 1; //Accessed by user (has been loaded by OS)?
-						u8 W : 1; //Writable?
-						u8 E : 1; //Expand-down?
-						u8 OTHERSTRUCT : 1; //Executable segment? When set we don't use this struct!
-						byte upperdummy1 : 4; //Upper dummy!
-					} DATASEGMENT;
-					struct
-					{
-						u8 A_notused : 1; //Not used, use above A!
-						u8 R : 1; //Readable?
-						u8 C : 1; //Conforming?
-						u8 ISEXEC : 1; //Must be 1 to use this struct!
-						byte upperdummy2 : 4; //Upper dummy!
-					} EXECSEGMENT;
-					byte AccessRights; //Access rights!
-				};
+				byte AccessRights; //Access rights!
 				union
 				{
 					u8 noncallgate_info; //Non-callgate access!
@@ -154,11 +128,41 @@ typedef struct PACKED
 } SEGMENT_DESCRIPTOR;
 #include "headers/endpacked.h" //End of packed type!
 
+//Code/data descriptor information(General/Data/Exec segment)
+#define GENERALSEGMENT_TYPE(desc) (desc.AccessRights&0xF)
+#define GENERALSEGMENT_S(desc) ((desc.AccessRights>>4)&1)
+#define GENERALSEGMENT_DPL(desc) ((desc.AccessRights>>5)&3)
+#define GENERALSEGMENT_P(desc) ((desc.AccessRights>>7)&1)
+#define DATASEGMENT_A(desc) (desc.AccessRights&1)
+#define DATASEGMENT_W(desc) ((desc.AccessRights>>1)&1)
+#define DATASEGMENT_E(desc) ((desc.AccessRights>>2)&1)
+#define DATASEGMENT_OTHERSTRUCT(desc) ((desc.AccessRights>>3)&1)
+#define EXECSEGMENT_R(desc) ((desc.AccessRights>>1)&1)
+#define EXECSEGMENT_C(desc) ((desc.AccessRights>>2)&1)
+#define EXECSEGMENT_ISEXEC(desc) ((desc.AccessRights>>3)&1)
+
+#define GENERALSEGMENTPTR_TYPE(desc) (desc->AccessRights&0xF)
+#define GENERALSEGMENTPTR_S(desc) ((desc->AccessRights>>4)&1)
+#define GENERALSEGMENTPTR_DPL(desc) ((desc->AccessRights>>5)&3)
+#define GENERALSEGMENTPTR_P(desc) ((desc->AccessRights>>7)&1)
+#define DATASEGMENTPTR_A(desc) (desc->AccessRights&1)
+#define DATASEGMENTPTR_W(desc) ((desc->AccessRights>>1)&1)
+#define DATASEGMENTPTR_E(desc) ((desc->AccessRights>>2)&1)
+#define DATASEGMENTPTR_OTHERSTRUCT(desc) ((desc->AccessRights>>3)&1)
+#define EXECSEGMENTPTR_R(desc) ((desc->AccessRights>>1)&1)
+#define EXECSEGMENTPTR_C(desc) ((desc->AccessRights>>2)&1)
+#define EXECSEGMENTPTR_ISEXEC(desc) ((desc->AccessRights>>3)&1)
+
+
+//Pointer versions!
+
+//Rest information in descriptors!
 #define SEGDESC_NONCALLGATE_LIMIT_HIGH(desc) (desc.noncallgate_info&0xF)
 #define SEGDESC_NONCALLGATE_AVL(desc) ((desc.noncallgate_info>>4)&1)
 #define SEGDESC_NONCALLGATE_D_B(desc) ((desc.noncallgate_info>>6)&1)
 #define SEGDESC_NONCALLGATE_G(desc) ((desc.noncallgate_info>>7)&1)
 
+//Pointer versions!
 #define SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(desc) (desc->noncallgate_info&0xF)
 #define SEGDESCPTR_NONCALLGATE_AVL(desc) ((desc->noncallgate_info>>4)&1)
 #define SEGDESCPTR_NONCALLGATE_D_B(desc) ((desc->noncallgate_info>>6)&1)
@@ -427,10 +431,7 @@ typedef struct PACKED
 			uint_32 base; //Base
 			word unused1; //Unused 1!
 		};
-		struct
-		{
-			uint_64 data : 48; //48 bits long!
-		};
+		uint_64 data; //48 bits long!
 	};
 } TR_PTR;
 #include "headers/endpacked.h" //End of packed type!

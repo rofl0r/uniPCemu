@@ -416,7 +416,7 @@ void CPU286_OP0F02() //LAR /r
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
-			switch (verdescriptor.desc.Type)
+			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?
 			case AVL_SYSTEM_INTERRUPTGATE16BIT:
@@ -441,7 +441,7 @@ void CPU286_OP0F02() //LAR /r
 					isconforming = 0;
 					break;
 				}
-				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params,0,(word)(verdescriptor.desc.AccessRights<<8),0); //Write our result!
@@ -479,7 +479,7 @@ void CPU286_OP0F03() //LSL /r
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
-			switch (verdescriptor.desc.Type)
+			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?
 			case AVL_SYSTEM_INTERRUPTGATE16BIT:
@@ -511,7 +511,7 @@ void CPU286_OP0F03() //LSL /r
 					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 				}
 
-				if ((MAX(getCPL(), getRPL(oper1)) <= verdescriptor.desc.DPL) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params, 0, (word)(limit&0xFFFF), 0); //Write our result!

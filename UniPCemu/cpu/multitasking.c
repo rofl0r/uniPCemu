@@ -32,20 +32,20 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	} TSS32;
 	byte TSSSize = 0; //The TSS size!
 
-	if (LOADEDDESCRIPTOR->desc.DPL != getCPL()) //Different CPL? Stack switch?
+	if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR->desc) != getCPL()) //Different CPL? Stack switch?
 	{
-		destStack = LOADEDDESCRIPTOR->desc.DPL; //Switch to this stack!
+		destStack = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR->desc); //Switch to this stack!
 		//isStackSwitch = 1; //Switching stacks!
 	}
 
 	uint_32 limit; //The limit we use!
-	if (LOADEDDESCRIPTOR->desc.P==0) //Not present?
+	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR->desc)==0) //Not present?
 	{
 		THROWDESCNP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 1; //Error out!
 	}
 
-	switch (LOADEDDESCRIPTOR->desc.Type) //Check the type of descriptor we're executing!
+	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR->desc)) //Check the type of descriptor we're executing!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 		busy = 1;
@@ -127,7 +127,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			SEGDESCRIPTOR_TYPE tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
 			{
-				tempdesc.desc.Type &= ~2; //Mark idle!
+				tempdesc.desc.AccessRights &= ~2; //Mark idle!
 				SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc); //Save the new status into the old descriptor!
 			}
 		}
@@ -194,7 +194,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU[activeCPU].faultraised = 0; //We have no fault raised: we need this to run the segment change!
 	segmentWritten(CPU_SEGMENT_TR,destinationtask,0x40); //Execute the task switch itself, loading our new descriptor!
 
-	switch (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type) //Check the type of descriptor we're executing now!
+	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 	case AVL_SYSTEM_TSS16BIT:
@@ -272,7 +272,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
-		LOADEDDESCRIPTOR->desc.Type |= 2; //Mark not idle!
+		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
 		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
 	}
 
@@ -336,13 +336,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	//Now the LDT entry is loaded for testing!
-	if (LDTsegdesc.desc.Type != AVL_SYSTEM_LDT) //Not an LDT?
+	if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
 	{
 		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: not an IDT!	
 	}
 
-	if (!LDTsegdesc.desc.P) //Not present?
+	if (!GENERALSEGMENT_P(LDTsegdesc.desc)) //Not present?
 	{
 		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: not an IDT!	
@@ -363,7 +363,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		segmentWritten(CPU_SEGMENT_CS, TSS16.TSS.CS, 0); //Load CS!
 	}
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
-	if (getCPL() != CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].DPL) //Non-matching TSS DPL vs CS CPL?
+	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
