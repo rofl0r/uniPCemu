@@ -2,6 +2,7 @@
 #include "headers/cpu/multitasking.h" //Our typedefs!
 #include "headers/mmu/mmuhandler.h" //Direct MMU support!
 #include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
@@ -134,7 +135,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 		if (isJMPorCALL == 3) //IRET?
 		{
-			CPU[activeCPU].registers->SFLAGS.NT = 0; //Clear Nested Task flag!
+			FLAGW_NT(0); //Clear Nested Task flag!
 		}
 
 		//16 or 32-bit TSS is loaded, now save the registers!

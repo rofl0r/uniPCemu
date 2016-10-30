@@ -16,6 +16,7 @@
 #include "headers/emu/emucore.h" //Needed for CPU reset handler!
 #include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
 #include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //ALL INTERRUPTS
 
@@ -920,7 +921,7 @@ void CPU_resetMode() //Resets the mode!
 	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
 	//Always start in REAL mode!
 	if (!CPU[activeCPU].registers) return; //We can't work now!
-	CPU[activeCPU].registers->SFLAGS.V8 = 0; //Disable Virtual 8086 mode!
+	FLAGW_V8(0); //Disable Virtual 8086 mode!
 	CPU[activeCPU].registers->CR0 &= ~CR0_PE; //Real mode!
 	updateCPUmode(); //Update the CPU mode!
 }
@@ -936,7 +937,7 @@ void updateCPUmode() //Update the CPU mode!
 		CPU_initRegisters(); //Make sure we have registers!
 		if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
 	}
-	mode = CPU[activeCPU].registers->SFLAGS.V8; //VM86 mode?
+	mode = FLAG_V8; //VM86 mode?
 	mode <<= 1;
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
@@ -1196,7 +1197,7 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 void CPU_beforeexec()
 {
 	//This applies to all processors:
-	CPU[activeCPU].trapped = CPU[activeCPU].registers->SFLAGS.TF; //Are we to be trapped this instruction?
+	CPU[activeCPU].trapped = FLAG_TF; //Are we to be trapped this instruction?
 	INLINEREGISTER uint_32 tempflags;
 	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
 	tempflags &= ~(8|32); //Clear bits 3&5!
@@ -1477,12 +1478,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			if (REPZ) //Check for zero flag?
 			{
-				gotREP &= (CPU[activeCPU].registers->SFLAGS.ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
+				gotREP &= (FLAG_ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
 			}
 		}
 		else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
 		{
-			gotREP &= CPU[activeCPU].registers->SFLAGS.ZF; //To reset the opcode (ZF needs to be set to loop)?
+			gotREP &= FLAG_ZF; //To reset the opcode (ZF needs to be set to loop)?
 		}
 		if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
 		{
@@ -1765,7 +1766,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 {
 	CPU[activeCPU].faultraised = 0; //We don't have a fault anymore! Continue on!
 
-	if (CPU[activeCPU].registers->SFLAGS.TF) //Trapped and to be trapped this instruction?
+	if (FLAG_TF) //Trapped and to be trapped this instruction?
 	{
 		if (CPU[activeCPU].trapped) //Are we trapped?
 		{

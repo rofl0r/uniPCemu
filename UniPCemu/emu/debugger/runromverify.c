@@ -14,6 +14,7 @@
 #include "headers/support/locks.h" //Lock support!
 #include "headers/mmu/mmuhandler.h" //hasmemory support!
 #include "headers/emu/threads.h" //Multithreading support!
+#include "headers/cpu/easyregs.h" //Flag support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
@@ -145,7 +146,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		{
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
 			{
-				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+				if (FLAG_IF) //Interrupts available?
 				{
 					if (PICInterrupt()) //We have a hardware interrupt ready?
 					{

@@ -74,14 +74,14 @@ void CPU286_OP63() //ARPL r/m16,r16
 	CPUPROT1
 		if (getRPL(destRPL) < getRPL(srcRPL))
 		{
-			FLAG_ZF = 1; //Set ZF!
+			FLAGW_ZF(1); //Set ZF!
 			setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
 			if (modrm_check16(&params,1,0)) return; //Abort on fault!
 			modrm_write16(&params,1,destRPL,0); //Set the result!
 		}
 		else
 		{
-			FLAG_ZF = 0; //Clear ZF!
+			FLAGW_ZF(0); //Clear ZF!
 		}
 	CPUPROT2
 	CPUPROT2
@@ -175,16 +175,16 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			{
 				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor.desc, 0)==0) //Check without address test!
 				{
-					FLAG_ZF = 1; //We're valid!
+					FLAGW_ZF(1); //We're valid!
 				}
 				else
 				{
-					FLAG_ZF = 0; //We're invalid!
+					FLAGW_ZF(0); //We're invalid!
 				}
 			}
 			else
 			{
-				FLAG_ZF = 0; //We're invalid!
+				FLAGW_ZF(0); //We're invalid!
 			}
 		CPUPROT2
 		break;
@@ -203,16 +203,16 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			{
 				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor.desc, 0)==0) //Check without address test!
 				{
-					FLAG_ZF = 1; //We're valid!
+					FLAGW_ZF(1); //We're valid!
 				}
 				else
 				{
-					FLAG_ZF = 0; //We're invalid!
+					FLAGW_ZF(0); //We're invalid!
 				}
 			}
 			else
 			{
-				FLAG_ZF = 0; //We're invalid!
+				FLAGW_ZF(0); //We're invalid!
 			}
 		CPUPROT2
 		break;
@@ -426,7 +426,7 @@ void CPU286_OP0F02() //LAR /r
 			case AVL_SYSTEM_RESERVED_3:
 			case AVL_SYSTEM_INTERRUPTGATE32BIT:
 			case AVL_SYSTEM_TRAPGATE32BIT:
-				FLAG_ZF = 0; //Invalid descriptor type!
+				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
 				switch (verdescriptor.desc.AccessRights) //What type?
@@ -446,19 +446,19 @@ void CPU286_OP0F02() //LAR /r
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params,0,(word)(verdescriptor.desc.AccessRights<<8),0); //Write our result!
 					CPUPROT1
-						FLAG_ZF = 1; //We're valid!
+						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
 				}
 				else
 				{
-					FLAG_ZF = 0; //Not valid!
+					FLAGW_ZF(0); //Not valid!
 				}
 				break;
 			}
 		}
 		else //Couldn't be loaded?
 		{
-			FLAG_ZF = 0; //Default: not loaded!
+			FLAGW_ZF(0); //Default: not loaded!
 		}
 	CPUPROT2
 }
@@ -489,7 +489,7 @@ void CPU286_OP0F03() //LSL /r
 			case AVL_SYSTEM_RESERVED_3:
 			case AVL_SYSTEM_INTERRUPTGATE32BIT:
 			case AVL_SYSTEM_TRAPGATE32BIT:
-				FLAG_ZF = 0; //Invalid descriptor type!
+				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
 				switch (verdescriptor.desc.AccessRights) //What type?
@@ -516,19 +516,19 @@ void CPU286_OP0F03() //LSL /r
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
 					modrm_write16(&params, 0, (word)(limit&0xFFFF), 0); //Write our result!
 					CPUPROT1
-						FLAG_ZF = 1; //We're valid!
+						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
 				}
 				else
 				{
-					FLAG_ZF = 0; //Not valid!
+					FLAGW_ZF(0); //Not valid!
 				}
 				break;
 			}
 		}
 		else //Couldn't be loaded?
 		{
-			FLAG_ZF = 0; //Default: not loaded!
+			FLAGW_ZF(0); //Default: not loaded!
 		}
 	CPUPROT2
 }

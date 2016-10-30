@@ -346,7 +346,7 @@ OPTINLINE void CPU8086_internal_INC16(word *reg)
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
 	oper2 = 1;
 	op_add16();
-	FLAG_CF = tempcf;
+	FLAGW_CF(tempcf);
 	if (reg) //Register?
 	{
 		*reg = res16;
@@ -374,7 +374,7 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
 	oper2 = 1;
 	op_sub16();
-	FLAG_CF = tempcf;
+	FLAGW_CF(tempcf);
 	if (reg) //Register?
 	{
 		*reg = res16;
@@ -1225,18 +1225,18 @@ OPTINLINE void CPU8086_internal_DAA()
 	{
 		oper1 = REG_AL+6;
 		REG_AL = (oper1&0xFF);
-		FLAG_CF = ((oper1&0xFF00)>0);
-		FLAG_AF = 1;
+		FLAGW_CF(((oper1&0xFF00)>0));
+		FLAGW_AF(1);
 	}
-	else FLAG_AF = 0;
+	else FLAGW_AF(0);
 	if (((REG_AL&0xF0)>0x90) || FLAG_CF)
 	{
 		REG_AL += 0x60;
-		FLAG_CF = 1;
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_CF = 0;
+		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
 	CPUPROT2
@@ -1252,19 +1252,19 @@ OPTINLINE void CPU8086_internal_DAS()
 	{
 		oper1 = REG_AL-6;
 		REG_AL = oper1&255;
-		FLAG_CF = tempCF|((oper1&0xFF00)>0);
-		FLAG_AF = 1;
+		FLAGW_CF(tempCF|((oper1&0xFF00)>0));
+		FLAGW_AF(1);
 	}
-	else FLAG_AF = 0;
+	else FLAGW_AF(0);
 
 	if ((tempAL>0x99) || tempCF)
 	{
 		REG_AL -= 0x60;
-		FLAG_CF = 1;
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_CF = 0;
+		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
 	CPUPROT2
@@ -1277,13 +1277,13 @@ OPTINLINE void CPU8086_internal_AAA()
 	{
 		REG_AL += 6;
 		++REG_AH;
-		FLAG_AF = 1;
-		FLAG_CF = 1;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_AF = 0;
-		FLAG_CF = 0;
+		FLAGW_AF(0);
+		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
 	flag_szp8(REG_AL); //Basic flags!
@@ -1297,13 +1297,13 @@ OPTINLINE void CPU8086_internal_AAS()
 	{
 		REG_AL -= 6;
 		--REG_AH;
-		FLAG_AF = 1;
-		FLAG_CF = 1;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_AF = 0;
-		FLAG_CF = 0;
+		FLAGW_AF(0);
+		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
 	flag_szp8(REG_AL); //Basic flags!
@@ -1852,7 +1852,7 @@ OPTINLINE void CPU8086_internal_AAM(byte data)
 	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
 	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
 	flag_szp16(REG_AX);
-	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
+	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 83; //Timings!
 }
@@ -1862,7 +1862,7 @@ OPTINLINE void CPU8086_internal_AAD(byte data)
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
 	REG_AH = 0;
 	flag_szp8(REG_AL); //Update the flags!
-	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
+	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 60; //Timings!
 }
@@ -2257,13 +2257,13 @@ void CPU8086_OPEE(){modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE); C
 void CPU8086_OPEF(){modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE); CPU_PORT_OUT_W(REG_DX,REG_AX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ CPU_addWordMemoryTiming(); /*To memory?*/}
 void CPU8086_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
 void CPU8086_OPF4(){modrm_generateInstructionTEXT("HLT",0,0,PARAM_NONE); CPU[activeCPU].halt = 1; CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPF5(){modrm_generateInstructionTEXT("CMC",0,0,PARAM_NONE); FLAG_CF = !FLAG_CF; CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPF8(){modrm_generateInstructionTEXT("CLC",0,0,PARAM_NONE); FLAG_CF = 0;CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPF9(){modrm_generateInstructionTEXT("STC",0,0,PARAM_NONE); FLAG_CF = 1;CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPFA(){modrm_generateInstructionTEXT("CLI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAG_IF = 0; } CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPFB(){modrm_generateInstructionTEXT("STI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAG_IF = 1; } CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPFC(){modrm_generateInstructionTEXT("CLD",0,0,PARAM_NONE); FLAG_DF = 0;CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
-void CPU8086_OPFD(){modrm_generateInstructionTEXT("STD",0,0,PARAM_NONE); FLAG_DF = 1;CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPF5(){modrm_generateInstructionTEXT("CMC",0,0,PARAM_NONE); FLAGW_CF(!FLAG_CF); CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPF8(){modrm_generateInstructionTEXT("CLC",0,0,PARAM_NONE); FLAGW_CF(0);CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPF9(){modrm_generateInstructionTEXT("STC",0,0,PARAM_NONE); FLAGW_CF(1);CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPFA(){modrm_generateInstructionTEXT("CLI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAGW_IF(0); } CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPFB(){modrm_generateInstructionTEXT("STI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAGW_IF(1); } CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPFC(){modrm_generateInstructionTEXT("CLD",0,0,PARAM_NONE); FLAGW_DF(0);CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
+void CPU8086_OPFD(){modrm_generateInstructionTEXT("STD",0,0,PARAM_NONE); FLAGW_DF(1);CPU[activeCPU].cycles_OP = 2; /*Special timing!*/}
 
 /*
 
@@ -2815,7 +2815,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,1)+1;
 		flag_add8(modrm_read8(&params,1),1);
-		FLAG_CF = tempcf;
+		FLAGW_CF(tempcf);
 		modrm_write8(&params,1,res8);
 		break;
 	case 1: //DEC
@@ -2828,7 +2828,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,1)-1;
 		flag_sub8(modrm_read8(&params,1),1);
-		FLAG_CF = tempcf;
+		FLAGW_CF(tempcf);
 		modrm_write8(&params,1,res8);
 		break;
 	default: //Unknown opcode or special?
@@ -2953,61 +2953,61 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	switch (thereg) {
 	case 0: //ROL r/m8
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
 		break;
 
 	case 1: //ROR r/m8
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (FLAG_CF << 7);
 		}
-		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		if (cnt) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
 		break;
 
 	case 2: //RCL r/m8
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | oldCF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 7) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
 		break;
 
 	case 3: //RCR r/m8
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (oldCF << 7);
 		}
-		if (cnt) FLAG_OF = (s >> 7) ^ ((s >> 6) & 1);
+		if (cnt) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m8
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x80) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
 			s = (s << 1) & 0xFF;
 		}
-		if (cnt) FLAG_OF = (FLAG_CF ^ (s >> 7));
+		if (cnt) FLAGW_OF((FLAG_CF ^ (s >> 7)));
 		flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
-		if (cnt == 1) FLAG_OF = (s & 0x80) ? 1 : 0; else FLAG_OF = 0;
+		if (cnt == 1) FLAGW_OF((s & 0x80) ? 1 : 0); else FLAGW_OF(0);
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = s >> 1;
 		}
 		flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
-		if (cnt) FLAG_OF = 0;
+		if (cnt) FLAGW_OF(0);
 		msb = s & 0x80;
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
 		}
 		byte tempSF;
@@ -3015,7 +3015,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		flag_szp8((uint8_t)(s & 0xFF)); break;
 		if (!cnt) //Nothing done?
 		{
-			FLAG_SF = tempSF; //We don't update when nothing's done!
+			FLAGW_SF(tempSF); //We don't update when nothing's done!
 		}
 	}
 	op_grp2_cycles(cnt, varshift);
@@ -3032,68 +3032,68 @@ word op_grp2_16(byte cnt, byte varshift) {
 	switch (thereg) {
 	case 0: //ROL r/m16
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 1: //ROR r/m16
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (FLAG_CF << 15);
 		}
-		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 2: //RCL r/m16
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | oldCF;
 			//oldCF = ((s&0x8000)>>15)&1; //Save FLAG_CF!
 			//s = (s<<1)+FLAG_CF;
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 3: //RCR r/m16
-		if (cnt) FLAG_OF = ((s >> 15) & 1) ^ FLAG_CF;
+		if (cnt) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (oldCF << 15);
 			//oldCF = s&1;
 			//s = (s<<1)+(FLAG_CF<<16);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m16
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = (s << 1) & 0xFFFF;
 		}
-		if ((cnt) && (FLAG_CF == (s >> 15))) FLAG_OF = 0; else FLAG_OF = 1;
+		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp16(s); break;
 
 	case 5: //SHR r/m16
-		if (cnt) FLAG_OF = (s & 0x8000) ? 1 : 0;
+		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = s >> 1;
 		}
 		flag_szp16(s); break;
 
 	case 7: //SAR r/m16
-		if (cnt) FLAG_OF = 0;
+		if (cnt) FLAGW_OF(0);
 		msb = s & 0x8000; //Read the MSB!
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
 		}
 		byte tempSF;
@@ -3101,7 +3101,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		flag_szp16(s);
 		if (!cnt) //Nothing done?
 		{
-			FLAG_SF = tempSF; //We don't update when nothing's done!
+			FLAGW_SF(tempSF); //We don't update when nothing's done!
 		}
 		break;
 	}
@@ -3210,7 +3210,7 @@ void op_grp3_8() {
 	case 3: //NEG
 		res8 = (~oper1b) + 1;
 		flag_sub8(0, oper1b);
-		if (res8 == 0) FLAG_CF = 0; else FLAG_CF = 1;
+		if (res8 == 0) FLAGW_CF(0); else FLAGW_CF(1);
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem!
@@ -3225,8 +3225,9 @@ void op_grp3_8() {
 		tempAL = REG_AL; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		FLAG_CF = FLAG_OF = ((word)REG_AL != REG_AX)?1:0;
-		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAG_ZF = 0; //8086/8088 clears the Zero flag when not zero only.
+		FLAGW_OF(((word)REG_AL != REG_AX)?1:0);
+		FLAGW_CF(FLAG_OF); //Same!
+		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 76+MODRM_EA(params); //Mem max!
@@ -3252,8 +3253,9 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
-		FLAG_CF = FLAG_OF = ((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0);
-		FLAG_SF = (REG_AX>>15)&1; //Sign flag is affected!
+		FLAGW_OF(((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
+		FLAGW_CF(FLAG_OF); //Same!
+		FLAGW_SF((REG_AX>>15)&1); //Sign flag is affected!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 86 + MODRM_EA(params); //Mem max!
@@ -3367,7 +3369,7 @@ void op_grp3_16() {
 	case 3: //NEG
 		res16 = (~oper1) + 1;
 		flag_sub16(0, oper1);
-		if (res16) FLAG_CF = 1; else FLAG_CF = 0;
+		if (res16) FLAGW_CF(1); else FLAGW_CF(0);
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem!
@@ -3382,9 +3384,9 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
-		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
-		else { FLAG_CF = FLAG_OF = 0; }
-		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAG_ZF = 0; //8086/8088 clears the Zero flag when not zero only.
+		if (REG_DX) { FLAGW_CF(1); FLAGW_OF(1); }
+		else { FLAGW_CF(0); FLAGW_OF(0); }
+		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 124 + MODRM_EA(params); //Mem max!
@@ -3408,8 +3410,9 @@ void op_grp3_16() {
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		FLAG_CF = FLAG_OF = ((int_32)temp3.val16s != temp3.val32s)?1:0; //Overflow occurred?
-		FLAG_SF = (REG_DX>>15)&1; //Sign flag is affected!
+		FLAGW_OF(((int_32)temp3.val16s != temp3.val32s)?1:0); //Overflow occurred?
+		FLAGW_CF(FLAG_OF); //Same!
+		FLAGW_SF((REG_DX>>15)&1); //Sign flag is affected!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 128 + MODRM_EA(params); //Mem max!
@@ -3438,7 +3441,7 @@ void op_grp5() {
 		oper2 = 1;
 		tempCF = FLAG_CF;
 		op_add16();
-		FLAG_CF = tempCF;
+		FLAGW_CF(tempCF);
 		modrm_write16(&params, 1, res16, 0);
 		if (MODRM_EA(params)) //Mem?
 		{
@@ -3456,7 +3459,7 @@ void op_grp5() {
 		oper2 = 1;
 		tempCF = FLAG_CF;
 		op_sub16();
-		FLAG_CF = tempCF;
+		FLAGW_CF(tempCF);
 		modrm_write16(&params, 1, res16, 0);
 		if (MODRM_EA(params)) //Mem?
 		{

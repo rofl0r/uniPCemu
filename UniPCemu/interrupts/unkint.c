@@ -4,5 +4,5 @@
 void BIOS_unkint()
 {
 	REG_AX = 0; //Unknown interrupt!
-	FLAG_CF = 1; //Set carry flag!
+	FLAGW_CF(1); //Set carry flag!
 }

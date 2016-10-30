@@ -257,7 +257,7 @@ OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
 	oper2d = 1;
 	op_add32();
-	FLAG_CF = tempcf;
+	FLAGW_CF(tempcf);
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -283,7 +283,7 @@ OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
 	oper2d = 1;
 	op_sub32();
-	FLAG_CF = tempcf;
+	FLAGW_CF(tempcf);
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -937,18 +937,18 @@ OPTINLINE void CPU80386_internal_DAA()
 	{
 		oper1 = REG_AL+6;
 		REG_AL = (oper1&0xFF);
-		FLAG_CF = ((oper1&0xFF00)>0);
-		FLAG_AF = 1;
+		FLAGW_CF(((oper1&0xFF00)>0));
+		FLAGW_AF(1);
 	}
-	else FLAG_AF = 0;
+	else FLAGW_AF(0);
 	if (((REG_AL&0xF0)>0x90) || FLAG_CF)
 	{
 		REG_AL += 0x60;
-		FLAG_CF = 1;
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_CF = 0;
+		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
 	CPUPROT2
@@ -964,19 +964,19 @@ OPTINLINE void CPU80386_internal_DAS()
 	{
 		oper1 = REG_AL-6;
 		REG_AL = oper1&255;
-		FLAG_CF = tempCF|((oper1&0xFF00)>0);
-		FLAG_AF = 1;
+		FLAGW_CF(tempCF|((oper1&0xFF00)>0));
+		FLAGW_AF(1);
 	}
-	else FLAG_AF = 0;
+	else FLAGW_AF(0);
 
 	if ((tempAL>0x99) || tempCF)
 	{
 		REG_AL -= 0x60;
-		FLAG_CF = 1;
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_CF = 0;
+		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
 	CPUPROT2
@@ -989,13 +989,13 @@ OPTINLINE void CPU80386_internal_AAA()
 	{
 		REG_AL += 6;
 		++REG_AH;
-		FLAG_AF = 1;
-		FLAG_CF = 1;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_AF = 0;
-		FLAG_CF = 0;
+		FLAGW_AF(0);
+		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
 	flag_szp8(REG_AL); //Basic flags!
@@ -1009,13 +1009,13 @@ OPTINLINE void CPU80386_internal_AAS()
 	{
 		REG_AL -= 6;
 		--REG_AH;
-		FLAG_AF = 1;
-		FLAG_CF = 1;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
 	}
 	else
 	{
-		FLAG_AF = 0;
-		FLAG_CF = 0;
+		FLAGW_AF(0);
+		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
 	flag_szp8(REG_AL); //Basic flags!
@@ -1415,7 +1415,7 @@ OPTINLINE void CPU80386_internal_AAM(byte data)
 	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
 	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
 	flag_szp32(REG_AX);
-	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
+	FLAGW_OF(0);FLAGW_CF(0);FLAGW_AF(0); //Clear these!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 83; //Timings!
 }
@@ -1425,7 +1425,7 @@ OPTINLINE void CPU80386_internal_AAD(byte data)
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
 	REG_AH = 0;
 	flag_szp8(REG_AL); //Update the flags!
-	FLAG_OF = FLAG_CF = FLAG_AF = 0; //Clear these!
+	FLAGW_OF(0);FLAGW_CF(0);FLAGW_AF(0); //Clear these!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 60; //Timings!
 }
@@ -2179,68 +2179,68 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 	switch (thereg) {
 	case 0: //ROL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 1: //ROR r/m32
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (FLAG_CF << 15);
 		}
-		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 2: //RCL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | oldCF;
 			//oldCF = ((s&0x8000)>>15)&1; //Save FLAG_CF!
 			//s = (s<<1)+FLAG_CF;
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAG_OF = FLAG_CF ^ ((s >> 15) & 1);
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 3: //RCR r/m32
-		if (cnt) FLAG_OF = ((s >> 15) & 1) ^ FLAG_CF;
+		if (cnt) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | (oldCF << 15);
 			//oldCF = s&1;
 			//s = (s<<1)+(FLAG_CF<<32);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAG_OF = (s >> 15) ^ ((s >> 14) & 1);
+		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAG_CF = 1; else FLAG_CF = 0;
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = (s << 1) & 0xFFFF;
 		}
-		if ((cnt) && (FLAG_CF == (s >> 15))) FLAG_OF = 0; else FLAG_OF = 1;
+		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp32(s); break;
 
 	case 5: //SHR r/m32
-		if (cnt) FLAG_OF = (s & 0x8000) ? 1 : 0;
+		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = s >> 1;
 		}
 		flag_szp32(s); break;
 
 	case 7: //SAR r/m32
-		if (cnt) FLAG_OF = 0;
+		if (cnt) FLAGW_OF(0);
 		msb = s & 0x8000; //Read the MSB!
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAG_CF = s & 1;
+			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
 		}
 		byte tempSF;
@@ -2248,7 +2248,7 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 		flag_szp32(s);
 		if (!cnt) //Nothing done?
 		{
-			FLAG_SF = tempSF; //We don't update when nothing's done!
+			FLAGW_SF(tempSF); //We don't update when nothing's done!
 		}
 		break;
 	}
@@ -2357,7 +2357,7 @@ void op386_grp3_32() {
 	case 3: //NEG
 		res32 = (~oper1d) + 1;
 		flag_sub32(0, oper1d);
-		if (res32) FLAG_CF = 1; else FLAG_CF = 0;
+		if (res32) FLAGW_CF(1); else FLAGW_CF(0);
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem!
@@ -2372,9 +2372,9 @@ void op386_grp3_32() {
 		temp1.val64 = (uint32_t)oper1d * (uint32_t)REG_AX;
 		REG_AX = temp1.val32;
 		REG_DX = temp1.val32high;
-		if (REG_DX) { FLAG_CF = FLAG_OF = 1; }
-		else { FLAG_CF = FLAG_OF = 0; }
-		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAG_ZF = 0; //8086/8088 clears the Zero flag when not zero only.
+		if (REG_DX) { FLAGW_CF(1); FLAGW_OF(1); }
+		else { FLAGW_CF(0); FLAGW_OF(0); }
+		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 124 + MODRM_EA(params); //Mem max!
@@ -2398,8 +2398,9 @@ void op386_grp3_32() {
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax
 		REG_EDX = temp3.val32high; //into register dx
-		FLAG_CF = FLAG_OF = ((int_32)temp3.val64s != temp3.val64s)?1:0; //Overflow occurred?
-		FLAG_SF = (REG_DX>>15)&1; //Sign flag is affected!
+		FLAGW_OF(((int_32)temp3.val64s != temp3.val64s)?1:0); //Overflow occurred?
+		FLAGW_CF(FLAG_OF); //Same!
+		FLAGW_SF((REG_DX>>15)&1); //Sign flag is affected!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 128 + MODRM_EA(params); //Mem max!
@@ -2427,7 +2428,7 @@ void op386_grp5_32() {
 		oper2d = 1;
 		tempCF = FLAG_CF;
 		op_add32();
-		FLAG_CF = tempCF;
+		FLAGW_CF(tempCF);
 		modrm_write32(&params, 1, res32);
 		if (MODRM_EA(params)) //Mem?
 		{
@@ -2443,7 +2444,7 @@ void op386_grp5_32() {
 		oper2d = 1;
 		tempCF = FLAG_CF;
 		op_sub32();
-		FLAG_CF = tempCF;
+		FLAGW_CF(tempCF);
 		modrm_write32(&params, 1, res32);
 		if (MODRM_EA(params)) //Mem?
 		{

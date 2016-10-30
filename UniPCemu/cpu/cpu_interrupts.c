@@ -46,8 +46,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		CPU_PUSH16(&retsegment); //Push segment!
 		word retoffset16 = (retoffset&0xFFFF);
 		CPU_PUSH16(&retoffset16);
-		FLAG_IF = 0; //We're calling the interrupt!
-		FLAG_TF = 0; //We're calling an interrupt, resetting debuggers!
+		FLAGW_IF(0); //We're calling the interrupt!
+		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.

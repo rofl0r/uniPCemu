@@ -198,7 +198,8 @@ void CPU186_OP69()
 	temp3.val32 = ((temp1.val32*temp2.val32)&0xFFFFFFFF);
 	REG_AX = temp3.val16;
 	REG_DX = temp3.val16high;
-	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(REG_AX)); //Overflow occurred?
+	FLAGW_OF((unsigned2signed32(temp3.val32)!=unsigned2signed16(REG_AX))); //Overflow occurred?
+	FLAGW_CF(FLAG_OF); //Same!
 }
 
 void CPU186_OP6A()
@@ -221,7 +222,8 @@ void CPU186_OP6B()
 
 	temp3.val32s = temp1.val32s * temp2.val32s;
 	modrm_write16(&params,0, temp3.val16,0); //Write to register!
-	FLAG_CF = FLAG_OF = (unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF)); //Overflow occurred?
+	FLAGW_OF((unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF))); //Overflow occurred?
+	FLAGW_CF(FLAG_OF); //Same!
 }
 
 void CPU186_OP6C()

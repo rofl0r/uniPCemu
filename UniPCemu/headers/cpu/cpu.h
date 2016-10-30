@@ -367,11 +367,6 @@ AVL: available to the programmer:
 //Read/write
 #define TYPE_READWRITEBIT 1
 
-
-
-
-
-
 //System segment descriptor types:
 
 #define AVL_SYSTEM_RESERVED_0 0
@@ -391,34 +386,128 @@ AVL: available to the programmer:
 #define AVL_SYSTEM_INTERRUPTGATE32BIT 0xE
 #define AVL_SYSTEM_TRAPGATE32BIT 0xF
 
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED //Seperate bits of above EFlags
-{
-	byte CF:1;
-	byte unmapped2:1; //Unused. Value 1
-	byte PF:1;
-	byte unmapped8:1; //Unused. Value 0
-	byte AF:1;
-	byte unmapped32:1; //Unused. Value 0
-	byte ZF:1;
-	byte SF:1;
-	byte TF:1;
-	byte IF:1;
-	byte DF:1;
-	byte OF :1;
-	byte IOPL : 2; //Always 1 on 186-
-	byte NT : 1; //Always 1 on 186-
-	byte unmapped32768 : 1; //Unused. Value 1 on 186-, 0 on later models.
-	//High nibble
-	byte RF : 1; //Resume flag. 386+
-	byte V8 : 1; //Virtual 8086 mode flag (386+ only)
-	byte AC : 1; //Alignment check (486SX+ only)
-	byte VIF : 1; //Virtual interrupt flag (Pentium+)
-	byte VIP : 1; //Virtual interrupt pending (Pentium+)
-	byte ID : 1; //Able to use CPUID function (Pentium+)
-	word unmappedhi : 10; //Rest data (unused)
-} SEPERATEFLAGS; //Seperate flags!
-#include "headers/endpacked.h" //End of packed type!
+//All flags, seperated!
+
+#define F_CARRY 0x01
+//Carry flag (CF): Math instr: high-order bit carried or borrowed, else cleared.
+//0x02 unmapped
+#define F_PARITY 0x04
+//Parity flag (PF): Lower 8-bits of a result contains an even number of bits set to 1 (set), else not set (cleared).
+//0x08 unmapped.
+#define F_AUXILIARY_CARRY 0x10
+//Auxiliary Carry flag (AF): (=Adjust flag?): Math instr: low order 4-bits of AL were carried or borrowed, else not set (cleared).
+//0x20 unmapped.
+#define F_ZERO 0x40
+//Zero flag (ZF): Math instr: Result=0: Set; Else Cleared.
+#define F_SIGN 0x80
+//Sign flag (SF): Set equal to high-order bit of results of math instr. (Result<0)=>Set; (Result>=0)=>Cleared.
+#define F_TRAP 0x100
+//Trap flag (TF)
+#define F_INTERRUPT 0x200
+//Interrupt flag (IF)
+#define F_DIRECTION 0x400
+//Direction flag (DF): Used by string instr. to determine to process strings from end (DECR) or start (INCR).
+#define F_OVERFLOW 0x800
+//Overflow flag (OF): Indicates if the number placed in the detination operand overflowed, either too large or small. No overflow=Cleared.
+#define F_IOPREV 0x3000
+//I/O Privilege Level (two bits long) (PL)
+#define F_NESTEDTASK 0x4000
+//Nested Task Flag (NT)
+//0x8000 unmapped.
+
+//New flags in 80386:
+#define F_RESUME 0x10000
+//Resume flag
+#define F_V8 0x20000
+//Virtual 8086 MODE flag
+
+//Same, but shorter:
+
+#define F_CF F_CARRY
+#define F_PF F_PARITY
+#define F_AF F_AUXILIARY_CARRY
+#define F_ZF F_ZERO
+#define F_SF F_SIGN
+#define F_TF F_TRAP
+#define F_IF F_INTERRUPT
+#define F_DF F_DIRECTION
+#define F_PL F_IOPREV
+#define F_NT F_NESTEDTASK
+#define F_RF F_RESUME
+
+//Read versions
+#define FLAGREGR_CF(registers) (registers->FLAGS&1)
+//Unused. Value 1
+#define FLAGREGR_UNMAPPED2(registers) ((registers->FLAGS>>1)&1)
+#define FLAGREGR_PF(registers) ((registers->FLAGS>>2)&1)
+//Unused. Value 0
+#define FLAGREGR_UNMAPPED8(registers) ((registers->FLAGS>>3)&1)
+#define FLAGREGR_AF(registers) ((registers->FLAGS>>4)&1)
+//Unused. Value 1 on 186-, 0 on later models.
+#define FLAGREGR_UNMAPPED32768(registers) ((registers->FLAGS>>15)&1)
+//Unused. Value 0
+#define FLAGREGR_UNMAPPED32(registers) ((registers->FLAGS>>5)&1)
+#define FLAGREGR_ZF(registers) ((registers->FLAGS>>6)&1)
+#define FLAGREGR_SF(registers) ((registers->FLAGS>>7)&1)
+#define FLAGREGR_TF(registers) ((registers->FLAGS>>8)&1)
+#define FLAGREGR_IF(registers) ((registers->FLAGS>>9)&1)
+#define FLAGREGR_DF(registers) ((registers->FLAGS>>10)&1)
+#define FLAGREGR_OF(registers) ((registers->FLAGS>>11)&1)
+//Always 1 on 186-
+#define FLAGREGR_IOPL(registers) ((registers->FLAGS>>12)&3)
+//Always 1 on 186-
+#define FLAGREGR_NT(registers) ((registers->FLAGS>>14)&1)
+//High nibble
+//Resume flag. 386+
+#define FLAGREGR_RF(registers) ((registers->EFLAGS>>16)&1)
+//Virtual 8086 mode flag (386+ only)
+#define FLAGREGR_V8(registers) ((registers->EFLAGS>>17)&1)
+//Alignment check (486SX+ only)
+#define FLAGREGR_AC(registers) ((registers->EFLAGS>>18)&1)
+//Virtual interrupt flag (Pentium+)
+#define FLAGREGR_VIF(registers) ((registers->EFLAGS>>19)&1)
+//Virtual interrupt pending (Pentium+)
+#define FLAGREGR_VIP(registers) ((registers->EFLAGS>>20)&1)
+//Able to use CPUID function (Pentium+)
+#define FLAGREGR_ID(registers) ((registers->EFLAGS>>21)&1)
+#define FLAGREGR_UNMAPPEDHI(registers) (registers->EFLAGS>>22)&0x3FF
+
+//Write versions
+#define FLAGREGW_CF(registers,val) ((registers->FLAGS&~F_CF)|(val&1))
+//Unused. Value 1
+#define FLAGREGW_UNMAPPED2(registers,val) (((registers->FLAGS&~2)|((val&1)<<1)))
+#define FLAGREGW_PF(registers,val) (((registers->FLAGS&~4)|((val&1)<<2)))
+//Unused. Value 0
+#define FLAGREGW_UNMAPPED8(registers,val) (((registers->FLAGS&~8)|((val&1)<<3)))
+#define FLAGREGW_AF(registers,val) (((registers->FLAGS&~0x10)|((val&1)<<4)))
+//Unused. Value 1 on 186-, 0 on later models.
+#define FLAGREGW_UNMAPPED32768(registers,val) (((registers->FLAGS&~0x8000)|((val&1)<<15)))
+//Unused. Value 0
+#define FLAGREGW_UNMAPPED32(registers,val) (((registers->FLAGS&~0x20)|((val&1)<<5)))
+#define FLAGREGW_ZF(registers,val) (((registers->FLAGS&~0x40)|((val&1)<<6)))
+#define FLAGREGW_SF(registers,val) (((registers->FLAGS&~0x80)|((val&1)<<7)))
+#define FLAGREGW_TF(registers,val) (((registers->FLAGS&~0x100)|((val&1)<<8)))
+#define FLAGREGW_IF(registers,val) (((registers->FLAGS&~0x200)|((val&1)<<9)))
+#define FLAGREGW_DF(registers,val) (((registers->FLAGS&~0x400)|((val&1)<<10)))
+#define FLAGREGW_OF(registers,val) (((registers->FLAGS&~0x800)|((val&1)<<11)))
+//Always 1 on 186-
+#define FLAGREGW_IOPL(registers,val) (((registers->FLAGS&~0x3000)|((val&3)<<12)))
+//Always 1 on 186-
+#define FLAGREGW_NT(registers,val) (((registers->FLAGS&~0x4000)|((val&1)<<14)))
+//High nibble
+//Resume flag. 386+
+#define FLAGREGW_RF(registers,val) (((registers->EFLAGS&~0x10000)|((val&1)<<16)))
+//Virtual 8086 mode flag (386+ only)
+#define FLAGREGW_V8(registers,val) (((registers->EFLAGS&~0x20000)|((val&1)<<17)))
+//Alignment check (486SX+ only)
+#define FLAGREGW_AC(registers,val) (((registers->EFLAGS&~0x40000)|((val&1)<<18)))
+//Virtual interrupt flag (Pentium+)
+#define FLAGREGW_VIF(registers,val) (((registers->EFLAGS&~0x80000)|((val&1)<<19)))
+//Virtual interrupt pending (Pentium+)
+#define FLAGREGW_VIP(registers,val) (((registers->EFLAGS&~0x100000)|((val&1)<<20)))
+//Able to use CPUID function (Pentium+)
+#define FLAGREGW_ID(registers,val) (((registers->EFLAGS&~0x200000)|((val&1)<<21)))
+#define FLAGREGW_UNMAPPEDHI(registers,val) ((registers->EFLAGS&0x3FFFFF)|((val&0x3FF)<<22))
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
@@ -649,7 +738,6 @@ typedef struct PACKED //The registers!
 			word EFLAGSDUMMY; //Dummy!
 		};
 		uint_32 EFLAGS;
-		SEPERATEFLAGS SFLAGS;
 	};
 
 	struct
@@ -760,55 +848,6 @@ typedef struct PACKED
 	word timing286lookup[2][2][2][0x100][8][8]; //2 modes, 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
-
-
-#define F_CARRY 0x01
-//Carry flag (CF): Math instr: high-order bit carried or borrowed, else cleared.
-//0x02 unmapped
-#define F_PARITY 0x04
-//Parity flag (PF): Lower 8-bits of a result contains an even number of bits set to 1 (set), else not set (cleared).
-//0x08 unmapped.
-#define F_AUXILIARY_CARRY 0x10
-//Auxiliary Carry flag (AF): (=Adjust flag?): Math instr: low order 4-bits of AL were carried or borrowed, else not set (cleared).
-//0x20 unmapped.
-#define F_ZERO 0x40
-//Zero flag (ZF): Math instr: Result=0: Set; Else Cleared.
-#define F_SIGN 0x80
-//Sign flag (SF): Set equal to high-order bit of results of math instr. (Result<0)=>Set; (Result>=0)=>Cleared.
-#define F_TRAP 0x100
-//Trap flag (TF)
-#define F_INTERRUPT 0x200
-//Interrupt flag (IF)
-#define F_DIRECTION 0x400
-//Direction flag (DF): Used by string instr. to determine to process strings from end (DECR) or start (INCR).
-#define F_OVERFLOW 0x800
-//Overflow flag (OF): Indicates if the number placed in the detination operand overflowed, either too large or small. No overflow=Cleared.
-#define F_IOPREV 0x3000
-//I/O Privilege Level (two bits long) (PL)
-#define F_NESTEDTASK 0x4000
-//Nested Task Flag (NT)
-//0x8000 unmapped.
-
-//New flags in 80386:
-#define F_RESUME 0x10000
-//Resume flag
-#define F_V8 0x20000
-//Virtual 8086 MODE flag
-
-
-//Same, but shorter:
-
-#define F_CF F_CARRY
-#define F_PF F_PARITY
-#define F_AF F_AUXILIARY_CARRY
-#define F_ZF F_ZERO
-#define F_SF F_SIGN
-#define F_TF F_TRAP
-#define F_IF F_INTERRUPT
-#define F_DF F_DIRECTION
-#define F_PL F_IOPREV
-#define F_NT F_NESTEDTASK
-#define F_RF F_RESUME
 
 //Now other structs we need:
 

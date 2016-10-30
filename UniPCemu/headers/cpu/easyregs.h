@@ -5,38 +5,38 @@
 #define CHECK_SF(data) \
 				if (sizeof(data)==1) \
 				{ \
-					FLAG_SF = (data&0x80)>0; \
+					FLAGW_SF((data&0x80)>0); \
 				} \
 				else if (sizeof(data)==2) \
 				{ \
-					FLAG_SF = (data&0x8000)>0; \
+					FLAGW_SF((data&0x8000)>0); \
 				} \
 				else if (sizeof(data)==4) \
 				{ \
-					FLAG_SF = (data&0x80000000)>0; \
+					FLAGW_SF((data&0x80000000)>0); \
 				}
-#define CHECK_ZF(data) FLAG_ZF = (data==0);
+#define CHECK_ZF(data) FLAGW_ZF((data==0));
 //FLAG_PF: Low 8-bits only!
 #define CHECK_PF(data) \
 				if (sizeof(data)==1) \
 				{ \
-					FLAG_PF = PARITY8(data); \
+					FLAGW_PF(PARITY8(data)); \
 				} \
 				else if (sizeof(data)==2) \
 				{ \
-					FLAG_PF = PARITY16(data&0xFF); \
+					FLAGW_PF(PARITY16(data&0xFF)); \
 				} \
 				else if (sizeof(data)==4) \
 				{ \
-					FLAG_PF = PARITY32(data&0xFF); \
+					FLAGW_PF(PARITY32(data&0xFF)); \
 				}
 
 //HIER GEBLEVEN; nog te doen: FLAG_CF & FLAG_AF! (Carry flag & Adjust flag (carry or borrow to the low order four bits of AL))
 
 //Borrow from high byte!
-#define CHECK_CF(data,addition) FLAG_CF = (((((data+addition)^(data+addition))^addition)&(0x10<<((8*sizeof(addition))-1)))>0)
+#define CHECK_CF(data,addition) FLAGW_CF((((((data+addition)^(data+addition))^addition)&(0x10<<((8*sizeof(addition))-1)))>0))
 //Borrow from half-byte!
-#define CHECK_AF(data,addition) FLAG_AF = (((((data+addition)^(data+addition))^addition)&0x10)>0)
+#define CHECK_AF(data,addition) FLAGW_AF((((((data+addition)^(data+addition))^addition)&0x10)>0))
 
 //FLAG_OF=Klaar!
 /*#define CHECK_OF(data,addition,ismultiplication) \
@@ -109,18 +109,34 @@ extern byte parity[0x100]; //Our parity table!
 #define REG_EFLAGS CPU[activeCPU].registers->EFLAGS
 #define REG_FLAGS CPU[activeCPU].registers->FLAGS
 
-//Flags
-#define FLAG_V8 CPU[activeCPU].registers->SFLAGS.V8
-#define FLAG_RF CPU[activeCPU].registers->SFLAGS.RF
-#define FLAG_NT CPU[activeCPU].registers->SFLAGS.NT
-#define FLAG_PL CPU[activeCPU].registers->SFLAGS.PL
-#define FLAG_OF CPU[activeCPU].registers->SFLAGS.OF
-#define FLAG_DF CPU[activeCPU].registers->SFLAGS.DF
-#define FLAG_IF CPU[activeCPU].registers->SFLAGS.IF
-#define FLAG_TF CPU[activeCPU].registers->SFLAGS.TF
-#define FLAG_SF CPU[activeCPU].registers->SFLAGS.SF
-#define FLAG_ZF CPU[activeCPU].registers->SFLAGS.ZF
-#define FLAG_AF CPU[activeCPU].registers->SFLAGS.AF
-#define FLAG_PF CPU[activeCPU].registers->SFLAGS.PF
-#define FLAG_CF CPU[activeCPU].registers->SFLAGS.CF
+//Flags(read version default)
+#define FLAG_V8 FLAGREGR_V8(CPU[activeCPU].registers)
+#define FLAG_RF FLAGREGR_RF(CPU[activeCPU].registers)
+#define FLAG_NT FLAGREGR_NT(CPU[activeCPU].registers)
+#define FLAG_PL FLAGREGR_IOPL(CPU[activeCPU].registers)
+#define FLAG_OF FLAGREGR_OF(CPU[activeCPU].registers)
+#define FLAG_DF FLAGREGR_DF(CPU[activeCPU].registers)
+#define FLAG_IF FLAGREGR_IF(CPU[activeCPU].registers)
+#define FLAG_TF FLAGREGR_TF(CPU[activeCPU].registers)
+#define FLAG_SF FLAGREGR_SF(CPU[activeCPU].registers)
+#define FLAG_ZF FLAGREGR_ZF(CPU[activeCPU].registers)
+#define FLAG_AF FLAGREGR_AF(CPU[activeCPU].registers)
+#define FLAG_PF FLAGREGR_PF(CPU[activeCPU].registers)
+#define FLAG_CF FLAGREGR_CF(CPU[activeCPU].registers)
+
+//Flags(write version default)
+#define FLAGW_V8(val) FLAGREGW_V8(CPU[activeCPU].registers,val)
+#define FLAGW_RF(val) FLAGREGW_RF(CPU[activeCPU].registers,val)
+#define FLAGW_NT(val) FLAGREGW_NT(CPU[activeCPU].registers,val)
+#define FLAGW_PL(val) FLAGREGW_IOPL(CPU[activeCPU].registers,val)
+#define FLAGW_OF(val) FLAGREGW_OF(CPU[activeCPU].registers,val)
+#define FLAGW_DF(val) FLAGREGW_DF(CPU[activeCPU].registers,val)
+#define FLAGW_IF(val) FLAGREGW_IF(CPU[activeCPU].registers,val)
+#define FLAGW_TF(val) FLAGREGW_TF(CPU[activeCPU].registers,val)
+#define FLAGW_SF(val) FLAGREGW_SF(CPU[activeCPU].registers,val)
+#define FLAGW_ZF(val) FLAGREGW_ZF(CPU[activeCPU].registers,val)
+#define FLAGW_AF(val) FLAGREGW_AF(CPU[activeCPU].registers,val)
+#define FLAGW_PF(val) FLAGREGW_PF(CPU[activeCPU].registers,val)
+#define FLAGW_CF(val) FLAGREGW_CF(CPU[activeCPU].registers,val)
+
 #endif

@@ -6,6 +6,7 @@
 #include "headers/emu/debugger/debugger.h" //For logging check!
 #include "headers/support/locks.h" //We need to unlock ourselves during triple faults, to reset ourselves!
 #include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 /*
 
@@ -882,7 +883,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 byte checkSpecialRights() //Check special rights, common by any rights instructions!
 {
 	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
-	if (CPU[activeCPU].registers->SFLAGS.IOPL > getCPL()) //We're not allowed!
+	if (FLAG_PL > getCPL()) //We're not allowed!
 	{
 		return 1; //Not priviledged!
 	}
@@ -1114,12 +1115,12 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			CPU[activeCPU].registers->EIP = (idtentry.offsetlow | (idtentry.offsethigh << 16)); //The current OPCode: just jump to the address specified by the descriptor OR command!
 			CPU_flushPIQ(); //We're jumping to another address!
 
-			CPU[activeCPU].registers->SFLAGS.TF = 0;
-			CPU[activeCPU].registers->SFLAGS.NT = 0;
+			FLAGW_TF(0);
+			FLAGW_NT(0);
 
 			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
 			{
-				CPU[activeCPU].registers->SFLAGS.IF = 0; //No interrupts!
+				FLAGW_IF(0); //No interrupts!
 			}
 
 			if (errorcode!=-1) //Error code specified?

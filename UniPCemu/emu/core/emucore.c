@@ -56,6 +56,7 @@
 #include "headers/cpu/cb_manager.h" //For handling callbacks!
 #include "headers/hardware/gameblaster.h" //Game blaster support!
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
+#include "headers/cpu/easyregs.h" //Flag support!
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
@@ -767,7 +768,7 @@ OPTINLINE byte coreHandler()
 				}
 				goto skipHaltRestart; //Count cycles normally!
 			}
-			else if (CPU[activeCPU].registers->SFLAGS.IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
+			else if (FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
@@ -822,7 +823,7 @@ OPTINLINE byte coreHandler()
 			CPU_beforeexec(); //Everything before the execution!
 			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 			{
-				if (CPU[activeCPU].registers->SFLAGS.IF) //Interrupts available?
+				if (FLAG_IF) //Interrupts available?
 				{
 					if (PICInterrupt()) //We have a hardware interrupt ready?
 					{

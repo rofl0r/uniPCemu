@@ -260,57 +260,57 @@ char flags[256]; //Flags as a text!
 static char *debugger_generateFlags(CPU_registers *registers)
 {
 	memset(&flags,0,sizeof(flags)); //Clear/init flags!
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.CF?'C':'c'));
-	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped2);
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.PF?'P':'p'));
-	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped8);
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.AF?'A':'a'));
-	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped32);
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.ZF?'Z':'z'));
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.SF?'S':'s'));
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.TF?'T':'t'));
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.IF?'I':'i'));
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.DF?'D':'d'));
-	sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.OF?'O':'o'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED8(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AF(registers)?'A':'a'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ZF(registers)?'Z':'z'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_SF(registers)?'S':'s'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_TF(registers)?'T':'t'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_IF(registers)?'I':'i'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_DF(registers)?'D':'d'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_OF(registers)?'O':'o'));
 	if (EMULATED_CPU>=CPU_80286) //286+?
 	{
-		sprintf(flags,"%s%u",flags,(word)(registers->SFLAGS.IOPL&1));
-		sprintf(flags,"%s%u",flags,(word)((registers->SFLAGS.IOPL&2)>>1));
-		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.NT?'N':'n'));
+		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_NT(registers)?'N':'n'));
 	}
 	else //186-? Display as numbers!
 	{
-		sprintf(flags,"%s%u",flags,(word)(registers->SFLAGS.IOPL&1));
-		sprintf(flags,"%s%u",flags,(word)((registers->SFLAGS.IOPL&2)>>1));
-		sprintf(flags,"%s%u",flags,registers->SFLAGS.NT);
+		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		sprintf(flags,"%s%u",flags,FLAGREGR_NT(registers));
 	}
 	//Higest 16-bit value!
-	sprintf(flags,"%s%u",flags,registers->SFLAGS.unmapped32768);
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32768(registers));
 	
 	//Now the high word (80386+)!
 	if (EMULATED_CPU>=CPU_80386) //386+?
 	{
-		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.RF?'R':'r'));
-		sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.V8?'V':'v'));
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_RF(registers)?'R':'r'));
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_V8(registers)?'V':'v'));
 		if (EMULATED_CPU>=CPU_80486) //486+?
 		{
-			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.AC?'A':'a'));
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AC(registers)?'A':'a'));
 		}
 		else //386?
 		{
-			sprintf(flags,"%s%u",flags,registers->SFLAGS.AC); //Literal bit!
+			sprintf(flags,"%s%u",flags,FLAGREGR_AC(registers)); //Literal bit!
 		}
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+?
 		{
-			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.VIF?'F':'f'));
-			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.VIP?'P':'p'));
-			sprintf(flags,"%s%c",flags,(char)(registers->SFLAGS.ID?'I':'i'));
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIF(registers)?'F':'f'));
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIP(registers)?'P':'p'));
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ID(registers)?'I':'i'));
 		}
 		else //386/486?
 		{
-			sprintf(flags,"%s%u",flags,registers->SFLAGS.VIF);
-			sprintf(flags,"%s%u",flags,registers->SFLAGS.VIP);
-			sprintf(flags,"%s%u",flags,registers->SFLAGS.ID);
+			sprintf(flags,"%s%u",flags,FLAGREGR_VIF(registers));
+			sprintf(flags,"%s%u",flags,FLAGREGR_VIP(registers));
+			sprintf(flags,"%s%u",flags,FLAGREGR_ID(registers));
 		}
 		//Unmapped high bits!
 		int i; //For counting the current bit!
@@ -318,7 +318,7 @@ static char *debugger_generateFlags(CPU_registers *registers)
 		j = 1; //Start with value 1!
 		for (i=0;i<10;i++) //10-bits value rest!
 		{
-			if (registers->SFLAGS.unmappedhi&j) //Bit set?
+			if (FLAGREGR_UNMAPPEDHI(registers)&j) //Bit set?
 			{
 				sprintf(flags,"%s1",flags); //1!
 			}
