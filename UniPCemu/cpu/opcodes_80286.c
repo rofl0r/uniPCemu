@@ -505,8 +505,8 @@ void CPU286_OP0F03() //LSL /r
 					break;
 				}
 
-				limit = verdescriptor.desc.limit_low|(verdescriptor.desc.limit_high<<16); //Limit!
-				if ((verdescriptor.desc.G&CPU[activeCPU].G_Mask) && (EMULATED_CPU >= CPU_80386)) //Granularity?
+				limit = verdescriptor.desc.limit_low|(SEGDESC_NONCALLGATE_LIMIT_HIGH(verdescriptor.desc)<<16); //Limit!
+				if ((SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask) && (EMULATED_CPU >= CPU_80386)) //Granularity?
 				{
 					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 				}
@@ -564,7 +564,7 @@ typedef struct PACKED
 void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 {
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = source->limit;
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_high = 0; //No high limit!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info &= ~0xF; //No high limit!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = source->baselow;
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = source->basehigh; //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0;

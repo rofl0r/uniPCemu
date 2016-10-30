@@ -528,11 +528,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_high = 0; //No high limit!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].AVL = 0; //Byte granularity!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].unk_0 = 0; //Byte granularity!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].D_B = 0; //Normal size!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].G = 0; //Byte granularity!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].noncallgate_info = 0; //No high limit etc.!
 		if ((reg != CPU_SEGMENT_LDTR) && (reg != CPU_SEGMENT_TR)) //Special protected-mode segments? We're undefined!
 		{
 			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x93; //Data segment!
@@ -736,7 +732,7 @@ byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 		return 0; //Always 16-bit descriptor!
 	}
 
-	return CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].D_B&CPU[activeCPU].D_B_Mask; //Give the B-BIT of the SS-register!
+	return SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS])&CPU[activeCPU].D_B_Mask; //Give the B-BIT of the SS-register!
 }
 
 uint_32 CPU_InterruptReturn = 0;

@@ -217,7 +217,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index|0x7)>=((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index|0x7)>=((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return 0; //Not present: limit exceeded!
 	}
@@ -238,7 +238,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
 		container->desc.base_high = 0; //No high byte is present!
-		container->desc.limit_high = 0; //No high limit is present!
+		container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 	}
 
 	if (segment == CPU_SEGMENT_LDTR) //Loading a LDT with no LDT entry used?
@@ -279,7 +279,7 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index | 0x7) >= ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index | 0x7) >= ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return; //Not present: limit exceeded!
 	}
@@ -297,7 +297,7 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer)) //Loaded the old container?
 		{
 			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
-			container->desc.limit_high = tempcontainer.desc.limit_high; //No high limit is present, so ingore the data to write!
+			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ingore the data to write!
 		}
 		//Don't handle any errors on descriptor loading!
 	}
@@ -777,9 +777,9 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	uint_32 limit; //The limit!
 	byte isvalid;
 
-	limit = ((descriptor->limit_high << 16) | descriptor->limit_low); //Base limit!
+	limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
 
-	if ((descriptor->G&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)) //Granularity?
+	if ((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)) //Granularity?
 	{
 		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	}
@@ -792,7 +792,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			if (descriptor->DATASEGMENT.E) //Expand-down segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
-				if (descriptor->G == 0) //Small granularity?
+				if (SEGDESCPTR_NONCALLGATE_G(descriptor) == 0) //Small granularity?
 				{
 					isvalid = (isvalid && (offset <= 0x10000)); //Limit to 64K!
 				}
@@ -916,7 +916,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS32BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
 		{
 			uint_32 limit;
-			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_high << 16); //The limit of the descriptor!
+			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) << 16); //The limit of the descriptor!
 			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0); //Add the map location to the specified address!
 			if (maplocation >= limit) //Over the limit? We're an invalid entry or got no bitmap!
 			{
@@ -939,7 +939,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index | 0x7) >= ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_high << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index | 0x7) >= ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return 0; //Not present: limit exceeded!
 	}
@@ -960,7 +960,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
 		container->desc.base_high = 0; //No high byte is present!
-		container->desc.limit_high = 0; //No high limit is present!
+		container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 	}
 
 	if ((segment == CPU_SEGMENT_CS) &&
@@ -1027,7 +1027,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		{
 			if (errorcode!=-1) //Error code to be pushed on the stack?
 			{
-				if (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].D_B) //32-bit task?
+				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
 				{
 					CPU_PUSH32(&errorcode32); //Push the error on the stack!
 				}
@@ -1063,7 +1063,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
-			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (newdescriptor.desc.limit_high << 16))) //Limit exceeded?
+			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(newdescriptor.desc) << 16))) //Limit exceeded?
 			{
 				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
@@ -1124,7 +1124,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (errorcode!=-1) //Error code specified?
 			{
-				if (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].D_B) //32-bit task?
+				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
 				{
 					CPU_PUSH32(&errorcode32); //Push the error on the stack!
 				}

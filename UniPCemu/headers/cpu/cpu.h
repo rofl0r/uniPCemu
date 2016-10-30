@@ -137,14 +137,7 @@ typedef struct PACKED
 				};
 				union
 				{
-					struct
-					{
-						u8 limit_high : 4; //High part of limit (if used).
-						u8 AVL : 1; //Available for programmers use.
-						u8 unk_0 : 1; //0!
-						u8 D_B : 1; //D(default) or B(big) (or unknown(X) in a system segment)
-						u8 G : 1; //Granularity: defines Segment limit and base address.
-					}; //For normal, non-CALL Gate descriptors
+					u8 noncallgate_info; //Non-callgate access!
 					u8 callgate_base_mid;
 				};
 				union
@@ -160,6 +153,16 @@ typedef struct PACKED
 	};
 } SEGMENT_DESCRIPTOR;
 #include "headers/endpacked.h" //End of packed type!
+
+#define SEGDESC_NONCALLGATE_LIMIT_HIGH(desc) (desc.noncallgate_info&0xF)
+#define SEGDESC_NONCALLGATE_AVL(desc) ((desc.noncallgate_info>>4)&1)
+#define SEGDESC_NONCALLGATE_D_B(desc) ((desc.noncallgate_info>>6)&1)
+#define SEGDESC_NONCALLGATE_G(desc) ((desc.noncallgate_info>>7)&1)
+
+#define SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(desc) (desc->noncallgate_info&0xF)
+#define SEGDESCPTR_NONCALLGATE_AVL(desc) ((desc->noncallgate_info>>4)&1)
+#define SEGDESCPTR_NONCALLGATE_D_B(desc) ((desc->noncallgate_info>>6)&1)
+#define SEGDESCPTR_NONCALLGATE_G(desc) ((desc->noncallgate_info>>7)&1)
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
