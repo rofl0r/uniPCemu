@@ -200,11 +200,7 @@ typedef struct PACKED
 	word Unused5C;
 	word LDT;
 	word Unused60;
-	struct
-	{
-		byte T: 1;
-		word Unused64: 15;
-	};
+	word T; //1-bit, upper 15 bits unused!
 	word IOMapBase;
 } TSS386; //80386 32-Bit Task State Segment
 #include "headers/endpacked.h" //End of packed type!
@@ -245,15 +241,17 @@ typedef union PACKED
 		word offsetlow; //Lower part of the interrupt function's offset address (a.k.a. pointer)
 		word selector; //The selector of the interrupt function. It's DPL field has be be 0.
 		byte zero; //Must be zero!
-		byte Type : 4; //One of the supported types!
-		byte S : 1; //Storage Segment. Set to 0 for interrupt gates
-		byte DPL : 2; //Descriptor Privilege Level
-		byte P : 1; //Present
+		byte AccessRights; //Access rights byte
 		word offsethigh; //Higer part of the offset
 	};
 	byte descdata[8]; //The full entry data!
 } IDTENTRY; //80286/80386 Interrupt descriptor table entry
 #include "headers/endpacked.h" //End of packed type!
+
+#define IDTENTRY_TYPE(ENTRY) (ENTRY.AccessRights&0xF)
+#define IDTENTRY_S(ENTRY) ((ENTRY.AccessRights>>4)&1)
+#define IDTENTRY_DPL(ENTRY) ((ENTRY.AccessRights>>5)&3)
+#define IDTENTRY_P(ENTRY) ((ENTRY.AccessRights>>7)&1)
 
 //A segment descriptor
 
@@ -583,16 +581,6 @@ typedef struct PACKED //The registers!
 		};
 		uint_32 EDX;
 	};
-
-
-
-
-
-
-
-
-
-
 
 	union
 	{

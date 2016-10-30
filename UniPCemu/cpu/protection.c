@@ -1001,20 +1001,20 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 	byte is32bit;
 
-	if (idtentry.P==0) //Not present?
+	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
 		THROWDESCNP(base,is_EXT,EXCEPTION_TABLE_IDT); //#NP!
 		return 0;
 	}
 
-	if (!((errorcode!=-1)&&(errorcode&1)) && (idtentry.DPL < getCPL())) //Not enough rights?
+	if (!((errorcode!=-1)&&(errorcode&1)) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights?
 	{
 		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
 		return 0;
 	}
 
 	//Now, the (gate) descriptor to use is loaded!
-	switch (idtentry.Type) //What type are we?
+	switch (IDTENTRY_TYPE(idtentry)) //What type are we?
 	{
 	case IDTENTRY_32BIT_TASKGATE: //32-bit task gate?
 		desttask = idtentry.selector; //Read the destination task!
@@ -1048,8 +1048,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		}
 		break;
 	default: //All other cases?
-		is32bit = idtentry.Type&IDTENTRY_32BIT_GATEEXTENSIONFLAG; //Enable 32-bit gate?
-		switch (idtentry.Type & 0x7) //What type are we?
+		is32bit = IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG; //Enable 32-bit gate?
+		switch (IDTENTRY_TYPE(idtentry) & 0x7) //What type are we?
 		{
 		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
 		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
@@ -1117,7 +1117,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			CPU[activeCPU].registers->SFLAGS.TF = 0;
 			CPU[activeCPU].registers->SFLAGS.NT = 0;
 
-			if ((idtentry.Type & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
+			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
 			{
 				CPU[activeCPU].registers->SFLAGS.IF = 0; //No interrupts!
 			}
