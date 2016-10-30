@@ -185,7 +185,6 @@
     <ClInclude Include="headers\bios\boot.h" />
     <ClInclude Include="headers\bios\initmem.h" />
     <ClInclude Include="headers\cpu\8086_grpOPs.h" />
-    <ClInclude Include="headers\cpu\bda.h" />
     <ClInclude Include="headers\cpu\cb_manager.h" />
     <ClInclude Include="headers\cpu\cpu.h" />
     <ClInclude Include="headers\cpu\cpu_OP80286.h" />
