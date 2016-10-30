@@ -53,6 +53,8 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 	return MMU_directptr(realaddr, size); //Direct pointer!
 }
 
+extern byte is_XT; //Are we an XT?
+
 //Address translation routine.
 OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop) //Real adress?
 {
@@ -69,6 +71,9 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	realaddress += CPU_MMU_start(segdesc, segment);
 
 	realaddress &= MMU.wraparround; //Apply A20!
+
+	if (is_XT) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT!
+	else if (EMULATED_CPU==CPU_80286) realaddress &= 0xFFFFFF; //Only 24-bits is available on a AT!
 
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
