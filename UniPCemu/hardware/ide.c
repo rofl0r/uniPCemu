@@ -58,21 +58,7 @@ struct
 			};
 			byte data;
 		} ERRORREGISTER;
-		union
-		{
-			struct
-			{
-				byte error : 1; //An error has occurred when 1!
-				byte index : 1; //Set once per disk revolution.
-				byte correcteddata : 1; //Data has been corrected.
-				byte datarequestready : 1; //Ready to transfer a word or byte of data between the host and the drive.
-				byte driveseekcomplete : 1; //Drive heads are settled on a track.
-				byte drivewritefault : 1; //Write fault status.
-				byte driveready : 1; //Ready to accept a command?
-				byte busy : 1; //The drive has access to the Command Block Registers.
-			};
-			byte data;
-		} STATUSREGISTER;
+		byte STATUSREGISTER;
 
 		struct
 		{
@@ -121,6 +107,28 @@ struct
 #define DRIVECONTROLREGISTER_NIENR(channel) ((ATA[channel].DriveControlRegister>>1)&1)
 //Reset!
 #define DRIVECONTROLREGISTER_SRSTR(channel) ((ATA[channel].DriveControlRegister>>2)&1)
+
+//Status Register
+
+//An error has occurred when 1!
+#define ATA_STATUSREGISTER_ERRORR(channel,drive) (ATA[channel].Drive[drive].STATUSREGISTER&1)
+//An error has occurred when 1!
+#define ATA_STATUSREGISTER_ERRORW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~1)|(val&1))
+//Set once per disk revolution.
+#define ATA_STATUSREGISTER_INDEXW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~2)|((val&1)<<1))
+//Data has been corrected.
+#define ATA_STATUSREGISTER_CORRECTEDDATAW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~4)|((val&1)<<2))
+//Ready to transfer a word or byte of data between the host and the drive.
+#define ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~8)|((val&1)<<3))
+//Drive heads are settled on a track.
+#define ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~0x10)|((val&1)<<4))
+//Write fault status.
+#define ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~0x20)|((val&1)<<5))
+//Ready to accept a command?
+#define ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~0x40)|((val&1)<<6))
+//The drive has access to the Command Block Registers.
+#define ATA_STATUSREGISTER_BUSYW(channel,drive,val) ATA[channel].Drive[drive].STATUSREGISTER=((ATA[channel].Drive[drive].STATUSREGISTER&~0x80)|((val&1)<<7))
+
 
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
@@ -446,7 +454,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 #ifdef ATA_LOG
 			dolog("ATA", "Because the drive is readonly!"); //Log the sector we're writing to!
 #endif
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.drivewritefault = 1; //Write fault!
+			ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),1); //Write fault!
 		}
 		else
 		{
@@ -1319,9 +1327,9 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		SENSEDATA.information = 0; //No info!
 		SENSEDATA.commandspecificinformation = 0; //No command specific information?
 		SENSEDATA.valid = 1; //We're valid!
-		ATA[channel].Drive[drive].STATUSREGISTER.data = 0; //Clear status!
-		ATA[channel].Drive[drive].STATUSREGISTER.driveready = 1; //Ready!
-		ATA[channel].Drive[drive].STATUSREGISTER.error = 1; //Ready!
+		ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
 		ATA_IRQ(channel, ATA_activeDrive(channel));
@@ -1385,8 +1393,8 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		ATA[channel].Drive[0].ERRORREGISTER.data = 0x1; //OK!
 		ATA[channel].Drive[1].ERRORREGISTER.data = 0x1; //OK!
-		ATA[channel].Drive[0].STATUSREGISTER.error = 0; //Not an error!
-		ATA[channel].Drive[1].STATUSREGISTER.error = 0; //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,0,0); //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,1,0); //Not an error!
 		ATA[channel].commandstatus = 0; //Reset status!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
@@ -1434,15 +1442,15 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 			temp = (ATA[channel].command & 0xF); //???
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Clear cylinder #!
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
+			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No error!
 			ATA[channel].commandstatus = 0; //Reset status!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
 		}
 		else
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 0; //We've not completed seeking!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //We've not completed seeking!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Track 0 couldn't be found!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.track0notfound = 1; //Track 0 couldn't be found!
 			ATA[channel].commandstatus = 0xFF; //Error!
@@ -1476,9 +1484,9 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 				dolog("ATA", "Seeked!");
 #endif
-				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //No error!
-				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We've completed seeking!
-				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //No error!
+				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
+				ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No error!
 				ATA[channel].commandstatus = 0; //Reset status!
 				ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),(command & 0xF)); //Select the following head!
@@ -1516,7 +1524,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		if (ATA_readsector(channel,command)) //OK?
 		{
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
@@ -1539,7 +1547,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		nextverification: //Verify the next sector!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
 		{
@@ -1553,11 +1561,11 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //Reset error register!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.idmarknotfound = 1; //Not found!
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Error!
+			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0xFF; //Error!
 		}
-		if (!ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error) //Finished OK?
+		if (!ATA_STATUSREGISTER_ERRORR(channel,ATA_activeDrive(channel))) //Finished OK?
 		{
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the OK IRQ!
 		}
@@ -1584,7 +1592,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
 		ATA[channel].datablock = 0x200; //We're writing 512 bytes to our output at a time!
@@ -1601,7 +1609,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
 		ATA_updateCapacity(channel,ATA_activeDrive(channel)); //Update the capacity!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		break;
 	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE (ATAPI Mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
@@ -1625,12 +1633,12 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].command = 0xEC; //We're running this command!
 		CDROMIDENTIFY:
 		memcpy(&ATA[channel].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //Needs to be 0 to detect!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveseekcomplete = 1; //We have data now!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We have data now!
 		//Finish up!
 		ATA[channel].datapos = 0; //Initialise data position for the result!
 		ATA[channel].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
@@ -1643,7 +1651,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
 		ATA[channel].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].commandstatus = 2; //We're requesting data to be written!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear any errors!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 12; //We're requesting...
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //12 bytes of data to be transferred!
@@ -1667,7 +1675,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.uncorrectabledata = 0; //Are we read-only!
 			}
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.mediachanged = 0; //Not anymore!
-			ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
+			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
 			ATA[channel].commandstatus = 0; //Reset status!
 		}
@@ -1699,7 +1707,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			break;
 		}
 		ATA[channel].commandstatus = 0; //Reset command status!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Reset data register!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
 		break;
 	case 0x00: //NOP (ATAPI Mandatory)?
 		break;
@@ -1746,10 +1754,11 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 4; //Reset error register!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Ready!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Ready!
 		invalidcommand_noerror:
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data = 0; //Clear status!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //Ready!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].commandstatus = 0xFF; //Move to error mode!
 		ATA_IRQ(channel, ATA_activeDrive(channel));
@@ -1762,26 +1771,26 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
 		break;
 	case 1: //Transferring data IN?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //We're ready to process a command!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),1); //We're requesting data to transfer!
 		break;
 	case 2: //Transferring data OUT?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.busy = 0; //Not busy! You can write to the CBRs!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 1; //We're ready to process a command!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.datarequestready = 1; //We're requesting data to transfer!
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),1); //We're requesting data to transfer!
 		break;
 	case 3: //Busy waiting?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.busy = 1; //Busy! You can write to the CBRs!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.driveready = 0; //We're ready to process a command!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.datarequestready = 0; //We're requesting data to transfer!
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),1); //Busy! You can write to the CBRs!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),0); //We're ready to process a command!
+		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		break;
 	default: //Unknown?
 	case 0xFF: //Error?
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 1; //Error!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
 		ATA[channel].commandstatus = 0; //Reset command status: we've reset!
 		break;
 	}
@@ -2037,8 +2046,8 @@ byte inATA8(word port, byte *result)
 	case 7: //Status?
 		ATA_updateStatus(channel); //Update the status register if needed!
 		ATA_removeIRQ(channel,ATA_activeDrive(channel)); //Acnowledge IRQ!
-		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data; //Get status!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.drivewritefault = 0; //Reset write fault flag!
+		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER; //Get status!
+		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //Reset write fault flag!
 #ifdef ATA_LOG
 		dolog("ATA", "Status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
 #endif
@@ -2059,7 +2068,7 @@ port3_read: //Special port #3?
 	{
 	case 0: //Alternate status register?
 		ATA_updateStatus(channel); //Update the status register if needed!
-		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.data; //Get status!
+		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER; //Get status!
 #ifdef ATA_LOG
 		dolog("ATA", "Alternate status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
 #endif
