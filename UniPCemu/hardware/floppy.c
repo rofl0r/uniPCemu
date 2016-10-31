@@ -59,20 +59,7 @@ struct
 	byte ST0;
 	byte ST1;
 	byte ST2;
-	union
-	{
-		byte data; //ST3 register!
-		struct
-		{
-			byte DriveSelect : 2;
-			byte Head1Active : 1;
-			byte DoubleSided : 1;
-			byte Track0 : 1;
-			byte DriveReady : 1;
-			byte WriteProtection : 1;
-			byte ErrorSignature : 1;
-		};
-	} ST3;
+	byte ST3;
 	union
 	{
 		byte data[2]; //Both data bytes!
@@ -210,6 +197,15 @@ struct
 #define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|((val&1)<<5)
 #define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|((val&1)<<6)
 #define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|((val&1)<<7)
+
+//ST3
+#define FLOPPY_ST3_DRIVESELECTW(val) FLOPPY.ST3=((FLOPPY.ST3&~3)|(val&3))
+#define FLOPPY_ST3_HEAD1ACTIVEW(val) FLOPPY.ST3=((FLOPPY.ST3&~4)|((val&1)<<2))
+#define FLOPPY_ST3_DOUBLESIDEDW(val) FLOPPY.ST3=((FLOPPY.ST3&~8)|((val&1)<<3))
+#define FLOPPY_ST3_TRACK0W(val) FLOPPY.ST3=((FLOPPY.ST3&~0x10)|((val&1)<<4))
+#define FLOPPY_ST3_DRIVEREADYW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x20)|((val&1)<<5))
+#define FLOPPY_ST3_WRITEPROTECTIONW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x40)|((val&1)<<6))
+#define FLOPPY_ST3_ERRORSIGNATUREW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x80)|((val&1)<<7))
 
 //Start normal data!
 
@@ -438,29 +434,29 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 
 OPTINLINE void updateST3(byte drivenumber)
 {
-	FLOPPY.ST3.data |= 0x28; //Always set according to Bochs!
-	FLOPPY.ST3.Track0 = (FLOPPY.currentcylinder[drivenumber] == 0); //Are we at track 0?
+	FLOPPY.ST3 |= 0x28; //Always set according to Bochs!
+	FLOPPY_ST3_TRACK0W((FLOPPY.currentcylinder[drivenumber] == 0)?1:0); //Are we at track 0?
 
 	if (FLOPPY.geometries[drivenumber]) //Valid drive?
 	{
-		FLOPPY.ST3.DoubleSided = (FLOPPY.geometries[drivenumber]->sides==2)?1:0; //Are we double sided?
+		FLOPPY_ST3_DOUBLESIDEDW((FLOPPY.geometries[drivenumber]->sides==2)?1:0); //Are we double sided?
 	}
 	else //Apply default disk!
 	{
-		FLOPPY.ST3.DoubleSided = 1; //Are we double sided?
+		FLOPPY_ST3_DOUBLESIDEDW(1); //Are we double sided?
 	}
-	FLOPPY.ST3.Head1Active = FLOPPY.currenthead[drivenumber]; //Is head 1 active?
-	FLOPPY.ST3.DriveSelect = drivenumber; //Our selected drive!
-	FLOPPY.ST3.DriveReady = 1; //We're always ready on PC!
+	FLOPPY_ST3_HEAD1ACTIVEW(FLOPPY.currenthead[drivenumber]); //Is head 1 active?
+	FLOPPY_ST3_DRIVESELECTW(drivenumber); //Our selected drive!
+	FLOPPY_ST3_DRIVEREADYW(1); //We're always ready on PC!
 	if (drivenumber<2) //Valid drive number?
 	{
-		FLOPPY.ST3.WriteProtection = drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0); //Read-only drive and tried to write?
+		FLOPPY_ST3_WRITEPROTECTIONW(drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0)?1:0); //Read-only drive and tried to write?
 	}
 	else
 	{
-		FLOPPY.ST3.WriteProtection = 0; //Drive unsupported? No write protection!
+		FLOPPY_ST3_WRITEPROTECTIONW(0); //Drive unsupported? No write protection!
 	}
-	FLOPPY.ST3.ErrorSignature = 0; //No errors here!
+	FLOPPY_ST3_ERRORSIGNATUREW(0); //No errors here!
 }
 
 OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
@@ -1272,7 +1268,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case SENSE_DRIVE_STATUS: //Check drive status
 			FLOPPY.currenthead[FLOPPY.commandbuffer[1]&3] = (FLOPPY.commandbuffer[1]&4)>>2; //Set the new head from the parameters!
 			updateST3(FLOPPY.commandbuffer[1]&3); //Update ST3 only!
-			FLOPPY.resultbuffer[0] = FLOPPY.ST3.data; //Give ST3!
+			FLOPPY.resultbuffer[0] = FLOPPY.ST3; //Give ST3!
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
