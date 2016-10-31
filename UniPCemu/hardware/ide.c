@@ -83,24 +83,7 @@ struct
 					byte sectornumber; //LBA bits 0-7!
 					byte cylinderhigh; //LBA bits 8-15!
 					byte cylinderlow; //LBA bits 16-23!
-					union
-					{
-						byte drivehead; //LBA 24-27!
-						struct
-						{
-							byte head : 4; //What head?
-							byte slavedrive : 1; //What drive?
-							byte always1_1 : 1;
-							byte LBAMode_2 : 1; //LBA mode?
-							byte always1_2 : 1;
-						};
-						struct
-						{
-							byte LBAhigh : 6; //High 6 bits!
-							byte LBAMode : 1; //LBA mode?
-							byte always1_3 : 1;
-						};
-					};
+					byte drivehead; //LBA 24-27!
 				};
 				uint_32 LBA; //LBA address in LBA mode (28 bits value)!
 			};
@@ -115,25 +98,29 @@ struct
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 	} Drive[2]; //Two drives!
 
-	union
-	{
-		struct
-		{
-			byte unused : 1;
-			byte nIEN : 1; //Disable interrupts when set or not the drive selected!
-			byte SRST : 1; //Reset!
-		};
-		byte data;
-	} DriveControlRegister;
-	union
-	{
-		byte data;
-	} DriveAddressRegister;
+	byte DriveControlRegister;
+	byte DriveAddressRegister;
 
 	byte activedrive; //What drive are we currently?
 	byte DMAPending; //DMA pending?
 	byte TC; //Terminal count occurred in DMA transfer?
 } ATA[2]; //Two channels of ATA drives!
+
+//Drive/Head register
+#define ATA_DRIVEHEAD_HEADR(channel,drive) (ATA[channel].Drive[drive].PARAMETERS.drivehead&0xF)
+#define ATA_DRIVEHEAD_HEADW(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0xF)|(val&0xF))
+#define ATA_DRIVEHEAD_SLAVEDRIVER(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>4)&1)
+#define ATA_DRIVEHEAD_LBAMODE_2R(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>6)&1)
+#define ATA_DRIVEHEAD_LBAMODE_2W(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0x40)|((val&1)<6))
+#define ATA_DRIVEHEAD_LBAHIGHR(channel,drive) (ATA[channel].Drive[drive].PARAMETERS.drivehead&0x3F)
+#define ATA_DRIVEHEAD_LBAHIGHW(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0x3F)|(val&0x3F))
+#define ATA_DRIVEHEAD_LBAMODER(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>6)&1)
+
+//Drive Control Register
+//nIEN: Disable interrupts when set or not the drive selected!
+#define DRIVECONTROLREGISTER_NIENR(channel) ((ATA[channel].DriveControlRegister>>1)&1)
+//Reset!
+#define DRIVECONTROLREGISTER_SRSTR(channel) ((ATA[channel].DriveControlRegister>>2)&1)
 
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
@@ -167,7 +154,7 @@ byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
 OPTINLINE void ATA_IRQ(byte channel, byte slave)
 {
-	if ((!ATA[channel].DriveControlRegister.nIEN) && (!ATA[channel].DriveControlRegister.SRST) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
+	if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
 	{
 		switch (channel)
 		{
@@ -343,7 +330,7 @@ OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
 {
 	word cylinder;
 	byte head, sector;
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //LBA mode?
+	if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //LBA mode?
 	{
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA &= ~0xFFFFFFF; //Clear the LBA part!
 		ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address &= 0xFFFFFFF; //Truncate the address to it's size!
@@ -354,7 +341,7 @@ OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
 		ATA_LBA2CHS(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, &cylinder, &head, &sector); //Convert the current LBA address into a CHS value!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((cylinder >> 8) & 0xFF); //Cylinder high!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (cylinder&0xFF); //Cylinder low!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = head; //Head!
+		ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),head); //Head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = sector; //Sector number!
 	}
 }
@@ -1376,10 +1363,9 @@ void ATA_reset(byte channel)
 	//Clear errors!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0x00; //No error!
 	//Clear Drive/Head register, leaving the specified drive as it is!
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = 0; //What head?
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.always1_1 = 1; //Always 1!
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode_2  = 0; //LBA mode?
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.always1_2 = 1; //Always 1!
+	ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),0); //What head?
+	ATA_DRIVEHEAD_LBAMODE_2W(channel,ATA_activeDrive(channel),0); //LBA mode?
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead |= 0xA0; //Always 1!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -1495,7 +1481,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER.error = 0; //Not an error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No error!
 				ATA[channel].commandstatus = 0; //Reset status!
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head = (command & 0xF); //Select the following head!
+				ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),(command & 0xF)); //Select the following head!
 				ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
 			}
 			else goto invalidcommand; //Error out!
@@ -1518,7 +1504,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
+		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
@@ -1526,7 +1512,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel,ATA_activeDrive(channel),
 				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
+				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
@@ -1541,7 +1527,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
+		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
@@ -1549,7 +1535,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel, ATA_activeDrive(channel),
 				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
+				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
@@ -1586,7 +1572,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBAMode) //Are we in LBA mode?
+		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
 		}
@@ -1594,7 +1580,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel, ATA_activeDrive(channel),
 				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head,
+				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
 				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
 
 		}
@@ -1611,7 +1597,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].commandstatus = 0; //Requesting command again!
-		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.head + 1); //Set the current maximum head!
+		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[55] = (ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)) + 1); //Set the current maximum head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
 		ATA_updateCapacity(channel,ATA_activeDrive(channel)); //Update the capacity!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER.data = 0; //No errors!
@@ -1923,9 +1909,9 @@ port3_write: //Special port #3?
 #ifdef ATA_LOG
 		dolog("ATA", "Control register write: %02X %i.%i",value, channel, ATA_activeDrive(channel));
 #endif
-		if (ATA[channel].DriveControlRegister.SRST==0) pendingreset = 1; //We're pending reset!
-		ATA[channel].DriveControlRegister.data = value; //Set the data!
-		if (ATA[channel].DriveControlRegister.SRST && pendingreset) //Pending reset?
+		if (DRIVECONTROLREGISTER_SRSTR(channel)==0) pendingreset = 1; //We're pending reset!
+		ATA[channel].DriveControlRegister = value; //Set the data!
+		if (DRIVECONTROLREGISTER_SRSTR(channel) && pendingreset) //Pending reset?
 		{
 			ATA_reset(channel); //Reset the specified channel!
 		}
@@ -2080,7 +2066,7 @@ port3_read: //Special port #3?
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
-		*result = (ATA[channel].DriveAddressRegister.data&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
+		*result = (ATA[channel].DriveAddressRegister&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
 #ifdef ATA_LOG
 		dolog("ATA", "Drive address register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
 #endif
