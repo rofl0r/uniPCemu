@@ -54,17 +54,7 @@ struct
 	byte DOR; //DOR
 	byte MSR; //MSR
 	byte CCR; //CCR
-	union
-	{
-		byte data; //DIR data!
-		struct
-		{
-			byte HighDensity : 1; //1 if high density, 0 otherwise.
-			byte DataRate : 2; //0=500, 1=300, 2=250, 3=1MBit/s
-			byte AlwaysF : 4; //Always 0xF
-			byte DiskChange : 1; //1 when disk changed. Executing a command clears this.
-		};
-	} DIR; //DIR
+	byte DIR; //DIR
 	union
 	{
 		struct
@@ -220,6 +210,18 @@ struct
 //0=500kbits/s, 1=300kbits/s, 2=250kbits/s, 3=1Mbits/s
 #define FLOPPY_CCR_RATER (FLOPPY.CCR&3)
 #define FLOPPY_CCR_RATEW(val) FLOPPY.CCR=((FLOPPY.CCR&~3)|(val&3))
+
+//DIR
+//1 if high density, 0 otherwise.
+#define FLOPPY_DIR_HIGHDENSITYW(val) FLOPPY.DIR=((FLOPPY.DIR&~1)|(val&1))
+//0=500, 1=300, 2=250, 3=1MBit/s
+#define FLOPPY_DIR_DATARATEW(val) FLOPPY.DIR=((FLOPPY.DIR&~6)|((val&3)<<1))
+//Always 0xF
+#define FLOPPY_DIR_ALWAYSFW(val) FLOPPY.DIR=((FLOPPY.DIR&~0x78)|((val&0xF)<<3))
+//1 when disk changed. Executing a command clears this.
+#define FLOPPY_DIR_DISKCHANGE(val) FLOPPY.DIR==((FLOPPY.DIR&0x7F)|((val&1)<<7))
+
+//Start normal data!
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
@@ -601,22 +603,22 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 
 OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
-	FLOPPY.DIR.data = 0; //Init to not changed!
+	FLOPPY.DIR = 0; //Init to not changed!
 	if (FLOPPY.diskchanged[0] && (FLOPPY_DOR_MOTORCONTROLR&1))
 	{
-		FLOPPY.DIR.data = 0x80; //Set our bit!
+		FLOPPY.DIR = 0x80; //Set our bit!
 	}
 	if (FLOPPY.diskchanged[1] && (FLOPPY_DOR_MOTORCONTROLR&2))
 	{
-		FLOPPY.DIR.data = 0x80; //Set our bit!
+		FLOPPY.DIR = 0x80; //Set our bit!
 	}
 	if (FLOPPY.diskchanged[2] && (FLOPPY_DOR_MOTORCONTROLR&4))
 	{
-		FLOPPY.DIR.data = 0x80; //Set our bit!
+		FLOPPY.DIR = 0x80; //Set our bit!
 	}
 	if (FLOPPY.diskchanged[3] && (FLOPPY_DOR_MOTORCONTROLR&8))
 	{
-		FLOPPY.DIR.data = 0x80; //Set our bit!
+		FLOPPY.DIR = 0x80; //Set our bit!
 	}
 	//Rest of the bits are reserved on an AT!
 }
@@ -1703,8 +1705,8 @@ byte PORT_IN_floppy(word port, byte *result)
 		if (is_XT==0) //AT?
 		{
 			updateFloppyDIR(); //Update the DIR register!
-			FLOPPY_LOGD("FLOPPY: Read DIR=%02X", FLOPPY.DIR.data)
-			*result = FLOPPY.DIR.data; //Give DIR!
+			FLOPPY_LOGD("FLOPPY: Read DIR=%02X", FLOPPY.DIR)
+			*result = FLOPPY.DIR; //Give DIR!
 			return 1;
 		}
 		break;
