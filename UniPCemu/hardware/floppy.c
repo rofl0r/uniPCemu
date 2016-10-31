@@ -55,18 +55,7 @@ struct
 	byte MSR; //MSR
 	byte CCR; //CCR
 	byte DIR; //DIR
-	union
-	{
-		struct
-		{
-			byte DRATESEL : 2;
-			byte PRECOMP : 3;
-			byte DSR_0 : 1;
-			byte PowerDown : 1;
-			byte SWReset : 1;
-		};
-		byte data; //DSR data!
-	} DSR;
+	byte DSR;
 	union
 	{
 		byte data; //ST0 register!
@@ -220,6 +209,15 @@ struct
 #define FLOPPY_DIR_ALWAYSFW(val) FLOPPY.DIR=((FLOPPY.DIR&~0x78)|((val&0xF)<<3))
 //1 when disk changed. Executing a command clears this.
 #define FLOPPY_DIR_DISKCHANGE(val) FLOPPY.DIR==((FLOPPY.DIR&0x7F)|((val&1)<<7))
+
+//DSR
+#define FLOPPY_DSR_DRATESELR (FLOPPY.DSR&3)
+#define FLOPPY_DSR_DRATESELW(val) FLOPPY.DSR=((FLOPPY.DSR&~3)|(val&3))
+#define FLOPPY_DSR_PRECOMPR ((FLOPPY.DSR>>1)&7)
+#define FLOPPY_DSR_DSR_0R ((FLOPPY.DSR>>5)&1)
+#define FLOPPY_DSR_POWERDOWNR ((FLOPPY.DSR>>6)&1)
+#define FLOPPY_DSR_SWRESETR ((FLOPPY.DSR>>7)&1)
+#define FLOPPY_DSR_SWRESETW(val) FLOPPY.DSR=((FLOPPY.DSR&~0x80)|((val&1)<<7))
 
 //Start normal data!
 
@@ -476,7 +474,7 @@ OPTINLINE void updateST3(byte drivenumber)
 OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
 {
 	byte pending_size; //Our currently pending size to use!
-	if ((!FLOPPY_DOR_RESTR) || FLOPPY.DSR.SWReset) //We're to reset by either one enabled?
+	if ((!FLOPPY_DOR_RESTR) || FLOPPY_DSR_SWRESETR) //We're to reset by either one enabled?
 	{
 		if (!FLOPPY.floppy_resetted) //Not resetting yet?
 		{
@@ -1738,11 +1736,11 @@ byte PORT_OUT_floppy(word port, byte value)
 		if (is_XT==0) //AT?
 		{
 			FLOPPY_LOGD("FLOPPY: Write DSR=%02X", value)
-			FLOPPY.DSR.data = value; //Write to register to check for reset first!
+			FLOPPY.DSR = value; //Write to register to check for reset first!
 			FLOPPY_handlereset(1); //Execute a reset by DSR!
-			if (FLOPPY.DSR.SWReset) FLOPPY.DSR.SWReset = 0; //Reset requested? Clear the reset bit automatically!
+			if (FLOPPY_DSR_SWRESETR) FLOPPY_DSR_SWRESETW(0); //Reset requested? Clear the reset bit automatically!
 			FLOPPY_handlereset(1); //Execute a reset by DSR if needed!
-			FLOPPY_CCR_RATEW(FLOPPY.DSR.DRATESEL); //Setting one sets the other!
+			FLOPPY_CCR_RATEW(FLOPPY_DSR_DRATESELR); //Setting one sets the other!
 			return 1; //Finished!
 		}
 	case 5: //Data?
@@ -1755,7 +1753,7 @@ byte PORT_OUT_floppy(word port, byte value)
 		{
 			FLOPPY_LOGD("FLOPPY: Write CCR=%02X", value)
 			FLOPPY.CCR = value; //Set CCR!
-			FLOPPY.DSR.DRATESEL = FLOPPY_CCR_RATER; //Setting one sets the other!
+			FLOPPY_DSR_DRATESELW(FLOPPY_CCR_RATER); //Setting one sets the other!
 			return 1;
 		}
 		break;
