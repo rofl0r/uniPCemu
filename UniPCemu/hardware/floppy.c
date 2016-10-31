@@ -56,19 +56,7 @@ struct
 	byte CCR; //CCR
 	byte DIR; //DIR
 	byte DSR;
-	union
-	{
-		byte data; //ST0 register!
-		struct
-		{
-			byte UnitSelect : 2;
-			byte CurrentHead : 1;
-			byte NotReady : 1;
-			byte UnitCheck : 1; //Set with drive fault or cannot find track 0 after 79 pulses!
-			byte SeekEnd : 1;
-			byte InterruptCode : 2;
-		};
-	} ST0;
+	byte ST0;
 	union
 	{
 		byte data; //ST1 register!
@@ -218,6 +206,17 @@ struct
 #define FLOPPY_DSR_POWERDOWNR ((FLOPPY.DSR>>6)&1)
 #define FLOPPY_DSR_SWRESETR ((FLOPPY.DSR>>7)&1)
 #define FLOPPY_DSR_SWRESETW(val) FLOPPY.DSR=((FLOPPY.DSR&~0x80)|((val&1)<<7))
+
+//Status registers:
+
+//ST0
+#define FLOPPY_ST0_UNITSELECTW(val) FLOPPY.ST0=((FLOPPY.ST0&~3)|(val&3))
+#define FLOPPY_ST0_CURRENTHEADW(val) FLOPPY.ST0=((FLOPPY.ST0&~4)|((val&1)<<2))
+#define FLOPPY_ST0_NOTREADYW(val) FLOPPY.ST0=((FLOPPY.ST0&~8)|((val&1)<<3))
+//Set with drive fault or cannot find track 0 after 79 pulses!
+#define FLOPPY_ST0_UNITCHECKW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x10)|((val&1)<<4))
+#define FLOPPY_ST0_SEEKENDW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x20)|((val&1)<<5))
+#define FLOPPY_ST0_INTERRUPTCODEW(val) FLOPPY.ST0=((FLOPPY.ST0&~0xC0)|((val&3)<<6))
 
 //Start normal data!
 
@@ -490,7 +489,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.MSR = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
-			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
+			FLOPPY.ST0 = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
@@ -666,7 +665,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 		}
 	}
 	
-	FLOPPY.ST0.CurrentHead = FLOPPY.currenthead[floppy]; //Our idea of the current head!
+	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[floppy]); //Our idea of the current head!
 
 	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
 	{
@@ -677,8 +676,8 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 		else //Error occurred during DMA transfer?
 		{
 			result = 2; //Abort!
-			FLOPPY.ST0.InterruptCode = 1; //Couldn't finish correctly!
-			FLOPPY.ST0.SeekEnd = 0; //Failed!
+			FLOPPY_ST0_INTERRUPTCODEW(1); //Couldn't finish correctly!
+			FLOPPY_ST0_SEEKENDW(0); //Failed!
 		}
 	}
 
@@ -718,14 +717,14 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
@@ -745,14 +744,16 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		return;
 	}
 
-	FLOPPY.ST0.UnitSelect = FLOPPY_DOR_DRIVENUMBERR; //Current unit!
-	FLOPPY.ST0.CurrentHead = (FLOPPY.commandbuffer[2] & 1); //Current head!
-	FLOPPY.ST0.NotReady = 0; //We're not ready yet!
-	FLOPPY.ST0.UnitCheck = FLOPPY.ST0.SeekEnd = FLOPPY.ST0.InterruptCode = 0; //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
+	FLOPPY_ST0_CURRENTHEADW(FLOPPY.commandbuffer[2] & 1); //Current head!
+	FLOPPY_ST0_NOTREADYW(0); //We're not ready yet!
+	FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 	{
@@ -763,11 +764,11 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	{
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 		{
-			FLOPPY.ST0.data = 0x40; //Abnormal termination!
+			FLOPPY.ST0 = 0x40; //Abnormal termination!
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
 			return;					
 		}
-		FLOPPY.ST0.SeekEnd = 1; //Successfull read with implicit seek!
+		FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
 		FLOPPY_startData();
 	}
 	else //DSK or error?
@@ -788,7 +789,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 
 		floppy_errorread: //Error reading data?
 		//Plain error reading the sector!
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Error!
 	}
 }
@@ -805,7 +806,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 	{
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
@@ -813,14 +814,14 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;					
 	}
 
 	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 	{
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;					
 	}
@@ -830,7 +831,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	{
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
-		FLOPPY.resultbuffer[0] = FLOPPY.ST0.data;
+		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1.data;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
 		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -847,7 +848,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		if (FLOPPY.databuffer[0] != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 		{
 			floppy_errorformat:
-			FLOPPY.ST0.data = 0x40; //Invalid command!
+			FLOPPY.ST0 = 0x40; //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
 			return; //Error!
 		}
@@ -902,7 +903,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		}
 	}
 
-	FLOPPY.ST0.CurrentHead = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current head!
+	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]); //Our idea of the current head!
 
 	if (++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] > FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //SPT passed? We're finished!
 	{
@@ -910,7 +911,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		//Enter result phase!
 		FLOPPY.resultposition = 0; //Reset result position!
 		FLOPPY.commandstep = 3; //Enter the result phase!
-		FLOPPY.resultbuffer[0] = FLOPPY.ST0.data;
+		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1.data;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
 		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -942,26 +943,28 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 	{
-		FLOPPY.ST0.data = 0x40; //Abnormal termination!
+		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
 
-	FLOPPY.ST0.UnitSelect = FLOPPY_DOR_DRIVENUMBERR; //Current unit!
-	FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
-	FLOPPY.ST0.NotReady = 0; //We're not ready yet!
-	FLOPPY.ST0.UnitCheck = FLOPPY.ST0.SeekEnd = FLOPPY.ST0.InterruptCode = 0; //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
+	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
+	FLOPPY_ST0_NOTREADYW(0); //We're not ready yet!
+	FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
-		FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination!
+		FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;
 	}
@@ -983,14 +986,14 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 				{
 					FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
-					FLOPPY.ST0.data = 0x40; //Abnormal termination!
+					FLOPPY.ST0 = 0x40; //Abnormal termination!
 					FLOPPY.commandstep = 0xFF; //Move to error phase!
 					return;
 				}
 				if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 				{
 					FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-					FLOPPY.ST0.data = 0x40; //Abnormal termination!
+					FLOPPY.ST0 = 0x40; //Abnormal termination!
 					FLOPPY.commandstep = 0xFF; //Move to error phase!
 					return;					
 				}
@@ -1007,14 +1010,14 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 						break;
 					case 0: //OK?
 					default: //Unknown?
-						FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
-						FLOPPY.ST0.InterruptCode = 0; //Normal termination!
-						FLOPPY.ST0.NotReady = 0; //We're ready!
+						FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+						FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
+						FLOPPY_ST0_NOTREADYW(0); //We're ready!
 						break;
 					}
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					FLOPPY.resultposition = 0;
-					FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
+					FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
 					FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 					FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1030,7 +1033,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					{
 						FLOPPY_LOGD("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
 						FLOPPY.resultposition = 0;
-						FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+						FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 						FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
 						FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
 						FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1057,15 +1060,15 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 									break;
 								case 0: //OK?
 								default: //Unknown?
-									FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
-									FLOPPY.ST0.InterruptCode = 0; //Normal termination!
-									FLOPPY.ST0.NotReady = 0; //We're ready!
+									FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+									FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
+									FLOPPY_ST0_NOTREADYW(0); //We're ready!
 									break;
 								}
 								FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
-								FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
+								FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 								FLOPPY.resultposition = 0;
-								FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+								FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 								FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
 								FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
 								FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1078,7 +1081,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 							}
 						}
 						//Plain error!
-						FLOPPY.ST0.data = 0x40; //Invalid command!
+						FLOPPY.ST0 = 0x40; //Invalid command!
 						FLOPPY.commandstep = 0xFF; //Error!
 					}
 				}
@@ -1086,7 +1089,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			else //Unfinished buffer? Terminate!
 			{
 				FLOPPY.resultposition = 0;
-				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1115,13 +1118,13 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					break;
 				case 0: //OK?
 				default: //Unknown?
-					FLOPPY.ST0.SeekEnd = 1; //Successfull write with implicit seek!
-					FLOPPY.ST0.InterruptCode = 0; //Normal termination!
-					FLOPPY.ST0.NotReady = 0; //We're ready!
+					FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+					FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
+					FLOPPY_ST0_NOTREADYW(0); //We're ready!
 					break;
 				}
 				FLOPPY.resultposition = 0;
-				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data;
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data;
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1135,7 +1138,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			else //Unfinished buffer? Terminate!
 			{
 				FLOPPY.resultposition = 0;
-				FLOPPY.resultbuffer[0] = FLOPPY.ST0.data = ((FLOPPY.ST0.data & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1152,7 +1155,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			break;
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0.data = 0x80; //Invalid command!
+			FLOPPY.ST0 = 0x80; //Invalid command!
 			break;
 	}
 }
@@ -1188,18 +1191,18 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0] = FLOPPY.commandbuffer[1]; //Set setting byte 1/2!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			FLOPPY.ST0.data = 0x00; //Correct command!
+			FLOPPY.ST0 = 0x00; //Correct command!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			break;
 		case RECALIBRATE: //Calibrate drive
 			//Execute interrupt!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
-			FLOPPY.ST0.data = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
+			FLOPPY.ST0 = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
 			updateST3(FLOPPY.commandbuffer[1]); //Update ST3 only!
 			if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(FLOPPY.commandbuffer[1]&3)))==0) || ((FLOPPY.commandbuffer[1]&3)>1)) //Motor not on or invalid drive?
 			{
-				FLOPPY.ST0.data |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
+				FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 			} //We always report success!
 			updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 			clearDiskChanged(); //Clear the disk changed flag for the new command!
@@ -1210,32 +1213,32 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
 			byte datatemp;
-			datatemp = FLOPPY.ST0.data; //Save default!
+			datatemp = FLOPPY.ST0; //Save default!
 			//Reset IRQ line!
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
 				byte reset_drive;
 				reset_drive = FLOPPY.reset_pending_size - (FLOPPY.reset_pending--); //We're pending this drive!
 				FLOPPY_LOGD("FLOPPY: Reset Sense Interrupt, pending drive %i/%i...",reset_drive,FLOPPY.reset_pending_size)
-				FLOPPY.ST0.data &= 0xF8; //Clear low 3 bits!
-				FLOPPY.ST0.UnitSelect = reset_drive; //What drive are we giving!
-				FLOPPY.ST0.CurrentHead = (FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
-				datatemp = FLOPPY.ST0.data; //Use the current data, not the cleared data!
+				FLOPPY.ST0 &= 0xF8; //Clear low 3 bits!
+				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
+				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
+				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data!
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
 				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
-				FLOPPY.ST0.data = 0x80; //Error!
+				FLOPPY.ST0 = 0x80; //Error!
 				FLOPPY.commandstep = 0xFF; //Error out!
 				return; //Error out now!
 			}
 			
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])
-			FLOPPY.ST0.InterruptCode = 3; //Polling more is invalid!
-			FLOPPY.ST0.SeekEnd = 0; //Not seeking anymore if we were!
-			FLOPPY.ST0.UnitCheck = 1; //We're invalid, because polling more is invalid!
-			FLOPPY.ST0.NotReady = 0; //We're ready again!
+			FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
+			FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
+			FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
+			FLOPPY_ST0_NOTREADYW(0); //We're ready again!
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
 			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
@@ -1250,7 +1253,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			}
 			if (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
 			{
-				FLOPPY.ST0.data = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Error: drive not ready!
+				FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Error: drive not ready!
 				FLOPPY.commandstep = 0; //Reset command!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
@@ -1259,7 +1262,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			if (FLOPPY.commandbuffer[2] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) //Valid track?
 			{
 				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
-				FLOPPY.ST0.data = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Valid command!
+				FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Valid command!
 				updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
 				FLOPPY_raiseIRQ(); //Finished executing phase!
 				clearDiskChanged(); //Clear the disk changed flag for the new command!
@@ -1268,7 +1271,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 
 			invalidtrackseek:
 			//Invalid track?
-			FLOPPY.ST0.data = (FLOPPY.ST0.data & 0x30) | 0x00 | FLOPPY_DOR_DRIVENUMBERR; //Valid command! Just don't report completion(invalid track to seek to)!
+			FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | FLOPPY_DOR_DRIVENUMBERR; //Valid command! Just don't report completion(invalid track to seek to)!
 			FLOPPY.ST2.data = 0x00; //Nothing to report! We're not completed!
 			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 			FLOPPY_raiseIRQ(); //Finished executing phase!
@@ -1321,7 +1324,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.resultbuffer[6] = 2; //Always 512 byte sectors!
 			}
 			FLOPPY.resultposition = 0; //Start the result!
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
+			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
@@ -1329,10 +1332,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			return; //Correct read!
 			floppy_errorReadID:
-			FLOPPY.ST0.data = 0x40; //Error!
+			FLOPPY.ST0 = 0x40; //Error!
 			FLOPPY.ST1.NoAddressMark = FLOPPY.ST1.NoData = 1; //Invalid sector!
 			FLOPPY.resultposition = 0; //Start the result!
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0.data; //ST0!
+			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1.data; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
@@ -1344,20 +1347,20 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-				FLOPPY.ST0.data = 0x40; //Invalid command!
+				FLOPPY.ST0 = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				return;
 			}
 
 			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //No geometry?
 			{
-				FLOPPY.ST0.data = 0x40; //Invalid command!
+				FLOPPY.ST0 = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 			}
 
 			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //Invalid SPT?
 			{
-				FLOPPY.ST0.data = 0x40; //Invalid command!
+				FLOPPY.ST0 = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 			}
 
@@ -1370,7 +1373,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				if (FLOPPY.commandbuffer[2] != 0x2) //Not 512 bytes/sector?
 				{
-					FLOPPY.ST0.data = 0x40; //Invalid command!
+					FLOPPY.ST0 = 0x40; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 				}
 				else
@@ -1402,7 +1405,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case WRITE_DELETED_DATA: //Write deleted sector
 		case READ_DELETED_DATA: //Read deleted sector
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0.data = 0x40; //Invalid command!
+			FLOPPY.ST0 = 0x40; //Invalid command!
 			break;
 	}
 }
@@ -1410,8 +1413,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 OPTINLINE void floppy_abnormalpolling()
 {
 	FLOPPY_LOGD("FLOPPY: Abnormal termination because of abnormal polling!")
-	FLOPPY.ST0.InterruptCode = 3; //Abnormal termination by polling!
-	FLOPPY.ST0.NotReady = 0; //We became not ready!
+	FLOPPY_ST0_INTERRUPTCODEW(3); //Abnormal termination by polling!
+	FLOPPY_ST0_NOTREADYW(0); //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
 }
 
@@ -1470,7 +1473,7 @@ OPTINLINE void floppy_writeData(byte value)
 					if (FLOPPY.reset_pended) //Finished reset?
 					{
 						FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
-	 					FLOPPY.ST0.data = 0x00; //Reset the ST0 register after we've all been read!
+	 					FLOPPY.ST0 = 0x00; //Reset the ST0 register after we've all been read!
 						FLOPPY.reset_pended = 0; //Not pending anymore, so don't check for it!
 					}
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
@@ -1479,7 +1482,7 @@ OPTINLINE void floppy_writeData(byte value)
 				case READ_DELETED_DATA: //Read deleted sector
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
-					FLOPPY.ST0.data = 0x80; //Invalid command!
+					FLOPPY.ST0 = 0x80; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 					break;
 			}
@@ -1636,7 +1639,7 @@ OPTINLINE byte floppy_readData()
 			break;
 		case 0xFF: //Error or reset result
 			FLOPPY.commandstep = 0; //Reset step!
-			return FLOPPY.ST0.data; //Give ST0, containing an error!
+			return FLOPPY.ST0; //Give ST0, containing an error!
 			break;
 		default:
 			break; //Unknown status, hang the controller!
