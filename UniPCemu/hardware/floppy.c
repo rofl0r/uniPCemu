@@ -53,15 +53,7 @@ struct
 {
 	byte DOR; //DOR
 	byte MSR; //MSR
-	union
-	{
-		byte data; //CCR data!
-		struct
-		{
-			byte rate : 2; //0=500kbits/s, 1=300kbits/s, 2=250kbits/s, 3=1Mbits/s
-			byte unused : 6;
-		};
-	} CCR; //CCR
+	byte CCR; //CCR
 	union
 	{
 		byte data; //DIR data!
@@ -223,6 +215,11 @@ struct
 #define FLOPPY_MSR_HAVEDATAFORCPUW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<6))
 //1 when ready for data transfer, 0 when not ready.
 #define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<7))
+
+//CCR
+//0=500kbits/s, 1=300kbits/s, 2=250kbits/s, 3=1Mbits/s
+#define FLOPPY_CCR_RATER (FLOPPY.CCR&3)
+#define FLOPPY_CCR_RATEW(val) FLOPPY.CCR=((FLOPPY.CCR&~3)|(val&3))
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
@@ -437,7 +434,7 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	if (!FLOPPY.geometries[disk]) return 1; //No disk geometry, so supported by default(unknown drive)!
 	byte supported = 0, current=0, currentrate;
 	supported = FLOPPY.geometries[disk]->supportedrates; //Load the supported rates!
-	currentrate = FLOPPY.CCR.rate; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
+	currentrate = FLOPPY_CCR_RATER; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
 	for (;current<4;) //Check all available rates!
 	{
 		if (currentrate==(supported&3)) return 1; //We're a supported rate!
@@ -1743,7 +1740,7 @@ byte PORT_OUT_floppy(word port, byte value)
 			FLOPPY_handlereset(1); //Execute a reset by DSR!
 			if (FLOPPY.DSR.SWReset) FLOPPY.DSR.SWReset = 0; //Reset requested? Clear the reset bit automatically!
 			FLOPPY_handlereset(1); //Execute a reset by DSR if needed!
-			FLOPPY.CCR.rate = FLOPPY.DSR.DRATESEL; //Setting one sets the other!
+			FLOPPY_CCR_RATEW(FLOPPY.DSR.DRATESEL); //Setting one sets the other!
 			return 1; //Finished!
 		}
 	case 5: //Data?
@@ -1755,8 +1752,8 @@ byte PORT_OUT_floppy(word port, byte value)
 		if (is_XT==0) //AT?
 		{
 			FLOPPY_LOGD("FLOPPY: Write CCR=%02X", value)
-			FLOPPY.CCR.data = value; //Set CCR!
-			FLOPPY.DSR.DRATESEL = FLOPPY.CCR.rate; //Setting one sets the other!
+			FLOPPY.CCR = value; //Set CCR!
+			FLOPPY.DSR.DRATESEL = FLOPPY_CCR_RATER; //Setting one sets the other!
 			return 1;
 		}
 		break;
