@@ -46,6 +46,8 @@ struct
 		byte ERRORREGISTER;
 		byte STATUSREGISTER;
 
+		byte SensePacket[0x10]; //Data of a request sense packet.
+
 		struct
 		{
 			union
@@ -125,6 +127,28 @@ struct
 #define ATA_ERRORREGISTER_MEDIACHANGEDW(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x20)|((val&1)<<5))
 #define ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x40)|((val&1)<<6))
 #define ATA_ERRORREGISTER_BADSECTORW(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x80)|((val&1)<<7))
+
+//ATAPI Sense Packet
+
+//0x70
+#define ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0]=((ATA[channel].Drive[drive].SensePacket[0]&~0x7F)|(val&0x7F))
+#define ATAPI_SENSEPACKET_VALIDW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0]=((ATA[channel].Drive[drive].SensePacket[0]&~0x80)|((val&1)<<7))
+#define ATAPI_SENSEPACKET_RESERVED1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[1]=val
+#define ATAPI_SENSEPACKET_REVERVED2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF)|(val&0xF))
+#define ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF0)|((val&0xF)<<4))
+#define ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[3]=val
+#define ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[4]=val
+#define ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[5]=val
+#define ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[6]=val
+#define ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[7]=val
+#define ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[8]=val
+#define ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[9]=val
+#define ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xA]=val
+#define ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xB]=val
+#define ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xC]=val
+#define ATAPI_SENSEPACKET_RESERVED3_0W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xD]=val
+#define ATAPI_SENSEPACKET_RESERVED3_1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xE]=val
+#define ATAPI_SENSEPACKET_RESERVED3_2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0xF]=val
 
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
@@ -717,26 +741,6 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 	}	
 }
 
-#include "headers/packed.h."
-struct PACKED
-{
-struct
-{
-byte errorcode : 7; //0x70
-byte valid : 1; //1 for filled with data
-byte reserved1;
-byte reserved2 : 4;
-byte sensekey : 4;
-uint_32 information;
-byte additionalsenselength; //8
-uint_32 commandspecificinformation;
-byte additionalsensecode;
-byte reserved3[3];
-};
-byte SensePacket[0x10]; //Data of a request sense packet.
-} SENSEDATA; //Command 0x03 Request Sense Result.
-#include "headers/endpacked.h" //End of packed data!
-
 //read_TOC conversion from http://bochs.sourceforge.net/cgi-bin/lxr/source/iodev/hdimage/cdrom.cc
 byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sword format, byte channel, byte drive)
 {
@@ -930,23 +934,29 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		//Valid disk loaded?
 		ATA[channel].Drive[drive].ERRORREGISTER = 0; //Clear error register!
-		SENSEDATA.sensekey = 0x00; //Reason of the error
-		SENSEDATA.additionalsensecode = 0x00; //Extended reason code
-		SENSEDATA.errorcode = 0x70; //Default error code?
-		SENSEDATA.additionalsenselength = 8; //Additional Sense Length = 8?
-		SENSEDATA.information = 0; //No info!
-		SENSEDATA.commandspecificinformation = 0; //No command specific information?
-		SENSEDATA.valid = 1; //We're valid!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
+		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
-		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(SENSEDATA.SensePacket)); //Size of a block to transfer!
+		ATA[channel].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(ATA[channel].Drive[drive].SensePacket)); //Size of a block to transfer!
 		ATA[channel].datasize = 1; //How many blocks to transfer!
 
 		//Now fill the packet with data!
-		memcpy(&ATA[channel].data, &SENSEDATA.SensePacket, ATA[channel].datablock); //Give the result!
+		memcpy(&ATA[channel].data, &ATA[channel].Drive[drive].SensePacket, ATA[channel].datablock); //Give the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
@@ -1316,13 +1326,19 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
 		ATAPI_invalidcommand:
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-		SENSEDATA.sensekey = abortreason; //Reason of the error
-		SENSEDATA.additionalsensecode = additionalsensecode; //Extended reason code
-		SENSEDATA.errorcode = 0x70; //Default error code?
-		SENSEDATA.additionalsenselength = 8; //Additional Sense Length = 8?
-		SENSEDATA.information = 0; //No info!
-		SENSEDATA.commandspecificinformation = 0; //No command specific information?
-		SENSEDATA.valid = 1; //We're valid!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
 		ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
@@ -1333,8 +1349,9 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		break;
 	}
 	if (aborted==0) {
-		SENSEDATA.sensekey = SENSEDATA.additionalsensecode = 0;
-		SENSEDATA.valid = 0; //Not valid anymore!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0);
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0);
+		ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //Not valid anymore!
 	} //Clear reason on success!
 }
 
