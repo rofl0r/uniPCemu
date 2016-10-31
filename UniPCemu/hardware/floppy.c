@@ -52,18 +52,7 @@
 struct
 {
 	byte DOR; //DOR
-	union
-	{
-		struct
-		{
-			byte BusyInPositioningMode : 4; //1 if busy in seek mode.
-			byte CommandBusy : 1; //Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
-			byte NonDMA : 1; //1 when not in DMA mode, else DMA mode, during execution phase.
-			byte HaveDataForCPU : 1; //1 when has data for CPU, 0 when expecting data.
-			byte RQM : 1; //1 when ready for data transfer, 0 when not ready.
-		};
-		byte data; //MSR data!
-	} MSR; //MSR
+	byte MSR; //MSR
 	union
 	{
 		byte data; //CCR data!
@@ -221,6 +210,19 @@ struct
 #define FLOPPY_DRIVEDATA_STEPRATER(drive) ((FLOPPY.DriveData[drive].data[0]>>4)&0xF)
 #define FLOPPY_DRIVEDATA_NDMR(drive) (FLOPPY.DriveData[drive].data[1]&1)
 #define FLOPPY_DRIVEDATA_HEADLOADTIMER(drive) ((FLOPPY.DriveData[drive].data[1]>>1)&0x7F)
+
+//MSR
+
+//1 if busy in seek mode.
+#define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(val) FLOPPY.MSR=((FLOPPY.MSR&~0xF)|(val&0xF))
+//Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
+#define FLOPPY_MSR_COMMANDBUSYW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x10)|((val&1)<<4))
+//1 when not in DMA mode, else DMA mode, during execution phase.
+#define FLOPPY_MSR_NONDMAW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x20)|((val&1)<<5))
+//1 when has data for CPU, 0 when expecting data.
+#define FLOPPY_MSR_HAVEDATAFORCPUW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<6))
+//1 when ready for data transfer, 0 when not ready.
+#define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<7))
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
@@ -488,7 +490,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 				FLOPPY_LOGD("FLOPPY: Reset requested by DOR!")
 			}
 			FLOPPY.DOR = 0; //Reset motors! Reset drives! IRQ channel!
-			FLOPPY.MSR.data = 0; //Default to no data!
+			FLOPPY.MSR = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
@@ -535,17 +537,17 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 	{
 	case 0: //Command?
 		FLOPPY.sectorstransferred = 0; //There's nothing transferred yet!
-		FLOPPY.MSR.CommandBusy = 0; //Not busy: we're waiting for a command!
-		FLOPPY.MSR.RQM = !FLOPPY.floppy_resetted; //Ready for data transfer when not being reset!
-		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
+		FLOPPY_MSR_COMMANDBUSYW(0); //Not busy: we're waiting for a command!
+		FLOPPY_MSR_RQMW(!FLOPPY.floppy_resetted); //Ready for data transfer when not being reset!
+		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We don't have data for the CPU!
 		break;
 	case 1: //Parameters?
-		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
-		FLOPPY.MSR.RQM = 1; //Ready for data transfer!
-		FLOPPY.MSR.HaveDataForCPU = 0; //We don't have data for the CPU!
+		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
+		FLOPPY_MSR_RQMW(1); //Ready for data transfer!
+		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We don't have data for the CPU!
 		break;
 	case 2: //Data?
-		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
+		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		//Check DMA, RQM and Busy flag!
 		switch (FLOPPY.commandbuffer[0]) //What command are we processing?
 		{
@@ -554,10 +556,12 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case FORMAT_TRACK: //Format sector?
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
-			FLOPPY.MSR.RQM = FLOPPY.MSR.NonDMA = !FLOPPY_useDMA(); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
+			FLOPPY_MSR_RQMW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
+			FLOPPY_MSR_NONDMAW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			break;
 		default: //Unknown command?
-			FLOPPY.MSR.RQM = FLOPPY.MSR.NonDMA = 1; //Use no DMA by default, for safety!
+			FLOPPY_MSR_RQMW(1); //Use no DMA by default, for safety!
+			FLOPPY_MSR_NONDMAW(1); //Use no DMA by default, for safety!
 			break; //Don't process!
 		}
 
@@ -567,34 +571,34 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case WRITE_DATA: //Write sector?
 		case WRITE_DELETED_DATA: //Write deleted sector?
 		case FORMAT_TRACK: //Format sector?
-			FLOPPY.MSR.HaveDataForCPU = 0; //We request data from the CPU!
+			FLOPPY_MSR_HAVEDATAFORCPUW(0); //We request data from the CPU!
 			break;
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
-			FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+			FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 			break;
 		default: //Unknown direction?
-			FLOPPY.MSR.HaveDataForCPU = 0; //Nothing, say output by default!
+			FLOPPY_MSR_HAVEDATAFORCPUW(0); //Nothing, say output by default!
 			break;
 		}
 		break;
 	case 3: //Result?
-		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
-		FLOPPY.MSR.RQM = 1; //Data transfer!
-		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
+		FLOPPY_MSR_RQMW(1); //Data transfer!
+		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		break;
 	case 0xFF: //Error?
-		FLOPPY.MSR.CommandBusy = 1; //Default: busy!
-		FLOPPY.MSR.RQM = 1; //Data transfer!
-		FLOPPY.MSR.HaveDataForCPU = 1; //We have data for the CPU!
+		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
+		FLOPPY_MSR_RQMW(1); //Data transfer!
+		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		break;
 	default: //Unknown status?
 		break; //Unknown?
 	}
-	if (FLOPPY.MSR.data != oldMSR) //MSR changed?
+	if (FLOPPY.MSR != oldMSR) //MSR changed?
 	{
-		oldMSR = FLOPPY.MSR.data; //Update old!
-		FLOPPY_LOGD("FLOPPY: MSR changed: %02x", FLOPPY.MSR.data) //The updated MSR!
+		oldMSR = FLOPPY.MSR; //Update old!
+		FLOPPY_LOGD("FLOPPY: MSR changed: %02x", FLOPPY.MSR) //The updated MSR!
 	}
 }
 
@@ -1691,8 +1695,8 @@ byte PORT_IN_floppy(word port, byte *result)
 		break;
 	case 4: //MSR?
 		updateFloppyMSR(); //Update the MSR with current values!
-		FLOPPY_LOGD("FLOPPY: Read MSR=%02X",FLOPPY.MSR.data)
-		*result = FLOPPY.MSR.data; //Give MSR!
+		FLOPPY_LOGD("FLOPPY: Read MSR=%02X",FLOPPY.MSR)
+		*result = FLOPPY.MSR; //Give MSR!
 		return 1;
 	case 5: //Data?
 		//Process data!
