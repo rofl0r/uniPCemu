@@ -99,7 +99,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 		FLAG_PF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
-	if (!PDE&PXE_A) //Not accessed yet?
+	if (!(PDE&PXE_A)) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
 		memory_directwdw(PDBR+(DIR<<2),PDE); //Update in memory!
@@ -151,6 +151,6 @@ uint_32 mappage(uint_32 address) //Maps a page to real memory when needed!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	ADDR = (address&0xFFF);
 	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
-	PTE = memory_directrdw(((PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
+	PTE = memory_directrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
 	return ((PTE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+ADDR; //Give the actual address!
 }
