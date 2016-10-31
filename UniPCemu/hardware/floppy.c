@@ -58,21 +58,7 @@ struct
 	byte DSR;
 	byte ST0;
 	byte ST1;
-	union
-	{
-		byte data; //ST2 register!
-		struct
-		{
-			byte NoDataAddressMarkDAM : 1;
-			byte BadCyclinder : 1;
-			byte SeekError : 1;
-			byte SeekEqual : 1;
-			byte WrongCyclinder : 1;
-			byte CRCError : 1;
-			byte DeletedAddressMark : 1;
-			byte unused : 1;
-		};
-	} ST2;
+	byte ST2;
 	union
 	{
 		byte data; //ST3 register!
@@ -214,6 +200,16 @@ struct
 #define FLOPPY_ST1_DATAERRORW(val) FLOPPY.ST1=((FLOPPY.ST1&~0x20)|((val&1)<<5))
 #define FLOPPY_ST1_ALWAYS0_2(val) FLOPPY.ST1=((FLOPPY.ST1&~0x40)|((val&1)<<6))
 #define FLOPPY_ST1_ENDOFCYCLINDER(val) FLOPPY.ST1=((FLOPPY.ST1&~0x80)|((val&1)<<7))
+
+//ST2
+#define FLOPPY_ST2_NODATAADDRESSMASKDAMW(val) FLOPPY.ST2=((FLOPPY.ST2&~1)|(val&1))
+#define FLOPPY_ST2_BADCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~2)|((val&1)<<1)
+#define FLOPPY_ST2_SEEKERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~4)|((val&1)<<2)
+#define FLOPPY_ST2_SEEKEQUALW(val) FLOPPY.ST2=((FLOPPY.ST2&~8)|((val&1)<<3)
+#define FLOPPY_ST2_WRONGCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x10)|((val&1)<<4)
+#define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|((val&1)<<5)
+#define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|((val&1)<<6)
+#define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|((val&1)<<7)
 
 //Start normal data!
 
@@ -487,7 +483,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
 			FLOPPY.ST0 = 0xC0; //Reset ST0 to the correct value: drive became not ready!
-			FLOPPY.ST1 = FLOPPY.ST2.data = 0; //Reset the ST data!
+			FLOPPY.ST1 = FLOPPY.ST2 = 0; //Reset the ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
@@ -777,7 +773,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], &sectorinformation)) //Read the sector information too!
 				{
 					FLOPPY.ST1 = sectorinformation.ST1; //Load ST1!
-					FLOPPY.ST2.data = sectorinformation.ST2; //Load ST2!
+					FLOPPY.ST2 = sectorinformation.ST2; //Load ST2!
 				}
 				FLOPPY_startData();
 				return; //Just execute it!
@@ -830,7 +826,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.resultposition = 0;
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
-		FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
+		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
 		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -910,7 +906,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.commandstep = 3; //Enter the result phase!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
-		FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
+		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
 		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1016,7 +1012,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-					FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
+					FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 					FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 					FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 					FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1032,7 +1028,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 						FLOPPY.resultposition = 0;
 						FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 						FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
-						FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+						FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x00; //ST2!
 						FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 						FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 						FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1067,7 +1063,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 								FLOPPY.resultposition = 0;
 								FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 								FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
-								FLOPPY.resultbuffer[2] = FLOPPY.ST2.data = 0x00; //ST2!
+								FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x00; //ST2!
 								FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 								FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 								FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1088,7 +1084,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultposition = 0;
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
-				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1123,7 +1119,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultposition = 0;
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1;
-				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data;
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2;
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1137,7 +1133,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 				FLOPPY.resultposition = 0;
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
-				FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
@@ -1269,7 +1265,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			invalidtrackseek:
 			//Invalid track?
 			FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | FLOPPY_DOR_DRIVENUMBERR; //Valid command! Just don't report completion(invalid track to seek to)!
-			FLOPPY.ST2.data = 0x00; //Nothing to report! We're not completed!
+			FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
 			FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 			FLOPPY_raiseIRQ(); //Finished executing phase!
 			break;
@@ -1290,13 +1286,13 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinformation)) //Read the sector information too!
 				{
 					FLOPPY.ST1 = sectorinformation.ST1; //Load ST1!
-					FLOPPY.ST2.data = sectorinformation.ST2; //Load ST2!
+					FLOPPY.ST2 = sectorinformation.ST2; //Load ST2!
 					FLOPPY.resultbuffer[6] = sectorinformation.SectorSize; //Sector size!
 				}
 				else
 				{
 					FLOPPY.ST1 = 0x00; //Not found!
-					FLOPPY.ST2.data = 0x00; //Not found!
+					FLOPPY.ST2 = 0x00; //Not found!
 					FLOPPY_ST1_NOADDRESSMARKW(1);
 					FLOPPY_ST1_NODATAW(1); //We cannot find the ID!
 					FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
@@ -1305,7 +1301,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			else //Normal disk? Generate valid data!
 			{
 				FLOPPY.ST1 = 0x00; //Clear ST1!
-				FLOPPY.ST2.data = 0x00; //Clear ST2!
+				FLOPPY.ST2 = 0x00; //Clear ST2!
 				updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update track 0!
 				updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Update write protected related flags!
 				if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //Valid geometry?
@@ -1326,7 +1322,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-			FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
+			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
@@ -1338,7 +1334,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-			FLOPPY.resultbuffer[2] = FLOPPY.ST2.data; //ST2!
+			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
