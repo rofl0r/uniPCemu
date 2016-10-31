@@ -15,52 +15,9 @@ struct
 	//+0 is data register (transmit or receive data)
 	//+1 as well as +0 have alternative
 	byte InterruptEnableRegister; //Either this register or Divisor Latch when 
-	union
-	{
-		struct
-		{
-			union
-			{
-				struct
-				{
-					byte InterruptPending : 1;
-					byte TransmitterEmpty : 1;
-					byte BreadError : 1;
-					byte StatusChange : 1;
-					byte reserved : 1;
-					byte Enable64byteFIFO : 1;
-					byte FIFOStatus : 2; //0=No FIFO present, 1=Reserved, 2=FIFO Enabled, but not functioning, 3=FIFO Enabled.
-				};
-				byte data; //Interrupt information. Cleared by doing specific actions!
-			};
-		} InterruptIdentificationRegister; //Interrupt information.
-		struct
-		{
-			union
-			{
-				struct
-				{
-					byte dummy : 1;
-					byte SimpleCause : 2; //Simple cause. 9=Modem Status Interrupt, 1=Transmitter Holding Register Empty Interrupt, 2=Received Data Available Interrrupt, 3=Receiver Line Status Interrupt!
-					byte Unused : 5; //Unused by old chipsets without FIFO. Always 0.
-				};
-			} InterruptCause;
-		};
-	};
+	byte InterruptIdentificationRegister;
 	byte FIFOControlRegister; //FIFO Control register!
-	union
-	{
-		struct
-		{
-			byte DataBits : 2; //Value = 5+DataBits
-			byte StopBits : 1; //0=1, 1=1.5(DataBits=0) or 2(All other cases).
-			byte ParityEnabled : 1; //Parity enabled?
-			byte ParityType : 2; //0=Odd, 1=Even, 2=Mark, 3=Space.
-			byte Unknown : 1;
-			byte DLAB : 1; //Enable address 0&1 mapping to divisor?
-		}; //Information about the sending structure.
-		byte data;
-	} LineControlRegister;
+	byte LineControlRegister;
 	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
 	byte ModemStatusRegister; //Bit4=CTS, 5=DSR, 6=Ring indicator, 7=Carrier detect; Bits 0-3=Bits 4-6 changes, reset when read.
@@ -83,6 +40,35 @@ struct
 	uint_32 UART_receivetiming; //UART receive timing!
 	uint_32 UART_bytereceivetiming; //UART byte received timing!
 } UART_port[4]; //All UART ports!
+
+//Value = 5+DataBits
+#define UART_LINECONTROLREGISTER_DATABITSR(UART) (UART_port[UART].LineControlRegister&3)
+//0=1, 1=1.5(DataBits=0) or 2(All other cases).
+#define UART_LINECONTROLREGISTER_STOPBITSR(UART) ((UART_port[UART].LineControlRegister>>2)&1)
+//Parity enabled?
+#define UART_LINECONTROLREGISTER_PARITYENABLEDR(UART) ((UART_port[UART].LineControlRegister>>3)&1)
+//0=Odd, 1=Even, 2=Mark, 3=Space.
+#define UART_LINECONTROREGISTERL_PARITYTYPER(UART) ((UART_port[UART].LineControlRegister>>4)&3)
+//Enable address 0&1 mapping to divisor?
+#define UART_LINECONTROLREGISTER_DLABR(UART) ((UART_port[UART].LineControlRegister>>7)&1)
+
+//Simple cause. 0=Modem Status Interrupt, 1=Transmitter Holding Register Empty Interrupt, 2=Received Data Available Interrrupt, 3=Receiver Line Status Interrupt!
+#define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&3)
+#define UART_INTERRUPTCAUSE_SIMPLECAUSEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~6))|((val&3)<<1))
+
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(UART) (UART_port[UART].InterruptIdentificationRegister&1)
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~1))|(val&1))
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_TRANSMITTEREMPTYR(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&1)
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_TRANSMITTEREMPTYW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~2))|((val&1)<<1))
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_BREADERRORR(UART) ((UART_port[UART].InterruptIdentificationRegister>>2)&1)
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_BREADERRORW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~4))|((val&1)<<2))
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_STATUSCHANGER(UART) ((UART_port[UART].InterruptIdentificationRegister>>3)&1)
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_STATUSCHANGEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~8))|((val&1)<<3))
+//0=No FIFO present, 1=Reserved, 2=FIFO Enabled, but not functioning, 3=FIFO Enabled.
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_ENABLE64BYTEFIFOR(UART) ((UART_port[UART].InterruptIdentificationRegister>>4)&1)
+#define UART_INTERRUPTIDENTIFICATIONREGISTER_ENABLE64BYTEFIFOW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~0x10))|((val&1)<<4))
+
+//Full Interrupt Identification Register!
 
 double UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
 
@@ -133,9 +119,9 @@ void startUARTIRQ(byte IRQ)
 			if (UART_port[actualport].interrupt_causes[cause]) //We're is the cause?
 			{
 				UART_port[actualport].interrupt_causes[cause] = 0; //Reset the cause!
-				UART_port[actualport].InterruptIdentificationRegister.data = 0; //Reset for our cause!
-				UART_port[actualport].InterruptCause.SimpleCause = (cause & 3); //Load the simple cause (8250 way)!
-				UART_port[actualport].InterruptIdentificationRegister.InterruptPending = 0; //We've activated!
+				UART_port[actualport].InterruptIdentificationRegister = 0; //Reset for our cause!
+				UART_INTERRUPTCAUSE_SIMPLECAUSEW(actualport,(cause & 3)); //Load the simple cause (8250 way)!
+				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(actualport,0); //We've activated!
 				return; //Stop scanning!
 			}
 		}
@@ -189,7 +175,7 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 void updateUARTSpeed(byte COMport, word DLAB)
 {
 	uint_32 transfertime;
-	transfertime = (7 + UART_port[COMport].LineControlRegister.DataBits + UART_port[COMport].LineControlRegister.StopBits); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
+	transfertime = (7 + UART_LINECONTROLREGISTER_DATABITSR(COMport) + UART_LINECONTROLREGISTER_STOPBITSR(COMport)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
 	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
 	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
 	UART_port[COMport].UART_bytereceivetiming = ((uint_32)DLAB<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
@@ -205,17 +191,17 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 	switch (COMPORT_offset(port)) //What offset?
 	{
 		case 0: //Receiver buffer OR Low byte of Divisor Value?
-			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
+			if (UART_LINECONTROLREGISTER_DLABR(COMport)) //DLAB?
 			{
 				*result = (UART_port[COMport].DLAB&0xFF); //Low byte!
 			}
 			else //Receiver buffer?
 			{
 				//Read from input buffer!
-				if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause==2) //We're to clear?
+				if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport)==2) //We're to clear?
 				{
-					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
-					UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
+					UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
 					switch (COMport) //What port?
 					{
 					case 0:
@@ -241,7 +227,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			}
 			break;
 		case 1: //Interrupt Enable Register?
-			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
+			if (UART_LINECONTROLREGISTER_DLABR(COMport)) //DLAB?
 			{
 				*result = ((UART_port[COMport].DLAB>>8)&0xFF); //High byte!
 			}
@@ -255,19 +241,19 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			}
 			break;
 		case 2: //Interrupt ID registers?
-			*result = UART_port[COMport].InterruptIdentificationRegister.data; //Give the register!
+			*result = UART_port[COMport].InterruptIdentificationRegister; //Give the register!
 			break;
 		case 3: //Line Control Register?
-			*result = UART_port[COMport].LineControlRegister.data; //Give the register!
+			*result = UART_port[COMport].LineControlRegister; //Give the register!
 			break;
 		case 4:  //Modem Control Register?
 			*result = UART_port[COMport].ModemControlRegister; //Give the register!
 			break;
 		case 5: //Line Status Register?
-			if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 3) //We're to clear?
+			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 3) //We're to clear?
 			{
-				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
-				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
+				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
 				switch (COMport) //What port?
 				{
 				case 0:
@@ -290,10 +276,10 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
 		case 6: //Modem Status Register?
-			if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 0) //We're to clear?
+			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 0) //We're to clear?
 			{
-				UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
-				UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
+				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
 				switch (COMport) //What port?
 				{
 				case 0:
@@ -334,7 +320,7 @@ byte PORT_writeUART(word port, byte value)
 	switch (COMPORT_offset(port)) //What offset?
 	{
 		case 0: //Output buffer OR Low byte of Divisor Value?
-			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
+			if (UART_LINECONTROLREGISTER_DLABR(COMport)) //DLAB?
 			{
 				UART_port[COMport].DLAB &= ~0xFF; //Clear the low byte!
 				UART_port[COMport].DLAB |= value; //Low byte!
@@ -342,10 +328,10 @@ byte PORT_writeUART(word port, byte value)
 			}
 			else //Output buffer?
 			{
-				if (!UART_port[COMport].InterruptIdentificationRegister.InterruptPending && UART_port[COMport].InterruptCause.SimpleCause == 1) //We're to clear?
+				if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) //We're to clear?
 				{
-					UART_port[COMport].InterruptIdentificationRegister.data = 0; //Reset the register!
-					UART_port[COMport].InterruptIdentificationRegister.InterruptPending = 1; //Reset interrupt pending!
+					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
+					UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
 				}
 				//Write to output buffer, toggling bits by Line Control Register!
 				if (UART_port[COMport].senddata)
@@ -356,7 +342,7 @@ byte PORT_writeUART(word port, byte value)
 			}
 			break;
 		case 1: //Interrupt Enable Register?
-			if (UART_port[COMport].LineControlRegister.DLAB) //DLAB?
+			if (UART_LINECONTROLREGISTER_DLABR(COMport)) //DLAB?
 			{
 				UART_port[COMport].DLAB &= ~0xFF00; //Clear the high byte!
 				UART_port[COMport].DLAB |= (value<<8); //High!
@@ -376,9 +362,9 @@ byte PORT_writeUART(word port, byte value)
 			//Not used in the original 8250 UART.
 			break;
 		case 3: //Line Control Register?
-			oldDLAB = UART_port[COMport].LineControlRegister.DLAB; //DLAB old?
-			UART_port[COMport].LineControlRegister.data = value; //Set the register!
-			if (!UART_port[COMport].LineControlRegister.DLAB && oldDLAB) //DLAB toggled off? Update the speed?
+			oldDLAB = UART_LINECONTROLREGISTER_DLABR(COMport); //DLAB old?
+			UART_port[COMport].LineControlRegister = value; //Set the register!
+			if (!UART_LINECONTROLREGISTER_DLABR(COMport) && oldDLAB) //DLAB toggled off? Update the speed?
 			{
 				//Update the transmit speed with our new values and DLAB!
 			}
@@ -476,7 +462,7 @@ void initUART(byte numports) //Init software debugger!
 	int i;
 	for (i = 0;i < 4;i++)
 	{
-		UART_port[i >> 4].InterruptIdentificationRegister.InterruptPending = 1; //We're not executing!
+		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i >> 4,1); //We're not executing!
 	}
 	UART_clock = 0.0; //Init our clock!
 	UART_clocktick = 1000000000.0/1843200.0; //The clock of the UART ticking!
