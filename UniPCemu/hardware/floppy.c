@@ -165,13 +165,6 @@ struct
 	union
 	{
 		byte data[2]; //Both data bytes!
-		struct
-		{
-			byte HeadUnloadTime : 4;
-			byte StepRate : 4;
-			byte NDM : 1;
-			byte HeadLoadTime : 7;
-		};
 	} DriveData[4]; //Specify for each of the 4 floppy drives!
 	union
 	{
@@ -179,14 +172,7 @@ struct
 		struct
 		{
 			byte FirstParameter0; //Set to 0
-			struct
-			{
-				byte Threshold : 4; //Threadhold!
-				byte DrivePollingModeDisable : 1; //Disable drive polling mode if set!
-				byte FIFODisable : 1; //Disable FIFO if set!
-				byte ImpliedSeekEnable : 1; //Enable Implied Seek if set!
-				byte unused7 : 1; //Unused 7th bit!
-			};
+			byte SecondParameterByte;
 			byte PreComp; //Precompensation value!
 		};
 	} Configuration; //The data from the Configure command!
@@ -214,6 +200,25 @@ struct
 	byte floppy_resetted; //Are we resetted?
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 } FLOPPY; //Our floppy drive data!
+
+//Configuration byte 1
+
+//Threadhold!
+#define FLOPPY_CONFIGURATION_THRESHOLDW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0xF)|(val&0xF))
+#define FLOPPY_CONFIGURATION_THRESHOLDR (FLOPPY.Configuration.SecondParameterByte&0xF)
+//Disable drive polling mode if set!
+#define FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER ((FLOPPY.Configuration.SecondParameterByte>>4)&1)
+//Disable FIFO if set!
+#define FLOPPY_CONFIGURATION_FIFODISABLEW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0x20)&1)|((val&1)<<5)
+#define FLOPPY_CONFIGURATION_FIFODISABLER ((FLOPPY.Configuration.SecondParameterByte>>5)&1)
+//Enable Implied Seek if set!
+#define FLOPPY_IMPLIEDSEEKENABLER ((FLOPPY.Configuration.SecondParameterByte>>6)&1)
+
+//Drive data
+#define FLOPPY_DRIVEDATA_HEADUNLOADTIMER(drive) (FLOPPY.DriveData[drive].data[0]&0xF)
+#define FLOPPY_DRIVEDATA_STEPRATER(drive) ((FLOPPY.DriveData[drive].data[0]>>4)&0xF)
+#define FLOPPY_DRIVEDATA_NDMR(drive) (FLOPPY.DriveData[drive].data[1]&1)
+#define FLOPPY_DRIVEDATA_HEADLOADTIMER(drive) ((FLOPPY.DriveData[drive].data[1]>>1)&0x7F)
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
@@ -419,7 +424,7 @@ OPTINLINE void FLOPPY_lowerIRQ()
 
 OPTINLINE byte FLOPPY_useDMA()
 {
-	return (FLOPPY.DOR.DMA_IRQ && (FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM==0)); //Are we using DMA?
+	return (FLOPPY.DOR.DMA_IRQ && (FLOPPY_DRIVEDATA_NDMR(FLOPPY.DOR.DriveNumber)==0)); //Are we using DMA?
 }
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
@@ -489,7 +494,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.ST0.data = 0xC0; //Reset ST0 to the correct value: drive became not ready!
 			FLOPPY.ST1.data = FLOPPY.ST2.data = 0; //Reset the ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
-			if (FLOPPY.Configuration.DrivePollingModeDisable) pending_size = 0; //Don't pend when polling mode is off!
+			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
 			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
@@ -499,8 +504,8 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.TC = 0; //Disable TC identifier!
 			if (FLOPPY.Locked==0) //Are we not locked? Perform stuff that's not locked during reset!
 			{
-				FLOPPY.Configuration.Threshold = 0; //Reset threshold!
-				FLOPPY.Configuration.FIFODisable = 1; //Disable the FIFO!
+				FLOPPY_CONFIGURATION_THRESHOLDW(0); //Reset threshold!
+				FLOPPY_CONFIGURATION_FIFODISABLEW(1); //Disable the FIFO!
 			}
 			FLOPPY.floppy_resetted = 1; //We're resetted!
 			FLOPPY.ignorecommands = 0; //We're enabling commands again!
@@ -683,7 +688,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 
 OPTINLINE void FLOPPY_dataReady() //Data transfer ready to transfer!
 {
-	if (FLOPPY.DriveData[FLOPPY.DOR.DriveNumber].NDM) //Interrupt for each byte transferred?
+	if (FLOPPY_DRIVEDATA_NDMR(FLOPPY.DOR.DriveNumber)) //Interrupt for each byte transferred?
 	{
 		FLOPPY_raiseIRQ(); //Raise the floppy IRQ: We have data to transfer!
 	}
