@@ -147,6 +147,10 @@ typedef void (*Handler)();    /* A pointer to a handler function */
 //Set a bit off!
 #define SETBIT0(x,bitnr) BITOFF((x),(1<<(bitnr)))
 
+//Getting/setting bitfields as byte/word/doubleword values!
+#define GETBITS(x,shift,mask) ((x&(mask<<shift))>>shift)
+#define SETBITS(x,shift,mask,val) x=((x&(~(mask<<shift)))|(((val)&mask)<<shift))
+
 //Easy rotating!
 #define ror(x,moves) ((x >> moves) | (x << (sizeof(x)*8 - moves)))
 #define rol(x,moves) ((x << moves) | (x >> (sizeof(x)*8 - moves)))

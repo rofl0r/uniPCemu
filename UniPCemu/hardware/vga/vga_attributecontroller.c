@@ -23,19 +23,19 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	word Attribute; //This changes!
 	
 	byte color256;
-	color256 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit; //8-bit colors?
+	color256 = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,6,1); //8-bit colors?
 
 	byte enableblink;
-	enableblink = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.BlinkEnable; //Enable blink?	
+	enableblink = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,3,1); //Enable blink?	
 	
 	byte underlinelocation;
-	underlinelocation = VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.UnderlineLocation; //Underline location is the value desired minus 1!
+	underlinelocation = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,0,0x1F); //Underline location is the value desired minus 1!
 	
 	byte textmode;
-	textmode = (!VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.AttributeControllerGraphicsEnable)?4:4; //Text mode? Also the number of bits to shift to get the high nibble, if used!
+	textmode = (!GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,0,1))?4:4; //Text mode? Also the number of bits to shift to get the high nibble, if used!
 
 	byte monomode;
-	monomode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.MonochromeEmulation; //Monochrome emulation mode(attribute) with b/w emulation(misc output)?
+	monomode = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,1,1); //Monochrome emulation mode(attribute) with b/w emulation(misc output)?
 
 	byte *attributeprecalcs;
 	attributeprecalcs = &VGA->precalcs.attributeprecalcs[0]; //The attribute precalcs!	
@@ -50,15 +50,15 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	byte palettecopy[0x10];
 	if (CGAMDAEMULATION_RENDER(VGA)) VGADisabled = 1; //Disable the VGA color processing with CGA/MDA!
 
-	paletteenable = VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.PAL; //Internal palette enabled?
+	paletteenable = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER,5,1); //Internal palette enabled?
 	INLINEREGISTER byte CurrentDAC; //Current DAC to use!
 	if (paletteenable) //Precalcs for palette?
 	{
 		for (CurrentDAC = 0;CurrentDAC < 0x10;++CurrentDAC) //Copy the palette internally for fast reference!
 		{
-			palettecopy[CurrentDAC] = VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC].InternalPaletteIndex; //Translate base index into DAC Base index!
+			palettecopy[CurrentDAC] = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.PALETTEREGISTERS[CurrentDAC],0,0x3F); //Translate base index into DAC Base index!
 		}
-		palette54 = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PaletteBits54Select; //Use palette bits 5-4?
+		palette54 = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,7,1); //Use palette bits 5-4?
 		if (palette54) //Use palette bits 5-4?
 		{
 			colorselect54 = VGA->precalcs.colorselect54; //Retrieve pallete bits 5-4!
@@ -70,7 +70,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
 	INLINEREGISTER byte colorplanes;
-	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER.DATA; //Read colorplane 256-color!
+	colorplanes = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER; //Read colorplane 256-color!
 	colorplanes &= 0xF; //Only 4 bits can be used!
 
 	INLINEREGISTER word pos;

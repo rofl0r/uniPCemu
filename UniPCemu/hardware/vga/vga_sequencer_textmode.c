@@ -137,7 +137,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 
 		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
 		{
-			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable || ((character & 0xE0) != 0xC0))
+			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0))
 			{
 				characterpixels[8] = 0; //9th bit is always background?
 			}

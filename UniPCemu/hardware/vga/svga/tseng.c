@@ -58,12 +58,12 @@ byte Tseng34K_writeIO(word port, byte val)
 	{
 	case 0x46E8: //Video subsystem enable register?
 		if ((et4k_reg(et34kdata, 3d4, 34) & 8) == 0 && (getActiveVGA()->enable_SVGA == 1)) return 0; //Undefined on ET4000!
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val & 8) ? 1 : 0; //RAM enabled?
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,(val & 8) ? 1 : 0); //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3C3: //Video subsystem enable register in VGA mode?
 		if ((et4k_reg(et34kdata, 3d4, 34) & 8) && (getActiveVGA()->enable_SVGA == 1)) return 2; //Undefined on ET4000!
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = (val & 1); //RAM enabled?
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,(val & 1)); //RAM enabled?
 		return 1; //OK
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
@@ -173,10 +173,10 @@ byte Tseng34K_writeIO(word port, byte val)
 
 	//Normal video card support!
 	case 0x3B5: //CRTC Controller Data Register		DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accesscrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
 //void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
 	if (((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) &&
@@ -389,13 +389,13 @@ byte Tseng34K_writeIO(word port, byte val)
 		break;
 	case 0x3C0: //Attribute controller?
 		//void write_p3c0_et4k(Bitu reg, Bitu val, Bitu iolen) {
-		if (!VGA_3C0_FLIPFLOP) return 0; //Index gets ignored!
-		if (et34kdata->protect3C0_PaletteRAM && (VGA_3C0_INDEX<0x10)) //Palette RAM? Handle protection!
+		if (!VGA_3C0_FLIPFLOPR) return 0; //Index gets ignored!
+		if (et34kdata->protect3C0_PaletteRAM && (VGA_3C0_INDEXR<0x10)) //Palette RAM? Handle protection!
 		{
-			VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!
+			VGA_3C0_FLIPFLOPW(!VGA_3C0_FLIPFLOPR); //Flipflop!
 			return 1; //Ignore the write: we're protected!
 		}
-		switch (VGA_3C0_INDEX) {
+		switch (VGA_3C0_INDEXR) {
 			// 3c0 index 16h: ATC Miscellaneous
 			// VGADOC provides a lot of information, Ferarro documents only two bits
 			// and even those incompletely. The register is used as part of identification
@@ -433,7 +433,7 @@ byte Tseng34K_writeIO(word port, byte val)
 				getActiveVGA()->registers->AttributeControllerRegisters.DATA[0x11] = val; //Set the bits allowed to be set!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|0x11); //We have been updated!
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
-				VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!
+				VGA_3C0_FLIPFLOPW(!VGA_3C0_FLIPFLOPR); //Flipflop!
 				return 1; //We're overridden!
 			}
 			return 0; //Handle normally!
@@ -444,13 +444,13 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accessfc;
 	case 0x3CA: //Same as above!
 	case 0x3DA: //Same!
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 	accessfc: //Allow!
-		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = val; //Set!
+		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER = val; //Set!
 		if (et34kdata->extensionsEnabled) //Enabled extensions?
 		{
 			et34kdata->ExtendedFeatureControlRegister = (val&0x80); //Our extended bit is saved!
@@ -473,12 +473,12 @@ byte Tseng34K_readIO(word port, byte *result)
 	{
 	case 0x46E8: //Video subsystem enable register?
 		if ((et4k_reg(et34kdata,3d4,34)&8)==0) return 0; //Undefined!
-		*result = (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable<<3); //RAM enabled?
+		*result = (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1)<<3); //RAM enabled?
 		return 1; //OK!
 		break;
 	case 0x3C3: //Video subsystem enable register in VGA mode?
 		if (et4k_reg(et34kdata,3d4,34)&8) return 2; //Undefined!
-		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
+		*result = GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1); //RAM enabled?
 		return 1; //OK!
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
@@ -545,10 +545,10 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	//Normal video card support!
 	case 0x3B5: //CRTC Controller Data Register		5DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
 		goto readcrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
 		if (!et34kdata->extensionsEnabled && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) && (getActiveVGA()->enable_SVGA == 1)) //ET4000 blocks this without the KEY?
@@ -604,7 +604,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3C1: //Attribute controller read?
 	//Bitu read_p3c1_et4k(Bitu reg, Bitu iolen) {
-		switch (VGA_3C0_INDEX) {
+		switch (VGA_3C0_INDEXR) {
 			RESTORE_ET34K(3c0, 16);
 			RESTORE_ET34K(3c0, 17);
 		default:
@@ -613,7 +613,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		}
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
-		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
+		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
 		if (et34kdata->extensionsEnabled) //Enabled extensions?
 		{
 			*result &= 0x7F; //Clear our extension bit!
@@ -640,25 +640,25 @@ These ports are used but have little if any effect on emulation:
 
 OPTINLINE static byte get_clock_index_et4k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
-	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA>>2)&3) | ((et34k(VGA)->store_et4k_3d4_34<<1)&4) | ((et34k(VGA)->store_et4k_3d4_31>>3)&8);
+	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER>>2)&3) | ((et34k(VGA)->store_et4k_3d4_34<<1)&4) | ((et34k(VGA)->store_et4k_3d4_31>>3)&8);
 }
 
 OPTINLINE static byte get_clock_index_et3k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
-	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA >> 2) & 3) | ((et34k(VGA)->store_et4k_3d4_34 << 1) & 4);
+	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER >> 2) & 3) | ((et34k(VGA)->store_et4k_3d4_34 << 1) & 4);
 }
 
 void set_clock_index_et4k(VGA_Type *VGA, byte index) { //Used by the interrupt 10h handler to set the clock index directly!
 	// Shortwiring register reads/writes for simplicity
 	et34k_data->store_et4k_3d4_34 = (et34k(VGA)->store_et4k_3d4_34&~0x02)|((index&4)>>1);
 	et34k_data->store_et4k_3d4_31 = (et34k(VGA)->store_et4k_3d4_31&~0xc0)|((index&8)<<3); // (index&0x18) if 32 clock frequencies are to be supported
-	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
+	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER&~0x0c)|((index&3)<<2));
 }
 
 void set_clock_index_et3k(VGA_Type *VGA, byte index) {
 	// Shortwiring register reads/writes for simplicity
 	et34k_data->store_et3k_3d4_24 = (et34k_data->store_et3k_3d4_24&~0x02) | ((index & 4) >> 1);
-	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA&~0x0c)|((index&3)<<2));
+	PORT_write_MISC_3C2((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER&~0x0c)|((index&3)<<2));
 }
 
 extern byte EMU_VGAROM[0x10000];
@@ -855,9 +855,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		) //Extended bits of the overflow register!
 	{
 		//bit2=Vertical display end bit 10
-		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalDisplayEnd9;
+		tempdata = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,6,1);
 		tempdata <<= 1;
-		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalDisplayEnd8;
+		tempdata |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,1,1);
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALDISPLAYENDREGISTER;
 		tempdata = ((et4k_tempreg & 4) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
@@ -874,9 +874,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		)
 	{
 		//bit0=Vertical blank bit 10
-		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.StartVerticalBlanking9;
+		tempdata = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,5,1);
 		tempdata <<= 1;
-		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.StartVerticalBlanking8;
+		tempdata |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,3,1);
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTVERTICALBLANKINGREGISTER;
 		tempdata = ((et4k_tempreg & 1) << 10) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
@@ -892,9 +892,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		)
 	{
 		//bit3=Vertical sync start bit 10
-		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalRetraceStart9;
+		tempdata = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,7,1);
 		tempdata <<= 1;
-		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalRetraceStart8;
+		tempdata |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,2,1);
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACESTARTREGISTER;
 		tempdata = ((et4k_tempreg & 8) << 7) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
@@ -910,9 +910,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		)
 	{
 		//bit1=Vertical total bit 10
-		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalTotal9;
+		tempdata = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,5,1);
 		tempdata <<= 1;
-		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalTotal8;
+		tempdata |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,0,1);
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALTOTALREGISTER;
 		tempdata = ((et4k_tempreg & 2) << 9) | (tempdata & 0x3FF); //Add/replace the new/changed bits!
@@ -929,9 +929,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		)
 	{
 		//bit4=Line compare bit 10
-		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9;
+		tempdata = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,6,1);
 		tempdata <<= 1;
-		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8;
+		tempdata |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,4,1);
 		tempdata <<= 8;
 		tempdata |= VGA->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER;
 		tempdata = ((et4k_tempreg & 0x10) << 6) | (tempdata & 0x3FF); //Add/replace the new/changed bits!

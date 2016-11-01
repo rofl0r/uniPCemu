@@ -246,7 +246,7 @@ void VGA_LOGCRTCSTATUS()
 
 void checkCGAcursor(VGA_Type *VGA)
 {
-	if (VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart>VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd) //We're past: display split cursor!
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,0,0x1F)>GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER,0,0x1F)) //We're past: display split cursor!
 		VGA->registers->specialCGAflags |= 0x8; //Set special CGA flag: split cursor!
 	else
 		VGA->registers->specialCGAflags &= ~0x8; //Clear special CGA flag: normal cursor!
@@ -275,9 +275,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 
-		recalcAttr |= (VGA->precalcs.LastMiscOutputRegister^VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA)&1; //We've updated bit 1 of the misc output register? Then update monochrome vs color emulation mode!
-		ClocksUpdated |= ((((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA)^(VGA->precalcs.LastMiscOutputRegister))&0xC) || FullUpdate); //Are we to update the clock?
-		VGA->precalcs.LastMiscOutputRegister = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Save the last version of us!
+		recalcAttr |= (VGA->precalcs.LastMiscOutputRegister^VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER)&1; //We've updated bit 1 of the misc output register? Then update monochrome vs color emulation mode!
+		ClocksUpdated |= ((((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER)^(VGA->precalcs.LastMiscOutputRegister))&0xC) || FullUpdate); //Are we to update the clock?
+		VGA->precalcs.LastMiscOutputRegister = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER; //Save the last version of us!
 
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
@@ -295,17 +295,17 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	{
 		//dolog("VGA","VTotal before charwidth: %i",VGA->precalcs.verticaltotal);
 		//CGA forces character width to 8 wide!
-		if (VGA->precalcs.characterwidth != (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9)) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.characterwidth = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //Character width!
-		if (VGA->precalcs.ClockingModeRegister_DCR != VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.ClockingModeRegister_DCR = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DCR; //Dot Clock Rate!
+		if (VGA->precalcs.characterwidth != (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1)?8:9)) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.characterwidth = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1)?8:9; //Character width!
+		if (VGA->precalcs.ClockingModeRegister_DCR != GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1)) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.ClockingModeRegister_DCR = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1); //Dot Clock Rate!
 
 		byte newSLR = 0x7; //New shift/load rate!
-		if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.S4) //Quarter the video load rate?
+		if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,4,1)) //Quarter the video load rate?
 		{
 			newSLR = 0x7; //Reload every 4 clocks!
 		}
-		else if (VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.SLR) //Half the video load rate?
+		else if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,2,1)) //Half the video load rate?
 		{
 			newSLR = 0x3; //Reload every 2 clocks!
 		}
@@ -328,7 +328,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04) || FullUpdate) //Sequencer memory mode register?
 	{
-		if (!VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) //Enable limited memory when Extended memory is unused!
+		if (!GETBITS(VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,1,1)) //Enable limited memory when Extended memory is unused!
 		{
 			VGA->precalcs.VRAMmask = 0xFFFF; //Wrap memory according to specs!
 		}
@@ -341,15 +341,15 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	
 	if (FullUpdate || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5))) //Graphics mode register?
 	{
-		if (VGA->precalcs.GraphicsModeRegister_ShiftRegister!=VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.GraphicsModeRegister_ShiftRegister = VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ShiftRegister; //Update shift mode!
+		if (VGA->precalcs.GraphicsModeRegister_ShiftRegister!=GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,5,3)) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		VGA->precalcs.GraphicsModeRegister_ShiftRegister = GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,5,3); //Update shift mode!
 		updateVGAGraphics_Mode(VGA); //Update the graphics mode!
 	}
 
 	if ((whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x06)) || FullUpdate) //Misc graphics register?
 	{
-		if (VGA->precalcs.graphicsmode != VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable) adjustVGASpeed(); //Auto-adjust VGA speed!
-		VGA->precalcs.graphicsmode = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.AlphaNumericModeDisable?1:0; //Update Graphics mode!
+		if (VGA->precalcs.graphicsmode != GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,0,1)) adjustVGASpeed(); //Auto-adjust VGA speed!
+		VGA->precalcs.graphicsmode = GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,0,1)?1:0; //Update Graphics mode!
 		VGA->precalcs.graphicsmode_nibbled = VGA->precalcs.graphicsmode?3:0; //Allow nibbled to be used (1 or 2) during graphics modes only!
 		VGA->precalcs.textmode = !VGA->precalcs.graphicsmode; //Text mode instead, since we must have faster graphics mode (intensive changes)!
 		updateVGASequencer_Mode(VGA); //Update the sequencer mode!
@@ -366,7 +366,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word cgarowsize;
 			cgarowsize = (word)VGA->registers->CGARegistersMasked[1]; //We're the value of the displayed characters!
-			cgarowsize <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
+			cgarowsize <<= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1); //Convert from byte to word mode when used!
 			VGA->precalcs.rowsize = VGA->precalcs.VGArowsize = cgarowsize; //Apply the new row size!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			goto updateoffsetregister; //Update the offset register, then the rest!
@@ -380,7 +380,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//Don't handle these registers just yet!
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER_VERTICAL|0x9))) //Character height updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine = (VGA->registers->CGARegistersMasked[9]); //Character height is set!
+			SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,0,0x1F,(VGA->registers->CGARegistersMasked[9])); //Character height is set!
 			adjustVGASpeed(); //Auto-adjust our VGA speed!
 			updateCRTC = 1; //Update the CRTC!
 			goto updatecharheight;
@@ -395,14 +395,14 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xA))) //Cursor Start Register updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart = (VGA->registers->CGARegistersMasked[0xA]&0x1F); //Cursor scanline start!
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable = (((VGA->registers->CGARegistersMasked[0xA])&0x60)!=0x20)?0:1; //Disable the cursor? Setting these bits to any display will enable the cursor!
+			SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,0,0x1F,(VGA->registers->CGARegistersMasked[0xA]&0x1F)); //Cursor scanline start!
+			SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1,(((VGA->registers->CGARegistersMasked[0xA])&0x60)!=0x20)?0:1); //Disable the cursor? Setting these bits to any display will enable the cursor!
 			checkCGAcursor(VGA); //Check the cursor!
 			goto updateCursorStart; //Update us!
 		}
 		if (updateCGACRTCONTROLLER || (whereupdated==(WHEREUPDATED_CGACRTCONTROLLER|0xB))) //Cursor End Register updated?
 		{
-			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd = (VGA->registers->CGARegistersMasked[0xB]&0x1F); //Cursor scanline end!
+			SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER,0,0x1F,(VGA->registers->CGARegistersMasked[0xB]&0x1F)); //Cursor scanline end!
 			checkCGAcursor(VGA); //Check the cursor!
 			goto updateCursorEnd; //Update us!
 		}
@@ -415,7 +415,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			startaddress |= VGA->registers->CGARegistersMasked[0xD]; //Apply the start address low register!
 
 			//Translate to a VGA value!
-			startaddress <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
+			startaddress <<= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1); //Convert from byte to word mode when used!
 
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER = (startaddress>>8)&0xFF;
@@ -431,7 +431,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			cursorlocation |= VGA->registers->CGARegistersMasked[0xF]; //Apply the start address low register!
 
 			//This seems to be the same on a VGA!
-			cursorlocation <<= VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode; //Convert from byte to word mode when used!
+			cursorlocation <<= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1); //Convert from byte to word mode when used!
 			//Apply to the VGA!
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER = (cursorlocation>>8)&0xFF;
 			VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER = (cursorlocation&0xFF);
@@ -447,12 +447,12 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //We have been updated?
 		{
 			updatecharheight:
-			if (VGA->precalcs.characterheight != VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1)
+			if (VGA->precalcs.characterheight != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,0,0x1F)+1)
 			{
 				adjustVGASpeed(); //Auto-adjust our VGA speed!
 				updateCRTC = 1; //Update the CRTC!
 			}
-			VGA->precalcs.characterheight = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1; //Character height!
+			VGA->precalcs.characterheight = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,0,0x1F)+1; //Character height!
 			//dolog("VGA","VTotal after charheight: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 
@@ -461,21 +461,21 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x8))) //Preset row scan?
 		{
-			VGA->precalcs.PresetRowScanRegister_BytePanning = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.BytePanning; //Update byte panning!
+			VGA->precalcs.PresetRowScanRegister_BytePanning = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER,5,3); //Update byte panning!
 		}
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xA))) //Cursor start register?
 		{
 			updateCursorStart:
-			VGA->precalcs.CursorStartRegister_CursorScanLineStart = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorScanLineStart; //Update!
-			if (VGA->precalcs.CursorStartRegister_CursorDisable != VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable) adjustVGASpeed(); //Changed speed!
-			VGA->precalcs.CursorStartRegister_CursorDisable = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER.CursorDisable; //Update!
+			VGA->precalcs.CursorStartRegister_CursorScanLineStart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,0,0x1F); //Update!
+			if (VGA->precalcs.CursorStartRegister_CursorDisable != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1)) adjustVGASpeed(); //Changed speed!
+			VGA->precalcs.CursorStartRegister_CursorDisable = GETBIRS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1); //Update!
 		}
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xB))) //Cursor end register?
 		{
 			updateCursorEnd:
-			VGA->precalcs.CursorEndRegister_CursorScanLineEnd = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorScanLineEnd; //Update!
+			VGA->precalcs.CursorEndRegister_CursorScanLineEnd = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER,0,0x1F); //Update!
 		}
 
 		//CRT Controller registers:
@@ -483,7 +483,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdatedCharwidth || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x3))) //Updated?
 		{
 			word hstart;
-			hstart = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.DisplayEnableSkew;
+			hstart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,5,3);
 			hstart *= VGA->precalcs.characterwidth; //We're a character width!
 			hendstartupdated = (VGA->precalcs.horizontaldisplaystart != hstart); //Update!
 			if (VGA->precalcs.horizontaldisplaystart != hstart) adjustVGASpeed(); //Auto-adjust our speed!
@@ -537,9 +537,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdatedCharwidth || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x3)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x5))) //Updated?
 		{
 			word hblankend;
-			hblankend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EHB5;
+			hblankend = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER,7,1);
 			hblankend <<= 5; //Move to bit 6!
-			hblankend |= VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EndHorizontalBlanking;
+			hblankend |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,0,0x1F);
 			//dolog("VGA","HBlankEnd updated: %i",hblankend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 			if (VGA->precalcs.horizontalblankingend != hblankend) adjustVGASpeed(); //Update our speed!
@@ -564,17 +564,17 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			//dolog("VGA","HRetEnd updated: %i",VGA->precalcs.horizontalretraceend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
-			if (VGA->precalcs.horizontalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace) adjustVGASpeed();
-			updateCRTC |= (VGA->precalcs.horizontalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace); //Update!
-			VGA->precalcs.horizontalretraceend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER.EndHorizontalRetrace; //Load!
+			if (VGA->precalcs.horizontalretraceend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER,0,0x1F)) adjustVGASpeed();
+			updateCRTC |= (VGA->precalcs.horizontalretraceend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER,0,0x1F)); //Update!
+			VGA->precalcs.horizontalretraceend = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER,0,0x1F); //Load!
 		}
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x12)) || overflowupdated) //Updated?
 		{
 			word vdispend;
-			vdispend = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalDisplayEnd9;
+			vdispend = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,6,1);
 			vdispend <<= 1;
-			vdispend |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalDisplayEnd8;
+			vdispend |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,1,1);
 			vdispend <<= 8;
 			vdispend |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALDISPLAYENDREGISTER;
 			++vdispend; //Stop one scanline later: we're the final scanline!
@@ -588,9 +588,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x15)) || overflowupdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			word vblankstart;
-			vblankstart = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.StartVerticalBlanking9;
+			vblankstart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,5,1);
 			vblankstart <<= 1;
-			vblankstart |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.StartVerticalBlanking8;
+			vblankstart |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,3,1);
 			vblankstart <<= 8;
 			vblankstart |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTVERTICALBLANKINGREGISTER;
 			//dolog("VGA","VBlankStart updated: %i",vblankstart);
@@ -602,9 +602,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x16)))
 		{
-			if (VGA->precalcs.verticalblankingend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking) adjustVGASpeed(); //Update our speed?
-			updateCRTC |= (VGA->precalcs.verticalblankingend != VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking); //Update!
-			VGA->precalcs.verticalblankingend = VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER.EndVerticalBlanking;
+			if (VGA->precalcs.verticalblankingend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER,0,0x7F)) adjustVGASpeed(); //Update our speed?
+			updateCRTC |= (VGA->precalcs.verticalblankingend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER,0,0x7F)); //Update!
+			VGA->precalcs.verticalblankingend = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDVERTICALBLANKINGREGISTER,0,0x7F);
 			//dolog("VGA","VBlankEnd updated: %i",VGA->precalcs.verticalblankingend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
@@ -612,9 +612,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x10)) || overflowupdated) //Updated?
 		{
 			word vretracestart;
-			vretracestart = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalRetraceStart9;
+			vretracestart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,7,1);
 			vretracestart <<= 1;
-			vretracestart |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalRetraceStart8;
+			vretracestart |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,2,1);
 			vretracestart <<= 8;
 			vretracestart |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACESTARTREGISTER;
 			//dolog("VGA","VRetraceStart updated: %i",vretracestart);
@@ -627,9 +627,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x6)) || overflowupdated) //Updated?
 		{
 			word vtotal;
-			vtotal = VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalTotal9;
+			vtotal = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,5,1);
 			vtotal <<= 1;
-			vtotal |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.VerticalTotal8;
+			vtotal |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,0,1);
 			vtotal <<= 8;
 			vtotal |= VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALTOTALREGISTER;
 			++vtotal; //We end after the line specified, so specify the line to end at!
@@ -642,9 +642,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x11))) //Updated?
 		{
-			if (VGA->precalcs.verticalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd) adjustVGASpeed(); //Update our speed?
-			updateCRTC |= (VGA->precalcs.verticalretraceend != VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd); //Update!
-			VGA->precalcs.verticalretraceend = VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalRetraceEnd; //Load!
+			if (VGA->precalcs.verticalretraceend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,0,0xF)) adjustVGASpeed(); //Update our speed?
+			updateCRTC |= (VGA->precalcs.verticalretraceend != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,0,0xF)); //Update!
+			VGA->precalcs.verticalretraceend = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,0,0xF); //Load!
 			//dolog("VGA","VRetraceEnd updated: %i",VGA->precalcs.verticalretraceend);
 			//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
@@ -667,9 +667,9 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			       || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
 			word topwindowstart;
-			topwindowstart = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.LineCompare9;
+			topwindowstart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,6,1);
 			topwindowstart <<= 1;
-			topwindowstart |= VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER.LineCompare8;
+			topwindowstart |= GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.OVERFLOWREGISTER,4,1);
 			topwindowstart <<= 8;
 			topwindowstart |= VGA->registers->CRTControllerRegisters.REGISTERS.LINECOMPAREREGISTER;
 			++topwindowstart; //We're one further starting than specified!
@@ -680,7 +680,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x17))) //Mode control updated?
 		{
-			VGA->precalcs.CRTCModeControlRegister_SLDIV = VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.SLDIV; //Update!
+			VGA->precalcs.CRTCModeControlRegister_SLDIV = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,2,1); //Update!
 		}
 
 		if (CRTUpdated || charwidthupdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))

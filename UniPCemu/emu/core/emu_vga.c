@@ -277,7 +277,7 @@ recalcsignal: //Recalculate the signal to process!
 				{
 					vblank = 0; //We're not blanking anymore!
 					vblankendpending = 0; //Remove from flags pending!
-					VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //No vertical retrace?
+					SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //No vertical retrace?
 				}
 				else
 				{
@@ -293,32 +293,32 @@ recalcsignal: //Recalculate the signal to process!
 				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 
 				//VGA/EGA vertical retrace interrupt support!
-				if (VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Enabled vertical retrace interrupt?
+				if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Enabled vertical retrace interrupt?
 				{
-					if (!VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_Disabled) //Generate vertical retrace interrupts?
+					if (!GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,5,1)) //Generate vertical retrace interrupts?
 					{
 						raiseirq(VGA_IRQ); //Execute the CRT interrupt when possible!
 					}
-					VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 1; //We're pending an CRT interrupt!
+					SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,7,1,1); //We're pending an CRT interrupt!
 				}
 			}
-			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = vretrace = 1; //We're retracing!
+			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
 		}
 		else if (vretrace)
 		{
 			if (tempsignal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
 			{
 				vretrace = 0; //We're not retracing anymore!
-				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
+				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //Vertical retrace?
 			}
 			else
 			{
-				VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical retrace?
+				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,1); //Vertical retrace?
 			}
 		}
 		else //No vretrace?
 		{
-			VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //Vertical retrace?
+			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //Vertical retrace?
 		}
 	}
 	else
@@ -328,14 +328,14 @@ recalcsignal: //Recalculate the signal to process!
 			vblank = 0; //We're not blanking anymore!
 			vblankendpending = 0; //Remove from flags pending!
 		}
-		VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 0; //No vertical retrace?
+		SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //No vertical retrace?
 	}
 
 	//Both H&VBlank count!
 	blanking = hblank;
 	blanking |= vblank; //Process blank!
 	//Screen disable applies blanking permanently!
-	blanking |= VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.ScreenDisable; //Use disabled output when asked to!
+	blanking |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,5,1); //Use disabled output when asked to!
 
 	//Process resetting the HSync/VSync counters!
 
@@ -466,7 +466,7 @@ void updateVGA(double timepassed)
 			}
 		} while (--renderings); //Ticks left to tick?
 
-		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = getActiveVGA()->CRTC.DisplayEnabled^1; //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,(getActiveVGA()->CRTC.DisplayEnabled^1)); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
 
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) //Still counting?

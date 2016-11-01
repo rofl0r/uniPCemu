@@ -43,17 +43,17 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 			for (;y<0x20;) //33 rows!
 			{
 				uint_32 characterset_offset, add2000; //First, the character set, later translated to the real charset offset!
-				if (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.ExtendedMemory) //Memory maps are enabled?
+				if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,1,1)) //Memory maps are enabled?
 				{
 					if (attribute) //Charset A? (bit 2 (value 0x4) set?)
 					{
-						characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_low;
-						add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetASelect_high; //Charset A!
+						characterset_offset = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,2,3);
+						add2000 = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,5,1); //Charset A!
 					}
 					else //Charset B?
 					{
-						characterset_offset = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_low;
-						add2000 = VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER.CharacterSetBSelect_high; //Charset B!
+						characterset_offset = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,0,3);
+						add2000 = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,4,1); //Charset B!
 					}
 	
 					characterset_offset <<= 1; //Calculated 0,4,8,c! Add room for 0x2000!
@@ -155,7 +155,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		newx = 7; //Only 7 max!
 		if (getcharacterwidth(VGA)!=8) //What width? 9 wide?
 		{
-			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.LineGraphicsEnable || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background?
+			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background?
 		}
 	}
 	
@@ -178,9 +178,9 @@ OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 {
 	byte y=0;
 	byte maxx=0;
-	maxx = VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER.DotMode8?8:9; //8/9 dot mode!
+	maxx = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1)?8:9; //8/9 dot mode!
 	byte maxy=0;
-	maxy = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.MaximumScanLine+1; //Ammount of scanlines!
+	maxy = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,0,0x1F)+1; //Ammount of scanlines!
 	for (;;)
 	{
 		char row[10]; //9-character row for the letter!

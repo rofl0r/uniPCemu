@@ -18,13 +18,13 @@ uint_32 VGA_MemoryMapBankRead = 0, VGA_MemoryMapBankWrite = 0; //The memory map 
 OPTINLINE void VGA_updateLatches()
 {
 	//Update the latch the software can read.
-	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.GraphicsControllerDataLatches.LatchN = getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect]; //Update the latch the software reads (R/O)
+	getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.GraphicsControllerDataLatches = getActiveVGA()->registers->ExternalRegisters.DATALATCH.latchplane[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER,0,3)]; //Update the latch the software reads (R/O)
 }
 
 void VGA_updateVRAMmaps(VGA_Type *VGA)
 {
-	VGA_RAMEnable = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
-	VGA_MemoryMapSelect = VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect; //Update the selected memory map!
+	VGA_RAMEnable = GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1); //RAM enabled?
+	VGA_MemoryMapSelect = GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3); //Update the selected memory map!
 	switch (VGA_MemoryMapSelect) //What memory map?
 	{
 	case 0: //A0000-BFFFF (128K region)?
@@ -68,7 +68,7 @@ Special operations for write!
 
 OPTINLINE uint_32 LogicalOperation(uint_32 input)
 {
-	switch (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.LogicalOperation)
+	switch (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER,3,3))
 	{
 	case 0x00:	/* None */
 		return input; //Unmodified
@@ -110,15 +110,15 @@ typedef uint_32 (*VGA_WriteMode)(uint_32 data);
 uint_32 VGA_WriteMode0(uint_32 data) //Read-Modify-Write operation!
 {
 	INLINEREGISTER byte curplane;
-	data = (byte)ror((byte)data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
+	data = (byte)ror((byte)data, GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER,0,7)); //Rotate it! Keep 8-bit data!
 	data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
 
 	curplane = 0;
 	do
 	{
-		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER.EnableSetReset&(1 << curplane)) //Enable set/reset? (Mode 3 ignores this flag)
+		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER,0,0xF)&(1 << curplane)) //Enable set/reset? (Mode 3 ignores this flag)
 		{
-			data = (data&(~getActiveVGA()->FillTable[(1 << curplane)])) | getActiveVGA()->FillTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset&(1 << curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
+			data = (data&(~getActiveVGA()->FillTable[(1 << curplane)])) | getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)&(1 << curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
 		}
 	} while (++curplane!=4);
 	data = LogicalOperation(data); //Execute the logical operation!
@@ -141,9 +141,9 @@ uint_32 VGA_WriteMode2(uint_32 data) //Write color to all pixels in the source a
 
 uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
 {
-	data = ror(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER.RotateCount); //Rotate it! Keep 8-bit data!
+	data = ror(data, GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER,0,7)); //Rotate it! Keep 8-bit data!
 	data &= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER; //AND with the Bit Mask field.
-	data = BitmaskOperation(getActiveVGA()->ExpandTable[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER.SetReset], data); //Use the generated data on the Set/Reset register
+	data = BitmaskOperation(getActiveVGA()->ExpandTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)], data); //Use the generated data on the Set/Reset register
 	return data;
 }
 
@@ -154,9 +154,9 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	static const VGA_WriteMode VGA_WRITE[4] = {VGA_WriteMode0,VGA_WriteMode1,VGA_WriteMode2,VGA_WriteMode3}; //All write modes!
 	INLINEREGISTER byte curplane; //For plane loops!
 	INLINEREGISTER uint_32 data; //Default to the value given!
-	data = VGA_WRITE[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.WriteMode]((uint_32)val); //What write mode?
+	data = VGA_WRITE[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,0,3)]((uint_32)val); //What write mode?
 
-	byte planeenable = getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER.MemoryPlaneWriteEnable; //What planes to try to write to!
+	byte planeenable = GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER,0,0xF); //What planes to try to write to!
 	if ((getActiveVGA()->precalcs.linearmode & 5) == 5) planeenable = 0xF; //Linear memory ignores this?
 	planeenable &= planes; //The actual planes to write to!
 	byte curplanemask=1;
@@ -203,9 +203,9 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	curplane = 0;
 	do//Check all planes!
 	{
-		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER.ColorCare&(1 << curplane)) //We care about this plane?
+		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF)&(1 << curplane)) //We care about this plane?
 		{
-			if (readVRAMplane(getActiveVGA(), curplane, offset, rwbank) == getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER.ColorCompare) //Equal?
+			if (readVRAMplane(getActiveVGA(), curplane, offset, rwbank) == GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)) //Equal?
 			{
 				result |= (1 << curplane); //Set the bit: the comparision is true!
 			}
@@ -219,7 +219,7 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 	static const VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
 	loadlatch(offset); //Load the latches!
 
-	return READ[getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.ReadMode](planes,offset+(rwbank>>2)); //What read mode?
+	return READ[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,3,1)](planes,offset+(rwbank>>2)); //What read mode?
 }
 
 /*
@@ -274,7 +274,7 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	}
 	else rwbank = 0; //No memory banks are used!
 
-	if (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.Chain4Enable) //Chain 4 mode?
+	if (GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,3,1)) //Chain 4 mode?
 	{
 		calcplanes = realoffsettmp = offset; //Original offset to start with!
 		calcplanes &= 0x3; //Lower 2 bits determine the plane!
@@ -301,17 +301,17 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 
 	//Odd/even mode used (compatiblity case)?
 	//Do the same as VPC!
-	if ((towrite && (getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER.OEDisabled==0)) || //Write using odd/even addressing?
-		((!towrite) && getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER.OddEvenMode)) //Read using odd/even addressing?
+	if ((towrite && (GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,2,1)==0)) || //Write using odd/even addressing?
+		((!towrite) && GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1))) //Read using odd/even addressing?
 	{
 		calcplanes = realoffsettmp = offset; //Take the default offset!
 		calcplanes &= 1; //Take 1 bit to determine the odd/even plane (odd/even)!
-		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.EnableOddEvenMode) //Replace A0 with high order bit?
+		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1)) //Replace A0 with high order bit?
 		{
 			realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
 			realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
 		}
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.OE_HighPage && (offset & 0x10000)) //High page on High RAM?
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,4,1) && (offset & 0x10000)) //High page on High RAM?
 		{
 			realoffsettmp |= 2; //Apply high page!
 			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
@@ -346,11 +346,11 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 	else //Normal VGA read!
 	{
 		calcplanes = 1; //Load plane 0!
-		calcplanes <<= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER.ReadMapSelect; //Take this plane!
+		calcplanes <<= GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER,0,3); //Take this plane!
 	}
 	if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //SVGA ET3K/ET4K?
 	{
-		if (getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER.MemoryMapSelect == 1) //64K window?
+		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3) == 1) //64K window?
 		{
 			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17).
 			offset &= 0xFFFF; //16-bit offset!

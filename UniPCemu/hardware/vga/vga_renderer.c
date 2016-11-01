@@ -58,9 +58,9 @@ double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in H
 	if (VGA_calcclockrateextensionhandler)
 	{
 		if (VGA_calcclockrateextensionhandler(VGA)!=0.0) return VGA_calcclockrateextensionhandler(VGA); //Give the extended clock if needed!
-		else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect & 3)]; //VGA clock!
+		else result = VGA_clocks[(GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3) & 3)]; //VGA clock!
 	}
-	else result = VGA_clocks[(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3)]; //VGA clock!
+	else result = VGA_clocks[(GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3)&3)]; //VGA clock!
 	return result; //Give the result!
 }
 
@@ -180,7 +180,7 @@ typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch full VRAM address!
 { //Check this!
 	INLINEREGISTER uint_32 bit; //Load row scan counter!
-	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP13==0) //a13=Bit 0 of the row scan counter!
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,0,1)==0) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
 		//Bit 1, placed on memory address bit 14 has the effect of quartering the memory.
@@ -191,7 +191,7 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 		addresscounter |= bit; //Set bit13 if needed!
 	}
 
-	if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.MAP14==0) //a14<=Bit 1 of the row scan counter!
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,1,1)==0) //a14<=Bit 1 of the row scan counter!
 	{
 		bit = ((SEQ_DATA *)VGA->Sequencer)->rowscancounter; //Current row scan counter!
 		bit &= 2; //Bit1 only!
@@ -213,7 +213,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 	{
 		case 1: //Word mode?
 			result = 0xD; //Load default location (13)
-			result |= (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.AW << 1); //MA15 instead of MA13 when set!
+			result |= (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,5,1) << 1); //MA15 instead of MA13 when set!
 			address2 = memoryaddress; //Load the address for calculating!
 			address2 >>= result; //Apply MA15/MA13 to bit 0!
 			address2 &= 1; //Only load bit 0!
@@ -272,7 +272,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	word extrastatus = *Sequencer->extrastatus; //Next status!
-	if ((getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.SR && getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER.AR)==0) //Reset sequencer?
+	if ((GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER,1,1) && GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER,0,1))==0) //Reset sequencer?
 	{
 		return 0; //Abort: we're disabled!
 	}

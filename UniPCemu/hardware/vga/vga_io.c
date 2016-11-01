@@ -84,7 +84,7 @@ void setVGA_NMIonPrecursors(byte enabled)
 
 OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 {
-	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA)) //Reading from light pen location registers?
+	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1))) //Reading from light pen location registers?
 	{
 		switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //What index?
 		{
@@ -108,7 +108,7 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 	byte temp; //For index 7 write protected!
 	byte index;
 	index = getActiveVGA()->registers->CRTControllerRegisters_Index; //What index?
-	if ((index<8) && (getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.Protect)) //Protected?
+	if ((index<8) && (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1))) //Protected?
 	{
 		if (index==7) //Overflow register (allow changes in the bit 4 (line compare))
 		{
@@ -141,16 +141,16 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 		if (index==0x11) //Bit 4&5 of the Vertical Retrace End register have other effects!
 		{
 			//Bit 5: Input status Register 0, bit 7 needs to be updated with Bit 5?
-			if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER.VerticalInterrupt_NotCleared) //Vertical interrupt cleared?
+			if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Vertical interrupt cleared?
 			{
-				getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.CRTInterruptPending = 0; //Clear the vertical interrupt pending flag!
+				SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,7,1,0); //Clear the vertical interrupt pending flag!
 				lowerirq(VGA_IRQ); //Lower our IRQ if present!
 				acnowledgeIRQrequest(VGA_IRQ); //Acnowledge us!
 			}
 		}
-		if (!getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA) //Force to 1?
+		if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) //Force to 1?
 		{
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER.EVRA = 1; //Force to 1!
+			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1,1); //Force to 1!
 			if (index!=3) //We've been updated too?
 			{
 				VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|3); //We have been updated!
@@ -164,32 +164,32 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 
 OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 {
-	if (!VGA_3C0_FLIPFLOP) //Index mode?
+	if (!VGA_3C0_FLIPFLOPR) //Index mode?
 	{
 		//Mirror to state register!
-		VGA_3C0_PAL = ((value&0x20)>>5); //Palette Address Source!
-		VGA_3C0_INDEX = (value&0x1F); //Which index?
+		VGA_3C0_PALW((value&0x20)>>5); //Palette Address Source!
+		VGA_3C0_INDEXW(value&0x1F); //Which index?
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER); //Updated index!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 	else //Data mode?
 	{
-		if (VGA_3C0_INDEX<sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) //Within range?
+		if (VGA_3C0_INDEXR<sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) //Within range?
 		{
-			getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX] = value; //Set!
+			getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR] = value; //Set!
 		}
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|VGA_3C0_INDEX); //We have been updated!
+		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|VGA_3C0_INDEXR); //We have been updated!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 
-	VGA_3C0_FLIPFLOP = !VGA_3C0_FLIPFLOP; //Flipflop!
+	VGA_3C0_FLIPFLOPW(!VGA_3C0_FLIPFLOPR); //Flipflop!
 }
 
 //MISC
 
 void PORT_write_MISC_3C2(byte value) //Misc Output register!
 {
-	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA = value; //Set!
+	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER = value; //Set!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_MISCOUTPUTREGISTER); //We have been updated!
 }
 
@@ -254,10 +254,10 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B2:
 	case 0x3B6:
 	case 0x3B4: //Decodes to 3B4!
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
 		goto readcrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtaddress:
 		*result = getActiveVGA()->registers->CRTControllerRegisters_Index; //Give!
 		ok = 1;
@@ -266,31 +266,31 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		5DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
 		goto readcrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
 		*result = PORT_readCRTC_3B5(); //Read port 3B5!
 		ok = 1;
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
 		//Do nothing: write only port! Undefined!
-		*result = (VGA_3C0_PAL<<5)|VGA_3C0_INDEX; //Give the saved information!
+		*result = (VGA_3C0_PALR<<5)|VGA_3C0_INDEXR; //Give the saved information!
 		ok = 1;
 		break;
 	case 0x3C1: //Attribute Data Read Register		DATA
-		if (VGA_3C0_INDEX>=sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
-		*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEX]; //Read from current index!
+		if (VGA_3C0_INDEXR>=sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
+		*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR]; //Read from current index!
 		ok = 1;
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
-		getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.SwitchSense = (((~getActiveVGA()->registers->switches)>>(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.ClockSelect&3))&1); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
-		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER.DATA; //Give the register!
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER,4,1,(((~getActiveVGA()->registers->switches)>>(GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3)&3))&1)); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
+		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER; //Give the register!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable?
-		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable; //RAM enabled?
+		*result = GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1); //RAM enabled?
 		ok = 1;
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
@@ -307,7 +307,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3C7: //Read: DAC State Register			DATA
-		*result = getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DATA; //Give!
+		*result = getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER; //Give!
 		ok = 1;
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
@@ -319,11 +319,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
-		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA; //Give!
+		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
 		ok = 1;
 		break;
 	case 0x3CC: //Read: Miscellaneous Output Register	DATA
-		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.DATA; //Give!
+		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER; //Give!
 		ok = 1;
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
@@ -336,14 +336,14 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		ok = 1;
 		break;
 	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishinput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
 		goto readInputStatus1;
 	case 0x3DA: //Input Status #1 Register (color)	DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) //Block: we're a mono mode addressing as color!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) //Block: we're a mono mode addressing as color!
 		{
 			readInputStatus1:
-			getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER.DataState = 0; //Reset flipflop for 3C0!
-			*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DATA; //Give!
+			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER,7,1,0); //Reset flipflop for 3C0!
+			*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER; //Give!
 			ok = 1;
 		}
 		break;
@@ -379,10 +379,10 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B2:
 	case 0x3B6: //Decodes to 3B4!
 	case 0x3B4: //CRTC Controller Address Register		ADDRESS
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accesscrtaddress;
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtaddress:
 		getActiveVGA()->registers->CRTControllerRegisters_Index = value; //Set!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
@@ -392,22 +392,22 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3B3:
 	case 0x3B7: //Decodes to 3B5!
 	case 0x3B5: //CRTC Controller Data Register		DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accesscrtvalue;
 	case 0x3D5: //CRTC Controller Data Register		DATA
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
 		PORT_write_CRTC_3B5(value); //Write CRTC!
 		ok = 1;
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
-		if (getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a color mode addressing as mono!
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accessfc;
 	case 0x3CA: //Same as above!
 	case 0x3DA: //Same!
-		if (!getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.IO_AS) goto finishoutput; //Block: we're a mono mode addressing as color!
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accessfc: //Allow!
-		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER.DATA = (value&3); //Set our used bits only!
+		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER = (value&3); //Set our used bits only!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_FEATURECONTROLREGISTER); //We have been updated!
 		ok = 1;
 		break;
@@ -426,7 +426,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3C3: //Video subsystem enable
 		value &= 1; //Only 1 bit!
-		getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER.RAM_Enable = value; //Enable RAM?
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,value); //Enable RAM?
 		ok = 1;
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
@@ -459,14 +459,14 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
-		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 0; //Prepared for reads!
+		SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,0); //Prepared for reads!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
 		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
-		getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER.DACState = 3; //Prepared for writes!
+		SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,3); //Prepared for writes!
 		getActiveVGA()->registers->current_3C9 = 0; //Reset!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 		ok = 1;

@@ -181,8 +181,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 		return NULL; //Failed to allocate!
 	}
 
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.DisplayDisabled = 1; //Display disabled by default!
-	VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER.VRetrace = 1; //Vertical Retrace by default!
+	SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,1); //Display disabled by default!
+	SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,1); //Vertical Retrace by default!
 	
 	debugrow("VGA: Initialising CGA compatibility font support...");
 	fillCGAfont(); //Initialise the CGA font map if needed to use it!
