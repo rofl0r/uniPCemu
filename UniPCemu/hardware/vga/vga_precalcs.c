@@ -469,7 +469,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			updateCursorStart:
 			VGA->precalcs.CursorStartRegister_CursorScanLineStart = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,0,0x1F); //Update!
 			if (VGA->precalcs.CursorStartRegister_CursorDisable != GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1)) adjustVGASpeed(); //Changed speed!
-			VGA->precalcs.CursorStartRegister_CursorDisable = GETBIRS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1); //Update!
+			VGA->precalcs.CursorStartRegister_CursorDisable = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORSTARTREGISTER,5,1); //Update!
 		}
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xB))) //Cursor end register?
@@ -688,20 +688,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			//This applies to the Frame buffer:
 			byte BWDModeShift = 1; //Default: word mode!
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DW)
+			if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,6,1))
 			{
 				BWDModeShift = 2; //Shift by 2!
 			}
-			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.UseByteMode)
+			else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1))
 			{
 				BWDModeShift = 0; //Shift by 0! We're byte mode!
 			}
 
 			byte characterclockshift = 1; //Default: reload every whole clock!
 			//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
-			if (VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER.DIV4)
+			if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,5,1))
 			{
-				if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2) //Both set? We reload twice per clock!
+				if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1)) //Both set? We reload twice per clock!
 				{
 					characterclockshift = 0; //Reload every half clock(4 pixels)!
 				}
@@ -710,7 +710,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 					characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
 				}
 			}
-			else if (VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER.DIV2)
+			else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1))
 			{
 				characterclockshift = 3; //Reload every other clock(16 pixels)!
 			}
@@ -731,7 +731,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x9))) //Updated?
 		{
-			VGA->precalcs.scandoubling = VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER.ScanDoubling; //Scan doubling enabled? CGA disables scanline doubling for compatibility.
+			VGA->precalcs.scandoubling = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.MAXIMUMSCANLINEREGISTER,7,1); //Scan doubling enabled? CGA disables scanline doubling for compatibility.
 			//dolog("VGA","VTotal after SD: %i",VGA->precalcs.verticaltotal); //Log it!
 		}
 		
@@ -749,7 +749,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			cursorlocation = VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONHIGHREGISTER;
 			cursorlocation <<= 8;
 			cursorlocation |= VGA->registers->CRTControllerRegisters.REGISTERS.CURSORLOCATIONLOWREGISTER;
-			cursorlocation += VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER.CursorSkew;
+			cursorlocation += GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CURSORENDREGISTER,5,3);
 			cursorlocation <<= VGA->precalcs.BWDModeShift; //Apply byte/word/doubleword mode at the character level!
 
 			VGA->precalcs.cursorlocation = cursorlocation; //Cursor location!
@@ -758,7 +758,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (CRTUpdated || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x8))) //Preset row scan updated?
 		{
-			VGA->precalcs.presetrowscan = VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER.PresetRowScan; //Apply new preset row scan!
+			VGA->precalcs.presetrowscan = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.PRESETROWSCANREGISTER,0,0x1F); //Apply new preset row scan!
 		}
 		
 		if (CRTUpdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC))
@@ -793,10 +793,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			byte csel,csel2;
 			
-			csel = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER.ColorSelect54;
+			csel = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,0,3);
 			csel <<= 4;
 			
-			csel2 = VGA->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER.ColorSelect76;
+			csel2 = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,2,3);
 			csel2 <<= 6;
 
 			VGA->precalcs.colorselect54 = csel; //Precalculate!
@@ -814,8 +814,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 		if (AttrUpdated || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10))) //Mode control updated?
 		{
-			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit;
-			VGA->precalcs.AttributeModeControlRegister_PixelPanningMode = VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.PixelPanningMode;
+			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,6,1);
+			VGA->precalcs.AttributeModeControlRegister_PixelPanningMode = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,5,1);
 			updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
 		}
 
@@ -826,8 +826,8 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			//Precalculate horizontal pixel panning:
 			byte pixelboost = 0; //Actual pixel boost!
 			byte possibleboost; //Possible value!
-			possibleboost = VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER.PixelShiftCount; //Possible value, to be determined!
-			if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER.ColorEnable8Bit) //8-bit colors?
+			possibleboost = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF); //Possible value, to be determined!
+			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,6,1)) //8-bit colors?
 			{
 				if ((possibleboost%2)==0) //Enabled?
 				{
