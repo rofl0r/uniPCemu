@@ -74,6 +74,11 @@ extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
 #endif
 
+uint_32 getstackaddrsizelimiter()
+{
+	return CPU_StackAddress_size[activeCPU]? 0xFFFFFFFF : 0xFFFF; //Stack address size!
+}
+
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do we need to POP from the stack?
 {
 	uint_32 poptimesleft = poptimes; //Load the amount to check!
@@ -81,22 +86,22 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 	for (;poptimesleft;) //Anything left?
 	{
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP,isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+1,isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+2,isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP+3,isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -963,16 +968,7 @@ byte isV86()
 byte topdown_stack() //Top-down stack?
 {
 	//We're a 286+, so detect it! Older processors are always in real mode!
-	if (getcpumode()==CPU_MODE_REAL)
-	{
-		return 1; //Real mode!
-	}
 	return !(GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]) & 4); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
-}
-
-OPTINLINE uint_32 getstackaddrsizelimiter()
-{
-	return CPU_StackAddress_size[activeCPU]? 0xFFFFFFFF : 0xFFFF; //Stack address size!
 }
 
 //Memory is the same as PSP: 1234h is 34h 12h, in stack terms reversed, because of top-down stack!
