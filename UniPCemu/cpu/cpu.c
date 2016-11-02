@@ -444,7 +444,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	}
 	else
 	{
-		CSAccessRights = 0x9D; //Initialise the CS access rights!
+		CSAccessRights = 0x93; //Initialise the CS access rights!
 	}
 
 	alloc_CPUregisters(); //Allocate the CPU registers!
@@ -535,9 +535,14 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
 		CPU[activeCPU].SEG_DESCRIPTOR[reg].noncallgate_info = 0; //No high limit etc.!
-		if ((reg != CPU_SEGMENT_LDTR) && (reg != CPU_SEGMENT_TR)) //Special protected-mode segments? We're undefined!
+		//According to http://www.sandpile.org/x86/initial.htm the following access rights are used:
+		if ((reg == CPU_SEGMENT_LDTR) || (reg == CPU_SEGMENT_TR)) //LDTR&TR=Special case! Apply special access rights!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x93; //Data segment!
+			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x82; //Invalid segment!
+		}
+		else //Normal Code/Data segment?
+		{
+			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x93; //Code/data segment, writable!
 		}
 	}
 
