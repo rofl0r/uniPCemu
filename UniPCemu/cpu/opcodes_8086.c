@@ -2893,12 +2893,6 @@ void FPU8087_noCOOP(){
 	CPU[activeCPU].cycles_OP = MODRM_EA(params)?8+MODRM_EA(params):2; //No hardware interrupt to use anymore!
 }
 
-void unkOP_8086() //Unknown opcode on 8086?
-{
-	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
-	CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
-}
-
 //Gecontroleerd: 100% OK!
 
 //Now, the GRP opcodes!

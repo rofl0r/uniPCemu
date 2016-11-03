@@ -10,6 +10,9 @@
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/timers.h" //Timer support!
 
+//Shutdown the application when an unknown instruction is executed?
+#define UNKOP_SHUTDOWN
+
 void halt_modrm(char *message, ...) //Unknown modr/m?
 {
 	stopVideo(); //Need no video!
@@ -23,4 +26,39 @@ void halt_modrm(char *message, ...) //Unknown modr/m?
 	debugger_screen(); //Show debugger info!
 //EMU_Shutdown(1); //Shut down the emulator!
 	sleep(); //Wait forever!
+}
+
+//Normal instruction #UD handlers for 80(1)8X+!
+void unkOP_8086() //Unknown opcode on 8086?
+{
+	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
+	#ifdef UNKOP_SHUTDOWN
+	EMU_Shutdown(1); //Request to shut down!
+	#endif
+}
+
+void unkOP_186() //Unknown opcode on 186+?
+{
+	debugger_setcommand("<NECV20/V30+ #UD>"); //Command is unknown opcode!
+	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt with return addres of the OPcode!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
+	#ifdef UNKOP_SHUTDOWN
+	EMU_Shutdown(1); //Request to shut down!
+	#endif
+}
+
+//0F opcode extensions #UD handler
+void unkOP0F_286() //0F unknown opcode handler on 286+?
+{
+	debugger_setcommand("<80286+ 0F #UD>"); //Command is unknown opcode!
+	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
+	#ifdef UNKOP_SHUTDOWN
+	EMU_Shutdown(1); //Request to shut down!
+	#endif
 }

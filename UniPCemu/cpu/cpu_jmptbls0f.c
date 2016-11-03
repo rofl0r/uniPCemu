@@ -7,17 +7,6 @@
 #include "headers/cpu/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
 #include "headers/emu/debugger/debugger.h" //Debugging support!
 
-//0F opcode extensions:
-
-void unkOP0F_286() //0F unknown opcode handler on 286+?
-{
-	debugger_setcommand("<80286+ 0F #UD>"); //Command is unknown opcode!
-	//dolog("unkop","Unknown opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
-	CPU_resetOP(); //Go back to the opcode itself!
-	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
-	CPU[activeCPU].faultraised = 1; //We've raised a fault!
-}
-
 //See normal opcode table, but for 0F opcodes!
 Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard interrupt jmptbl!
 {
