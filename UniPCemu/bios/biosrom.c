@@ -42,6 +42,10 @@ char originalROMpath[256] = "ROM"; //Original ROM path!
 
 extern byte is_XT; //Are we emulating an XT architecture?
 
+uint_32 BIOSROM_BASE_Modern = 0xFFFF0000; //AT+ BIOS ROM base!
+uint_32 BIOSROM_BASE_AT = 0xFF0000; //AT BIOS ROM base!
+uint_32 BIOSROM_BASE_XT = 0xF0000; //XT BIOS ROM base!
+
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
 	strcpy(originalROMpath,ROMpath); //Save the original ROM path for deallocation!
@@ -226,6 +230,7 @@ void BIOS_freeOPTROMS()
 
 int BIOS_load_ROM(byte nr)
 {
+	uint_32 ROM_size; //The size of both ROMs!
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
@@ -253,6 +258,26 @@ int BIOS_load_ROM(byte nr)
 			return 0; //Failed to read!
 		}
 		fclose(f); //Close the file!
+		switch (nr) //What ROM has been loaded?
+		{
+			case 18:
+			case 19: //u18/u19 chips?
+				ROM_size = BIOS_ROM_size[18]+BIOS_ROM_size[19]; //ROM size!
+				break;
+			case 34:
+			case 35: //u34/u35 chips?
+				ROM_size = BIOS_ROM_size[34]+BIOS_ROM_size[35]; //ROM size!
+				break;
+			case 27:
+			case 47: //u27/u47 chips?
+				ROM_size = BIOS_ROM_size[27]+BIOS_ROM_size[47]; //ROM size!
+				break;
+		}
+		
+		//Recalculate based on ROM size!
+		BIOSROM_BASE_AT = 0xFFFFFF-(ROM_size-1); //AT ROM size!
+		BIOSROM_BASE_XT = 0xFFFFF-(ROM_size-1); //XT ROM size!
+		BIOSROM_BASE_Modern = 0xFFFFFFFF-(ROM_size-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
 	
@@ -344,6 +369,9 @@ int BIOS_load_systemROM() //Load custom ROM from emulator itself!
 	BIOS_free_custom(NULL); //Free the custom ROM, if needed and known!
 	BIOS_custom_ROM_size = sizeof(EMU_BIOS); //Save the size!
 	BIOS_custom_ROM = &EMU_BIOS[0]; //Simple memory allocation for our ROM!
+	BIOSROM_BASE_AT = 0xFFFFFF-(BIOS_custom_ROM_size-1); //AT ROM size!
+	BIOSROM_BASE_XT = 0xFFFFF-(BIOS_custom_ROM_size-1); //XT ROM size!
+	BIOSROM_BASE_Modern = 0xFFFFFFFF-(BIOS_custom_ROM_size-1); //Modern ROM size!
 	return 1; //Loaded!
 }
 
@@ -563,11 +591,11 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 {
 	INLINEREGISTER uint_32 basepos, tempoffset;
 	basepos = tempoffset = offset; //Load the current location!
-	if (basepos >= 0xF0000) //Inside 16-bit/32-bit range?
+	if (basepos >= BIOSROM_BASE_XT) //Inside 16-bit/32-bit range?
 	{
-		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
-		else if ((basepos >= 0xFFFF0000) && (EMULATED_CPU >= CPU_80386)) basepos = 0xFFFF0000; //Our base reference position(high memory 386+)!
-		else if ((basepos >= 0xFF0000) && (EMULATED_CPU == CPU_80286)) basepos = 0xFF0000; //Our base reference position(high memmory 286)
+		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
+		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -679,9 +707,9 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	basepos = tempoffset = offset;
 	if (basepos>=0xF0000) //Inside 16-bit/32-bit range?
 	{
-		if (basepos<0x100000) basepos = 0xF0000; //Our base reference position(low memory)!
-		else if ((basepos >= 0xFFFF0000) && (EMULATED_CPU >= CPU_80386)) basepos = 0xFFFF0000; //Our base reference position(high memory 386+)!
-		else if ((basepos >= 0xFF0000) && (EMULATED_CPU == CPU_80286)) basepos = 0xFF0000; //Our base reference position(high memmory 286)
+		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
+		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
