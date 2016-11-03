@@ -823,7 +823,7 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
 	column >>= 3; //Divide by 8 to get the character clock!
 
-	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,7,1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
 	{
 		column >>= 1; //Half the horizontal timing!
 		x >>= 1; //Half the horizontal timing!
@@ -1153,7 +1153,7 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 	SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3,((!useGraphics) && GraphicsMode)?2:3); //Use map B000(MDA) or B800(CGA), depending on the adapter used!
 	if (useGraphics && (!GraphicsMode)) //Special case? CGA monochrome mode?
 	{
-		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,1,1,0); //Don't force odd/even mode!
+		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1,0); //Don't force odd/even mode!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER,0,3,0); //Only read map #0!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF,0); //Care about this only!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1,0); //Disable chaining!
@@ -1173,7 +1173,7 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 				++x; //We skip 2 bytes for the next offset to use!
 			}
 		}
-		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,1,1,1); //Force odd/even mode!
+		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1,1); //Force odd/even mode!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER,0,3,0); //Only read map #0!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF,0xF); //Care about this only!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1,1); //Enable chaining!
