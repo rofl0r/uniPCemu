@@ -347,6 +347,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
 			ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)voice->sample.dwSampleRate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>3)]); //Get the sample from the MIDI device!
+			break; //Disable Reverb&Chorus effects for now, as they're buggy!
 		}
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
