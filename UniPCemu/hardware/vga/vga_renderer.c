@@ -241,24 +241,21 @@ VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Load the planes!
 {
-	INLINEREGISTER uint_32 loadedlocation, vramlocation; //The location we load at!
+	INLINEREGISTER uint_32 vramlocation; //The location we load at!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 
 	//Column logic
-	loadedlocation = Sequencer->memoryaddress; //Load the address to be loaded!
-	loadedlocation += Sequencer->charystart; //Apply the line and start map to retrieve!
-	vramlocation = patch_map1314(VGA, addresswrap(VGA, loadedlocation)); //Apply address wrap and MAP13/14?
+	vramlocation = Sequencer->memoryaddress; //Load the address to be loaded!
+	CGA_checklightpen(vramlocation); //Check for anything requiring the lightpen on the CGA!
 
-	//Row logic
-	CGA_checklightpen(loadedlocation); //Check for anything requiring the lightpen on the CGA!
+	//Column/Row logic
+	vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
 
 	//Now calculate and give the planes to be used!
-	if (VGA->VRAM==0) goto skipVRAM; //VRAM must exist!
 	loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, as an entire DWORD!
-	skipVRAM: //No VRAM present to display?
-	//Now the buffer is ready to be processed into pixels!
 
+	//Now the buffer is ready to be processed into pixels!
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!
 
 	INLINEREGISTER byte lookupprecalcs;
@@ -353,12 +350,12 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	charystart = VGA->precalcs.rowsize*row; //Calculate row start!
 	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
-	Sequencer->charystart = charystart; //What row to start with our pixels!
+	Sequencer->memoryaddress = Sequencer->charystart = charystart; //What row to start with our pixels! Apply the line and start map to retrieve(start at the new start of the scanline to draw)!
 
 	//Some attribute controller special 8-bit mode support!
 	Sequencer->extrastatus = &VGA->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
-	Sequencer->memoryaddressclock = Sequencer->linearcounterdivider = Sequencer->memoryaddress = 0; //Address counters are reset!
+	Sequencer->memoryaddressclock = Sequencer->linearcounterdivider = 0; //Address counters are reset!
 	currentattributeinfo.latchstatus = 0; //Reset the latches used for rendering!
 	VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the first planes!
 
