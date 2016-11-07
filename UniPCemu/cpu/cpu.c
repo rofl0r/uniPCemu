@@ -1172,10 +1172,8 @@ void CPU_afterexec(); //Prototype for below!
 word CPU_exec_CS; //OPCode CS
 uint_32 CPU_exec_EIP; //OPCode EIP
 
-#ifdef CPU_SAVELAST
-word CPU_exec_lastCS; //OPCode CS
-uint_32 CPU_exec_lastEIP; //OPCode EIP
-#endif
+word CPU_exec_lastCS=0; //OPCode CS
+uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
 extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
