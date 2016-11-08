@@ -1271,13 +1271,16 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	word *currentinstructiontiming; //Current timing we're processing!
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
 	MemoryTimingInfo *currenttimingcheck; //Current timing check!
+	uint_32 previousCSstart;
+	byte cycles_counted = 0; //Cycles have been counted?
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	bufferMMU(); //Buffer the MMU writes for us!
-	byte cycles_counted = 0; //Cycles have been counted?
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
 	CPU_8086REPPending(); //Process pending REP!
+
+	previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
 
 	if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 	{
@@ -1653,6 +1656,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	flushMMU(); //Flush MMU writes!
 	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
 	CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
+	CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 }
 
 byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)

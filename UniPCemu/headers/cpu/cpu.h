@@ -823,6 +823,7 @@ typedef struct PACKED
 	byte lastopcode; //Currently/last running opcode!
 	byte previousopcode; //Previous opcode for diagnostic purposes!
 	byte previousopcode0F; //Previous opcode 0F state!
+	uint_32 previousCSstart; //Previous CS starting address!
 	byte faultraised; //Has a fault been raised by the protection module?
 	byte faultlevel; //The level of the raised fault!
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
