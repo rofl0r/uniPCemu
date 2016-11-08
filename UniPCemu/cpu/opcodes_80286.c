@@ -648,6 +648,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->CX = LOADALLDATA.fields.DX; //DX
 	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
+	CPU_flushPIQ(); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
 	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|LOADALLDATA.fields.GDTR.baselow; //Base!
@@ -699,10 +700,10 @@ void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
 void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
 
 
-void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
-void FPU80287_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
-void FPU80287_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_IP = oldIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; word oldIP = REG_IP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_IP = oldIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
+void FPU80287_OPDD(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_IP = oldIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPD9(){word oldCS; word oldIP; oldCS = REG_CS; oldIP = REG_IP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_IP = oldIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2}
 
 void FPU80287_noCOOP() {
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");
