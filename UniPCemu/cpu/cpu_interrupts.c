@@ -51,6 +51,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.
+		CPU_flushPIQ(); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
 	}

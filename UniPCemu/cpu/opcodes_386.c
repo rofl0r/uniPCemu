@@ -1373,6 +1373,7 @@ OPTINLINE void CPU80386_internal_RETF(word popbytes, byte isimm)
 	CPUPROT1
 	destEIP = val; //Load IP!
 	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed, we're a RETF instruction!
+	CPU_flushPIQ(); //We're jumping to another address!
 	CPUPROT1
 	REG_SP += popbytes; //Process SP!
 	if (isimm)
@@ -1596,6 +1597,7 @@ void CPU80386_CALLF(word segment, word offset)
 {
 	destEIP = offset;
 	segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed, call version!*/
+	CPU_flushPIQ(); //We're jumping to another address!
 }
 
 /*
@@ -1738,7 +1740,7 @@ void CPU80386_OPE5(){INLINEREGISTER byte theimm = imm8();modrm_generateInstructi
 void CPU80386_OPE7(){INLINEREGISTER byte theimm = imm8(); debugger_setcommand("OUT %02X,EAX",theimm); CPU_PORT_OUT_D(theimm,REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ }
 void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EIP); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
 void CPU80386_OPE9(){INLINEREGISTER sword reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
-void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%04X", (segmentoffset>>32), (segmentoffset&0xFFFF)); destEIP = (segmentoffset&0xFFFF); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
+void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%04X", (segmentoffset>>32), (segmentoffset&0xFFFF)); destEIP = (segmentoffset&0xFFFF); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
 void CPU80386_OPEB(){INLINEREGISTER signed char reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); CPU_PORT_IN_D(REG_DX,&REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
 void CPU80386_OPEF(){modrm_generateInstructionTEXT("OUT DX,EAX",0,0,PARAM_NONE); CPU_PORT_OUT_D(REG_DX,REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
@@ -2524,6 +2526,7 @@ void op386_grp5_32() {
 		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0);
 		CPUPROT1
 		segmentWritten(CPU_SEGMENT_CS, destCS, 1);
+		CPU_flushPIQ(); //We're jumping to another address!
 		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{

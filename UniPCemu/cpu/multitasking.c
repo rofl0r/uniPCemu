@@ -363,6 +363,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		segmentWritten(CPU_SEGMENT_CS, TSS16.TSS.CS, 0); //Load CS!
 	}
+	CPU_flushPIQ(); //We're jumping to another address!
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{
