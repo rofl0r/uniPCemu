@@ -1652,6 +1652,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	flushMMU(); //Flush MMU writes!
 	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
+	CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
 }
 
 byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)

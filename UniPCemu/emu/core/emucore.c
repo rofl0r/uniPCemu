@@ -58,9 +58,14 @@
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
 #include "headers/cpu/easyregs.h" //Flag support!
 
+#include "headers/cpu/memory_adressing.h" //Internal MMU call support! For CPU_MMU_start functionality!
+
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0x00007C00; //The segment:offset address!
+
+//Log when running bogus(empty) memory?
+#define LOG_BOGUS 5
 
 /*
 
@@ -700,6 +705,9 @@ double currenttiming = 0.0; //Current timing spent to emulate!
 
 extern byte Settings_request; //Settings requested to be executed?
 
+extern word CPU_exec_lastCS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP; //OPCode EIP
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
@@ -842,6 +850,26 @@ OPTINLINE byte coreHandler()
 					}
 				}
 			}
+
+			#ifdef LOG_BOGUS
+			uint_32 addr_start, addr_left=2*LOG_BOGUS, curaddr=0; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
+			addr_start = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Base of the currently executing block!
+			addr_start += REG_EIP; //Add the address for the address we're executing!
+			
+			for (;addr_left;++curaddr) //Test all addresses!
+			{
+				if (MMU_directrb_realaddr(addr_start+curaddr,3)) //Try to read the opcode! Anything found(not 0000h instruction)?
+				{
+					break; //Stop searching!
+				}
+				--addr_left; //Tick one address checked!
+			}
+			if (addr_left==0) //Bogus memory detected?
+			{
+				dolog("bogus","Bogus exection memory detected(%i 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%i)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
+			}
+			#endif
+
 			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 			MMU_logging = debugger_logging(); //Are we logging?
 			CPU_exec(); //Run CPU!
