@@ -476,6 +476,201 @@ OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *head
 	}
 }
 
+/*
+
+updateMIDIStream: Updates a new or currently playing MIDI stream!
+parameters:
+	channel: What channel are we?
+	midi_stream: The stream to play
+	header: The used header for the played file
+	track: The used track we're playing
+	last_command: The last executed command by this function. Initialized to 0.
+	newstream: New stream status. Initialized to 1.
+	play_pos: The current playing position. Initialized to 0.
+
+*/
+
+OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track, byte *last_command, byte *newstream, uint_64 *play_pos) //Single-thread version of updating a MIDI stream!
+{
+	byte curdata;
+
+	//Metadata event!
+	byte meta_type;
+	uint_32 length=0, length_counter; //Our metadata variable length!
+
+	uint_32 delta_time; //Delta time!
+
+	int_32 error = 0; //Default: no error!
+	for (;;) //Playing?
+	{
+		if (timing_pos<*play_pos) //Not arrived yet?
+		{
+			return 1; //Playing, but aborted due to waiting!
+		}
+		else if (*newstream) //Nothing done yet or initializing?
+		{
+			if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
+			*play_pos += delta_time; //Add the delta time to the playing position!
+		}
+		//First, timing information and timing itself!
+		if (MID_TERM || shuttingdown()) //Termination requested?
+		{
+			//Unlock
+			return 0; //Stop playback: we're requested to stop playing!
+		}
+		else if (timing_pos < *play_pos) //Not arrived yet?
+		{
+			return 1; //Playing, but aborted due to waiting!
+		}
+
+		if (!peekStream(midi_stream,track, &curdata))
+		{
+			return 0; //Failed to peek!
+		}
+		if (curdata == 0xFF) //System?
+		{
+			if (!consumeStream(midi_stream, track, &curdata)) return 0; //EOS!
+			if (!consumeStream(midi_stream, track, &meta_type)) return 0; //Meta type failed? Give error!
+			if (!read_VLV(midi_stream, track, &length)) return 0; //Error: unexpected EOS!
+			switch (meta_type) //What event?
+			{
+				case 0x2F: //EOT?
+					#ifdef MID_LOG
+					dolog("MID", "channel %i: EOT!", channel); //EOT reached!
+					#endif
+					return 0; //End of track reached: done!
+				case 0x51: //Set tempo?
+					if (!consumeStream(midi_stream, track, &curdata)) return 0; //Tempo 1/3 failed?
+					activetempo = curdata; //Final byte!
+					activetempo <<= 8;
+					if (!consumeStream(midi_stream, track, &curdata)) return 0; //Tempo 2/3 failed?
+					activetempo |= curdata; //Final byte!
+					activetempo <<= 8;
+					if (!consumeStream(midi_stream, track, &curdata)) return 0; //Tempo 3/3 failed?
+					activetempo |= curdata; //Final byte!
+					//Tempo = us per quarter note!
+
+					updateMIDTimer(header);
+
+					#ifdef MID_LOG
+					dolog("MID", "channel %i: Set Tempo:%06X!", channel, activetempo);
+					#endif
+					break;
+				default: //Unrecognised meta event? Skip it!
+					#ifdef MID_LOG
+					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel, length); //Log the unrecognised metadata type!
+					#endif
+					for (; length--;) //Process length bytes!
+					{
+						if (!consumeStream(midi_stream, track, &curdata)) return 0; //Skip failed?
+					}
+					break;
+			}
+		}
+		else //Hardware?
+		{
+			if (curdata & 0x80) //Starting a new command?
+			{
+				#ifdef MID_LOG
+				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
+				#endif
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
+				*last_command = curdata; //Save the last command!
+				if (*last_command != 0xF7) //Escaped continue isn't sent!
+				{
+					PORT_OUT_B(0x330, *last_command); //Send the command!
+				}
+			}
+			else
+			{
+				#ifdef MID_LOG
+				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_command, curdata);
+				#endif
+				if (*last_command != 0xF7) //Escaped continue isn't used last?
+				{
+					PORT_OUT_B(0x330, *last_command); //Repeat the status bytes: we don't know what the other channels do!
+				}
+			}
+
+			//Process the data for the command!
+			switch ((*last_command >> 4) & 0xF) //What command to send data for?
+			{
+			case 0xF: //Special?
+				switch (*last_command & 0xF) //What subcommand are we sending?
+				{
+				case 0x0: //System exclusive?
+				case 0x7: //Escaped continue?
+					if (!read_VLV(midi_stream, track, &length)) MIDI_ERROR(2) //Error: unexpected EOS!
+					length_counter = 3; //Initialise our position!
+					for (; length--;) //Transmit the packet!
+					{
+						if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(length_counter++) //EOS!
+						PORT_OUT_B(0x330, curdata); //Send the byte!
+					}
+					break;
+				case 0x1:
+				case 0x3:
+					//1 byte follows!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
+					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+					break;
+				case 0x2:
+					//2 bytes follow!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
+					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
+					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+					break;
+				default: //Unknown special instruction?
+					break; //Single byte instruction?
+				}
+				break;
+			case 0x8: //Note off?
+			case 0x9: //Note on?
+			case 0xA: //Aftertouch?
+			case 0xB: //Control change?
+			case 0xE: //Pitch bend?
+				//2 bytes follow!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
+				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
+				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+				break;
+			case 0xC: //Program change?
+			case 0xD: //Channel pressure/aftertouch?
+				//1 byte follows
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
+				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
+				break;
+			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
+				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
+				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!", channel, curdata);
+				//Can't process: ignore the data, since it's invalid!
+				break;
+			}
+		abortMIDI:
+			//Unlock
+			if (error)
+			{
+				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
+				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, *last_command, curdata);
+				return 0; //Abort on error!
+			}
+			//Finish: prepare for next command!
+		}
+		*newstream = 0; //We're not a new stream anymore!
+		//Read the next delta time, if any!
+		if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
+		*play_pos += delta_time; //Add the delta time to the playing position!
+	}
+	return 0; //Stream finished by default!
+}
+
+void updateMIDIPlayer(double timepassed)
+{
+	//Update any channels still playing!
+}
+
 void handleMIDIChannel()
 {
 	word *channel;

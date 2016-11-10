@@ -59,6 +59,7 @@
 #include "headers/cpu/easyregs.h" //Flag support!
 
 #include "headers/cpu/memory_adressing.h" //Internal MMU call support! For CPU_MMU_start functionality!
+#include "headers/support/mid.h" //MIDI player support!
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
@@ -901,6 +902,7 @@ OPTINLINE byte coreHandler()
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
+		updateMIDIPlayer(instructiontime); //MIDI player playback, if any!
 		updatePS2Keyboard(instructiontime); //Tick the PS/2 keyboard timer, if needed!
 		updatePS2Mouse(instructiontime); //Tick the PS/2 mouse timer, if needed!
 		update8042(instructiontime); //Tick the PS/2 mouse timer, if needed!
