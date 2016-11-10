@@ -91,13 +91,13 @@ void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess)
 	{
 		if (CPU_databussize) //8088?
 		{
-			CPU[activeCPU].cycles_MMUR += 5; //Add 4 clocks with all 8/16-bit(as 8-bit) cycles on 8086!
+			CPU[activeCPU].cycles_MMUR += 5; //Add 5 clocks with all 8/16-bit(as 8-bit) cycles on 8086!
 		}
 		else //8086?
 		{
 			if (!(evenodd && highaccess)) //Not odd address from even location?
 			{
-				CPU[activeCPU].cycles_MMUR += 5; //Add 4 clocks with odd cycles on 8086!
+				CPU[activeCPU].cycles_MMUR += 5; //Add 5 clocks with odd cycles on 8086!
 			}
 		}
 	}
