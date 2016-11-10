@@ -17,6 +17,7 @@
 #include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
 #include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/cpu/memory_adressing.h" //CPU_MMU_start support!
 
 //ALL INTERRUPTS
 
@@ -257,6 +258,7 @@ void CPU_PORT_OUT_B(word port, byte data)
 	}
 	//Execute it!
 	PORT_OUT_B(port,data); //Port out!
+	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
 }
 
 void CPU_PORT_OUT_W(word port, word data)
@@ -276,6 +278,9 @@ void CPU_PORT_OUT_W(word port, word data)
 	}
 	//Execute it!
 	PORT_OUT_W(port, data); //Port out!
+	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
+	++port; //Check the high port as well!
+	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
 }
 
 void CPU_PORT_OUT_D(word port, uint_32 data)
@@ -319,6 +324,7 @@ void CPU_PORT_IN_B(word port, byte *result)
 	}
 	//Execute it!
 	*result = PORT_IN_B(port); //Port in!
+	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
 }
 
 void CPU_PORT_IN_W(word port, word *result)
@@ -338,6 +344,9 @@ void CPU_PORT_IN_W(word port, word *result)
 	}
 	//Execute it!
 	*result = PORT_IN_W(port); //Port in!
+	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
+	++port; //Check the high port as well!
+	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
 }
 
 void CPU_PORT_IN_D(word port, uint_32 *result)

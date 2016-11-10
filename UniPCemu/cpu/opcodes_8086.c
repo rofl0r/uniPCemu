@@ -82,6 +82,27 @@ Start of help for opcode processing
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 uint_32 wordaddress; //Word address used during memory access!
+
+//evenodd=Bit 1 of the address
+//highaccess=0 for the first access, 1 for the second access
+void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess)
+{
+	if (EMULATED_CPU==CPU_8086) //808(6/8)?
+	{
+		if (CPU_databussize) //8088?
+		{
+			CPU[activeCPU].cycles_MMUR += 4; //Add 4 clocks with all 8/16-bit(as 8-bit) cycles on 8086!
+		}
+		else //8086?
+		{
+			if (!(evenodd && highaccess)) //Not odd address from even location?
+			{
+				CPU[activeCPU].cycles_MMUR += 4; //Add 4 clocks with odd cycles on 8086!
+			}
+		}
+	}
+}
+
 OPTINLINE void CPU_addWordMemoryTiming()
 {
 	if (EMULATED_CPU==CPU_8086) //808(6/8)?

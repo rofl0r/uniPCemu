@@ -310,4 +310,6 @@ void external8086RETF(word popbytes); //Support for special interrupt handlers!
 
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
 
+void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);
+
 #endif
