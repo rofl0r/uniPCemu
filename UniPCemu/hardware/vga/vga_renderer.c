@@ -538,13 +538,13 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	if (VGA->precalcs.DACmode&2) //16-bit color?
 	{
 		DACcolor = (Sequencer->lastDACcolor&0xFFFF); //Only use 16-bits!
-		if (VGA->precalcs.DACmode&1) //15-bit color?
-		{
-			drawPixel(VGA, CLUT15bit[DACcolor]); //Draw the 15-bit color pixel!
-		}
-		else //16-bit color?
+		if (VGA->precalcs.DACmode&1) //16-bit color?
 		{
 			drawPixel(VGA, CLUT16bit[DACcolor]); //Draw the 16-bit color pixel!
+		}
+		else //15-bit color?
+		{
+			drawPixel(VGA, CLUT15bit[DACcolor]); //Draw the 15-bit color pixel!
 		}
 	}
 	else //VGA compatibility mode?
