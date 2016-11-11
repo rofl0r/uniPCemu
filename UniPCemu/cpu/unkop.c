@@ -12,7 +12,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Shutdown the application when an unknown instruction is executed?
-#define UNKOP_SHUTDOWN
+//#define UNKOP_SHUTDOWN
 
 void halt_modrm(char *message, ...) //Unknown modr/m?
 {

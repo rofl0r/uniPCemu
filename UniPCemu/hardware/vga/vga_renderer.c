@@ -753,8 +753,8 @@ void initStateHandlers()
 
 	for (i = 0;i < 0x10000;++i) //Create the 16&15-bit CLUT!
 	{
-		CLUT16bit[i] = RGB((byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*256.0f)), (byte)((((i >> 5) & 0x3F) / (float)0x3F)*256.0f), (byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:6:5 format)!
-		CLUT15bit[i] = RGB((byte)((((float)((i>>10)&0x1F) / (float)0x1F)*256.0f)),(byte)((((i>>5)&0x1F)/(float)0x1F)*256.0f),(byte)(((float)(i & 0x1F) / (float)0x1F)*256.0f)); //15-bit color lookup table (5:5:5 format)!
+		CLUT16bit[i] = RGB((byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*255.0f)), (byte)((((i >> 5) & 0x3F) / (float)0x3F)*255.0f), (byte)(((float)(i & 0x1F) / (float)0x1F)*255.0f)); //15-bit color lookup table (5:6:5 format)!
+		CLUT15bit[i] = RGB((byte)((((float)((i>>10)&0x1F) / (float)0x1F)*255.0f)),(byte)((((i>>5)&0x1F)/(float)0x1F)*255.0f),(byte)(((float)(i & 0x1F) / (float)0x1F)*255.0f)); //15-bit color lookup table (5:5:5 format)!
 	}
 	memset(&charxbuffer,0xFF,sizeof(charxbuffer)); //Character x buffer!
 	for (i=0;i<9;++i)
