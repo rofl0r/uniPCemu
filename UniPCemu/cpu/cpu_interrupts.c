@@ -7,6 +7,7 @@
 #include "headers/emu/debugger/debugger.h" //For logging registers!
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support! 
+#include "headers/support/log.h" //Logging support for debugging!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -31,6 +32,7 @@ extern byte CPU_interruptraised; //Interrupt raised flag?
 
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
+	word destCS;
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
@@ -50,7 +52,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
-		segmentWritten(CPU_SEGMENT_CS,memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base),0); //Interrupt to position CS:EIP/CS:IP in table.
+		destCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X)",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode); //Log the current info of the call!
+		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
