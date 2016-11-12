@@ -500,30 +500,29 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	INLINEREGISTER byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if (VGA->precalcs.DACmode&4) //Latch every 2 pixels(Hicolor mode 2 according to the chip documentation)?
+	if (VGA->precalcs.DACmode&2) //Hi-color mode?
 	{
-		if (((++Sequencer->DACcounter)&~1)==0) //To latch and not process yet? This is the least significant byte/bits!
+		//Latch a part?
+		if (VGA->precalcs.DACmode&4) //To use split latching?
 		{
-			Sequencer->lastDACcolor >>= (VGA->precalcs.DACmode&2)?8:4; //Latching 4 or 8 bits!
-			if (VGA->precalcs.DACmode&2) //8-bits width?
+			//Special 4-bit(nibble) latching!
+			Sequencer->lastDACcolor >>= 4; //Latching 4 bits, whether used or not!
+			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xF)<<12); //Latching this attribute! Low byte is latched first!
+
+			if ((++Sequencer->DACcounter)&3) //To latch and not process yet? This is the least significant byte/bits of the counter!
 			{
-				Sequencer->lastDACcolor |= ((attributeinfo->attribute&0xFF)<<8); //Latching this attribute!
+				return; //Skip this data: we only latch every two pixels!
 			}
-			else //4-bits width?
+		}
+		else //Normal 8-bit(byte) latching?
+		{
+			Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
+			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
+
+			if ((++Sequencer->DACcounter)&1) //To latch and not process yet? This is the least significant byte/bits of the counter!
 			{
-				Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xF) << 4); //Latching this attribute!
+				return; //Skip this data: we only latch every two pixels!
 			}
-			return; //Skip this data: we only latch every two pixels!
-		}
-		//Final latch?
-		Sequencer->lastDACcolor >>= (VGA->precalcs.DACmode & 2) ? 8 : 4; //Latching 4 or 8 bits!
-		if (VGA->precalcs.DACmode & 2) //8-bits width?
-		{
-			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF) << 8); //Latching this attribute!
-		}
-		else //4-bits width?
-		{
-			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xF) << 4); //Latching this attribute!
 		}
 	}
 	else //Latch every pixel!
@@ -531,13 +530,19 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 	}
 
-	drawdoublepixelDAC: //Double pixels from the DAC!
 	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize)-1; //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
+	if (VGA->precalcs.DACmode&4) //Double the pixels drawn?
+	{
+		doublepixels = ((doublepixels+1)<<1)-1; //Double the pixels to draw if requested!
+	}
+
 	drawdoublepixel:
 	//Draw the pixel that is latched!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
 	{
-		DACcolor = (Sequencer->lastDACcolor&0xFFFF); //Only use 16-bits!
+		DACcolor = (Sequencer->lastDACcolor&0xFFFF); //Always use 16-bits!
+				
+		//Now draw in the selected color depth!
 		if (VGA->precalcs.DACmode&1) //16-bit color?
 		{
 			drawPixel(VGA, CLUT16bit[DACcolor]); //Draw the 16-bit color pixel!
@@ -547,7 +552,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 			drawPixel(VGA, CLUT15bit[DACcolor]); //Draw the 15-bit color pixel!
 		}
 	}
-	else //VGA compatibility mode?
+	else //VGA compatibility mode? 8-bit color!
 	{
 		DACcolor = (Sequencer->lastDACcolor&0xFF); //Only use 8-bits!
 		drawPixel(VGA, VGA_DAC(VGA, DACcolor)); //Render through the 8-bit DAC!
@@ -558,12 +563,6 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		--doublepixels; //Duplicate the pixel!
 		goto drawdoublepixel;
 	}
-	if (Sequencer->DACcounter>1) //2 pixels have been done?
-	{
-		Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
-		goto drawdoublepixelDAC; //Outer DAC loop!
-	}
-	Sequencer->DACcounter = 0; //Now processing the 2nd pixel!
 }
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -753,8 +752,8 @@ void initStateHandlers()
 
 	for (i = 0;i < 0x10000;++i) //Create the 16&15-bit CLUT!
 	{
-		CLUT16bit[i] = RGB((byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*255.0f)), (byte)((((i >> 5) & 0x3F) / (float)0x3F)*255.0f), (byte)(((float)(i & 0x1F) / (float)0x1F)*255.0f)); //15-bit color lookup table (5:6:5 format)!
-		CLUT15bit[i] = RGB((byte)((((float)((i>>10)&0x1F) / (float)0x1F)*255.0f)),(byte)((((i>>5)&0x1F)/(float)0x1F)*255.0f),(byte)(((float)(i & 0x1F) / (float)0x1F)*255.0f)); //15-bit color lookup table (5:5:5 format)!
+		CLUT16bit[i] = RGB((byte)(((((float)(i & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x3F) / (float)0x3F)*255.0f), (byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*255.0f))); //16-bit color lookup table (5:6:5 format)!
+		CLUT15bit[i] = RGB((byte)(((((float)(i & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x1F) / (float)0x1F)*255.0f), (byte)((((float)((i >> 10) & 0x1F) / (float)0x1F)*255.0f))); //15-bit color lookup table (5:5:5 format)!
 	}
 	memset(&charxbuffer,0xFF,sizeof(charxbuffer)); //Character x buffer!
 	for (i=0;i<9;++i)
