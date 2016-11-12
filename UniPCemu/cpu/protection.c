@@ -788,9 +788,9 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	if (addrtest) //Execute address test?
 	{
 		isvalid = (offset<=limit); //Valid address range!
-		if ((GENERALSEGMENTPTR_S(descriptor) == 1) && ((GENERALSEGMENTPTR_TYPE(descriptor) & 4) == 0)) //Data/Code segment?
+		if ((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0)) //Data segment?
 		{
-			if (DATASEGMENTPTR_E(descriptor)) //Expand-down segment?
+			if (DATASEGMENTPTR_E(descriptor)) //Expand-down data segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
 				if (SEGDESCPTR_NONCALLGATE_G(descriptor) == 0) //Small granularity?
