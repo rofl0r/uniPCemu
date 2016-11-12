@@ -503,8 +503,9 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	if (VGA->precalcs.DACmode&2) //Hi-color mode?
 	{
 		//Latch a part?
-		if (VGA->precalcs.DACmode&4) //To use split latching?
+		switch (attributeinfo->attributesize) //To use split latching?
 		{
+		case 0: //Nibbles latching?
 			//Special 4-bit(nibble) latching!
 			Sequencer->lastDACcolor >>= 4; //Latching 4 bits, whether used or not!
 			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xF)<<12); //Latching this attribute! Low byte is latched first!
@@ -513,9 +514,8 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 			{
 				return; //Skip this data: we only latch every two pixels!
 			}
-		}
-		else //Normal 8-bit(byte) latching?
-		{
+			break;
+		case 1: //Normal 8-bit(byte) latching?
 			Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
 			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
 
@@ -523,9 +523,12 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 			{
 				return; //Skip this data: we only latch every two pixels!
 			}
+			break;
+		default: //16-bit or 32-bit value given?
+			break; //No translation needed!
 		}
 	}
-	else //Latch every pixel!
+	else //Latch every pixel like a VGA DAC!
 	{
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 	}
