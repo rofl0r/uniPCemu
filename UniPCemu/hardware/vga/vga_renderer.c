@@ -514,6 +514,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 			{
 				return; //Skip this data: we only latch every two pixels!
 			}
+			Sequencer->lastDACcolor = ((Sequencer->lastDACcolor&0xF0F0)>>4)|((Sequencer->lastDACcolor&0x0F0F)<<4); //Attributes are shifted high nibble first, so our nibbles are reversed!
 			break;
 		case 1: //Normal 8-bit(byte) latching?
 			Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
@@ -537,6 +538,10 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	if (VGA->precalcs.DACmode&4) //Double the pixels drawn?
 	{
 		doublepixels = ((doublepixels+1)<<1)-1; //Double the pixels to draw if requested!
+	}
+	if (VGA->precalcs.DACmode&2) //Multiple inputs are taken?
+	{
+		doublepixels = ((doublepixels+1)<<(2>>attributeinfo->attributesize))-1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
 	}
 
 	drawdoublepixel:
@@ -753,10 +758,10 @@ void initStateHandlers()
 		displayrenderhandler[0][i] = ((i&VGA_DISPLAYMASK)==VGA_DISPLAYACTIVE)?((i&VGA_DISPLAYGRAPHICSMODE)?((i&VGA_SIGNAL_BLANKING)?&VGA_ActiveDisplay_Graphics_blanking: &VGA_ActiveDisplay_Graphics): ((i&VGA_SIGNAL_BLANKING) ? &VGA_ActiveDisplay_Text_blanking : &VGA_ActiveDisplay_Text)):((i&VGA_SIGNAL_BLANKING) ? &VGA_Overscan : &VGA_Overscan_blanking); //Not retracing or any total handler = display/overscan!
 	}
 
-	for (i = 0;i < 0x10000;++i) //Create the 16&15-bit CLUT!
+	for (i = 0;i < 0x10000;++i) //Create the 16&15-bit CLUT! The format is Red on MSB, Green in the middle and Blue in the LSB.
 	{
-		CLUT16bit[i] = RGB((byte)(((((float)(i & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x3F) / (float)0x3F)*255.0f), (byte)((((float)((i >> 11) & 0x1F) / (float)0x1F)*255.0f))); //16-bit color lookup table (5:6:5 format)!
-		CLUT15bit[i] = RGB((byte)(((((float)(i & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x1F) / (float)0x1F)*255.0f), (byte)((((float)((i >> 10) & 0x1F) / (float)0x1F)*255.0f))); //15-bit color lookup table (5:5:5 format)!
+		CLUT16bit[i] = RGB((byte)(((((float)((i >> 11) & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x3F) / (float)0x3F)*255.0f), (byte)((((float)((i >> 0) & 0x1F) / (float)0x1F)*255.0f))); //16-bit color lookup table (5:6:5 format)!
+		CLUT15bit[i] = RGB((byte)(((((float)((i >> 10) & 0x1F)) / (float)0x1F)*255.0f)), (byte)(((float)((i >> 5) & 0x1F) / (float)0x1F)*255.0f), (byte)((((float)((i >> 0) & 0x1F) / (float)0x1F)*255.0f))); //15-bit color lookup table (5:5:5 format)!
 	}
 	memset(&charxbuffer,0xFF,sizeof(charxbuffer)); //Character x buffer!
 	for (i=0;i<9;++i)
