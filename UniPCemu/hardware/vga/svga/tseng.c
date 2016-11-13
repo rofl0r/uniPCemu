@@ -46,8 +46,6 @@ double ET3K_clockFreq[16] = {
 	0.0f //ET3000 clock!
 };
 
-uint_32 ET34K_bank_sizes[4] = { 0x20000,0x10000,0,0 }; //128K, 64K, disabled, disabled!
-
 extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
 
 byte Tseng34K_writeIO(word port, byte val)
@@ -1029,28 +1027,55 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		{
 			et4k_tempreg = 0; //Disable extensions!
 		}
-		if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
+		if (VGA->enable_SVGA==2) //Special ET3000 mapping?
 		{
-			VGA_MemoryMapBankRead = et34kdata->bank_read*ET34K_bank_sizes[et34kdata->bank_size&3]; //Read bank!
-			VGA_MemoryMapBankWrite = et34kdata->bank_write*ET34K_bank_sizes[et34kdata->bank_size&3]; //Write bank!
-			VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
+			VGA->precalcs.linearmode &= ~2; //Use normal Bank Select Register!
+			switch (et34k(VGA)->bank_size) //What Bank setting are we using?
+			{
+				default:
+				case 0: //128k segments?
+					VGA_MemoryMapBankRead = et34kdata->bank_read*0x20000; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x20000; //Write bank!
+					break;
+				case 1: //64k segments?
+					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+					break;
+				case 2: //1M linear memory?
+					VGA_MemoryMapBankRead = et34kdata->bank_read*0x20000; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x20000; //Write bank!
+					break;
+				case 3: //1M linear memory?
+					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+					break;
+			}
+			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 		}
-		else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
+		else //ET4000 mapping?
 		{
-			VGA_MemoryMapBankRead = 0; //No read bank!
-			VGA_MemoryMapBankWrite = 0; //No write bank!
-			VGA->precalcs.linearmode |= 2; //Linear mode, use high 4-bits!
+			if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
+			{
+				VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
+				VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+				VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
+			}
+			else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
+			{
+				VGA_MemoryMapBankRead = 0; //No read bank!
+				VGA_MemoryMapBankWrite = 0; //No write bank!
+				VGA->precalcs.linearmode |= 2; //Linear mode, use high 4-bits!
+			}
+			if (et4k_tempreg & 0x20) //Continuous memory?
+			{
+				VGA->precalcs.linearmode |= 1; //Enable contiguous memory!
+			}
+			else //Normal memory addressing?
+			{
+				VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
+			}
+			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 		}
-		if (et4k_tempreg & 0x20) //Continuous memory?
-		{
-			VGA->precalcs.linearmode |= 1; //Enable contiguous memory!
-		}
-		else //Normal memory addressing?
-		{
-			VGA->precalcs.linearmode &= ~1; //Use VGA-mapping of memory!
-		}
-
-		VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 	}
 
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))) //Video system configuration #2?
