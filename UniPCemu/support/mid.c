@@ -7,7 +7,9 @@
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/timers.h" //Tempo timer support!
-#include "headers/support/locks.h" //Locking support!
+//#include "headers/support/locks.h" //Locking support!
+#include "headers/cpu/cpu.h" //CPU support!
+#include "headers/emu/emucore.h" //Emulator start/stop support!
 
 //Enable this define to log all midi commands executed here!
 //#define MID_LOG
@@ -36,16 +38,23 @@ typedef struct PACKED
 
 byte MID_TERM = 0; //MIDI termination flag!
 
-//The protective semaphore for our flags!
-SDL_sem *MID_timing_pos_Lock = NULL; //Timing position lock!
-SDL_sem *MID_BPM_Lock = NULL; //BPM/Active tempo lock!
 //The protective semaphore for the hardware!
-SDL_sem *MID_channel_Lock = NULL; //Our channel lock for counting running MIDI!
 
 uint_64 timing_pos = 0; //Current timing position!
+
 uint_32 activetempo = 500000; //Current tempo!
 
 word MID_RUNNING = 0; //How many channels are still running/current channel running!
+
+word numMIDchannels = 0; //How many channels are loaded?
+
+byte MID_last_command = 0x00; //Last executed command!
+
+byte MID_newstream[0x10000]; //New stream status!
+
+uint_64 MID_playpos[0x10000]; //Play position in the stream for every channel!
+byte MID_playing[0x10000]; //Is this channel playing?
+
 
 //A loaded MIDI file!
 HEADER_CHNK MID_header;
@@ -96,9 +105,17 @@ OPTINLINE float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 	return speed; //ticks per second!
 }
 
+double timing_pos_step = 0.0; //Step of a timing position, in nanoseconds!
 OPTINLINE void updateMIDTimer(HEADER_CHNK *header) //Request an update of our timer!
 {
-	addtimer(calcfreq(activetempo, header), (Handler)&timing_pos, "MID_tempotimer", 0, 2, MID_timing_pos_Lock); //Add a counter timer!
+	if (calcfreq(activetempo, header)) //Valid frequency?
+	{
+		timing_pos_step = 1000000000.0/(double)calcfreq(activetempo, header); //Set the counter timer!
+	}
+	else
+	{
+		timing_pos_step = 0.0; //No step to use?
+	}
 }
 
 extern MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
@@ -140,13 +157,9 @@ OPTINLINE void printMIDIChannelStatus()
 
 void resetMID() //Reset our settings for playback of a new file!
 {
-	WaitSem(MID_BPM_Lock) //Wait for the lock!
 	activetempo = 500000; //Default = 120BPM = 500000 microseconds/quarter note!
-	PostSem(MID_BPM_Lock) //Finish: we've set the BPM!
 
-	WaitSem(MID_timing_pos_Lock) //Wait for the lock!
 	timing_pos = 0; //Reset the timing for the current song!
-	PostSem(MID_timing_pos_Lock) //Finish: we've set the timing position!
 
 	MID_TERM = 0; //Reset termination flag!
 
@@ -288,194 +301,6 @@ OPTINLINE byte read_VLV(byte *midi_stream, TRACK_CHNK *track, uint_32 *result)
 
 #define MIDI_ERROR(position) {error = position; goto abortMIDI;}
 
-OPTINLINE void playMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track)
-{
-	byte curdata;
-
-	//Metadata event!
-	byte meta_type;
-	uint_32 length=0, length_counter; //Our metadata variable length!
-
-	INLINEREGISTER uint_64 play_pos = 0; //Current play position!
-
-	uint_32 delta_time; //Delta time!
-
-	byte last_command = 0; //Last executed command!
-
-	int_32 error = 0; //Default: no error!
-	for (;;) //Playing?
-	{
-		//First, timing information and timing itself!
-		if (!read_VLV(midi_stream, track, &delta_time)) return; //Read VLV time index!
-		play_pos += delta_time; //Add the delta time to the playing position!
-		for (;;)
-		{
-			//Lock
-			WaitSem(MID_timing_pos_Lock)
-			if (MID_TERM || shuttingdown()) //Termination requested?
-			{
-				//Unlock
-				PostSem(MID_timing_pos_Lock)
-				return; //Stop playback: we're requested to stop playing!
-			}
-			else if (timing_pos >= play_pos)
-			{
-				//Unlock
-				PostSem(MID_timing_pos_Lock)
-				break; //Arrived? Play!
-			}
-			//Unlock
-			PostSem(MID_timing_pos_Lock)
-			delay(0); //Wait for our tick!
-		}
-
-		if (!peekStream(midi_stream,track, &curdata))
-		{
-			return; //Failed to peek!
-		}
-		if (curdata == 0xFF) //System?
-		{
-			if (!consumeStream(midi_stream, track, &curdata)) return; //EOS!
-			if (!consumeStream(midi_stream, track, &meta_type)) return; //Meta type failed? Give error!
-			if (!read_VLV(midi_stream, track, &length)) return; //Error: unexpected EOS!
-			switch (meta_type) //What event?
-			{
-				case 0x2F: //EOT?
-					#ifdef MID_LOG
-					dolog("MID", "channel %i: EOT!", channel); //EOT reached!
-					#endif
-					return; //End of track reached: done!
-				case 0x51: //Set tempo?
-					//Lock
-					WaitSem(MID_BPM_Lock)
-					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 1/3 failed?
-					activetempo = curdata; //Final byte!
-					activetempo <<= 8;
-					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 2/3 failed?
-					activetempo |= curdata; //Final byte!
-					activetempo <<= 8;
-					if (!consumeStream(midi_stream, track, &curdata)) return; //Tempo 3/3 failed?
-					activetempo |= curdata; //Final byte!
-					//Tempo = us per quarter note!
-
-					updateMIDTimer(header);
-
-					#ifdef MID_LOG
-					dolog("MID", "channel %i: Set Tempo:%06X!", channel, activetempo);
-					#endif
-
-					//Unlock
-					PostSem(MID_BPM_Lock)
-					break;
-				default: //Unrecognised meta event? Skip it!
-					#ifdef MID_LOG
-					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel, length); //Log the unrecognised metadata type!
-					#endif
-					for (; length--;) //Process length bytes!
-					{
-						if (!consumeStream(midi_stream, track, &curdata)) return; //Skip failed?
-					}
-					break;
-			}
-		}
-		else //Hardware?
-		{
-			//Lock
-			lock(LOCK_MAINTHREAD);
-
-			if (curdata & 0x80) //Starting a new command?
-			{
-				#ifdef MID_LOG
-				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
-				#endif
-				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
-				last_command = curdata; //Save the last command!
-				if (last_command != 0xF7) //Escaped continue isn't sent!
-				{
-					PORT_OUT_B(0x330, last_command); //Send the command!
-				}
-			}
-			else
-			{
-				#ifdef MID_LOG
-				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_command, curdata);
-				#endif
-				if (last_command != 0xF7) //Escaped continue isn't used last?
-				{
-					PORT_OUT_B(0x330, last_command); //Repeat the status bytes: we don't know what the other channels do!
-				}
-			}
-
-			//Process the data for the command!
-			switch ((last_command >> 4) & 0xF) //What command to send data for?
-			{
-			case 0xF: //Special?
-				switch (last_command & 0xF) //What subcommand are we sending?
-				{
-				case 0x0: //System exclusive?
-				case 0x7: //Escaped continue?
-					if (!read_VLV(midi_stream, track, &length)) MIDI_ERROR(2) //Error: unexpected EOS!
-					length_counter = 3; //Initialise our position!
-					for (; length--;) //Transmit the packet!
-					{
-						if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(length_counter++) //EOS!
-						PORT_OUT_B(0x330, curdata); //Send the byte!
-					}
-					break;
-				case 0x1:
-				case 0x3:
-					//1 byte follows!
-					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-					break;
-				case 0x2:
-					//2 bytes follow!
-					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-					if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
-					PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-					break;
-				default: //Unknown special instruction?
-					break; //Single byte instruction?
-				}
-				break;
-			case 0x8: //Note off?
-			case 0x9: //Note on?
-			case 0xA: //Aftertouch?
-			case 0xB: //Control change?
-			case 0xE: //Pitch bend?
-				//2 bytes follow!
-				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(3) //EOS!
-				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-				break;
-			case 0xC: //Program change?
-			case 0xD: //Channel pressure/aftertouch?
-				//1 byte follows
-				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				PORT_OUT_B(0x330, curdata); //Passthrough to MIDI!
-				break;
-			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
-				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!", channel, curdata);
-				//Can't process: ignore the data, since it's invalid!
-				break;
-			}
-		abortMIDI:
-			//Unlock
-			if (error)
-			{
-				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
-				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, last_command, curdata);
-				unlock(LOCK_MAINTHREAD); //Finish up!
-				return; //Abort on error!
-			}
-			unlock(LOCK_MAINTHREAD); //Finish: prepare for next command!
-		}
-	}
-}
-
 /*
 
 updateMIDIStream: Updates a new or currently playing MIDI stream!
@@ -487,6 +312,9 @@ parameters:
 	last_command: The last executed command by this function. Initialized to 0.
 	newstream: New stream status. Initialized to 1.
 	play_pos: The current playing position. Initialized to 0.
+result:
+	1: Playing
+	0: Aborted/finished
 
 */
 
@@ -666,104 +494,137 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 	return 0; //Stream finished by default!
 }
 
+double MID_timing = 0.0; //Timing of a playing MID file!
 void updateMIDIPlayer(double timepassed)
 {
+	uint_32 channel; //The current channel!
 	//Update any channels still playing!
+	if (MID_RUNNING) //Are we playing anything?
+	{
+		MID_timing += timepassed; //Add the time we're to play!
+		if ((MID_timing>=timing_pos_step) && timing_pos_step) //Enough to step?
+		{
+			timing_pos += (uint_64)(MID_timing/timing_pos_step); //Step as many as we can!
+			MID_timing = fmod(MID_timing,timing_pos_step); //Rest the timing!
+		}
+
+		//Now, update all playing streams!
+		for (channel=0;channel<numMIDchannels;channel++) //Process all channels that need processing!
+		{
+			if (MID_playing[channel]) //Are we a running channel?
+			{
+				switch (updateMIDIStream(channel, MID_data[channel], &MID_header, &MID_tracks[channel],&MID_last_command,&MID_newstream[channel],&MID_playpos[channel])) //Play the MIDI stream!
+				{
+					default: //Unknown status?
+					case 0: //Terminated?
+						terminatestream: //Terminating the stream!
+						MID_playing[channel] = 0; //We're not running anymore!
+						--MID_RUNNING; //Done!
+						if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
+						{
+							timing_pos = 0; //Reset the timing position for the next channel!
+						}
+						break;
+					case 1: //Playing?
+						if (MID_TERM) //Termination requested?
+						{
+							goto terminatestream; //Terminate the stream!
+						}
+						if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
+						{
+							return; //Only a single channel can be playing at any time!
+						}
+						break;
+				}
+			}
+		}
+	}
 }
 
-void handleMIDIChannel()
-{
-	word *channel;
-	channel = (word *)getthreadparams(); //Gotten a channel?
-nextchannel: //Play next channel when type 2!
-	playMIDIStream(*channel, MID_data[*channel], &MID_header, &MID_tracks[*channel]); //Play the MIDI stream!
-	WaitSem(MID_channel_Lock)
-	if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
-	{
-		timing_pos = 0; //Reset the timing position!
-		++channel; //Process the next channel!
-		if (*channel >= byteswap16(MID_header.n)) goto finish; //Last channel processed?
-		PostSem(MID_channel_Lock)
-		goto nextchannel; //Process the next channel now!
-	}
-finish:
-	--MID_RUNNING; //Done!
-	PostSem(MID_channel_Lock)
-}
+extern byte EMU_RUNNING; //Current running status!
 
 byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
 {
+	byte EMU_RUNNING_BACKUP=0;
+	lock(LOCK_CPU);
+	EMU_RUNNING_BACKUP = EMU_RUNNING; //Make a backup to restore after we've finished!
+	unlock(LOCK_CPU);
+
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
-	word numchannels;
-	if ((numchannels = readMID(filename, &MID_header, &MID_tracks[0], &MID_data[0], 100)))
+	if ((numMIDchannels = readMID(filename, &MID_header, &MID_tracks[0], &MID_data[0], 100)))
 	{
 		stopTimers(0); //Stop most timers for max compatiblity and speed!
 		//Initialise our device!
 		PORT_OUT_B(0x331, 0xFF); //Reset!
 		PORT_OUT_B(0x331, 0x3F); //Kick to UART mode!
 
-		//Create the semaphore for the threads!
-		MID_timing_pos_Lock = SDL_CreateSemaphore(1);
-		MID_BPM_Lock = SDL_CreateSemaphore(1);
-		MID_channel_Lock = SDL_CreateSemaphore(1);
-
 		//Now, start up all timers!
 		resetMID(); //Reset all our settings!
 
+		lock(LOCK_CPU); //Lock the executing thread!
+		MID_timing = 0.0; //Reset our main timing clock!
 		word i;
-		MID_RUNNING = numchannels; //Init to all running!
-		for (i = 0; i < numchannels; i++)
+		MID_RUNNING = numMIDchannels; //Init to all running!
+		for (i = 0; i < numMIDchannels; i++)
 		{
 			if (!i || (byteswap16(MID_header.format) == 1)) //One channel, or multiple channels with format 2!
 			{
 				MID_tracknr[i] = i; //Track number
-				startThread(&handleMIDIChannel, "MIDI_STREAM", (void *)&MID_tracknr[i]); //Start a thread handling the output of the channel!
 			}
+			MID_last_command = 0x00; //Reset last command!
+			MID_newstream[i] = 1; //We're a new stream!
+			MID_playpos[i] = 0; //We're starting to play at the start!
+			MID_playing[i] = 1; //Default: we're playing!
 		}
 		if (byteswap16(MID_header.format) != 1) //One channel only?
 		{
 			MID_RUNNING = 1; //Only one channel running!
 		}
-
-		delay(10000); //Wait a bit to allow for initialisation (position 0) to run!
+		unlock(LOCK_CPU); //Finished!
 
 		startTimers(1);
 		startTimers(0); //Start our timers!
 
 		byte running; //Are we running?
-
 		running = 1; //We start running!
+
+		resumeEMU(0); //Resume the emulator!
+		lock(LOCK_CPU); //Lock the CPU: we're checking for finishing!
+		CPU[activeCPU].halt |= 2; //Force us into HLT state, starting playback!
+		BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
+		EMU_stopInput(); //We don't want anything to be input into the emulator!
+
 		for (;;) //Wait to end!
 		{
-			delay(50000); //Wait little intervals to update status display!
-			WaitSem(MID_channel_Lock)
+			unlock(LOCK_CPU); //Unlock us!
+			delay(100000); //Wait little intervals to update status display!
+			lock(LOCK_CPU); //Lock us!
 			if (!MID_RUNNING)
 			{
 				running = 0; //Not running anymore!
 			}
 			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
-			PostSem(MID_channel_Lock)
 
 			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 			{
+				unlock(LOCK_CPU); //Unlock us!
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
-				WaitSem(MID_timing_pos_Lock) //Wait to update the flag!
+				lock(LOCK_CPU); //Lock us!
 				MID_TERM = 1; //Set termination flag to request a termination!
-				PostSem(MID_timing_pos_Lock) //We're updated!
 			}
 
 			if (!running) break; //Not running anymore? Start quitting!
 		}
 
-		//Destroy semaphore
-		SDL_DestroySemaphore(MID_timing_pos_Lock);
-		SDL_DestroySemaphore(MID_BPM_Lock);
-		SDL_DestroySemaphore(MID_channel_Lock);
+		CPU[activeCPU].halt &= ~2; //Remove the forced execution!
+		unlock(LOCK_CPU); //We're finished with the CPU!
+		pauseEMU(); //Stop timers and back to the BIOS menu!
+		lock(LOCK_CPU);
+		EMU_RUNNING = EMU_RUNNING_BACKUP; //We're not running atm, restore the backup!
 
-		removetimer("MID_tempotimer"); //Clean up!
-		freeMID(&MID_tracks[0], &MID_data[0], numchannels); //Free all channels!
+		freeMID(&MID_tracks[0], &MID_data[0], numMIDchannels); //Free all channels!
 
 		//Clean up the MIDI device for any leftover sound!
 		byte channel;
@@ -775,6 +636,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		}
 		PORT_OUT_B(0x330, 0xFF); //Reset MIDI device!
 		PORT_OUT_B(0x331, 0xFF); //Reset the MPU!
+		unlock(LOCK_CPU); //We're finished with the CPU!
 		return MID_TERM?0:1; //Played without termination?
 	}
 	return 0; //Invalid file?
