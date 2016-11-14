@@ -50,6 +50,7 @@ word numMIDchannels = 0; //How many channels are loaded?
 
 byte MID_last_command = 0x00; //Last executed command!
 
+byte MID_last_channel_command[0x10000]; //Last command sent by this channel!
 byte MID_newstream[0x10000]; //New stream status!
 
 uint_64 MID_playpos[0x10000]; //Play position in the stream for every channel!
@@ -318,7 +319,7 @@ result:
 
 */
 
-OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track, byte *last_command, byte *newstream, uint_64 *play_pos) //Single-thread version of updating a MIDI stream!
+OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *header, TRACK_CHNK *track, byte *last_channel_command, byte *newstream, uint_64 *play_pos) //Single-thread version of updating a MIDI stream!
 {
 	byte curdata;
 
@@ -331,6 +332,12 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 	int_32 error = 0; //Default: no error!
 	for (;;) //Playing?
 	{
+		if (MID_TERM) //Termination requested?
+		{
+			//Unlock
+			return 0; //Stop playback: we're requested to stop playing!
+		}
+
 		if (timing_pos<*play_pos) //Not arrived yet?
 		{
 			return 1; //Playing, but aborted due to waiting!
@@ -340,13 +347,9 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
 			*play_pos += delta_time; //Add the delta time to the playing position!
 		}
+		
 		//First, timing information and timing itself!
-		if (MID_TERM || shuttingdown()) //Termination requested?
-		{
-			//Unlock
-			return 0; //Stop playback: we're requested to stop playing!
-		}
-		else if (timing_pos < *play_pos) //Not arrived yet?
+		if (timing_pos < *play_pos) //Not arrived yet?
 		{
 			return 1; //Playing, but aborted due to waiting!
 		}
@@ -403,28 +406,36 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
 				#endif
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
-				*last_command = curdata; //Save the last command!
-				if (*last_command != 0xF7) //Escaped continue isn't sent!
+				*last_channel_command = curdata; //Save the last command!
+				if (*last_channel_command != 0xF7) //Escaped continue isn't sent!
 				{
-					PORT_OUT_B(0x330, *last_command); //Send the command!
+					if ((*last_channel_command!=MID_last_command) || (MID_last_command==0xF0)) //New command to start?
+					{
+						PORT_OUT_B(0x330, *last_channel_command); //Send the command!
+					}
 				}
 			}
 			else
 			{
 				#ifdef MID_LOG
-				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_command, curdata);
+				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_channel_command, curdata);
 				#endif
-				if (*last_command != 0xF7) //Escaped continue isn't used last?
+				if (*last_channel_command != 0xF7) //Escaped continue isn't used last?
 				{
-					PORT_OUT_B(0x330, *last_command); //Repeat the status bytes: we don't know what the other channels do!
+					if (*last_channel_command!=MID_last_command) //New command to start?
+					{
+						PORT_OUT_B(0x330, *last_channel_command); //Repeat the status bytes: we don't know what the other channels do!
+					}
 				}
 			}
 
+			MID_last_command = *last_channel_command; //We're starting this command, so record it being executed!
+
 			//Process the data for the command!
-			switch ((*last_command >> 4) & 0xF) //What command to send data for?
+			switch ((*last_channel_command >> 4) & 0xF) //What command to send data for?
 			{
 			case 0xF: //Special?
-				switch (*last_command & 0xF) //What subcommand are we sending?
+				switch (*last_channel_command & 0xF) //What subcommand are we sending?
 				{
 				case 0x0: //System exclusive?
 				case 0x7: //Escaped continue?
@@ -481,7 +492,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			if (error)
 			{
 				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
-				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, *last_command, curdata);
+				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, *last_channel_command, curdata);
 				return 0; //Abort on error!
 			}
 			//Finish: prepare for next command!
@@ -493,6 +504,8 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 	}
 	return 0; //Stream finished by default!
 }
+
+extern byte coreshutdown; //Core is shutting down?
 
 double MID_timing = 0.0; //Timing of a playing MID file!
 void updateMIDIPlayer(double timepassed)
@@ -508,28 +521,21 @@ void updateMIDIPlayer(double timepassed)
 			MID_timing = fmod(MID_timing,timing_pos_step); //Rest the timing!
 		}
 
+		MID_TERM |= coreshutdown; //Shutting down terminates us!
+
 		//Now, update all playing streams!
 		for (channel=0;channel<numMIDchannels;channel++) //Process all channels that need processing!
 		{
 			if (MID_playing[channel]) //Are we a running channel?
 			{
-				switch (updateMIDIStream(channel, MID_data[channel], &MID_header, &MID_tracks[channel],&MID_last_command,&MID_newstream[channel],&MID_playpos[channel])) //Play the MIDI stream!
+				switch (updateMIDIStream(channel, MID_data[channel], &MID_header, &MID_tracks[channel],&MID_last_channel_command[channel],&MID_newstream[channel],&MID_playpos[channel])) //Play the MIDI stream!
 				{
 					default: //Unknown status?
 					case 0: //Terminated?
-						terminatestream: //Terminating the stream!
 						MID_playing[channel] = 0; //We're not running anymore!
 						--MID_RUNNING; //Done!
-						if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
-						{
-							timing_pos = 0; //Reset the timing position for the next channel!
-						}
 						break;
 					case 1: //Playing?
-						if (MID_TERM) //Termination requested?
-						{
-							goto terminatestream; //Terminate the stream!
-						}
 						if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
 						{
 							return; //Only a single channel can be playing at any time!
@@ -537,6 +543,11 @@ void updateMIDIPlayer(double timepassed)
 						break;
 				}
 			}
+		}
+
+		if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
+		{
+			MID_TERM = 2; //Pending termination by pressing the stop button!
 		}
 	}
 }
@@ -573,7 +584,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			{
 				MID_tracknr[i] = i; //Track number
 			}
-			MID_last_command = 0x00; //Reset last command!
+			MID_last_channel_command[i] = 0x00; //Reset last channel command!
 			MID_newstream[i] = 1; //We're a new stream!
 			MID_playpos[i] = 0; //We're starting to play at the start!
 			MID_playing[i] = 1; //Default: we're playing!
@@ -599,7 +610,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		for (;;) //Wait to end!
 		{
 			unlock(LOCK_CPU); //Unlock us!
-			delay(100000); //Wait little intervals to update status display!
+			delay(1000000); //Wait little intervals to update status display!
 			lock(LOCK_CPU); //Lock us!
 			if (!MID_RUNNING)
 			{
@@ -607,7 +618,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			}
 			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
 
-			if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
+			if ((psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) || (MID_TERM==2)) //Circle/stop pressed? Request to stop playback!
 			{
 				unlock(LOCK_CPU); //Unlock us!
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
