@@ -1029,10 +1029,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		if (VGA->enable_SVGA==2) //Special ET3000 mapping?
 		{
-			VGA->precalcs.linearmode &= ~2; //Use normal Bank Select Register!
-			switch (et34k(VGA)->bank_size) //What Bank setting are we using?
+			VGA->precalcs.linearmode &= ~3; //Use normal Bank Select Register with VGA method of access!
+			switch (et34k(VGA)->bank_size&3) //What Bank setting are we using?
 			{
-				default:
 				case 0: //128k segments?
 					VGA_MemoryMapBankRead = et34kdata->bank_read*0x20000; //Read bank!
 					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x20000; //Write bank!
@@ -1044,12 +1043,12 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 				case 2: //1M linear memory?
 					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
 					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
-					VGA->precalcs.linearmode |= 2; //Use linear memory accessing!
+					VGA->precalcs.linearmode |= 1; //Use contiguous memory accessing!
 					break;
 				case 3: //1M linear memory?
 					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
 					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
-					VGA->precalcs.linearmode |= 2; //Use linear memory accessing!
+					VGA->precalcs.linearmode |= 1; //Use contiguous memory accessing!
 					break;
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
