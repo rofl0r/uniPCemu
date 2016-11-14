@@ -1042,12 +1042,14 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
 					break;
 				case 2: //1M linear memory?
-					VGA_MemoryMapBankRead = et34kdata->bank_read*0x20000; //Read bank!
-					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x20000; //Write bank!
+					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+					VGA->precalcs.linearmode |= 2; //Use linear memory accessing!
 					break;
 				case 3: //1M linear memory?
 					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
 					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+					VGA->precalcs.linearmode |= 2; //Use linear memory accessing!
 					break;
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
