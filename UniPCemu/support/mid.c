@@ -7,7 +7,7 @@
 #include "headers/hardware/midi/mididevice.h" //For the MIDI voices!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/timers.h" //Tempo timer support!
-//#include "headers/support/locks.h" //Locking support!
+#include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/emu/emucore.h" //Emulator start/stop support!
 
