@@ -500,62 +500,52 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	INLINEREGISTER byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if (VGA->precalcs.DACmode&2) //Hi-color mode?
+	if ((VGA->precalcs.DACmode&6)==2) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
 	{
-		if (VGA->precalcs.DACmode&4) //DAC Hi-color mode 2? Latch in 1 rising clock!
-		{
-			Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute! Latch in one go!
-		}
-		else //DAC Hi-color mode 1? We're latching in 2 half-clocks!
-		{
-			//Latch a 8-bit pixel?
-			Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
-			Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
+		//Latch a 8-bit pixel?
+		Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
+		Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
 
-			if ((++Sequencer->DACcounter)&1) //To latch and not process yet? This is the least significant byte/bits of the counter!
-			{
-				return; //Skip this data: we only latch every two pixels!
-			}
+		if ((++Sequencer->DACcounter)&1) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		{
+			return; //Skip this data: we only latch every two pixels!
 		}
 	}
-	else //Pseudo-color mode?
+	else //Pseudo-color mode or Mode 2 15/16-bit DAC?
 	{
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 	}
 
-	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize)-1; //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
+	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize); //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
 	if ((VGA->precalcs.DACmode&6)==2) //Multiple inputs are taken?
 	{
-		doublepixels = ((doublepixels+1)<<1)-1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
+		doublepixels <<= 1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
 	}
 
-	drawdoublepixel:
-	//Draw the pixel that is latched!
+	//Convert the pixel to a RGB value before drawing any blocks of pixels!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
 	{
-		DACcolor = (Sequencer->lastDACcolor&0xFFFF); //Always use 16-bits!
-				
 		//Now draw in the selected color depth!
 		if (VGA->precalcs.DACmode&1) //16-bit color?
 		{
-			drawPixel(VGA, CLUT16bit[DACcolor]); //Draw the 16-bit color pixel!
+			DACcolor = CLUT16bit[(Sequencer->lastDACcolor&0xFFFF)]; //Draw the 16-bit color pixel!
 		}
 		else //15-bit color?
 		{
-			drawPixel(VGA, CLUT15bit[DACcolor]); //Draw the 15-bit color pixel!
+			DACcolor = CLUT15bit[(Sequencer->lastDACcolor&0x7FFF)]; //Draw the 15-bit color pixel!
 		}
 	}
 	else //VGA compatibility mode? 8-bit color!
 	{
-		DACcolor = (Sequencer->lastDACcolor&0xFF); //Only use 8-bits!
-		drawPixel(VGA, VGA_DAC(VGA, DACcolor)); //Render through the 8-bit DAC!
+		DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
 	}
-	++VGA->CRTC.x; //Next x!
-	if (doublepixels) //More than 1 clock generated?
+
+	//Draw the pixel(s) that is/are latched!
+	do //We always render at least 1 pixel from the DAC!
 	{
-		--doublepixels; //Duplicate the pixel!
-		goto drawdoublepixel;
-	}
+		drawPixel(VGA, DACcolor); //Draw the color pixel(s)!
+		++VGA->CRTC.x; //Next x!
+	} while (--doublepixels); //Any pixels left to render?
 }
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
