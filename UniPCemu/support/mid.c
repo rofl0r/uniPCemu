@@ -46,6 +46,8 @@ uint_32 activetempo = 500000; //Current tempo!
 
 word MID_RUNNING = 0; //How many channels are still running/current channel running!
 
+byte MID_INIT = 0; //Initialization to execute?
+
 word numMIDchannels = 0; //How many channels are loaded?
 
 byte MID_last_command = 0x00; //Last executed command!
@@ -61,7 +63,6 @@ byte MID_playing[0x10000]; //Is this channel playing?
 HEADER_CHNK MID_header;
 byte *MID_data[100]; //Tempo and music track!
 TRACK_CHNK MID_tracks[100];
-word MID_tracknr[100];
 OPTINLINE word byteswap16(word value)
 {
 	return ((value & 0xFF) << 8) | ((value & 0xFF00) >> 8); //Byteswap!
@@ -192,10 +193,11 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 		fclose(f);
 		return 0; //Nothing!
 	}
-	if (byteswap16(header->format)>1) //Not single/multiple tracks played simultaneously?
+	header->format = byteswap16(header->format); //Preswap!
+	if (header->format>2) //Not single/multiple tracks played single or simultaneously?
 	{
 		fclose(f);
-		return 0; //Not single track!
+		return 0; //Not single/valid multi track!
 	}
 	nexttrack: //Read the next track!
 	if (fread(&currenttrack, 1, sizeof(currenttrack), f) != sizeof(currenttrack)) //Error in track?
@@ -338,18 +340,18 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			return 0; //Stop playback: we're requested to stop playing!
 		}
 
-		if (timing_pos<*play_pos) //Not arrived yet?
+		rechecktime: //Recheck the time to be!
+		if (timing_pos>=*play_pos) //We've arrived?
 		{
-			return 1; //Playing, but aborted due to waiting!
+			if (*newstream) //Nothing done yet or initializing?
+			{
+				if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
+				*play_pos += delta_time; //Add the delta time to the playing position!
+				*newstream = 0; //We're not a new stream anymore!
+				goto rechecktime; //Recheck the time to be!
+			}
 		}
-		else if (*newstream) //Nothing done yet or initializing?
-		{
-			if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
-			*play_pos += delta_time; //Add the delta time to the playing position!
-		}
-		
-		//First, timing information and timing itself!
-		if (timing_pos < *play_pos) //Not arrived yet?
+		else //We're still waiting?
 		{
 			return 1; //Playing, but aborted due to waiting!
 		}
@@ -409,10 +411,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 				*last_channel_command = curdata; //Save the last command!
 				if (*last_channel_command != 0xF7) //Escaped continue isn't sent!
 				{
-					if ((*last_channel_command!=MID_last_command) || (MID_last_command==0xF0)) //New command to start?
-					{
-						PORT_OUT_B(0x330, *last_channel_command); //Send the command!
-					}
+					PORT_OUT_B(0x330, *last_channel_command); //Send the command!
 				}
 			}
 			else
@@ -422,10 +421,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 				#endif
 				if (*last_channel_command != 0xF7) //Escaped continue isn't used last?
 				{
-					if (*last_channel_command!=MID_last_command) //New command to start?
-					{
-						PORT_OUT_B(0x330, *last_channel_command); //Repeat the status bytes: we don't know what the other channels do!
-					}
+					PORT_OUT_B(0x330, *last_channel_command); //Repeat the status bytes: we don't know what the other channels do!
 				}
 			}
 
@@ -497,7 +493,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			}
 			//Finish: prepare for next command!
 		}
-		*newstream = 0; //We're not a new stream anymore!
+
 		//Read the next delta time, if any!
 		if (!read_VLV(midi_stream, track, &delta_time)) return 0; //Read VLV time index!
 		*play_pos += delta_time; //Add the delta time to the playing position!
@@ -515,10 +511,17 @@ void updateMIDIPlayer(double timepassed)
 	if (MID_RUNNING) //Are we playing anything?
 	{
 		MID_timing += timepassed; //Add the time we're to play!
-		if ((MID_timing>=timing_pos_step) && timing_pos_step) //Enough to step?
+		if (MID_INIT) //Special start-up at 0 seconds?
 		{
-			timing_pos += (uint_64)(MID_timing/timing_pos_step); //Step as many as we can!
-			MID_timing = fmod(MID_timing,timing_pos_step); //Rest the timing!
+			MID_INIT = 0; //We're finished with initialization after this!
+		}
+		else
+		{
+			if ((MID_timing>=timing_pos_step) && timing_pos_step) //Enough to step?
+			{
+				timing_pos += (uint_64)(MID_timing/timing_pos_step); //Step as many as we can!
+				MID_timing = fmod(MID_timing,timing_pos_step); //Rest the timing!
+			}
 		}
 
 		MID_TERM |= coreshutdown; //Shutting down terminates us!
@@ -536,7 +539,7 @@ void updateMIDIPlayer(double timepassed)
 						--MID_RUNNING; //Done!
 						break;
 					case 1: //Playing?
-						if (byteswap16(MID_header.format) == 2) //Multiple tracks to be played after one another?
+						if (MID_header.format == 2) //Multiple tracks to be played after one another(Series of type-0 files)?
 						{
 							return; //Only a single channel can be playing at any time!
 						}
@@ -545,7 +548,7 @@ void updateMIDIPlayer(double timepassed)
 			}
 		}
 
-		if (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
+		if (psp_inputkey()&(BUTTON_CIRCLE|BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 		{
 			MID_TERM = 2; //Pending termination by pressing the stop button!
 		}
@@ -580,19 +583,12 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 		MID_RUNNING = numMIDchannels; //Init to all running!
 		for (i = 0; i < numMIDchannels; i++)
 		{
-			if (!i || (byteswap16(MID_header.format) == 1)) //One channel, or multiple channels with format 2!
-			{
-				MID_tracknr[i] = i; //Track number
-			}
 			MID_last_channel_command[i] = 0x00; //Reset last channel command!
 			MID_newstream[i] = 1; //We're a new stream!
 			MID_playpos[i] = 0; //We're starting to play at the start!
 			MID_playing[i] = 1; //Default: we're playing!
 		}
-		if (byteswap16(MID_header.format) != 1) //One channel only?
-		{
-			MID_RUNNING = 1; //Only one channel running!
-		}
+		MID_INIT = 1; //We're starting the initialization cycle!
 		unlock(LOCK_CPU); //Finished!
 
 		startTimers(1);
@@ -612,7 +608,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			unlock(LOCK_CPU); //Unlock us!
 			delay(1000000); //Wait little intervals to update status display!
 			lock(LOCK_CPU); //Lock us!
-			if (!MID_RUNNING)
+			if (MID_RUNNING==0)
 			{
 				running = 0; //Not running anymore!
 			}
