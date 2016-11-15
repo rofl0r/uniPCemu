@@ -237,6 +237,10 @@ byte Tseng34K_writeIO(word port, byte val)
 				programmed as if the mode was non-interlaced!!
 		*/
 			if (getActiveVGA()->enable_SVGA != 1) return 0; //Not implemented on others than ET4000!
+			if (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1)) //Are we protected?
+			{
+				val = (val&0x90)|(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
+			}
 			et34kdata->store_et4k_3d4_35 = val;
 			et34kdata->line_compare_high = ((val&0x10)<<6);
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x35); //Update all precalcs!
@@ -331,6 +335,10 @@ byte Tseng34K_writeIO(word port, byte val)
 			7  Vertical Interlace if set
 			*/
 			if (getActiveVGA()->enable_SVGA != 2) return 0; //Not implemented on others than ET3000!
+			if (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1)) //Are we protected?
+			{
+				val = (val&0x90)|(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
+			}
 			et34k_data->store_et3k_3d4_25 = val;
 			VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | 0x25); //Update all precalcs!
 			break;
@@ -551,7 +559,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
-		if (!et34kdata->extensionsEnabled && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) && (getActiveVGA()->enable_SVGA == 1)) //ET4000 blocks this without the KEY?
+		if (!et34kdata->extensionsEnabled && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x35) && (getActiveVGA()->enable_SVGA == 1)) //ET4000 blocks this without the KEY?
 			return 0x0;
 		switch(getActiveVGA()->registers->CRTControllerRegisters_Index) {
 		//ET4K
@@ -591,7 +599,6 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3CD: //Segment select?
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
-		//if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
 		*result = et34kdata->segmentselectregister; //Give the saved segment select register!
 		return 1; //Supported!
 		break;
@@ -812,10 +819,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	//ET3000/ET4000 Cursor Location register
 	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))) //Extended cursor location?
 	{
-		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
-		if (!et34k(VGA)->extensionsEnabled)
+		if (!(!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1))) //Extensions disabled on ET4000?
 		{
-			VGA->precalcs.cursorlocation = VGA->precalcs.cursorlocation;
+			VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
 		}
 	}
 
