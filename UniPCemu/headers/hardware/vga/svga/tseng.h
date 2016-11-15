@@ -38,12 +38,14 @@ typedef struct {
 	byte store_3c4_06;
 	byte store_3c4_07;
 
+	byte herculescompatibilitymode;
 	byte herculescompatibilitymode_secondpage; //Second page of hercules compatibility mode enabled?
 
 	byte extensionstep; //The steps to activate the extensions!
 	//Extra data added by superfury(Device specific precalculation storage)
 
 	//Banking support
+	byte segmentselectregister; //Containing the below values.
 	byte bank_read; //Read bank number!
 	byte bank_write; //Write bank number!
 	byte bank_size; //The bank size to use(2 bits)!

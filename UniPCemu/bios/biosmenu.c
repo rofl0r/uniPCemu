@@ -34,6 +34,7 @@
 #include "headers/support/bmp.h" //For dumping our full VGA RAM!
 #include "headers/hardware/gameblaster.h" //Gameblaster volume knob support!
 #include "headers/hardware/ide.h" //Disk change allowed detection!
+#include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -5379,6 +5380,64 @@ void BIOS_DumpVGA()
 			delete_file(capturepath,"vga_cgamodecontrol.dat");
 			delete_file(capturepath,"vga_cgapaletteregister.dat");
 			delete_file(capturepath,"vga_mdamodecontrol.dat");
+		}
+
+		if (VGA->enable_SVGA) //SVGA emulated?
+		{
+			switch (VGA->enable_SVGA) //What SVGA is emulated?
+			{
+			case 1: //ET4000?
+				strcpy(fullfilename, capturepath); //Disk path!
+				strcat(fullfilename, "/");
+				strcat(fullfilename, "vga_et4000.dat"); //The full filename!
+				f = fopen(fullfilename, "wb");
+				fwrite(&et34k(VGA)->store_et4k_3d4_31,1,1,f); //Register 31h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_32,1,1,f); //Register 32h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_33,1,1,f); //Register 33h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_34,1,1,f); //Register 34h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_35,1,1,f); //Register 35h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_36,1,1,f); //Register 36h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_37,1,1,f); //Register 37h!
+				fwrite(&et34k(VGA)->store_et4k_3d4_3f,1,1,f); //Register 3fh!
+				break;
+			case 2: //ET3000?
+				strcpy(fullfilename, capturepath); //Disk path!
+				strcat(fullfilename, "/");
+				strcat(fullfilename, "vga_et3000.dat"); //The full filename!
+				f = fopen(fullfilename, "wb");
+				fwrite(&et34k(VGA)->store_et3k_3d4_1b,1,1,f); //Register 1bh!
+				fwrite(&et34k(VGA)->store_et3k_3d4_1c,1,1,f); //Register 1ch!
+				fwrite(&et34k(VGA)->store_et3k_3d4_1d,1,1,f); //Register 1dh!
+				fwrite(&et34k(VGA)->store_et3k_3d4_1e,1,1,f); //Register 1eh!
+				fwrite(&et34k(VGA)->store_et3k_3d4_1f,1,1,f); //Register 1fh!
+				fwrite(&et34k(VGA)->store_et3k_3d4_20,1,1,f); //Register 20h!
+				fwrite(&et34k(VGA)->store_et3k_3d4_21,1,1,f); //Register 21h!
+				fwrite(&et34k(VGA)->store_et3k_3d4_23,1,1,f); //Register 23h!
+				fwrite(&et34k(VGA)->store_et3k_3d4_24,1,1,f); //Register 24h!
+				fwrite(&et34k(VGA)->store_et3k_3d4_25,1,1,f); //Register 25h!
+				break;
+			default: //Unknown SVGA?
+				goto cleanSVGAdumps;
+			}
+			//General register and data shared by the SVGA cards!
+			fwrite(&et34k(VGA)->store_3c0_16,1,1,f); //Register 16h!
+			fwrite(&et34k(VGA)->store_3c0_17,1,1,f); //Register 17h!
+			fwrite(&et34k(VGA)->store_3c4_06,1,1,f); //Register 06h!
+			fwrite(&et34k(VGA)->store_3c4_07,1,1,f); //Register 07h!
+			fwrite(&et34k(VGA)->herculescompatibilitymode,1,1,f); //Hercules Compatibility Mode Register!
+			fwrite(&et34k(VGA)->segmentselectregister,1,1,f); //Segment Select Register!
+			fwrite(&et34k(VGA)->hicolorDACcommand,1,1,f); //Hi-color DAC register!
+			fwrite(&et34k(VGA)->CGAModeRegister,1,1,f); //CGA Mode Control Compatibility register!
+			fwrite(&et34k(VGA)->MDAModeRegister,1,1,f); //MDA Mode Control Compatibility register!
+			fwrite(&et34k(VGA)->CGAColorSelectRegister,1,1,f); //CGA Color Select Compatiblity register!
+			fwrite(&et34k(VGA)->ExtendedFeatureControlRegister,1,1,f); //Extended Feature Control register!
+			fclose(f);
+		}
+		else //Clean up SVGA dumps?
+		{
+			cleanSVGAdumps:
+				delete_file(capturepath,"vga_et4000.dat"); //ET4000 dump!
+				delete_file(capturepath,"vga_et3000.dat"); //ET3000 dump!
 		}
 
 		VGA_DUMPColors(); //Dump all colors!

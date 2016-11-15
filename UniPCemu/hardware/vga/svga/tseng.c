@@ -89,6 +89,7 @@ byte Tseng34K_writeIO(word port, byte val)
 				}
 			}
 		}
+		et34kdata->herculescompatibilitymode = val; //Save the value!
 		et34kdata->herculescompatibilitymode_secondpage = ((val & 2) >> 1); //Save the bit!
 		return 1; //OK!
 		break;
@@ -369,6 +370,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
 		//if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
+		et34kdata->segmentselectregister = val; //Save the entire segment select register!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
 			et34kdata->bank_write = val&7;
@@ -480,7 +482,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		return 1; //OK!
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
-		*result = (et34kdata->herculescompatibilitymode_secondpage<<1);
+		*result = et34kdata->herculescompatibilitymode; //The entire saved register!
 		if (!et34kdata->extensionsEnabled) //Extensions disabled?
 		{
 			return 0;
@@ -590,14 +592,7 @@ byte Tseng34K_readIO(word port, byte *result)
 	case 0x3CD: //Segment select?
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
 		//if(!et34kdata->extensionsEnabled) return 0; //Not used without extensions!
-		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
-		{
-			*result = ((et34kdata->bank_size<<6)|(et34kdata->bank_read<<3)|et34kdata->bank_write);
-		}
-		else //ET4000?
-		{
-			*result = (et34kdata->bank_read<<4)|et34kdata->bank_write;
-		}
+		*result = et34kdata->segmentselectregister; //Give the saved segment select register!
 		return 1; //Supported!
 		break;
 	case 0x3C1: //Attribute controller read?
