@@ -239,7 +239,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			if (getActiveVGA()->enable_SVGA != 1) return 0; //Not implemented on others than ET4000!
 			if (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1)) //Are we protected?
 			{
-				val = (val&0x90)|(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
+				val = (val&0x90)|(et34k_data->store_et4k_3d4_35&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
 			}
 			et34kdata->store_et4k_3d4_35 = val;
 			et34kdata->line_compare_high = ((val&0x10)<<6);
@@ -337,7 +337,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			if (getActiveVGA()->enable_SVGA != 2) return 0; //Not implemented on others than ET3000!
 			if (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1)) //Are we protected?
 			{
-				val = (val&0x90)|(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
+				val = (val&0x90)|(et34k_data->store_et3k_3d4_25&~0x90); //Ignore all bits except bits 4&7(Line compare&vertical interlace)?
 			}
 			et34k_data->store_et3k_3d4_25 = val;
 			VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | 0x25); //Update all precalcs!
