@@ -230,7 +230,7 @@ void BIOS_freeOPTROMS()
 
 int BIOS_load_ROM(byte nr)
 {
-	uint_32 ROM_size; //The size of both ROMs!
+	uint_32 ROM_size=0; //The size of both ROMs!
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!

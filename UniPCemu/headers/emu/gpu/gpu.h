@@ -10,10 +10,19 @@
 
 //Maximum ammount of display pages used by the GPU
 #define PC_MAX_DISPLAYPAGES 8
+#ifndef __psp__
+//Use full 4MP resolution!
 //Maximum resolution X (row size)
 #define EMU_MAX_X 2048
 //Maximum resolution Y (number of rows max)
 #define EMU_MAX_Y 2048
+#else
+//PSP has a more limited resolution, to save memory(1MP).
+//Maximum resolution X (row size)
+#define EMU_MAX_X 1024
+//Maximum resolution Y (number of rows max)
+#define EMU_MAX_Y 1024
+#endif
 //We're emulating a VGA screen adapter?
 #define EMU_VGA 1
 
@@ -38,11 +47,18 @@
 //Give the pixel from our psp screen we're rendering!
 #define PSP_BUFFER(x,y) PSP_SCREEN(x,y)
 //Give the pixel from our emulator we're buffering!
+#ifdef __psp
 #define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<11)|x]
 //The pitch of the pixel buffer rows!
 #define EMU_BUFFERPITCH 2048
+#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<11) //Video buffer (of max 1024x1024 pixels!)
+#else
+#define EMU_BUFFER(x,y) GPU.emu_screenbuffer[(y<<10)|x]
+//The pitch of the pixel buffer rows!
+#define EMU_BUFFERPITCH 1024
+#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<10) //Video buffer (of max 2048x2048 pixels!)
+#endif
 
-#define EMU_SCREENBUFFERSIZE (EMU_MAX_Y<<11) //Video buffer (of max 2048x2048 pixels!)
 #define EMU_SCREENBUFFEREND (GPU.emu_screenbufferend)
 #define PSP_SCREENBUFFERSIZE (PSP_SCREEN_ROWS<<9) //The PSP's screen buffer we're rendering!
 
