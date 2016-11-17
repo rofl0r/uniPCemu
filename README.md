@@ -19,8 +19,8 @@ This README would normally document whatever steps are necessary to get your app
 - Make sure there is a compile directory parallel to the project directory(projects_build\x86emu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows).
 * Dependencies
 - See set up.
-* Database configuration
-None
+* Adding the Android SDL2 build to the project
+- Download the latest version of SDL2 from the project homepage. Copy the android-project\src\org directory to android-project/src. Copy the include and source directories, as well as the Android.mk file to the android-project/jni/SDL2 folder.
 * How to run tests
 - Run the remake.bat file in the project directory(Requires tools repository) and use a PSP emulator to test(like JPCSP, which is supported by the batch file). On Windows, open the Visual C++ project, build and run.
 * Deployment instructions
