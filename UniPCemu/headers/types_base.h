@@ -11,4 +11,8 @@
 #define int_32 int32_t
 #endif
 
+#ifndef LONG64SPRINTF
+#define LONG64SPRINTF uint_64
+#endif
+
 #endif

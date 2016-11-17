@@ -84,6 +84,8 @@
 #define ENUMS32 :int_32
 
 #ifdef _WIN64
+#undef LONG64SPRINTF
+#define LONG64SPRINTF uint_64
 typedef uint_64 ptrnum;
 #else
 typedef uint_32 ptrnum;

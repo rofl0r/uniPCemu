@@ -2394,8 +2394,8 @@ void op386_grp3_32() {
 		temp1.val32 = REG_AX;
 		temp2.val32 = oper1d;
 		//Sign extend!
-		if (temp1.val32 & 0x80000000) temp1.val64 |= 0xFFFFFFFF00000000;
-		if (temp2.val32 & 0x80000000) temp2.val64 |= 0xFFFFFFFF00000000;
+		if (temp1.val32 & 0x80000000) temp1.val64 |= 0xFFFFFFFF00000000ULL;
+		if (temp2.val32 & 0x80000000) temp2.val64 |= 0xFFFFFFFF00000000ULL;
 		temp3.val64s = temp1.val64s; //Load and...
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax

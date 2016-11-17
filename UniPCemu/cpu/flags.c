@@ -103,7 +103,7 @@ void flag_adc32(uint32_t v1, uint32_t v2, uint32_t v3)
 	FLAG_CF = 1;
 	else FLAG_CF = 0;
 	*/
-	FLAGW_CF((dst & 0xFFFFFFFF00000000) ? 1 : 0); //Set the carry flag accordingly!
+	FLAGW_CF((dst & 0xFFFFFFFF00000000ULL) ? 1 : 0); //Set the carry flag accordingly!
 	if (((v1 ^ v2 ^ dst) & 0x10) == 0x10) FLAGW_AF(1);
 	else FLAGW_AF(0);
 }
@@ -139,7 +139,7 @@ void flag_add32(uint32_t v1, uint32_t v2)
 	int64_t dst;
 	dst = (int64_t)v1 + (int64_t)v2;
 	flag_szp32((uint32_t)dst);
-	if (dst & 0xFFFFFFFF00000000) FLAGW_CF(1);
+	if (dst & 0xFFFFFFFF00000000ULL) FLAGW_CF(1);
 	else FLAGW_CF(0);
 	if (((dst ^ v1) & (dst ^ v2) & 0x80000000) == 0x80000000) FLAGW_OF(1);
 	else FLAGW_OF(0);
@@ -188,7 +188,7 @@ void flag_sbb32(uint32_t v1, uint32_t v2, uint32_t v3)
 	flag_szp32(dst & 0xFFFFFFFF);
 	/*if (v1 < v2) FLAG_CF = 1;
 	else FLAG_CF = 0;*/
-	FLAGW_CF((dst & 0xFFFFFFFF00000000) ? 1 : 0);
+	FLAGW_CF((dst & 0xFFFFFFFF00000000ULL) ? 1 : 0);
 	if ((dst ^ v1) & (v1 ^ v2) & 0x80000000) FLAGW_OF(1);
 	else FLAGW_OF(0);
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAGW_AF(1);
@@ -230,7 +230,7 @@ void flag_sub32(uint32_t v1, uint32_t v2)
 	flag_szp32(dst & 0xFFFFFFFF);
 	/*if (v1 < v2) FLAG_CF = 1;
 	else FLAG_CF = 0;*/
-	FLAGW_CF((dst & 0xFFFFFFFF00000000) ? 1 : 0); //Carry?
+	FLAGW_CF((dst & 0xFFFFFFFF00000000ULL) ? 1 : 0); //Carry?
 	if ((dst ^ v1) & (v1 ^ v2) & 0x80000000) FLAGW_OF(1);
 	else FLAGW_OF(0);
 	if ((v1 ^ v2 ^ dst) & 0x10) FLAGW_AF(1);

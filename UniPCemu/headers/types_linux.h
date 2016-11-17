@@ -34,6 +34,12 @@
 #define ENUMS32 :int_32
 
 #ifdef _LP64
+#undef LONG64SPRINTF
+#ifdef ANDROID
+#define LONG64SPRINTF long long
+#else
+#define LONG64SPRINTF uint_64
+#endif
 typedef uint_64 ptrnum;
 #else
 typedef uint_32 ptrnum;

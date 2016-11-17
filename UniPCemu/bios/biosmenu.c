@@ -1885,9 +1885,9 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 			break; //Cancel!
 		}
 		else if (shuttingdown()) break; //Cancel because of shutdown?
-		if (result>0x20000000000) //Past the limit of a HDD(2TB)?
+		if (result>0x20000000000ULL) //Past the limit of a HDD(2TB)?
 		{
-			result = 0x20000000000; //Limit to the maximum hard disk size to generate!
+			result = 0x20000000000ULL; //Limit to the maximum hard disk size to generate!
 		}
 	}
 	return 0; //No size: cancel!
@@ -4537,7 +4537,7 @@ setShowCPUSpeed:
 		strcat(menuoptions[advancedoptions++], "First instruction"); //Default!
 		break;
 	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sAt %llu instructions", menuoptions[advancedoptions], ((uint_64)BIOS_Settings.diagnosticsportoutput_timeout +1)); //Cycle limit!
+		sprintf(menuoptions[advancedoptions], "%sAt %llu instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)BIOS_Settings.diagnosticsportoutput_timeout +1)); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
