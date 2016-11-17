@@ -40,6 +40,12 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 endif
 
+ifneq (,$(findstring x64,$(MAKECMDGOALS)))
+#Modify the include path to 64-bit!
+INCLUDE_DIRS := $(INCLUDE_DIRS)/x64
+#Modify the compiler to 64-bit!
+CC = x86_64-w64-mingw32-g++
+endif
 
 #Default optimization flags!
 OPTIMIZATIONFLAGS = -O3
