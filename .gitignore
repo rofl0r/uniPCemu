@@ -347,3 +347,5 @@ gen-external-apklibs
 *.out
 *.app
 *.etl
+android-project/jni/SDL2/
+android-project/src/org/libsdl/app/
