@@ -41,6 +41,11 @@
 #endif
 #endif
 
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+//We're compiling for a Big-Endian CPU!
+#define IS_BIG_ENDIAN
+#endif
+
 //Univeral 8-bit character type? Given as a define!
 #define CharacterType char
 

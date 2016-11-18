@@ -13,21 +13,31 @@ typedef union
 {
 	struct
 	{
+		#ifdef IS_BIG_ENDIAN
+		word val16high; //Filler
+		#endif
 		union
 		{
 			struct
 			{
+				#ifdef IS_BIG_ENDIAN
+				byte val8high;
+				#endif
 				union
 				{
 					byte val8;
 					sbyte val8s;
 				};
+				#ifndef IS_BIG_ENDIAN
 				byte val8high;
+				#endif
 			};
 			word val16; //Normal
 			sword val16s; //Signed
 		};
+		#ifndef IS_BIG_ENDIAN
 		word val16high; //Filler
+		#endif
 	};
 	uint_32 val32; //Normal
 	int_32 val32s; //Signed
@@ -37,12 +47,17 @@ typedef union
 {
 	struct
 	{
+		#ifdef IS_BIG_ENDIAN
+		uint_32 val32high; //Filler
+		#endif
 		union
 		{
 			uint_32 val32;
 			int_32 val32s;
 		};
+		#ifndef IS_BIG_ENDIAN
 		uint_32 val32high; //Filler
+		#endif
 	};
 	uint_32 val64; //Normal
 	int_32 val64s; //Signed
