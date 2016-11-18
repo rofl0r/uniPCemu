@@ -595,6 +595,9 @@ typedef struct PACKED //The registers!
 	{
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EAXDUMMY;
+			#endif
 			struct
 			{
 				union
@@ -602,12 +605,19 @@ typedef struct PACKED //The registers!
 					word AX;
 					struct
 					{
+						#ifndef IS_BIG_ENDIAN
 						byte AL;
 						byte AH;
+						#else
+						byte AH;
+						byte AL;
+						#endif
 					};
 				};
 			};
+			#ifndef IS _BIG_ENDIAN
 			word EAXDUMMY;
+			#endif
 		};
 		uint_32 EAX;
 	};
@@ -616,6 +626,9 @@ typedef struct PACKED //The registers!
 	{
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EBXDUMMY;
+			#endif
 			struct
 			{
 				union
@@ -623,12 +636,19 @@ typedef struct PACKED //The registers!
 					word BX;
 					struct
 					{
+						#ifndef IS_BIG_ENDIAN
 						byte BL;
 						byte BH;
+						#else
+						byte BH;
+						byte BL;
+						#endif
 					};
 				};
 			};
+			#ifndef IS _BIG_ENDIAN
 			word EBXDUMMY;
+			#endif
 		};
 		uint_32 EBX;
 	};
@@ -637,6 +657,9 @@ typedef struct PACKED //The registers!
 	{
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word ECXDUMMY;
+			#endif
 			struct
 			{
 				union
@@ -644,12 +667,19 @@ typedef struct PACKED //The registers!
 					word CX;
 					struct
 					{
+						#ifndef IS_BIG_ENDIAN
 						byte CL;
 						byte CH;
+						#else
+						byte CH;
+						byte CL;
+						#endif
 					};
 				};
 			};
+			#ifndef IS _BIG_ENDIAN
 			word ECXDUMMY;
+			#endif
 		};
 		uint_32 ECX;
 	};
@@ -658,6 +688,9 @@ typedef struct PACKED //The registers!
 	{
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EDXDUMMY;
+			#endif
 			struct
 			{
 				union
@@ -665,12 +698,19 @@ typedef struct PACKED //The registers!
 					word DX;
 					struct
 					{
+						#ifndef IS_BIG_ENDIAN
 						byte DL;
 						byte DH;
+						#else
+						byte DH;
+						byte DL;
+						#endif
 					};
 				};
 			};
+			#ifndef IS _BIG_ENDIAN
 			word EDXDUMMY;
+			#endif
 		};
 		uint_32 EDX;
 	};
@@ -680,8 +720,13 @@ typedef struct PACKED //The registers!
 		uint_32 ESP; //ESP!
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word ESPDUMMY;
+			#endif
 			word SP; //Stack pointer
+			#ifndef IS_BIG_ENDIAN
 			word ESPDUMMY; //Dummy!
+			#endif
 		};
 	};
 	union
@@ -689,8 +734,13 @@ typedef struct PACKED //The registers!
 		uint_32 EBP; //EBP!
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EBPDUMMY;
+			#endif
 			word BP; //Base pointer
+			#ifndef IS_BIG_ENDIAN
 			word EBPDUMMY; //Dummy!
+			#endif
 		};
 	};
 	union
@@ -698,8 +748,13 @@ typedef struct PACKED //The registers!
 		uint_32 ESI; //ESI
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word ESIDUMMY;
+			#endif
 			word SI; //Source index
+			#ifndef IS_BIG_ENDIAN
 			word ESIDUMMY; //Dummy!
+			#endif
 		};
 	};
 
@@ -708,8 +763,13 @@ typedef struct PACKED //The registers!
 		uint_32 EDI; //EDI
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EDIDUMMY;
+			#endif
 			word DI; //Destination index
+			#ifndef IS_BIG_ENDIAN
 			word EDIDUMMY; //Dummy!
+			#endif
 		};
 	};
 
@@ -718,8 +778,13 @@ typedef struct PACKED //The registers!
 		uint_32 EIP; //EIP
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EIPDUMMY;
+			#endif
 			word IP; //Instruction pointer; CS:IP=Current instruction; Reset at load of program
+			#ifndef IS_BIG_ENDIAN
 			word EIPDUMMY; //Dummy!
+			#endif
 		};
 	};
 
@@ -734,8 +799,13 @@ typedef struct PACKED //The registers!
 	{
 		struct
 		{
+			#ifdef IS_BIG_ENDIAN
+			word EFLAGSDUMMY;
+			#endif
 			word FLAGS; //8086 Flags!
+			#ifndef IS_BIG_ENDIAN
 			word EFLAGSDUMMY; //Dummy!
+			#endif
 		};
 		uint_32 EFLAGS;
 	};
@@ -860,8 +930,13 @@ typedef struct PACKED
 	{
 		struct
 		{
+			#ifndef IS_BIG_ENDIAN
 			byte low; //Low nibble
 			byte high; //High nibble
+			#else
+			byte high;
+			byte low;
+			#endif
 		};
 		word w; //The word value!
 	};
@@ -875,8 +950,13 @@ typedef struct PACKED
 	{
 		struct
 		{
+			#ifndef IS_BIG_ENDIAN
 			word wordlow; //Low nibble
 			word wordhigh; //High nibble
+			#else
+			word wordhigh;
+			word wordlow;
+			#endif
 		};
 		uint_32 dword; //The word value!
 	};
@@ -890,24 +970,52 @@ typedef struct PACKED
 	{
 		struct //Contains int vars!
 		{
+			#ifdef IS_BIG_ENDIAN
 			union //High 16-bits
 			{
 				struct //Contains byte vars!
 				{
-					byte low16_low;
-					byte low16_high;
-				};
-				word low16;
-			};
-			union //High 16-bits
-			{
-				struct //Contains byte vars!
-				{
+					#ifndef IS_BIG_ENDIAN
 					byte high16_low;
 					byte high16_high;
+					#else
+					byte high16_high;
+					byte high16_low;
+					#endif
 				};
 				word high16;
 			};
+			#endif
+			union //Low 16-bits
+			{
+				struct //Contains byte vars!
+				{
+					#ifndef IS_BIG_ENDIAN
+					byte low16_low;
+					byte low16_high;
+					#else
+					byte low16_high;
+					byte low16_low;
+					#endif
+				};
+				word low16;
+			};
+			#ifndef IS_BIG_ENDIAN
+			union //High 16-bits
+			{
+				struct //Contains byte vars!
+				{
+					#ifndef IS_BIG_ENDIAN
+					byte high16_low;
+					byte high16_high;
+					#else
+					byte high16_high;
+					byte high16_low;
+					#endif
+				};
+				word high16;
+			};
+			#endif
 		};
 		uint_32 dword; //Dword var!
 	};
