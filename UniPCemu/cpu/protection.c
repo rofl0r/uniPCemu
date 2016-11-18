@@ -16,6 +16,9 @@ Basic CPU active segment value retrieval.
 
 //Exceptions, 286+ only!
 
+//Reading of the 16-bit entries within descriptors!
+#define DESC_16BITS(x) SDL_SwapLE16(x)
+
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 
 uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
@@ -236,6 +239,9 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
 	}
 
+	container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+	container->desc.base_low = DESC_16BITS(container->desc.base_low);
+
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
 		container->desc.base_high = 0; //No high byte is present!
@@ -302,6 +308,10 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		}
 		//Don't handle any errors on descriptor loading!
 	}
+
+	//Patch back to memory values!
+	container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+	container->desc.base_low = DESC_16BITS(container->desc.base_low);
 
 	int i;
 	for (i = 0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
@@ -999,6 +1009,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	{
 		idtentry.descdata[left++] = memory_directrb(base++); //Read a byte from the descriptor entry!
 	}
+
+	idtentry.offsethigh = DESC_16BITS(idtentry.offsethigh); //Patch when needed!
+	idtentry.offsetlow = DESC_16BITS(idtentry.offsetlow); //Patch when needed!
+	idtentry.selector = DESC_16BITS(idtentry.selector); //Patch when needed!
 
 	byte is32bit;
 

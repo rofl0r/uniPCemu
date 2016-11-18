@@ -615,7 +615,7 @@ typedef struct PACKED //The registers!
 					};
 				};
 			};
-			#ifndef IS _BIG_ENDIAN
+			#ifndef IS_BIG_ENDIAN
 			word EAXDUMMY;
 			#endif
 		};
@@ -646,7 +646,7 @@ typedef struct PACKED //The registers!
 					};
 				};
 			};
-			#ifndef IS _BIG_ENDIAN
+			#ifndef IS_BIG_ENDIAN
 			word EBXDUMMY;
 			#endif
 		};
@@ -677,7 +677,7 @@ typedef struct PACKED //The registers!
 					};
 				};
 			};
-			#ifndef IS _BIG_ENDIAN
+			#ifndef IS_BIG_ENDIAN
 			word ECXDUMMY;
 			#endif
 		};
@@ -708,7 +708,7 @@ typedef struct PACKED //The registers!
 					};
 				};
 			};
-			#ifndef IS _BIG_ENDIAN
+			#ifndef IS_BIG_ENDIAN
 			word EDXDUMMY;
 			#endif
 		};
