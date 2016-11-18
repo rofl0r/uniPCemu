@@ -14,6 +14,9 @@
 #include "headers/cpu/cpu_OPNECV30.h" //186+ #UD support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support for LOADALL!
 
+//Reading of the 16-bit entries within descriptors!
+#define DESC_16BITS(x) SDL_SwapLE16(x)
+
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!
 extern MODRM_PTR info; //For storing ModR/M Info!
@@ -563,9 +566,9 @@ typedef struct PACKED
 
 void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 {
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = source->limit;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = DESC_16BITS(source->limit);
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info &= ~0xF; //No high limit!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = source->baselow;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = DESC_16BITS(source->baselow);
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = source->basehigh; //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0;
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
@@ -635,26 +638,26 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
 	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.IP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDT; //LDT
-	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
-	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
-	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
-	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
-	CPU[activeCPU].registers->DI = LOADALLDATA.fields.DI; //DI
-	CPU[activeCPU].registers->SI = LOADALLDATA.fields.SI; //SI
-	CPU[activeCPU].registers->BP = LOADALLDATA.fields.BP; //BP
-	CPU[activeCPU].registers->SP = LOADALLDATA.fields.SP; //SP
-	CPU[activeCPU].registers->BX = LOADALLDATA.fields.BX; //BX
-	CPU[activeCPU].registers->DX = LOADALLDATA.fields.CX; //CX
-	CPU[activeCPU].registers->CX = LOADALLDATA.fields.DX; //DX
-	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
+	CPU[activeCPU].registers->DS = DESC_16BITS(LOADALLDATA.fields.DS); //DS
+	CPU[activeCPU].registers->SS = DESC_16BITS(LOADALLDATA.fields.SS); //SS
+	CPU[activeCPU].registers->CS = DESC_16BITS(LOADALLDATA.fields.CS); //CS
+	CPU[activeCPU].registers->ES = DESC_16BITS(LOADALLDATA.fields.ES); //ES
+	CPU[activeCPU].registers->DI = DESC_16BITS(LOADALLDATA.fields.DI); //DI
+	CPU[activeCPU].registers->SI = DESC_16BITS(LOADALLDATA.fields.SI); //SI
+	CPU[activeCPU].registers->BP = DESC_16BITS(LOADALLDATA.fields.BP); //BP
+	CPU[activeCPU].registers->SP = DESC_16BITS(LOADALLDATA.fields.SP); //SP
+	CPU[activeCPU].registers->BX = DESC_16BITS(LOADALLDATA.fields.BX); //BX
+	CPU[activeCPU].registers->DX = DESC_16BITS(LOADALLDATA.fields.CX); //CX
+	CPU[activeCPU].registers->CX = DESC_16BITS(LOADALLDATA.fields.DX); //DX
+	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|LOADALLDATA.fields.GDTR.baselow; //Base!
-	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.limit; //Limit
-	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|LOADALLDATA.fields.IDTR.baselow; //Base!
-	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.limit; //Limit
+	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|DESC_16BITS(LOADALLDATA.fields.GDTR.baselow); //Base!
+	CPU[activeCPU].registers->GDTR.limit = DESC_16BITS(LOADALLDATA.fields.GDTR.limit); //Limit
+	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|DESC_16BITS(LOADALLDATA.fields.IDTR.baselow); //Base!
+	CPU[activeCPU].registers->IDTR.limit = DESC_16BITS(LOADALLDATA.fields.IDTR.limit); //Limit
 
 	//Load all descriptors directly without checks!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
