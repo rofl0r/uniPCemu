@@ -4,6 +4,10 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/signedness.h" //For converting between signed/unsigned samples!
 
+//Makes sure the format is 16-bit little endian what's read!
+#define LE16(x) SDL_SwapLE16(x)
+#define LE32(x) SDL_SwapLE32(x)
+
 /*
 
 First, all RIFF support!
@@ -22,6 +26,7 @@ OPTINLINE uint_32 RIFF_entryheadersize(RIFF_ENTRY container) //Checked & correct
 	if (!container.voidentry) return 0; //Invalid container!
 	RIFF_DATAENTRY temp;
 	memcpy(&temp,container.voidentry,sizeof(temp));
+	temp.ckID = LE32(temp.ckID);
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Valid RIFF/LIST type?
 	{
 		result = sizeof(*container.listentry); //Take as list entry!
@@ -39,7 +44,8 @@ OPTINLINE uint_32 getRIFFChunkSize(RIFF_ENTRY entry) //Checked & correct!
 	RIFF_DATAENTRY data;
 	if (!entry.voidentry) return 0; //No size: we're an invalid entry!
 	memcpy(&data,entry.voidentry,sizeof(data)); //Copy for usage!
-	chunksize = data.ckSize; //The chunk size!
+	data.ckID = LE32(data.ckID);
+	chunksize = LE32(data.ckSize); //The chunk size!
 	if ((data.ckID==CKID_RIFF) || (data.ckID==CKID_LIST)) //We're a RIFF/LIST list?
 	{
 		chunksize += sizeof(*entry.dataentry); //The index is too long: it counts from the end of an data entry, including the extra ID data.
@@ -128,12 +134,14 @@ OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a
 	if (!CurrentEntry.voidentry) return NULLRIFFENTRY(); //Invalid RIFF Header data!
 
 	memcpy((void *)&dataentry,RIFFHeader.voidentry,sizeof(dataentry));
+	dataentry.ckID = LE32(dataentry.ckID);
+	dataentry.ckSize = LE32(dataentry.ckSize);
 	
 	foundid = dataentry.ckID; //Default: the standard ID specified!
 	if ((foundid==CKID_LIST) || (foundid==CKID_RIFF)) //List type?
 	{
 		memcpy((void *)&listentry,RIFFHeader.voidentry,sizeof(listentry));
-		foundid = listentry.fccType; //Take what the list type is!
+		foundid = LE32(listentry.fccType); //Take what the list type is!
 	}
 	
 	for (;;) //Start on contents!
@@ -148,11 +156,11 @@ OPTINLINE RIFF_ENTRY getRIFFEntry(RIFF_ENTRY RIFFHeader, FOURCC RIFFID) //Read a
 			return NULLRIFFENTRY(); //Not found!
 		}
 		memcpy(&dataentry,CurrentEntry.voidentry,sizeof(dataentry)); //Copy a data entry!
-		foundid = dataentry.ckID; //Default: the standard ID specified!
+		foundid = LE32(dataentry.ckID); //Default: the standard ID specified!
 		if ((foundid==CKID_LIST) || (foundid==CKID_RIFF)) //List type?
 		{
 			memcpy(&listentry,CurrentEntry.voidentry,sizeof(listentry)); //Copy a list entry!
-			foundid = listentry.fccType; //Take what the list type is!
+			foundid = LE32(listentry.fccType); //Take what the list type is!
 		}
 		if (foundid==RIFFID) //Found the entry?
 		{
@@ -183,6 +191,8 @@ OPTINLINE byte getRIFFData(RIFF_ENTRY RIFFHeader, uint_32 index, uint_32 size, v
 	byte *entrystart;
 	if (!RIFFHeader.voidentry) return 0; //Invalid entry!
 	memcpy(&temp,RIFFHeader.voidentry,sizeof(temp)); //Get an entry!
+	temp.ckID = LE32(temp.ckID);
+	temp.ckSize = LE32(temp.ckSize);
 	if ((temp.ckID==CKID_LIST) || (temp.ckID==CKID_RIFF)) //Has subchunks, no data?
 	{
 		return 0; //Invalid entry: we're a list, not data!
@@ -224,13 +234,13 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		return 0; //Not validated: invalid structure!
 	}
 	//First, validate the RIFF file structure!
-	filesize = RIFF->filesize; //Get the file size from memory!
+	filesize = LE32(RIFF->filesize); //Get the file size from memory!
 	if (memprotect(RIFF->rootentry.dataentry,filesize,NULL)!=RIFF->rootentry.dataentry) //Out of bounds in the memory module?
 	{
 		dolog("SF2","validateSF: Root entry pointer is invalid:!");
 		return 0; //Not validated: invalid memory!
 	}
-	if (RIFF->rootentry.listentry->ckID!=CKID_RIFF) //Not a soundfont block?
+	if (LE32(RIFF->rootentry.listentry->ckID)!=CKID_RIFF) //Not a soundfont block?
 	{
 		dolog("SF2","validateSF: RIFF Header is invalid!");
 		return 0; //Not validated: not a RIFF file!
@@ -244,7 +254,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	//Global OK!
 
 	//Now check for precision content!
-	if (RIFF->rootentry.listentry->fccType!=CKID_SFBK) //Not a soundfont?
+	if (LE32(RIFF->rootentry.listentry->fccType)!=CKID_SFBK) //Not a soundfont?
 	{
 		return 0; //Not validated: invalid soundfont header!
 	}
@@ -336,7 +346,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: PBAG chunk size isn't a multiple of 4 bytes!");
 		return 0; //Corrupt file!
 	}
-	if (!getRIFFData(pbag,finalpreset.wPresetBagNdx,sizeof(sfPresetBag),&finalpbag)) //Final not found?
+	if (!getRIFFData(pbag,LE16(finalpreset.wPresetBagNdx),sizeof(sfPresetBag),&finalpbag)) //Final not found?
 	{
 		dolog("SF2","validateSF: Final PBAG couldn't be retrieved!");
 		return 0; //Corrupt file!
@@ -348,7 +358,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: PMOD chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(pmod)!=(uint_32)((10*finalpbag.wModNdx)+10)) //Invalid PMOD size?
+	if (getRIFFChunkSize(pmod)!=(uint_32)((10*LE16(finalpbag.wModNdx))+10)) //Invalid PMOD size?
 	{
 		dolog("SF2","validateSF: Invalid PMOD chunk size!");
 		return 0;
@@ -360,9 +370,9 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: PGEN chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(pgen)!=(uint_32)((finalpbag.wGenNdx<<2)+4)) //Invalid PGEN size?
+	if (getRIFFChunkSize(pgen)!=(uint_32)((LE16(finalpbag.wGenNdx)<<2)+4)) //Invalid PGEN size?
 	{
-		dolog("SF2","validateSF: Invalid PGEN chunk size: %i; Expected %i!",getRIFFChunkSize(pgen),((finalpbag.wGenNdx<<2)+4));
+		dolog("SF2","validateSF: Invalid PGEN chunk size: %i; Expected %i!",getRIFFChunkSize(pgen),((LE16(finalpbag.wGenNdx)<<2)+4));
 		return 0;
 	}
 	if (SAFEMOD(getRIFFChunkSize(pgen),4)) //Not a multiple of 4?
@@ -402,7 +412,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IBAG chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(ibag)!=(uint_32)((4*finalInst.wInstBagNdx)+4))
+	if (getRIFFChunkSize(ibag)!=(uint_32)((4*LE16(finalInst.wInstBagNdx))+4))
 	{
 		dolog("SF2","validateSF: Invalid IBAG chunk size!");
 		return 0; //Corrupt file!
@@ -417,7 +427,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IBAG chunk has too few records!");
 		return 0; //Corrupt file!
 	}
-	if (!getRIFFData(ibag,finalInst.wInstBagNdx,sizeof(sfInstBag),&finalibag)) //Failed to get the records?
+	if (!getRIFFData(ibag,LE16(finalInst.wInstBagNdx),sizeof(sfInstBag),&finalibag)) //Failed to get the records?
 	{
 		dolog("SF2","validateSF: IBAG chunk final entry couldn't be retrieved!");
 		return 0; //Corrupt file!
@@ -431,7 +441,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IMOD chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(imod)!=(uint_32)((10*finalibag.wInstModNdx)+10))
+	if (getRIFFChunkSize(imod)!=(uint_32)((10*LE16(finalibag.wInstModNdx))+10))
 	{
 		dolog("SF2","validateSF: Invalid INST chunk size!");
 		return 0; //Corrupt file!
@@ -449,7 +459,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 		dolog("SF2","validateSF: IGEN chunk is missing!");
 		return 0; //Corrupt file!
 	}
-	if (getRIFFChunkSize(igen)!=(uint_32)((4*finalibag.wInstGenNdx)+4))
+	if (getRIFFChunkSize(igen)!=(uint_32)((4*LE16(finalibag.wInstGenNdx))+4))
 	{
 		dolog("SF2","validateSF: Invalid IGEN chunk size!");
 		return 0; //Corrupt file!
@@ -586,7 +596,7 @@ byte isPresetBagNdx(RIFFHEADER *sf, uint_32 preset, word wPresetBagNdx)
 	sfPresetHeader nextpreset, currentpreset;
 	if (getSFPreset(sf,preset+1,&nextpreset) && getSFPreset(sf,preset,&currentpreset)) //Next&current preset found?
 	{	
-		return ((nextpreset.wPresetBagNdx>wPresetBagNdx) && (wPresetBagNdx>=currentpreset.wPresetBagNdx)); //Are we owned by the preset!
+		return ((LE16(nextpreset.wPresetBagNdx>wPresetBagNdx)) && (wPresetBagNdx>=LE16(currentpreset.wPresetBagNdx))); //Are we owned by the preset!
 	}
 	return 0; //Not our pbag!
 }
@@ -604,7 +614,7 @@ byte isPresetModNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wModNd
 	sfPresetBag nextpbag; //next!
 	if (getSFPresetBag(sf,wPresetBagNdx,&currentpbag) && getSFPresetBag(sf,wPresetBagNdx+1,&nextpbag))
 	{
-		return ((nextpbag.wModNdx>wModNdx) && (wModNdx>=currentpbag.wModNdx)); //Are we owned by the preset bag!
+		return ((LE16(nextpbag.wModNdx)>wModNdx) && (wModNdx>=LE16(currentpbag.wModNdx))); //Are we owned by the preset bag!
 	}
 	return 0; //Not our pmod!
 }
@@ -622,7 +632,7 @@ byte isPresetGenNdx(RIFFHEADER *sf, word preset, word wPresetBagNdx, word wGenNd
 	sfPresetBag nextpbag; //next!
 	if (getSFPresetBag(sf,wPresetBagNdx,&currentpbag) && getSFPresetBag(sf,wPresetBagNdx+1,&nextpbag))
 	{
-		return ((nextpbag.wGenNdx>wGenNdx) && (wGenNdx>=currentpbag.wGenNdx)); //Are we owned by the preset bag!
+		return ((LE16(nextpbag.wGenNdx)>wGenNdx) && (wGenNdx>=LE16(currentpbag.wGenNdx))); //Are we owned by the preset bag!
 	}
 	return 0; //Not our pgen!
 }
@@ -649,7 +659,7 @@ byte isInstrumentBagNdx(RIFFHEADER *sf, word Instrument, word wInstBagNdx)
 	sfInst nextinstrument; //next!
 	if (getSFInstrument(sf,Instrument,&currentinstrument) && getSFInstrument(sf,Instrument+1,&nextinstrument))
 	{
-		return ((nextinstrument.wInstBagNdx>wInstBagNdx) && (wInstBagNdx>=currentinstrument.wInstBagNdx)); //Are we owned by the instrument!
+		return ((LE16(nextinstrument.wInstBagNdx)>wInstBagNdx) && (wInstBagNdx>=LE16(currentinstrument.wInstBagNdx))); //Are we owned by the instrument!
 	}
 	return 0; //Not our pmod!
 	
@@ -668,7 +678,7 @@ byte isInstrumentModNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx,
 	sfInstBag nextibag; //next!
 	if (getSFInstrumentBag(sf,wInstrumentBagNdx,&currentibag) && getSFInstrumentBag(sf,wInstrumentBagNdx+1,&nextibag))
 	{
-		return ((nextibag.wInstModNdx>wInstrumentModNdx) && (wInstrumentModNdx>=currentibag.wInstModNdx)); //Are we owned by the instrument bag!
+		return ((LE16(nextibag.wInstModNdx)>wInstrumentModNdx) && (wInstrumentModNdx>=LE16(currentibag.wInstModNdx))); //Are we owned by the instrument bag!
 	}
 	return 0; //Not our pmod!
 }
@@ -686,7 +696,7 @@ byte isInstrumentGenNdx(RIFFHEADER *sf, word Instrument, word wInstrumentBagNdx,
 	sfInstBag nextibag; //next!
 	if (getSFInstrumentBag(sf,wInstrumentBagNdx,&currentibag) && getSFInstrumentBag(sf,wInstrumentBagNdx+1,&nextibag))
 	{
-		return ((nextibag.wInstGenNdx>wInstrumentGenNdx) && (wInstrumentGenNdx>=currentibag.wInstGenNdx)); //Are we owned by the instrument bag!
+		return ((LE16(nextibag.wInstGenNdx)>wInstrumentGenNdx) && (wInstrumentGenNdx>=LE16(currentibag.wInstGenNdx))); //Are we owned by the instrument bag!
 	}
 	return 0; //Not our pmod!
 }
@@ -709,6 +719,12 @@ byte getSFSampleInformation(RIFFHEADER *sf, word Sample, sfSample *result)
 			result->byOriginalPitch = 60; //Assume 60!
 		}
 	}
+	//Patch!
+	result->dwEnd = LE32(result->dwEnd);
+	result->dwEndloop = LE32(result->dwEndloop);
+	result->dwSampleRate = LE32(result->dwSampleRate);
+	result->dwStart = LE32(result->dwStart);
+	result->sfSampleType = LE16(result->sfSampleType);
 	return temp; //Give the result!
 }
 
@@ -766,13 +782,13 @@ byte getSFsample(RIFFHEADER *sf, uint_32 sample, short *result) //Get a 16/24-bi
 		uint_32 tempsample;
 		tempsample = sample24;
 		tempsample <<=16;
-		tempsample |= sample16; //Create the full sample!
+		tempsample |= LE16(sample16); //Create the full sample!
 		*result = getsample24_16(tempsample); //Get 24-bit sample!
 		return 1; //OK!
 	}
 	else if (gotsample16) //16-bit sample found?
 	{
-		*result = getsample16(sample16); //Get the sample!
+		*result = getsample16(LE16(sample16)); //Get the sample!
 		return 1; //OK!
 	}
 
@@ -834,7 +850,7 @@ byte isGlobalPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 	{
 		if (isValidPreset(&currentpreset)) //Valid preset?
 		{
-			firstPBag = currentpreset.wPresetBagNdx; //Load the first PBag!
+			firstPBag = LE16(currentpreset.wPresetBagNdx); //Load the first PBag!
 			if (PBag==firstPBag) //Must be the first PBag!
 			{
 				if (isPresetBagNdx(sf,preset,firstPBag) && isPresetBagNdx(sf,preset,firstPBag+1)) //Multiple zones?
@@ -842,9 +858,9 @@ byte isGlobalPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 					//Now lookup the final entry of the first PBag!
 					if (getSFPresetBag(sf,firstPBag+1,&pbag)) //Load the second zone!
 					{
-						if (isPresetGenNdx(sf,preset,firstPBag,pbag.wGenNdx-1)) //Final is valid?
+						if (isPresetGenNdx(sf,preset,firstPBag,LE16(pbag.wGenNdx)-1)) //Final is valid?
 						{
-							if (getSFPresetGen(sf,pbag.wGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+							if (getSFPresetGen(sf,LE16(pbag.wGenNdx)-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 							{
 								if (finalgen.sfGenOper!=instrument) //Final isn't an instrument?
 								{
@@ -855,7 +871,7 @@ byte isGlobalPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 						
 						if (getSFPresetBag(sf,firstPBag,&pbag2)) //First is valid?
 						{
-							if (!isPresetGenNdx(sf,preset,firstPBag,pbag2.wGenNdx) && isPresetModNdx(sf,preset,firstPBag,pbag2.wModNdx)) //No generators but do have modulators?
+							if (!isPresetGenNdx(sf,preset,firstPBag,LE16(pbag2.wGenNdx)) && isPresetModNdx(sf,preset,firstPBag,LE16(pbag2.wModNdx))) //No generators but do have modulators?
 							{
 								return 1; //We're a global zone after all!
 							}
@@ -877,7 +893,7 @@ byte isGlobalInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 	sfInstBag ibag2;
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Valid instrument?
 	{
-		firstIBag = currentinstrument.wInstBagNdx; //Load the first PBag!
+		firstIBag = LE16(currentinstrument.wInstBagNdx); //Load the first PBag!
 		if (IBag==firstIBag) //Must be the first PBag!
 		{
 			if (isInstrumentBagNdx(sf,instrument,firstIBag) && isInstrumentBagNdx(sf,instrument,firstIBag+1)) //Multiple zones?
@@ -885,9 +901,9 @@ byte isGlobalInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 				//Now lookup the final entry of the first PBag!
 				if (getSFInstrumentBag(sf,firstIBag+1,&ibag)) //Load the second zone!
 				{
-					if (isInstrumentGenNdx(sf,instrument,firstIBag,ibag.wInstGenNdx-1)) //Final is valid?
+					if (isInstrumentGenNdx(sf,instrument,firstIBag,LE16(ibag.wInstGenNdx)-1)) //Final is valid?
 					{
-						if (getSFInstrumentGen(sf,ibag.wInstGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+						if (getSFInstrumentGen(sf,LE16(ibag.wInstGenNdx)-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 						{
 							if (finalgen.sfGenOper!=sampleID) //Final isn't an instrument?
 							{
@@ -899,7 +915,7 @@ byte isGlobalInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 				
 				if (getSFInstrumentBag(sf,firstIBag,&ibag2)) //First is valid?
 				{
-					if (!isInstrumentGenNdx(sf,instrument,firstIBag,ibag2.wInstGenNdx) && isPresetModNdx(sf,instrument,firstIBag,ibag2.wInstModNdx)) //No generators but do have modulators?
+					if (!isInstrumentGenNdx(sf,instrument,firstIBag,LE16(ibag2.wInstGenNdx)) && isPresetModNdx(sf,instrument,firstIBag,LE16(ibag2.wInstModNdx))) //No generators but do have modulators?
 					{
 						return 1; //We're a global zone after all!
 					}
@@ -924,9 +940,9 @@ byte isValidPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 	//Now lookup the final entry of the first PBag!
 	if (getSFPresetBag(sf,PBag+1,&pbag)) //Load the second zone!
 	{
-		if (isPresetGenNdx(sf,preset,PBag,pbag.wGenNdx-1)) //Final is valid?
+		if (isPresetGenNdx(sf,preset,PBag,LE16(pbag.wGenNdx)-1)) //Final is valid?
 		{
-			if (getSFPresetGen(sf,pbag.wGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+			if (getSFPresetGen(sf,LE16(pbag.wGenNdx)-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 			{
 				if (finalgen.sfGenOper!=instrument) //Final isn't an instrument?
 				{
@@ -954,9 +970,9 @@ byte isValidInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 	//Now lookup the final entry of the first PBag!
 	if (getSFInstrumentBag(sf,IBag+1,&ibag)) //Load the second zone!
 	{
-		if (isInstrumentGenNdx(sf,instrument,IBag,ibag.wInstGenNdx-1)) //Final is valid?
+		if (isInstrumentGenNdx(sf,instrument,IBag,LE16(ibag.wInstGenNdx)-1)) //Final is valid?
 		{
-			if (getSFInstrumentGen(sf,ibag.wInstGenNdx-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+			if (getSFInstrumentGen(sf,LE16(ibag.wInstGenNdx)-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 			{
 				if (finalgen.sfGenOper!=sampleID) //Final isn't a sampleid?
 				{
@@ -994,12 +1010,12 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 				{
 					if (isValidPresetZone(sf,preset,PBag)) //Valid?
 					{
-						CurrentMod = pbag.wModNdx; //Load the first PMod!
+						CurrentMod = LE16(pbag.wModNdx); //Load the first PMod!
 						for (;isPresetModNdx(sf,preset,PBag,CurrentMod);) //Process all PMods for our bag!
 						{
 							if (getSFPresetMod(sf,CurrentMod,&mod)) //Valid?
 							{
-								if (mod.sfModSrcOper==sfModSrcOper) //Found?
+								if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
 								{
 									found = 1; //Found!
 									memcpy(result,&mod,sizeof(*result)); //Set to last found!
@@ -1033,12 +1049,12 @@ byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sf
 				{
 					if (isValidPresetZone(sf,preset,PBag)) //Valid?
 					{
-						CurrentGen = pbag.wGenNdx; //Load the first PGen!
+						CurrentGen = LE16(pbag.wGenNdx); //Load the first PGen!
 						for (;isPresetGenNdx(sf,preset,PBag,CurrentGen);) //Process all PGens for our bag!
 						{
 							if (getSFPresetGen(sf,CurrentGen,&gen)) //Valid?
 							{
-								if (gen.sfGenOper==sfGenOper) //Found?
+								if (LE16(gen.sfGenOper)==sfGenOper) //Found?
 								{
 									found = 1; //Found!
 									memcpy(result,&gen,sizeof(*result)); //Set to last found!
@@ -1072,12 +1088,12 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 			{
 				if (isValidInstrumentZone(sf,instrument,IBag)) //Valid?
 				{
-					CurrentMod = ibag.wInstModNdx; //Load the first PMod!
+					CurrentMod = LE16(ibag.wInstModNdx); //Load the first PMod!
 					for (;isInstrumentModNdx(sf,instrument,IBag,CurrentMod);) //Process all PMods for our bag!
 					{
 						if (getSFInstrumentMod(sf,CurrentMod,&mod)) //Valid?
 						{
-							if (mod.sfModSrcOper==sfModSrcOper) //Found?
+							if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
 							{
 								found = 1;
 								memcpy(result,&mod,sizeof(*result)); //Set to last found!
@@ -1110,7 +1126,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 			{
 				if (isValidInstrumentZone(sf,instrument,IBag)) //Valid?
 				{
-					CurrentGen = ibag.wInstGenNdx; //Load the first PMod!
+					CurrentGen = LE16(ibag.wInstGenNdx); //Load the first PMod!
 					firstgen = CurrentGen; //Save first generator position!
 					keyrange = 0; //We're resetting the first generator and key range to unspecified!
 					dontignoregenerators = 1; //Default: don't ignore generators for this zone!
@@ -1120,7 +1136,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 						{
 							byte valid;
 							valid = 1; //Default: still valid!
-							if (gen.sfGenOper==keyRange) //KEY RANGE?
+							if (LE16(gen.sfGenOper)==keyRange) //KEY RANGE?
 							{
 								if (firstgen!=CurrentGen) //Not the first?
 								{
@@ -1132,7 +1148,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 									keyrange |= 0x10000; //Set flag: we're used!
 								}
 							}
-							else if (gen.sfGenOper==velRange) //VELOCITY RANGE?
+							else if (LE16(gen.sfGenOper)==velRange) //VELOCITY RANGE?
 							{
 								temp = CurrentGen; //Load!
 								--temp; //Decrease!
@@ -1145,7 +1161,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 							}
 							if (valid) //Still valid?
 							{
-								if (gen.sfGenOper==sfGenOper && (dontignoregenerators || gen.sfGenOper==sampleID)) //Found and not ignoring (or sampleid generator)?
+								if (LE16(gen.sfGenOper)==sfGenOper && (dontignoregenerators || LE16(gen.sfGenOper)==sampleID)) //Found and not ignoring (or sampleid generator)?
 								{
 									//Log the retrieval!
 									found = 1; //Found!
@@ -1178,9 +1194,9 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 		{
 			if (isValidPreset(&activepreset)) //Valid?
 			{
-				if (activepreset.wBank==bank) //Bank found?
+				if (LE16(activepreset.wBank)==bank) //Bank found?
 				{
-					if (activepreset.wPreset==preset) //Program/preset found?
+					if (LE16(activepreset.wPreset)==preset) //Program/preset found?
 					{
 						break; //Stop searching!
 					}
@@ -1204,7 +1220,7 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 		return 0; //Invalid preset: disabled?
 	}
 
-	if (activepreset.wBank!=bank || activepreset.wPreset!=preset)
+	if (LE16(activepreset.wBank)!=bank || LE16(activepreset.wPreset)!=preset)
 	{
 		return 0; //Unfound preset: disabled!
 	}
@@ -1222,7 +1238,7 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 
 	if (getSFPreset(sf,preset,&currentpreset)) //Found?
 	{
-		PBag = currentpreset.wPresetBagNdx; //Load the first preset bag!
+		PBag = LE16(currentpreset.wPresetBagNdx); //Load the first preset bag!
 		for (;isValidPresetZone(sf,preset,PBag);) //Valid zone?
 		{
 			if (!isGlobalPresetZone(sf,preset,PBag)) //Not a global zone?
@@ -1262,7 +1278,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Found?
 	{
-		IBag = currentinstrument.wInstBagNdx; //Load the first preset bag!
+		IBag = LE16(currentinstrument.wInstBagNdx); //Load the first preset bag!
 		for (;isValidInstrumentZone(sf,instrument,IBag);) //Valid zone?
 		{
 			if (!isGlobalInstrumentZone(sf,instrument,IBag))
@@ -1281,7 +1297,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 					exists = lookupSFInstrumentGen(sf,instrument,IBag,keynum,&igen); //Key number lookup!
 					if (exists) //Valid?
 					{
-						exists = (igen.genAmount.wAmount==MIDIKey); //Does it exist?
+						exists = (LE16(igen.genAmount.wAmount)==MIDIKey); //Does it exist?
 					}
 				}
 				if (exists)
@@ -1289,7 +1305,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 					exists = !RequireInstrument; //Default: invalid when instrument is required!
 					if (lookupSFInstrumentGen(sf,instrument,IBag,sampleID,&sampleid)) //SAMPLEID found?
 					{
-						exists |= getSFSampleInformation(sf,sampleid.genAmount.wAmount,&sample); //Sample found=Valid!						
+						exists |= getSFSampleInformation(sf,LE16(sampleid.genAmount.wAmount),&sample); //Sample found=Valid!						
 					}
 					if (exists) //Valid IGEN?
 					{
@@ -1299,7 +1315,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 							*result = IBag; //It's this PBag!
 							return 1; //Found!
 						}
-						else if (igen2.genAmount.wAmount==MIDIVelocity) //Gotten a velocity filter?
+						else if (LE16(igen2.genAmount.wAmount)==MIDIVelocity) //Gotten a velocity filter?
 						{
 							*result = IBag; //It's this PBag!
 							return 1; //Found!
@@ -1326,7 +1342,7 @@ byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModula
 	}
 	if (getSFPreset(sf,preset,&currentpreset)) //Found?
 	{
-		GlobalPBag = currentpreset.wPresetBagNdx; //Load the first preset bag!
+		GlobalPBag = LE16(currentpreset.wPresetBagNdx); //Load the first preset bag!
 		if (isValidPresetZone(sf,preset,GlobalPBag)) //Valid zone?
 		{
 			if (isGlobalPresetZone(sf,preset,GlobalPBag)) //Global zone?
@@ -1351,7 +1367,7 @@ byte lookupSFPresetGenGlobal(RIFFHEADER *sf, word preset, word PBag, SFGenerator
 	}
 	if (getSFPreset(sf,preset,&currentpreset)) //Found?
 	{
-		GlobalPBag = currentpreset.wPresetBagNdx; //Load the first preset bag!
+		GlobalPBag = LE16(currentpreset.wPresetBagNdx); //Load the first preset bag!
 		if (isValidPresetZone(sf,preset,GlobalPBag)) //Valid zone?
 		{
 			if (isGlobalPresetZone(sf,preset,GlobalPBag)) //Global zone?
@@ -1376,7 +1392,7 @@ byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, 
 	}
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Found?
 	{
-		GlobalIBag = currentinstrument.wInstBagNdx; //Load the first preset bag!
+		GlobalIBag = LE16(currentinstrument.wInstBagNdx); //Load the first preset bag!
 		if (isValidPresetZone(sf,instrument,GlobalIBag)) //Valid zone?
 		{
 			if (isGlobalPresetZone(sf,instrument,GlobalIBag)) //Global zone?
@@ -1401,7 +1417,7 @@ byte lookupSFInstrumentGenGlobal(RIFFHEADER *sf, word instrument, word IBag, SFG
 	}
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Found?
 	{
-		GlobalIBag = currentinstrument.wInstBagNdx; //Load the first preset bag!
+		GlobalIBag = LE16(currentinstrument.wInstBagNdx); //Load the first preset bag!
 		if (isValidInstrumentZone(sf,instrument,GlobalIBag)) //Valid zone?
 		{
 			if (isGlobalInstrumentZone(sf,instrument,GlobalIBag)) //Global zone?

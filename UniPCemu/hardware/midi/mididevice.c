@@ -55,6 +55,11 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 //Chorus LFO Strength (cents) sharp
 #define CHORUS_LFO_CENTS 10.0f
 
+//16/32 bit quantities from the SoundFont loaded in memory!
+#define LE16(x) SDL_SwapLE16(x)
+#define LE32(x) SDL_SwapLE32(x)
+#define LE16S(x) = unsigned2signed16(LE16(signed2unsigned16(x)))
+#define LE32S(x) = unsigned2signed32(LE32(signed2unsigned32(x)))
 
 float reverb_delay[0x100];
 float chorus_delay[0x100];
@@ -141,7 +146,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation)
 {
 	if (!voice->lowpassfilter_freq) return; //No filter?
-	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)voice->sample.dwSampleRate, currentsample, &voice->last_result, &voice->last_sample, &voice->lowpass_isfirst); //Apply a low pass filter!
+	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result, &voice->last_sample, &voice->lowpass_isfirst); //Apply a low pass filter!
 }
 
 /*
@@ -355,7 +360,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	int_32 lchannel, rchannel; //Left&right samples, big enough for all chorus and reverb to be applied!
 
 	float reversesamplerate;
-	reversesamplerate = (1.0f/voice->sample.dwSampleRate); //To multiple to divide by the sample rate(conversion from sample to seconds)
+	reversesamplerate = (1.0f/LE32(voice->sample.dwSampleRate)); //To multiple to divide by the sample rate(conversion from sample to seconds)
 
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
@@ -366,7 +371,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 		for (currentchorusreverb=0;currentchorusreverb<16;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
 		{
-			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)voice->sample.dwSampleRate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>2)],reversesamplerate); //Get the sample from the MIDI device!
+			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)LE32(voice->sample.dwSampleRate), voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>2)],reversesamplerate); //Get the sample from the MIDI device!
 			break;
 		}
 		//Clip the samples to prevent overflow!
@@ -482,7 +487,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		return 0; //No samples!
 	}
 
-	if (!getSFInstrument(soundfont, instrumentptr.genAmount.wAmount, &currentinstrument))
+	if (!getSFInstrument(soundfont, LE16(instrumentptr.genAmount.wAmount), &currentinstrument))
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -491,7 +496,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		return 0;
 	}
 
-	if (!lookupIBagByMIDIKey(soundfont, instrumentptr.genAmount.wAmount, note->note, note->noteon_velocity, &ibag, 1))
+	if (!lookupIBagByMIDIKey(soundfont, LE16(instrumentptr.genAmount.wAmount), note->note, note->noteon_velocity, &ibag, 1))
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -500,7 +505,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		return 0; //No samples!
 	}
 
-	if (!lookupSFInstrumentGen(soundfont, instrumentptr.genAmount.wAmount, ibag, sampleID, &sampleptr))
+	if (!lookupSFInstrumentGen(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleID, &sampleptr))
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -509,7 +514,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		return 0; //No samples!
 	}
 
-	if (!getSFSampleInformation(soundfont, sampleptr.genAmount.wAmount, &voice->sample))
+	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &voice->sample))
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -521,46 +526,46 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	//Determine the adjusting offsets!
 
 	//Fist, init to defaults!
-	startaddressoffset = voice->sample.dwStart;
-	endaddressoffset = voice->sample.dwEnd;
-	startloopaddressoffset = voice->sample.dwStartloop;
-	endloopaddressoffset = voice->sample.dwEndloop;
+	startaddressoffset = LE32(voice->sample.dwStart);
+	endaddressoffset = LE32(voice->sample.dwEnd);
+	startloopaddressoffset = LE32(voice->sample.dwStartloop);
+	endloopaddressoffset = LE32(voice->sample.dwEndloop);
 
 	//Next, apply generators!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, startAddrsOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
 	{
-		startaddressoffset += applyigen.genAmount.shAmount; //Apply!
+		startaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, startAddrsCoarseOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsCoarseOffset, &applyigen))
 	{
-		startaddressoffset += (applyigen.genAmount.shAmount << 15); //Apply!
-	}
-
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, endAddrsOffset, &applyigen))
-	{
-		endaddressoffset += applyigen.genAmount.shAmount; //Apply!
-	}
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, endAddrsCoarseOffset, &applyigen))
-	{
-		endaddressoffset += (applyigen.genAmount.shAmount << 15); //Apply!
+		startaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, startloopAddrsOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsOffset, &applyigen))
 	{
-		startloopaddressoffset += applyigen.genAmount.shAmount; //Apply!
+		endaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, startloopAddrsCoarseOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsCoarseOffset, &applyigen))
 	{
-		startloopaddressoffset += (applyigen.genAmount.shAmount << 15); //Apply!
+		endaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, endloopAddrsOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsOffset, &applyigen))
 	{
-		endloopaddressoffset += applyigen.genAmount.shAmount; //Apply!
+		startloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, endloopAddrsCoarseOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsCoarseOffset, &applyigen))
 	{
-		endloopaddressoffset += (applyigen.genAmount.shAmount << 15); //Apply!
+		startloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsOffset, &applyigen))
+	{
+		endloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+	}
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsCoarseOffset, &applyigen))
+	{
+		endloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	//Save our info calculated!
@@ -578,9 +583,9 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	cents = 0.0f; //Default: none!
 
 	//Calculate MIDI difference in notes!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, overridingRootKey, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, overridingRootKey, &applyigen))
 	{
-		rootMIDITone = applyigen.genAmount.wAmount; //The MIDI tone to apply is different!
+		rootMIDITone = LE16(applyigen.genAmount.wAmount); //The MIDI tone to apply is different!
 	}
 	else
 	{
@@ -591,23 +596,23 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
 	//Coarse tune...
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, coarseTune, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
 	{
-		cents = (float)applyigen.genAmount.shAmount; //How many semitones!
+		cents = (float)LE16(applyigen.genAmount.shAmount); //How many semitones!
 		cents *= 100.0f; //Apply to the cents: 1 semitone = 100 cents!
 	}
 
 	//Fine tune...
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, fineTune, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, fineTune, &applyigen))
 	{
-		cents += (float)applyigen.genAmount.shAmount; //Add the ammount of cents!
+		cents += (float)LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
 	}
 
 	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
 	tonecents = 100.0f; //Default: 100 cents(%) scale tuning!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, scaleTuning, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, scaleTuning, &applyigen))
 	{
-		tonecents = (float)applyigen.genAmount.shAmount; //Apply semitone factor in percent for each tone!
+		tonecents = (float)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
 
 	tonecents *= -((float)rootMIDITone); //Difference in tones we use is applied to the ammount of cents reversed (the more negative, the)!
@@ -618,15 +623,16 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->initsamplespeedup = (float)cents2samplesfactor(cents); //Load the default speedup we need for our tone!
 	
 	attenuation = 0.0f; //Init to default value!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialAttenuation, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
 	{
-		attenuation = (float)applyigen.genAmount.shAmount; //Apply semitone factor in percent for each tone!
+		attenuation = (float)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 		if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
 		if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 	}
 
-	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
 	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
 		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
 		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
 		attenuation += MIDIconcave((float)applymod.modAmount*((127.0f-((float)note->noteon_velocity-1))/127.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
@@ -639,26 +645,26 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Determine panning!
 	panningtemp = 0.0f; //Default: no panning at all: centered!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, pan, &applyigen)) //Gotten panning?
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, pan, &applyigen)) //Gotten panning?
 	{
-		panningtemp = (float)applyigen.genAmount.shAmount; //Get the panning specified!
+		panningtemp = (float)LE16(applyigen.genAmount.shAmount); //Get the panning specified!
 		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	}
 	voice->initpanning = panningtemp; //Set the initial panning, as a factor!
 
 	panningtemp = 0.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x028A,&applymod)) //Gotten panning modulator?
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x028A,&applymod)) //Gotten panning modulator?
 	{
-		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
 		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	}
 	voice->panningmod = panningtemp; //Apply the modulator!
 
 	//Chorus percentage
 	panningtemp = 0.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, 0x00DD, &applymod)) //Gotten panning modulator?
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, 0x00DD, &applymod)) //Gotten panning modulator?
 	{
-		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
 		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
 	}
 
@@ -670,9 +676,9 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Reverb percentage
 	panningtemp = 0.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, 0x00DB, &applymod)) //Gotten panning modulator?
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, 0x00DB, &applymod)) //Gotten panning modulator?
 	{
-		panningtemp = (float)applymod.modAmount; //Get the amount specified!
+		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
 		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
 	}
 	for (chorusreverbdepth=0;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
@@ -708,9 +714,9 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Pitch wheel modulator
 	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
-	if (lookupSFInstrumentModGlobal(soundfont, instrumentptr.genAmount.wAmount,ibag,0x020E,&applymod)) //Gotten panning modulator?
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x020E,&applymod)) //Gotten panning modulator?
 	{
-		pitchwheeltemp = (float)applymod.modAmount; //Get the amount specified!
+		pitchwheeltemp = (float)LE16(applymod.modAmount); //Get the amount specified!
 	}
 	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
 
@@ -720,24 +726,24 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 13500.0f; //Default: no low pass filter!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, initialFilterFc, &applyigen)) //Filter enabled?
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialFilterFc, &applyigen)) //Filter enabled?
 	{
-		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactor(applyigen.genAmount.shAmount)); //Set a low pass filter to it's initial value!
+		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactor(LE16(applyigen.genAmount.shAmount))); //Set a low pass filter to it's initial value!
 		if (voice->lowpassfilter_freq>20000.0f) voice->lowpassfilter_freq = 20000.0f; //Apply maximum!
 	}
 
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, modEnvToFilterFc, &applyigen)) //Gotten a filter on the modulation envelope's Frequency cutoff?
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, modEnvToFilterFc, &applyigen)) //Gotten a filter on the modulation envelope's Frequency cutoff?
 	{
-		voice->lowpassfilter_modenvfactor = applyigen.genAmount.shAmount; //Apply the filter for frequency cutoff!
+		voice->lowpassfilter_modenvfactor = LE16(applyigen.genAmount.shAmount); //Apply the filter for frequency cutoff!
 	}
 	else
 	{
 		voice->lowpassfilter_modenvfactor = 0; //Apply no filter for frequency cutoff!
 	}
 
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, modEnvToPitch, &applyigen)) //Gotten a filter on the modulation envelope's pitch?
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, modEnvToPitch, &applyigen)) //Gotten a filter on the modulation envelope's pitch?
 	{
-		voice->modenv_pitchfactor = applyigen.genAmount.shAmount; //Apply the filter for frequency cutoff!
+		voice->modenv_pitchfactor = LE16(applyigen.genAmount.shAmount); //Apply the filter for frequency cutoff!
 	}
 	else
 	{
@@ -746,9 +752,9 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Apply loop flags!
 	voice->currentloopflags = 0; //Default: no looping!
-	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptr.genAmount.wAmount, ibag, sampleModes, &applyigen)) //Gotten looping?
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleModes, &applyigen)) //Gotten looping?
 	{
-		switch (applyigen.genAmount.wAmount) //What loop?
+		switch (LE16(applyigen.genAmount.wAmount)) //What loop?
 		{
 		case GEN_SAMPLEMODES_LOOP: //Always loop?
 			voice->currentloopflags = 1; //Always loop!
@@ -769,13 +775,13 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->bank = channel->activebank;
 
 	//Final adjustments and set active!
-	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
-	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->ModulationEnvelope, soundfont, instrumentptr.genAmount.wAmount, ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, -rootMIDITone, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
+	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, -rootMIDITone, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
+	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, -rootMIDITone, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
 	#endif
 	unlockMPURenderer(); //We're finished!
-	setSampleRate(&MIDIDEVICE_renderer, voice, (float)voice->sample.dwSampleRate); //Use this new samplerate!
+	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
 }

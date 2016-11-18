@@ -3,6 +3,12 @@
 #include "headers/support/sf2.h" //Soundfont support!
 #include "headers/emu/sound.h" //dB support!
 
+//16/32 bit quantities from the SoundFont loaded in memory!
+#define LE16(x) SDL_SwapLE16(x)
+#define LE32(x) SDL_SwapLE32(x)
+#define LE16S(x) = unsigned2signed16(LE16(signed2unsigned16(x)))
+#define LE32S(x) = unsigned2signed32(LE32(signed2unsigned32(x)))
+
 //ADSR itself:
 
 OPTINLINE float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
@@ -146,7 +152,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
 	{
-		delay = applyigen.genAmount.shAmount; //Apply!
+		delay = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -154,13 +160,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
 	{
-		delay += applypgen.genAmount.shAmount; //Apply!
+		delay += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Attack
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, attackLookup, &applyigen))
 	{
-		attack = applyigen.genAmount.shAmount; //Apply!
+		attack = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -168,13 +174,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
 	{
-		attack = applypgen.genAmount.shAmount; //Apply!
+		attack = LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Hold
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, holdLookup, &applyigen))
 	{
-		hold = applyigen.genAmount.shAmount; //Apply!
+		hold = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -182,13 +188,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
 	{
-		hold += applypgen.genAmount.shAmount; //Apply!
+		hold += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Hold factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
 	{
-		holdenvfactor = applyigen.genAmount.shAmount; //Apply!
+		holdenvfactor = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -196,13 +202,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
 	{
-		holdenvfactor += applypgen.genAmount.shAmount; //Apply!
+		holdenvfactor += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Decay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, decayLookup, &applyigen))
 	{
-		decay = applyigen.genAmount.shAmount; //Apply!
+		decay = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -210,13 +216,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
 	{
-		decay += applypgen.genAmount.shAmount; //Apply!
+		decay += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Decay factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
 	{
-		decayenvfactor = applyigen.genAmount.shAmount; //Apply!
+		decayenvfactor = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -224,13 +230,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
 	{
-		decayenvfactor += applypgen.genAmount.shAmount; //Apply!
+		decayenvfactor += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Sustain (dB)
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, sustainLookup, &applyigen))
 	{
-		sustain = applyigen.genAmount.shAmount; //Apply!
+		sustain = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -238,13 +244,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
 	{
-		sustain += applypgen.genAmount.shAmount; //Apply!
+		sustain += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Release (disabled!)
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, releaseLookup, &applyigen))
 	{
-		release = applyigen.genAmount.shAmount; //Apply!
+		release = LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -252,7 +258,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
 	{
-		release += applypgen.genAmount.shAmount; //Apply!
+		release += LE16(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Now, calculate the length of each interval.

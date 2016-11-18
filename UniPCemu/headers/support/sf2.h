@@ -120,9 +120,14 @@ typedef union
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
- { 
- BYTE byLo; 
- BYTE byHi; 
+ {
+ #ifdef IS_BIG_ENDIAN
+ BYTE byHi;
+ BYTE byLo;
+ #else
+ BYTE byLo;
+ BYTE byHi;
+ #endif
  } rangesType;
  #include "headers/endpacked.h" //We're packed!
 
