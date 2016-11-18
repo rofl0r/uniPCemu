@@ -25,7 +25,10 @@ TARGET_DEBUG = dbg$(TARGET)
 TARGET_PROFILE = prof$(TARGET)
 
 #Programs
-CC = gcc
+CC := $(CROSS_COMPILE)gcc
+WINDRES := $(CROSS_COMPILE)windres
+AR := $(CROSS_COMPILE)ar
+STRIP := $(CROSS_COMPILE)strip
 RM = rm -f
 
 WARNS = -Wall
@@ -133,7 +136,7 @@ $(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES)
 
 #Normal compilation of seperate modules!
 $(BUILD_DIR)/%.res:%.rc
-	windres $< -O coff -o $@
+	${WINDRES} $< -O coff -o $@
 
 $(BUILD_DIR)/%.o:%.c
 	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@

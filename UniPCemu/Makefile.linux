@@ -22,7 +22,7 @@ TARGET_DEBUG = dbg$(TARGET)
 TARGET_PROFILE = prof$(TARGET)
 
 #Programs
-CC = gcc
+CC = $(CROSS_COMPILE)gcc
 RM = rm -f
 
 WARNS = -Wall
