@@ -404,7 +404,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 	{
 		#if !defined(STATICSCREEN)
 		//Only with windows used!
-		if (((aspectratio>=2) || (aspectratio<=5)) && is_renderer) //Render to the window of forced size?
+		if (((aspectratio>=2) || (aspectratio<=6)) && is_renderer) //Render to the window of forced size?
 		{
 			switch (aspectratio)
 			{
@@ -412,6 +412,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 				case 3: //CGA
 				case 4: //4:3
 				case 5: //4:3
+				case 6: //4K
 					originalwidth = newwidth; //We're resizing the destination ratio itself instead!
 					originalheight = newheight; //We're resizing the destination ratio itself instead!
 					break;
@@ -430,6 +431,9 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 				break;
 			case 3: //CGA
 				ar = (double)(379.83 / 242.5); //We're taking CGA aspect ratio instead of the aspect ratio of the image!
+				break;
+			case 6: //4K
+				ar = (double)(3840.0 / 2160.0); //We're taking 4K aspect ratio instead of the aspect ratio of the image!
 				break;
 			default: //Keep the aspect ratio!
 				break;

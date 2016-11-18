@@ -197,6 +197,10 @@ SDL_Surface *getGPUSurface()
 				destxres = 1440; //We're resizing the destination ratio itself instead!
 				destyres = 1080; //We're resizing the destination ratio itself instead!
 				break;
+			case 6: //4K
+				destxres = 3840; //We're resizing the destination ratio itself instead!
+				destyres = 2160; //We're resizing the destination ratio itself instead!			
+				break;
 			default: //Unhandled?
 				destxres = 800;
 				destyres = 600;
@@ -521,7 +525,7 @@ void GPU_AspectRatio(byte aspectratio) //Keep aspect ratio with letterboxing?
 {
 	if (__HW_DISABLED) return; //Abort!
 	lockGPU(); //Lock us!
-	GPU.aspectratio = video_aspectratio = (aspectratio<6)?aspectratio:0; //To use aspect ratio?
+	GPU.aspectratio = video_aspectratio = (aspectratio<7)?aspectratio:0; //To use aspect ratio?
 	GPU.forceRedraw = 1; //We're forcing a redraw of the screen using the new aspect ratio!
 	unlockGPU(); //Unlock us!
 }

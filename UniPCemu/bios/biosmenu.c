@@ -3091,7 +3091,7 @@ void BIOS_AspectRatio()
 	GPU_EMU_printscreen(0, 4, "Aspect ratio: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of Aspect Ratio modes!
+	numlist = 7; //Ammount of Aspect Ratio modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3107,6 +3107,7 @@ void BIOS_AspectRatio()
 	strcpy(itemlist[3], "Force CGA"); //Set filename from options!
 	strcpy(itemlist[4], "Force 4:3(SVGA 768p)"); //Set filename from options!
 	strcpy(itemlist[5], "Force 4:3(SVGA 1080p)"); //Set filename from options!
+	strcpy(itemlist[6], "Force 4K"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.aspectratio) //What direct plot?
 	{
@@ -3116,6 +3117,7 @@ void BIOS_AspectRatio()
 	case 3: //Valid
 	case 4: //Valid
 	case 5: //Valid
+	case 6: //Valid
 		current = BIOS_Settings.aspectratio; //Valid: use!
 		break;
 	default: //Invalid
@@ -3142,6 +3144,7 @@ void BIOS_AspectRatio()
 	case 3:
 	case 4:
 	case 5:
+	case 6:
 	default: //Changed?
 		if (file != current) //Not current?
 		{
