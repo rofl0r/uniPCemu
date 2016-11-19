@@ -3242,7 +3242,12 @@ void op_grp3_8() {
 		tempAL = REG_AL; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		FLAGW_OF(((word)REG_AL != REG_AX)?1:0);
+		if (((temp1.val16&0xFF80)==0) || ((temp1.val16&0xFF80)==0xFF80))
+		{
+			FLAGW_OF(0); //Both zeroed!
+		}
+		else FLAGW_OF(1); //Set due to overflow!
+
 		FLAGW_CF(FLAG_OF); //Same!
 		tempAL = FLAG_ZF; //Backup!
 		flag_szp8(REG_AL);
@@ -3276,7 +3281,12 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
-		FLAGW_OF(((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
+		if (((temp1.val16&0xFF80)==0) || ((temp1.val16&0xFF80)==0xFF80))
+		{
+			FLAGW_OF(0); //Both zeroed!
+		}
+		else FLAGW_OF(1); //Set due to overflow!
+
 		FLAGW_CF(FLAG_OF); //Same!
 		if (EMULATED_CPU==CPU_8086)
 		{
@@ -3410,8 +3420,9 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
-		if (REG_DX) { FLAGW_CF(1); FLAGW_OF(1); }
-		else { FLAGW_CF(0); FLAGW_OF(0); }
+		if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+		else FLAGW_OF(1);
+		FLAGW_CF(FLAG_OF); //OF=CF!
 
 		tempAL = FLAG_ZF; //Backup!
 		flag_szp16(REG_AX);
@@ -3443,8 +3454,9 @@ void op_grp3_16() {
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		FLAGW_OF(((int_32)temp3.val16s != temp3.val32s)?1:0); //Overflow occurred?
-		FLAGW_CF(FLAG_OF); //Same!
+		if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+		else FLAGW_OF(1);
+		FLAGW_CF(FLAG_OF); //OF=CF!
 		if (EMULATED_CPU==CPU_8086)
 		{
 			FLAGW_ZF(0); //Clear ZF!

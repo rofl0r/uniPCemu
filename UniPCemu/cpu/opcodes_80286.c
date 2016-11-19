@@ -541,10 +541,10 @@ typedef struct PACKED
 {
 	struct
 	{
-		word baselow;
-		byte basehigh;
-		byte accessrights; //Present bit is valid bit instead!
-		word limit;
+		word baselow; //First word
+		byte basehigh; //Second word low bits
+		byte accessrights; //Present bit is valid bit instead! Second word high bits!
+		word limit; //Third word
 	};
 	byte data[6]; //All our descriptor cache data!
 } DESCRIPTORCACHE286;
@@ -555,10 +555,10 @@ typedef struct PACKED
 {
 	struct
 	{
-		word baselow;
-		byte basehigh;
-		byte shouldbezeroed;
-		word limit;
+		word baselow; //First word
+		byte basehigh; //Second word low bits
+		byte shouldbezeroed; //Second word high bits
+		word limit; //Third word
 	};
 	byte data[6];
 } DTRdata;
@@ -570,7 +570,7 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info &= ~0xF; //No high limit!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = DESC_16BITS(source->baselow);
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = source->basehigh; //Mid is High base in the descriptor(286 only)!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0;
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0; //Only 24 bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->accessrights; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 }
@@ -625,6 +625,11 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
 
 	//Load the data from the used location!
+
+	for (address=0;address<27;++address) //Load all registers in the correct format!
+	{
+		*((word *)&LOADALLDATA.data[address<<1]) = memory_directrw(address+0x800); //Read the data to load from memory! Take care of any conversion needed!
+	}
 
 	for (address=0;address<sizeof(LOADALLDATA.data);++address) //Load all data!
 	{
