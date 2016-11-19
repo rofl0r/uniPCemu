@@ -195,7 +195,7 @@ void CPU186_OP69()
 	temp3.val32 = ((temp1.val32*temp2.val32)&0xFFFFFFFF);
 	REG_AX = temp3.val16;
 	REG_DX = temp3.val16high;
-	FLAGW_OF((unsigned2signed32(temp3.val32)!=unsigned2signed16(REG_AX))); //Overflow occurred?
+	FLAGW_OF((temp3.val32s!=temp3.val16s)?1:0); //Overflow occurred?
 	FLAGW_CF(FLAG_OF); //Same!
 }
 

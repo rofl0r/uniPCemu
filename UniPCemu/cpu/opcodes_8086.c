@@ -3244,7 +3244,13 @@ void op_grp3_8() {
 		REG_AX = temp1.val16 & 0xFFFF;
 		FLAGW_OF(((word)REG_AL != REG_AX)?1:0);
 		FLAGW_CF(FLAG_OF); //Same!
-		if ((EMULATED_CPU==CPU_8086) && REG_AX) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
+		tempAL = FLAG_ZF; //Backup!
+		flag_szp8(REG_AL);
+		if (EMULATED_CPU==CPU_8086) //8086 only?
+		{
+			FLAGW_ZF(tempAL); //Restore Zero flag!
+			if (REG_AX) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only. Undocumented bug!
+		}
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 76+MODRM_EA(params); //Mem max!
@@ -3272,7 +3278,10 @@ void op_grp3_8() {
 		REG_AX = temp3.val16; //Load into AX!
 		FLAGW_OF(((sword)(unsigned2signed8(REG_AL) != unsigned2signed16(REG_AX)) ? 1 : 0));
 		FLAGW_CF(FLAG_OF); //Same!
-		FLAGW_SF((REG_AX>>15)&1); //Sign flag is affected!
+		if (EMULATED_CPU==CPU_8086)
+		{
+			FLAGW_ZF(0); //Clear ZF!
+		}
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 86 + MODRM_EA(params); //Mem max!
@@ -3403,7 +3412,14 @@ void op_grp3_16() {
 		REG_DX = temp1.val16high;
 		if (REG_DX) { FLAGW_CF(1); FLAGW_OF(1); }
 		else { FLAGW_CF(0); FLAGW_OF(0); }
-		if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
+
+		tempAL = FLAG_ZF; //Backup!
+		flag_szp16(REG_AX);
+		if (EMULATED_CPU==CPU_8086)
+		{
+			FLAGW_ZF(tempAL); //Restore!
+			if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
+		}
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 124 + MODRM_EA(params); //Mem max!
@@ -3429,7 +3445,10 @@ void op_grp3_16() {
 		REG_DX = temp3.val16high; //into register dx
 		FLAGW_OF(((int_32)temp3.val16s != temp3.val32s)?1:0); //Overflow occurred?
 		FLAGW_CF(FLAG_OF); //Same!
-		FLAGW_SF((REG_DX>>15)&1); //Sign flag is affected!
+		if (EMULATED_CPU==CPU_8086)
+		{
+			FLAGW_ZF(0); //Clear ZF!
+		}
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 128 + MODRM_EA(params); //Mem max!
