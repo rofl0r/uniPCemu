@@ -192,7 +192,8 @@ void CPU186_OP69()
 	debugger_setcommand("IMUL %s,%04X",info.text,temp2);
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
-	temp3.val32 = ((temp1.val32*temp2.val32)&0xFFFFFFFF);
+	temp3.val32s = temp1.val32s; //Load and...
+	temp3.val32s *= temp2.val32s; //Signed multiplication!
 	REG_AX = temp3.val16;
 	REG_DX = temp3.val16high;
 	if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
