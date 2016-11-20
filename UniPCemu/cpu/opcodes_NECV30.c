@@ -189,7 +189,7 @@ void CPU186_OP69()
 	temp1.val32 = modrm_read16(&params,1);
 	temp2.val32 = immw;
 	modrm_decode16(&params,&info,0);
-	debugger_setcommand("IMUL %s,%04X",info.text,temp2);
+	debugger_setcommand("IMULW %s,%04X",info.text,temp2);
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
 	temp3.val32s = temp1.val32s; //Load and...
@@ -205,7 +205,7 @@ void CPU186_OP6A()
 {
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	byte val = immb; //Read the value!
-	debugger_setcommand("PUSH %02X",val); //PUSH this!
+	debugger_setcommand("PUSHB %02X",val); //PUSH this!
 	CPU_PUSH8(val);    //PUSH Ib
 }
 
@@ -217,11 +217,12 @@ void CPU186_OP6B()
 	modrm_decode16(&params,&info,1); //Store the address!
 	if (temp1.val32&0x8000) temp1.val32 |= 0xFFFF0000;//Sign extend to 32 bits!
 	if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
-	debugger_setcommand("IMUL %s,%02X",info.text,temp2.val32&0xFF); //Command!
+	debugger_setcommand("IMULW %s,%02X",info.text,temp2.val32&0xFF); //Command!
 
 	temp3.val32s = temp1.val32s * temp2.val32s;
 	modrm_write16(&params,0, temp3.val16,0); //Write to register!
-	FLAGW_OF((unsigned2signed32(temp3.val32)!=unsigned2signed16(temp3.val32&0xFFFF))); //Overflow occurred?
+	if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow occurred?
+	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 }
 
@@ -330,28 +331,28 @@ void CPU186_OPC0()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROL %s,%02X",info.text,oper2b);
+			debugger_setcommand("ROLB %s,%02X",info.text,oper2b);
 			break;
 		case 1: //ROR
-			debugger_setcommand("ROR %s,%02X",info.text,oper2b);
+			debugger_setcommand("RORB %s,%02X",info.text,oper2b);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCL %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCLB %s,%02X",info.text,oper2b);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCR %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCRB %s,%02X",info.text,oper2b);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHL %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLB %s,%02X",info.text,oper2b);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHR %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHRB %s,%02X",info.text,oper2b);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHL %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLB %s,%02X",info.text,oper2b);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SAR %s,%02X",info.text,oper2b);
+			debugger_setcommand("SARB %s,%02X",info.text,oper2b);
 			break;
 		default:
 			break;
@@ -373,28 +374,28 @@ void CPU186_OPC1()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROL %s,%02X",info.text,oper2b);
+			debugger_setcommand("ROLW %s,%02X",info.text,oper2b);
 			break;
 		case 1: //ROR
-			debugger_setcommand("ROR %s,%02X",info.text,oper2b);
+			debugger_setcommand("RORW %s,%02X",info.text,oper2b);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCL %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCLW %s,%02X",info.text,oper2b);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCR %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCRW %s,%02X",info.text,oper2b);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHL %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLW %s,%02X",info.text,oper2b);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHR %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHRW %s,%02X",info.text,oper2b);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHL %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLW %s,%02X",info.text,oper2b);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SAR %s,%02X",info.text,oper2b);
+			debugger_setcommand("SARW %s,%02X",info.text,oper2b);
 			break;
 		default:
 			break;

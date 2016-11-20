@@ -3242,7 +3242,7 @@ void op_grp3_8() {
 		tempAL = REG_AL; //Save a backup for calculating cycles!
 		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
 		REG_AX = temp1.val16 & 0xFFFF;
-		if (((temp1.val16&0xFF80)==0) || ((temp1.val16&0xFF80)==0xFF80))
+		if ((temp1.val16&0xFF00)==0)
 		{
 			FLAGW_OF(0); //Both zeroed!
 		}
@@ -3420,7 +3420,7 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
-		if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+		if (temp1.val16high==0) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
 
