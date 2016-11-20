@@ -3281,13 +3281,16 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
-		if (((temp1.val16&0xFF80)==0) || ((temp1.val16&0xFF80)==0xFF80))
+		FLAGW_SF((temp3.val16&0x80)>>7); //Sign!
+		FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
+		if (((temp3.val16&0xFF80)==0) || ((temp3.val16&0xFF80)==0xFF80))
 		{
 			FLAGW_OF(0); //Both zeroed!
 		}
 		else FLAGW_OF(1); //Set due to overflow!
 
 		FLAGW_CF(FLAG_OF); //Same!
+		FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 		if (EMULATED_CPU==CPU_8086)
 		{
 			FLAGW_ZF(0); //Clear ZF!
@@ -3454,9 +3457,12 @@ void op_grp3_16() {
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
-		if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+		if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
+		FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
+		FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+		FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 		if (EMULATED_CPU==CPU_8086)
 		{
 			FLAGW_ZF(0); //Clear ZF!

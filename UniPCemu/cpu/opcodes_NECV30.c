@@ -196,9 +196,12 @@ void CPU186_OP69()
 	temp3.val32s *= temp2.val32s; //Signed multiplication!
 	REG_AX = temp3.val16;
 	REG_DX = temp3.val16high;
-	if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
+	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
+	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
 
 void CPU186_OP6A()
@@ -221,9 +224,12 @@ void CPU186_OP6B()
 
 	temp3.val32s = temp1.val32s * temp2.val32s;
 	modrm_write16(&params,0, temp3.val16,0); //Write to register!
-	if (((temp1.val32>>15)==0) || ((temp1.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow occurred?
+	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow occurred?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
+	FLAGW_SF((temp3.val16&0x8000)>>31); //Sign!
+	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 }
 
 void CPU186_OP6C()
