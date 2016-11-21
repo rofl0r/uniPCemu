@@ -146,6 +146,8 @@ typedef struct
 Warning: SIB=Scaled index byte modes
 */
 
+//whichregister: 1=R/M, other=register!
+
 //Direct addressing of MODR/M bytes:
 
 byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading);

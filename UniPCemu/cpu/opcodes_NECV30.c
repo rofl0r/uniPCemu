@@ -15,7 +15,7 @@
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 extern byte MODRM_src0; //What source is our modr/m? (1/2)
-MODRM_PTR info; //For storing ModR/M Info!
+MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL instructions)!
 
 extern byte immb; //Immediate byte!
 extern word immw; //Immediate word!
@@ -185,17 +185,31 @@ void CPU186_OP68()
 
 void CPU186_OP69()
 {
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	temp1.val32 = modrm_read16(&params,1);
-	temp2.val32 = immw;
-	modrm_decode16(&params,&info,0);
-	debugger_setcommand("IMULW %s,%04X",info.text,temp2);
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		temp1.val32 = modrm_read16(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
+	}
+	temp2.val32 = immw; //Immediate word is second/third parameter!
+	modrm_decode16(&params,&info,0); //Reg!
+	modrm_decode16(&params,&info2,1); //Second parameter(R/M)!
+	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	{
+		debugger_setcommand("IMULW %s,%04X",info.text,immw); //IMUL reg,imm16
+	}
+	else //Three-operand version?
+	{
+		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
+	}
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
 	temp3.val32s = temp1.val32s; //Load and...
 	temp3.val32s *= temp2.val32s; //Signed multiplication!
-	REG_AX = temp3.val16;
-	REG_DX = temp3.val16high;
+	modrm_write16(&params,0,temp3.val16,0); //Write to the destination(register)!
 	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
@@ -214,16 +228,31 @@ void CPU186_OP6A()
 
 void CPU186_OP6B()
 {
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		temp1.val32 = modrm_read16(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
+	}
 	temp2.val32 = (uint_32)immb; //Read unsigned parameter!
-	modrm_decode16(&params,&info,1); //Store the address!
+	modrm_decode16(&params,&info,0); //Store the address!
+	modrm_decode16(&params,&info2,1); //Store the address(R/M)!
+	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	{
+		debugger_setcommand("IMULW %s,%02X",info.text,immb); //IMUL reg,imm8
+	}
+	else //Three-operand version?
+	{
+		debugger_setcommand("IMULW %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
+	}
+
 	if (temp1.val32&0x8000) temp1.val32 |= 0xFFFF0000;//Sign extend to 32 bits!
 	if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
-	debugger_setcommand("IMULW %s,%02X",info.text,temp2.val32&0xFF); //Command!
-
 	temp3.val32s = temp1.val32s * temp2.val32s;
-	modrm_write16(&params,0, temp3.val16,0); //Write to register!
+	modrm_write16(&params,0,temp3.val16,0); //Write to register!
 	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow occurred?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!

@@ -23,6 +23,7 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister);
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
 
+//whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
 	if (size==4) //32-bit mode?
