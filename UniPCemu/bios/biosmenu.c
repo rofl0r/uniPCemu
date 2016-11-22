@@ -2835,7 +2835,7 @@ void BIOS_ExecutionMode()
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
 
-	strcpy(itemlist[EXECUTIONMODE_NONE], "Normal operations"); //Set filename from options!
+	strcpy(itemlist[EXECUTIONMODE_NONE], "Use emulator internal BIOS"); //Set filename from options!
 	strcpy(itemlist[EXECUTIONMODE_TEST], "Run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
 	strcpy(itemlist[EXECUTIONMODE_TESTROM], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
 	strcpy(itemlist[EXECUTIONMODE_VIDEOCARD], "Debug video card output"); //Set filename from options!
@@ -4455,7 +4455,7 @@ setShowCPUSpeed:
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
 	case EXECUTIONMODE_NONE:
-		strcat(menuoptions[advancedoptions++], "Normal operations"); //Set filename from options!
+		strcat(menuoptions[advancedoptions++], "Use emulator internal BIOS"); //Set filename from options!
 		break;
 	case EXECUTIONMODE_TEST:
 		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
