@@ -661,40 +661,59 @@ void setDosboxCycles(byte useDosboxClock, uint_32 cycles)
 	}
 	else //Actual clock cycles?
 	{
-		CPU_speed_cycle = 1000000000.0 / (float)cycles; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+		CPU_speed_cycle = 1000000000.0 / (float)(cycles*1000); //Apply the cycles in kHz!	
 	}
 }
 
 void updateSpeedLimit()
 {
-	DosboxClock = 1; //We're executing using Dosbox clocks!
-	if (BIOS_Settings.CPUSpeed) //Gotten speed cycles set?
+	uint_32 CPUSpeed;
+	byte is_Turbo=0; //Turbo mode?
+	CPUSpeed = BIOS_Settings.CPUSpeed; //Default speed!
+	if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo Speed enabled?
 	{
-		setDosboxCycles(1,BIOS_Settings.CPUSpeed); //Dosbox-style cycles!
-		if (TurboMode && BIOS_Settings.TurboCPUSpeed && BIOS_Settings.useTurboSpeed) //Turbo enabled and specified?
+		CPUSpeed = BIOS_Settings.TurboCPUSpeed;
+		is_Turbo = 1; //Enable Turbo Speed calculations!
+	}
+
+	if (CPUSpeed==0) //Default cycles specified?
+	{
+		switch (EMULATED_CPU) //What CPU to speed?
 		{
-			setDosboxCycles(1, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
+			case CPU_8086:
+			case CPU_NECV30: //First generation? Use 808X speed!
+				DosboxClock = 0; //We're executing using actual clocks!
+				if (is_Turbo) //Turbo speed instead?
+				{
+					CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+				}
+				else //Normal speed?
+				{
+					CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+				}
+				break;
+			case CPU_80286: //286?
+				DosboxClock = 0; //We're executing using actual clocks!
+				if (is_Turbo) //Turbo speed instead?
+				{
+					CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+				}
+				else //Normal speed?
+				{
+					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+				}
+				break;
+			default: //Unknown CPU?
+			case CPU_80386: //386?
+			case CPU_80486: //486?
+			case CPU_PENTIUM: //586?
+				setDosboxCycles(1,3000); //Unsupported so far! Default to 3000 Dosbox cycles!
+				break;
 		}
 	}
-	else //CPU speed cycles not set? No Dosbox cycles here normally (until implemented)!
+	else //Cycles specified?
 	{
-		DosboxClock = 0; //We're executing using actual clocks!
-		CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
-		if (EMULATED_CPU >= CPU_80286) //Faster clocks?
-		{
-			CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 ~6MHz for DMA speed check compatibility!
-		}
-		if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo mode enabled?
-		{
-			if (BIOS_Settings.TurboCPUSpeed) //Turbo speed specified?
-			{
-				setDosboxCycles(1, BIOS_Settings.TurboCPUSpeed); //Dosbox-style Turbo cycles!
-			}
-			else
-			{
-				CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!	
-			}
-		}
+		setDosboxCycles((BIOS_Settings.CPUSpeedMode && (EMULATED_CPU<=CPU_80286))?0:1,CPUSpeed); //Use either Dosbox clock(Instructions per millisecond) or actual clocks when supported!
 	}
 }
 

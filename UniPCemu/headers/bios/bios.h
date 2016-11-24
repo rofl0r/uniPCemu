@@ -70,6 +70,8 @@ typedef struct PACKED
 	byte useTurboSpeed; //Are we to use Turbo CPU speed?
 	sword diagnosticsportoutput_breakpoint; //Use a diagnostics port breakpoint?
 	uint_32 diagnosticsportoutput_timeout; //Breakpoint timeout used!
+	byte CPUSpeedMode; //CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
+	byte TurboCPUSpeedMode; //Turbo CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -146,6 +148,7 @@ enum Architectures {
 #define DEFAULT_VGASYNCHRONIZATION 2
 #define DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT -1
 #define DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT 0
+#define DEFAULT_CPUSPEEDMODE 0
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
