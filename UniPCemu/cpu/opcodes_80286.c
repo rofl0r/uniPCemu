@@ -612,6 +612,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 			DESCRIPTORCACHE286 TSSdescriptor;
 		} fields; //Fields
 		byte data[0x66]; //All data to be loaded!
+		word dataw[0x33]; //Word-sized data to be loaded, if any!
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
@@ -628,12 +629,12 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	for (address=0;address<27;++address) //Load all registers in the correct format!
 	{
-		*((word *)&LOADALLDATA.data[address<<1]) = memory_directrw(address+0x800); //Read the data to load from memory! Take care of any conversion needed!
+		LOADALLDATA.dataw[address] = memory_directrw(0x800|(address<<1)); //Read the data to load from memory! Take care of any conversion needed!
 	}
 
-	for (address=0;address<sizeof(LOADALLDATA.data);++address) //Load all data!
+	for (address=54;address<sizeof(LOADALLDATA.data);++address) //Load all remaining data in default byte order!
 	{
-		LOADALLDATA.data[address] = memory_directrb(address+0x800); //Read the data to load from memory!
+		LOADALLDATA.data[address] = memory_directrb(0x800|address); //Read the data to load from memory!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
