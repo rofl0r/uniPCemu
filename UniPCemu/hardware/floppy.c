@@ -1732,7 +1732,6 @@ void updateFloppy(double timepassed)
 				case SEEK: //Seek/park head
 					if (FLOPPY.commandstep==4) //Are we busy?
 					{
-						FLOPPY.commandstep = 0; //Reset controller command status!
 						updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 						if ((FLOPPY_DOR_DRIVENUMBERR >= 2) || (FLOPPY_DOR_DRIVENUMBERR!=(FLOPPY.commandbuffer[1]&3))) //Invalid drive specified?
 						{
@@ -1766,8 +1765,10 @@ void updateFloppy(double timepassed)
 							updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
 							FLOPPY_raiseIRQ(); //Finished executing phase!
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
+							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0);
 							return; //Give an error!
 						}
+						
 						else if (movedcylinder==0) //Reached no destination?
 						{
 							invalidtrackseek:
