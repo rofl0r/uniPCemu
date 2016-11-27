@@ -1745,7 +1745,7 @@ void updateFloppy(double timepassed)
 							FLOPPY_raiseIRQ(); //Finished executing phase!
 							return; //Abort!
 						}
-
+						
 						if (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]>FLOPPY.commandbuffer[2]) //Step out towards smaller cylinder numbers?
 						{
 							--FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step up!
@@ -1756,6 +1756,7 @@ void updateFloppy(double timepassed)
 							++FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step down!
 							movedcylinder = 1;
 						}
+						else movedcylinder = 0; //We didn't move?
 
 						//Check if we're there!
 						if ((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.commandbuffer[2]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)))) //Found and existant?
