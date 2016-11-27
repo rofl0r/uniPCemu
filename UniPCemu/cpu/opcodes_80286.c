@@ -247,9 +247,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 2;
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_addoffset = 4;
-		if (modrm_check8(&params,1,0)) return; //Abort on fault!
-		modrm_addoffset = 5;
-		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		modrm_write16(&params, 1, CPU[activeCPU].registers->GDTR.limit, 0); //Store the limit first!
@@ -258,12 +256,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_write16(&params, 1, (CPU[activeCPU].registers->GDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				modrm_write8(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFF)); //Write rest value!
-				CPUPROT1
-					//Just store the high byte too, no matter what the CPU!
-					modrm_addoffset = 5; //Add 5 bytes to the offset!
-					modrm_write8(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 24) & 0xFF)); //Write rest value!
-				CPUPROT2
+				modrm_write16(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFFFF),0); //Write rest value!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -281,9 +274,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 2;
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_addoffset = 4;
-		if (modrm_check8(&params,1,0)) return; //Abort on fault!
-		modrm_addoffset = 5;
-		if (modrm_check8(&params,1,0)) return; //Abort on fault!
+		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
@@ -292,12 +283,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_write16(&params, 1, (CPU[activeCPU].registers->IDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				modrm_write8(&params, 1, ((CPU[activeCPU].registers->IDTR.base>>16) & 0xFF)); //Write rest value!
-				CPUPROT1
-					//Just store the high byte too, no matter what the CPU!
-					modrm_addoffset = 5; //Add 5 bytes to the offset!
-					modrm_write8(&params, 1, ((CPU[activeCPU].registers->IDTR.base >> 24) & 0xFF)); //Write rest value!
-				CPUPROT2
+				modrm_write16(&params, 1, ((CPU[activeCPU].registers->IDTR.base>>16) & 0xFFFF),0); //Write rest value!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -320,7 +306,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 2;
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		modrm_addoffset = 4;
-		if (modrm_check8(&params,1,1)) return; //Abort on fault!
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		oper1 = modrm_read16(&params, 1); //Read the limit first!
@@ -329,7 +315,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)modrm_read8(&params,1))<<16); //Higher part of the limit!
+				oper1d |= (((uint_32)(modrm_read16(&params,1)&0xFF))<<16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
@@ -356,7 +342,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 2;
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		modrm_addoffset = 4;
-		if (modrm_check8(&params,1,1)) return; //Abort on fault!
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		oper1 = modrm_read16(&params, 1); //Read the limit first!
@@ -365,7 +351,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)modrm_read8(&params, 1)) << 16); //Higher part of the limit!
+				oper1d |= (((uint_32)modrm_read16(&params, 1)&0xFF) << 16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
