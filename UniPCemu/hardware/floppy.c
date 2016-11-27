@@ -17,8 +17,9 @@
 #define EMULATE_GAPLENGTH 0
 
 //Double logging if FLOPPY_LOGFILE2 is defined!
-#define FLOPPY_LOGFILE "floppy"
-//#define FLOPPY_LOGFILE2 "debugger"
+#define FLOPPY_LOGFILE "debugger"
+//#define FLOPPY_LOGFILE2 "floppy"
+#define FLOPPY_FORCELOG
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6
@@ -38,7 +39,11 @@
 
 //Logging with debugger only!
 #ifdef FLOPPY_LOGFILE
+#ifdef FLOPPY_FORCELOG
+#define FLOPPY_LOGD(...) {FLOPPY_LOG(__VA_ARGS__)}
+#else
 #define FLOPPY_LOGD(...) if (debugger_logging()) {FLOPPY_LOG(__VA_ARGS__)}
+#endif
 #else
 #define FLOPPY_LOGD(...)
 #endif
@@ -63,6 +68,7 @@ struct
 	union
 	{
 		byte data[2]; //Both data bytes!
+		double headloadtime, headunloadtime, steprate; //Current head load time, unload time and step rate for this drive!
 	} DriveData[4]; //Specify for each of the 4 floppy drives!
 	union
 	{
@@ -210,6 +216,102 @@ struct
 //Start normal data!
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
+
+double floppytimer = 0.0; //The timer for ticking floppy disk actions!
+byte currentfloppytimerstep = 0; //Current step to execute within the floppy disk timer process!
+
+//Formulas for the different rates:
+
+/*
+
+Step rate(ms):
+1M = 8-(val*0.5)
+500k = 16-val
+300k = (26+(2/3))-(val*(1+(2/3)))
+250k = 32-(val*2)
+
+Head Unload Time:
+val 0h becomes 10h.
+1M = 8*val
+500k = 16*val
+300k = (26+(2/3))*val
+250k = 32*val
+
+Head Load Time:
+val 0h becomes 80h.
+1M = val
+500k = 2*val
+300k = (3+(1/3))*val
+250k = 4*val
+
+*/
+
+double floppy_steprate[4][0x10]; //All possible step rates!
+double floppy_headunloadtimerate[4][0x10]; //All possible head (un)load times!
+double floppy_headloadtimerate[4][0x80]; //All possible head load times!
+
+void initFloppyRates()
+{
+	double steprate_base[4] = {0,0,0,0}; //The base to take, in ms!
+	double steprate_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	double headunloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	double headloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	//We initialize all floppy disk rates, in milliseconds!
+	//The order is of the rates is: 500k, 300k, 250k, 1M
+	//Step rate!
+	steprate_base[1] = 16.0;
+	steprate_base[2] = 26.0+(2.0/3.0);
+	steprate_base[3] = 32.0;
+	steprate_base[0] = 8.0;
+	steprate_addition[0] = 1.0;
+	steprate_addition[1] = 1.0+(2.0/3.0);
+	steprate_addition[2] = 2.0;
+	steprate_addition[3] = 0.5;
+
+	//Head Unload Time
+	headunloadtime_addition[0] = 16.0;
+	headunloadtime_addition[1] = 26.0+(2.0/3.0);
+	headunloadtime_addition[2] = 32.0;
+	headunloadtime_addition[3] = 8.0;
+
+	//Head Load Time
+	headloadtime_addition[0] = 2.0;
+	headloadtime_addition[1] = 3.0+(1.0/3.0);
+	headloadtime_addition[2] = 4.0;
+	headloadtime_addition[3] = 1.0;
+
+	//Now, to be based on the used data, calculate all used lookup tables!
+	byte rate,ratesel,usedrate;
+	for (ratesel=0;ratesel<4;++ratesel) //All rate selections!
+	{
+		for (rate=0;rate<0x10;++rate) //Process all rate timings for step rate&head unload time!
+		{
+			usedrate = rate?rate:0x10; //0 sets bit 4!
+			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
+			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
+		}
+		for (rate=0;rate<0x80;++rate) //Process all rate timings for head load time!
+		{
+			usedrate = rate?rate:0x80; //0 sets bit 8!
+			floppy_headloadtimerate[ratesel][rate] = (headloadtime_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
+		}
+	}
+}
+
+OPTINLINE double FLOPPY_steprate(byte drivenumber)
+{
+	return floppy_steprate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_STEPRATER(drivenumber)]; //Look up the step rate for this disk!
+}
+
+OPTINLINE double FLOPPY_headloadtimerate(byte drivenumber)
+{
+	return floppy_headloadtimerate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_HEADLOADTIMER(drivenumber)]; //Look up the head load time rate for this disk!
+}
+
+OPTINLINE double FLOPPY_headunloadtimerate(byte drivenumber)
+{
+	return floppy_headunloadtimerate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_HEADUNLOADTIMER(drivenumber)]; //Look up the head load time rate for this disk!
+}
 
 //Normal floppy specific stuff
 
@@ -1640,6 +1742,30 @@ OPTINLINE byte floppy_readData()
 	return ~0; //Not used yet!
 }
 
+//Timed floppy disk operations!
+double floppytime = 0.0; //Buffered floppy disk time!
+void updateFloppy(double timepassed)
+{
+	if (floppytimer) //Are we timing?
+	{
+		floppytime += timepassed; //We're measuring time!
+		for (;(floppytime>=floppytimer) && floppytimer;) //Timeout and still timing?
+		{
+			floppytime -= timepassed; //Time some!
+			switch (FLOPPY.commandbuffer[0]) //What command is processing?
+			{
+				default: //Unsupported command?
+					break; //Don't handle us yet!
+			}
+			floppytimer = 0.0; //Don't time anymore!
+		}
+		if (!floppytimer) //Finished timing?
+		{
+			floppytime = (double)0; //Clear the remaining time!
+		}
+	}
+}
+
 byte getfloppydisktype(byte floppy)
 {
 	if (FLOPPY.geometries[floppy]) //Gotten a known geometry?
@@ -1801,4 +1927,7 @@ void initFDC()
 	register_PORTOUT(&PORT_OUT_floppy);
 	register_DISKCHANGE(FLOPPY0, &FLOPPY_notifyDiskChanged);
 	register_DISKCHANGE(FLOPPY1, &FLOPPY_notifyDiskChanged);
+
+	floppytime = floppytimer = 0.0; //No time spent or in-use by the floppy disk!
+	initFloppyRates(); //Initialize the floppy disk rate tables to use!
 }
