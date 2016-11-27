@@ -1720,6 +1720,7 @@ OPTINLINE byte floppy_readData()
 //Timed floppy disk operations!
 void updateFloppy(double timepassed)
 {
+	byte movedcylinder;
 	if (floppytimer) //Are we timing?
 	{
 		floppytime += timepassed; //We're measuring time!
@@ -1749,10 +1750,12 @@ void updateFloppy(double timepassed)
 						if (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]>FLOPPY.commandbuffer[2]) //Step out towards smaller cylinder numbers?
 						{
 							--FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step up!
+							movedcylinder = 1;
 						}
 						else if (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]<FLOPPY.commandbuffer[2]) //Step in towards bigger cylinder numbers?
 						{
 							++FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step down!
+							movedcylinder = 1;
 						}
 
 						//Check if we're there!
@@ -1765,7 +1768,7 @@ void updateFloppy(double timepassed)
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							return; //Give an error!
 						}
-						else
+						else if (movedcylinder==0) //Reached no destination?
 						{
 							invalidtrackseek:
 							//Invalid track?
