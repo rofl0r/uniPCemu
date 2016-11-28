@@ -21,6 +21,7 @@ typedef struct
 	byte DoubleDensity; //Are we a double density drive?
 	byte GAPLength; //The default GAP length used by this format!
 	byte TapeDriveRegister; //Our Tape Drive Register value for this disk!
+	word RPM; //Speed, either 300 or 360 RPM!
 } FLOPPY_GEOMETRY; //All floppy geometries!
 
 #define NUMFLOPPYGEOMETRIES 13
