@@ -25,8 +25,13 @@
 #include "SDL_joystick.h" //Joystick support!
 #include "SDL_events.h" //Event support!
 #else
+#ifdef __MINGW64__
+#include <SDL_joystick.h> //Joystick support!
+#include <SDL_events.h> //Event support!
+#else
 #include <SDL/SDL_joystick.h> //Joystick support!
 #include <SDL/SDL_events.h> //Event support!
+#endif
 #endif
 #endif
 

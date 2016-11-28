@@ -26,6 +26,9 @@
 #define __ENABLE_INLINE
 #endif
 
+//Default long long(uint_64) definition!
+#define LONGLONGSPRINTF "%llu"
+
 //Platform specific stuff!
 #ifdef _WIN32
 //Windows?
@@ -48,7 +51,6 @@
 
 //Univeral 8-bit character type? Given as a define!
 #define CharacterType char
-
 //Our basic functionality we need for running this program!
 //We have less accuracy using SDL delay: ms instead of us. Round to 0ms(minimal time) if needed!
 

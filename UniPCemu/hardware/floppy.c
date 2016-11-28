@@ -1249,7 +1249,6 @@ OPTINLINE void floppy_executeReadData()
 
 OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
-	char *DSKImageFile = NULL; //DSK image file to use?
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
 		case WRITE_DATA: //Write sector

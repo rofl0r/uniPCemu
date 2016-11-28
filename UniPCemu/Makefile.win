@@ -33,6 +33,21 @@ RM = rm -f
 
 WARNS = -Wall
 
+ifeq (,$(findstring x64,$(MAKECMDGOALS)))
+#x86 version
+ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
+#SDL2 functions instead!
+INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL2 -I/mingw/lib
+endif
+
+ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
+#SDL1 functions instead!
+INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
+endif
+endif
+
+ifneq (,$(findstring x64,$(MAKECMDGOALS)))
+#x64 version
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions instead!
 INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL2 -I/mingw/lib
@@ -43,11 +58,8 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
 endif
 
-ifneq (,$(findstring x64,$(MAKECMDGOALS)))
-#Modify the include path to 64-bit!
-INCLUDE_DIRS := $(INCLUDE_DIRS)/x64
 #Modify the compiler to 64-bit!
-CC = x86_64-w64-mingw32-g++
+CC = x86_64-w64-mingw32-gcc
 endif
 
 #Default optimization flags!

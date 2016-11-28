@@ -4568,7 +4568,7 @@ setShowCPUSpeed:
 		strcat(menuoptions[advancedoptions++], "First instruction"); //Default!
 		break;
 	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sAt %llu instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)BIOS_Settings.diagnosticsportoutput_timeout +1)); //Cycle limit!
+		sprintf(menuoptions[advancedoptions], "%sAt " LONGLONGSPRINTF " instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)(BIOS_Settings.diagnosticsportoutput_timeout+1))); //Cycle limit!
 		++advancedoptions;
 		break;
 	}

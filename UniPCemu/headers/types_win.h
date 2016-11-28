@@ -34,7 +34,6 @@
 #endif
 #endif
 
-
 //Windows specific structures!
 #ifdef _WIN32
 #include <direct.h> //For mkdir and directory support! Visual C++ only!
@@ -85,7 +84,13 @@
 
 #ifdef _WIN64
 #undef LONG64SPRINTF
+#ifndef __MINGW64__
 #define LONG64SPRINTF uint_64
+#else
+#define LONG64SPRINTF unsigned long long
+#undef LONGLONGSPRINTF
+#define LONGLONGSPRINTF "%I64u"
+#endif
 typedef uint_64 ptrnum;
 #else
 typedef uint_32 ptrnum;

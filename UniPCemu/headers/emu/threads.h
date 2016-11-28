@@ -8,7 +8,11 @@
 #ifdef ANDROID
 #include "SDL_thread.h" //Multithreading support!
 #else
+#ifdef __MINGW64__
+#include <SDL_thread.h> //Multithreading support!
+#else
 #include <SDL/SDL_thread.h> //Multithreading support!
+#endif
 #endif
 #endif
 
