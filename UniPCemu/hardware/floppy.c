@@ -480,6 +480,19 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 				FLOPPY.customgeometry[floppy].sides = DSKInformation.NumberOfSides; //Number of sides!
 				FLOPPY.customgeometry[floppy].tracks = DSKInformation.NumberOfTracks; //Number of tracks!
 				FLOPPY.customgeometry[floppy].SPT = DSKTrackInformation.numberofsectors; //Number of sectors in this track!
+				//Fill in the remaining information with defaults!
+				FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
+				FLOPPY.customgeometry[floppy].boardjumpersetting  = 0; //Unknown, leave at 0!
+				FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].DoubleDensity = (DSKTrackInformation.numberofsectors>40); //Probably double density?
+				FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].GAPLength = DSKTrackInformation.GAP3Length; //Our GAP3 length used!
+				FLOPPY.customgeometry[floppy].KB = (word)((uint_32)(DSKInformation.NumberOfTracks*DSKInformation.NumberOfSides*DSKInformation.TrackSize)>>10); //Raw size!
+				FLOPPY.customgeometry[floppy].measurement = DSKTrackInformation.numberofsectors>40?1:0; //Unknown, take 3,5" when >40 tracks!
+				FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
+				FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates!
+				FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
 			}
 		}
 	}
