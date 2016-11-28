@@ -16,7 +16,7 @@ PLATFORM = android
 endif
 
 ifeq (,$(PLATFORM))
-$(error Please specify a platform (psp or win) and action (build or clean), e.g. make win build or make win clean)
+$(error Please specify a platform (psp,win,linux) and action ((re)build or (re)clean), e.g. make win build or make win clean. Optional other targets(besides build/clean) are (re)debug, rebuild, clean, SDL2(static) to use (static) SDL2 linking instead of dynamic SDL linking, (re)profile, analyze(2), x64(for MinGW64 only))
 endif
 
 ifneq (,$(PLATFORM))

@@ -1,0 +1,36 @@
+To build SDL2 configuration(x86) on Windows:
+./configure --prefix=/mingw CFLAGS="-static-libgcc -static-libstdc++"
+- It's still dependant on libgcc_s_dw2-1.dll?
+
+To build SDL2 configuration(x64) on Windows:
+./configure --prefix=/mingw CFLAGS="-static-libgcc -static-libstdc++" --host=x86_64-w64-mingw32
+
+SDL2-2.0.5 x64 fix:
+Add the following lines below: "#include <mmsystem.h>" at src/audio/winmm.c:
+
+typedef struct tagWAVEINCAPS2W {
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR szPname[MAXPNAMELEN];
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    GUID ManufacturerGuid;
+    GUID ProductGuid;
+    GUID NameGuid;
+  } WAVEINCAPS2W,*PWAVEINCAPS2W,*NPWAVEINCAPS2W,*LPWAVEINCAPS2W;
+  
+    typedef struct tagWAVEOUTCAPS2W {
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR szPname[MAXPNAMELEN];
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    DWORD dwSupport;
+    GUID ManufacturerGuid;
+    GUID ProductGuid;
+    GUID NameGuid;
+  } WAVEOUTCAPS2W,*PWAVEOUTCAPS2W,*NPWAVEOUTCAPS2W,*LPWAVEOUTCAPS2W;
