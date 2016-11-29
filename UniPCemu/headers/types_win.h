@@ -93,6 +93,12 @@
 #endif
 typedef uint_64 ptrnum;
 #else
+#ifdef __MINGW32__
+#undef LONG64SPRINTF
+#define LONG64SPRINTF unsigned long long
+#undef LONGLONGSPRINTF
+#define LONGLONGSPRINTF "%I64u"
+#endif
 typedef uint_32 ptrnum;
 #endif
 
