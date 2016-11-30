@@ -66,7 +66,7 @@ byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0x00007C00; //The segment:offset address!
 
 //Log when running bogus(empty) memory?
-#define LOG_BOGUS 5
+//#define LOG_BOGUS 5
 
 /*
 
