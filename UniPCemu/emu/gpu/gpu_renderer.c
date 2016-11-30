@@ -456,7 +456,7 @@ void renderHWFrame() //Render a frame from hardware!
 					tempy = GPU.yres;
 					tempx = (tempx>EMU_MAX_X)?EMU_MAX_X:tempx;
 					tempy = (tempy>EMU_MAX_Y)?EMU_MAX_Y:tempy; //Apply limits!
-					writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),tempx,tempy,0,0,EMU_MAX_X); //Dump our raw screen!
+					writeBMP(get_screencapture_filename(),&EMU_BUFFER(0,0),tempx,tempy,0,0,EMU_BUFFERPITCH); //Dump our raw screen!
 				}
 			}
 		}
