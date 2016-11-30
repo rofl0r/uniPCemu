@@ -1081,14 +1081,14 @@ OPTINLINE void stack_pop(byte dword) //Push 16/32-bits to stack!
 
 void CPU_PUSH16(word *val) //Push Word!
 {
-	if (EMULATED_CPU<CPU_80386) //286-?
+	if (EMULATED_CPU<=CPU_NECV30) //186- we push the decremented value of SP to the stack instead of the original value?
 	{
 		stack_push(0); //We're pushing a 16-bit value!
 		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
 	}
-	else //386+?
+	else //286+?
 	{
-		word oldval = *val; //Old value!
+		word oldval = *val; //Original value, saved before decrementing (E)SP!
 		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 16-bit or 32-bit value!
 		if (CPU_Operand_size[activeCPU]) //32-bit?
 		{
