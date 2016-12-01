@@ -1819,7 +1819,6 @@ void updateFloppy(double timepassed)
 							floppytimer = 0.0; //Don't time anymore!
 							return; //Give an error!
 						}
-						
 						else if (movedcylinder==0) //Reached no destination?
 						{
 							invalidtrackseek:
