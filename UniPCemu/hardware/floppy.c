@@ -65,7 +65,7 @@ struct
 	byte ST1;
 	byte ST2;
 	byte ST3;
-	union
+	struct
 	{
 		byte data[2]; //Both data bytes!
 		double headloadtime, headunloadtime, steprate; //Current head load time, unload time and step rate for this drive!
