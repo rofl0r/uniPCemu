@@ -1774,7 +1774,7 @@ void updateFloppy(double timepassed)
 		floppytime += timepassed; //We're measuring time!
 		for (;(floppytime>=floppytimer) && floppytimer;) //Timeout and still timing?
 		{
-			floppytime -= timepassed; //Time some!
+			floppytime -= floppytimer; //Time some!
 			switch (FLOPPY.commandbuffer[0]) //What command is processing?
 			{
 				case SEEK: //Seek/park head
@@ -1791,6 +1791,7 @@ void updateFloppy(double timepassed)
 							FLOPPY.commandstep = 0; //Reset command!
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY_raiseIRQ(); //Finished executing phase!
+							floppytimer = 0.0; //Don't time anymore!
 							return; //Abort!
 						}
 						
@@ -1815,6 +1816,7 @@ void updateFloppy(double timepassed)
 							FLOPPY_raiseIRQ(); //Finished executing phase!
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0);
+							floppytimer = 0.0; //Don't time anymore!
 							return; //Give an error!
 						}
 						
@@ -1826,6 +1828,7 @@ void updateFloppy(double timepassed)
 							FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
 							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 							FLOPPY_raiseIRQ(); //Finished executing phase!
+							floppytimer = 0.0; //Don't time anymore!
 						}
 					}
 					break;
@@ -1854,13 +1857,14 @@ void updateFloppy(double timepassed)
 							updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY_raiseIRQ(); //We're finished!
+							floppytimer = 0.0; //Don't time anymore!
 						}
 					}
 					break;
 				default: //Unsupported command?
+					floppytimer = 0.0; //Don't time anymore!
 					break; //Don't handle us yet!
 			}
-			floppytimer = 0.0; //Don't time anymore!
 		}
 		if (!floppytimer) //Finished timing?
 		{
