@@ -520,7 +520,7 @@ void DMA_tick()
 						}
 
 						//Transfer data!
-						switch (moderegister.data&0xC0)
+						switch (moderegister.data&0xC)
 						{
 						case 4: //Writing to memory? (Reading from device)
 							if (controller) //16-bits?
