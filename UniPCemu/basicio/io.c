@@ -245,6 +245,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 			sectorpos = 0; //The next sector is at position 0!
 		}
 		bytesread += currentbytestoread; //1 (partly) sector read!
+		resultbuffer += currentbytestoread; //Increase to the next sector in memory!
 		++sector; //Next sector!
 	}
 	
@@ -317,7 +318,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 
 	for (; byteswritten<bytestowrite;) //Still left to read?
 	{
-		if (!readhandler(dev, (uint_32)sector, &sectorbuffer)) //Read to buffer!
+		if (!readhandler(dev, (uint_32)sector, &sectorbuffer)) //Read the original sector to buffer!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
@@ -334,7 +335,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 			currentbytestowrite = 512;
 			if ((currentbytestowrite + sectorpos)>512) //Less than the 512-byte buffer?
 			{
-				currentbytestowrite -= (word)sectorpos; //Bytes left to read!
+				currentbytestowrite -= (word)sectorpos; //Bytes left to write!
 			}
 			if (currentbytestowrite > (bytestowrite - byteswritten)) //More than we need?
 			{

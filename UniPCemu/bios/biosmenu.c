@@ -2289,7 +2289,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						if (error) //Error occurred?
 						{
 							remove(fullfilename); //Try to remove the generated file!
-							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition); //Error at this sector!
+							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition?sectorposition-1:0); //Error at this sector!
 						}
 					}
 					else //Error occurred?
@@ -2470,7 +2470,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					if (error) //Error occurred?
 					{
 						remove(fullfilename); //Try to remove the generated file!
-						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition); //Error at this sector!
+						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition?sectorposition-1:0); //Error at this sector!
 					}
 				}
 				else //Error occurred?
@@ -2715,7 +2715,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									break; //Continue running on the next sector to process!
 							}
 							sprintf(errorlog,"%s\nPrevious source sector: %u\nPrevious destination sector: %u",errorlog,previoussectornr,previousdestsectornr); //Previous sector numbers!
-							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition); //Error at this sector!
+							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition?sectorposition-1:0); //Error at this sector!
 							dolog(originalfilename, "\n%s",errorlog); //Error at this sector information!
 						}
 						else //We've been defragmented?
