@@ -53,7 +53,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		destCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X)",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcode); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
