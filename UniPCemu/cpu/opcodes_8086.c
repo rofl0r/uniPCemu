@@ -2565,9 +2565,6 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 void CPU8086_OPD0() //GRP2 Eb,1
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check8(&params,1,1)) return; //Abort when needed!
-	if (modrm_check8(&params,1,0)) return; //Abort when needed!
-	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger8(&params,0,1); //Get src!
@@ -2599,14 +2596,14 @@ void CPU8086_OPD0() //GRP2 Eb,1
 			break;
 		}
 	}
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if (modrm_check8(&params,1,0)) return; //Abort when needed!
+	oper1b = modrm_read8(&params,1);
 	modrm_write8(&params,1,op_grp2_8(1,0));
 }
 void CPU8086_OPD1() //GRP2 Ev,1
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check16(&params,1,1)) return; //Abort when needed!
-	if (modrm_check16(&params,1,0)) return; //Abort when needed!
-	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger16(&params,0,1); //Get src!
@@ -2638,14 +2635,14 @@ void CPU8086_OPD1() //GRP2 Ev,1
 			break;
 		}
 	}
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if (modrm_check16(&params,1,0)) return; //Abort when needed!
+	oper1 = modrm_read16(&params,1);
 	modrm_write16(&params,1,op_grp2_16(1,0),0);
 }
 void CPU8086_OPD2() //GRP2 Eb,CL
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check8(&params,1,1)) return; //Abort when needed!
-	if (modrm_check8(&params,1,0)) return; //Abort when needed!
-	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger8(&params,0,1); //Get src!
@@ -2677,14 +2674,14 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 			break;
 		}
 	}
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if (modrm_check8(&params,1,0)) return; //Abort when needed!
+	oper1b = modrm_read8(&params,1);
 	modrm_write8(&params,1,op_grp2_8(REG_CL,1));
 }
 void CPU8086_OPD3() //GRP2 Ev,CL
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check16(&params,1,1)) return; //Abort when needed!
-	if (modrm_check16(&params,1,0)) return; //Abort when needed!
-	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger16(&params,0,1); //Get src!
@@ -2718,6 +2715,9 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 			break;
 		}
 	}
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if (modrm_check16(&params,1,0)) return; //Abort when needed!
+	oper1 = modrm_read16(&params,1);
 	modrm_write16(&params,1,op_grp2_16(REG_CL,1),0);
 }
 
@@ -2725,12 +2725,6 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 void CPU8086_OPF6() //GRP3a Eb
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check8(&params,1,1)) return; //Abort when needed!
-	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
-	{
-		if (modrm_check8(&params,1,0)) return; //Abort when needed!
-	}
-	oper1b = modrm_read8(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger8(&params,0,1); //Get src!
@@ -2762,6 +2756,12 @@ void CPU8086_OPF6() //GRP3a Eb
 			break;
 		}
 	}
+	if (modrm_check8(&params,1,1)) return; //Abort when needed!
+	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
+	{
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
+	}
+	oper1b = modrm_read8(&params,1);
 	op_grp3_8();
 	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
 	{
@@ -2771,12 +2771,6 @@ void CPU8086_OPF6() //GRP3a Eb
 void CPU8086_OPF7() //GRP3b Ev
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check16(&params,1,1)) return; //Abort when needed!
-	if ((thereg>1) && (thereg<4)) //NOT/NEG?
-	{
-		if (modrm_check16(&params,1,0)) return; //Abort when needed!
-	}
-	oper1 = modrm_read16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger16(&params,0,1); //Get src!
@@ -2808,6 +2802,12 @@ void CPU8086_OPF7() //GRP3b Ev
 			break;
 		}
 	}
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	if ((thereg>1) && (thereg<4)) //NOT/NEG?
+	{
+		if (modrm_check16(&params,1,0)) return; //Abort when needed!
+	}
+	oper1 = modrm_read16(&params,1);
 	op_grp3_16();
 	if ((thereg>1) && (thereg<4)) //NOT/NEG?
 	{
@@ -2829,12 +2829,12 @@ void CPU8086_OPFE() //GRP4 Eb
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //INC
-		if (modrm_check8(&params,1,1)) return; //Abort when needed!
-		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("INCB",8,0,PARAM_MODRM2); //INC!
 		}
+		if (modrm_check8(&params,1,1)) return; //Abort when needed!
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,1)+1;
 		flag_add8(modrm_read8(&params,1),1);
@@ -2842,12 +2842,12 @@ void CPU8086_OPFE() //GRP4 Eb
 		modrm_write8(&params,1,res8);
 		break;
 	case 1: //DEC
-		if (modrm_check8(&params,1,1)) return; //Abort when needed!
-		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("DECB",8,0,PARAM_MODRM2); //DEC!
 		}
+		if (modrm_check8(&params,1,1)) return; //Abort when needed!
+		if (modrm_check8(&params,1,0)) return; //Abort when needed!
 		tempcf = FLAG_CF;
 		res8 = modrm_read8(&params,1)-1;
 		flag_sub8(modrm_read8(&params,1),1);
@@ -2863,9 +2863,6 @@ void CPU8086_OPFE() //GRP4 Eb
 void CPU8086_OPFF() //GRP5 Ev
 {
 	thereg = MODRM_REG(params.modrm);
-	if (modrm_check16(&params,1,1)) return; //Abort when needed!
-	oper1 = modrm_read16(&params,1);
-	ea = modrm_offset16(&params,1);
 	if (cpudebugger) //Debugger on?
 	{
 		modrm_debugger16(&params,0,1); //Get src!
@@ -2901,6 +2898,9 @@ void CPU8086_OPFF() //GRP5 Ev
 			break;
 		}
 	}
+	if (modrm_check16(&params,1,1)) return; //Abort when needed!
+	oper1 = modrm_read16(&params,1);
+	ea = modrm_offset16(&params,1);
 	op_grp5();
 }
 

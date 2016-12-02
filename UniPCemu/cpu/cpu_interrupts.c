@@ -32,6 +32,7 @@ extern byte CPU_interruptraised; //Interrupt raised flag?
 
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
+	char errorcodestr[256];
 	word destCS;
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
@@ -53,7 +54,17 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		destCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcode); //Log the current info of the call!
+		bzero(&errorcodestr,sizeof(errorcodestr)); //Clear the error code!
+		if (errorcode==-1) //No error code?
+		{
+			strcpy(errorcodestr,"-1");
+		}
+		else
+		{
+			sprintf(errorcodestr,"%08X",(uint_32)errorcode); //The error code itself!
+		}
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
@@ -86,6 +97,7 @@ void CPU_IRET()
 			REG_FLAGS = CPU_POP16(); //Pop flags!
 		}
 		dolog("cpu","IRET to %04X:%04X",CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP); //Log the current info of the call!
+		if (debugger_logging()) dolog("debugger","IRET to %04X:%04X",CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP); //Log the current info of the call!
 	}
 	else //Use protected mode IRET?
 	{
