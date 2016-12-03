@@ -5033,6 +5033,7 @@ void BIOS_ShowCPUSpeed()
 
 void BIOS_SoundStartStopRecording()
 {
+	lock(LOCK_MAINTHREAD); //Make sure we're not doing anything!
 	if (sound_isRecording()) //Are we recording?
 	{
 		sound_stopRecording(); //Stop recording!
@@ -5066,6 +5067,7 @@ void BIOS_SoundStartStopRecording()
 		PORT_OUT_B(0x330,0x40); //At default volume!
 		#endif
 	}
+	unlock(LOCK_MAINTHREAD); //Make sure we're not doing anything!
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
