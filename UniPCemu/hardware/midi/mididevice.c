@@ -135,18 +135,33 @@ Cents and DB conversion!
 
 //Low pass filters!
 
-OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
+OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte filterindex)
 {
-	INLINEREGISTER float frequency;
+	INLINEREGISTER float frequency, modulationratio;
 	frequency = voice->lowpassfilter_freq; //Load the frequency!
-	frequency *= (float)cents2samplesfactor(Modulation*voice->lowpassfilter_modenvfactor); //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
+
+	modulationratio = Modulation*voice->lowpassfilter_modenvfactor; //The modulation ratio to use!
+
+	//Now, translate the modulation ratio to samples, optimized!
+	modulationratio = (float)((int_32)modulationratio); //Round it down to get integer values to optimize!
+	if (modulationratio!=voice->lowpass_modulationratio[filterindex]) //Different ratio?
+	{
+		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
+		modulationratio = voice->lowpass_modulationratiosamples[filterindex] = cents2samplesfactorf(modulationratio); //Calculate the pitch bend and modulation ratio to apply!
+	}
+	else
+	{
+		modulationratio = voice->lowpass_modulationratiosamples[filterindex]; //We're the same as last time!
+	}
+
+	frequency *= modulationratio; //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
 	return frequency; //Give the frequency to use for the low pass filter!
 }
 
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
 {
 	if (!voice->lowpassfilter_freq) return; //No filter?
-	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result[filterindex], &voice->last_sample[filterindex], &voice->lowpass_isfirst[filterindex]); //Apply a low pass filter!
+	applySoundLowpassFilter(modulateLowpass(voice,Modulation,filterindex),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result[filterindex], &voice->last_sample[filterindex], &voice->lowpass_isfirst[filterindex]); //Apply a low pass filter!
 }
 
 /*
@@ -155,28 +170,79 @@ Voice support
 
 */
 
+//How many steps to keep!
+#define SINUSTABLE_PERCISION 3600
+
+float sinustable[SINUSTABLE_PERCISION]; //10x percision steps of sinus!
+
+void MIDIDEVICE_generateSinusTable()
+{
+	word x;
+	for (x=0;x<NUMITEMS(sinustable);++x)
+	{
+		sinustable[x] = sinf((float)((x/NUMITEMS(sinustable)))*360.0f); //Generate sinus lookup table!
+	}
+}
+
+OPTINLINE static float MIDIDEVICE_sinf(float value)
+{
+	value = fmodf(value,360.0f); //Absolute!
+	if (value<0.0f) //Needs patching?
+	{
+		value += 360.0f; //Make positive for looking it up!
+	}
+	value *= (float)SINUSTABLE_PERCISION; //With accuracy!
+	return sinustable[(int_32)value]; //Lookup at the used percision!
+}
+
 OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float reversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
+	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
+	const float MIDI_CHORUS_SINUS_CENTS = (0.5f*CHORUS_LFO_CENTS); //Cents modulation for the outgoing sinus!
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
 	INLINEREGISTER int_64 samplepos;
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
+	float modulationratio;
 
 	samplepos = play_counter; //Load the current play counter!
 	samplepos -= (int_64)(chorus_delay[chorus]*samplerate); //Apply specified chorus delay!
 	samplepos -= (int_64)(reverb_delay[reverb]*samplerate); //Apply specified reverb delay!
 	samplepos = (int_64)(samplepos*samplespeedup); //Affect speed through cents and other global factors!
-	if (voice->modenv_pitchfactor) //Gotten a modulation envelope to process to the pitch?
+	if (voice->modenv_pitchfactor && (chorus==0)) //Gotten a modulation envelope to process to the pitch?
 	{
-		samplepos = (int_64)(samplepos*cents2samplesfactor(voice->modenv_pitchfactor)); //Apply the pitch bend to the sample to retrieve!
+		modulationratio = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
 	}
-	if (chorus) //Chorus has modulation of the pitch as well?
+	else if (voice->modenv_pitchfactor && chorus) //Both?
 	{
-		samplepos = (int_64)(samplepos*cents2samplesfactor((float)((sinf(2.0f*(float)PI*CHORUS_LFO_FREQUENCY*(((float)play_counter)*reversesamplerate))+1.0f)*((0.5f*CHORUS_LFO_CENTS)*chorus))+1200.0f)); //Apply the pitch bend to the sample to retrieve!
+		modulationratio = (MIDIDEVICE_sinf(MIDI_CHORUS_SINUS_BASE*((((float)(play_counter)))*reversesamplerate))+1.0f)*(MIDI_CHORUS_SINUS_CENTS*chorus); //Pitch bend default!
+		modulationratio += voice->modenv_pitchfactor; //Apply pitch bend as well! This also adds the base of 1200 cents required to work!
+	}
+	else if (chorus) //Chorus only has modulation of the pitch as well?
+	{
+		modulationratio = ((MIDIDEVICE_sinf(MIDI_CHORUS_SINUS_BASE*((float)(play_counter)*reversesamplerate))+1.0f)*(MIDI_CHORUS_SINUS_CENTS*chorus))+1200.0f; //Current modulation ratio!
+	}
+	else
+	{
+		modulationratio = 1200.0f; //No modulation by default!
 	}
 
+	//Apply the new modulation ratio, if needed!
+	modulationratio = (float)((int_32)modulationratio); //Round it down to get integer values to optimize!
+	if (modulationratio!=voice->modulationratio[chorus]) //Different ratio?
+	{
+		voice->modulationratio[chorus] = modulationratio; //Update the last ratio!
+		modulationratio = voice->modulationratiosamples[chorus] = cents2samplesfactorf(modulationratio); //Calculate the pitch bend and modulation ratio to apply!
+	}
+	else
+	{
+		modulationratio = voice->modulationratiosamples[chorus]; //We're the same as last time!
+	}
+	samplepos = (int_64)(samplepos*modulationratio); //Apply the pitch bend to the sample to retrieve!
+
+	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
 
 	//First: apply looping!
@@ -329,11 +395,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	pitchcents = (float)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
 	pitchcents /= 128.0f; //Create a value between -1 and 1!
-	pitchcents *= (float)cents2samplesfactor(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
+	pitchcents *= cents2samplesfactorf(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup *= (float)cents2samplesfactor(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
+	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
 	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
@@ -620,7 +686,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = (float)cents2samplesfactor(cents); //Load the default speedup we need for our tone!
+	voice->initsamplespeedup = cents2samplesfactorf(cents); //Load the default speedup we need for our tone!
 	
 	attenuation = 0.0f; //Init to default value!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
@@ -705,6 +771,14 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The 
 	}
 
+	for (chorusreverbdepth=0;chorusreverbdepth<0x10;++chorusreverbdepth)
+	{
+		voice->modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
+		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
+		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+	}
+
 	//Setup default channel chorus/reverb!
 	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
 	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
@@ -725,7 +799,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->lowpassfilter_freq = 13500.0f; //Default: no low pass filter!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialFilterFc, &applyigen)) //Filter enabled?
 	{
-		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactor(LE16(applyigen.genAmount.shAmount))); //Set a low pass filter to it's initial value!
+		voice->lowpassfilter_freq = (float)(8.176*cents2samplesfactorf(LE16(applyigen.genAmount.shAmount))); //Set a low pass filter to it's initial value!
 		if (voice->lowpassfilter_freq>20000.0f) voice->lowpassfilter_freq = 20000.0f; //Apply maximum!
 	}
 
@@ -1373,6 +1447,9 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 	lockaudio();
 	done_MIDIDEVICE(); //Start finished!
 	reset_MIDIDEVICE(); //Reset our MIDI device!
+
+	MIDIDEVICE_generateSinusTable(); //Make sure we can generate sinuses required!
+
 	//Load the soundfont?
 	soundfont = readSF(filename); //Read the soundfont, if available!
 	if (!soundfont) //Unable to load?

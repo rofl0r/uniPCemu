@@ -262,51 +262,51 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 
 	//Now, calculate the length of each interval.
-	if (cents2samplesfactor((double)delay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((double)delay) < 0.0002f) //0.0001 sec?
 	{
 		delay = 0; //No delay!
 	}
 	else
 	{
-		delay = (uint_32)(sampleRate*cents2samplesfactor((double)delay)); //Calculate the ammount of samples!
+		delay = (uint_32)(sampleRate*cents2samplesfactord((double)delay)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactor((double)attack) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((double)attack) < 0.0002f) //0.0001 sec?
 	{
 		attack = 0; //No attack!
 	}
 	else
 	{
-		attack = (uint_32)(sampleRate*cents2samplesfactor((double)attack)); //Calculate the ammount of samples!
+		attack = (uint_32)(sampleRate*cents2samplesfactord((double)attack)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactor((double)hold) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((double)hold) < 0.0002f) //0.0001 sec?
 	{
 		hold = 0; //No hold!
 	}
 	else
 	{
-		hold = (uint_32)(sampleRate*cents2samplesfactor((double)hold)); //Calculate the ammount of samples!
+		hold = (uint_32)(sampleRate*cents2samplesfactord((double)hold)); //Calculate the ammount of samples!
 	}
-	hold = (uint_32)(hold*cents2samplesfactor((double)(holdenvfactor*relKeynum))); //Apply key number!
+	hold = (uint_32)(hold*cents2samplesfactord((double)(holdenvfactor*relKeynum))); //Apply key number!
 
-	if (cents2samplesfactor((double)decay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((double)decay) < 0.0002f) //0.0001 sec?
 	{
 		decay = 0; //No decay!
 	}
 	else
 	{
-		decay = (uint_32)(sampleRate*cents2samplesfactor((double)decay)); //Calculate the ammount of samples!
+		decay = (uint_32)(sampleRate*cents2samplesfactord((double)decay)); //Calculate the ammount of samples!
 	}
-	decay = (uint_32)(decay*cents2samplesfactor((double)(decayenvfactor*relKeynum))); //Apply key number!
+	decay = (uint_32)(decay*cents2samplesfactord((double)(decayenvfactor*relKeynum))); //Apply key number!
 
 	sustainfactor = (float)dB2factor(((1000.0-sustain)/10.0),100.0); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
-	if (cents2samplesfactor((double)release) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((double)release) < 0.0002f) //0.0001 sec?
 	{
 		release = 0; //No release!
 	}
 	else
 	{
-		release = (uint_32)(sampleRate*cents2samplesfactor((double)release)); //Calculate the ammount of samples!
+		release = (uint_32)(sampleRate*cents2samplesfactord((double)release)); //Calculate the ammount of samples!
 	}
 	
 	//Now calculate the steps for the envelope!

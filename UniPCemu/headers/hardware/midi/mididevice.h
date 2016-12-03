@@ -109,6 +109,8 @@ typedef struct
 	float activereverbdepth[4]; //The reverb depth used for all channels!
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
+	float modulationratio[16], modulationratiosamples[16]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
+	float lowpass_modulationratio[16], lowpass_modulationratiosamples[16]; //See modulation ratio, but for the low pass filter only!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
