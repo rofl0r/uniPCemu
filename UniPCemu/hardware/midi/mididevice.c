@@ -143,10 +143,10 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation)
 	return frequency; //Give the frequency to use for the low pass filter!
 }
 
-OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation)
+OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
 {
 	if (!voice->lowpassfilter_freq) return; //No filter?
-	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result, &voice->last_sample, &voice->lowpass_isfirst); //Apply a low pass filter!
+	applySoundLowpassFilter(modulateLowpass(voice,Modulation),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result[filterindex], &voice->last_sample[filterindex], &voice->lowpass_isfirst[filterindex]); //Apply a low pass filter!
 }
 
 /*
@@ -155,7 +155,7 @@ Voice support
 
 */
 
-OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float reversesamplerate) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float reversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -229,7 +229,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 		lchannel = (float)readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
-		applyMIDILowpassFilter(voice, &lchannel, Modulation); //Low pass filter!
+		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
 		lchannel *= Volume; //Apply ADSR Volume envelope!
 		lchannel *= voice->initialAttenuation; //The volume of the samples!
 		//Now the sample is ready for output into the actual final volume!
@@ -371,8 +371,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 		for (currentchorusreverb=0;currentchorusreverb<16;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
 		{
-			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)LE32(voice->sample.dwSampleRate), voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>2)],reversesamplerate); //Get the sample from the MIDI device!
-			break;
+			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, (float)LE32(voice->sample.dwSampleRate), voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (byte)(currentchorusreverb&0x3), (byte)(currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>2)],reversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
+			//break; //Don't do reverb&chorus!
 		}
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
@@ -445,7 +445,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->note = note = &voice->channel->notes[request_note]; //What note!
 
 	voice->play_counter = 0; //Reset play counter!
-	voice->lowpass_isfirst = 1; //We're starting at the first sample!
+	memset(&voice->lowpass_isfirst,1,sizeof(voice->lowpass_isfirst)); //We're starting at the first sample!
 
 	//First, our precalcs!
 
@@ -698,9 +698,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	
 	voice->currentchorusdepth = channel->choruslevel; //Current chorus depth!
 	voice->currentreverbdepth = channel->reverblevel; //Current reverb depth!
-
-	voice->currentchorusdepth = 0; //Disable the chorus effect for now, since it isn't tested yet!
-	voice->currentreverbdepth = 0; //Disable the reverb effect for now, since it isn't tested yet!
 
 	for (chorusreverbchannel=0;chorusreverbchannel<4;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{

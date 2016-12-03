@@ -67,8 +67,8 @@ typedef struct
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
 
-	float last_sample; //Last retrieved sample!
-	float last_result; //Last result of the low pass filter!
+	float last_sample[16]; //Last retrieved sample!
+	float last_result[16]; //Last result of the low pass filter!
 
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
@@ -93,7 +93,7 @@ typedef struct
 
 	byte currentloopflags; //What loopflags are active?
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte lowpass_isfirst; //Are we the first sample to filter?
+	byte lowpass_isfirst[16]; //Are we the first sample to filter?
 	byte has_finallooppos; //Do we have a final loop position?
 
 	byte purpose; //0=Normal voice, 1=Drum channel!
