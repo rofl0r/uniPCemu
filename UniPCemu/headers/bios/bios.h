@@ -96,6 +96,8 @@ typedef struct PACKED
 #define DEBUGGERLOG_INT 3
 //Debug POST Diagnostic codes only
 #define DEBUGGERLOG_DIAGNOSTICCODES 4
+//Always, don't log register state
+#define DEBUGGERLOG_ALWAYS_NOREGISTERS 5
 
 //Execution modes:
 //None:

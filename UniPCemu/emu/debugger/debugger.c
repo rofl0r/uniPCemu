@@ -118,6 +118,7 @@ byte debugger_logging()
 	switch (DEBUGGER_LOG) //What log method?
 	{
 	case DEBUGGERLOG_ALWAYS:
+	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Same, but no register state logging?
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
@@ -352,6 +353,7 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
+	if (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) return; //Don't log the register state?
 	if (!registers || !filename) //Invalid?
 	{
 		dolog(filename,"Log registers called with invalid argument!");
@@ -397,6 +399,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
+	if (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) return; //Don't log us: don't log register state!
 	int i;
 	//Full interrupt status!
 	char buffer[0x11] = ""; //Empty buffer to fill!
