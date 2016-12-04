@@ -26,6 +26,9 @@ typedef struct {
 #define SOUNDHANDLER_RESULT_NOTFILLED 0
 #define SOUNDHANDLER_RESULT_FILLED 1
 
+//Maximum samplerate in Hertz (200KHz)
+#define MAX_SAMPLERATE 50000.0f
+
 void initAudio(); //Initialises audio subsystem!
 void doneAudio(); //Finishes audio subsystem!
 

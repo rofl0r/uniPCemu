@@ -3,6 +3,7 @@
 
 #include "headers/types.h"
 #include "headers/hardware/midi/adsr.h" //ADSR support!
+#include "headers/support/fifobuffer.h" //Effect backtrace support for chorus/reverb effects!
 
 //MIDI Drum channel number
 #define MIDI_DRUMCHANNEL 9
@@ -111,6 +112,7 @@ typedef struct
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
 	float modulationratio[16], modulationratiosamples[16]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[16], lowpass_modulationratiosamples[16]; //See modulation ratio, but for the low pass filter only!
+	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!

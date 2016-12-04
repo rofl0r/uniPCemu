@@ -44,7 +44,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
 //Reverb delay in seconds
-#define REVERB_DELAY 0.25f
+#define REVERB_DELAY 0.0625f
 
 //Chorus delay in seconds (5ms)
 #define CHORUS_DELAY 0.005f
@@ -206,6 +206,22 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 	float modulationratio;
+	uint_32 speedupbuffer;
+	int_64 totaldelay; //For backtracing!
+
+	if (chorus==0) //Main channel? Log the current sample speedup!
+	{
+		writefifobuffer32(voice->effect_backtrace_samplespeedup,(uint_32)(samplespeedup*1000000.0f)); //Log a history of this!
+	}
+
+	totaldelay = ((chorus_delay[chorus]+reverb_delay[chorus])*samplerate); //Total delay to apply!
+	if ((play_counter+totaldelay)>=0) //Are we a running channel?
+	{
+		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,totaldelay,(filterindex==0xF)) && chorus) //Try to read from history! Only apply the value when not the originating channel!
+		{
+			samplespeedup = (speedupbuffer/1000000.0); //Apply the sample speedup from that point in time! Not for the originating channel!
+		}
+	}
 
 	samplepos = play_counter; //Load the current play counter!
 	samplepos -= (int_64)(chorus_delay[chorus]*samplerate); //Apply specified chorus delay!
@@ -1386,6 +1402,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 
 void done_MIDIDEVICE() //Finish our midi device!
 {
+	byte voicehistory; //The history entry!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
@@ -1408,6 +1425,10 @@ void done_MIDIDEVICE() //Finish our midi device!
 	for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 	{
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
+		if (activevoices[i].effect_backtrace_samplespeedup) //Used?
+		{
+			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup); //Release the FIFO buffer containing the entire history!
+		}
 	}
 	MIDIDEVICE_ActiveSenseFinished(); //Finish our Active Sense: we're not needed anymore!
 	unlockaudio();
@@ -1416,6 +1437,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 {
 	byte result;
+	byte voicehistory;
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
@@ -1467,6 +1489,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
 			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
+			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer((reverb_delay[0xFF]+chorus_delay[0xFF])*MAX_SAMPLERATE,0); //Not locked FIFO buffer containing the entire history!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}

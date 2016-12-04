@@ -30,8 +30,6 @@
 #define SAMPLESIZE 512
 #endif
 #endif
-//Maximum samplerate in Hertz (200KHz)
-#define MAX_SAMPLERATE 50000.0f
 //Enable below if debugging speed is to be enabled.
 //#define DEBUG_SOUNDSPEED
 //Enable below if debugging buffering is to be enabled.

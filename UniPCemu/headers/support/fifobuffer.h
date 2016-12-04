@@ -167,6 +167,7 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result); //Is there data to be read?
 byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result);
+byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 backtrace, byte finalbacktrace);
 byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data);
 void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
