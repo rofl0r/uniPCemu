@@ -25,11 +25,21 @@ TARGET_DEBUG = dbg$(TARGET)
 TARGET_PROFILE = prof$(TARGET)
 
 #Programs
+ifeq (,$(CC))
 CC := $(CROSS_COMPILE)gcc
+endif
+ifeq (,$(WINDRES))
 WINDRES := $(CROSS_COMPILE)windres
+endif
+ifeq (,$(AR))
 AR := $(CROSS_COMPILE)ar
+endif
+ifeq (,$(STRIP))
 STRIP := $(CROSS_COMPILE)strip
+endif
+ifeq (,$(RM))
 RM = rm -f
+endif
 
 WARNS = -Wall
 
@@ -37,12 +47,12 @@ ifeq (,$(findstring x64,$(MAKECMDGOALS)))
 #x86 version
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions instead!
-INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL2 -I/mingw/lib
+INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL2 -I$(prefix)/lib
 endif
 
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
-INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
+INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL -I(prefix)/lib
 endif
 endif
 
@@ -50,12 +60,12 @@ ifneq (,$(findstring x64,$(MAKECMDGOALS)))
 #x64 version
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions instead!
-INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL2 -I/mingw/lib
+INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL2 -I$(prefix)/lib
 endif
 
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
-INCLUDE_DIRS := -I. -I/mingw/include -I/mingw/include/SDL -I/mingw/lib
+INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL -I$(prefix)/lib
 endif
 
 #Modify the compiler to 64-bit!

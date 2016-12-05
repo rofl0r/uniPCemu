@@ -1,0 +1,34 @@
+# Makefile to build and install the SDL library
+
+top_builddir = .
+srcdir  = @srcdir@
+objects = build
+gen = gen
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir	= @bindir@
+libdir  = @libdir@
+includedir = @includedir@
+datarootdir = @datarootdir@
+datadir	= @datadir@
+auxdir	= @ac_aux_dir@
+distpath = $(srcdir)/..
+distdir = UniPCemu-@SDL_VERSION@
+distfile = $(distdir).tar.gz
+
+@SET_MAKE@
+SHELL	= @SHELL@
+CC      = @CC@
+INCLUDE = @INCLUDE@
+CFLAGS  = @BUILD_CFLAGS@
+EXTRA_CFLAGS = @EXTRA_CFLAGS@
+LDFLAGS = @BUILD_LDFLAGS@
+EXTRA_LDFLAGS = @EXTRA_LDFLAGS@
+LIBTOOL = @LIBTOOL@
+INSTALL = @INSTALL@
+AR	= @AR@
+RANLIB	= @RANLIB@
+WINDRES	= @WINDRES@
+
+#Support multi platform builds, also the list of used files:
+include Makefile.files
