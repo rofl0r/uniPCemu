@@ -183,7 +183,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 }
 
 #ifdef IS_WINDOWS
-#if !defined(__MINGW32__) && !defined(__MINGW64__)
+#if !defined(__MINGW64__)
 struct timezone {
 	int tz_minuteswest;     /* minutes west of Greenwich */
 	int tz_dsttime;         /* type of DST correction */

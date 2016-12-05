@@ -1402,7 +1402,6 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 
 void done_MIDIDEVICE() //Finish our midi device!
 {
-	byte voicehistory; //The history entry!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
@@ -1437,7 +1436,6 @@ void done_MIDIDEVICE() //Finish our midi device!
 byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 {
 	byte result;
-	byte voicehistory;
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
