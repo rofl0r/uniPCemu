@@ -15,6 +15,9 @@
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 42
 
+//Chorus amount(4 chorus channels) times reverberations(7 reverberations)
+#define CHORUSREVERBSIZE 32
+
 typedef struct
 {
 byte command; //What command?
@@ -68,8 +71,8 @@ typedef struct
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
 
-	float last_sample[16]; //Last retrieved sample!
-	float last_result[16]; //Last result of the low pass filter!
+	float last_sample[CHORUSREVERBSIZE]; //Last retrieved sample!
+	float last_result[CHORUSREVERBSIZE]; //Last result of the low pass filter!
 
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
@@ -94,7 +97,7 @@ typedef struct
 
 	byte currentloopflags; //What loopflags are active?
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte lowpass_isfirst[16]; //Are we the first sample to filter?
+	byte lowpass_isfirst[CHORUSREVERBSIZE]; //Are we the first sample to filter?
 	byte has_finallooppos; //Do we have a final loop position?
 
 	byte purpose; //0=Normal voice, 1=Drum channel!
@@ -105,13 +108,13 @@ typedef struct
 
 	//Chorus and reverb calculations!
 	float chorusdepth[0x100]; //All chorus depths, index 0 is dry sound!
-	float reverbdepth[0x100][4]; //All reverb depths, index 0 is dry sound!
+	float reverbdepth[0x100][8]; //All reverb depths, index 0 is dry sound!
 	float activechorusdepth[4]; //The chorus depth used for all channels!
-	float activereverbdepth[4]; //The reverb depth used for all channels!
+	float activereverbdepth[8]; //The reverb depth used for all channels!
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
-	float modulationratio[16], modulationratiosamples[16]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
-	float lowpass_modulationratio[16], lowpass_modulationratiosamples[16]; //See modulation ratio, but for the low pass filter only!
+	float modulationratio[CHORUSREVERBSIZE], modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
+	float lowpass_modulationratio[CHORUSREVERBSIZE], lowpass_modulationratiosamples[CHORUSREVERBSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
 } MIDIDEVICE_VOICE;
 
