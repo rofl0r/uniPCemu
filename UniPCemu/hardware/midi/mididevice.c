@@ -261,8 +261,9 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	{
 		modulationratio = 1200.0f; //No modulation by default!
 	}
+
 	//Apply pitch bend to the current factor too!
-	modulationratio *= (samplespeedup*(1.0f/1200.0f)); //Speedup according to pitch bend!
+	modulationratio *= ((float)samplespeedup*(1.0f/1200.0f)); //Speedup according to pitch bend!
 
 	//Apply the new modulation ratio, if needed!
 	modulationratio = (float)((uint_32)modulationratio); //Round it down to get integer values to optimize!
