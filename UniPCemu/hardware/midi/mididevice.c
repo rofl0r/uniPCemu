@@ -225,7 +225,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 	float modulationratio;
-	uint_32 speedupbuffer;
+	word speedupbuffer;
 	int_64 totaldelay; //For backtracing!
 
 	if (chorus==0) //Main channel? Log the current sample speedup!
