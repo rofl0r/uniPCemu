@@ -381,6 +381,62 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	return 0; //Nothing to read!
 }
 
+byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 backtrace, byte finalbacktrace)
+{
+	uint_32 readposhistory;
+	if (__HW_DISABLED) return 0; //Abort!
+	if (buffer==0) return 0; //Error: invalid buffer!
+	if (buffer->buffer==0) return 0; //Error invalid: buffer!
+	if (allcleared) return 0; //Abort: invalid buffer!
+
+	fifobuffer_save(buffer); //Save the current status for restoring, if needed!
+
+	if (buffer->lock)
+	{
+		WaitSem(buffer->lock)
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		{
+			readposhistory = (int_64)buffer->readpos; //Save the read position!
+			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
+			for (;readposhistory<0;) //Invalid?
+			{
+				readposhistory += buffer->size; //Convert into valid range!
+			}
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
+			if (finalbacktrace) //Finished?
+			{
+				readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+			}
+			PostSem(buffer->lock)
+			return 1; //Read!
+		}
+		PostSem(buffer->lock)
+	}
+	else
+	{
+		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		{
+			readposhistory = (int_64)buffer->readpos; //Save the read position!
+			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
+			for (;readposhistory<0;) //Invalid?
+			{
+				readposhistory += buffer->size; //Convert into valid range!
+			}
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
+			if (finalbacktrace) //Finished?
+			{
+				readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+			}
+			return 1; //Read!
+		}
+	}
+	return 0; //Nothing to read!
+}
+
 byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!

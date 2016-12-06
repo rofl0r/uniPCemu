@@ -216,7 +216,7 @@ OPTINLINE float MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1
 	return chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Lookup at the used percision!
 }
 
-OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, float samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, word samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -230,21 +230,20 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 
 	if (chorus==0) //Main channel? Log the current sample speedup!
 	{
-		writefifobuffer32(voice->effect_backtrace_samplespeedup,(uint_32)(samplespeedup*1000000.0f)); //Log a history of this!
+		writefifobuffer16(voice->effect_backtrace_samplespeedup,samplespeedup); //Log a history of this!
 	}
 
 	totaldelay = (int_64)((chorus_delay[chorus]+reverb_delay[chorus])*samplerate); //Total delay to apply!
 	if ((play_counter+totaldelay)>=0) //Are we a running channel?
 	{
-		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,(uint_32)totaldelay,(filterindex==(CHORUSREVERBSIZE-1))) && chorus) //Try to read from history! Only apply the value when not the originating channel!
+		if (readfifobuffer16_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,(uint_32)totaldelay,(filterindex==(CHORUSREVERBSIZE-1))) && chorus) //Try to read from history! Only apply the value when not the originating channel!
 		{
-			samplespeedup = (float)(speedupbuffer/1000000.0); //Apply the sample speedup from that point in time! Not for the originating channel!
+			samplespeedup = speedupbuffer; //Apply the sample speedup from that point in time! Not for the originating channel!
 		}
 	}
 
 	samplepos = play_counter; //Load the current play counter!
 	samplepos -= (int_64)((chorus_delay[chorus]+reverb_delay[reverb])*samplerate); //Apply specified chorus&reverb delay!
-	samplepos = (int_64)(samplepos*samplespeedup); //Affect speed through cents and other global factors!
 	if (voice->modenv_pitchfactor && (chorus==0)) //Gotten a modulation envelope to process to the pitch?
 	{
 		modulationratio = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
@@ -262,6 +261,8 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	{
 		modulationratio = 1200.0f; //No modulation by default!
 	}
+	//Apply pitch bend to the current factor too!
+	modulationratio *= (samplespeedup*(1.0f/1200.0f)); //Speedup according to pitch bend!
 
 	//Apply the new modulation ratio, if needed!
 	modulationratio = (float)((uint_32)modulationratio); //Round it down to get integer values to optimize!
@@ -435,7 +436,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
 	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
-	voice->effectivesamplespeedup = currentsamplespeedup; //Load the speedup of the samples we need!
+	voice->effectivesamplespeedup = (word)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
@@ -723,7 +724,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = cents2samplesfactorf(cents); //Load the default speedup we need for our tone!
+	voice->initsamplespeedup = (word)cents; //Load the default speedup we need for our tone!
 	
 	attenuation = 0.0f; //Init to default value!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
@@ -1519,7 +1520,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
 			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
-			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((reverb_delay[0xFF]+chorus_delay[0xFF])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((reverb_delay[0xFF]+chorus_delay[0xFF])*MAX_SAMPLERATE)+1)<<1,0); //Not locked FIFO buffer containing the entire history!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}
