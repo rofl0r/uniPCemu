@@ -381,7 +381,7 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	return 0; //Nothing to read!
 }
 
-byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 backtrace, byte finalbacktrace)
+byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtrace, byte finalbacktrace)
 {
 	uint_32 readposhistory;
 	if (__HW_DISABLED) return 0; //Abort!
