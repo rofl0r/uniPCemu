@@ -217,7 +217,7 @@ OPTINLINE sword MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1
 	return chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Lookup at the used percision!
 }
 
-OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusreverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -332,6 +332,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
 		lchannel *= Volume; //Apply ADSR Volume envelope!
 		lchannel *= voice->initialAttenuation; //The volume of the samples!
+		lchannel *= chorusreverbvol; //Apply chorus&reverb volume for this stream!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
@@ -347,12 +348,6 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 		if (lchannel<(float)SHRT_MIN) lchannel = (float)SHRT_MIN;
 		if (rchannel>(float)SHRT_MAX) rchannel = (float)SHRT_MAX;
 		if (rchannel<(float)SHRT_MIN) rchannel = (float)SHRT_MIN;
-
-		lchannel *= chorusvol; //Apply chorus volume for this stream!
-		rchannel *= chorusvol; //Apply chorus volume for this stream!
-
-		lchannel *= reverbvol; //Apply reverb volume for this stream!
-		rchannel *= reverbvol; //Apply reverb volume for this stream!
 
 		//Give the result!
 		*leftsample += (sword)lchannel; //LChannel!
@@ -475,7 +470,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		playcounterfltchorusreverbreversesamplerate = (float)voice->play_counter*chorusreverbreversesamplerate; //Preconvert the play counter to floating point!
 		for (currentchorusreverb=0;currentchorusreverb<CHORUSREVERBSIZE;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
 		{	
-			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (currentchorusreverb&0x3), (currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)],voice->activereverbdepth[(currentchorusreverb>>2)],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
+			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (currentchorusreverb&0x3), (currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)]*voice->activereverbdepth[(currentchorusreverb>>2)],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
 		}
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
