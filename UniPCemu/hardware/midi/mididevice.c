@@ -45,7 +45,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
 //Reverb delay in seconds
-#define REVERB_DELAY 0.0625f
+#define REVERB_DELAY 0.01f
 
 //Chorus delay in seconds (5ms)
 #define CHORUS_DELAY 0.005f
@@ -333,6 +333,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 		lchannel *= Volume; //Apply ADSR Volume envelope!
 		lchannel *= voice->initialAttenuation; //The volume of the samples!
 		lchannel *= chorusreverbvol; //Apply chorus&reverb volume for this stream!
+		lchannel *= VOLUME; //Apply general volume!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
@@ -340,18 +341,15 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
 		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
 
-		lchannel *= VOLUME;
-		rchannel *= VOLUME;
-
 		//Clip the samples to prevent overflow!
-		if (lchannel>(float)SHRT_MAX) lchannel = (float)SHRT_MAX;
-		if (lchannel<(float)SHRT_MIN) lchannel = (float)SHRT_MIN;
-		if (rchannel>(float)SHRT_MAX) rchannel = (float)SHRT_MAX;
-		if (rchannel<(float)SHRT_MIN) rchannel = (float)SHRT_MIN;
+		if (lchannel>SHRT_MAX) lchannel = (float)SHRT_MAX;
+		else if (lchannel<SHRT_MIN) lchannel = (float)SHRT_MIN;
+		if (rchannel>SHRT_MAX) rchannel = (float)SHRT_MAX;
+		else if (rchannel<SHRT_MIN) rchannel = (float)SHRT_MIN;
 
 		//Give the result!
-		*leftsample += (sword)lchannel; //LChannel!
-		*rightsample += (sword)rchannel; //RChannel!
+		*leftsample += (int_32)lchannel; //LChannel!
+		*rightsample += (int_32)rchannel; //RChannel!
 	}
 }
 
