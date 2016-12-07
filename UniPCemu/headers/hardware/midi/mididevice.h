@@ -90,7 +90,7 @@ typedef struct
 	float CurrentVolumeEnvelope; //Current volume envelope!
 	float CurrentModulationEnvelope; //Current modulation envelope!
 
-	float modenv_pitchfactor; //How many cents to apply to the frequency of the sound?
+	sword modenv_pitchfactor; //How many cents to apply to the frequency of the sound?
 
 	sfSample sample; //The sample to be played back!
 	ADSR VolumeEnvelope; //The volume envelope!
@@ -114,7 +114,8 @@ typedef struct
 	float activereverbdepth[8]; //The reverb depth used for all channels!
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
-	float modulationratio[CHORUSREVERBSIZE], modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
+	sword modulationratiocents[CHORUSREVERBSIZE];
+	float modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[CHORUSREVERBSIZE], lowpass_modulationratiosamples[CHORUSREVERBSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
 } MIDIDEVICE_VOICE;

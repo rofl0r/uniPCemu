@@ -178,7 +178,7 @@ Voice support
 #define SINUSTABLE_PERCISION_REVERSE (1.0f/3600.0f)
 
 float sinustable[SINUSTABLE_PERCISION]; //10x percision steps of sinus!
-float chorussinustable[SINUSTABLE_PERCISION][4][2]; //10x percision steps of sinus! With 1.0 added always!
+sword chorussinustable[SINUSTABLE_PERCISION][4][2]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
@@ -190,8 +190,8 @@ void MIDIDEVICE_generateSinusTable()
 		sinustable[x] = sinf((float)((x/NUMITEMS(sinustable)))*360.0f); //Generate sinus lookup table!
 		for (choruschannel=0;choruschannel<4;++choruschannel) //All channels!
 		{
-			chorussinustable[x][choruschannel][0] = (sinf((float)((x/NUMITEMS(sinustable)))*360.0f)+1.0f)*choruscents[choruschannel]; //Generate sinus lookup table!
-			chorussinustable[x][choruschannel][1] = chorussinustable[x][choruschannel][0]+1200.0f; //Generate sinus lookup table, with cents base added!
+			chorussinustable[x][choruschannel][0] = (sword)((sinf((float)((x/NUMITEMS(sinustable)))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table!
+			chorussinustable[x][choruschannel][1] = (sword)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added!
 		}
 	}
 	sinustable_percision_reverse = SINUSTABLE_PERCISION_REVERSE; //Our percise value, reverse lookup!
@@ -207,7 +207,7 @@ OPTINLINE float MIDIDEVICE_sinf(float value)
 	return sinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)]; //Lookup at the used percision!
 }
 
-OPTINLINE float MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1200centsbase)
+OPTINLINE sword MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1200centsbase)
 {
 	value = fmodf(value,360.0f)*sinustable_percision_reverse; //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 	if (value<0.0f) //Needs patching?
@@ -225,7 +225,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
-	float modulationratio;
+	sword modulationratiocents;
 	word speedupbuffer;
 	int_64 totaldelay; //For backtracing!
 
@@ -247,38 +247,34 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	samplepos -= (int_64)((chorus_delay[chorus]+reverb_delay[reverb])*samplerate); //Apply specified chorus&reverb delay!
 	if (voice->modenv_pitchfactor && (chorus==0)) //Gotten a modulation envelope to process to the pitch?
 	{
-		modulationratio = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
+		modulationratiocents = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
 	}
 	else if (voice->modenv_pitchfactor && chorus) //Both?
 	{
-		modulationratio = MIDIDEVICE_chorussinf(chorusreverbreversesamplerate,chorus,0); //Pitch bend default!
-		modulationratio += voice->modenv_pitchfactor; //Apply pitch bend as well! This also adds the base of 1200 cents required to work!
+		modulationratiocents = MIDIDEVICE_chorussinf(chorusreverbreversesamplerate,chorus,0); //Pitch bend default!
+		modulationratiocents += voice->modenv_pitchfactor; //Apply pitch bend as well! This also adds the base of 1200 cents required to work!
 	}
 	else if (chorus) //Chorus only has modulation of the pitch as well?
 	{
-		modulationratio = MIDIDEVICE_chorussinf(chorusreverbreversesamplerate,chorus,1); //Current modulation ratio!
+		modulationratiocents = MIDIDEVICE_chorussinf(chorusreverbreversesamplerate,chorus,1); //Current modulation ratio!
 	}
 	else
 	{
-		modulationratio = 1200.0f; //No modulation by default!
+		modulationratiocents = 1200; //No modulation by default!
 	}
 
 	//Apply pitch bend to the current factor too!
-	modulationratio += samplespeedup; //Speedup according to pitch bend!
-	modulationratio -= 1200.0f; //Make us correct!
+	modulationratiocents += samplespeedup; //Speedup according to pitch bend!
+	modulationratiocents -= 1200; //Make us correct!
 
 	//Apply the new modulation ratio, if needed!
-	modulationratio = (float)((uint_32)modulationratio); //Round it down to get integer values to optimize!
-	if (modulationratio!=voice->modulationratio[chorus]) //Different ratio?
+	if (modulationratiocents!=voice->modulationratiocents[chorus]) //Different ratio?
 	{
-		voice->modulationratio[chorus] = modulationratio; //Update the last ratio!
-		modulationratio = voice->modulationratiosamples[chorus] = cents2samplesfactorf(modulationratio); //Calculate the pitch bend and modulation ratio to apply!
+		voice->modulationratiocents[chorus] = modulationratiocents; //Update the last ratio!
+		voice->modulationratiosamples[chorus] = cents2samplesfactorf((float)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
 	}
-	else
-	{
-		modulationratio = voice->modulationratiosamples[chorus]; //We're the same as last time!
-	}
-	samplepos = (int_64)(samplepos*modulationratio); //Apply the pitch bend to the sample to retrieve!
+
+	samplepos = (int_64)(samplepos*voice->modulationratiosamples[chorus]); //Apply the pitch bend to the sample to retrieve!
 
 	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
@@ -515,9 +511,9 @@ OPTINLINE float MIDIconvex(float value, float maxvalue)
 OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
-	sword rootMIDITone; //Relative root MIDI tone!
+	sword rootMIDITone, cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float cents, tonecents, panningtemp, pitchwheeltemp,attenuation;
+	float panningtemp, pitchwheeltemp,attenuation;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -687,7 +683,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->loopsize = loopsize; //Save the loop size!
 
 	//Now, calculate the speedup according to the note applied!
-	cents = 0.0f; //Default: none!
+	cents = 0; //Default: none!
 
 	//Calculate MIDI difference in notes!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, overridingRootKey, &applyigen))
@@ -699,35 +695,35 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		rootMIDITone = voice->sample.byOriginalPitch; //Original MIDI tone!
 	}
 
-	rootMIDITone -= note->note; //>=positive difference, <=negative difference.
+	rootMIDITone -= (sword)note->note; //>=positive difference, <=negative difference.
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
 	//Coarse tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
 	{
-		cents = (float)LE16(applyigen.genAmount.shAmount); //How many semitones!
-		cents *= 100.0f; //Apply to the cents: 1 semitone = 100 cents!
+		cents = LE16(applyigen.genAmount.shAmount); //How many semitones!
+		cents *= 100; //Apply to the cents: 1 semitone = 100 cents!
 	}
 
 	//Fine tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, fineTune, &applyigen))
 	{
-		cents += (float)LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
+		cents += LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
 	}
 
 	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
-	tonecents = 100.0f; //Default: 100 cents(%) scale tuning!
+	tonecents = 100; //Default: 100 cents(%) scale tuning!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, scaleTuning, &applyigen))
 	{
-		tonecents = (float)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+		tonecents = LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
 
-	tonecents *= -((float)rootMIDITone); //Difference in tones we use is applied to the ammount of cents reversed (the more negative, the)!
+	tonecents *= -(rootMIDITone); //Difference in tones we use is applied to the ammount of cents reversed (the more negative, the)!
 
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = (sword)cents; //Load the default speedup we need for our tone!
+	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
 	
 	attenuation = 0.0f; //Init to default value!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
@@ -818,7 +814,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
 	{
-		voice->modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
+		voice->modulationratiocents[chorusreverbdepth] = 1200; //Default ratio: no modulation!
 		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
