@@ -81,8 +81,8 @@ typedef struct
 	MIDIDEVICE_CHANNEL *channel; //The active channel!
 	MIDIDEVICE_NOTE *note; //The active note!
 	float pitchwheelmod, initpanning, panningmod; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
-	word initsamplespeedup; //Initial sample speedup, in cents!
-	word effectivesamplespeedup; //The speedup of the samples, in cents!
+	sword initsamplespeedup; //Initial sample speedup, in cents!
+	sword effectivesamplespeedup; //The speedup of the samples, in cents!
 	float lvolume, rvolume; //Left and right panning!
 	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!
 	float lowpassfilter_modenvfactor; //How many cents to apply to the frequency of the low pass filter?

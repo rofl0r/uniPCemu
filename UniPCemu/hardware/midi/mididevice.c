@@ -8,6 +8,7 @@
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 #include "headers/emu/timers.h" //Use timers for Active Sensing!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/support/signedness.h"
 
 //Use direct windows MIDI processor if available?
 //#define DIRECT_MIDI
@@ -216,7 +217,7 @@ OPTINLINE float MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1
 	return chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Lookup at the used percision!
 }
 
-OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, word samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusvol, float reverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -230,7 +231,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 
 	if (chorus==0) //Main channel? Log the current sample speedup!
 	{
-		writefifobuffer16(voice->effect_backtrace_samplespeedup,samplespeedup); //Log a history of this!
+		writefifobuffer16(voice->effect_backtrace_samplespeedup,signed2unsigned16(samplespeedup)); //Log a history of this!
 	}
 
 	totaldelay = (int_64)((chorus_delay[chorus]+reverb_delay[chorus])*samplerate); //Total delay to apply!
@@ -238,7 +239,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	{
 		if (readfifobuffer16_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,(uint_32)totaldelay,(filterindex==(CHORUSREVERBSIZE-1))) && chorus) //Try to read from history! Only apply the value when not the originating channel!
 		{
-			samplespeedup = speedupbuffer; //Apply the sample speedup from that point in time! Not for the originating channel!
+			samplespeedup = unsigned2signed16(speedupbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
 		}
 	}
 
@@ -263,7 +264,8 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	}
 
 	//Apply pitch bend to the current factor too!
-	modulationratio *= ((float)samplespeedup*(1.0f/1200.0f)); //Speedup according to pitch bend!
+	modulationratio += samplespeedup; //Speedup according to pitch bend!
+	modulationratio -= 1200.0f; //Make us correct!
 
 	//Apply the new modulation ratio, if needed!
 	modulationratio = (float)((uint_32)modulationratio); //Round it down to get integer values to optimize!
@@ -437,7 +439,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
 	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
-	voice->effectivesamplespeedup = (word)currentsamplespeedup; //Load the speedup of the samples we need!
+	voice->effectivesamplespeedup = (sword)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
@@ -725,7 +727,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = (word)cents; //Load the default speedup we need for our tone!
+	voice->initsamplespeedup = (sword)cents; //Load the default speedup we need for our tone!
 	
 	attenuation = 0.0f; //Init to default value!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
