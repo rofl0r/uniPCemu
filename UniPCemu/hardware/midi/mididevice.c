@@ -217,7 +217,7 @@ OPTINLINE sword MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1
 	return chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Lookup at the used percision!
 }
 
-OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusreverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
+OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, uint_32 totaldelay, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusreverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -227,15 +227,13 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	static sword readsample = 0; //The sample retrieved!
 	sword modulationratiocents;
 	word speedupbuffer;
-	int_64 totaldelay; //For backtracing!
 
 	if (chorus==0) //Main channel? Log the current sample speedup!
 	{
 		writefifobuffer16(voice->effect_backtrace_samplespeedup,signed2unsigned16(samplespeedup)); //Log a history of this!
 	}
 
-	totaldelay = (int_64)((chorus_delay[chorus]+reverb_delay[chorus])*samplerate); //Total delay to apply!
-	if ((play_counter+totaldelay)>=0) //Are we a running channel?
+	if (play_counter>=0) //Are we a running channel?
 	{
 		if (readfifobuffer16_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,(uint_32)totaldelay,(filterindex==(CHORUSREVERBSIZE-1))) && chorus) //Try to read from history! Only apply the value when not the originating channel!
 		{
@@ -244,7 +242,6 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	}
 
 	samplepos = play_counter; //Load the current play counter!
-	samplepos -= (int_64)((chorus_delay[chorus]+reverb_delay[reverb])*samplerate); //Apply specified chorus&reverb delay!
 	if (voice->modenv_pitchfactor && (chorus==0)) //Gotten a modulation envelope to process to the pitch?
 	{
 		modulationratiocents = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
@@ -373,6 +370,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	uint_32 numsamples = length; //How many samples to buffer!
 	++numsamples; //Take one sample more!
 	byte currentchorusreverb; //Current chorus and reverb levels we're processing!
+	int_64 chorusreverbsamplepos;
 
 	#ifdef MIDI_LOCKSTART
 	//lock(voice->locknumber); //Lock us!
@@ -458,17 +456,25 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	float chorusreverbreversesamplerate, playcounterfltchorusreverbreversesamplerate;
 	chorusreverbreversesamplerate = MIDI_CHORUS_SINUS_BASE*(1.0f/samplerate); //To multiple to divide by the sample rate(conversion from sample to seconds)
 
+	byte chorus,reverb;
+	uint_32 totaldelay;
+
 	//Now produce the sound itself!
 	for (; --numsamples;) //Produce the samples!
 	{
 		lchannel = 0; //Reset left channel!
 		rchannel = 0; //Reset right channel!
-		VolumeEnvelope = ADSR_tick(VolumeADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
-		ModulationEnvelope = ADSR_tick(ModulationADSR,voice->play_counter,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 		playcounterfltchorusreverbreversesamplerate = (float)voice->play_counter*chorusreverbreversesamplerate; //Preconvert the play counter to floating point!
 		for (currentchorusreverb=0;currentchorusreverb<CHORUSREVERBSIZE;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
 		{	
-			MIDIDEVICE_getsample(&lchannel,&rchannel, voice->play_counter, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, (currentchorusreverb&0x3), (currentchorusreverb>>2),voice->activechorusdepth[(currentchorusreverb&3)]*voice->activereverbdepth[(currentchorusreverb>>2)],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
+			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
+			chorus = (currentchorusreverb&0x3); //Current chorus channel!
+			reverb = (currentchorusreverb>>2); //Current reverb channel!
+			totaldelay = (uint_32)((chorus_delay[chorus]+reverb_delay[reverb])*samplerate); //Total delay to apply!
+			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
+			VolumeEnvelope = ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
+			ModulationEnvelope = ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
+			MIDIDEVICE_getsample(&lchannel,&rchannel, chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, chorus, reverb,voice->activechorusdepth[chorus]*voice->activereverbdepth[reverb],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
 		}
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
