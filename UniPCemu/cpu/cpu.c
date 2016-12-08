@@ -55,6 +55,7 @@ byte immb; //For CPU_readOP result!
 word immw; //For CPU_readOPw result!
 uint_32 imm32; //For CPU_readOPdw result!
 uint_64 imm64; //For CPU_readOPdw x2 result!
+uint_32 immaddr32; //Immediate address, for instructions requiring it, either 16-bits or 32-bits of immediate data, depending on the address size!
 
 //Opcode&Stack sizes: 0=16-bits, 1=32-bits!
 byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!
@@ -912,6 +913,17 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
+			case 0xA: //imm16/32, depending on the address size?
+				if (CPU_Address_size[activeCPU]) //32-bit address?
+				{
+					immaddr32 = CPU_readOPdw(); //Read 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+				}
+				else //16-bit address?
+				{
+					immaddr32 = (uint_32)CPU_readOPw(); //Read 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+				}
 			default: //Unknown?
 				//Ignore the parameters!
 				break;
