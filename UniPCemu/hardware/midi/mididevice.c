@@ -45,7 +45,7 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
 //Reverb delay in seconds
-#define REVERB_DELAY 0.01f
+#define REVERB_DELAY 0.25f
 
 //Chorus delay in seconds (5ms)
 #define CHORUS_DELAY 0.005f
@@ -1518,7 +1518,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
 			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
-			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((reverb_delay[0xFF]+chorus_delay[0xFF])*MAX_SAMPLERATE)+1)<<1,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((reverb_delay[(CHORUSREVERBSIZE-1)>>2]+chorus_delay[(CHORUSREVERBSIZE-1)&3])*MAX_SAMPLERATE)+1)<<1,0); //Not locked FIFO buffer containing the entire history!
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}
