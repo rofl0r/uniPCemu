@@ -313,13 +313,13 @@ void initEMU(int full) //Init!
 	}
 
 	debugrow("Initialising MPU...");
-	if (strcmp(BIOS_Settings.SoundFont,"")!=0) //Gotten a soundfont?
+	if ((strcmp(BIOS_Settings.SoundFont,"")!=0) || (BIOS_Settings.useDirectMIDI)) //Gotten a soundfont?
 	{
 		memset(&soundfont,0,sizeof(soundfont)); //Init!
 		strcpy(soundfont,soundfontpath); //The path to the soundfont!
 		strcat(soundfont,"/");
 		strcat(soundfont,BIOS_Settings.SoundFont); //The full path to the soundfont!
-		if (!initMPU(&soundfont[0])) //Initialise our MPU! Use the selected soundfont!
+		if (!initMPU(&soundfont[0],BIOS_Settings.useDirectMIDI)) //Initialise our MPU! Use the selected soundfont!
 		{
 			//We've failed loading!
 			memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));

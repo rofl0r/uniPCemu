@@ -115,6 +115,8 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 LDFLAGS = -lmingw32 -lSDLmain -lSDL
 endif
 
+LDFLAGS += -lwinmm
+
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
 BUILD_DEBUG = $(BUILD_DIR)/$(TARGET_DEBUG)

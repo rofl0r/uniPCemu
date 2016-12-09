@@ -35,6 +35,7 @@
 #include "headers/hardware/gameblaster.h" //Gameblaster volume knob support!
 #include "headers/hardware/ide.h" //Disk change allowed detection!
 #include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
+#include "headers/hardware/midi/mididevice.h" //For Direct MIDI support!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -195,6 +196,7 @@ void BIOS_diagnosticsPortBreakpoint(); //Diagnostics Port Breakpoint setting!
 void BIOS_diagnosticsPortBreakpointTimeout(); //Timeout to be used for breakpoints?
 void BIOS_CPUSpeedMode();
 void BIOS_TurboCPUSpeedMode();
+void BIOS_useDirectMIDIPassthrough();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -260,6 +262,7 @@ Handler BIOS_Menus[] =
 	,BIOS_diagnosticsPortBreakpointTimeout //Timeout to be used for breakpoints is #58!
 	,BIOS_CPUSpeedMode //CPU Speed Mode is #59!
 	,BIOS_TurboCPUSpeedMode //Turbo CPU Speed Mode is #60!
+	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #61!
 };
 
 //Not implemented?
@@ -4025,7 +4028,21 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "<None>");
 	}
 
-	optioninfo[advancedoptions] = 1; //PC Speaker!
+	if (directMIDISupported()) //Direct MIDI is supported?
+	{
+		optioninfo[advancedoptions] = 1; //Game Blaster!
+		strcpy(menuoptions[advancedoptions], "Direct MIDI Passthrough: ");
+		if (BIOS_Settings.useDirectMIDI)
+		{
+			strcat(menuoptions[advancedoptions++], "Enabled");
+		}
+		else
+		{
+			strcat(menuoptions[advancedoptions++], "Disabled");
+		}
+	}
+
+	optioninfo[advancedoptions] = 2; //PC Speaker!
 	strcpy(menuoptions[advancedoptions], "PC Speaker: ");
 	if (BIOS_Settings.usePCSpeaker)
 	{
@@ -4036,7 +4053,7 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "No sound");
 	}
 
-	optioninfo[advancedoptions] = 2; //Adlib!
+	optioninfo[advancedoptions] = 3; //Adlib!
 	strcpy(menuoptions[advancedoptions], "Adlib: ");
 	if (BIOS_Settings.useAdlib)
 	{
@@ -4047,7 +4064,7 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 3; //LPT DAC!
+	optioninfo[advancedoptions] = 4; //LPT DAC!
 	strcpy(menuoptions[advancedoptions], "LPT DAC: ");
 	if (BIOS_Settings.useLPTDAC)
 	{
@@ -4058,7 +4075,7 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 4; //Game Blaster!
+	optioninfo[advancedoptions] = 5; //Game Blaster!
 	strcpy(menuoptions[advancedoptions], "Game Blaster: ");
 	if (BIOS_Settings.useGameBlaster)
 	{
@@ -4069,7 +4086,7 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 5; //Sound Blaster!
+	optioninfo[advancedoptions] = 6; //Sound Blaster!
 	strcpy(menuoptions[advancedoptions], "Sound Blaster: ");
 	switch (BIOS_Settings.useSoundBlaster)
 	{
@@ -4084,21 +4101,21 @@ void BIOS_InitSoundText()
 		strcat(menuoptions[advancedoptions++], "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 6; //Sound Source Volume!
+	optioninfo[advancedoptions] = 7; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
-	optioninfo[advancedoptions] = 7; //Game Blaster Volume!
+	optioninfo[advancedoptions] = 8; //Game Blaster Volume!
 	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %i",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	if (!EMU_RUNNING)
 	{
-		optioninfo[advancedoptions] = 8; //Music player!
+		optioninfo[advancedoptions] = 9; //Music player!
 		strcpy(menuoptions[advancedoptions++], "Music Player");
 	}
 
-	optioninfo[advancedoptions] = 9; //Start/stop recording sound!
+	optioninfo[advancedoptions] = 10; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
 	{
 		strcpy(menuoptions[advancedoptions++], "Start recording sound"); //Sound source volume as a whole number!
@@ -4128,37 +4145,41 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 	case 6:
 	case 7:
 	case 8:
-	case 9: //Valid option?
+	case 9:
+	case 10: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Soundfont selection?
 			if (!EMU_RUNNING) BIOS_Menu = 32; //Soundfont setting!
 			break;
-		case 1: //PC Speaker?
+		case 1: //Direct MIDI Passthrough?
+			if (!EMU_RUNNING) BIOS_Menu = 61; //Game Blaster setting!
+			break;
+		case 2: //PC Speaker?
 			if (!EMU_RUNNING) BIOS_Menu = 44; //PC Speaker setting!
 			break;
-		case 2: //Adlib?
+		case 3: //Adlib?
 			if (!EMU_RUNNING) BIOS_Menu = 45; //Adlib setting!
 			break;
-		case 3: //LPT DAC?
+		case 4: //LPT DAC?
 			if (!EMU_RUNNING) BIOS_Menu = 46; //LPT DAC setting!
 			break;
-		case 4: //Game Blaster?
+		case 5: //Game Blaster?
 			if (!EMU_RUNNING) BIOS_Menu = 52; //Game Blaster setting!
 			break;
-		case 5: //Sound Blaster?
+		case 6: //Sound Blaster?
 			if (!EMU_RUNNING) BIOS_Menu = 54; //Game Blaster setting!
 			break;
-		case 6: //Sound Source Volume?
+		case 7: //Sound Source Volume?
 			BIOS_Menu = 38; //Sound Source Volume setting!
 			break;
-		case 7: //Game Blaster Volume?
+		case 8: //Game Blaster Volume?
 			BIOS_Menu = 53; //Game Blaster Volume setting!
 			break;
-		case 8: //Play Music file(s)?
+		case 9: //Play Music file(s)?
 			BIOS_Menu = 33; //Play Music file(s)!
 			break;
-		case 9: //Sound recording?
+		case 10: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!
 			break;
 		}
@@ -6094,4 +6115,20 @@ void BIOS_TurboCPUSpeedMode()
 		break;
 	}
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_useDirectMIDIPassthrough()
+{
+	//We're supported?
+	if (directMIDISupported()) //Are we supported?
+	{
+		BIOS_Settings.useDirectMIDI = !BIOS_Settings.useDirectMIDI; //Reverse!
+	}
+	else //Not supported?
+	{
+		BIOS_Settings.useDirectMIDI = 0; //Not supported!
+	}
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed |= 1; //A reboot is needed!
+	BIOS_Menu = 31; //Goto Sound menu!
 }

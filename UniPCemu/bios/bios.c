@@ -12,6 +12,7 @@
 #include "headers/emu/emu_misc.h" //FILE_EXISTS support!
 #include "headers/hardware/ports.h" //Port I/O support!
 #include "headers/emu/sound.h" //Volume support!
+#include "headers/hardware/midi/mididevice.h" //MIDI support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -212,7 +213,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.VGASynchronization = DEFAULT_VGASYNCHRONIZATION; //Default VGA synchronization setting!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT; //Default breakpoint setting!
 	BIOS_Settings.diagnosticsportoutput_timeout = DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT; //Default breakpoint setting!
-
+	BIOS_Settings.useDirectMIDI = DEFAULT_DIRECTMIDIMODE; //Default breakpoint setting!
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
 	keyboard_loadDefaults(); //Load the defaults for the keyboard!
@@ -331,6 +332,11 @@ void BIOS_LoadData() //Load BIOS settings!
 		if (bytesread < ((((ptrnum)&BIOS_Settings.diagnosticsportoutput_breakpoint) + sizeof(BIOS_Settings.diagnosticsportoutput_breakpoint)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
 		{
 			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT;
+			defaultsapplied = 1; //We've been applied!
+		}
+		if (bytesread < ((((ptrnum)&BIOS_Settings.useDirectMIDI) + sizeof(BIOS_Settings.useDirectMIDI)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
+		{
+			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIRECTMIDIMODE;
 			defaultsapplied = 1; //We've been applied!
 		}
 	}
@@ -473,6 +479,12 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!
 			bioschanged = 1; //BIOS changed!
 		}
+	}
+
+	if (BIOS_Settings.useDirectMIDI && !directMIDISupported()) //Unsupported Direct MIDI?
+	{
+		BIOS_Settings.useDirectMIDI = 0; //Unsupported: disable the functionality!
+		bioschanged = 1; //BIOS changed!
 	}
 
 	if (BIOS_Settings.DataBusSize > 1) //Invalid bus size?

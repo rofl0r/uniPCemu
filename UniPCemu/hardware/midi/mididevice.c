@@ -11,7 +11,6 @@
 #include "headers/support/signedness.h"
 
 //Use direct windows MIDI processor if available?
-//#define DIRECT_MIDI
 
 //Our volume to use!
 #define MIDI_VOLUME 100.0f
@@ -19,10 +18,8 @@
 //Effective volume vs samples!
 #define VOLUME 0.3f
 
-#ifdef VISUALC
-#ifdef DIRECT_MIDI
+#ifdef WIN32
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
-#endif
 #endif
 
 //Are we disabled?
@@ -31,6 +28,8 @@ RIFFHEADER *soundfont; //Our loaded soundfont!
 
 //To log MIDI commands?
 //#define MIDI_LOG
+
+byte direct_midi = 0; //Enable direct MIDI synthesis?
 
 //On/off controller bit values!
 #define MIDI_CONTROLLER_ON 0x40
@@ -72,11 +71,9 @@ MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
 /* MIDI direct output support*/
 
-#ifdef VISUALC
-#ifdef DIRECT_MIDI
+#ifdef WIN32
 int flag;           // monitor the status of returning functions
 HMIDIOUT device;    // MIDI device interface for sending MIDI output
-#endif
 #endif
 
 OPTINLINE void lockMPURenderer()
@@ -1374,8 +1371,9 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 	return; //We're disabled!
 	#endif
 
-	#ifdef VISUALC
-	#ifdef DIRECT_MIDI
+	#ifdef WIN32
+	if (direct_midi)
+	{
 		//We're directly sending MIDI to the output!
 		union { unsigned long word; unsigned char data[4]; } message;
 		message.data[0] = command; //The command!
@@ -1407,7 +1405,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 			break;
 		}
 		return; //Stop: ready!
-	#endif
+	}
 	#endif
 
 	data->command = command; //Set the command to use!
@@ -1421,8 +1419,9 @@ void done_MIDIDEVICE() //Finish our midi device!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
-	#ifdef VISUALC
-	#ifdef DIRECT_MIDI
+	#ifdef WIN32
+	if (direct_midi)
+	{
 		// turn any MIDI notes currently playing:
 		midiOutReset(device);
 
@@ -1430,7 +1429,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 		midiOutClose(device);
 		//We're directly sending MIDI to the output!
 		return; //Stop: ready!
-	#endif
+	}
 	#endif
 	
 	lockaudio();
@@ -1449,7 +1448,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	unlockaudio();
 }
 
-byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
+byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI device for usage!
 {
 	float MIDI_CHORUS_SINUS_CENTS;
 	MIDI_CHORUS_SINUS_CENTS = (0.5f*CHORUS_LFO_CENTS); //Cents modulation for the outgoing sinus!
@@ -1458,7 +1457,9 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		return 0; //We're disabled!
 	#endif
 	#ifdef VISUALC
-	#ifdef DIRECT_MIDI
+	direct_midi = use_direct_MIDI; //Use direct MIDI synthesis by the OS, if any?
+	if (direct_midi)
+	{
 		// Open the MIDI output port
 		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);
 		if (flag != MMSYSERR_NOERROR) {
@@ -1467,7 +1468,7 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 		}
 		//We're directly sending MIDI to the output!
 		return 1; //Stop: ready!
-	#endif
+	}
 	#endif
 	#ifdef MIDI_LOCKSTART
 	for (result=0;result<__MIDI_NUMVOICES;result++) //Process all voices!
@@ -1518,4 +1519,20 @@ byte init_MIDIDEVICE(char *filename) //Initialise MIDI device for usage!
 	MIDIDEVICE_ActiveSenseInit(); //Initialise Active Sense!
 	unlockaudio();
 	return result;
+}
+
+byte directMIDISupported()
+{
+	#ifdef IS_LINUX
+		#ifdef IS_ANDROID
+			return 1; //Supported!
+		#else
+			return 0; //Unsupported!
+		#endif
+	#else
+		#ifdef IS_WINDOWS
+			return 1; //Supported!
+		#endif
+	#endif
+	return 0; //Default: Unsupported platform!
 }

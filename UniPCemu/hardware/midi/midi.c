@@ -250,10 +250,10 @@ byte MIDI_IN()
 
 byte MPU_ready = 0;
 
-byte initMPU(char *filename) //Initialise function!
+byte initMPU(char *filename, byte use_direct_MIDI) //Initialise function!
 {
 	byte result;
-	result = init_MIDIDEVICE(filename); //Initialise the MIDI device!
+	result = init_MIDIDEVICE(filename, use_direct_MIDI); //Initialise the MIDI device!
 	MPU_ready = result; //Are we ready?
 	if (result) //Valid MIDI device?
 	{
