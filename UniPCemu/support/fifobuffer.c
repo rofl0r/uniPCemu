@@ -394,7 +394,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
-		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-1)-(backtrace<<1))) //Filled enough?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
@@ -402,6 +402,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			{
 				readposhistory += buffer->size; //Convert into valid range!
 			}
+			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
 			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
@@ -416,7 +417,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 	}
 	else
 	{
-		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
+		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-1)-(backtrace<<1))) //Filled enough?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
@@ -424,6 +425,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			{
 				readposhistory += buffer->size; //Convert into valid range!
 			}
+			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
 			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
@@ -479,7 +481,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
-		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-3)-(backtrace<<2))) //Filled?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
@@ -487,6 +489,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			{
 				readposhistory += buffer->size; //Convert into valid range!
 			}
+			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
 			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
@@ -501,7 +504,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	}
 	else
 	{
-		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
+		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-3)-(backtrace<<2))) //Filled?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
@@ -509,6 +512,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			{
 				readposhistory += buffer->size; //Convert into valid range!
 			}
+			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
 			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!

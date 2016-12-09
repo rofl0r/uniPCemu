@@ -174,12 +174,12 @@ Voice support
 
 //How many steps to keep!
 #define SINUSTABLE_PERCISION 3600
-#define SINUSTABLE_PERCISION_FLT 3600.0
-#define SINUSTABLE_PERCISION_REVERSE (1.0f/3600.0f)
+#define SINUSTABLE_PERCISION_FLT 3600.0f
+#define SINUSTABLE_PERCISION_REVERSE (1.0f/SINUSTABLE_PERCISION_FLT)
 
-float sinustable[SINUSTABLE_PERCISION]; //10x percision steps of sinus!
-sword chorussinustable[SINUSTABLE_PERCISION][4][2]; //10x percision steps of sinus! With 1.0 added always!
-float sinustable_percision_reverse = 1.0f; //Reverse lookup!
+float sinustable[SINUSTABLE_PERCISION*2]; //10x percision steps of sinus!
+sword chorussinustable[SINUSTABLE_PERCISION*2][4][2]; //10x percision steps of sinus! With 1.0 added always!
+float sinustable_percision_reverse = 0.5f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
 {
@@ -187,35 +187,24 @@ void MIDIDEVICE_generateSinusTable()
 	byte choruschannel;
 	for (x=0;x<NUMITEMS(sinustable);++x)
 	{
-		sinustable[x] = sinf((float)((x/NUMITEMS(sinustable)))*360.0f); //Generate sinus lookup table!
+		sinustable[x] = sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f); //Generate sinus lookup table!
+		sinustable[x+SINUSTABLE_PERCISION] = sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f); //Generate sinus lookup table!
 		for (choruschannel=0;choruschannel<4;++choruschannel) //All channels!
 		{
-			chorussinustable[x][choruschannel][0] = (sword)((sinf((float)((x/NUMITEMS(sinustable)))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table!
-			chorussinustable[x][choruschannel][1] = (sword)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added!
+			chorussinustable[x][choruschannel][0] = (sword)((sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
+			chorussinustable[x][choruschannel][1] = (sword)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
+			chorussinustable[x+SINUSTABLE_PERCISION][choruschannel][0] = chorussinustable[x][choruschannel][0]; //Generate sinus lookup table, positive!
+			chorussinustable[x+SINUSTABLE_PERCISION][choruschannel][1] = chorussinustable[x][choruschannel][1]; //Generate sinus lookup table, with cents base added, positive!
 		}
 	}
 	sinustable_percision_reverse = SINUSTABLE_PERCISION_REVERSE; //Our percise value, reverse lookup!
 }
 
-OPTINLINE float MIDIDEVICE_sinf(float value)
-{
-	value = fmodf(value,360.0f)*sinustable_percision_reverse; //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
-	if (value<0.0f) //Needs patching?
-	{
-		return sinustable[(uint_32)((value+1.0f)*SINUSTABLE_PERCISION_FLT)]; //Make positive for looking it up!
-	}
-	return sinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)]; //Lookup at the used percision!
-}
+//Absolute to get the amount of degrees, converted to a -0.0 to 2.0 scale!
+#define MIDIDEVICE_sinf(value) sinustable[(uint_32)(((fmodf(value,360.0f)*sinustable_percision_reverse)+1.0f)*SINUSTABLE_PERCISION_FLT)];
 
-OPTINLINE sword MIDIDEVICE_chorussinf(float value, byte choruschannel, byte add1200centsbase)
-{
-	value = fmodf(value,360.0f)*sinustable_percision_reverse; //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
-	if (value<0.0f) //Needs patching?
-	{
-		return chorussinustable[(uint_32)((value+1.0f)*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Make positive for looking it up!
-	}
-	return chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]; //Lookup at the used percision!
-}
+//Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
+#define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(((fmodf(value,360.0f)*sinustable_percision_reverse)+1.0f)*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
 
 OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsample, int_64 play_counter, uint_32 totaldelay, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, byte reverb, float chorusreverbvol, float chorusreverbreversesamplerate, byte filterindex) //Get a sample from an MIDI note!
 {
@@ -466,15 +455,15 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		rchannel = 0; //Reset right channel!
 		playcounterfltchorusreverbreversesamplerate = (float)voice->play_counter*chorusreverbreversesamplerate; //Preconvert the play counter to floating point!
 		for (currentchorusreverb=0;currentchorusreverb<CHORUSREVERBSIZE;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
-		{	
+		{
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
-			chorus = (currentchorusreverb&0x3); //Current chorus channel!
-			reverb = (currentchorusreverb>>2); //Current reverb channel!
-			totaldelay = (uint_32)((chorus_delay[chorus]+reverb_delay[reverb])*samplerate); //Total delay to apply!
+			totaldelay = voice->totaldelay[currentchorusreverb]; //Load the total delay!
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
 			VolumeEnvelope = ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
+			chorus = (currentchorusreverb&0x3); //Current chorus channel!
+			reverb = (currentchorusreverb>>2); //Current reverb channel!
 			ModulationEnvelope = ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
-			MIDIDEVICE_getsample(&lchannel,&rchannel, chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, chorus, reverb,voice->activechorusdepth[chorus]*voice->activereverbdepth[reverb],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
+			MIDIDEVICE_getsample(&lchannel,&rchannel, chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, chorus, reverb,voice->chorusreverbvol[currentchorusreverb],playcounterfltchorusreverbreversesamplerate, currentchorusreverb); //Get the sample from the MIDI device!
 		}
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
@@ -817,11 +806,14 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+		voice->totaldelay[chorusreverbdepth] = (uint_32)((chorus_delay[(chorusreverbdepth&0x3)]+reverb_delay[chorusreverbdepth>>2])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
+		voice->chorusreverbvol[chorusreverbdepth] = voice->activechorusdepth[(chorusreverbdepth&0x3)]*voice->activereverbdepth[chorusreverbdepth>>2]; //Chorus reverb volume!
 	}
 
 	//Setup default channel chorus/reverb!
 	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
 	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
+	voice->chorusreverbvol[0] = voice->activechorusdepth[0]*voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
 
 	//Pitch wheel modulator
 	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
