@@ -93,9 +93,19 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	//First, our variables!
 	byte channel;
 	word notes;
+	FIFOBUFFER *temp;
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
+
+	for (channel=0;channel<NUMITEMS(activevoices);channel++) //Process all voices!
+	{
+		temp = activevoices[channel].effect_backtrace_samplespeedup; //Back-up the effect backtrace!
+		memset(&activevoices[channel],0,sizeof(activevoices[channel])); //Clear the entire channel!
+		activevoices[channel].effect_backtrace_samplespeedup = temp; //Restore our buffer!
+		fifobuffer_clear(temp); //Clear our buffer!
+	}
+
 	for (channel=0;channel<0x10;)
 	{
 		for (notes=0;notes<0x100;)
@@ -506,6 +516,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
+	FIFOBUFFER *temp;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
@@ -525,6 +536,11 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	//Check for requested voices!
 	//First, all our variables!
+	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
+	memset(voice,0,sizeof(*voice)); //Clear the entire channel!
+	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
+	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
+	
 	//Now, determine the actual note to be turned on!
 	voice->channel = channel = &MIDI_channels[request_channel]; //What channel!
 	voice->note = note = &voice->channel->notes[request_note]; //What note!
