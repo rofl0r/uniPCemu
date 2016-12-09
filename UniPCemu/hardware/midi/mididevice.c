@@ -96,7 +96,6 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
-	memset(&activevoices,0,sizeof(activevoices)); //Clear our active voices!
 	for (channel=0;channel<0x10;)
 	{
 		for (notes=0;notes<0x100;)
@@ -523,8 +522,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		unlockMPURenderer(); //We're finished!
 		return 1; //Active voices can't be allocated!
 	}
-
-	memset(voice, 0, sizeof(*voice)); //Clear the voice!
 
 	//Check for requested voices!
 	//First, all our variables!
@@ -1485,6 +1482,8 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	#endif
 	lockaudio();
 	done_MIDIDEVICE(); //Start finished!
+	memset(&activevoices,0,sizeof(activevoices)); //Clear all voice data!
+
 	reset_MIDIDEVICE(); //Reset our MIDI device!
 
 	int i;
