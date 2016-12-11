@@ -720,7 +720,7 @@ void MPU401_Init(/*Section* sec*/) {
 	mpu.mode=M_UART;
 
 	//if (!(mpu.intelligent=section->Get_bool("intelligent"))) return;
-	mpu.irq=/*section->Get_int("irq")*/IS_XT?MPU_IRQ_XT:MPU_IRQ_AT;
+	mpu.irq=/*section->Get_int("irq")*/is_XT?MPU_IRQ_XT:MPU_IRQ_AT;
 	//PIC_RegisterIRQ(mpu.irq,0,"MPU401");
 	MPU401_Reset();
 }
