@@ -10,8 +10,10 @@
 //#define ATA_LOG
 
 //Hard disk IRQ!
-#define ATA_PRIMARYIRQ 14
-#define ATA_SECONDARYIRQ 15
+#define ATA_PRIMARYIRQ_AT 0x0E
+#define ATA_SECONDARYIRQ_AT 0x0F
+#define ATA_PRIMARYIRQ_XT 0x15
+#define ATA_SECONDARYIRQ_XT 0x25
 
 //Bits 6-7 of byte 2 of the Mode Sense command
 //Current values
@@ -180,39 +182,78 @@ OPTINLINE void ATA_LBA2CHS(byte channel, byte slave, uint_32 LBA, word *cylinder
 int ATA_Drives[2][2]; //All ATA mounted drives to disk conversion!
 byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 OPTINLINE void ATA_IRQ(byte channel, byte slave)
 {
 	if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
 	{
-		switch (channel)
+		if (is_XT)
 		{
-		case 0: //Primary channel?
-			raiseirq(ATA_PRIMARYIRQ); //Execute the IRQ!
-			break;
-		case 1:
-			raiseirq(ATA_SECONDARYIRQ); //Execute the IRQ!
-			break;
-		default: //Unknown channel?
-			break;
+			switch (channel)
+			{
+			case 0: //Primary channel?
+				raiseirq(ATA_PRIMARYIRQ_XT); //Execute the IRQ!
+				break;
+			case 1:
+				raiseirq(ATA_SECONDARYIRQ_XT); //Execute the IRQ!
+				break;
+			default: //Unknown channel?
+				break;
+			}
+		}
+		else
+		{
+			switch (channel)
+			{
+			case 0: //Primary channel?
+				raiseirq(ATA_PRIMARYIRQ_AT); //Execute the IRQ!
+				break;
+			case 1:
+				raiseirq(ATA_SECONDARYIRQ_AT); //Execute the IRQ!
+				break;
+			default: //Unknown channel?
+				break;
+			}
 		}
 	}
 }
 
 OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 {
-	//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
-	switch (channel)
+	if (is_XT)
 	{
-	case 0: //Primary channel?
-		lowerirq(ATA_PRIMARYIRQ); //Execute the IRQ!
-		acnowledgeIRQrequest(ATA_PRIMARYIRQ); //Acnowledge!
-		break;
-	case 1:
-		lowerirq(ATA_SECONDARYIRQ); //Execute the IRQ!
-		acnowledgeIRQrequest(ATA_SECONDARYIRQ); //Acnowledge!
-		break;
-	default: //Unknown channel?
-		break;
+		//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
+		switch (channel)
+		{
+		case 0: //Primary channel?
+			lowerirq(ATA_PRIMARYIRQ_XT); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_PRIMARYIRQ_XT); //Acnowledge!
+			break;
+		case 1:
+			lowerirq(ATA_SECONDARYIRQ_XT); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_SECONDARYIRQ_XT); //Acnowledge!
+			break;
+		default: //Unknown channel?
+			break;
+		}
+	}
+	else
+	{
+	//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
+		switch (channel)
+		{
+		case 0: //Primary channel?
+			lowerirq(ATA_PRIMARYIRQ_AT); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_PRIMARYIRQ_AT); //Acnowledge!
+			break;
+		case 1:
+			lowerirq(ATA_SECONDARYIRQ_AT); //Execute the IRQ!
+			acnowledgeIRQrequest(ATA_SECONDARYIRQ_AT); //Acnowledge!
+			break;
+		default: //Unknown channel?
+			break;
+		}
 	}
 }
 
