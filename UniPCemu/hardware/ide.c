@@ -240,7 +240,7 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 	}
 	else
 	{
-	//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
+		//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
 		switch (channel)
 		{
 		case 0: //Primary channel?
