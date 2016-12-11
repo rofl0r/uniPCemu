@@ -33,6 +33,9 @@ void init8259()
 	register_PORTOUT(&out8259);
 	register_PORTIN(&in8259);
 	//All set up!
+
+	i8259.imr[0] = 0xFF; //Mask off all interrupts to start!
+	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
 }
 
 byte in8259(word portnum, byte *result)
@@ -113,39 +116,13 @@ byte out8259(word portnum, byte value)
 		if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2))
 		{
 			++i8259.icwstep[pic]; //single mode, so don't read ICW3
-			if (is_XT) //PC/XT hack?
-			{
-				if (!pic) //PIC0?
-				{
-					i8259.icw[0][2] = 4; //Use IR Master!
-					i8259.icw[1][2] = 2; //Use IR Slave!
-				}
-			}
 		}
 		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1))
 		{
 			++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
-			if (is_XT) //PC/XT hack?
-			{
-				if (!pic) //PIC0?
-				{
-					i8259.icw[0][3] = 1; //Set ICW4!
-					i8259.icw[1][3] = 1; //Set ICW4!
-				}
-			}
 		}
 		if (i8259.icwstep[pic]<4)
 		{
-			if (i8259.icwstep[pic] == 1) //Interrupt number?
-			{
-				if (is_XT) //PC/XT hack?
-				{
-					if (!pic) //PIC0?
-					{
-						i8259.icw[1][1] = 0x70; //Set ICW2 interrupt base vector!
-					}
-				}
-			}
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
 			return 1;
 		}
