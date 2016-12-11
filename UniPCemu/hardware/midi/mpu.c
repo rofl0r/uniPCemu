@@ -1,5 +1,7 @@
 #include "headers/header_dosboxmpu.h" //Basic conversion support!
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 void MPU401_Event();
 void MPU401_Reset();
 
@@ -718,7 +720,7 @@ void MPU401_Init(/*Section* sec*/) {
 	mpu.mode=M_UART;
 
 	//if (!(mpu.intelligent=section->Get_bool("intelligent"))) return;
-	mpu.irq=/*section->Get_int("irq")*/MPU_IRQ;
+	mpu.irq=/*section->Get_int("irq")*/IS_XT?MPU_IRQ_XT:MPU_IRQ_AT;
 	//PIC_RegisterIRQ(mpu.irq,0,"MPU401");
 	MPU401_Reset();
 }
