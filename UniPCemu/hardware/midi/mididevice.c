@@ -191,7 +191,7 @@ void MIDIDEVICE_generateSinusTable()
 {
 	word x;
 	byte choruschannel;
-	for (x=0;x<NUMITEMS(sinustable);++x)
+	for (x=0;x<(NUMITEMS(sinustable)/2);++x)
 	{
 		sinustable[x] = sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f); //Generate sinus lookup table!
 		sinustable[x+SINUSTABLE_PERCISION] = sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f); //Generate sinus lookup table!

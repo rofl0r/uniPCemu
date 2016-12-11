@@ -277,9 +277,11 @@ void doneMPU() //Finish function!
 	}
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 {
 	PIC_RemoveEvents(NULL); //Remove all events!
-	lowerirq(MPU_IRQ); //Remove the irq if it's still there!
-	acnowledgeIRQrequest(MPU_IRQ); //Remove us fully!
+	lowerirq(is_XT?MPU_IRQ_XT:MPU_IRQ_AT); //Remove the irq if it's still there!
+	acnowledgeIRQrequest(is_XT?MPU_IRQ_XT:MPU_IRQ_AT); //Remove us fully!
 }
