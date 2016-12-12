@@ -17,8 +17,8 @@
 #undef OVERFLOW
 
 //PIC support!
-#define PIC_RemoveEvents(function) removetimer("MPU")
-#define PIC_AddEvent(function,timeout) addtimer(1/(timeout/1000000),function,"MPU",1,0,NULL)
+#define PIC_RemoveEvents(function) removeMPUTimer()
+#define PIC_AddEvent(function,timeout) setMPUTimer(timeout,function)
 #define PIC_ActivateIRQ(irq) raiseirq(irq)
 #define PIC_DeActivateIRQ(irq) lowerirq(irq);acnowledgeIRQrequest(irq)
 

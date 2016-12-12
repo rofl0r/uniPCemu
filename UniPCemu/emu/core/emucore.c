@@ -927,6 +927,7 @@ OPTINLINE byte coreHandler()
 		update8042(instructiontime); //Tick the PS/2 mouse timer, if needed!
 		updateCMOS(instructiontime); //Tick the CMOS, if needed!
 		updateFloppy(instructiontime); //Update the floppy!
+		updateMPUTimer(instructiontime); //Update the MPU timing!
 		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster) updateGameBlaster(MHZ14passed); //Tick the Game Blaster timer if needed!
 		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!

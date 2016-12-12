@@ -250,6 +250,9 @@ byte MIDI_IN()
 
 byte MPU_ready = 0;
 
+double MPU_ticktiming = 0.0, MPU_ticktick = 0.0;
+Handler MPUTickHandler = NULL;
+
 byte initMPU(char *filename, byte use_direct_MIDI) //Initialise function!
 {
 	byte result;
@@ -262,6 +265,9 @@ byte initMPU(char *filename, byte use_direct_MIDI) //Initialise function!
 		MIDIDEV.command = -1; //Default: no command there!
 		resetMPU(); //Reset the MPU!
 		MPU401_Init(); //Init the dosbox handler for our MPU-401!
+		MPUTickHandler = NULL; //Init!
+		MPU_ticktiming = 0.0f; //Reset our timer!
+		MPU_ticktick = 0; //Clear all timing running!
 	}
 	return result; //Are we loaded?
 }
@@ -284,4 +290,36 @@ void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 	PIC_RemoveEvents(NULL); //Remove all events!
 	lowerirq(is_XT?MPU_IRQ_XT:MPU_IRQ_AT); //Remove the irq if it's still there!
 	acnowledgeIRQrequest(is_XT?MPU_IRQ_XT:MPU_IRQ_AT); //Remove us fully!
+}
+
+void updateMPUTimer(double timepassed)
+{
+	if (MPU_ticktick) //Are we timing anything?
+	{
+		MPU_ticktiming += timepassed; //Tick us!
+		if ((MPU_ticktiming>=MPU_ticktick) && MPU_ticktick)
+		{
+			for (;MPU_ticktiming>=MPU_ticktick;) //Still left?
+			{
+				MPU_ticktiming -= MPU_ticktick; //Tick us!
+				if (MPUTickHandler) MPUTickHandler(); //Execute the handler, if any!
+			}
+		}
+	}
+}
+
+void setMPUTimer(double timeout, Handler handler)
+{
+	if (MPU_ticktick==0) //New timing starting?
+	{
+		MPU_ticktiming = 0.0f; //Restart counting!
+	}
+	MPU_ticktick = timeout*1000.0f; //Simple extension!
+	MPUTickHandler = handler; //Use the new tick handler!
+}
+
+void removeMPUTimer()
+{
+	MPU_ticktick = 0; //Disable our handler!
+	MPU_ticktiming = 0.0f; //Clear the timeout!
 }
