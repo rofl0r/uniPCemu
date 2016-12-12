@@ -972,6 +972,8 @@ void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
 		if (++MIDIDEVICE_ActiveSenseCounter > 300) //300ms passed?
 		{
 			byte channel, currentchannel;
+			PostSem(activeSenseLock); //Release our lock to prevent races on the main thread!
+			lock(LOCK_MAINTHREAD); //Make sure we're the only ones!
 			for (currentchannel = 0; currentchannel < 0x10; channel++) //Process all active channels!
 			{
 				for (channel = 0; channel < 0x10;)
@@ -980,6 +982,8 @@ void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
 				}
 			}
 			MIDIDEVICE_ActiveSensing = 0; //Reset our flag!
+			unlock(LOCK_MAINTHREAD);
+			WaitSem(activeSenseLock); //Relock!
 		}
 	}
 }
