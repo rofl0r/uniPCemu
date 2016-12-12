@@ -459,6 +459,7 @@ void initUART(byte numports) //Init software debugger!
 	register_PORTOUT(&PORT_writeUART);
 	register_PORTIN(&PORT_readUART);
 	registerIRQ(3, &startUARTIRQ, NULL); //Register our IRQ finish!
+	registerIRQ(4, &startUARTIRQ, NULL); //Register our IRQ finish!
 	int i;
 	for (i = 0;i < 4;i++)
 	{
