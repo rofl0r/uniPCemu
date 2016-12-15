@@ -321,14 +321,23 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 {
 	INLINEREGISTER uint_32 readpos,size;
-	INLINEREGISTER word temp;
+	#include "headers/packed.h"
+	union PACKED
+	{
+		word resultw;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	temp = buffer->buffer[readpos++]; //Read and update high!
+	temp.byte2 = buffer->buffer[readpos++]; //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp <<= 8; //Shift high!
-	temp |= buffer->buffer[readpos++]; //Read and update low!
-	*result = temp; //Save the result retrieved!
+	temp.byte1 = buffer->buffer[readpos++]; //Read and update low!
+	*result = SDL_SwapLE16(temp.resultw); //Save the result retrieved, from LE format!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
 	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
@@ -336,20 +345,30 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 
 OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result)
 {
-	INLINEREGISTER uint_32 readpos,size,temp;
+	INLINEREGISTER uint_32 readpos,size;
+	#include "headers/packed.h"
+	union PACKED
+	{
+		uint_32 resultd;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+			byte byte3; //Low byte - High
+			byte byte4; //High byte - High
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	temp = buffer->buffer[readpos++]; //Read and update high!
+	temp.byte4 = buffer->buffer[readpos++]; //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp <<= 8; //Shift high!
-	temp |= buffer->buffer[readpos++]; //Read and update low!
+	temp.byte3 = buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp <<= 8; //Shift high!
-	temp |= buffer->buffer[readpos++]; //Read and update low!
+	temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp <<= 8; //Shift high!
-	temp |= buffer->buffer[readpos++]; //Read and update low!
-	*result = temp; //Save the result retrieved!
+	temp.byte1 = buffer->buffer[readpos++]; //Read and update low!
+	*result = SDL_SwapLE32(temp.resultd); //Save the result retrieved, in LE format!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
 	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
@@ -532,11 +551,23 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 {
 	INLINEREGISTER uint_32 writepos, size;
+	#include "headers/packed.h"
+	union PACKED
+	{
+		word resultw;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
-	buffer->buffer[writepos++] = (data >> 8); //Write high and update!
+	temp.resultw = SDL_SwapLE16(data); //Load the data to store, in LE format!
+	buffer->buffer[writepos++] = temp.byte2; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
+	buffer->buffer[writepos++] = temp.byte1; //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
@@ -545,15 +576,29 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data)
 {
 	INLINEREGISTER uint_32 writepos, size;
+	#include "headers/packed.h"
+	union PACKED
+	{
+		uint_32 resultd;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+			byte byte3; //Low byte - High
+			byte byte4; //High byte - High
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
-	buffer->buffer[writepos++] = (data >> 24); //Write high and update!
+	temp.resultd = SDL_SwapLE32(data); //Convert us to LE format!
+	buffer->buffer[writepos++] = temp.byte4; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = ((data >> 16)&0xFF); //Write high and update!
+	buffer->buffer[writepos++] = temp.byte3; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = ((data >> 8)&0xFF); //Write high and update!
+	buffer->buffer[writepos++] = temp.byte2; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = (data & 0xFF); //Write low and update!
+	buffer->buffer[writepos++] = temp.byte1; //Write low and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
