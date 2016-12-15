@@ -145,26 +145,23 @@ Cents and DB conversion!
 
 OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte filterindex)
 {
-	INLINEREGISTER float frequency, modulationratio;
-	frequency = voice->lowpassfilter_freq; //Load the frequency!
+	INLINEREGISTER float modulationratio;
 
 	modulationratio = Modulation*voice->lowpassfilter_modenvfactor; //The modulation ratio to use!
 
 	//Now, translate the modulation ratio to samples, optimized!
-	modulationratio = (float)((int_32)modulationratio); //Round it down to get integer values to optimize!
+	modulationratio = floorf(modulationratio); //Round it down to get integer values to optimize!
 	if (modulationratio!=voice->lowpass_modulationratio[filterindex]) //Different ratio?
 	{
 		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
-		modulationratio = voice->lowpass_modulationratiosamples[filterindex] = cents2samplesfactorf(modulationratio); //Calculate the pitch bend and modulation ratio to apply!
+		modulationratio = voice->lowpass_modulationratiosamples[filterindex] = cents2samplesfactorf(modulationratio)*voice->lowpassfilter_freq; //Calculate the pitch bend and modulation ratio to apply!
 		voice->lowpass_dirty[filterindex] = 1; //We're a dirty low-pass filter!
 	}
 	else
 	{
 		modulationratio = voice->lowpass_modulationratiosamples[filterindex]; //We're the same as last time!
 	}
-
-	frequency *= modulationratio; //Apply the modulation using the Modulation Envelope factor given by the Soundfont!
-	return frequency; //Give the frequency to use for the low pass filter!
+	return modulationratio; //Give the frequency to use for the low pass filter!
 }
 
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
@@ -839,12 +836,13 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->modulationratiocents[chorusreverbdepth] = 1200; //Default ratio: no modulation!
 		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
-		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+		voice->lowpass_modulationratiosamples[chorusreverbdepth] = voice->lowpassfilter_freq; //Default ratio: no modulation!
 		voice->totaldelay[chorusreverbdepth] = (uint_32)((chorus_delay[(chorusreverbdepth&0x3)]+reverb_delay[chorusreverbdepth>>2])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
 		voice->chorusreverbvol[chorusreverbdepth] = voice->activechorusdepth[(chorusreverbdepth&0x3)]*voice->activereverbdepth[chorusreverbdepth>>2]; //Chorus reverb volume!
 		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->totaldelay[chorusreverbdepth],360.0f)*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
 		voice->isfinalchannel[chorusreverbdepth] = (chorusreverbdepth==(CHORUSREVERBSIZE-1)); //Are we the final
+		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
 		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
