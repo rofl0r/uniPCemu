@@ -1136,8 +1136,8 @@ void cleanAdlib()
 }
 
 //Stuff for the low-pass filter!
-float opl2_currentsample = 0, opl2_last_result = 0, opl2_last_sample = 0;
-byte opl2_first_sample = 1;
+HIGHLOWPASSFILTER adlibfilter; //Output filter of the OPL2 output!
+float opl2_currentsample; //Current sample!
 
 byte adlib_ticktiming80 = 0; //80us divider!
 uint_32 adlib_ticktiming=0; //Sound timing!
@@ -1177,7 +1177,7 @@ void updateAdlib(uint_32 MHZ14passed)
 			#ifdef ADLIB_LOWPASS
 				opl2_currentsample = sample;
 				//We're applying the low pass filter for the speaker!
-				applySoundLowpassFilter(ADLIB_LOWPASS, (float)usesamplerate, &opl2_currentsample, &opl2_last_result, &opl2_last_sample, &opl2_first_sample);
+				applySoundFilter(&adlibfilter, &opl2_currentsample);
 				sample = opl2_currentsample; //Convert us back to our range!
 			#endif
 
@@ -1365,6 +1365,8 @@ void initAdlib()
 	}
 	closeWAV(&w); //Close the wave file!
 	#endif
+
+	initSoundFilter(&adlibfilter,0,ADLIB_LOWPASS, (float)usesamplerate); //Initialize our low-pass filter to use!
 }
 
 void doneAdlib()

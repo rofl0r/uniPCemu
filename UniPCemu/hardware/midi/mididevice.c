@@ -169,7 +169,8 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
 {
 	if (voice->lowpassfilter_freq==0) return; //No filter?
-	applySoundLowpassFilter(modulateLowpass(voice,Modulation,filterindex),(float)LE32(voice->sample.dwSampleRate), currentsample, &voice->last_result[filterindex], &voice->last_sample[filterindex], &voice->lowpass_isfirst[filterindex]); //Apply a low pass filter!
+	updateSoundFilter(&voice->lowpassfilter[filterindex],0,modulateLowpass(voice,Modulation,filterindex),(float)LE32(voice->sample.dwSampleRate)); //Update the low-pass filter, if needed!
+	applySoundFilter(&voice->lowpassfilter[filterindex], currentsample); //Apply a low pass filter!
 }
 
 /*
@@ -537,7 +538,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->note = note = &voice->channel->notes[request_note]; //What note!
 
 	voice->play_counter = 0; //Reset play counter!
-	memset(&voice->lowpass_isfirst,1,sizeof(voice->lowpass_isfirst)); //We're starting at the first sample!
 
 	//First, our precalcs!
 
@@ -801,36 +801,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The selected value!
 	}
 
-	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
-	{
-		voice->modulationratiocents[chorusreverbdepth] = 1200; //Default ratio: no modulation!
-		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
-		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
-		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
-		voice->totaldelay[chorusreverbdepth] = (uint_32)((chorus_delay[(chorusreverbdepth&0x3)]+reverb_delay[chorusreverbdepth>>2])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-		voice->chorusreverbvol[chorusreverbdepth] = voice->activechorusdepth[(chorusreverbdepth&0x3)]*voice->activereverbdepth[chorusreverbdepth>>2]; //Chorus reverb volume!
-		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->totaldelay[chorusreverbdepth],360.0f)*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
-		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
-		voice->isfinalchannel[chorusreverbdepth] = (chorusreverbdepth==(CHORUSREVERBSIZE-1)); //Are we the final
-	}
-
-	//Setup default channel chorus/reverb!
-	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
-	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
-	voice->chorusreverbvol[0] = voice->activechorusdepth[0]*voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
-
-	//Pitch wheel modulator
-	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x020E,&applymod)) //Gotten panning modulator?
-	{
-		pitchwheeltemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-	}
-	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
-
-	//Now determine the volume envelope!
-	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
-	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
-
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 13500.0f; //Default: no low pass filter!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialFilterFc, &applyigen)) //Filter enabled?
@@ -856,6 +826,38 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	{
 		voice->modenv_pitchfactor = 0; //Apply no filter for frequency cutoff!
 	}
+
+	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
+	{
+		voice->modulationratiocents[chorusreverbdepth] = 1200; //Default ratio: no modulation!
+		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
+		voice->lowpass_modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
+		voice->totaldelay[chorusreverbdepth] = (uint_32)((chorus_delay[(chorusreverbdepth&0x3)]+reverb_delay[chorusreverbdepth>>2])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
+		voice->chorusreverbvol[chorusreverbdepth] = voice->activechorusdepth[(chorusreverbdepth&0x3)]*voice->activereverbdepth[chorusreverbdepth>>2]; //Chorus reverb volume!
+		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->totaldelay[chorusreverbdepth],360.0f)*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
+		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+		voice->isfinalchannel[chorusreverbdepth] = (chorusreverbdepth==(CHORUSREVERBSIZE-1)); //Are we the final
+		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
+		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+	}
+
+	//Setup default channel chorus/reverb!
+	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
+	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
+	voice->chorusreverbvol[0] = voice->activechorusdepth[0]*voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
+
+	//Pitch wheel modulator
+	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
+	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x020E,&applymod)) //Gotten panning modulator?
+	{
+		pitchwheeltemp = (float)LE16(applymod.modAmount); //Get the amount specified!
+	}
+	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
+
+	//Now determine the volume envelope!
+	voice->CurrentVolumeEnvelope = 0.0f; //Default: nothing yet, so no volume, Give us full priority Volume-wise!
+	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
 
 	//Apply loop flags!
 	voice->currentloopflags = 0; //Default: no looping!

@@ -174,10 +174,10 @@ OPTINLINE void wrapPITticker(byte channel)
 
 byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
 
-float speaker_currentsample = 0, speaker_last_result = 0, speaker_last_sample = 0;
-byte speaker_first_sample = 1;
-
 double ticklength = 0.0; //Length of PIT samples to process every output sample!
+
+HIGHLOWPASSFILTER PCSpeakerFilter; //Our filter to use!
+float speaker_currentsample;
 
 void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers available!
 {
@@ -488,7 +488,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 				#endif
 				#ifdef SPEAKER_LOWPASS
 					//We're applying the low pass filter for the speaker!
-					applySoundLowpassFilter((float)SPEAKER_LOWPASS, (float)TIME_RATE, &speaker_currentsample, &speaker_last_result, &speaker_last_sample, &speaker_first_sample);
+					applySoundFilter(&PCSpeakerFilter, &speaker_currentsample);
 				#endif
 				#ifdef SPEAKER_LOGDUTY
 					writeWAVMonoSample(speakerlogduty,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!
@@ -536,6 +536,7 @@ void initSpeakers(byte soundspeaker)
 		speakerlogduty = createWAV(SPEAKER_LOGDUTY,1,(uint_32)TIME_RATE); //Start duty wave file logging!
 #endif
 	}
+	initSoundFilter(&PCSpeakerFilter,0,(float)SPEAKER_LOWPASS, (float)TIME_RATE); //Initialize our low-pass filter to use!
 }
 
 void doneSpeakers()

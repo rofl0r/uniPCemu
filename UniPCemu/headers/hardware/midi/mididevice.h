@@ -4,6 +4,7 @@
 #include "headers/types.h"
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 #include "headers/support/fifobuffer.h" //Effect backtrace support for chorus/reverb effects!
+#include "headers/emu/sound.h" //Filter support!
 
 //MIDI Drum channel number
 #define MIDI_DRUMCHANNEL 9
@@ -71,9 +72,6 @@ typedef struct
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
 
-	float last_sample[CHORUSREVERBSIZE]; //Last retrieved sample!
-	float last_result[CHORUSREVERBSIZE]; //Last result of the low pass filter!
-
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
 
@@ -98,7 +96,6 @@ typedef struct
 
 	byte currentloopflags; //What loopflags are active?
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte lowpass_isfirst[CHORUSREVERBSIZE]; //Are we the first sample to filter?
 	byte has_finallooppos; //Do we have a final loop position?
 
 	byte purpose; //0=Normal voice, 1=Drum channel!
@@ -123,6 +120,8 @@ typedef struct
 	float chorussinpos[CHORUSREVERBSIZE]; //All current chorus sin positions, wrapping around the table limit!
 	float chorussinposstep; //The step of one sample in chorussinpos, wrapping around 
 	byte isfinalchannel[CHORUSREVERBSIZE]; //Are we the final channel to process for the current sample?
+	HIGHLOWPASSFILTER lowpassfilter[CHORUSREVERBSIZE]; //Each channel has it's own low-pass filter!
+	float last_lowpass[CHORUSREVERBSIZE]; //Last lowpass frequency used!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!

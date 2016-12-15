@@ -684,55 +684,60 @@ OPTINLINE void mixchannel(playing_p currentchannel, int_32 *result_l, int_32 *re
 	C_SAMPLEPOS(currentchannel) = currentpos; //Store the current position for next usage!
 }
 
-OPTINLINE static float calcSoundHighpassFilter(float cutoff_freq, float samplerate, float currentsample, float previoussample, float previousresult)
+void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate)
 {
-	INLINEREGISTER float RC = (1.0f / (cutoff_freq * (2.0f * (float)PI))); //RC is used multiple times, calculate once!
-	return (RC / (RC + (1.0f / samplerate))) * (previousresult + currentsample - previoussample);
-}
-
-OPTINLINE static float calcSoundLowpassFilter(float cutoff_freq, float samplerate, float currentsample, float previousresult)
-{
-	INLINEREGISTER float dt = (1.0f / samplerate); //DT is used multiple times, calculate once!
-	return previousresult + ((dt / ((1.0f / (cutoff_freq * (2.0f * (float)PI))) + dt))*(currentsample - previousresult));
-}
-
-void applySoundHighpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample)
-{
-	//We're using a high pass filter!
-	if (*isFirstSample) //No last? Only executed once when starting playback!
+	filter->isHighPass = ishighpass; //Highpass filter?
+	if (filter->isInit || (filter->cutoff_freq!=cutoff_freq) || (filter->samplerate!=samplerate) || (ishighpass!=filter->isHighPass)) //We're to update?
 	{
-		*sound_last_result = *sound_last_sample = *currentsample; //Save the current sample!
-		*isFirstSample = 0; //Not the first sample anymore!
+		if (ishighpass) //High-pass filter?
+		{
+			float RC = (1.0f / (cutoff_freq * (2.0f * (float)PI))); //RC is used multiple times, calculate once!
+			filter->solid = (RC / (RC + (1.0f / samplerate))); //Solid value to use!
+		}
+		else //Low-pass filter?
+		{
+			float dt = (1.0f / samplerate); //DT is used multiple times, calculate once!
+			filter->solid = (dt / ((1.0f / (cutoff_freq * (2.0f * (float)PI))) + dt)); //Solid value to use!
+		}
+	}
+	filter->isHighPass = ishighpass; //Hi-pass filter?
+	filter->cutoff_freq = cutoff_freq; //New cutoff frequency!
+	filter->samplerate = samplerate; //New samplerate!
+}
+
+void initSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate)
+{
+	filter->isInit = 1; //We're an Init!
+	filter->isFirstSample = 1; //We're the first sample!
+	updateSoundFilter(filter,ishighpass,cutoff_freq,samplerate); //Init our filter!
+}
+
+void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
+{
+	if (filter->isFirstSample) //No last? Only executed once when starting playback!
+	{
+		filter->sound_last_result = filter->sound_last_sample = *currentsample; //Save the current sample!
+		filter->isFirstSample = 0; //Not the first sample anymore!
 		return; //Abort: don't filter the first sample!
 	}
-	*sound_last_result = calcSoundHighpassFilter(cutoff_freq, samplerate, *currentsample, *sound_last_sample, *sound_last_result); //High pass filter!
-	*sound_last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = *sound_last_result; //Give the new result!
-}
-
-void applySoundLowpassFilter(float cutoff_freq, float samplerate, float *currentsample, float *sound_last_result, float *sound_last_sample, byte *isFirstSample)
-{
-	//We're using a low pass filter!
-	if (*isFirstSample) //No last? Only executed once when starting playback!
+	if (filter->isHighPass) //High-pass filter?
 	{
-		*sound_last_result = *sound_last_sample = *currentsample; //Save the current sample!
-		*isFirstSample = 0; //Not the first sample anymore!
-		return; //Abort: don't filter the first sample!
+		filter->sound_last_result = filter->solid * (filter->sound_last_result + *currentsample - filter->sound_last_sample);
 	}
-	*sound_last_result = calcSoundLowpassFilter(cutoff_freq, samplerate, *currentsample, *sound_last_result); //Low pass filter!
-	*sound_last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = *sound_last_result; //Give the new result!
+	else //Low-pass filter?
+	{
+		filter->sound_last_result = filter->sound_last_result + (filter->solid*(*currentsample-filter->sound_last_result));
+	}
+	filter->sound_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = filter->sound_last_result; //Give the new result!
 }
 
+HIGHLOWPASSFILTER soundhighpassfilter[2], soundrecordfilter[2];
+
+//Combined filters!
 OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 {
 	float sample_l, sample_r;
-
-	//Our information for filtering!
-	#ifdef SOUND_HIGHPASS
-	static float soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
-	static byte soundhigh_first_l = 1, soundhigh_first_r = 1; //First sample to process?
-	#endif
 
 	//Load the samples to process!
 	sample_l = (float)*leftsample; //Load the left sample to process!
@@ -740,8 +745,8 @@ OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
 
 	//Use the high pass to filter anything too low frequency!
 	#ifdef SOUND_HIGHPASS
-	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_l,&soundhigh_last_result_l,&soundhigh_last_sample_l,&soundhigh_first_l);
-	applySoundHighpassFilter(SOUND_HIGHPASS,SW_SAMPLERATE,&sample_r,&soundhigh_last_result_r,&soundhigh_last_sample_r,&soundhigh_first_r);
+	applySoundFilter(&soundhighpassfilter[0],&sample_l);
+	applySoundFilter(&soundhighpassfilter[1],&sample_r);
 	#endif
 
 	//Write back the samples we've processed!
@@ -763,10 +768,10 @@ OPTINLINE static void applyRecordFilters(sword *leftsample, sword *rightsample)
 	sample_l = (float)*leftsample; //Load the left sample to process!
 	sample_r = (float)*rightsample; //Load the right sample to process!
 
-									//Use the high pass to filter anything too low frequency!
+	//Use the high pass to filter anything too low frequency!
 #ifdef SOUND_HIGHPASS
-	applySoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, &sample_l, &soundhigh_last_result_l, &soundhigh_last_sample_l, &soundhigh_first_l);
-	applySoundHighpassFilter(SOUND_HIGHPASS, SW_SAMPLERATE, &sample_r, &soundhigh_last_result_r, &soundhigh_last_sample_r, &soundhigh_first_r);
+	applySoundFilter(&soundrecordfilter[0],&sample_l);
+	applySoundFilter(&soundrecordfilter[1],&sample_r);
 #endif
 
 	//Write back the samples we've processed!
@@ -1286,6 +1291,11 @@ void initAudio() //Initialises audio subsystem!
 		{
 			inputready = 1; //We have a mixer!
 		}
+
+		initSoundFilter(&soundhighpassfilter[0],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our output filter!
+		initSoundFilter(&soundhighpassfilter[1],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our output filter!
+		initSoundFilter(&soundrecordfilter[0],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our record filter!
+		initSoundFilter(&soundrecordfilter[1],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our record filter!
 
 		inputleft = inputright = 0; //Clear input samples!
 		currentrecordedsample = (signed2unsigned16(0)<<8)|signed2unsigned16(0); //Clear the currently recorded sample to initialize it!
