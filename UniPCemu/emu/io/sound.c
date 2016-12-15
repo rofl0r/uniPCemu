@@ -734,7 +734,9 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
 }
 
+#ifdef SOUND_HIGHPASS
 HIGHLOWPASSFILTER soundhighpassfilter[2], soundrecordfilter[2];
+#endif
 
 //Combined filters!
 OPTINLINE static void applySoundFilters(sword *leftsample, sword *rightsample)
@@ -761,12 +763,6 @@ OPTINLINE static void applyRecordFilters(sword *leftsample, sword *rightsample)
 	float sample_l, sample_r;
 
 	//Our information for filtering!
-#ifdef SOUND_HIGHPASS
-	static float soundhigh_last_result_l = 0, soundhigh_last_sample_l = 0, soundhigh_last_result_r = 0, soundhigh_last_sample_r = 0; //High pass
-	static byte soundhigh_first_l = 1, soundhigh_first_r = 1; //First sample to process?
-#endif
-
-															  //Load the samples to process!
 	sample_l = (float)*leftsample; //Load the left sample to process!
 	sample_r = (float)*rightsample; //Load the right sample to process!
 
@@ -1294,10 +1290,12 @@ void initAudio() //Initialises audio subsystem!
 			inputready = 1; //We have a mixer!
 		}
 
+#ifdef SOUND_HIGHPASS
 		initSoundFilter(&soundhighpassfilter[0],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our output filter!
 		initSoundFilter(&soundhighpassfilter[1],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our output filter!
 		initSoundFilter(&soundrecordfilter[0],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our record filter!
 		initSoundFilter(&soundrecordfilter[1],1,SOUND_HIGHPASS,SW_SAMPLERATE); //Initialize our record filter!
+#endif
 
 		inputleft = inputright = 0; //Clear input samples!
 		currentrecordedsample = (signed2unsigned16(0)<<8)|signed2unsigned16(0); //Clear the currently recorded sample to initialize it!
