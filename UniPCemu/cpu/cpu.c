@@ -35,6 +35,11 @@
 //Save the last instruction address and opcode in a backup?
 #define CPU_SAVELAST
 
+//16-bits compatibility for reading parameters!
+#define LE_16BITS(x) SDL_SwapLE16(x)
+//32-bits compatibility for reading parameters!
+#define LE_32BITS(x) SDL_SwapLE32((LE_16BITS(x&0xFFFF))|((LE_16BITS((x>>16)&0xFFFF))<<16))
+
 byte activeCPU = 0; //What CPU is currently active?
 
 byte cpudebugger; //To debug the CPU?
@@ -661,7 +666,7 @@ word CPU_readOPw() //Reads the operation (word) at CS:EIP
 	temp = CPU_readOP(); //Read OPcode!
 	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 	temp2 = CPU_readOP(); //Read OPcode!
-	return temp|(temp2<<8); //Give result!
+	return LE_16BITS(temp|(temp2<<8)); //Give result!
 }
 
 uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
@@ -670,7 +675,7 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 	result = CPU_readOPw(); //Read OPcode!
 	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 	result |= CPU_readOPw()<<16; //Read OPcode!
-	return result; //Give result!
+	return LE_32BITS(result); //Give result!
 }
 
 /*
