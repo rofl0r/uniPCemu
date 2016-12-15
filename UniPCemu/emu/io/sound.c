@@ -714,22 +714,24 @@ void initSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_fr
 
 void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 {
+	INLINEREGISTER float last_result;
 	if (filter->isFirstSample) //No last? Only executed once when starting playback!
 	{
 		filter->sound_last_result = filter->sound_last_sample = *currentsample; //Save the current sample!
 		filter->isFirstSample = 0; //Not the first sample anymore!
 		return; //Abort: don't filter the first sample!
 	}
+	last_result = filter->sound_last_result; //Load the last result to process!
 	if (filter->isHighPass) //High-pass filter?
 	{
-		filter->sound_last_result = filter->solid * (filter->sound_last_result + *currentsample - filter->sound_last_sample);
+		last_result = filter->solid * (last_result + *currentsample - filter->sound_last_sample);
 	}
 	else //Low-pass filter?
 	{
-		filter->sound_last_result = filter->sound_last_result + (filter->solid*(*currentsample-filter->sound_last_result));
+		last_result = last_result + (filter->solid*(*currentsample-last_result));
 	}
 	filter->sound_last_sample = *currentsample; //The last sample that was processed!
-	*currentsample = filter->sound_last_result; //Give the new result!
+	*currentsample = filter->sound_last_result = last_result; //Give the new result!
 }
 
 HIGHLOWPASSFILTER soundhighpassfilter[2], soundrecordfilter[2];
