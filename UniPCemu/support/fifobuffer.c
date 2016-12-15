@@ -321,12 +321,14 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 {
 	INLINEREGISTER uint_32 readpos,size;
+	INLINEREGISTER word temp;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	*result = buffer->buffer[readpos++]; //Read and update high!
+	temp = buffer->buffer[readpos++]; //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	*result <<= 8; //Shift high!
-	*result |= buffer->buffer[readpos++]; //Read and update low!
+	temp <<= 8; //Shift high!
+	temp |= buffer->buffer[readpos++]; //Read and update low!
+	*result = temp; //Save the result retrieved!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
 	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
@@ -334,19 +336,20 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
 
 OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result)
 {
-	INLINEREGISTER uint_32 readpos,size;
+	INLINEREGISTER uint_32 readpos,size,temp;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	*result = buffer->buffer[readpos++]; //Read and update high!
+	temp = buffer->buffer[readpos++]; //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	*result <<= 8; //Shift high!
-	*result |= buffer->buffer[readpos++]; //Read and update low!
+	temp <<= 8; //Shift high!
+	temp |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	*result <<= 8; //Shift high!
-	*result |= buffer->buffer[readpos++]; //Read and update low!
+	temp <<= 8; //Shift high!
+	temp |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	*result <<= 8; //Shift high!
-	*result |= buffer->buffer[readpos++]; //Read and update low!
+	temp <<= 8; //Shift high!
+	temp |= buffer->buffer[readpos++]; //Read and update low!
+	*result = temp; //Save the result retrieved!
 	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update our the position!
 	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!

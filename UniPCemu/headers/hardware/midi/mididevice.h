@@ -120,6 +120,9 @@ typedef struct
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
 	uint_32 totaldelay[CHORUSREVERBSIZE]; //Total delay for the chorus/reverb channel!
 	float chorusreverbvol[CHORUSREVERBSIZE]; //Chorus/reverb volume!
+	float chorussinpos[CHORUSREVERBSIZE]; //All current chorus sin positions, wrapping around the table limit!
+	float chorussinposstep; //The step of one sample in chorussinpos, wrapping around 
+	byte isfinalchannel[CHORUSREVERBSIZE]; //Are we the final channel to process for the current sample?
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
