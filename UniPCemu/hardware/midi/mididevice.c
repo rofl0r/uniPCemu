@@ -156,6 +156,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 	{
 		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
 		modulationratio = voice->lowpass_modulationratiosamples[filterindex] = cents2samplesfactorf(modulationratio); //Calculate the pitch bend and modulation ratio to apply!
+		voice->lowpass_dirty[filterindex] = 1; //We're a dirty low-pass filter!
 	}
 	else
 	{
@@ -168,8 +169,14 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 
 OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
 {
+	float lowpassfilterfreq;
 	if (voice->lowpassfilter_freq==0) return; //No filter?
-	updateSoundFilter(&voice->lowpassfilter[filterindex],0,modulateLowpass(voice,Modulation,filterindex),(float)LE32(voice->sample.dwSampleRate)); //Update the low-pass filter, if needed!
+	lowpassfilterfreq = modulateLowpass(voice,Modulation,filterindex); //Load the frequency to use for low-pass filtering!
+	if (voice->lowpass_dirty[filterindex]) //Are we dirty? We need to update the low-pass filter, if so!
+	{		
+		updateSoundFilter(&voice->lowpassfilter[filterindex],0,lowpassfilterfreq,(float)LE32(voice->sample.dwSampleRate)); //Update the low-pass filter, when needed!
+		voice->lowpass_dirty[filterindex] = 0; //We're not dirty anymore!
+	}
 	applySoundFilter(&voice->lowpassfilter[filterindex], currentsample); //Apply a low pass filter!
 }
 
@@ -840,6 +847,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->isfinalchannel[chorusreverbdepth] = (chorusreverbdepth==(CHORUSREVERBSIZE-1)); //Are we the final
 		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
 		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 	}
 
 	//Setup default channel chorus/reverb!

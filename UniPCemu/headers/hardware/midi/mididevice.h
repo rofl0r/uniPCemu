@@ -122,6 +122,7 @@ typedef struct
 	byte isfinalchannel[CHORUSREVERBSIZE]; //Are we the final channel to process for the current sample?
 	HIGHLOWPASSFILTER lowpassfilter[CHORUSREVERBSIZE]; //Each channel has it's own low-pass filter!
 	float last_lowpass[CHORUSREVERBSIZE]; //Last lowpass frequency used!
+	byte lowpass_dirty[CHORUSREVERBSIZE]; //Are we to update the low-pass filter?
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
