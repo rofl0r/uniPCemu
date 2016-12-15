@@ -115,7 +115,7 @@ typedef struct
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
 	sword modulationratiocents[CHORUSREVERBSIZE];
-	float modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
+	double modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[CHORUSREVERBSIZE], lowpass_modulationratiosamples[CHORUSREVERBSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
 	uint_32 totaldelay[CHORUSREVERBSIZE]; //Total delay for the chorus/reverb channel!

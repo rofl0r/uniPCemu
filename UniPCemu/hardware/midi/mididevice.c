@@ -258,10 +258,10 @@ OPTINLINE static void MIDIDEVICE_getsample(int_32 *leftsample, int_32 *rightsamp
 	if (modulationratiocents!=voice->modulationratiocents[filterindex]) //Different ratio?
 	{
 		voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
-		voice->modulationratiosamples[filterindex] = cents2samplesfactorf((float)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
+		voice->modulationratiosamples[filterindex] = cents2samplesfactord((double)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
 	}
 
-	samplepos = (int_64)((float)play_counter*voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
+	samplepos = (int_64)((double)play_counter*voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
 
 	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
