@@ -520,6 +520,10 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 {
 	result->isreg = 1; //Register!
 	result->regsize = 2; //Word register!
+	if (EMULATED_CPU==CPU_8086) //808X?
+	{
+		reg &= 0x3; //Incomplete decoding on 808X!
+	}
 	switch (reg) //What segment register?
 	{
 	case MODRM_SEG_ES:
@@ -1952,7 +1956,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 		halt_modrm("Unknown decoder size: %i",size); //Unknown size!
 	}
 
-	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register?
+	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register specified?
 	{
 		param->error = 1; //We've detected an error!
 	}
