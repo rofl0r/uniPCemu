@@ -6,6 +6,7 @@
 
 typedef struct {
 	byte extensionsEnabled;
+	byte oldextensionsEnabled; //Old extensions status for detecting changes!
 
 // Stored exact values of some registers. Documentation only specifies some bits but hardware checks may
 // expect other bits to be preserved.
