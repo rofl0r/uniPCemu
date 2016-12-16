@@ -786,7 +786,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA->precalcs.MemoryClockDivide = 0; //Do not divide!
 		}
 	}
-	
+
 	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
 	/*
 	00=Normal power-up/default(VGA mode)
@@ -816,6 +816,49 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
 		updateVGAAttributeController_Mode(VGA); //Update the attribute controller mode, which might have changed!
 		updateVGAGraphics_Mode(VGA);
+	}
+
+	if (/*AttrUpdated ||*/ (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
+		|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
+		|| charwidthupdated) //Updated?
+	{
+		//Precalculate horizontal pixel panning:
+		byte pixelboost = 0; //Actual pixel boost!
+		byte possibleboost; //Possible value!
+		possibleboost = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF); //Possible value, to be determined!
+		if ((VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit && (VGA->precalcs.AttributeController_16bitDAC==0)) || (VGA->precalcs.AttributeController_16bitDAC==1) || (VGA->precalcs.AttributeController_16bitDAC==2)) //8-bit colors?
+		{
+			if ((possibleboost%2)==0) //Enabled?
+			{
+				possibleboost = pixelboost;
+				possibleboost >>= 1; //Bit 2 only!
+				if (possibleboost<4) //Valid?
+				{
+					pixelboost = possibleboost; //Use this boost!
+				}
+			}
+		}
+		else //Determine by character width!
+		{
+			if (VGA->precalcs.characterwidth==9) //9 dot mode?
+			{
+				if (possibleboost<8) //1-8?
+				{
+					pixelboost = possibleboost;
+					++pixelboost; //Enable with +1!
+				} //Else 0!
+			}
+			else //8 dot mode?
+			{
+				if (possibleboost<8) //Enable?
+				{
+					pixelboost = possibleboost; //Enable normally!
+				} //Else 0!
+			}
+		}
+		//dolog("VGA","VTotal after pixelboost: %i",VGA->precalcs.verticaltotal); //Log it!
+		VGA->precalcs.recalcScanline |= (VGA->precalcs.pixelshiftcount!=pixelboost); //Recalc scanline data when needed!
+		VGA->precalcs.pixelshiftcount = pixelboost; //Save our precalculated value!
 	}
 
 	//ET3000/ET4000 Start address register

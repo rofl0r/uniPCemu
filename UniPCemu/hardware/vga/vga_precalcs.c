@@ -911,13 +911,15 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		}
 	}
 
+	VGA->precalcs.recalcScanline = recalcScanline; //Extension support!
+
 	if (VGA_precalcsextensionhandler) //Extension registered?
 	{
 		VGA_precalcsextensionhandler(useVGA,whereupdated); //Execute the precalcs extension!
 	}
-	
+
 	//Recalculate all our lookup tables when needed!
-	if (recalcScanline) //Update scanline information?
+	if (VGA->precalcs.recalcScanline) //Update scanline information?
 	{
 		VGA_Sequencer_calcScanlineData(VGA); //Recalculate all scanline data!
 	}
