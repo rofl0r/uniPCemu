@@ -822,6 +822,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
 		|| charwidthupdated) //Updated?
 	{
+		handled = 1;
 		//Precalculate horizontal pixel panning:
 		byte pixelboost = 0; //Actual pixel boost!
 		byte possibleboost; //Possible value!
