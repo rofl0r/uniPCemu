@@ -318,60 +318,46 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 	return 0; //Nothing to peek at!
 }
 
-OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result)
+OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result, byte updateposition)
 {
 	INLINEREGISTER uint_32 readpos,size;
-	#include "headers/packed.h"
-	union PACKED
-	{
-		word resultw;
-		struct
-		{
-			byte byte1; //Low byte
-			byte byte2; //High byte
-		};
-	} temp;
-	#include "headers/endpacked.h"
+	INLINEREGISTER word resultw;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	temp.byte2 = buffer->buffer[readpos++]; //Read and update high!
+	resultw = (buffer->buffer[readpos++]<<8); //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp.byte1 = buffer->buffer[readpos++]; //Read and update low!
-	*result = SDL_SwapLE16(temp.resultw); //Save the result retrieved, from LE format!
-	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
-	buffer->readpos = readpos; //Update our the position!
-	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
+	resultw |= buffer->buffer[readpos++]; //Read and update low!
+	*result = SDL_SwapLE16(resultw); //Save the result retrieved, from LE format!
+	if (updateposition)
+	{
+		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+		buffer->readpos = readpos; //Update our the position!
+		buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
+	}
 }
 
-OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result)
+OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result, byte updateposition)
 {
 	INLINEREGISTER uint_32 readpos,size;
-	#include "headers/packed.h"
-	union PACKED
-	{
-		uint_32 resultd;
-		struct
-		{
-			byte byte1; //Low byte
-			byte byte2; //High byte
-			byte byte3; //Low byte - High
-			byte byte4; //High byte - High
-		};
-	} temp;
-	#include "headers/endpacked.h"
+	INLINEREGISTER uint_32 resultd;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	temp.byte4 = buffer->buffer[readpos++]; //Read and update high!
+	resultd = (buffer->buffer[readpos++]<<8); //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp.byte3 = buffer->buffer[readpos++]; //Read and update low!
+	resultd |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
+	resultd <<= 8;
+	resultd |= buffer->buffer[readpos++]; //Read and update low!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	temp.byte1 = buffer->buffer[readpos++]; //Read and update low!
-	*result = SDL_SwapLE32(temp.resultd); //Save the result retrieved, in LE format!
-	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
-	buffer->readpos = readpos; //Update our the position!
-	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
+	resultd <<= 8;
+	resultd |= buffer->buffer[readpos++]; //Read and update low!
+	*result = SDL_SwapLE32(resultd); //Save the result retrieved, in LE format!
+	if (updateposition)
+	{
+		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+		buffer->readpos = readpos; //Update our the position!
+		buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
+	}
 }
 
 byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
@@ -386,7 +372,7 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-1)) //Filled?
 		{
-			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -396,7 +382,7 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size - 1)) //Filled?
 		{
-			readfifobuffer16unlocked(buffer, result); //Read the FIFO buffer without lock!
+			readfifobuffer16unlocked(buffer, result,1); //Read the FIFO buffer without lock!
 			return 1; //Read!
 		}
 	}
@@ -426,11 +412,11 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
 			if (finalbacktrace) //Finished?
 			{
-				readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock normally!
 			}
 			PostSem(buffer->lock)
 			return 1; //Read!
@@ -449,11 +435,11 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
 			if (finalbacktrace) //Finished?
 			{
-				readfifobuffer16unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock normally!
 			}
 			return 1; //Read!
 		}
@@ -473,7 +459,7 @@ byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
 		{
-			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -483,7 +469,7 @@ byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-3)) //Filled?
 		{
-			readfifobuffer32unlocked(buffer, result); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer, result,1); //Read the FIFO buffer without lock!
 			return 1; //Read!
 		}
 	}
@@ -513,11 +499,11 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
 			if (finalbacktrace) //Finished?
 			{
-				readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock normally!
 			}
 			PostSem(buffer->lock)
 			return 1; //Read!
@@ -536,11 +522,11 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			fifobuffer_restore(buffer); //Restore the saved state, we haven't changed yet!
 			if (finalbacktrace) //Finished?
 			{
-				readfifobuffer32unlocked(buffer,result); //Read the FIFO buffer without lock normally!
+				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock normally!
 			}
 			return 1; //Read!
 		}
@@ -810,7 +796,7 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			current = threshold; //Move threshold items!
 			do //Process all items as fast as possible!
 			{
-				readfifobuffer16unlocked(src,&buffer); //Read 16-bit data!
+				readfifobuffer16unlocked(src,&buffer,1); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
 			} while (--current);
 		}
@@ -839,7 +825,7 @@ void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			current = threshold; //Move threshold items!
 			do //Process all items as fast as possible!
 			{
-				readfifobuffer32unlocked(src,&buffer); //Read 32-bit data!
+				readfifobuffer32unlocked(src,&buffer,1); //Read 32-bit data!
 				writefifobuffer32unlocked(dest,buffer); //Write 32-bit data!
 			} while (--current);
 		}
