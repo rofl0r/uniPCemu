@@ -14,6 +14,9 @@ RESOURCES = $(BUILD_NAME).res
 #GProf switches!
 GPROF_SWITCHES =
 
+# Special flags that aren't targets, just targets used for creating compiler&linker flags!
+.PHONY: SDL2 SDL2static win x64
+
 # ###################################################
 
 
@@ -93,9 +96,20 @@ ifneq (,$(findstring profile,$(MAKECMDGOALS)))
 BUILD_CFLAGS = -g -pg -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
 endif
 
-#Different kinds of flags!
+#Different kinds of flags for x86 and x64!
+
 #Add -mno-ms-bitfields to fix broken bitfields and type sizes in MinGW.
+ifeq (,$(findstring x64,$(MAKECMDGOALS)))
+#x86 version
+#Build for i386 CPU? This doesn't work!
+#CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields -m32 -march=i386
 CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
+endif
+
+ifneq (,$(findstring x64,$(MAKECMDGOALS)))
+#x64 version, don't specify the architecture: this is applied by the compiler automatically(AMD vs EM64T cannot be detected yet)
+CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
+endif
 
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions&libs instead! Link statically?
@@ -171,6 +185,3 @@ clean:
 	-$(RM) $(BUILD_RELEASE)
 	-$(RM) $(BUILD_PROFILE)
 	-$(RM) $(BUILD_DEBUG)
-
-# Special flags that aren't targets!
-.PHONY: SDL2 SDL2static
