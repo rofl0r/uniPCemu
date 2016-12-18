@@ -402,6 +402,7 @@ void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purpose
 byte *BIOS_custom_VGAROM;
 uint_32 BIOS_custom_VGAROM_size;
 char customVGAROMname[256] = "EMU_VGAROM"; //Custom ROM name!
+byte VGAROM_mapping = 0xFF; //Default: all mapped in!
 
 void BIOS_free_VGAROM()
 {
@@ -419,10 +420,9 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 	return 1; //Loaded!
 }
 
-
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
-	INLINEREGISTER uint_32 basepos, currentpos; //Current position!
+	INLINEREGISTER uint_32 basepos, currentpos, temppos; //Current position!
 	basepos = currentpos = offset; //Load the offset!
 	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
@@ -442,6 +442,26 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 			currentpos &= 0xFFFF; //The location of the ROM itself!
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
+				if (VGAROM_mapping!=0xFF) //Special mapping?
+				{
+					temppos = basepos-currentpos; //Calculate the offset!
+					switch (VGAROM_mapping) //What special mapping?
+					{
+						case 0: //C000-C3FF enabled
+							if (temppos>=0x4000) return 0; //Unmapped!
+							break;
+						case 1: //ROM disabled (ET3K/4K-AX), C000-C5FFF(ET3K/4K-AF)
+							return 0; //Disable the ROM!
+						case 2: //C000-C5FF, C680-C7FF Enabled
+							if ((temppos>=0x6000) && (temppos<0x6800)) return 0; //Unmapped in the mid-range!
+							//Passthrough to the end mapping!
+						case 3: //C000-C7FF Enabled
+							if (temppos>=0x8000) return 0; //Disabled!
+							break;
+						default: //Don't handle specially?
+							break;
+					}
+				}
 				*value = OPT_ROMS[i][basepos-currentpos]; //Read the data from the ROM!
 				return 1; //Done: we've been read!
 			}
@@ -487,6 +507,25 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 				{
 					OPTROM_address = basepos;
 					OPTROM_address -= OPTROM_loc; //The location within the OPTROM!
+					if (VGAROM_mapping!=0xFF) //Special mapping?
+					{
+						switch (VGAROM_mapping) //What special mapping?
+						{
+							case 0: //C000-C3FF enabled
+								if (OPTROM_address>0x3FF0) return 0; //Unmapped!
+								break;
+							case 1: //ROM disabled (ET3K/4K-AX), C000-C5FFF(ET3K/4K-AF)
+								return 0; //Disable the ROM!
+							case 2: //C000-C5FF, C680-C7FF Enabled
+								if ((OPTROM_address>=0xC600) && (OPTROM_address<0xC680)) return 0; //Unmapped in the mid-range!
+								//Passthrough to the end mapping!
+							case 3: //C000-C7FF Enabled
+								if (OPTROM_address>0x8000) return 0; //Disabled!
+								break;
+							default: //Don't handle specially?
+								break;
+						}
+					}
 					switch (OPTROM_address)
 					{
 					case 0x1555:

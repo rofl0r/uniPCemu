@@ -253,6 +253,7 @@ void checkCGAcursor(VGA_Type *VGA)
 }
 
 extern byte CGAMDARenderer;
+extern byte VGAROM_mapping; //Default: all mapped in!
 
 VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler = NULL; //Our precalcs extension handler!
 
@@ -268,6 +269,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte CRTUpdated=0, updateCGACRTCONTROLLER=0;
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
+
+	if (whereupdated==WHEREUPDATED_ALL) //Update all? Init!
+	{
+		VGAROM_mapping = 0xFF; //Disable the custom VGA ROM mapping used for normal VGA, allow the full ROM mapping!
+	}
 
 	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?1:0; //Render CGA/MDA style?
 

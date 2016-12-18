@@ -744,6 +744,8 @@ void Tseng34k_init()
 	}
 }
 
+extern byte VGAROM_mapping; //Default: all mapped in!
+
 //ET4K precalcs updating functionality.
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
@@ -767,7 +769,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x7))) //TS Auxiliary Mode updated?
 	{
 		handled = 1;
-		et4k_tempreg = et34k_reg(et34kdata,3c4,06); //The TS Auxiliary mode to apply!
+		et4k_tempreg = et34k_reg(et34kdata,3c4,07); //The TS Auxiliary mode to apply!
 		if (et4k_tempreg&0x80) //VGA-compatible settings?
 		{
 			goto VGAcompatibleMCLK;
@@ -785,6 +787,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGAcompatibleMCLK: //VGA compatible MCLK!
 			VGA->precalcs.MemoryClockDivide = 0; //Do not divide!
 		}
+		VGAROM_mapping = ((et4k_tempreg&8)>>2)|((et4k_tempreg&0x20)>>5); //Bit 3 is the high bit, Bit 5 is the low bit!
 	}
 
 	//Bits 4-5 of the Attribute Controller register 0x16(Miscellaneous) determine the mode to be used when decoding pixels:
@@ -1261,5 +1264,9 @@ void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
 	if (!getActiveVGA()->SVGAExtension)
 	{
 		raiseError("ET4000","Couldn't allocate SVGA card ET4000 data! Ran out of memory!");
+	}
+	else //Valid registers?
+	{
+		et34k_reg(et34k(getActiveVGA()),3c4,07) = 0x4|0x8|0x20|0x80; //Default to VGA mode with full memory map, Other bits are set always.
 	}
 }
