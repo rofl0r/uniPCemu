@@ -12,6 +12,8 @@
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
 //#define DISABLE_NMI
+//Log the INT10h call to set 640x480x256 color mode.
+#define LOG_ET34K640480256_SET
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
@@ -30,6 +32,8 @@ extern uint_32 destEIP;
 //Interrupt support for timings!
 extern byte CPU_interruptraised; //Interrupt raised flag?
 
+word oldCS, oldIP, waitingforiret=0;
+
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
 	char errorcodestr[256];
@@ -45,6 +49,14 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			}
 			else return 0; //Abort on triple fault!
 		}
+		#ifdef LOG_ET34K640480256_SET
+		if ((intnr==0x10) && (CPU[activeCPU].registers->AX==0x002E) && (errorcode==-1)) //Setting the video mode to 0x2E?
+		{
+			waitingforiret = 1; //Waiting for IRET!
+			oldIP = retoffset;
+			oldCS = retsegment; //Backup the return position!
+		}
+		#endif
 		CPU_PUSH16(&REG_FLAGS); //Push flags!
 		CPU_PUSH16(&retsegment); //Push segment!
 		word retoffset16 = (retoffset&0xFFFF);
@@ -98,6 +110,15 @@ void CPU_IRET()
 		}
 		dolog("cpu","IRET to %04X:%04X",CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP); //Log the current info of the call!
 		if (debugger_logging()) dolog("debugger","IRET to %04X:%04X",CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP); //Log the current info of the call!
+		#ifdef LOG_ET34K640480256_SET
+		if (waitingforiret) //Waiting for IRET?
+		{
+			//if ((REG_CS==oldCS) && (REG_IP==oldIP)) //Returned?
+			{
+				waitingforiret = 0; //We're finished with the logging information!
+			}
+		}
+		#endif
 	}
 	else //Use protected mode IRET?
 	{

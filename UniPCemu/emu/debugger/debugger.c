@@ -112,6 +112,8 @@ OPTINLINE byte debugging() //Debugging?
 
 byte debuggerINT = 0; //Interrupt special trigger?
 
+extern word waitingforiret; //Logging until IRET?
+
 byte debugger_logging()
 {
 	byte enablelog=0; //Default: disabled!
@@ -134,6 +136,7 @@ byte debugger_logging()
 		break;
 	}
 	enablelog |= startreached; //Start logging from this point(emulator internal debugger)!
+	enablelog |= waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	if (skipstep) enablelog = 0; //Disable when skipping!
 	return enablelog; //Logging?
