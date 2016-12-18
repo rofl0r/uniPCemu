@@ -8,7 +8,7 @@
 #include "headers/cpu/cpu.h" //NMI support!
 
 //Log unhandled (S)VGA accesses on the ET34k emulation?
-#define LOG_UNHANDLED_SVGA_ACCESSES
+//#define LOG_UNHANDLED_SVGA_ACCESSES
 
 #ifdef LOG_UNHANDLED_SVGA_ACCESSES
 #include "headers/support/log.h" //Logging support!
@@ -763,6 +763,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte charwidthupdated = ((whereupdated == (WHEREUPDATED_SEQUENCER | 0x01)) || FullUpdate || VGA->precalcs.charwidthupdated); //Sequencer register updated?
 	byte CRTUpdated = UPDATE_SECTIONFULL(whereupdated, WHEREUPDATED_CRTCONTROLLER, FullUpdate); //Fully updated?
 	byte CRTUpdatedCharwidth = CRTUpdated || charwidthupdated; //Character width has been updated, for following registers using those?
+	byte AttrUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
+
 
 	byte handled = 0;
 
@@ -798,7 +800,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	11=High-color 16-bits/pixel
 	*/
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
+	if (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
 	{
 		handled = 1;
 		et4k_tempreg = et34k_reg(et34kdata,3c0,16); //The mode to use when decoding!
@@ -821,7 +823,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		updateVGAGraphics_Mode(VGA);
 	}
 
-	if (/*AttrUpdated ||*/ (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
+	if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
 		|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
 		|| charwidthupdated) //Updated?
 	{
@@ -866,7 +868,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//ET3000/ET4000 Start address register
-	if (horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))
+	if (CRTUpdated || horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended start address?
 	{
 		handled = 1;
@@ -878,7 +880,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//ET3000/ET4000 Cursor Location register
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended cursor location?
 	{
 		handled = 1;
@@ -908,14 +910,14 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	verticaltimingsupdated = 0; //Default: not updated!
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
 	{
 		handled = 1;
 		verticaltimingsupdated |= et34kdata->useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0); //Interlace has changed?
 		et34kdata->useInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
 	}
 
-	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
+	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x12)) //Vertical display end
@@ -935,7 +937,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.verticaldisplayend = tempdata; //Save the new data!
 	}
 
-	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
+	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x15)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Vertical blanking start
@@ -954,7 +956,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.verticalblankingstart = tempdata; //Save the new data!
 	}
 
-	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
+	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x10)) //Vertical retrace start
@@ -973,7 +975,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.verticalretracestart = tempdata; //Save the new data!
 	}
 
-	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
+	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x6)) //Vertical total
@@ -993,7 +995,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.verticaltotal = tempdata; //Save the new data!
 	}
 
-	if (verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
+	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x7)) || //Overflow register itself
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		(whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x18)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x9)) //Line compare
@@ -1016,7 +1018,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	//ET4000 horizontal overflow timings!
 	et4k_tempreg = et4k_reg(et34kdata, 3d4, 3f); //The overflow register!
 	if (VGA->enable_SVGA!=1) et4k_tempreg = 0; //Disable the register with ET3000(always zeroed)!
-	if (horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+	if (CRTUpdated || horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		|| (whereupdated == WHEREUPDATED_CRTCONTROLLER) //Horizontal total
 		)
@@ -1032,7 +1034,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.horizontaltotal = tempdata; //Save the new data!
 	}
 	
-	if (horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x01)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F))) //End horizontal display updated?
+	if (CRTUpdated || horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated==WHEREUPDATED_ALL) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x01)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F))) //End horizontal display updated?
 	{
 		handled = 1;
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALDISPLAYREGISTER;
@@ -1046,7 +1048,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.horizontaldisplayend = tempdata; //Load!
 	}
 
-	if (horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+	if (CRTUpdated || horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x2)) //Horizontal blank start
 		)
@@ -1062,7 +1064,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.horizontalblankingstart = tempdata; //Save the new data!
 	}
 
-	if (horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+	if (CRTUpdated || horizontaltimingsupdated || CRTUpdatedCharwidth || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x4)) //Horizontal retrace start
 		)
@@ -1077,7 +1079,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		updateCRTC |= VGA->precalcs.horizontalretracestart != tempdata; //To be updated?
 		VGA->precalcs.horizontalretracestart = tempdata; //Save the new data!
 	}
-	if (horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
+	if (CRTUpdated || horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x3F)) //Extended bits of the overflow register!
 		//Finally, bits needed by the overflow register itself(of which we are an extension)!
 		|| (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x13)) //Offset register
 		)
@@ -1090,7 +1092,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
 		VGA->precalcs.rowsize = tempdata; //Save the new data!
 	}
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x07))) //Clock frequency might have been updated?
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x07))) //Clock frequency might have been updated?
 	{
 		handled = 1;
 		if (VGA==getActiveVGA()) //Active VGA?
@@ -1100,7 +1102,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//Misc settings
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36)) || (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #1!
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36)) || (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #1!
 	{
 		handled = 1;
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
@@ -1160,7 +1162,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 	}
 
-	if ((whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #2?
 	{
 		handled = 1;
@@ -1170,7 +1172,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		else //Extensions enabled?
 		{
-			VGA->precalcs.VMemMask = et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
+			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
 		}
 	}
 
@@ -1214,7 +1216,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 	if (!handled) //Are we not handled?
 	{
-		dolog("ET34k","Handled precalcs on SVGA: %08X",whereupdated); //We're ignored!
+		dolog("ET34k","Unandled precalcs on SVGA: %08X",whereupdated); //We're ignored!
 	}
 	#endif
 }
