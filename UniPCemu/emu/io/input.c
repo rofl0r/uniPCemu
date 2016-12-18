@@ -2963,16 +2963,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons &= ~BUTTON_SQUARE; //Pressed!
 				break;
 			#ifndef SDL2
+			case SDLK_ESCAPE:
 			#ifdef ANDROID
 			//Android uses escape&backspace too!
-			case SDLK_ESCAPE:
 			case SDLK_BACKSPACE:
 			#endif
 			case SDLK_KP6: //CIRCLE?
 			#else
+			case SDLK_ESCAPE:
 			#ifdef ANDROID
 			//Android uses escape&backspace too!
-			case SDLK_ESCAPE:
 			case SDLK_BACKSPACE:
 			#endif
 			case SDLK_KP_6: //CIRCLE?
@@ -3181,16 +3181,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons |= BUTTON_SQUARE; //Pressed!
 				break;
 			#ifndef SDL2
+			case SDLK_ESCAPE:
 			#ifdef ANDROID
 			//Android uses escape&backspace too!
-			case SDLK_ESCAPE:
 			case SDLK_BACKSPACE:
 			#endif
 			case SDLK_KP6: //CIRCLE?
 			#else
+			case SDLK_ESCAPE:
 			#ifdef ANDROID
 			//Android uses escape&backspace too!
-			case SDLK_ESCAPE:
 			case SDLK_BACKSPACE:
 			#endif
 			case SDLK_KP_6: //CIRCLE?

@@ -695,7 +695,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 	int key = 0; //Currently pressed key(s)
 	int option = 0; //What option to choose?
 	byte dirty = 1; //We're dirty! We need to be updated on the screen!
-	while (key!=BUTTON_CROSS) //Wait for the key to choose something!
+	while ((key!=BUTTON_CROSS) && (key!=BUTTON_START)) //Wait for the key to choose something!
 	{
 		if (shuttingdown()) //Cancel?
 		{
@@ -990,7 +990,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
 		}
-		else if ((key&BUTTON_CROSS)>0 || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
+		else if (((key&(BUTTON_CROSS|BUTTON_START))>0) || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
 		{
 			delay(500000); //Wait a bit before continuing!
 			return result; //Give the result!
@@ -1787,7 +1787,7 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -1875,9 +1875,9 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 				result = oldvalue; //Undo: we've overflown!
 			}
 		}
-		else if ((key & BUTTON_CROSS)>0)
+		else if ((key & (BUTTON_CROSS|BUTTON_START))>0)
 		{
-			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
@@ -4757,7 +4757,7 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -4812,9 +4812,9 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 			if (result < oldvalue) result = oldvalue; //We've overflown?
 		}
 		//Confirmation buttons etc.
-		else if ((key & BUTTON_CROSS)>0)
+		else if ((key & (BUTTON_CROSS|BUTTON_START))>0)
 		{
-			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
@@ -4886,7 +4886,7 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -4933,9 +4933,9 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 			if (result < oldvalue) result = oldvalue; //We've overflown?
 		}
 		//Confirmation buttons etc.
-		else if ((key & BUTTON_CROSS)>0)
+		else if ((key & (BUTTON_CROSS|BUTTON_START))>0)
 		{
-			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
@@ -5804,7 +5804,7 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -5834,9 +5834,9 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 			result += ((key&BUTTON_LEFT) ? 0x10 : 0x01); //x100 or x10 or x1!
 		}
 		//Confirmation buttons etc.
-		else if ((key & BUTTON_CROSS)>0)
+		else if ((key & (BUTTON_CROSS|BUTTON_START))>0)
 		{
-			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
@@ -5869,7 +5869,7 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 {
 	int key = 0;
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
-	while ((key&BUTTON_CROSS)>0) //Pressed? Wait for release!
+	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
 	}
@@ -5924,9 +5924,9 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 			if (result < oldvalue) result = oldvalue; //We've overflown?
 		}
 		//Confirmation buttons etc.
-		else if ((key & BUTTON_CROSS)>0)
+		else if ((key & (BUTTON_CROSS|BUTTON_START))>0)
 		{
-			while ((key&BUTTON_CROSS)>0) //Wait for release!
+			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 			}
