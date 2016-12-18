@@ -1164,13 +1164,13 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #2?
 	{
 		handled = 1;
-		if (!et34k(VGA)->extensionsEnabled && (getActiveVGA()->enable_SVGA==2)) //Disable ET4000 memory wrap?
+		if (!et34k(VGA)->extensionsEnabled) //Disable ET4000 memory wrap?
 		{
 			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //Apply normal masking according to the VGA method!
 		}
 		else //Extensions enabled?
 		{
-			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
+			VGA->precalcs.VMemMask = et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
 		}
 	}
 

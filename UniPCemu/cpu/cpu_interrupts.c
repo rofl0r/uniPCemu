@@ -13,7 +13,7 @@
 #define DISABLE_MEMNMI
 //#define DISABLE_NMI
 //Log the INT10h call to set 640x480x256 color mode.
-#define LOG_ET34K640480256_SET
+//#define LOG_ET34K640480256_SET
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
