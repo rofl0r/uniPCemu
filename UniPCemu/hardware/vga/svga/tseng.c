@@ -872,7 +872,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended start address?
 	{
 		handled = 1;
-		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress&0xFFFF)|et34k(VGA)->cursor_start_high)<<et34kdata->doublehorizontaltimings;
+		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress&0xFFFF)|et34k(VGA)->display_start_high)<<et34kdata->doublehorizontaltimings;
 		if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
 		{
 			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
