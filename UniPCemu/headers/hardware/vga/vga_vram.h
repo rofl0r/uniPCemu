@@ -11,4 +11,6 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank, byt
 #define VGA_VRAMDIRECTPLANAR(VGA,vramlocation,bank) *((uint_32 *)((byte *)&VGA->VRAM[((vramlocation<<2)+bank)&VGA->precalcs.VMemMask]))
 #define VGA_VRAMDIRECT(VGA,vramlocation,bank) VGA->VRAM[(vramlocation+bank)&VGA->precalcs.VMemMask]
 
+void updateVGAMMUAddressMode(); //Update the currently assigned memory mode for mapping memory by address!
+
 #endif

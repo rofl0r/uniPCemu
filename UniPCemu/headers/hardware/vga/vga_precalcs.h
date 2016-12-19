@@ -141,6 +141,8 @@ typedef struct //Contains the precalculated values!
 	uint_32 VMemMask; //Extended VRAMMask.
 	byte charwidthupdated; //Is the charwidth updated(for SVGA)?
 	byte recalcScanline; //Recalculate the scanline data?
+	byte WriteMemoryMode; //Write memory mode!
+	byte ReadMemoryMode; //Read memory mode!
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

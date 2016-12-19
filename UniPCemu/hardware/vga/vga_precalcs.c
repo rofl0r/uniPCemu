@@ -7,6 +7,7 @@
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
+#include "headers/hardware/vga/vga_vram.h" //Mapping support for different addressing modes!
 #include "headers/support/log.h" //Logging support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
@@ -254,6 +255,7 @@ void checkCGAcursor(VGA_Type *VGA)
 
 extern byte CGAMDARenderer;
 extern byte VGAROM_mapping; //Default: all mapped in!
+extern byte VGA_WriteMemoryMode, VGA_ReadMemoryMode; //Write/read memory modes used for accessing VRAM!
 
 VGA_calcprecalcsextensionhandler VGA_precalcsextensionhandler = NULL; //Our precalcs extension handler!
 
@@ -325,6 +327,37 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (!FullUpdate) whereupdated = WHEREUPDATED_ALL_SECTION|WHEREUPDATED_CRTCONTROLLER; //We affect the CRTController fully too with above!
 		//dolog("VGA","VTotal after charwidth: %i",VGA->precalcs.verticaltotal); //Log it!
 		charwidthupdated = VGA->precalcs.charwidthupdated = 1; //The character width has been updated, so update the corresponding registers too!
+	}
+
+	if (FullUpdate || (whereupdated==(WHEREUPDATED_SEQUENCER|0x4)) || (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x5))) //Sequencer Memory Mode Register or Graphics Mode register?
+	{
+		if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,3,1)) //Chain 4 mode?
+		{
+			VGA_WriteMemoryMode = VGA_ReadMemoryMode = VGA->precalcs.WriteMemoryMode = VGA->precalcs.ReadMemoryMode = 1; //Chain-4 mode on both writes and reads!
+		}
+		else //Other memory modes, which can be mixed?
+		{
+			//Determine write memory mode!
+			if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,2,1)==0) //Write using odd/even addressing?
+			{
+				VGA_WriteMemoryMode = VGA->precalcs.WriteMemoryMode = 2; //Odd/Even mode!
+			}
+			else //Planar mode?
+			{
+				VGA_WriteMemoryMode = VGA->precalcs.WriteMemoryMode = 0; //Planar mode!
+			}
+
+			//Determine read memory mode!
+			if (GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1)) //Read using odd/even addressing?
+			{
+				VGA_ReadMemoryMode = VGA->precalcs.ReadMemoryMode = 2; //Odd/Even mode!
+			}
+			else //Planar mode?
+			{
+				VGA_ReadMemoryMode = VGA->precalcs.ReadMemoryMode = 0; //Planar mode!
+			}
+		}
+		updateVGAMMUAddressMode(); //Update the currently assigned memory mode for mapping memory by address!
 	}
 
 	if ((whereupdated==(WHEREUPDATED_SEQUENCER|0x03)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x04)) || FullUpdate) //Sequencer character map register updated?

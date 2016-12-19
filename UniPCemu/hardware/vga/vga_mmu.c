@@ -234,107 +234,70 @@ char towritetext[2][256] = {"Reading","Writing"};
 
 byte verboseVGA; //Verbose VGA dumping?
 
-//decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
-OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
+byte VGA_WriteMemoryMode=0, VGA_ReadMemoryMode=0;
+
+void VGA_Chain4_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
 	INLINEREGISTER uint_32 realoffsettmp;
 	INLINEREGISTER byte calcplanes;
-
-	if (getActiveVGA()->precalcs.linearmode&4) //Enable SVGA support?
+	calcplanes = realoffsettmp = offset; //Original offset to start with!
+	calcplanes &= 0x3; //Lower 2 bits determine the plane!
+	*planes = (1 << calcplanes); //Give the planes to write to!
+	if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //ET3000/ET4000?
 	{
-		if (getActiveVGA()->precalcs.linearmode&1) //Linear, contiguous memory mode enabled?
-		{
-			calcplanes = realoffsettmp = offset; //Original offset to start with!
-			calcplanes &= 0x3; //Lower 2 bits determine the plane(ascending VRAM memory blocks of 4 bytes)!
-			*planes = (1 << calcplanes); //Give the planes to write to!
-			realoffsettmp >>= 2; //Rest of bits determine the direct index!
-			if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
-			{
-				rwbank = (offset&0xF0000); //Apply read/write bank!
-			}
-			else //Use bank select?
-			{
-				rwbank = (towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead); //Apply read/write bank!
-			}
-			*realoffset = realoffsettmp; //Give the offset!
-			return; //Apply the linear mode!
-		}
-		else //Normal segmented memory mode?
-		{
-			if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
-			{
-				rwbank = (offset&0xF0000); //Apply read/write bank from the high 4 bits that's unused!
-			}
-			else //Use bank select?
-			{
-				rwbank = (towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead); //Apply read/write bank!
-			}
-			//Apply the segmented VGA mode like any normal VGA!
-		}
+		realoffsettmp >>= 2; //Make sure we're linear in memory when requested! ET3000/ET4000 is different in this point! This always writes to a quarter of VRAM(since it's linear in VRAM, combined with the plane), according to the FreeVGA documentation!
 	}
-	else rwbank = 0; //No memory banks are used!
-
-	if (GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,3,1)) //Chain 4 mode?
+	else
 	{
-		calcplanes = realoffsettmp = offset; //Original offset to start with!
-		calcplanes &= 0x3; //Lower 2 bits determine the plane!
-		*planes = (1 << calcplanes); //Give the planes to write to!
-		if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //ET3000/ET4000?
+		realoffsettmp &= ~3; //Multiples of 4 won't get written on true VGA!
+	}
+	*realoffset = realoffsettmp; //Give the offset!
+	#ifdef ENABLE_SPECIALDEBUGGER
+		if (specialdebugger||verboseVGA) //Debugging special?
+	#else
+		if (verboseVGA) //Debugging special?
+	#endif
 		{
-			realoffsettmp >>= 2; //Make sure we're linear in memory when requested! ET3000/ET4000 is different in this point! This always writes to a quarter of VRAM(since it's linear in VRAM, combined with the plane), according to the FreeVGA documentation!
+			dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 		}
-		else
-		{
-			realoffsettmp &= ~3; //Multiples of 4 won't get written on true VGA!
-		}
-		*realoffset = realoffsettmp; //Give the offset!
-		#ifdef ENABLE_SPECIALDEBUGGER
-			if (specialdebugger||verboseVGA) //Debugging special?
-		#else
-			if (verboseVGA) //Debugging special?
-		#endif
-			{
-				dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
-			}
-		return; //Done!
+}
+
+void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
+{
+	INLINEREGISTER uint_32 realoffsettmp;
+	INLINEREGISTER byte calcplanes;
+	calcplanes = realoffsettmp = offset; //Take the default offset!
+	calcplanes &= 1; //Take 1 bit to determine the odd/even plane (odd/even)!
+	if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1)) //Replace A0 with high order bit?
+	{
+		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
+		realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
+	}
+	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,4,1) && (offset & 0x10000)) //High page on High RAM?
+	{
+		realoffsettmp |= 2; //Apply high page!
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
+	}
+	else
+	{
+		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
 	}
 
-	//Odd/even mode used (compatiblity case)?
-	//Do the same as VPC!
-	if ((towrite && (GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,2,1)==0)) || //Write using odd/even addressing?
-		((!towrite) && GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1))) //Read using odd/even addressing?
-	{
-		calcplanes = realoffsettmp = offset; //Take the default offset!
-		calcplanes &= 1; //Take 1 bit to determine the odd/even plane (odd/even)!
-		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1)) //Replace A0 with high order bit?
+	*realoffset = realoffsettmp; //Give the calculated offset!
+	*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
+	#ifdef ENABLE_SPECIALDEBUGGER
+		if (specialdebugger||verboseVGA) //Debugging special?
+	#else
+		if (verboseVGA) //Debugging special?
+	#endif
 		{
-			realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
-			realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
+			dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 		}
-		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,4,1) && (offset & 0x10000)) //High page on High RAM?
-		{
-			realoffsettmp |= 2; //Apply high page!
-			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
-		}
-		else
-		{
-			rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
-		}
+}
 
-		*realoffset = realoffsettmp; //Give the calculated offset!
-		*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
-		#ifdef ENABLE_SPECIALDEBUGGER
-			if (specialdebugger||verboseVGA) //Debugging special?
-		#else
-			if (verboseVGA) //Debugging special?
-		#endif
-			{
-				dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
-			}
-		return; //Use Odd/Even mode!
-	}
-
-	//Planar mode is the default mode?
+void VGA_Planar_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
+{
+	INLINEREGISTER byte calcplanes;
 	if (towrite) //Writing access?
 	{
 		calcplanes = 0xF; //Write to all planes possible, map mask register does the rest!
@@ -371,6 +334,65 @@ OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint
 		{
 			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
 		}
+}
+
+void SVGA_LinearContinuous_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
+{
+	INLINEREGISTER uint_32 realoffsettmp;
+	INLINEREGISTER byte calcplanes;
+	calcplanes = realoffsettmp = offset; //Original offset to start with!
+	calcplanes &= 0x3; //Lower 2 bits determine the plane(ascending VRAM memory blocks of 4 bytes)!
+	*planes = (1 << calcplanes); //Give the planes to write to!
+	realoffsettmp >>= 2; //Rest of bits determine the direct index!
+	if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
+	{
+		rwbank = (offset&0xF0000); //Apply read/write bank!
+	}
+	else //Use bank select?
+	{
+		rwbank = (towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead); //Apply read/write bank!
+	}
+	*realoffset = realoffsettmp; //Give the offset!
+}
+
+typedef void (*decodeCPUaddressMode)(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset); //Decode addressing mode typedef!
+
+decodeCPUaddressMode decodeCPUAddressW = VGA_OddEven_decode, decodeCPUAddressR=VGA_OddEven_decode; //Our current MMU decoder for reads and writes!
+
+//decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
+OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
+{
+	//Apply rwbank when used!
+	if ((getActiveVGA()->precalcs.linearmode&4)==1) //Enable SVGA Normal segmented rwbank mode support?
+	{
+		if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
+		{
+			rwbank = (offset&0xF0000); //Apply read/write bank from the high 4 bits that's unused!
+		}
+		else //Use bank select?
+		{
+			rwbank = (towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead); //Apply read/write bank!
+		}
+		//Apply the segmented VGA mode like any normal VGA!
+	}
+	else rwbank = 0; //No memory banks are used!
+
+	//Calculate according to the mode in our table and write/read memory mode!
+	if (towrite) //Writing?
+	{
+		decodeCPUAddressW(towrite,offset,planes,realoffset); //Apply the write memory mode!
+	}
+	else //Reading?
+	{
+		decodeCPUAddressR(towrite,offset,planes,realoffset); //Apply the read memory mode!
+	}
+}
+
+void updateVGAMMUAddressMode()
+{
+	static const decodeCPUaddressMode decodeCPUaddressmode[4] = {VGA_Planar_decode,VGA_Chain4_decode,VGA_OddEven_decode,SVGA_LinearContinuous_decode}; //All decode modes supported!
+	decodeCPUAddressW = decodeCPUaddressmode[VGA_WriteMemoryMode&3]; //Apply the Write memory mode!
+	decodeCPUAddressR = decodeCPUaddressmode[VGA_ReadMemoryMode&3]; //Apply the Read memory mode!
 }
 
 byte planes; //What planes to affect!

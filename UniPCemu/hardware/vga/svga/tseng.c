@@ -5,6 +5,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculation typedefs etc.
 #include "headers/hardware/vga/vga_attributecontroller.h" //Attribute controller support!
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode support!
+#include "headers/hardware/vga/vga_vram.h" //Mapping support for different addressing modes!
 #include "headers/cpu/cpu.h" //NMI support!
 
 //Log unhandled (S)VGA accesses on the ET34k emulation?
@@ -746,6 +747,7 @@ void Tseng34k_init()
 
 extern byte VGAROM_mapping; //Default: all mapped in!
 
+extern byte VGA_WriteMemoryMode, VGA_ReadMemoryMode; //Write/read memory modes used for accessing VRAM!
 //ET4K precalcs updating functionality.
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 {
@@ -1102,7 +1104,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//Misc settings
-	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36)) || (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #1!
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))
+		|| (whereupdated==(WHEREUPDATED_SEQUENCER|0x4)) || (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x5)) //Memory addres
+		 || (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #1!
 	{
 		handled = 1;
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
@@ -1160,6 +1164,17 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 		}
+
+		if ((VGA->precalcs.linearmode&5)==5) //Special ET3K/ET4K linear graphics memory mode?
+		{
+			VGA_ReadMemoryMode = VGA_WriteMemoryMode = 3; //Special ET3000/ET4000 linear graphics memory mode!
+		}
+		else //Normal VGA memory access?
+		{
+			VGA_ReadMemoryMode = VGA->precalcs.ReadMemoryMode; //VGA compatibility mode!
+			VGA_WriteMemoryMode = VGA->precalcs.WriteMemoryMode; //VGA compatiblity mode!
+		}
+		updateVGAMMUAddressMode(); //Update the currently assigned memory mode for mapping memory by address!
 	}
 
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))
