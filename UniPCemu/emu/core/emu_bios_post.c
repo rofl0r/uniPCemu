@@ -385,6 +385,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		//Start the CPU to execute some of our output only!
 		lock(LOCK_CPU);
 		CPU[activeCPU].halt |= 2; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt &= ~4; //Start VGA rendering!
 		unlock(LOCK_CPU); //We're done with the CPU!
 
 		if (DEBUG_VGA_ONLY)
@@ -604,7 +605,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		REG_IP = 0xFFFF;
 		CPU_flushPIQ(); //We're jumping to another address!
 		lock(LOCK_CPU);
-		CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 	}
 	else //We can boot safely?
@@ -621,7 +622,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		}
 		resumeEMU(1); //Resume the emulator!
 		lock(LOCK_CPU);
-		CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
+		CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 		unlock(LOCK_MAINTHREAD);
 		return 0; //Continue normally: we've booted, or give an error message!
@@ -629,7 +630,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 	resumeEMU(1); //Resume the emulator!
 	lock(LOCK_CPU);
-	CPU[activeCPU].halt &= ~2; //Make sure the CPU is just halted!
+	CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
 	unlock(LOCK_CPU); //We're done with the CPU!
 	unlock(LOCK_MAINTHREAD);
 	return 0; //Plain run!

@@ -52,7 +52,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 
 	dolog("debugger","RUNROMVERIFY: initEMU...");
 
-	CPU[activeCPU].halt &= ~2; //Make sure to stop the CPU again!
+	CPU[activeCPU].halt &= ~0x12; //Make sure to stop the CPU again!
 	unlock(LOCK_CPU);
 	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!
 	initEMU(1); //Init EMU first, enable video!

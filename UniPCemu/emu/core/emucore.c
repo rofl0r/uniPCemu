@@ -935,7 +935,7 @@ OPTINLINE byte coreHandler()
 		tickParallel(instructiontime); //Update the Parallel timer!
 		updateUART(instructiontime); //Update the UART timer!
 		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
-		if ((CPU[activeCPU].halt&2)==0) updateVGA(instructiontime); //Update the VGA timer when running!
+		if ((CPU[activeCPU].halt&0x10)==0) updateVGA(instructiontime); //Update the VGA timer when running!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
 		if (--timeout==0) //Timed out?

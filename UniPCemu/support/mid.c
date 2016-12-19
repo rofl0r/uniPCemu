@@ -599,7 +599,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 
 		resumeEMU(0); //Resume the emulator!
 		lock(LOCK_CPU); //Lock the CPU: we're checking for finishing!
-		CPU[activeCPU].halt |= 2; //Force us into HLT state, starting playback!
+		CPU[activeCPU].halt |= 0x12; //Force us into HLT state, starting playback!
 		BIOSMenuResumeEMU(); //Resume the emulator from the BIOS menu thread!
 		EMU_stopInput(); //We don't want anything to be input into the emulator!
 
@@ -625,7 +625,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			if (!running) break; //Not running anymore? Start quitting!
 		}
 
-		CPU[activeCPU].halt &= ~2; //Remove the forced execution!
+		CPU[activeCPU].halt &= ~0x12; //Remove the forced execution!
 		unlock(LOCK_CPU); //We're finished with the CPU!
 		pauseEMU(); //Stop timers and back to the BIOS menu!
 		lock(LOCK_CPU);
