@@ -363,7 +363,7 @@ decodeCPUaddressMode decodeCPUAddressW = VGA_OddEven_decode, decodeCPUAddressR=V
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
 	//Apply rwbank when used!
-	if ((getActiveVGA()->precalcs.linearmode&4)==1) //Enable SVGA Normal segmented rwbank mode support?
+	if ((getActiveVGA()->precalcs.linearmode&4)==4) //Enable SVGA Normal segmented rwbank mode support?
 	{
 		if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
 		{

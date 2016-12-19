@@ -15,6 +15,12 @@
 #define dolog(...)
 #endif
 
+//Patch ET3000 ROM to:
+// Use Sequencer Memory Mode register value 0E instead of 06 with mode 2Eh.
+//Other patches: TODO
+
+#define ET3000_PATCH
+
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 byte EMU_VGAROM[0x8000]; //Maximum size custom BIOS VGA ROM!
 
