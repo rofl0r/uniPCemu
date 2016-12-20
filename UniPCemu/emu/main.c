@@ -194,7 +194,7 @@ void updateInputMain() //Frequency 1000Hz!
 extern byte allcleared;
 extern char logpath[256]; //Log path!
 extern char capturepath[256]; //Capture path!
-extern byte RDP = 0;
+extern byte RDP;
 
 int main(int argc, char * argv[])
 {
@@ -233,6 +233,7 @@ int main(int argc, char * argv[])
 	{
 		for (argn=0;argn<argc;++argn) //Process all arguments!
 		{
+			//First param option!
 			argch = &argv[argn][0]; //First character of the parameter!
 			if (*argch) //Specified?
 			{
@@ -251,27 +252,29 @@ int main(int argc, char * argv[])
 					++argch;
 					++testparam;
 				}
-			nomatch:
+				nomatch:
 				if ((*argch==*testparam) && (*argch=='\0')) //End of string? Full match!
 				{
 					usesoundmode = 0; //Disable audio: we're disabled by the parameter!
 				}
-argch = &argv[argn][0]; //First character of the parameter!
+
+				//Second param option!
+				argch = &argv[argn][0]; //First character of the parameter!
 				testparam = &RDPparam[0]; //Our parameter to check for!
 				for (;*argch!='\0';) //Parse the string!
 				{
 					if ((char)tolower((int)*argch)!=*testparam) //Not matched?
 					{
-						goto nomatch;
+						goto nomatch2;
 					}
 					if (*testparam=='\0') //No match? We're too long!
 					{
-						goto nomatch;
+						goto nomatch2;
 					}
 					++argch;
 					++testparam;
 				}
-			nomatch:
+				nomatch2:
 				if ((*argch==*testparam) && (*argch=='\0')) //End of string? Full match!
 				{
 					RDP = 1; //Enable RDP: we're enabled by the parameter!
