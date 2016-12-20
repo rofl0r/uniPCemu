@@ -2856,6 +2856,8 @@ float touchscreencoordinates_y[0x10] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,
 extern byte needvideoupdate; //For resolution updates!
 #endif
 
+byte RDP = 0;
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -3712,8 +3714,18 @@ void updateInput(SDL_Event *event) //Update all input!
 			lock(LOCK_INPUT);
 			if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
 			{
-				mouse_xmove += event->motion.xrel; //Move the mouse horizontally!
-				mouse_ymove += event->motion.yrel; //Move the mouse vertically!
+			#ifdef IS_WINDOWS
+				if (RDP) //Needs adjustment?
+				{
+					mouse_xmove += floorf((float)event->motion.xrel*(1.0f/34.0f)); //Move the mouse horizontally!
+					mouse_ymove += floorf((float)event->motion.yrel*(1.0f/60.0f)); //Move the mouse vertically!
+				}
+				else //No adjustment?
+			#endif
+				{
+					mouse_xmove += (float)event->motion.xrel; //Move the mouse horizontally!
+					mouse_ymove += (float)event->motion.yrel; //Move the mouse vertically!
+				}
 			}
 
 			//Always update mouse coordinates for our own GUI handling!

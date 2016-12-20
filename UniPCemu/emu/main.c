@@ -194,7 +194,7 @@ void updateInputMain() //Frequency 1000Hz!
 extern byte allcleared;
 extern char logpath[256]; //Log path!
 extern char capturepath[256]; //Capture path!
-byte RDP = 0;
+extern byte RDP = 0;
 
 int main(int argc, char * argv[])
 {
