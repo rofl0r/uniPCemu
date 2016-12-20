@@ -150,23 +150,26 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
 	}
 
-	if (writewordbackup==0) //First data of the word access?
+	if (segdesc!=-1) //Normal memory access by the CPU itself?
 	{
-		wordaddress = realaddress; //Word address used during memory access!
-		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+		if (writewordbackup==0) //First data of the word access?
 		{
-			CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!
-			CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-		}
-	}
-	else //Second data of a word access?
-	{
-		if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
-		{
-			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+			wordaddress = realaddress; //Word address used during memory access!
+			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 			{
-				CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!				
+				CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			}
+		}
+		else //Second data of a word access?
+		{
+			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
+			{
+				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+				{
+					CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!				
+					CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+				}
 			}
 		}
 	}
@@ -222,23 +225,26 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
 	}
 
-	if (writewordbackup==0) //First data of the word access?
+	if (segdesc!=-1) //Normal memory access?
 	{
-		wordaddress = realaddress; //Word address used during memory access!
-		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+		if (writewordbackup==0) //First data of the word access?
 		{
-			CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!
-			CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-		}
-	}
-	else //Second data of a word access?
-	{
-		if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
-		{
-			if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+			wordaddress = realaddress; //Word address used during memory access!
+			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 			{
-				CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!				
+				CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			}
+		}
+		else //Second data of a word access?
+		{
+			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
+			{
+				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+				{
+					CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!				
+					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+				}
 			}
 		}
 	}
