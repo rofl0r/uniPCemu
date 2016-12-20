@@ -204,8 +204,8 @@ void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	Bitu i;
 	IO_Write(0x3cd, 0x40); // both banks to 0, 64K bank size
 
-						   // Tseng ET3K does not have horizontal overflow bits
-						   // Reinterpret ver_overflow
+	// Tseng ET3K does not have horizontal overflow bits
+	// Reinterpret ver_overflow
 	Bit8u et4k_ver_overflow =
 		((modeData->ver_overflow & 0x01) << 1) | // vtotal10
 		((modeData->ver_overflow & 0x02) << 1) | // vdispend10

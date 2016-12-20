@@ -148,9 +148,9 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
 				else if (svgaCard==SVGA_TsengET3K) //ET3K?
 				{
 					curbank = IO_Read(0x3CD); //Read the current bank!
-					curbank &= 0x7; //Clear read bank!
+					curbank &= 0x7; //Clear read bank&bank size!
 					curbank |= (rowoffs >> 13) & 0x38; //The bank to use!
-					curbank |= 0x40; //64k bank!
+					curbank |= 0x40; //64k bank size!
 					rowoffs &= 0xFFFF; //Pixel in the bank!
 					IO_Write(0x3CD, curbank); //Set the new bank!
 				}
