@@ -559,8 +559,8 @@ OPTINLINE void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 OPTINLINE void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 {
 	if (__HW_DISABLED) return; //Abort!
-	*start = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0); //Get start line!
-	*end = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0); //Get end line!
+	*start = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0); //Get start line!
+	*end = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0); //Get end line!
 }
 
 OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
@@ -600,8 +600,8 @@ OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register address!
 
 	//Update our values!
-	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start); //Set start line!
-	MMU_wb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end); //Set end line!
+	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start); //Set start line!
+	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end); //Set end line!
 }
 
 OPTINLINE void GPU_clearscreen() //Clears the screen!
@@ -1115,14 +1115,14 @@ void int10_WriteCharAttrAtCursor()
 	*/
 
 	byte tempx,tempy;
-	tempx = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
-	tempy = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
+	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
 
 	while (REG_CX--) //Times left?
 	{
 		int10_vram_writecharacter(
-			MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0),
-			MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0)
+			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0),
+			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0)
 			, REG_BH, REG_AL, REG_BL); //Write character REG_AL font REG_BL at page!
 		int10_nextcol(REG_BH); //Next column!
 	}
@@ -1138,8 +1138,8 @@ void int10_WriteCharOnlyAtCursor()
 	*/
 
 	word tempx, tempy;
-	tempx = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
-	tempy = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
+	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
 
 	while (REG_CX--)
 	{
@@ -1313,8 +1313,8 @@ void int10_TeleTypeOutput()
 
 	byte oldchar = 0;
 	byte oldattr = 0;
-	byte x = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0);
-	byte y = MMU_rb(CB_ISCallback() ? CPU_segment_index(CPU_SEGMENT_DS) : -1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0);
+	byte x = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0);
+	byte y = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0);
 	int10_vram_readcharacter(x, y, REG_BH, &oldchar, &oldattr); //Get old info!
 	int10_internal_outputchar(REG_BH, REG_AL, oldattr); //Write character REG_AL with old font at page!
 }
@@ -1560,7 +1560,7 @@ void int10_SpecialFunctions() //REG_AH=12h
 {
 	switch (REG_BL) {
 	case 0x10:							/* Get EGA Information */
-		REG_BH=(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS)==0x3B4);	
+		REG_BH=(real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS)==0x3B4)?0xFF:0x00;	
 		REG_BL=3;	//256 kb
 		REG_CL=real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES) & 0x0F;
 		REG_CH=real_readb(BIOSMEM_SEG,BIOSMEM_SWITCHES) >> 4;

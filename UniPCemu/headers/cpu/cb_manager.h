@@ -54,4 +54,6 @@ byte CB_ISCallback(); //Are we a called callback (for callbacked functions)?
 void CALLBACK_SZF(byte val);
 void CALLBACK_SCF(byte val);
 void CALLBACK_SIF(byte val);
+
+void write_VGAw(uint_32 offset, word value); //For the Interrupt 10h extensions!
 #endif

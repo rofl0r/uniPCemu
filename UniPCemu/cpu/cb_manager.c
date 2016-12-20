@@ -95,12 +95,14 @@ word CB_realoffset; //Real offset we're loaded at within the custom BIOS!
 
 void write_VGAw(uint_32 offset, word value)
 {
+	value = SDL_SwapLE16(value); //Make sure we're little-endian!
 	EMU_VGAROM[offset] = value & 0xFF; //Low byte!
 	EMU_VGAROM[offset + 1] = (value >> 8); //High byte!
 }
 
 void write_BIOSw(uint_32 offset, word value)
 {
+	value = SDL_SwapLE16(value); //Make sure we're little-endian!
 	EMU_BIOS[offset] = value&0xFF; //Low byte!
 	EMU_BIOS[offset+1] = (value>>8); //High byte!
 }

@@ -516,6 +516,9 @@
     <ClCompile Include="cpu\paging.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="interrupts\interrupt10_videoparametertable.c">
+      <Filter>Source Files\interrupts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h">

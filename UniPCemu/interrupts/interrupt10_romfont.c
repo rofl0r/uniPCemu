@@ -8,6 +8,7 @@
 #include "headers/support/log.h" //Debugging only!
 #include "headers/bios/biosrom.h" //BIOS ROM support!
 #include "headers/hardware/vga/vga.h" //VGA information!
+#include "headers/interrupts/interrupt10.h" //Basic function support!
 
 uint_32 i;
 OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
@@ -194,10 +195,35 @@ Int10Data int10; //Our interrupt data!
 extern byte EMU_VGAROM[0x8000]; //Our VGA ROM!
 extern byte EMU_BIOS[0x10000]; //Our BIOS!
 
+void write_VGAd(uint_32 offset, uint_32 value)
+{
+	#include "headers/packed.h" //Packed!
+	union PACKED
+	{
+		uint_32 packed32;
+		struct
+		{
+			byte byte1;
+			byte byte2;
+			byte byte3;
+			byte byte4;
+		};
+	} unpack32;
+	#include "headers/endpacked.h" //End packed in little-endian!
+	unpack32.packed32 = SDL_SwapLE32(value); //Load to unpack in little-endian format!
+	EMU_VGAROM[offset++] = unpack32.byte1; //Low byte!
+	EMU_VGAROM[offset++] = unpack32.byte2; //Higher byte!
+	EMU_VGAROM[offset++] = unpack32.byte3; //Higher byte!
+	EMU_VGAROM[offset] = unpack32.byte4; //Higher byte!
+}
+
 void INT10_SetupRomMemory(byte setinterrupts)
 {
+	//Addition by superfury: load as a ROM, instead of RAM!
+	BIOS_load_VGAROM(); //Load our custom VGA ROM!
+
 /* This should fill up certain structures inside the Video Bios Rom Area */
-	//word rom_base=0xC000;
+	word rom_base=0xC000;
 	if (IS_EGAVGA_ARCH) {
 		// set up the start of the ROM
 		EMU_VGAROM[0] = 0x55;
@@ -242,78 +268,77 @@ void INT10_SetupRomMemory(byte setinterrupts)
 	int10.rom.font_16_alternate=RealMake(0xC000,int10.rom.used);
 	EMU_BIOS[int10.rom.used++] = 0x00;	// end of table (empty)
 
-	/*if (IS_EGAVGA_ARCH) {
+	if (IS_EGAVGA_ARCH) {
 		int10.rom.video_parameter_table=RealMake(0xC000,int10.rom.used);
 		int10.rom.used+=INT10_SetupVideoParameterTable(rom_base+int10.rom.used);
 
 		if (IS_VGA_ARCH) {
 			int10.rom.video_dcc_table=RealMake(0xC000,int10.rom.used);
-			phys_writeb(rom_base+int10.rom.used++,0x10);	// number of entries
-			phys_writeb(rom_base+int10.rom.used++,1);		// version number
-			phys_writeb(rom_base+int10.rom.used++,8);		// maximal display code
-			phys_writeb(rom_base+int10.rom.used++,0);		// reserved
+			EMU_VGAROM[int10.rom.used++] = 0x10;	// number of entries
+			EMU_VGAROM[int10.rom.used++] = 1;		// version number
+			EMU_VGAROM[int10.rom.used++] = 8;		// maximal display code
+			EMU_VGAROM[int10.rom.used++] = 0;		// reserved
 			// display combination codes
-			phys_writew(rom_base+int10.rom.used,0x0000);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0100);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0200);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0102);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0400);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0104);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0500);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0502);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0600);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0601);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0605);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0800);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0801);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0700);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0702);	int10.rom.used+=2;
-			phys_writew(rom_base+int10.rom.used,0x0706);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0000);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0100);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0200);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0102);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0400);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0104);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0500);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0502);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0600);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0601);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0605);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0800);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0801);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0700);	int10.rom.used+=2;
+			write_VGAw(int10.rom.used,0x0702);	int10.rom.used+=2;
+			write_VGAw(rom_base+int10.rom.used,0x0706);	int10.rom.used+=2;
 
 			int10.rom.video_save_pointer_table=RealMake(0xC000,int10.rom.used);
-			phys_writew(rom_base+int10.rom.used,0x1a);	// length of table
+			write_VGAw(int10.rom.used,0x1a);	// length of table
 			int10.rom.used+=2;
-			phys_writed(rom_base+int10.rom.used,int10.rom.video_dcc_table);
+			write_VGAd(int10.rom.used,int10.rom.video_dcc_table);
 			int10.rom.used+=4;
-			phys_writed(rom_base+int10.rom.used,0);		// alphanumeric charset override
+			write_VGAd(int10.rom.used,0);		// alphanumeric charset override
 			int10.rom.used+=4;
-			phys_writed(rom_base+int10.rom.used,0);		// user palette table
+			write_VGAd(int10.rom.used,0);		// user palette table
 			int10.rom.used+=4;
-			phys_writed(rom_base+int10.rom.used,0);		int10.rom.used+=4;
-			phys_writed(rom_base+int10.rom.used,0);		int10.rom.used+=4;
-			phys_writed(rom_base+int10.rom.used,0);		int10.rom.used+=4;
+			write_VGAd(int10.rom.used,0);		int10.rom.used+=4;
+			write_VGAd(int10.rom.used,0);		int10.rom.used+=4;
+			write_VGAd(int10.rom.used,0);		int10.rom.used+=4;
 		}
 
 		int10.rom.video_save_pointers=RealMake(0xC000,int10.rom.used);
-		phys_writed(rom_base+int10.rom.used,int10.rom.video_parameter_table);
+		write_VGAd(int10.rom.used,int10.rom.video_parameter_table);
 		int10.rom.used+=4;
-		phys_writed(rom_base+int10.rom.used,0);		// dynamic save area pointer
+		write_VGAd(int10.rom.used,0);		// dynamic save area pointer
 		int10.rom.used+=4;
-		phys_writed(rom_base+int10.rom.used,0);		// alphanumeric character set override
+		write_VGAd(int10.rom.used,0);		// alphanumeric character set override
 		int10.rom.used+=4;
-		phys_writed(rom_base+int10.rom.used,0);		// graphics character set override
+		write_VGAd(int10.rom.used,0);		// graphics character set override
 		int10.rom.used+=4;
 		if (IS_VGA_ARCH) {
-			phys_writed(rom_base+int10.rom.used,int10.rom.video_save_pointer_table);
+			write_VGAd(int10.rom.used,int10.rom.video_save_pointer_table);
 		} else {
-			phys_writed(rom_base+int10.rom.used,0);		// secondary save pointer table
+			write_VGAd(int10.rom.used,0);		// secondary save pointer table
 		}
 		int10.rom.used+=4;
-		phys_writed(rom_base+int10.rom.used,0);		int10.rom.used+=4;
-		phys_writed(rom_base+int10.rom.used,0);		int10.rom.used+=4;
+		write_VGAd(int10.rom.used,0);		int10.rom.used+=4;
+		write_VGAd(int10.rom.used,0);		int10.rom.used+=4;
 	}
 
 	INT10_SetupBasicVideoParameterTable();
 
+	/*
 	if (IS_TANDY_ARCH) {
 		RealSetVec(0x44,int10.rom.font_8_first);
 	}*/
-
-	//Addition by superfury: load as a ROM, instead of RAM!
-	BIOS_load_VGAROM(); //Load our custom VGA ROM!
 }
 
 void INT10_ReloadRomFonts() {
+	//Superfury: It's an actual ROM in UniPCemu, don't reload, as this cannot be changed by software!
 	// 16x8 font
 	/*
 	PhysPt font16pt=Real2Phys(int10.rom.font_16);

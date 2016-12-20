@@ -144,6 +144,7 @@
     <ClCompile Include="interrupts\interrupt10_romfont.c" />
     <ClCompile Include="interrupts\interrupt10_switchvideomode.c" />
     <ClCompile Include="interrupts\interrupt10_textmodedata.c" />
+    <ClCompile Include="interrupts\interrupt10_videoparametertable.c" />
     <ClCompile Include="interrupts\interrupt11.c" />
     <ClCompile Include="interrupts\interrupt12.c" />
     <ClCompile Include="interrupts\interrupt13.c" />
