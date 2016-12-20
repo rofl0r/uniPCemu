@@ -92,7 +92,10 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
 	if (__HW_DISABLED) return 0; //Abort!
 	uint_32 rowoffs;
 	byte curbank;
-        switch (CurMode->type) {
+		if ((svgaCard==SVGA_TsengET3K) || (svgaCard==SVGA_TsengET4K))
+		{
+			IO_Write(0x3CD, 0x40); //Set the new bank to it's default value for safety!
+		}        switch (CurMode->type) {
         case M_CGA4:
                 {
                         Bit16u off=(y>>1)*80+(x>>2);
@@ -171,6 +174,10 @@ OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video
 	uint_32 rowoffs;
 	if (__HW_DISABLED) return 0; //Abort!
         //static bool putpixelwarned = false;
+		if ((svgaCard==SVGA_TsengET3K) || (svgaCard==SVGA_TsengET4K))
+		{
+			IO_Write(0x3CD, 0x40); //Set the new bank to it's default value for safety!
+		}
         switch (CurMode->type) {
         case M_CGA4:
                 {
@@ -518,10 +525,12 @@ OPTINLINE void INT10_GetAllPaletteRegisters(PhysPt data) {
 OPTINLINE void updateCursorLocation()
 {
 	if (__HW_DISABLED) return; //Abort!
+	word xy;
 	int x;
 	int y;
-	x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0); //X
-	y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0); //Y
+	xy = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0); //X,Y!
+	x = (xy&0xFF); //X!
+	y = (xy>>8); //Y
 	word address; //Address of the cursor location!
 	address = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)+
 			(y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x;
@@ -538,8 +547,7 @@ OPTINLINE void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 {
 	if (__HW_DISABLED) return; //Abort!
 //First: BDA entry update!
-	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),x); //X
-	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,y); //Y
+	MMU_ww(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(displaypage*2),x|(y<<8)); //X,Y!
 
 	if (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)==displaypage) //Current page?
 	{
@@ -615,8 +623,8 @@ OPTINLINE void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
 OPTINLINE void int10_nextcol(byte thepage)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0);
-	byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2)+1,0);
+	byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2),0);
+	byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2)+1,0);
 	++x; //Next X!
 	if ((word)x>=getscreenwidth()) //Overflow?
 	{
@@ -968,8 +976,7 @@ void int10_GetCursorPositionAndSize()
 		DL=Column
 	*/
 	REG_AX = 0;
-	REG_DL = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Cursor x!
-	REG_DH = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0); //Cursor y!
+	REG_DX = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Cursor x,y!
 	EMU_CPU_getCursorScanlines(&REG_CH,&REG_CL); //Scan lines of the cursor!
 }
 
@@ -977,7 +984,6 @@ void int10_ReadLightPenPosition()
 {
 	//Not used on VGA systems!
 	REG_AH = 0; //Invalid function!
-	REG_BX = REG_CX = REG_DX = 0; //0,0 and character 0,0!
 }
 
 void int10_SelectActiveDisplayPage()
