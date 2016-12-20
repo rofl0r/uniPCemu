@@ -40,7 +40,7 @@ void GPU_clearscreen(); //Clears the screen!
 void int10_useVGA(VGA_Type *VGA);
 void initint10(); //Fully initialise interrupt 10h!
 
-byte getscreenwidth(); //Get the screen width (in characters), based on the video mode!
+word getscreenwidth(); //Get the screen width (in characters), based on the video mode!
 
 //Character fonts!
 void INT10_ReloadFont(); //Reload active font at address 0 in the VGA Plane 2!

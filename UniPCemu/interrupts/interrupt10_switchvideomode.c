@@ -338,24 +338,24 @@ OPTINLINE void FinishSetMode(int clearmem)
 	}
 
 
-	if (CurMode->mode<128) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,(byte)CurMode->mode);
-	else MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,(byte)(CurMode->mode-0x98)); //Looks like the s3 bios
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,CurMode->twidth&0xFF); //Low!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_COLS+1,((CurMode->twidth&0xFF00)>>8)); //High!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,(CurMode->plength&0xFF)); //Low!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE+1,((CurMode->plength&0xFF00)>>8)); //High!
+	if (CurMode->mode<128) MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,(byte)CurMode->mode);
+	else MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,(byte)(CurMode->mode-0x98)); //Looks like the s3 bios
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,CurMode->twidth&0xFF); //Low!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS+1,((CurMode->twidth&0xFF00)>>8)); //High!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,(CurMode->plength&0xFF)); //Low!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE+1,((CurMode->plength&0xFF00)>>8)); //High!
 	CRTCAddr = ((CurMode->mode==7 )|| (CurMode->mode==0x0f)) ? 0x3b4 : 0x3d4; //Address!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS,(CRTCAddr&0xFF)); //Low!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS+1,((CRTCAddr&0xFF00)>>8)); //High!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,(byte)(CurMode->theight-1)); //Height!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,(CurMode->cheight&0xFF)); //Low!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT+1,((CurMode->cheight&0xFF00)>>8)); //High!
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_VIDEO_CTL,(0x60|(((MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)&0x80) && EMU_VGA)?0:0x80)));
-	MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_SWITCHES,0x09);
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS,(CRTCAddr&0xFF)); //Low!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS+1,((CRTCAddr&0xFF00)>>8)); //High!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,(byte)(CurMode->theight-1)); //Height!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,(CurMode->cheight&0xFF)); //Low!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT+1,((CurMode->cheight&0xFF00)>>8)); //High!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_VIDEO_CTL,(0x60|(((MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)&0x80) && EMU_VGA)?0:0x80)));
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_SWITCHES,0x09);
 
 
 	// this is an index into the dcc table:
-	if (IS_VGA_ARCH) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,BIOSMEM_SEG,BIOSMEM_DCC_INDEX,0x0b);
+	if (IS_VGA_ARCH) MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_DCC_INDEX,0x0b);
 	//MMU_wd(BIOSMEM_SEG,BIOSMEM_VS_POINTER,int10.rom.video_save_pointers); //Unknown/unimplemented yet!
 
 	// Set cursor shape

@@ -244,14 +244,14 @@ typedef byte *PhysPt; //Physical pointer!
 #define RealOff(real) ((real)&0xFFFF)
 
 //Simple memory compatiblity for real mode!
-#define mem_readb(off) MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
-#define mem_writeb(off,val) MMU_wb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
-#define mem_readw(off) MMU_rw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
-#define mem_writew(off,val) MMU_ww(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
-#define mem_readd(off) MMU_rdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),0)
-#define mem_writed(off,val) MMU_wdw(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,RealSeg(off),RealOff(off),val)
+#define mem_readb(off) MMU_rb(-1,RealSeg(off),RealOff(off),0)
+#define mem_writeb(off,val) MMU_wb(-1,RealSeg(off),RealOff(off),val)
+#define mem_readw(off) MMU_rw(-1,RealSeg(off),RealOff(off),0)
+#define mem_writew(off,val) MMU_ww(-1,RealSeg(off),RealOff(off),val)
+#define mem_readd(off) MMU_rdw(-1,RealSeg(off),RealOff(off),0)
+#define mem_writed(off,val) MMU_wdw(-1,RealSeg(off),RealOff(off),val)
 
-#define PhysMake(seg,offs) (byte *)MMU_ptr(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_DS):-1,seg,offs,0,1)
+#define PhysMake(seg,offs) (byte *)MMU_ptr(-1,seg,offs,0,1)
 
 //Physical 2 real support
 #define Phys2Real1(x) (uint_32)(((byte *)x)-((byte *)MMU_ptr(-1,0,0,0,0)))
