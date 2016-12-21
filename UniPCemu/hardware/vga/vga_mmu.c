@@ -219,7 +219,7 @@ OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
 	static const VGA_ReadMode READ[2] = {VGA_ReadMode0,VGA_ReadMode1}; //Read modes!
 	loadlatch(offset); //Load the latches!
 
-	return READ[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,3,1)](planes,offset+(rwbank>>2)); //What read mode?
+	return READ[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,3,1)](planes,offset); //What read mode?
 }
 
 /*
@@ -251,6 +251,7 @@ void VGA_Chain4_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *real
 	{
 		realoffsettmp &= ~3; //Multiples of 4 won't get written on true VGA!
 	}
+	//We're the LG1 case of the Table 4.3.4 of the ET4000 manual!
 	*realoffset = realoffsettmp; //Give the offset!
 	#ifdef ENABLE_SPECIALDEBUGGER
 		if (specialdebugger||verboseVGA) //Debugging special?
@@ -273,7 +274,7 @@ void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *rea
 		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
 		realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
 	}
-	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,4,1) && (offset & 0x10000)) //High page on High RAM?
+	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1) && (offset & 0x10000)) //High page on High RAM?
 	{
 		realoffsettmp |= 2; //Apply high page!
 		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
@@ -283,6 +284,7 @@ void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *rea
 		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
 	}
 
+	realoffsettmp &= 0xFFFF; //Wrap the offset low!
 	*realoffset = realoffsettmp; //Give the calculated offset!
 	*planes = (0x5 << calcplanes); //Convert to used plane (0&2 or 1&3)!
 	#ifdef ENABLE_SPECIALDEBUGGER
@@ -313,15 +315,7 @@ void VGA_Planar_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *real
 	}
 	if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //SVGA ET3K/ET4K?
 	{
-		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3) == 1) //64K window?
-		{
-			rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17).
-			offset &= 0xFFFF; //16-bit offset!
-		}
-		else //Use high planes!
-		{
-			rwbank = 0; //Disable read/write bank, using 18-bit offset!
-		}
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17). Bits 0-1 are specified by the affecting read/write plane select/mask.(The PG case of the Table 4.3.4 of the ET4000 manual)
 	}
 	*planes = calcplanes; //The planes to apply!
 	*realoffset = offset; //Load the offset directly!
