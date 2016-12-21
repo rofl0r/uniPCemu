@@ -362,16 +362,6 @@ OPTINLINE byte read_command() //Read functionality
 	return result; //Give the result!
 }
 
-
-
-
-
-
-
-
-
-
-
 //Text (debugger) mode support!
 
 OPTINLINE void debugger_flush()
