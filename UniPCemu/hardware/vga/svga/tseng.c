@@ -875,7 +875,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended start address?
 	{
 		handled = 1;
-		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress&0xFFFF)|et34k(VGA)->display_start_high)<<et34kdata->doublehorizontaltimings;
+		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress<<et34kdata->doublehorizontaltimings)+et34k(VGA)->display_start_high);
 		if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
 		{
 			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
@@ -1029,8 +1029,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		//bit0=Horizontal total bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.HORIZONTALTOTALREGISTER;
-		tempdata |= (((et4k_tempreg & 1) << 8) | (tempdata & 0xFF)) != tempdata; //To be updated?
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
+		tempdata += ((et4k_tempreg & 1) << 8); //To be updated?
 		tempdata += 5;
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		updateCRTC |= (VGA->precalcs.horizontaltotal != tempdata); //To be updated?
@@ -1059,8 +1059,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		//bit2=Horizontal blanking bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALBLANKINGREGISTER;
-		tempdata |= ((et4k_tempreg & 4) << 5); //Add/replace the new/changed bits!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
+		tempdata += ((et4k_tempreg & 4) << 5); //Add/replace the new/changed bits!
 		++tempdata; //One later!
 		tempdata *= VGA->precalcs.characterwidth;
 		updateCRTC |= (VGA->precalcs.horizontalblankingstart != tempdata); //To be updated?
@@ -1075,8 +1075,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		//bit4=Horizontal retrace bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
-		tempdata |= ((et4k_tempreg & 0x10) << 4); //Add the new/changed bits!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
+		tempdata += ((et4k_tempreg & 0x10) << 4); //Add the new/changed bits!
 		++tempdata; //One later!
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		updateCRTC |= VGA->precalcs.horizontalretracestart != tempdata; //To be updated?
@@ -1091,8 +1091,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//bit7=Offset bit 8
 		tempdata = VGA->precalcs.VGArowsize;
 		updateCRTC |= (((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF)) != tempdata; //To be updated?
-		tempdata = ((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF); //Add/replace the new/changed bits!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
+		tempdata += ((et4k_tempreg & 0x80) << 1); //Add/replace the new/changed bits!
 		VGA->precalcs.rowsize = tempdata; //Save the new data!
 	}
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x07))) //Clock frequency might have been updated?
@@ -1121,22 +1121,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			switch (et34k(VGA)->bank_size&3) //What Bank setting are we using?
 			{
 				case 0: //128k segments?
-					VGA_MemoryMapBankRead = et34kdata->bank_read*0x20000; //Read bank!
-					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x20000; //Write bank!
-					break;
-				case 1: //64k segments?
-					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
-					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+					VGA_MemoryMapBankRead = et34kdata->bank_read<<17; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write<<17; //Write bank!
 					break;
 				case 2: //1M linear memory?
-					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
-					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+				case 3: //1M linear memory? Unverified!
 					VGA->precalcs.linearmode |= 1; //Use contiguous memory accessing!
-					break;
-				case 3: //1M linear memory?
-					VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
-					VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
-					VGA->precalcs.linearmode |= 1; //Use contiguous memory accessing!
+					//Same memory banking is used! 64k banks!
+				case 1: //64k segments?
+					VGA_MemoryMapBankRead = et34kdata->bank_read<<16; //Read bank!
+					VGA_MemoryMapBankWrite = et34kdata->bank_write<<16; //Write bank!
 					break;
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
@@ -1145,8 +1139,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		{
 			if ((et4k_tempreg & 0x10)==0x00) //Segment configuration?
 			{
-				VGA_MemoryMapBankRead = et34kdata->bank_read*0x10000; //Read bank!
-				VGA_MemoryMapBankWrite = et34kdata->bank_write*0x10000; //Write bank!
+				VGA_MemoryMapBankRead = et34kdata->bank_read<<16; //Read bank!
+				VGA_MemoryMapBankWrite = et34kdata->bank_write<<16; //Write bank!
 				VGA->precalcs.linearmode &= ~2; //Use normal data addresses!
 			}
 			else //Linear system configuration? Disable the segment and enable linear mode (high 4 bits of the address select the bank)!
