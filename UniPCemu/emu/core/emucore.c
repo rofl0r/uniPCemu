@@ -87,7 +87,7 @@ which is at the first row of the IBM AT POST3 function.
 //Original 8086 timing adjustment:
 //#define CPU80286_CLOCK 7280500.0
 //The AT runs an 6MHz 80286(2nd revision)! Although most sources say 8 MHz(MIPS etc.), this is the third revision of the motherboard?
-#define CPU80286_CLOCK 8000000.0
+#define CPU80286_CLOCK 6000000.0
 
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
@@ -696,7 +696,7 @@ void updateSpeedLimit()
 				DosboxClock = 0; //We're executing using actual clocks!
 				if (is_Turbo) //Turbo speed instead?
 				{
-					CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
 				}
 				else //Normal speed?
 				{
