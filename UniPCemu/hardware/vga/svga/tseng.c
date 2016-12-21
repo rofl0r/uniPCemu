@@ -815,7 +815,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 		et4k_tempreg >>= 4; //Shift to our position!
 		et4k_tempreg &= 3; //Only 2 bits are used for detection!
-		if ((et4k_tempreg&2)==0) //The second is illegal!
+		if (VGA->enable_SVGA==2) et4k_tempreg = 0; //Unused on the ET3000! Force default mode!
+		else if ((et4k_tempreg&2)==0) //The second is illegal!
 		{
 			et4k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
 		}

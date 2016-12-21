@@ -289,7 +289,7 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (extrastatus & 8) //To allow increasing us?
+	if (extrastatus & 4) //To allow increasing us?
 	{
 		++Sequencer->extrastatus; //Increase the extra status!
 	}
@@ -331,6 +331,11 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
+		Sequencer->is_topwindow = 1; //We're the top window rendering!
+	}
+	else
+	{
+		Sequencer->is_topwindow = 0; //We're not the top window!
 	}
 
 	//row is the vertical timing counter
@@ -478,7 +483,7 @@ uint_32 CLUT15bit[0x10000]; //15-bit color lookup table!
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (hretrace) return; //Don't handle during horizontal retraces!
+	if (hretrace||Sequencer->is_topwindow) return; //Don't handle during horizontal retraces or top screen rendering!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	++VGA->CRTC.x; //Next x!
 }
@@ -539,7 +544,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	{
 		DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
 	}
-
+	if (Sequencer->is_topwindow) return; //Don't draw the top window!
 	//Draw the pixel(s) that is/are latched!
 	do //We always render at least 1 pixel from the DAC!
 	{
@@ -562,7 +567,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 
 OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (hretrace) return; //Don't handle during horizontal retraces!
+	if (hretrace||Sequencer->is_topwindow) return; //Don't handle during horizontal retraces!
 	//Overscan!
 	/*
 	if (VGA->precalcs.AttributeController_16bitDAC==3) //16-bit color mode?

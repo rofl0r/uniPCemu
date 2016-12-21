@@ -103,7 +103,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 		if (current < NUMITEMS(VGA->CRTC.extrahorizontalstatus)) //Valid to increase?
 		{
-			extrastatus |= 8; //Allow increasing to prevent overflow if not allowed!
+			extrastatus |= 4; //Allow increasing to prevent overflow if not allowed!
 		}
 		VGA->CRTC.extrahorizontalstatus[current] = extrastatus; //Extra status to apply!
 

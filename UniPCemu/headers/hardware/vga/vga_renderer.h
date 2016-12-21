@@ -53,6 +53,7 @@ typedef struct
 	uint_32 memoryaddress; //The current memory address to apply!
 	byte memoryaddressclock; //The memory address clock itself!
 	byte linearcounterdivider; //The linear counter clock divider itself!
+	byte is_topwindow; //Are we the top window?
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"
