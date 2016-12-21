@@ -90,7 +90,7 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		}
 		if (!sdlWindow) //We don't have a window&renderer yet?
 		{
-			sdlWindow = SDL_CreateWindow("UniPCemu", SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
+			sdlWindow = SDL_CreateWindow("UniPCemu", SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,xres,yres,SDL_WINDOW_SHOWN); //Create the window and renderer we use at our resolution!
 		}
 		else
 		{
