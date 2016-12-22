@@ -191,6 +191,68 @@ void updateInputMain() //Frequency 1000Hz!
 	}
 }
 
+#ifdef IS_WINDOWS
+//Based on https://msdn.microsoft.com/en-us/library/aa380798(v=vs.85).aspx
+#define TERMINAL_SERVER_KEY "SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\"
+#define GLASS_SESSION_ID    "GlassSessionId"
+
+byte IsCurrentSessionRemoteable()
+{
+    byte fIsRemoteable = FALSE;
+                                       
+    if (GetSystemMetrics(SM_REMOTESESSION)) 
+    {
+        fIsRemoteable = TRUE;
+    }
+    else
+    {
+        HKEY hRegKey = NULL;
+        LONG lResult;
+
+        lResult = RegOpenKeyEx(
+            HKEY_LOCAL_MACHINE,
+            TERMINAL_SERVER_KEY,
+            0, // ulOptions
+            KEY_READ,
+            &hRegKey
+            );
+
+        if (lResult == ERROR_SUCCESS)
+        {
+            DWORD dwGlassSessionId;
+            DWORD cbGlassSessionId = sizeof(dwGlassSessionId);
+            DWORD dwType;
+
+            lResult = RegQueryValueEx(
+                hRegKey,
+                GLASS_SESSION_ID,
+                NULL, // lpReserved
+                &dwType,
+                (byte*) &dwGlassSessionId,
+                &cbGlassSessionId
+                );
+
+            if (lResult == ERROR_SUCCESS)
+            {
+                DWORD dwCurrentSessionId;
+
+                if (ProcessIdToSessionId(GetCurrentProcessId(), &dwCurrentSessionId))
+                {
+                    fIsRemoteable = (dwCurrentSessionId != dwGlassSessionId);
+                }
+            }
+        }
+
+        if (hRegKey)
+        {
+            RegCloseKey(hRegKey);
+        }
+    }
+
+    return fIsRemoteable;
+}
+#endif
+
 extern byte allcleared;
 extern char logpath[256]; //Log path!
 extern char capturepath[256]; //Capture path!
@@ -228,6 +290,11 @@ int main(int argc, char * argv[])
 	}
 
 	RDP = 0; //Default: normal!
+
+#ifdef IS_WINDOWS
+	//Windows Remote Desktop autodetection!
+	RDP = IsCurrentSessionRemoteable(); //Are we a remote desktop session?
+#endif
 
 	if (argc) //Gotten parameters?
 	{

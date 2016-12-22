@@ -24,9 +24,6 @@ VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information blo
 
 //Patches for dosbox!
 
-//Now for real:
-
-uint_32 machine = M_VGA; //Active machine!
 //EGA/VGA?
 
 extern SVGAmode svgaCard; //SVGA card that's emulated?

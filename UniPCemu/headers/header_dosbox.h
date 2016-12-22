@@ -3,6 +3,7 @@
 //Dosbox Takeover stuff!
 
 #include "headers/types.h" //Basic types!
+#include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA detection support!
 
 #ifndef bool
 //Booleans are ints!
@@ -217,13 +218,16 @@ Patches for dosbox!
 
 enum MachineType
 {
-    MCH_HERC,
-    MCH_CGA,
-    MCH_TANDY,
-    MCH_PCJR,
-    MCH_EGA,
-    MCH_VGA
+    MCH_HERC=0,
+    MCH_CGA=1,
+    MCH_TANDY=2,
+    MCH_PCJR=3,
+    MCH_EGA=4,
+    MCH_VGA=5
 };
+
+//UniPCemu's Video machine autodetection!
+#define machine ((CGAMDAEMULATION_ENABLED(getActiveVGA()))?MCH_CGA:MCH_VGA)
 
 //Type patches!
 #define Bit16u word
@@ -299,7 +303,14 @@ typedef byte *PhysPt; //Physical pointer!
 
 #define true 1
 #define false 0
-#define IS_EGAVGA_ARCH IS_VGA_ARCH
+
+#define IS_TANDY_ARCH ((machine==MCH_TANDY) || (machine==MCH_PCJR))
+#define IS_EGAVGA_ARCH ((machine==MCH_EGA) || (machine==MCH_VGA))
+#define IS_VGA_ARCH (machine==MCH_VGA)
+#define TANDY_ARCH_CASE MCH_TANDY: case MCH_PCJR
+#define EGAVGA_ARCH_CASE MCH_EGA: case MCH_VGA
+#define VGA_ARCH_CASE MCH_VGA
+
 #define Bitu uint_32
 
 

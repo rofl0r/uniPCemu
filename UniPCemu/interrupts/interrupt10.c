@@ -2374,7 +2374,7 @@ void init_int10() //Initialises int10&VGA for usage!
 			svgaCard = SVGA_None; //No SVGA!
 			break;
 	}
-	if (DAC_Use_BWMonitor(0xFF)) //Are we using a B/W monitor?
+	if (DAC_Use_BWMonitor(0xFF) || (MDAEMULATION_ENABLED(getActiveVGA()))) //Are we using a B/W monitor or MDA video adapter?
 	{
 		GPUswitchvideomode(7); //Init video mode #7(mono)!
 	}

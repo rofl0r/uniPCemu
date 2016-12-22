@@ -10,9 +10,6 @@
 //Emulate VGA?
 #define EMU_VGA 1
 
-//We're an VGA Architecture!
-#define IS_VGA_ARCH 1
-
 //4 planes of 64k totaling 256k (0x40000) of VRAM is a Minimum! Currently: 0x300000=1024x768x32;0x3C0000=1280x1024x24
 #define VGA_VRAM_VGA 0x40000
 #define VGA_VRAM_SVGA_1024_32 0x300000
