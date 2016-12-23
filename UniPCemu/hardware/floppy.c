@@ -19,7 +19,7 @@
 //Double logging if FLOPPY_LOGFILE2 is defined!
 #define FLOPPY_LOGFILE "debugger"
 //#define FLOPPY_LOGFILE2 "floppy"
-#define FLOPPY_FORCELOG
+//#define FLOPPY_FORCELOG
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6

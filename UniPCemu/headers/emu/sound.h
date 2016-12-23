@@ -65,6 +65,8 @@ void lockaudio();
 void unlockaudio();
 
 //Basic dB and factor convertions!
+#define dB2factorf(dB, fMaxLevelDB) (powf(10, (((dB) - (fMaxLevelDB)) / 20)))
+#define factor2dBf(factor, fMaxLevelDB) ((fMaxLevelDB) + (10 * logf(factor)))
 #define dB2factor(dB, fMaxLevelDB) (pow(10, (((dB) - (fMaxLevelDB)) / 20)))
 #define factor2dB(factor, fMaxLevelDB) ((fMaxLevelDB) + (10 * log(factor)))
 //Convert a volume in the range of 0=0, 100=1 to decibel factor to use with volume multiplication of signals!
