@@ -1,6 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug - SDL2 - VLD|Win32">
+      <Configuration>Debug - SDL2 - VLD</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug - SDL2 - VLD|x64">
+      <Configuration>Debug - SDL2 - VLD</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug - SDL2|Win32">
       <Configuration>Debug - SDL2</Configuration>
       <Platform>Win32</Platform>
@@ -337,6 +345,11 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -353,6 +366,11 @@
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
@@ -378,6 +396,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -388,6 +409,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -406,6 +430,14 @@
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
+    <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
+    <LibraryPath>C:\SDL\SDL2-2.0.5\VisualC\Win32\Release;C:\SDL\SDL2-2.0.5\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>C:\SDL\SDL2-2.0.5\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
@@ -437,6 +469,13 @@
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|x64'">
+    <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
+    <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
+    <IncludePath>C:\SDL\SDL2-2.0.5\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>C:\SDL\SDL2-2.0.5\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <IncludePath>C:\SDL\SDL2-2.0.5\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
@@ -482,6 +521,24 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>SDL2;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\SDL\SDL2-2.0.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>winmm.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>_VLD;SDL2;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\SDL\SDL2-2.0.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -545,6 +602,16 @@
     <ClCompile>
       <AdditionalIncludeDirectories>C:\SDL\SDL2-2.0.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>SDL2;_CRT_SECURE_NO_WARNINGS;WIN64;_DEBUG</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>winmm.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\SDL\SDL2-2.0.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_VLD;SDL2;_CRT_SECURE_NO_WARNINGS;WIN64;_DEBUG</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>winmm.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
