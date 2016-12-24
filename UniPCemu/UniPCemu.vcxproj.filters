@@ -519,6 +519,9 @@
     <ClCompile Include="interrupts\interrupt10_videoparametertable.c">
       <Filter>Source Files\interrupts</Filter>
     </ClCompile>
+    <ClCompile Include="support\filters.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h">
@@ -937,6 +940,9 @@
     </ClInclude>
     <ClInclude Include="headers\cpu\cpu_pmtimings.h">
       <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\support\filters.h">
+      <Filter>Header Files\support</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -200,6 +200,9 @@ double getCurrentClockSpeed(); //Retrieves the current clock speed!
 
 void updateInputMain(); //Update input before an instruction (main thread only!)!
 
+//PI: More accuracy from SDL2_rotozoom.h
+#define PI 3.1415926535897932384626433832795
+
 //One Megabyte of Memory!
 #define MBMEMORY 0x100000
 //Exact 14Mhz clock used on a PC!

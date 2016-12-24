@@ -16,7 +16,8 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
 #include "headers/cpu/cpu.h" //XT vs AT support!
-#include "headers/support/log.h" //Loggin support!
+#include "headers/support/log.h" //Logging support!
+#include "headers/support/filters.h" //Filter support!
 
 //Are we disabled?
 #define __HW_DISABLED 0

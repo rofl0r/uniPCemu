@@ -7,6 +7,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/support/sounddoublebuffer.h" //Sound buffer support!
 #include "headers/support/wave.h" //WAV file logging support!
+#include "headers/support/filters.h" //Filter support!
 
 #define uint8_t byte
 #define uint16_t word

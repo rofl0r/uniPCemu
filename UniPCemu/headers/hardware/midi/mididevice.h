@@ -4,7 +4,7 @@
 #include "headers/types.h"
 #include "headers/hardware/midi/adsr.h" //ADSR support!
 #include "headers/support/fifobuffer.h" //Effect backtrace support for chorus/reverb effects!
-#include "headers/emu/sound.h" //Filter support!
+#include "headers/support/filters.h" //Filter support!
 
 //MIDI Drum channel number
 #define MIDI_DRUMCHANNEL 9

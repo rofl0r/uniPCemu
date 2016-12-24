@@ -168,6 +168,7 @@
     <ClCompile Include="support\crc32.c" />
     <ClCompile Include="support\dro.c" />
     <ClCompile Include="support\fifobuffer.c" />
+    <ClCompile Include="support\filters.c" />
     <ClCompile Include="support\highrestimer.c" />
     <ClCompile Include="support\isoreader.c" />
     <ClCompile Include="support\lba.c" />
@@ -304,6 +305,7 @@
     <ClInclude Include="headers\support\crc32.h" />
     <ClInclude Include="headers\support\dro.h" />
     <ClInclude Include="headers\support\fifobuffer.h" />
+    <ClInclude Include="headers\support\filters.h" />
     <ClInclude Include="headers\support\highrestimer.h" />
     <ClInclude Include="headers\support\isoreader.h" />
     <ClInclude Include="headers\support\keyboard.h" />

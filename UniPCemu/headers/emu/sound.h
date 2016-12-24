@@ -3,29 +3,11 @@
 
 typedef byte (*SOUNDHANDLER)(void* buf, uint_32 length, byte stereo, void *userdata);    /* A pointer to a handler function */
 
-//PI: More accuracy from SDL2_rotozoom.h
-#define PI 3.1415926535897932384626433832795
-
 typedef short sample_t, *sample_p; //One sample!
 
 typedef struct {
         sample_t l, r; //Stereo sample!
 } sample_stereo_t, *sample_stereo_p;
-
-typedef struct
-{
-	byte isInit; //Initialized filter?
-	byte isFirstSample; //First sample?
-	float sound_last_result; //Last result!
-	float sound_last_sample; //Last sample!
-
-	float solid; //Solid value that doesn't change for the filter, until the filter is updated!
-
-	//General filter information and settings set for the filter!
-	byte isHighPass;
-	float cutoff_freq;
-	float samplerate;
-} HIGHLOWPASSFILTER; //High or low pass filter!
 
 #define SMPL16 0
 #define SMPL8 1
@@ -71,11 +53,6 @@ void unlockaudio();
 #define factor2dB(factor, fMaxLevelDB) ((fMaxLevelDB) + (10 * log(factor)))
 //Convert a volume in the range of 0=0, 100=1 to decibel factor to use with volume multiplication of signals!
 #define convertVolume(vol) (factor2dB(((vol)*0.01f+1.0f),0.0f)/factor2dB(1.0f+1.0f,0.0f))
-
-//Global high and low pass filters support!
-void initSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate); //Initialize the filter!
-void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate); //Update the filter information/type!
-void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample); //Apply the filter to a sample stream!
 
 //Get the current recorded sample at hardware rate. This is timed according to the core clock timing.
 sbyte getRecordedSample8s();
