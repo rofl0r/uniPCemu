@@ -62,6 +62,8 @@ PC SPEAKER
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
 #undef SPEAKER_LOWPASS
+//Formula for 4.7uF and 8 Ohm results in: 1/(2*PI*RC)=1/(2*PI*8*0.0000047) Hz(~4.4kHz) instead of ~16kHz using 72 samples.
+//#define SPEAKER_LOWPASS (1/(2.0f*PI*8*0.0000047))
 #define SPEAKER_LOWPASS (TIME_RATE/72.0)
 
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
