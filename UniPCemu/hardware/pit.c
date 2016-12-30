@@ -51,9 +51,9 @@ PC SPEAKER
 //#define SPEAKER_RATE (1000000.0f/60.0f)
 //Speaker buffer size!
 #define SPEAKER_BUFFER 4096
-//Speaker low pass filter values (if defined, it's used)!
-#define SPEAKER_LOWPASS 20000.0f
-//Speaker volume during filtering!
+//Speaker low pass filter values (if defined, it's used)! We're 96dB dynamic range, with 6dB per octave, so 16 times filtering is needed to filter it fully at the nyquist frequency.
+#define SPEAKER_LOWPASS ((((float)SPEAKER_RATE)/2.0f)/16.0f)
+//Speaker volume during filtering! Take half to prevent overflow!
 #define SPEAKER_LOWPASSVOLUME 0.5f
 
 //Precise timing rate!
@@ -62,10 +62,10 @@ PC SPEAKER
 #define TIME_RATE (MHZ14/12.0)
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
-#undef SPEAKER_LOWPASS
+//#undef SPEAKER_LOWPASS
 //Formula for 4.7uF and 8 Ohm results in: 1/(2*PI*RC)=1/(2*PI*8*0.0000047) Hz(~4.4kHz) instead of ~16kHz using 72 samples.
 //#define SPEAKER_LOWPASS (1/(2.0f*PI*8*0.0000047))
-#define SPEAKER_LOWPASS (TIME_RATE/72.0)
+//#define SPEAKER_LOWPASS (TIME_RATE/72.0)
 
 //Log the speaker to this .wav file when defined (raw and duty cycles log)!
 //#define SPEAKER_LOGRAW "captures/speakerraw.wav"
