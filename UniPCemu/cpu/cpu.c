@@ -1290,6 +1290,18 @@ byte CPU_interruptraised = 0;
 
 extern CPUPM_Timings CPUPMTimings[216]; //The PM timings full table!
 
+void CPU_resetTimings()
+{
+	CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
+	CPU[activeCPU].cycles_Prefetch_BIU = 0; //Reset cycles spent on BIU!
+	CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
+	CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
+	CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
+	CPU[activeCPU].cycles_IO = 0; //Reset cycles spent on the BIU I/O execution!
+	CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
+	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
+}
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	byte REPZ = 0; //Default to REP!
@@ -1349,7 +1361,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
 		newREP = 1; //We're a new repeating instruction!
 	}
-	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
 	REPZ = 0; //Init REP to NZ!
@@ -1578,7 +1589,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
 									CPU[activeCPU].cycles += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
-									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 									goto apply286cycles; //Apply the cycles!									
 								}
@@ -1591,7 +1602,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 									goto apply286cycles; //Apply the cycles!									
 								}
@@ -1602,7 +1613,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							if (didJump) //Did we jump?
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
-								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!
 							}
@@ -1612,7 +1623,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 							if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
 							{
 								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
-								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!								
 							}
@@ -1629,7 +1640,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 								{
 									CPU[activeCPU].cycles = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
 								}
-								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 								goto apply286cycles; //Apply the cycles!
 							}
@@ -1637,7 +1648,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 						else //Normal/default behaviour? Always matches!
 						{
 							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Apply memory and prefetch cycles too!
+							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 							goto apply286cycles; //Apply the cycles!
 						}
@@ -1651,7 +1662,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			#ifdef CPU_USECYCLES
 			if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 			{
-				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW; //Use the cycles as specified by the instruction!
+				CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Use the cycles as specified by the instruction!
 			}
 			else //Automatic cycles placeholder?
 			{
@@ -1671,14 +1682,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	CPU_afterexec(); //After executing OPCode stuff!
 	CPU_tickPrefetch(); //Tick the prefetch as required!
-	if (cycles_counted) //Finished with our cycle countings? Clear that information for the next instruction!
-	{
-		CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
-		CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
-		CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
-		CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
-		CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
-	}
 	flushMMU(); //Flush MMU writes!
 	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
 	CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
@@ -1895,6 +1898,7 @@ void CPU_tickPrefetch()
 	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 	cycles -= CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 	cycles -= CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
+	cycles -= CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	cycles -= CPU[activeCPU].cycles_Prefetch; //Don't count memory access cycles by prefetching required data!
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<CPU_80286) //Old CPU?
@@ -1903,6 +1907,7 @@ void CPU_tickPrefetch()
 		{
 			CPU_fillPIQ(); //Add a byte to the prefetch!
 			cycles -= 4; //This takes four cycles to transfer!
+			CPU[activeCPU].cycles_Prefetch_BIU += 4; //Cycles spent on prefetching on BIU idle time!
 		}
 	}
 	else //286+
@@ -1911,6 +1916,7 @@ void CPU_tickPrefetch()
 		{
 			CPU_fillPIQ(); //Add a byte to the prefetch!
 			cycles -= 3; //This takes four cycles to transfer!
+			CPU[activeCPU].cycles_Prefetch_BIU += 3; //Cycles spent on prefetching on BIU idle time!
 		}
 	}
 }

@@ -779,6 +779,9 @@ OPTINLINE byte coreHandler()
 		{
 			return 0; //Invalid registers: abort, since we're invalid!
 		}
+
+		CPU_resetTimings(); //Reset all required CPU timings required!
+
 		if (CPU[activeCPU].halt) //Halted?
 		{
 			if (romsize) //Debug HLT?

@@ -880,6 +880,7 @@ typedef struct PACKED
 	byte cycles_MMUR, cycles_MMUW; //Total number of cycles for memory access!
 	byte cycles_IO; //Total number of cycles for I/O access!
 	byte cycles_Prefetch; //Total number of cycles for prefetching from memory!
+	byte cycles_Prefetch_BIU; //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 
 	//PE in .registers.CR0.PE: In real mode or V86 mode (V86 flag&PE=V86; !PE=protected; else real)?
 
@@ -1204,5 +1205,7 @@ byte isV86(); //Are we in Virtual 8086 mode?
 byte NumberOfSetBits(uint_32 i); //Number of bits set in this variable!
 
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
+
+void CPU_resetTimings(); //Reset timings before processing the next CPU state!
 
 #endif

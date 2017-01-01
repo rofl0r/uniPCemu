@@ -517,6 +517,19 @@ OPTINLINE static void debugger_autolog()
 		{
 			dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 		}
+
+		dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
+			CPU[activeCPU].cycles,
+			CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+			CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+			CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+			CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+			CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+			CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+			CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+			CPU[activeCPU].cycles_Prefetch_BIU //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+			);
+
 		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
 		debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
