@@ -368,7 +368,7 @@ void INT10_SetupRomMemoryChecksum() {
 		/* Sum of all bytes in rom module 256 should be 0 */
 		Bit8u sum = 0;
 		//uint_32 rom_base = 0;
-		Bitu last_rombyte = 32*1024 - 1;		//32 KB romsize
+		Bitu last_rombyte = 64*1024 - 1;		//64 KB romsize(32KB isn't enough!)
 		for (i = 0;i < last_rombyte;i++)
 			sum += (Bit8u)EMU_VGAROM[i];	//OVERFLOW IS OKAY
 		sum = (Bit8u)((256 - (Bitu)sum)&0xff);
