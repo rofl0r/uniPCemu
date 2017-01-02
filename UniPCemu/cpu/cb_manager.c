@@ -93,18 +93,24 @@ word CB_datasegment; //Reserved segment when adding callback!
 word CB_dataoffset; //Reserved offset when adding callback!
 word CB_realoffset; //Real offset we're loaded at within the custom BIOS!
 
+#ifdef IS_BIG_ENDIAN
+#define LE16(x) SDL_SwapLE16(value)
+#else
+#define LE16(x) (x)
+#endif
+
 void write_VGAw(uint_32 offset, word value)
 {
-	value = SDL_SwapLE16(value); //Make sure we're little-endian!
-	EMU_VGAROM[offset] = value & 0xFF; //Low byte!
-	EMU_VGAROM[offset + 1] = (value >> 8); //High byte!
+	value = LE16(value); //Make sure we're little-endian!
+	EMU_VGAROM[offset&0xFFFF] = value & 0xFF; //Low byte!
+	EMU_VGAROM[(offset + 1)&0xFFFF] = (value >> 8); //High byte!
 }
 
 void write_BIOSw(uint_32 offset, word value)
 {
-	value = SDL_SwapLE16(value); //Make sure we're little-endian!
-	EMU_BIOS[offset] = value&0xFF; //Low byte!
-	EMU_BIOS[offset+1] = (value>>8); //High byte!
+	value = LE16(value); //Make sure we're little-endian!
+	EMU_BIOS[offset&0xFFFF] = value&0xFF; //Low byte!
+	EMU_BIOS[(offset+1)&0xFFFF] = (value>>8); //High byte!
 }
 
 #define Bit8u byte
