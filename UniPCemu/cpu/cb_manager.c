@@ -8,7 +8,7 @@
 #include "headers/support/signedness.h" //Sign support!
 
 extern byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
-extern byte EMU_VGAROM[0x8000]; //Full VGA BIOS from 0xC0000-0xC8000 for the emulator and normal BIOS to use!
+extern byte EMU_VGAROM[0x10000]; //Full VGA BIOS from 0xC0000-0xC8000 for the emulator and normal BIOS to use!
 
 extern Int10Data int10; //Our VGA ROM data!
 

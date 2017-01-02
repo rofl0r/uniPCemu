@@ -446,14 +446,15 @@ static byte video_parameter_table_ega[0x40*0x17]={
 };
 
 word INT10_SetupVideoParameterTable(word basepos) {
+	word i;
 	if (IS_VGA_ARCH) { //VGA+?
-		for (Bitu i=0;i<0x40*0x1d;i++) {
+		for (i=0;i<0x40*0x1d;i++) {
 			EMU_VGAROM[basepos+i] = video_parameter_table_vga[i]; //Load the table into the ROM!
 		}
 		return 0x40*0x1d;
 	}
 	//EGA?
-	for (Bitu i=0;i<0x40*0x17;i++) {
+	for (i=0;i<0x40*0x17;i++) {
 		EMU_VGAROM[basepos+i] = video_parameter_table_ega[i];
 	}
 	return 0x40*0x17;

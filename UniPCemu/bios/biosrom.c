@@ -22,7 +22,7 @@
 #define ET3000_PATCH
 
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
-byte EMU_VGAROM[0x8000]; //Maximum size custom BIOS VGA ROM!
+byte EMU_VGAROM[0x10000]; //Maximum size custom BIOS VGA ROM!
 
 byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!

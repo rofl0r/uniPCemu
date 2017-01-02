@@ -192,7 +192,7 @@ void INT10_ReloadFont() {
 
 Int10Data int10; //Our interrupt data!
 
-extern byte EMU_VGAROM[0x8000]; //Our VGA ROM!
+extern byte EMU_VGAROM[0x10000]; //Our VGA ROM!
 extern byte EMU_BIOS[0x10000]; //Our BIOS!
 
 void write_VGAd(uint_32 offset, uint_32 value)
