@@ -30,7 +30,7 @@ uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
 byte numOPT_ROMS = 0;
 byte *OPT_ROMS[40]; //Up to 40 option roms!
 uint_32 OPTROM_size[40]; //All possible OPT ROM sizes!
-uint_32 OPTROM_location[40]; //All possible OPT ROM locations(low word) and end position(high word)!
+uint_64 OPTROM_location[40]; //All possible OPT ROM locations(low word) and end position(high word)!
 char OPTROM_filename[40][256]; //All possible filenames for the OPTROMs loaded!
 
 byte OPTROM_writeSequence[40]; //Current write sequence command state!
@@ -205,7 +205,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			strcpy(OPTROM_filename[i],filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
 
 			location += OPTROM_size[i]; //Next ROM position!
-			OPTROM_location[i] |= (location<<16); //The end location of the option ROM!
+			OPTROM_location[i] |= ((uint_64)location<<32); //The end location of the option ROM!
 			if (OPTROM_size[i]&0x7FF) //Not 2KB alligned?
 			{
 				location += 0x800-(OPTROM_size[i]&0x7FF); //2KB align!
@@ -428,7 +428,7 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
-	INLINEREGISTER uint_32 basepos, currentpos, temppos; //Current position!
+	INLINEREGISTER uint_64 basepos, currentpos, temppos; //Current position!
 	basepos = currentpos = offset; //Load the offset!
 	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
@@ -443,9 +443,9 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	do //Check OPT ROMS!
 	{
 		currentpos = OPTROM_location[i]; //Load the current location for analysis and usage!
-		if (OPT_ROMS[i] && ((currentpos>>16)>basepos)) //Before the end location and valid rom?
+		if (OPT_ROMS[i] && ((currentpos>>32)>basepos)) //Before the end location and valid rom?
 		{
-			currentpos &= 0xFFFF; //The location of the ROM itself!
+			currentpos &= 0xFFFFFFFF; //The location of the ROM itself!
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
 				if (VGAROM_mapping!=0xFF) //Special mapping?
@@ -498,7 +498,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	}
 	currentpos -= basepos; //Calculate from the base position!
 	basepos = currentpos; //Write back!
-	INLINEREGISTER uint_32 OPTROM_address, OPTROM_loc; //The address calculated in the EEPROM!
+	INLINEREGISTER uint_64 OPTROM_address, OPTROM_loc; //The address calculated in the EEPROM!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSW;
 	do //Check OPT ROMS!
@@ -506,9 +506,9 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		if (OPT_ROMS[i]) //Enabled?
 		{
 			OPTROM_loc = OPTROM_location[i]; //Load the current location!
-			if ((OPTROM_loc>>16)>basepos) //Before the end of the ROM?
+			if ((OPTROM_loc>>32)>basepos) //Before the end of the ROM?
 			{
-				OPTROM_loc &= 0xFFFF;
+				OPTROM_loc &= 0xFFFFFFFF;
 				if (OPTROM_loc <= basepos) //After the start of the ROM?
 				{
 					OPTROM_address = basepos;
@@ -598,7 +598,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					FILE *f; //For opening the ROM file!
 					f = fopen(OPTROM_filename[i], "rb+"); //Open the ROM for writing!
 					if (!f) return 1; //Couldn't open the ROM for writing!
-					if (fseek(f, OPTROM_address, SEEK_SET)) //Couldn't seek?
+					if (fseek(f, (uint_32)OPTROM_address, SEEK_SET)) //Couldn't seek?
 					{
 						fclose(f); //Close the file!
 						return 1; //Abort!

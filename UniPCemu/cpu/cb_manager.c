@@ -117,7 +117,7 @@ void write_BIOSw(uint_32 offset, word value)
 #define Bit16u word
 
 #define incoffset (dataoffset++&0xFFFF)
-#define incoffsetv (incoffset&0x7FFF)
+#define incoffsetv (incoffset&0xFFFF)
 
 //In the case of CB_INTERRUPT, how much to add to the address to get the CALL version
 #define CB_INTERRUPT_CALLSIZE 12
@@ -149,7 +149,7 @@ void CB_updatevectoroffsets(uint_32 intnr, word offset)
 
 void CB_createcallback(byte isVGA, word callback, word *offset) //Create VGA/BIOS callback!
 {
-	word addrmask = isVGA?0x7FFF:0xFFFF; //The mask to use!
+	word addrmask = isVGA?0xFFFF:0xFFFF; //The mask to use!
 	byte *datapoint;
 	datapoint = isVGA?&EMU_VGAROM[0]:&EMU_BIOS[0]; //What ROM to use?
 	datapoint[(*offset)++&addrmask] = 0x50; //PUSH AX on the stack for the handler!
