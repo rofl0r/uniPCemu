@@ -480,15 +480,13 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		{
 			chorus = (currentchorusreverb&0x3); //Current chorus channel!
 			reverb = (currentchorusreverb>>2); //Current reverb channel!
-			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
-			totaldelay = voice->reverbdelay[currentchorusreverb]; //Load the total delay!
-			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
+			totaldelay = voice->reverbdelay[reverb]; //Load the total delay!
 
 			if (readfifobufferflt_backtrace(voice->effect_backtrace_chorus[chorus][0],&channelsamplel,totaldelay,(voice->isfinalchannel_reverb[reverb]) && (chorusreverbsamplepos>=0))
 				&& readfifobufferflt_backtrace(voice->effect_backtrace_chorus[chorus][1],&channelsampler,totaldelay,(voice->isfinalchannel_reverb[reverb]) && (chorusreverbsamplepos>=0))) //Are we successfully read back?
 			{
-				lchannel += (int_32)(channelsamplel*voice->activereverbdepth[reverb]); //Sound the left channel at reverb level!
-				rchannel += (int_32)(channelsampler*voice->activereverbdepth[reverb]); //Sound the right channel at reverb level!
+				lchannel += (int_32)(channelsamplel*voice->reverbvol[reverb]); //Sound the left channel at reverb level!
+				rchannel += (int_32)(channelsampler*voice->reverbvol[reverb]); //Sound the right channel at reverb level!
 			}
 		}
 
@@ -892,7 +890,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	//Now, set all reverb channel information!
 	for (chorusreverbdepth=0;chorusreverbdepth<REVERBSIZE;++chorusreverbdepth)
 	{
-		voice->reverbvol[chorusreverbdepth] = voice->activechorusdepth[chorusreverbdepth]*voice->activereverbdepth[chorusreverbdepth]; //Chorus reverb volume!
+		voice->reverbvol[chorusreverbdepth] = voice->activereverbdepth[chorusreverbdepth]; //Chorus reverb volume!
 		voice->reverbdelay[chorusreverbdepth] = (uint_32)((reverb_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
 		voice->isfinalchannel_reverb[chorusreverbdepth] = (chorusreverbdepth==(REVERBSIZE-1)); //Are we the final channel?
 	}
