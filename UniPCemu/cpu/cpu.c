@@ -1310,7 +1310,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
 	MemoryTimingInfo *currenttimingcheck; //Current timing check!
 	uint_32 previousCSstart;
-	byte cycles_counted = 0; //Cycles have been counted?
+	//byte cycles_counted = 0; //Cycles have been counted?
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	bufferMMU(); //Buffer the MMU writes for us!
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
@@ -1671,12 +1671,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			#ifdef CPU_USECYCLES
 			}
 			apply286cycles: //Apply the 286+ cycles used!
-			cycles_counted = 1; //Cycles have been counted!
+			//cycles_counted = 1; //Cycles have been counted!
 			#endif
 			break;
 		default: //Not implemented yet?
 			CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick at 8086 speed)!
-			cycles_counted = 1; //Cycles have been counted!
+			//cycles_counted = 1; //Cycles have been counted!
 			break;
 		}
 	}
