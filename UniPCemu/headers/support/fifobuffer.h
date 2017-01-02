@@ -172,4 +172,8 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data);
 void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
+//Floating-point simple storage support!
+byte writefifobufferflt(FIFOBUFFER *buffer, float data);
+byte readfifobufferflt(FIFOBUFFER *buffer, float *result);
+byte readfifobufferflt_backtrace(FIFOBUFFER *buffer, float *result, uint_32 backtrace, byte finalbacktrace);
 #endif

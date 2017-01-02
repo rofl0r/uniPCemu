@@ -9,6 +9,15 @@
 #define LASTSTATUS_READ buffer->size
 #define LASTSTATUS_WRITE 0
 
+#ifdef IS_BIG_ENDIAN
+//Big endian needs swapping?
+#define LE16(x) SDL_SwapLE16(x)
+#define LE32(x) SDL_SwapLE32(x)
+#else
+#define LE16(x) (x)
+#define LE32(x) (x)
+#endif
+
 extern byte allcleared; //Are all pointers cleared?
 
 /*
@@ -327,7 +336,8 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result,
 	resultw = (buffer->buffer[readpos++]<<8); //Read and update high!
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
 	resultw |= buffer->buffer[readpos++]; //Read and update low!
-	*result = SDL_SwapLE16(resultw); //Save the result retrieved, from LE format!
+	resultw = LE16(resultw); //Convert to native ordering, if needed!
+	*result = resultw; //Save the result retrieved, from LE format!
 	if (updateposition)
 	{
 		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
@@ -351,7 +361,8 @@ OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *resu
 	if (readpos >= size) readpos = 0; //Wrap arround when needed!
 	resultd <<= 8;
 	resultd |= buffer->buffer[readpos++]; //Read and update low!
-	*result = SDL_SwapLE32(resultd); //Save the result retrieved, in LE format!
+	resultd = LE32(resultd); //Convert to native ordering if needed!
+	*result = resultd; //Save the result retrieved, in LE format!
 	if (updateposition)
 	{
 		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
@@ -551,7 +562,7 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 	#include "headers/endpacked.h"
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
-	temp.resultw = SDL_SwapLE16(data); //Load the data to store, in LE format!
+	temp.resultw = LE16(data); //Load the data to store, in LE format!
 	buffer->buffer[writepos++] = temp.byte2; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->buffer[writepos++] = temp.byte1; //Write low and update!
@@ -578,7 +589,7 @@ OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data
 	#include "headers/endpacked.h"
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
-	temp.resultd = SDL_SwapLE32(data); //Convert us to LE format!
+	temp.resultd = LE32(data); //Convert us to LE format!
 	buffer->buffer[writepos++] = temp.byte4; //Write high and update!
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->buffer[writepos++] = temp.byte3; //Write high and update!
@@ -651,6 +662,64 @@ byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data)
 		writefifobuffer32unlocked(buffer, data); //Write the FIFO buffer without lock!
 	}
 	return 1; //Written!
+}
+
+//Wrapper support for floating point as storage!
+OPTINLINE uint_32 flt2uint_32(float data)
+{
+	#include "headers/packed.h"
+	union PACKED
+	{
+		float fltval;
+		uint_32 val32;
+	} converter;
+	#include "headers/endpacked.h" //Finish packed!
+
+	converter.fltval = data;
+	return converter.val32; //Apply 32-bit value conversion!
+}
+
+OPTINLINE float uint_322flt(uint_32 data)
+{
+	#include "headers/packed.h"
+	union PACKED
+	{
+		float fltval;
+		uint_32 val32;
+	} converter;
+	#include "headers/endpacked.h" //Finish packed!
+
+	converter.val32 = data;
+	return converter.fltval; //Apply 32-bit value conversion!
+}
+
+byte writefifobufferflt(FIFOBUFFER *buffer, float data)
+{
+	return writefifobuffer32(buffer,flt2uint_32(data)); //Write as 32-bit value!
+}
+
+byte readfifobufferflt(FIFOBUFFER *buffer, float *result)
+{
+	byte tempresult;
+	uint_32 temp;
+	tempresult = readfifobuffer32(buffer,&temp); //Read into buffer!
+	if (tempresult) //Valid to convert and store?
+	{
+		*result = uint_322flt(temp); //Convert back to floating point!
+	}
+	return tempresult;
+}
+
+byte readfifobufferflt_backtrace(FIFOBUFFER *buffer, float *result, uint_32 backtrace, byte finalbacktrace)
+{
+	byte tempresult;
+	uint_32 temp;
+	tempresult = readfifobuffer32_backtrace(buffer,&temp,backtrace,finalbacktrace); //Read into buffer!
+	if (tempresult) //Valid to convert and store?
+	{
+		*result = uint_322flt(temp); //Convert back to floating point!
+	}
+	return tempresult;	
 }
 
 void fifobuffer_save(FIFOBUFFER *buffer)
