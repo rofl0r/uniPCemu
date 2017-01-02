@@ -16,7 +16,9 @@
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 42
 
-//Chorus amount(4 chorus channels) times reverberations(7 reverberations)
+//Chorus amount(4 chorus channels) and reverberations including origin(7 reverberations and 1 origin, for a total of 8 copies)
+#define CHORUSSIZE 4
+#define REVERBSIZE 8
 #define CHORUSREVERBSIZE 32
 
 typedef struct
@@ -111,18 +113,22 @@ typedef struct
 	float activereverbdepth[8]; //The reverb depth used for all channels!
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
-	sword modulationratiocents[CHORUSREVERBSIZE];
-	double modulationratiosamples[CHORUSREVERBSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
-	float lowpass_modulationratio[CHORUSREVERBSIZE], lowpass_modulationratiosamples[CHORUSREVERBSIZE]; //See modulation ratio, but for the low pass filter only!
+	sword modulationratiocents[CHORUSSIZE];
+	double modulationratiosamples[CHORUSSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
+	float lowpass_modulationratio[CHORUSSIZE], lowpass_modulationratiosamples[CHORUSSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
-	uint_32 totaldelay[CHORUSREVERBSIZE]; //Total delay for the chorus/reverb channel!
-	float chorusreverbvol[CHORUSREVERBSIZE]; //Chorus/reverb volume!
-	float chorussinpos[CHORUSREVERBSIZE]; //All current chorus sin positions, wrapping around the table limit!
+	FIFOBUFFER *effect_backtrace_chorus[CHORUSSIZE][2]; //Chorus backtrace for reverb purpose, stereo!
+	uint_32 chorusdelay[CHORUSSIZE]; //Total delay for the chorus/reverb channel!
+	uint_32 reverbdelay[REVERBSIZE]; //Total delay for the chorus/reverb channel!
+	float chorusvol[CHORUSSIZE]; //Chorus/reverb volume!
+	float reverbvol[REVERBSIZE]; //Reverb volume!
+	float chorussinpos[CHORUSSIZE]; //All current chorus sin positions, wrapping around the table limit!
 	float chorussinposstep; //The step of one sample in chorussinpos, wrapping around 
-	byte isfinalchannel[CHORUSREVERBSIZE]; //Are we the final channel to process for the current sample?
-	HIGHLOWPASSFILTER lowpassfilter[CHORUSREVERBSIZE]; //Each channel has it's own low-pass filter!
-	float last_lowpass[CHORUSREVERBSIZE]; //Last lowpass frequency used!
-	byte lowpass_dirty[CHORUSREVERBSIZE]; //Are we to update the low-pass filter?
+	byte isfinalchannel_chorus[CHORUSSIZE]; //Are we the final channel to process for the current sample?
+	byte isfinalchannel_reverb[REVERBSIZE]; //Are we the final channel to process for the current sample?
+	HIGHLOWPASSFILTER lowpassfilter[CHORUSSIZE]; //Each channel has it's own low-pass filter!
+	float last_lowpass[CHORUSSIZE]; //Last lowpass frequency used!
+	byte lowpass_dirty[CHORUSSIZE]; //Are we to update the low-pass filter?
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
