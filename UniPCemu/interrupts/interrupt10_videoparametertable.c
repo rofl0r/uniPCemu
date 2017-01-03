@@ -461,9 +461,10 @@ word INT10_SetupVideoParameterTable(word basepos) {
 }
 
 void INT10_SetupBasicVideoParameterTable(void) {
+	Bit16u i;
 	/* video parameter table at F000:F0A4 */
 	RealSetVec(0x1d,0xF000, 0xF0A4); //Point the interrupt to our table in the main BIOS ROM!
-	for (Bit16u i = 0; i < sizeof(vparams); i++) {
+	for (i = 0; i < sizeof(vparams); i++) {
 		EMU_BIOS[0xF0A4+i] = vparams[i]; //Write our data to the BIOS ROM where it's supposed to be located!
 	}
 }
