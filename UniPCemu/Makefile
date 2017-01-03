@@ -28,5 +28,9 @@ AR	= ar
 RANLIB	= ranlib
 WINDRES	= windres
 
+ifeq (,$(ROOTPATH))
+ROOTPATH = .
+endif
+
 #Support multi platform builds, also the list of used files:
-include Makefile.files
+include $(ROOTPATH)/Makefile.files

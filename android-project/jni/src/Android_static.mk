@@ -6,6 +6,8 @@ LOCAL_MODULE := main
 
 LOCAL_CFLAGS := -DSDL2
 
+ROOTPATH = ../UniPCemu
+
 include ../UniPCemu/Makefile
 
 LOCAL_SRC_FILES := $(patsubst %.o,../../../UniPCemu/%.c,$(OBJS))

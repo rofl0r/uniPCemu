@@ -10,6 +10,8 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include ../UniPCemu
 
 LOCAL_CFLAGS := -DSDL2
 
+ROOTPATH = ../UniPCemu
+
 include ../UniPCemu/Makefile
 
 # Add your application source files here...
