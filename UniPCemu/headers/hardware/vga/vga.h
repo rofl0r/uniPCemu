@@ -18,7 +18,8 @@
 #define VRAM_SIZE VGA_VRAM_VGA
 
 //Our IRQ to use when enabled (EGA compatibility)!
-#define VGA_IRQ 2
+#define VGA_IRQ_XT 0x12
+#define VGA_IRQ_AT 0x19
 
 //25MHz: VGA standard clock
 #define VGA25MHZ (25.2 / 1.001)*1000000.0

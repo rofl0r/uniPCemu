@@ -103,6 +103,8 @@ OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 	return getActiveVGA()->registers->CRTControllerRegisters.DATA[getActiveVGA()->registers->CRTControllerRegisters_Index]; //Give normal index!
 }
 
+extern byte is_XT; //Are we emulating an XT architecture?
+
 OPTINLINE void PORT_write_CRTC_3B5(byte value)
 {
 	byte temp; //For index 7 write protected!
@@ -144,8 +146,8 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 			if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Vertical interrupt cleared?
 			{
 				SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,7,1,0); //Clear the vertical interrupt pending flag!
-				lowerirq(VGA_IRQ); //Lower our IRQ if present!
-				acnowledgeIRQrequest(VGA_IRQ); //Acnowledge us!
+				lowerirq(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Lower our IRQ if present!
+				acnowledgeIRQrequest(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Acnowledge us!
 			}
 		}
 		if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) //Force to 1?

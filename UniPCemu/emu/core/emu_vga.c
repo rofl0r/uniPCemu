@@ -249,6 +249,8 @@ void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	}
 }
 
+extern byte is_XT; //Are we emulating an XT architecture?
+
 OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, byte *totalretracing, byte hblankretrace)
 {
 	const static byte retracemasks[4] = { 0xFF,0x00,0x00,0x00 }; //Disable display when retracing!
@@ -297,7 +299,7 @@ recalcsignal: //Recalculate the signal to process!
 				{
 					if (!GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,5,1)) //Generate vertical retrace interrupts?
 					{
-						raiseirq(VGA_IRQ); //Execute the CRT interrupt when possible!
+						raiseirq(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Execute the CRT interrupt when possible!
 					}
 					SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,7,1,1); //We're pending an CRT interrupt!
 				}
