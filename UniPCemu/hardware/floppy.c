@@ -19,7 +19,7 @@
 //Double logging if FLOPPY_LOGFILE2 is defined!
 #define FLOPPY_LOGFILE "debugger"
 //#define FLOPPY_LOGFILE2 "floppy"
-//#define FLOPPY_FORCELOG
+#define FLOPPY_FORCELOG
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6
@@ -586,6 +586,8 @@ OPTINLINE void updateST3(byte drivenumber)
 	FLOPPY_ST3_ERRORSIGNATUREW(0); //No errors here!
 }
 
+byte FLOPPY_hadIRQ = 0; //Did we have an IRQ raised?
+
 OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command when needed!
 {
 	byte pending_size; //Our currently pending size to use!
@@ -621,8 +623,12 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 				FLOPPY_CONFIGURATION_THRESHOLDW(0); //Reset threshold!
 				FLOPPY_CONFIGURATION_FIFODISABLEW(1); //Disable the FIFO!
 			}
+			//Make sure the IRQ works when resetting always!
 			FLOPPY.floppy_resetted = 1; //We're resetted!
 			FLOPPY.ignorecommands = 0; //We're enabling commands again!
+			//Make sure
+			FLOPPY_hadIRQ = 0; //Was an IRQ Pending? Nope, we're resetting!
+			FLOPPY_lowerIRQ(); //Lower the IRQ!
 		}
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
@@ -1306,8 +1312,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			break;
 	}
 }
-
-byte FLOPPY_hadIRQ = 0; //Did we have an IRQ raised?
 
 OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
