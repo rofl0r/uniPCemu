@@ -25,8 +25,6 @@
 //Saved values
 #define CDROM_PAGECONTROL_SAVED 3
 
-extern byte singlestep; //Enable single stepping when called?
-
 PCI_CONFIG PCI_IDE;
 
 struct

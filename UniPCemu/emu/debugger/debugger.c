@@ -40,7 +40,7 @@ uint_32 debugger_index = 0; //Current debugger index!
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 
-byte singlestep; //Enforce single step by CPU/hardware special debugging effects?
+byte singlestep; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 byte debuggerHLT = 0;
@@ -90,7 +90,7 @@ byte startreached = 0;
 
 OPTINLINE byte debugging() //Debugging?
 {
-	if (singlestep) //EMU enforced single step?
+	if (singlestep==1) //EMU enforced single step?
 	{
 		return 1; //We're enabled now!
 	}
@@ -714,7 +714,7 @@ void debuggerThread()
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
 	{
 		toggleAndroidInput(0,&AndroidInput); //Start the toggle if required!
-		if (DEBUGGER_ALWAYS_STEP || singlestep) //Always step?
+		if (DEBUGGER_ALWAYS_STEP || (singlestep==1)) //Always step?
 		{
 			//We're going though like a normal STEP. Ignore RTRIGGER.
 		}
@@ -840,6 +840,10 @@ void debugger_step() //Processes the debugging step!
 			debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
 		}
 	} //Step mode?
+	if (singlestep>1) //Start single-stepping from the next instruction?
+	{
+		--singlestep; //Start single-stepping the next X instruction!
+	}
 }
 
 extern byte cpudebugger;

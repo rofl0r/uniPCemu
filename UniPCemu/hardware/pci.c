@@ -54,8 +54,6 @@ OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write d
 	}
 }
 
-extern byte singlestep; //Enforce single step by CPU/hardware special debugging effects?
-
 byte inPCI(word port, byte *result)
 {
 	if ((port&~7)!=0xCF8) return 0; //Not our ports?

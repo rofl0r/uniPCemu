@@ -158,7 +158,7 @@ byte PPI_writeIO(word port, byte value)
 			{
 				if (--breakpoint_timeout==0) //Timeout?
 				{
-					singlestep = 1; //Start single stepping from this breakpoint!
+					singlestep = 2; //Start single stepping after this breakpoint, the debugger isn't ready yet for this instruction!
 				}
 			}
 		}
