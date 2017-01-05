@@ -73,6 +73,7 @@ typedef struct PACKED
 	byte CPUSpeedMode; //CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
 	byte TurboCPUSpeedMode; //Turbo CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
 	byte useDirectMIDI; //Use Direct MIDI synthesis by using a passthrough to the OS?
+	uint_64 breakpoint; //The used breakpoint segment:offset and mode!
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -153,6 +154,16 @@ enum Architectures {
 #define DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT 0
 #define DEFAULT_CPUSPEEDMODE 0
 #define DEFAULT_DIRECTMIDIMODE 0
+#define DEFAULT_BREAKPOINT 0
+
+//Breakpoint helper constants
+//2-bit mode(0=Disabled, 1=Real, 2=Protected, 3=Virtual 8086)
+#define SETTINGS_BREAKPOINT_MODE_SHIFT 60
+//Segment to break at!
+#define SETTINGS_BREAKPOINT_SEGMENT_SHIFT 32
+#define SETTINGS_BREAKPOINT_SEGMENT_MASK 0xFFFFULL
+//Offset to break at!
+#define SETTINGS_BREAKPOINT_OFFSET_MASK 0xFFFFFFFFULL
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

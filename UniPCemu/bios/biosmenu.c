@@ -123,10 +123,7 @@ BIOSMENU_FONT BIOSMenu_Fonts[3] = {
 
 #define BIOS_ATTR_BLINKENABLE (ActiveBIOSPreset.HighestBitBlink>0)
 
-/* END FLAG_OF BIOS PRESETS */
-
-
-
+/* END OF BIOS PRESETS */
 
 //How long to press for BIOS!
 #define BIOS_TIME 10000000
@@ -197,6 +194,7 @@ void BIOS_diagnosticsPortBreakpointTimeout(); //Timeout to be used for breakpoin
 void BIOS_CPUSpeedMode();
 void BIOS_TurboCPUSpeedMode();
 void BIOS_useDirectMIDIPassthrough();
+void BIOS_breakpoint();
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -263,6 +261,7 @@ Handler BIOS_Menus[] =
 	,BIOS_CPUSpeedMode //CPU Speed Mode is #59!
 	,BIOS_TurboCPUSpeedMode //Turbo CPU Speed Mode is #60!
 	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #61!
+	,BIOS_breakpoint //Breakpoint is #62!
 };
 
 //Not implemented?
@@ -511,6 +510,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
+	updateEMUSingleStep(); //Update the single-step breakpoint!
 	unlock(LOCK_MAINTHREAD); //Continue!
 
 	return (reboot_needed&2) || ((reboot_needed&1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
@@ -1988,6 +1988,170 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 								strcat(filename, input); //Add the input to the filename!
 							}
 						}
+					}
+				}
+
+				updatescreeninput:
+				EMU_locktext();
+				EMU_gotoxy(x, y); //Goto position for info!
+				EMU_textcolor(BIOS_ATTR_TEXT);
+				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
+				EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
+				GPU_EMU_printscreen(-1, -1, "_"); //Cursor indicator!
+				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
+				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
+				EMU_unlocktext();
+				input_buffer_shift = 0; //Reset!
+				input_buffer_mouse = 0; //Reset!
+				input_buffer = -1; //Nothing input!
+			}
+		}
+		else if (input_buffer_shift || input_buffer_mouse) //Shift/mouse are ignored!
+		{
+			input_buffer_shift = input_buffer_mouse = 0; //Ignore!
+		}
+		unlock(LOCK_INPUT);
+	}
+}
+
+byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength)
+{
+	delay(100000); //Wait a bit to make sure nothing's pressed!
+	enableKeyboard(1); //Buffer input!
+	char input[256];
+	memset(&input, 0, sizeof(input)); //Init input to empty!
+	TicksHolder ticks;
+	initTicksHolder(&ticks); //Initialise!
+	getnspassed(&ticks); //Initialise counter!
+
+	lock(LOCK_INPUT);
+	goto updatescreeninput; //Start screen with input&cursor!
+
+	for (;;) //Main input loop!
+	{
+		if (shuttingdown()) //Are we shutting down?
+		{
+			disableKeyboard(); //Disable the keyboard!
+			return 0; //Cancel!
+		}
+		delay(0); //Wait a bit for input, depending on input done!
+		updateKeyboard(getnspassed(&ticks)); //Update the OSK keyboard with a little time!
+		lock(LOCK_INPUT);
+		if (input_buffer!=-1) //Given input yet?
+		{
+			if (EMU_keyboard_handler_idtoname(input_buffer,&input[0])) //Valid key(Don't count shift statuses only)?
+			{
+				if (!strcmp(input, "enter") || !strcmp(input,"esc")) //Enter or Escape? We're finished!
+				{
+					unlock(LOCK_INPUT);
+					disableKeyboard(); //Disable the keyboard!
+					EMU_locktext();
+					EMU_gotoxy(x, y); //Goto position for info!
+					EMU_textcolor(BIOS_ATTR_TEXT);
+					GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
+					EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
+					GPU_EMU_printscreen(-1, -1, " "); //Clear cursor indicator!
+					EMU_unlocktext();
+					return (!strcmp(input, "enter")); //Enter=Confirm, Esc=Cancel!
+				}
+				//We're a normal key hit?
+				else if (!strcmp(input, "bksp") || (!strcmp(input,"z") && (input_buffer_shift&SHIFTSTATUS_CTRL))) //Backspace OR CTRL-Z?
+				{
+					if (strlen(filename)) //Gotten length?
+					{
+						filename[strlen(filename) - 1] = '\0'; //Make us one shorter!
+					}
+				}
+				else if (strlen(input) == 1) //Single character?
+				{
+					switch (input[0]) //Not an invalid character?
+					{
+					case 'p': //Protected mode?
+						input[0] = 'P'; //Convert to upper case!
+						if (strlen(filename)) //Something there?
+						{
+							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':')) //Special identifier?
+							{
+								break; //Abort!
+							}
+						}
+						else break; //Abort: empty string not allowed!
+						goto processinput; //process us!
+					case 'v': //Virtual 8086 mode?
+						input[0] = 'V'; //Convert to upper case!
+						if (strlen(filename)) //Something there?
+						{
+							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':')) //Special identifier?
+							{
+								break; //Abort!
+							}
+						}
+						else break; //Abort: empty string not allowed!
+						goto processinput; //process us!
+					case ';':
+						if ((input_buffer_shift&SHIFTSTATUS_SHIFT)==0) break; //Shift not pressed?
+						input[0] = ':'; //We're a seperator instead!
+						if (strlen(filename)) //Something there?
+						{
+							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':')) //Special identifier?
+							{
+								break; //Abort!
+							}
+							char *c;
+							c = &filename[0]; //Start of the filename!
+							for (;*c;++c) //Check until EOS!
+							{
+								if (*c==':') //Already present?
+								{
+									goto abortsemicolon; //Abort: we're not allowed twice!
+								}
+							}
+						}
+						else
+						{
+							abortsemicolon:
+							break; //Abort: empty string not allowed!
+						}
+					//Hexadecimal numbers for the numbers themselves:
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+					case 'a':
+					case 'b':
+					case 'c':
+					case 'd':
+					case 'e':
+					case 'f':
+						if (strlen(filename)) //Something there?
+						{
+							if (filename[strlen(filename)-1]=='P' || filename[strlen(filename)-1]=='V') //Special identifier?
+							{
+								break; //Abort!
+							}
+						}
+						processinput: //Process the input!
+						if (strlen(filename) < maxlength) //Not max?
+						{
+							if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
+							{
+								input[0] += (char)((int)'A' - (int)'a'); //Convert to uppercase!
+								strcat(filename, input); //Add the input to the filename!
+							}
+							else //Non-shift valid character?
+							{
+								strcat(filename, input); //Add the input to the filename!
+							}
+						}
+						break;
+					default: //Unknown key?
+						break; //Abort: not supported!
 					}
 				}
 
@@ -4438,7 +4602,7 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 13; //Change Turbo CPU speed!
+	optioninfo[advancedoptions] = 14; //Change Turbo CPU speed!
 	strcpy(menuoptions[advancedoptions], "CPU Speed Mode: ");
 	switch (BIOS_Settings.CPUSpeedMode) //What Turbo CPU speed limit?
 	{
@@ -4450,7 +4614,7 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 14; //Change Turbo CPU speed!
+	optioninfo[advancedoptions] = 15; //Change Turbo CPU speed!
 	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed Mode: ");
 	switch (BIOS_Settings.TurboCPUSpeedMode) //What Turbo CPU speed limit?
 	{
@@ -4600,8 +4764,31 @@ setShowCPUSpeed:
 		break;
 	}
 
+	optioninfo[advancedoptions] = 12; //Breakpoint!
+	strcpy(menuoptions[advancedoptions], "Breakpoint: ");
+	//First, convert the current breakpoint to a string format!
+	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
+	{
+		case 0: //No breakpoint?
+			strcat(menuoptions[advancedoptions],"Not set"); //seg16:offs16 default!
+			break;
+		case 1: //Real mode?
+			sprintf(menuoptions[advancedoptions],"%s%04X:%04X",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			break;
+		case 2: //Protected mode?
+			sprintf(menuoptions[advancedoptions],"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			break;
+		case 3: //Virtual 8086 mode?
+			sprintf(menuoptions[advancedoptions],"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			break;
+		default: //Just in case!
+			strcat(menuoptions[advancedoptions], "<UNKNOWN. CHECK SETTINGS VERSION>");
+			break;
+	}
+	++advancedoptions; //Increase after!
+
 setMousetext: //For fixing it!
-	optioninfo[advancedoptions] = 12; //Mouse!
+	optioninfo[advancedoptions] = 13; //Mouse!
 	strcpy(menuoptions[advancedoptions], "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
@@ -4647,7 +4834,8 @@ void BIOS_CPU() //CPU menu!
 	case 11:
 	case 12:
 	case 13:
-	case 14: //Valid option?
+	case 14:
+	case 15: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -4730,16 +4918,50 @@ void BIOS_CPU() //CPU menu!
 				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
 			}
 			break;
-		case 12: //Architecture
+		case 12: //Breakpoint
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 62; //Timeout to be used for breakpoints?
+			}
+			else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //SQUARE=Set current address&mode as the breakpoint!
+			{
+				byte mode=1;
+				word segment;
+				uint_32 offset;
+				lock(LOCK_CPU); //Lock the CPU!
+				switch (getcpumode()) //What mode are we?
+				{
+					case CPU_MODE_REAL: //Real mode?
+						mode = 1; //Real mode!
+						break;
+					case CPU_MODE_PROTECTED: //Protected?
+						mode = 2; //Protected mode!
+						break;
+					case CPU_MODE_8086: //Virtual 8086?
+						mode = 3; //Virtual 8086 mode!
+						break;
+					default: //Unknown mode?
+					case CPU_MODE_UNKNOWN: //Unknown?
+						mode = 1; //Default to Real mode!
+						break;
+				}
+				segment = CPU[activeCPU].registers->CS; //CS!
+				offset = mode==1?CPU[activeCPU].registers->IP:CPU[activeCPU].registers->EIP; //Our offset!
+				BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
+				BIOS_Changed = 1; //We've changed!
+				unlock(LOCK_CPU); //Finished with the CPU!
+			}
+			break; //TODO
+		case 13: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
-		case 13: //CPU Speed Mode?
+		case 14: //CPU Speed Mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 59; //Turbo CPU speed selection!
 			}
 			break;
-		case 14: //Turbo CPU Speed Mode?
+		case 15: //Turbo CPU Speed Mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 60; //Turbo CPU speed selection!
@@ -6131,4 +6353,132 @@ void BIOS_useDirectMIDIPassthrough()
 	BIOS_Changed = 1; //We've changed!
 	reboot_needed |= 1; //A reboot is needed!
 	BIOS_Menu = 31; //Goto Sound menu!
+}
+
+uint_32 hex2int(char *s)
+{
+	uint_32 result=0; //The result!
+	char *temp;
+	byte tempnr;
+	for (temp=s;*temp;++temp)
+	{
+		switch (*temp) //What character?
+		{
+			case '0': tempnr = 0x0; break;
+			case '1': tempnr = 0x1; break;
+			case '2': tempnr = 0x2; break;
+			case '3': tempnr = 0x3; break;
+			case '4': tempnr = 0x4; break;
+			case '5': tempnr = 0x5; break;
+			case '6': tempnr = 0x6; break;
+			case '7': tempnr = 0x7; break;
+			case '8': tempnr = 0x8; break;
+			case '9': tempnr = 0x9; break;
+			case 'A': tempnr = 0xA; break;
+			case 'B': tempnr = 0xB; break;
+			case 'C': tempnr = 0xC; break;
+			case 'D': tempnr = 0xD; break;
+			case 'E': tempnr = 0xE; break;
+			case 'F': tempnr = 0xF; break;
+			default: //Unknown character?
+				return 0; //Abort without result! Can't decode!
+		}
+		result <<= 4; //Shift our number high!
+		result |= tempnr; //Add in our number to the resulting numbers!
+	}
+	return result; //Give the result we calculated!
+}
+
+void BIOS_breakpoint()
+{
+	char breakpointstr[8+1+4+1+1]; //32-bits offset, colon, 16-bits segment and mode if required, final character(always zero)!
+	//First, convert the current breakpoint to a string format!
+	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
+	{
+		case 0: //No breakpoint?
+			sprintf(breakpointstr,"%04X:%04X",0,0); //seg16:offs16 default!
+			break;
+		case 1: //Real mode?
+			sprintf(breakpointstr,"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			break;
+		case 2: //Protected mode?
+			sprintf(breakpointstr,"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			break;
+		case 3: //Virtual 8086 mode?
+			sprintf(breakpointstr,"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			break;
+		default: //Just in case!
+			break;
+	}
+
+	BIOSClearScreen(); //Clear the screen!
+	BIOS_Title("Breakpoint"); //Full clear!
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto position for info!
+	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
+	EMU_unlocktext();
+	byte mode; //The mode to use!
+	word semicolonpos;
+	char *temp;
+	word maxsegmentsize = 4;
+	word maxoffsetsize = 4;
+	word segment; //The segment buffer to load!
+	uint_32 offset; //The offset buffer to load!
+	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1)) //Input text confirmed?
+	{
+		if (strcmp(breakpointstr, "") != 0) //Got valid input?
+		{
+			//Convert the string back into our valid numbers for storage!
+			mode = 1; //Default to real mode!
+			switch (breakpointstr[strlen(breakpointstr)-1]) //Identifier for the mode?
+			{
+				case 'P': //Protected mode?
+					mode = 2; //Protected mode!
+					breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
+					maxoffsetsize = 8; //We're up to 8 hexadecimal values in this mode!
+					goto handlemode;
+				case 'V': //Virtual 8086 mode?
+					mode = 3; //Virtual 8086 mode!
+					breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
+				default: //Real mode?
+					handlemode: //Handle the other modes!
+						temp = &breakpointstr[0]; //First character!
+						for (;(*temp && *temp!=':');++temp); //No seperator yet?
+						if (*temp!=':') //No seperator found?
+						{
+							goto abortcoloninput; //Invalid: can't handle!
+						}
+						if (*(temp+1)=='\0') //Invalid ending?
+						{
+							goto abortcoloninput; //Invalid: can't handle colon at the end!							
+						}
+						//Temp points to the colon!
+						semicolonpos = temp-&breakpointstr[0]; //length up to the semicolon, which should be valid!
+						if ((semicolonpos==0) || (semicolonpos>maxsegmentsize)) //Too long segment?
+						{
+							goto abortcoloninput; //Invalid: can't handle segment length!							
+						}
+						if (((strlen(breakpointstr)-semicolonpos)-1)>maxoffsetsize) //Too long segment?
+						{
+							goto abortcoloninput; //Invalid: can't handle segment length!							
+						}
+
+						breakpointstr[semicolonpos] = '\0'; //Convert the semicolon into an EOS character to apply the string length!
+						segment = hex2int(&breakpointstr[0]); //Convert the number to our usable format!
+						offset = hex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
+
+						//Apply the new breakpoint!
+						BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
+						BIOS_Changed = 1; //We've changed!			
+					break;
+			}
+		}
+		else //Unset?
+		{
+			BIOS_Changed = BIOS_Changed||(BIOS_Settings.breakpoint!=0)?1:0; //We've changed!			
+			BIOS_Settings.breakpoint = 0; //No breakpoint!
+		}
+	}
+	abortcoloninput:
+	BIOS_Menu = 35; //Goto CPU menu!
 }

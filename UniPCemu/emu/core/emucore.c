@@ -63,7 +63,8 @@
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
-uint_64 singlestepaddress = 0x00007C00; //The segment:offset address!
+uint_64 singlestepaddress = 0; //The segment:offset address!
+extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 
 //Log when running bogus(empty) memory?
 //#define LOG_BOGUS 5
@@ -124,6 +125,43 @@ debugging for us!
 extern GPU_TEXTSURFACE *frameratesurface;
 
 byte currentbusy[6] = {0,0,0,0,0,0}; //Current busy status; default none!
+
+void updateEMUSingleStep() //Update our single-step address!
+{
+	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
+	{
+		case 0: //Unset?
+			unknownmode:
+			doEMUsinglestep = 0; //Nothing!
+			singlestepaddress = 0; //Nothing!
+			break;
+		case 1: //Real mode
+			doEMUsinglestep = CPU_MODE_REAL+1; //Real mode breakpoint!
+			goto applybreakpoint;
+		case 2: //Protected mode
+			doEMUsinglestep = CPU_MODE_PROTECTED+1; //Protected mode breakpoint!
+			goto applybreakpoint;
+		case 3: //Virtual 8086 mode
+			doEMUsinglestep = CPU_MODE_8086+1; //Virtual 8086 mode breakpoint!
+			applybreakpoint: //Apply the other breakpoints as well!
+			switch (doEMUsinglestep-1)
+			{
+				case CPU_MODE_REAL: //Real mode?
+					//High 16 bits are CS, low 16 bits are IP
+					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<16) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //Single step address!
+					break;
+				case CPU_MODE_PROTECTED: //Protected mode?
+				case CPU_MODE_8086: //Virtual 8086 mode?
+					//High 16 bits are CS, low 32 bits are EIP
+					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFFFFFF)); //Single step address!
+					break;
+				default: //Just to be sure!
+					goto unknownmode; //Count as unknown/unset!
+					break;
+			}
+			break;
+	}
+}
 
 void EMU_drawBusy(byte disk) //Draw busy on-screen!
 {
@@ -403,6 +441,9 @@ void initEMU(int full) //Init!
 	//PPI after VGA because we're dependant on the CGA/MDA only mode!
 	debugrow("Initialising PPI...");
 	initPPI(BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings.diagnosticsportoutput_timeout); //Start PPI with our breakpoint settings!
+
+	debugrow("Initialising Single-step breakpoint...");
+	updateEMUSingleStep(); //Start our breakpoint at the specified settings!
 
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
@@ -831,7 +872,7 @@ OPTINLINE byte coreHandler()
 		else //We're not halted? Execute the CPU routines!
 		{
 			resumeFromHLT:
-			if (CPU[activeCPU].registers && doEMUsinglestep) //Single step enabled?
+			if (CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep) //Single step enabled and allowed?
 			{
 				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
 				{

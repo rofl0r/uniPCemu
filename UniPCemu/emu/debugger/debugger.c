@@ -41,7 +41,6 @@ extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 
 byte singlestep; //Enforce single step by CPU/hardware special debugging effects?
-byte lastsinglestep = 0; //Last single step value!
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 byte debuggerHLT = 0;
@@ -727,13 +726,6 @@ void debuggerThread()
 		{
 			done = (!psp_keypressed(BUTTON_RTRIGGER)); //Continue when release hold (except when forcing stepping), singlestep prevents this!
 		}
-
-		if (singlestep && (singlestep != lastsinglestep)) //Single step has been enabled now?
-		{
-			lastsinglestep = singlestep; //Save into last value!
-			goto singlestepenabled; //Skip us: we now have single step enabled(we have no debugger information)!
-		}
-		lastsinglestep = singlestep; //Save into last value!
 
 		if (psp_keypressed(BUTTON_CROSS)) //Step (wait for release and break)?
 		{
