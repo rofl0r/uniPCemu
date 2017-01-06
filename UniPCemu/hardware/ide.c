@@ -1001,7 +1001,8 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
-		if (!is_mounted(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
+		//We do succeed without media?
+		//if (!is_mounted(ATA_Drives[channel][drive])) {abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].datapos = 0; //Start of data!
 		ATA[channel].datablock = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Size of a block to transfer!
@@ -1009,6 +1010,7 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 		memset(ATA[channel].data,0,ATA[channel].datablock); //Clear the result!
 		//Now fill the packet with data!
 		ATA[channel].data[0] = 0x05; //We're a CD-ROM drive!
+		ATA[channel].data[1] = 0x80; //We're always removable!
 		ATA[channel].data[3] = (4<<4); //We're ATAPI version 4, response data format 0?
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 1; //Transferring data IN!
@@ -2026,6 +2028,7 @@ byte inATA16(word port, word *result)
 
 byte inATA8(word port, byte *result)
 {
+	byte activeDrive;
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
@@ -2042,6 +2045,7 @@ byte inATA8(word port, byte *result)
 		*result = 0; //Give 0: we're not present!
 		return 1; //OK!
 	}
+	activeDrive = ATA_activeDrive(channel); //Active drive for debugging!
 	port -= getPORTaddress(channel); //Get the port from the base!
 	switch (port) //What port?
 	{
