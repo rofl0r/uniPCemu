@@ -467,9 +467,7 @@ void CPU186_OPC8()
 	}
 	
 	REG_BP = frametemp;
-	
-	REG_SP = REG_BP; //Load to...
-	REG_SP -= stacksize; //Substract
+	REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
 }
 void CPU186_OPC9()
 {
