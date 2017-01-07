@@ -2055,8 +2055,6 @@ byte inATA16(word port, word *result)
 	return 1;
 }
 
-byte activeDrive;
-
 byte inATA8(word port, byte *result)
 {
 	byte channel = 0; //What channel?
@@ -2075,7 +2073,6 @@ byte inATA8(word port, byte *result)
 		*result = 0; //Give 0: we're not present!
 		return 1; //OK!
 	}
-	activeDrive = ATA_activeDrive(channel); //Active drive for debugging!
 	port -= getPORTaddress(channel); //Get the port from the base!
 	switch (port) //What port?
 	{
