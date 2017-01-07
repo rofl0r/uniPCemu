@@ -154,7 +154,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 		else //Old-style header?
 		{
 			version = 2; //Old-style header!
-			memcpy(&earlyheader,&oldheader,sizeof(*earlyheader)); //Copy to the early header for easier reading, since it's only padded!
+			memcpy(earlyheader,oldheader,sizeof(*earlyheader)); //Copy to the early header for easier reading, since it's only padded!
 		}
 
 		//Since we're old-style anyway, patch the codemap and 2.0 table values based on the old header now!
