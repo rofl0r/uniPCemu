@@ -532,7 +532,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 OPTINLINE void ATAPI_giveresultsize(byte channel, word size)
 {
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (size&0xFF); //Low byte of the result size!
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = ((size>>8)&0xFF); //High byte of the result size!
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((size>>8)&0xFF); //High byte of the result size!
 }
 
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
@@ -2055,9 +2055,10 @@ byte inATA16(word port, word *result)
 	return 1;
 }
 
+byte activeDrive;
+
 byte inATA8(word port, byte *result)
 {
-	byte activeDrive;
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
