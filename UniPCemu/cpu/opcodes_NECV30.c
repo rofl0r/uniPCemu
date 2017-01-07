@@ -318,11 +318,11 @@ void CPU186_OP6E()
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		--REG_DI;
+		--REG_SI;
 	}
 	else
 	{
-		++REG_DI;
+		++REG_SI;
 	}
 	CPUPROT2
 	CPUPROT2
@@ -341,11 +341,11 @@ void CPU186_OP6F()
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		REG_DI -= 2;
+		REG_SI -= 2;
 	}
 	else
 	{
-		REG_DI += 2;
+		REG_SI += 2;
 	}
 	CPUPROT2
 	CPUPROT2
