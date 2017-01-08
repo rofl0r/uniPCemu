@@ -21,7 +21,7 @@
 #define __HW_DISABLED 0
 
 //How many frames to render max?
-#define GPU_FRAMERATE 30.0f
+#define GPU_FRAMERATE 60.0f
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Current settings!
 
