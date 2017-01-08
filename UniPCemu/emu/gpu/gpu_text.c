@@ -280,6 +280,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	INLINEREGISTER word x,y;
 	INLINEREGISTER uint_32 color;
 	byte curchar; //The current character loaded font row!
+	byte isnottransparent; //Are we not a transparent pixel(drawable)?
 	int fx, fy, sx, sy; //Used when rendering on the screen!
 	double relx, rely; //Relative X/Y position to use for updating the current pixel!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
@@ -344,9 +345,10 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	{
 		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
 		color = *renderpixel; //Init color to draw!
+		isnottransparent = (color != TRANSPARENTPIXEL); //Are we a transparent pixel?
 		do //Process all rows!
 		{
-			if (color != TRANSPARENTPIXEL) //The pixel to plot, if any! Ignore transparent pixels!
+			if (isnottransparent) //The pixel to plot, if any! Ignore transparent pixels!
 			{
 				fx = sx; //x converted to destination factor!
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -377,6 +379,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					renderpixel = &tsurface->notdirty[y][0]; //Start with the first pixel in our (new) row!
 				}
 				color = *renderpixel; //Apply the new pixel to render!
+				isnottransparent = (color != TRANSPARENTPIXEL); //Are we a transparent pixel?
 			}
 		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
 	}
