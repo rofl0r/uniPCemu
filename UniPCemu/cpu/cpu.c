@@ -125,25 +125,25 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 	uint_32 EBP = CPU[activeCPU].registers->EBP; //Load the stack pointer to verify!
 	for (;poptimesleft;) //Anything left?
 	{
-		EBP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
+		EBP += stack_popchange(0); //Apply the change in virtual (E)BP to check the next value!
 		
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
