@@ -1614,12 +1614,9 @@ extern byte didJump; //Did we jump this instruction?
 void CPU80386_OP01() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
 void CPU80386_OP03() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
 void CPU80386_OP05() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ADDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_ADD32(&REG_EAX,theimm,1); }
-void CPU80386_OP06() {modrm_generateInstructionTEXT("PUSH ES",0,0,PARAM_NONE); CPU_PUSH16(&REG_ES);/*PUSH ES*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/}
-void CPU80386_OP07() {modrm_generateInstructionTEXT("POP ES",0,0,PARAM_NONE); segmentWritten(CPU_SEGMENT_ES,CPU_POP16(),0); /*CS changed!*/ CPU[activeCPU].cycles_OP = 8; /*Pop Segreg!*/}
 void CPU80386_OP09() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_OR32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
 void CPU80386_OP0B() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_OR32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
 void CPU80386_OP0D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ORD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_OR32(&REG_EAX,theimm,1); }
-void CPU80386_OP0E() {modrm_generateInstructionTEXT("PUSH CS",0,0,PARAM_NONE); CPU_PUSH16(&REG_CS);/*PUSH CS*/ CPU[activeCPU].cycles_OP = 10; /*Push Segreg!*/}
 void CPU80386_OP11() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
 void CPU80386_OP13() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
 void CPU80386_OP15() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ADC AX,",0,theimm,PARAM_IMM32); CPU80386_internal_ADC32(&REG_EAX,theimm,1); }
