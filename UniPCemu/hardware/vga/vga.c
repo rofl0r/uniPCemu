@@ -247,6 +247,10 @@ void VGA_ConfigurationSpaceChanged(uint_32 address, byte size)
 	{
 		PCI_VGA.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
 	}
+	else //Unknown address? Ignore the write!
+	{
+		memset((byte *)&PCI_VGA+address,0,1); //Clear the set data!
+	}
 	resetPCISpaceVGA(); //Reset our address space always: we're read-only!
 }
 
