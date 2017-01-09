@@ -2182,9 +2182,18 @@ void resetPCISpaceIDE()
 
 void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
 {
+	byte *addr;
 	if (address == 0x3C) //IRQ changed?
 	{
 		PCI_IDE.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
+	}
+	else //Might be unknown data?
+	{
+		addr = (((byte *)&PCI_IDE)+address); //Actual update location?
+		if ((addr<(byte *)&PCI_IDE.BAR[0]) || (addr>((byte *)&PCI_IDE.BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
+		{
+			memset(addr,0,1); //Clear the set data!
+		}
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
