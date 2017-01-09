@@ -24,6 +24,7 @@ VGA ROM and handling functions.
 #include "headers/emu/gpu/gpu_renderer.h" //GPU rendering support!
 #include "headers/support/locks.h" //Lock support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support for initialisation!
+#include "headers/hardware/pci.h" //PCI support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -199,6 +200,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	return VGA; //Give the new allocated VGA!
 }
 
+PCI_CONFIG PCI_VGA; //Our PCI configuration space!
+
 void dumpVRAM() //Diagnostic dump of VRAM!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -227,11 +230,33 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 #define VGAREGISTER_PORTW(port) register_PORTOUT(&PORT_writeVGA)
 #define VGAREGISTER_PORTRW(port) VGAREGISTER_PORTR(port);VGAREGISTER_PORTW(port)
 
+void resetPCISpaceVGA()
+{
+	//Info from: http://wiki.osdev.org/PCI
+	PCI_VGA.VendorID = getActiveVGA()->enable_SVGA?0x100C:0x0000; //Tseng labs or plain VGA!
+	PCI_VGA.DeviceID = 0x0000; //We're a VGA card!
+	PCI_VGA.ClassCode = 3; //We...
+	PCI_VGA.Subclass = 0; //Are...
+	PCI_VGA.ProgIF = 0; //A VGA controller!
+	memset(&PCI_VGA.BAR,0,sizeof(PCI_VGA.BAR)); //Don't allow changing the BARs!
+}
+
+void VGA_ConfigurationSpaceChanged(uint_32 address, byte size)
+{
+	if (address == 0x3C) //IRQ changed?
+	{
+		PCI_VGA.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
+	}
+	resetPCISpaceVGA(); //Reset our address space always: we're read-only!
+}
+
 void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 {
 	if (__HW_DISABLED) return; //Abort!
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
 	VGA_initIO(); //Initialise I/O suppport!
+	memset(&PCI_VGA, 0, sizeof(PCI_VGA)); //Initialise to 0!
+	register_PCI(&PCI_VGA, sizeof(PCI_VGA),&VGA_ConfigurationSpaceChanged); //Register the PCI data area!
 }
 
 /*
