@@ -119,6 +119,40 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 	return 0; //OK!
 }
 
+byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need to POP from the stack?
+{
+	uint_32 poptimesleft = poptimes; //Load the amount to check!
+	uint_32 EBP = CPU[activeCPU].registers->EBP; //Load the stack pointer to verify!
+	for (;poptimesleft;) //Anything left?
+	{
+		EBP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
+		
+		//We're at least a word access!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (isdword) //DWord?
+		{
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+		}
+		--poptimesleft; //One POP processed!
+	}
+	return 0; //OK!
+}
+
 //Now the code!
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!

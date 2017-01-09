@@ -1205,6 +1205,7 @@ byte isV86(); //Are we in Virtual 8086 mode?
 byte NumberOfSetBits(uint_32 i); //Number of bits set in this variable!
 
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
+byte checkENTERStackAccess(uint_32 poptimes, byte isdword); //How much do we need to POP from the stack?
 
 void CPU_resetTimings(); //Reset timings before processing the next CPU state!
 

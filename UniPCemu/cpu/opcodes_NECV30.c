@@ -445,9 +445,11 @@ void CPU186_OPC8()
 	word temp16;    //ENTER Iw,Ib
 	word stacksize = immw;
 	byte nestlev = immb;
+	word bpdata;
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
 	nestlev &= 0x1F; //MOD 32!
 	if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
+	if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
 	ENTER_L = nestlev; //Set the nesting level used!
 	//according to http://www.felixcloutier.com/x86/ENTER.html
 	CPU_PUSH16(&REG_BP);
@@ -457,7 +459,8 @@ void CPU186_OPC8()
 		for (temp16=1; temp16<nestlev; ++temp16)
 		{
 			REG_BP -= 2; //Push BP to the next size of BP!
-			CPU_PUSH16(&REG_BP);
+			bpdata = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_BP,0); //Read the value to copy.
+			CPU_PUSH16(&bpdata);
 		}
 		CPU_PUSH16(&frametemp); //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
 	}
