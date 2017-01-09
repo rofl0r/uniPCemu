@@ -2170,12 +2170,23 @@ port3_read: //Special port #3?
 	return 0; //Unsupported!
 }
 
+void resetPCISpaceIDE()
+{
+	//Info from: http://wiki.osdev.org/PCI
+	PCI_IDE.DeviceID = 1;
+	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
+	PCI_IDE.ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
+	PCI_IDE.ClassCode = 1; //We...
+	PCI_IDE.Subclass = 1; //Are an IDE controller
+}
+
 void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
 {
 	if (address == 0x3C) //IRQ changed?
 	{
 		PCI_IDE.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
 	}
+	resetPCISpaceIDE(); //For read-only fields!
 }
 
 byte CDROM_DiskChanged = 0;
@@ -2327,7 +2338,5 @@ void initATA()
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
 	register_PCI(&PCI_IDE, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
-	PCI_IDE.DeviceID = 1;
-	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
-	PCI_IDE.ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
+	resetPCISpaceIDE();
 }
