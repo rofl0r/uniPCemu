@@ -162,7 +162,7 @@ void CPU_IRET()
 			}
 			segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
 			CPU_flushPIQ(); //We're jumping to another address!
-			if (oldCPL!=getCPL) //Stack needs to be restored?
+			if (oldCPL!=getCPL()) //Stack needs to be restored?
 			{
 				if (CPU_Operand_size[activeCPU])
 				{
@@ -172,6 +172,7 @@ void CPU_IRET()
 				{
 					tempesp = CPU_POP16();
 				}
+				tempSS = CPU_POP16();
 				segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 				if (CPU[activeCPU].faultraised) return;
 				REG_ESP = tempesp;

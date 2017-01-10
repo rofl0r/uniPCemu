@@ -689,6 +689,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					{
 						tempesp = CPU_POP16();
 					}
+					tempSS = CPU_POP16();
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
 					REG_ESP = tempesp;
