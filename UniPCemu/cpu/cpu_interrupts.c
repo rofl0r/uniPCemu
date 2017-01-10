@@ -103,6 +103,7 @@ byte NMIMasked = 0; //Are NMI masked?
 
 void CPU_IRET()
 {
+	byte oldCPL = getCPL(); //Original CPL
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		destEIP = CPU_POP16(); //POP IP!
@@ -148,7 +149,8 @@ void CPU_IRET()
 			{
 				destEIP = CPU_POP16(); //POP IP!
 			}
-			word tempCS;
+			word tempCS, tempSS;
+			uint_32 tempesp;
 			tempCS = CPU_POP16(); //CS to be loaded!
 			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
@@ -160,6 +162,20 @@ void CPU_IRET()
 			}
 			segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
 			CPU_flushPIQ(); //We're jumping to another address!
+			if (oldCPL!=getCPL) //Stack needs to be restored?
+			{
+				if (CPU_Operand_size[activeCPU])
+				{
+					tempesp = CPU_POP32();
+				}
+				else
+				{
+					tempesp = CPU_POP16();
+				}
+				segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+				if (CPU[activeCPU].faultraised) return;
+				REG_ESP = tempesp;
+			}
 		}
 	}
 	//Special effect: re-enable NMI!

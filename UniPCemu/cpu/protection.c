@@ -568,7 +568,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
+	byte oldCPL= getCPL();
 	byte TSSSize, isDifferentCPL;
+	word tempSS;
+	uint_32 tempesp; //For inter-level far returns
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -631,6 +634,20 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						}
 					}
 				}
+				
+				if (isDifferentCPL) //CPL changed?
+				{
+					CPU_PUSH16(&REG_SP); //SP to return!
+					if (CPU_Operand_size[activeCPU])
+					{
+						CPU_PUSH32(&REG_ESP);
+					}
+					else
+					{
+						CPU_PUSH16(&REG_SP);
+					}
+				}
+				
 				//Push the old address to the new stack!
 				if (CPU_Operand_size[activeCPU]) //32-bit?
 				{
@@ -656,6 +673,25 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
 						}
 					}		
+				}
+			}
+			else if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 4)) //RETF needs popped data on the stack?
+			{
+				if (oldCPL!=getRPL(value)) //CPL changed?
+				{
+					//Privilege change!
+					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
+					if (CPU_Operand_size[activeCPU])
+					{
+						tempesp = CPU_POP32();
+					}
+					else
+					{
+						tempesp = CPU_POP16();
+					}
+					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return;
+					REG_ESP = tempesp;
 				}
 			}
 
