@@ -157,7 +157,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 			wordaddress = realaddress; //Word address used during memory access!
 			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 			{
-				CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!
+				CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 			}
 		}
@@ -167,7 +167,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 			{
 				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
 				{
-					CPU[activeCPU].cycles_MMUR += 3; //Add memory cycles used!				
+					CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!				
 					CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 				}
 			}
@@ -232,7 +232,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 			wordaddress = realaddress; //Word address used during memory access!
 			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 			{
-				CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!
+				CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 			}
 		}
@@ -242,7 +242,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 			{
 				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
 				{
-					CPU[activeCPU].cycles_MMUW += 3; //Add memory cycles used!				
+					CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!				
 					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 				}
 			}

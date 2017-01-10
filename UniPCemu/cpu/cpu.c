@@ -29,6 +29,9 @@
 #include "headers/interrupts/interrupt18.h"
 #include "headers/interrupts/interrupt19.h"
 
+//Waitstate delay on 80286.
+#define CPU286_WAITSTATE_DELAY 1
+
 //Enable this define to use cycle-accurate emulation for supported CPUs!
 #define CPU_USECYCLES
 
@@ -1946,11 +1949,11 @@ void CPU_tickPrefetch()
 	}
 	else //286+
 	{
-		for (;(cycles >= 3) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
+		for (;(cycles >= (2+CPU286_WAITSTATE_DELAY)) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
 		{
 			CPU_fillPIQ(); //Add a byte to the prefetch!
-			cycles -= 3; //This takes four cycles to transfer!
-			CPU[activeCPU].cycles_Prefetch_BIU += 3; //Cycles spent on prefetching on BIU idle time!
+			cycles -= (2+CPU286_WAITSTATE_DELAY); //This takes four cycles to transfer!
+			CPU[activeCPU].cycles_Prefetch_BIU += (2+CPU286_WAITSTATE_DELAY); //Cycles spent on prefetching on BIU idle time!
 		}
 	}
 }
