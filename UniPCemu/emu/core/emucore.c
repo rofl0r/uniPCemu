@@ -67,7 +67,7 @@ uint_64 singlestepaddress = 0; //The segment:offset address!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 
 //Log when running bogus(empty) memory?
-//#define LOG_BOGUS 5
+//#define LOG_BOGUS 2
 
 /*
 
@@ -916,7 +916,9 @@ OPTINLINE byte coreHandler()
 			}
 
 			#ifdef LOG_BOGUS
-			uint_32 addr_start, addr_left=2*LOG_BOGUS, curaddr=0; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
+			uint_32 addr_start, addr_left, curaddr; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
+			addr_left=2*LOG_BOGUS;
+			curaddr = 0;
 			addr_start = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Base of the currently executing block!
 			addr_start += REG_EIP; //Add the address for the address we're executing!
 			
