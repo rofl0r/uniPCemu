@@ -243,7 +243,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 	if (!NMI && !NMIMasked) //NMI interrupt enabled and not masked off?
 	{
 		NMIMasked = 1; //Mask future NMI!
-		if (doNMI) //I/O error on memory or bus?
+		if (doNMI && CPU[activeCPU].allowInterrupts) //I/O error on memory or bus?
 		{
 			CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP,0); //Return to opcode!
 			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */

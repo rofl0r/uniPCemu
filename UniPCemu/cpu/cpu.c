@@ -1838,7 +1838,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 
 	if (FLAG_TF) //Trapped and to be trapped this instruction?
 	{
-		if (CPU[activeCPU].trapped) //Are we trapped?
+		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts) //Are we trapped and allowed to trap?
 		{
 			CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
 			CPU_afterexec(); //All after execution fixing!
