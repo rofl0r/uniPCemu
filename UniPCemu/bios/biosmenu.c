@@ -195,6 +195,7 @@ void BIOS_CPUSpeedMode();
 void BIOS_TurboCPUSpeedMode();
 void BIOS_useDirectMIDIPassthrough();
 void BIOS_breakpoint();
+void BIOS_syncTime(); //Reset the kept time in UniPCemu!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -262,6 +263,7 @@ Handler BIOS_Menus[] =
 	,BIOS_TurboCPUSpeedMode //Turbo CPU Speed Mode is #60!
 	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #61!
 	,BIOS_breakpoint //Breakpoint is #62!
+	,BIOS_syncTime //Reset timekeeping is #63!
 };
 
 //Not implemented?
@@ -1628,6 +1630,10 @@ void BIOS_InitAdvancedText()
 	optioninfo[advancedoptions] = 6; //Select BIOS Font!
 	strcpy(menuoptions[advancedoptions], "Settings menu Font: ");
 	strcat(menuoptions[advancedoptions++], ActiveBIOSPreset.name); //BIOS font selected!
+
+	optioninfo[advancedoptions] = 7; //Sync timekeeping!
+	strcpy(menuoptions[advancedoptions++],"Synchronize RTC");
+
 }
 
 void BIOS_AdvancedMenu() //Manages the boot order etc!
@@ -1674,6 +1680,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 6:
 			BIOS_Menu = 16; //BIOS Font setting!
+			break;
+		case 7: //Synchronize timekeeping?
+			BIOS_Menu = 63; //Reset timekeeping!
 			break;
 		}
 		break;
@@ -4536,7 +4545,7 @@ void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<12; i++) //Clear all possibilities!
+	for (i = 0; i<17; i++) //Clear all possibilities!
 	{
 		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
 	}
@@ -5090,17 +5099,35 @@ void BIOS_CPUSpeed() //CPU speed selection!
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
+extern CMOS_Type CMOS; //The currently running CMOS!
+
 void BIOS_ClearCMOS() //Clear the CMOS!
 {
 	byte emptycmos[128];
 	memset(&emptycmos, 0, sizeof(emptycmos)); //Empty CMOS for comparision!
 	if ((BIOS_Settings.got_CMOS) || (memcmp(&BIOS_Settings.CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
 	{
-		memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
-		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
 		BIOS_Changed = 1; //We've changed!
 		reboot_needed = 2; //We're needing a reboot!
 	}
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
+	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear the data!
+	unlock(LOCK_CPU); //We're finished with the main thread!
+	memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
+	BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
+	BIOS_Changed = 1; //We've changed!
+	reboot_needed = 2; //We're needing a reboot!
+	BIOS_Menu = 8; //Goto Advanced Menu!
+}
+
+void BIOS_syncTime() //Synchronize the kept time in UniPCemu!
+{
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.DATA.timedivergeance = 0;
+	CMOS.DATA.timedivergeance2 = 0; //No divergeance: we're current time exactly!
+	CMOS.Loaded = 1; //We're loaded with new settings!
+	unlock(LOCK_CPU); //We're finished with the main thread!
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }
 
