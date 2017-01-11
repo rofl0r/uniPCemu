@@ -568,11 +568,11 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
 			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
 		}
-		CMOS.ADDR = 0xD; //Reset address!
 		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert to binary?
 		{
 			data = decodeBCD8(data); //Decode the BCD data!
 		}
+		CMOS.ADDR = 0xD; //Reset address!
 		*result = data; //Give the data!
 		return 1;
 	//XT RTC support?
