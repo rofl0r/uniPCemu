@@ -9,6 +9,9 @@
 
 //#define ATA_LOG
 
+//Timeout for a reset! We're up to 3us!
+#define ATA_RESET_TIMEOUT 2000.0
+
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ_AT 0x0E
 #define ATA_SECONDARYIRQ_AT 0x0F
@@ -78,6 +81,7 @@ struct
 	byte activedrive; //What drive are we currently?
 	byte DMAPending; //DMA pending?
 	byte TC; //Terminal count occurred in DMA transfer?
+	double resetTiming;
 } ATA[2]; //Two channels of ATA drives!
 
 //Drive/Head register
@@ -268,9 +272,9 @@ void cleanATA()
 
 void updateATA(double timepassed) //ATA timing!
 {
-	/*return; //Don't handle any timers, since we're not used atm!
 	if (timepassed) //Anything passed?
 	{
+		/*
 		int i;
 		for (i = 0;i < 4;i++) //Process all timers!
 		{
@@ -326,8 +330,27 @@ void updateATA(double timepassed) //ATA timing!
 					}
 				}
 			}
+		}*/ //Not used atm!
+
+		if (ATA[0].resetTiming) //Timing reset?
+		{
+			ATA[0].resetTiming -= timepassed; //Time until timeout!
+			if (ATA[0].resetTiming<=0.0) //Timeout?
+			{
+				ATA[0].resetTiming = 0.0; //Timer finished!
+				ATA[0].commandstatus = 0; //We're ready now!
+			}
 		}
-	}*/ //Not used atm!
+		if (ATA[1].resetTiming) //Timing reset?
+		{
+			ATA[1].resetTiming -= timepassed; //Time until timeout!
+			if (ATA[1].resetTiming<=0.0) //Timeout?
+			{
+				ATA[1].resetTiming = 0.0; //Timer finished!
+				ATA[1].commandstatus = 0; //We're ready now!
+			}
+		}
+	}
 }
 
 OPTINLINE uint_32 getPORTaddress(byte channel)
@@ -1453,6 +1476,8 @@ void ATA_reset(byte channel)
 	ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),0); //What head?
 	ATA_DRIVEHEAD_LBAMODE_2W(channel,ATA_activeDrive(channel),0); //LBA mode?
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead |= 0xA0; //Always 1!
+	ATA[channel].commandstatus = 3; //We're busy waiting!
+	ATA[channel].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -2348,4 +2373,6 @@ void initATA()
 	register_PCI(&PCI_IDE, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
 	resetPCISpaceIDE();
+	ATA[0].resetTiming = 0.0; //Clear the reset timing!
+	ATA[1].resetTiming = 0.0; //Clear the reset timing!
 }

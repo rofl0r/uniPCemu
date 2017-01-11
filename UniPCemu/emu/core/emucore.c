@@ -977,7 +977,7 @@ OPTINLINE byte coreHandler()
 		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster) updateGameBlaster(MHZ14passed); //Tick the Game Blaster timer if needed!
 		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!
-		//updateATA(instructiontime); //Update the ATA timer! This is currently not used, so ignore it!
+		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		updateUART(instructiontime); //Update the UART timer!
 		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
