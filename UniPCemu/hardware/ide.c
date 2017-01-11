@@ -11,6 +11,7 @@
 
 //Timeout for a reset! We're up to 3us!
 #define ATA_RESET_TIMEOUT 2000.0
+#define ATA_DRIVESELECT_TIMEOUT 50000.0
 
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ_AT 0x0E
@@ -82,6 +83,7 @@ struct
 	byte DMAPending; //DMA pending?
 	byte TC; //Terminal count occurred in DMA transfer?
 	double resetTiming;
+	double driveselectTiming;
 } ATA[2]; //Two channels of ATA drives!
 
 //Drive/Head register
@@ -348,6 +350,23 @@ void updateATA(double timepassed) //ATA timing!
 			{
 				ATA[1].resetTiming = 0.0; //Timer finished!
 				ATA[1].commandstatus = 0; //We're ready now!
+			}
+		}
+
+		if (ATA[0].driveselectTiming) //Timing driveselect?
+		{
+			ATA[0].driveselectTiming -= timepassed; //Time until timeout!
+			if (ATA[0].driveselectTiming<=0.0) //Timeout?
+			{
+				ATA[0].driveselectTiming = 0.0; //Timer finished!
+			}
+		}
+		if (ATA[1].driveselectTiming) //Timing driveselect?
+		{
+			ATA[1].driveselectTiming -= timepassed; //Time until timeout!
+			if (ATA[1].driveselectTiming<=0.0) //Timeout?
+			{
+				ATA[1].driveselectTiming = 0.0; //Timer finished!
 			}
 		}
 	}
@@ -1875,21 +1894,21 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		break;
 	case 1: //Transferring data IN?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),1); //We're requesting data to transfer!
 		break;
 	case 2: //Transferring data OUT?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),1); //We're requesting data to transfer!
 		break;
 	case 3: //Busy waiting?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),1); //Busy! You can write to the CBRs!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),0); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),0); //We're not ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		break;
 	default: //Unknown?
@@ -2000,6 +2019,7 @@ byte outATA8(word port, byte value)
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //We're an PATA device!
+		ATA[channel].driveselectTiming = ATA_DRIVESELECT_TIMEOUT; //Drive select timing to use!
 		return 1; //OK!
 		break;
 	case 7: //Command?
