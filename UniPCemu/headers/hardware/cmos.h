@@ -35,6 +35,19 @@ typedef struct
 	byte extraRAMdata[8]; //Extra RAM data from XT RTC(UM82C8167), for 56 bits of extra RAM!
 } CMOSDATA;
 
+typedef struct
+{
+	CMOSDATA DATA;
+	byte Loaded; //CMOS loaded?
+	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
+
+	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
+	uint_32 currentRate; //The current rate divider outputs(22-bits)!
+
+	byte SquareWave; //Square Wave Output!
+	byte UpdatingInterruptSquareWave; //Updating interrupt square wave generation!
+} CMOS_Type;
+
 //SRA
 //Rate selection bits for interrupt: 0:None;3:122ms(minimum);16:500ms;6:1024Hz(default).
 #define SRA_IntRateSelection(SRA) (SRA&0xF)

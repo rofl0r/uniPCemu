@@ -66,18 +66,7 @@ OPTINLINE byte decodeBCD8(byte value)
 	return (decodeBCD(value)&0xFF);
 }
 
-struct
-{
-	CMOSDATA DATA;
-	byte Loaded; //CMOS loaded?
-	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
-
-	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
-	uint_32 currentRate; //The current rate divider outputs(22-bits)!
-
-	byte SquareWave; //Square Wave Output!
-	byte UpdatingInterruptSquareWave; //Updating interrupt square wave generation!
-} CMOS;
+CMOS_Type CMOS;
 
 extern byte NMI; //NMI interrupt enabled?
 
@@ -319,7 +308,7 @@ OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, struct timeval *dateti
 OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
-	curtime->year += decodeBCD8(CMOS.DATA.DATA80.data[0x32])*100; //Add the century!
+	curtime->year += (byte)(decodeBCD8(CMOS.DATA.DATA80.data[0x32])-1)*100; //Add the century! This value is the current year 100s + 1!
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
 	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
@@ -333,7 +322,7 @@ OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the cur
 
 OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
-	CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //The century!
+	CMOS.DATA.DATA80.data[0x32] = encodeBCD8(((curtime->year/100)+1)%100); //The century!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
 	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
 	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
@@ -355,7 +344,7 @@ OPTINLINE byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 
 		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
 		{
 			BIGGESTSINT applyingtime; //Biggest integer value we have!
-			applyingtime = ((((time1val.tv_sec * 1000000) + time1val.tv_usec) - ((time2val.tv_sec * 1000000) + time2val.tv_usec))); //Difference in usec!
+			applyingtime = (((((BIGGESTSINT)time1val.tv_sec * 1000000) + (BIGGESTSINT)time1val.tv_usec) - (((BIGGESTSINT)time2val.tv_sec * 1000000) + (BIGGESTSINT)time2val.tv_usec))); //Difference in usec!
 			*divergeance_sec = applyingtime/1000000; //Seconds!
 			*divergeance_usec = applyingtime%1000000; //Microseconds!
 			return 1; //Give the difference time!
@@ -370,9 +359,9 @@ OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, i
 	BIGGESTSINT applyingtime; //Biggest integer value we have!
 	if (accuratetimetoepoch(curtime, &timeval)) //Converted to epoch?
 	{
-		applyingtime = ((timeval.tv_sec * 1000000) + timeval.tv_usec); //Direct time conversion!
-		applyingtime += (divergeance_sec*1000000); //Add the divergeance: we're applying the destination time!
-		applyingtime += divergeance_usec; //Apply usec!
+		applyingtime = (((BIGGESTSINT)timeval.tv_sec * 1000000) + (BIGGESTSINT)timeval.tv_usec); //Direct time conversion!
+		applyingtime += ((BIGGESTSINT)divergeance_sec*1000000); //Add the divergeance: we're applying the destination time!
+		applyingtime += (BIGGESTSINT)divergeance_usec; //Apply usec!
 
 		//Apply the resulting time!
 		timeval.tv_sec = (uint_32)(applyingtime/1000000); //Time in seconds!
@@ -484,7 +473,6 @@ void loadCMOS()
 	if (!BIOS_Settings.got_CMOS)
 	{
 		loadCMOSDefaults(); //Load our default requirements!
-		updateTimeDivergeance(); //Load the default time divergeance too!
 		return;
 	}
 	else //Load BIOS CMOS!
