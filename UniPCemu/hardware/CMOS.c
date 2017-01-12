@@ -304,11 +304,52 @@ OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, struct timeval *dateti
 	return 1; //Successfully converted!
 }
 
+OPTINLINE byte encodeBCDhour(byte hour)
+{
+	byte result;
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
+	{
+		if (hour>=12) //12 hour+?
+		{
+			result = 0x80; //Set the PM bit!
+		}
+		else
+		{
+			result = 0x00; //We're AM!
+		}
+		hour -= 12; //Take 12 hour multiple!
+		if ((hour==0) && (result)) //12PM(midnight) is a special case!
+		{
+			hour = 12; //Special case: midnight!
+		}
+		return (encodeBCD8(hour)|result); //Give the correct BCD with PM bit!
+	}
+	return encodeBCD8(hour); //Unmodified!
+}
+
+OPTINLINE byte decodeBCDhour(byte hour)
+{
+	byte result;
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
+	{
+		result = (hour&0x80)?12:0; //PM vs AM!
+		hour &= 0x7F; //Take the remaining values without our PM bit!
+		hour = decodeBCD8(hour); //Decode the hour!
+		if ((hour==12) && result) //12PM is a special case!
+		{
+			hour = 0; //We're midnight: convert it back!
+		}
+		result += hour; //Hour at AM or PM, so the 24-hour time!
+		return result;
+	}
+	return decodeBCD8(hour); //Unmodified!
+}
+
 //CMOS time encoding support!
 OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
-	curtime->year += (byte)(decodeBCD8(CMOS.DATA.DATA80.data[0x32])-1)*100; //Add the century! This value is the current year 100s + 1!
+	curtime->year += decodeBCD8(CMOS.DATA.DATA80.data[0x32])*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
 	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
@@ -322,12 +363,12 @@ OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the cur
 
 OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
-	CMOS.DATA.DATA80.data[0x32] = encodeBCD8(((curtime->year/100)+1)%100); //The century!
+	CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //The century with safety wrapping!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
 	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
 	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
 
-	CMOS.DATA.DATA80.info.RTC_Hours = encodeBCD8(curtime->hour);
+	CMOS.DATA.DATA80.info.RTC_Hours = encodeBCDhour(curtime->hour); //Hour has 12-hour format support!
 	CMOS.DATA.DATA80.info.RTC_Minutes = encodeBCD8(curtime->minute);
 	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second);
 	CMOS.DATA.DATA80.info.RTC_DayOfWeek = encodeBCD8(curtime->weekday); //The day of the week!
@@ -364,9 +405,8 @@ OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, i
 		applyingtime += (BIGGESTSINT)divergeance_usec; //Apply usec!
 
 		//Apply the resulting time!
-		timeval.tv_sec = (uint_32)(applyingtime/1000000); //Time in seconds!
-		applyingtime -= (timeval.tv_sec*1000000); //Substract to get microseconds!
-		timeval.tv_usec = (uint_32)applyingtime; //We have the amount of microseconds left!
+		timeval.tv_sec = (long)(applyingtime/1000000); //Time in seconds!
+		timeval.tv_usec = (long)(applyingtime%1000000); //We have the amount of microseconds left!
 		if (epochtoaccuratetime(&timeval,curtime)) //Convert back to apply it to the current time!
 		{
 			return 1; //Success!
