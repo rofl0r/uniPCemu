@@ -467,11 +467,14 @@ void CPU186_OPC8()
 		{
 			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 			{
-				if (checkStackAccess(1,1,0)) return; //Abort on error!
 				if (checkENTERStackAccess(1,0)) return; //Abort on error!				
 			}
 			REG_BP -= 2; //Push BP to the next size of BP!
 			bpdata = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_BP,0); //Read the value to copy.
+			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+			{
+				if (checkStackAccess(1,1,0)) return; //Abort on error!
+			}
 			CPU_PUSH16(&bpdata);
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
