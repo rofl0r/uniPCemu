@@ -221,7 +221,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index|0x7)>=((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index|0x7)>((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return 0; //Not present: limit exceeded!
 	}
@@ -1033,7 +1033,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
-	if ((base|0x7) >= CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
+	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
 		return 0; //Abort!
