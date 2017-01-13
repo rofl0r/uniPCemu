@@ -27,8 +27,8 @@ word TEXT_ydelta = 0; //Delta x,y!
 #define ADAPTIVETEXT
 #endif
 
-double render_xfactor=1.0, render_yfactor=1.0; //X and Y factor during rendering!
-double render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
+float render_xfactor=1.0f, render_yfactor=1.0f; //X and Y factor during rendering!
+float render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
 
 OPTINLINE static byte reverse8(INLINEREGISTER byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
@@ -94,7 +94,7 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	//Undirty!
 	if (GPU_textget_pixel(surface,fx,fy)) //Font?
 	{
-		surface->notdirty[fy][fx] = GPU_textgetcolor(surface,fx,fy,0); //Font!
+		surface->notdirty[(fy<<9)|fx] = GPU_textgetcolor(surface,fx,fy,0); //Font!
 	}
 	else
 	{
@@ -206,7 +206,7 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 		finishtextrendering:
 		//We're transparent or background!
-		surface->notdirty[fy][fx] = backpixel?GPU_textgetcolor(surface, fx, fy, 1):TRANSPARENTPIXEL; //Background or Transparent instead!
+		surface->notdirty[(fy<<9)|fx] = backpixel?GPU_textgetcolor(surface, fx, fy, 1):TRANSPARENTPIXEL; //Background or Transparent instead!
 	}
 }
 
@@ -253,8 +253,8 @@ OPTINLINE void GPU_text_updateres(word xres, word yres) //Update resultion of th
 	{
 		return; //Ignore invalid values!
 	}
-	render_xfactor = (double)PSP_SCREEN_COLUMNS/(double)xres; //X factor!
-	render_yfactor = (double)PSP_SCREEN_ROWS /(double)yres; //Y factor!
+	render_xfactor = (float)((double)PSP_SCREEN_COLUMNS/(double)xres); //X factor!
+	render_yfactor = (float)((double)PSP_SCREEN_ROWS /(double)yres); //Y factor!
 	if (render_yfactor > render_xfactor)
 	{
 		render_xfactor = render_yfactor; //Take the lesser resolution!
@@ -277,19 +277,20 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
+	uint_32 color;
 	INLINEREGISTER word x,y;
-	INLINEREGISTER uint_32 color;
-	byte curchar; //The current character loaded font row!
-	byte isnottransparent; //Are we not a transparent pixel(drawable)?
-	int fx, fy, sx, sy; //Used when rendering on the screen!
-	double relx, rely; //Relative X/Y position to use for updating the current pixel!
+	INLINEREGISTER uint_32 notbackground; //We're a pixel to render, 32-bits for each 32 pixels!
+	INLINEREGISTER byte isnottransparent=0; //Are we not a transparent pixel(drawable)?
+	byte curchar=0; //The current character loaded font row!
+	int fx=0, fy=0, sx=0, sy=0; //Used when rendering on the screen!
+	float relx=0.0, rely=0.0; //Relative X/Y position to use for updating the current pixel!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
 	{
 		WaitSem(tsurface->lock);
 
-		//First phase: get all pixels font, by walking through the text!
+		//First phase: get all pixels font/background status, by walking through the text!
 		x = y = 0; //Init coordinates!
 		xfont = &tsurface->fontpixels[0]; //The font pixels to use! as output!
 		xchar = &tsurface->text[0][0]; //The font pixels to use! as output!
@@ -329,6 +330,14 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		do //Process all rows!
 		{
 			updateDirty(tsurface,x,y); //Update dirty if needed!
+			if (tsurface->notdirty[(y<<9)|x]!=TRANSPARENTPIXEL) //Used pixel to render?
+			{
+				tsurface->notbackground[(y<<4)|(x>>5)] |= (1<<(x&0x1F)); //We're set!
+			}
+			else //Transparent pixel?
+			{
+				tsurface->notbackground[(y<<4)|(x>>5)] &= ~(1<<(x&0x1F)); //We're not set: we're transparent!
+			}
 			if (++x==GPU_TEXTPIXELSX) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
@@ -340,12 +349,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	}
 
 	x = y = sx = sy = 0; //Init coordinates!
-	relx = rely = 0.0; //Init screen coordinate plotter!
+#ifdef ADAPTIVETEXT
+	relx = rely = 0.0f; //Init screen coordinate plotter!
+#endif
 	if (check_surface(rendersurface)) //Valid to render to?
 	{
-		renderpixel = &tsurface->notdirty[0][0]; //Start with the first pixel in our buffer!
-		color = *renderpixel; //Init color to draw!
-		isnottransparent = (color != TRANSPARENTPIXEL); //Are we a transparent pixel?
+		renderpixel = &tsurface->notdirty[0]; //Start with the first pixel in our buffer!
+		notbackground = tsurface->notbackground[0]; //Are we not the background?
+		isnottransparent = (notbackground&1); //Are we a transparent pixel?
+		if (isnottransparent) //Color needed?
+		{
+			color = *renderpixel; //Init color to draw!
+		}
 		do //Process all rows!
 		{
 			if (isnottransparent) //The pixel to plot, if any! Ignore transparent pixels!
@@ -359,27 +374,53 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				put_pixel(rendersurface, fx, fy, color); //Plot the pixel!
 			}
 
+#ifdef ADAPTIVETEXT
 			relx += render_xfactor; //We've rendered a pixel!
+#endif
 			++sx; //Screen pixel rendered!
-			for (;relx>=1.0;) //Expired?
+#ifdef ADAPTIVETEXT
+			for (;relx>=1.0f;) //Expired?
+#endif
 			{
-				relx -= 1.0; //Rest!
+#ifdef ADAPTIVETEXT
+				relx -= 1.0f; //Rest!
+#endif
 				++renderpixel; //We've rendered a pixel!
 				//Else, We're transparent, do don't plot!
 				if (++x==GPU_TEXTPIXELSX) //End of row reached?
 				{
 					x = sx = 0; //Reset horizontal coordinate!
+#ifdef ADAPTIVETEXT
 					rely += render_yfactor; //We've rendered a row!
+#endif
 					++sy; //Screen row rendered!
+#ifdef ADAPTIVETEXT
 					for (;rely>=1.0;) //Expired?
+#endif
 					{
-						rely -= 1.0; //Rest!
+#ifdef ADAPTIVETEXT
+						rely -= 1.0f; //Rest!
+#endif
 						++y; //Next row to draw!
 					}
-					renderpixel = &tsurface->notdirty[y][0]; //Start with the first pixel in our (new) row!
+					renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
+					notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
 				}
-				color = *renderpixel; //Apply the new pixel to render!
-				isnottransparent = (color != TRANSPARENTPIXEL); //Are we a transparent pixel?
+				else
+				{
+					if ((x&0x1F)==0) //To reload the foreground mask?
+					{
+						notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
+					}
+					else
+					{
+						notbackground >>= 1; //Take the next pixel from the background mask!
+					}
+				}
+				if (isnottransparent = (notbackground&1)) //To render us?
+				{
+					color = *renderpixel; //Apply the new pixel to render!
+				}
 			}
 		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
 	}
@@ -680,8 +721,8 @@ byte GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) /
 		{
 			x -= x1; //X coordinate within the surface!
 			y -= y1;  //Y coordinate within the surface!
-			x = (word)((double)x*render_xfactor); //Convert to our destination size!
-			y = (word)((double)y*render_yfactor); //Convert to our destination size!
+			x = (word)((float)x*render_xfactor); //Convert to our destination size!
+			y = (word)((float)y*render_yfactor); //Convert to our destination size!
 			if (x < GPU_TEXTPIXELSX) //Within horizontal range?
 			{
 				if (y < GPU_TEXTPIXELSY) //Within vertical range?
