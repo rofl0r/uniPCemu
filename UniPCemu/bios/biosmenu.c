@@ -5462,7 +5462,7 @@ void BIOS_GenerateFloppyDisk()
 						strcat(fullfilename, "/");
 						strcat(fullfilename, filename);
 
-						generateFloppyImage(fullfilename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
+						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
 						if (!memcmp(BIOS_Settings.floppy0,filename,sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
 						{
