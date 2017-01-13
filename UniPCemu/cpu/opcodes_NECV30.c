@@ -448,19 +448,35 @@ void CPU186_OPC8()
 	word bpdata;
 	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
 	nestlev &= 0x1F; //MOD 32!
-	if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
-	if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
+	if (EMULATED_CPU>CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+	{
+		if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
+		if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
+	}
 	ENTER_L = nestlev; //Set the nesting level used!
 	//according to http://www.felixcloutier.com/x86/ENTER.html
+	if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+	{
+		if (checkStackAccess(1,1,0)) return; //Abort on error!		
+	}
 	CPU_PUSH16(&REG_BP);
 	word frametemp = REG_SP;
 	if (nestlev)
 	{
 		for (temp16=1; temp16<nestlev; ++temp16)
 		{
+			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+			{
+				if (checkStackAccess(1,1,0)) return; //Abort on error!
+				if (checkENTERStackAccess(1,0)) return; //Abort on error!				
+			}
 			REG_BP -= 2; //Push BP to the next size of BP!
 			bpdata = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_BP,0); //Read the value to copy.
 			CPU_PUSH16(&bpdata);
+		}
+		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+		{
+			if (checkStackAccess(1,1,0)) return; //Abort on error!		
 		}
 		CPU_PUSH16(&frametemp); //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
 	}
