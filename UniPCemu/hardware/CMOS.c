@@ -25,6 +25,13 @@ CMOS&RTC (Combined!)
 //Are we disabled?
 #define __HW_DISABLED 0
 
+#define DIVIDERCHAIN_DISABLED 0
+#define DIVIDERCHAIN_ENABLED 1
+#define DIVIDERCHAIN_TEST 2
+#define DIVIDERCHAIN_RESET 3
+
+byte dcc = DIVIDERCHAIN_DISABLED; //Current divider chain!
+
 byte XTMode = 0;
 
 OPTINLINE word decodeBCD(word bcd)
@@ -94,38 +101,44 @@ OPTINLINE void RTC_raiseIRQ()
 
 OPTINLINE void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
-	if (CMOS.DATA.DATA80.data[0x0B]&0x40) //Enabled interrupt?
-	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x40) == 0) //Allowed to raise?
-		{
-			RTC_raiseIRQ(); //Raise the IRQ!
-		}
-	}
 	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag is always set!
+	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
 OPTINLINE void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
-	if (CMOS.DATA.DATA80.data[0x0B]&0x10) //Enabled interrupt?
-	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x10) == 0) //Allowed to raise?
-		{
-			RTC_raiseIRQ(); //Raise the IRQ!
-		}
-	}
 	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
+	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
 OPTINLINE void RTC_AlarmInterrupt() //Alarm handler!
 {
-	if (CMOS.DATA.DATA80.data[0x0B]&0x20) //Enabled interrupt?
-	{
-		if ((CMOS.DATA.DATA80.data[0xC] & 0x20) == 0) //Allowed to raise?
-		{
-			RTC_raiseIRQ(); //Raise the IRQ!
-		}
-	}
 	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
+	RTC_raiseIRQ(); //Raise the IRQ!
+}
+
+OPTINLINE void updatedividerchain() //0-1=Disabled, 2=Normal operation, 3-5=TEST, 6-7=RESET
+{
+	switch ((CMOS.DATA.DATA80.data[0xA]>>4)&7) //Divider chain control(dcc in Bochs)!
+	{
+		case 0:
+		case 1:
+			dcc = DIVIDERCHAIN_DISABLED; //Disabled!
+			break;
+		case 2:
+			dcc = DIVIDERCHAIN_ENABLED; //Enabled!
+			break;
+		case 3:
+		case 4:
+		case 5:
+			dcc = DIVIDERCHAIN_TEST; //TEST
+			break;
+		case 6:
+		case 7:
+		default:
+			dcc =  DIVIDERCHAIN_RESET; //RESET!
+			break;
+	}
 }
 
 OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
@@ -152,7 +165,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEUPDATEENDEDINTERRUPT) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE) == 0) && (CMOS.UpdatingInterruptSquareWave == 0)) //Enabled and updated?
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEUPDATEENDEDINTERRUPT) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE) == 0) && (CMOS.UpdatingInterruptSquareWave == 0) && (dcc!=DIVIDERCHAIN_RESET)) //Enabled and updated?
 	{
 		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
 		{
@@ -160,12 +173,11 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if (
-			((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) || ((CMOS.DATA.DATA80.info.RTC_HourAlarm&0xC0)==0xC0)) && //Hour set or ignored?
-			((CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) || ((CMOS.DATA.DATA80.info.RTC_MinuteAlarm & 0xC0) == 0xC0)) && //Minute set or ignored?
-			((CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) || ((CMOS.DATA.DATA80.info.RTC_SecondAlarm & 0xC0) == 0xC0)) && //Second set or ignored?
-			(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed and check for alarm?
-			(CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEALARMINTERRUPT)) //Alarm enabled?
+	if (((CMOS.DATA.DATA80.info.RTC_Hours==CMOS.DATA.DATA80.info.RTC_HourAlarm) || ((CMOS.DATA.DATA80.info.RTC_HourAlarm&0xC0)==0xC0)) && //Hour set or ignored?
+		((CMOS.DATA.DATA80.info.RTC_Minutes==CMOS.DATA.DATA80.info.RTC_MinuteAlarm) || ((CMOS.DATA.DATA80.info.RTC_MinuteAlarm & 0xC0) == 0xC0)) && //Minute set or ignored?
+		((CMOS.DATA.DATA80.info.RTC_Seconds==CMOS.DATA.DATA80.info.RTC_SecondAlarm) || ((CMOS.DATA.DATA80.info.RTC_SecondAlarm & 0xC0) == 0xC0)) && //Second set or ignored?
+		(CMOS.DATA.DATA80.info.RTC_Seconds!=lastsecond) && //Second changed and check for alarm?
+		(CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEALARMINTERRUPT)) //Alarm enabled?
 	{
 		RTC_AlarmInterrupt(); //Handle the alarm!
 	}
@@ -443,7 +455,7 @@ OPTINLINE void RTC_updateDateTime()
 	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
 	if (CMOS.UpdatingInterruptSquareWave==0) //Toggled twice? Update us!
 	{
-		if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) //We're allowed to update the time?
+		if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 		{
 			if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
 			{
@@ -481,7 +493,7 @@ uint_32 getGenericCMOSRate()
 	INLINEREGISTER byte rate;
 	rate = CMOS.DATA.DATA80.data[0xA]; //Load the rate register!
 	rate &= 0xF; //Only the rate bits themselves are used!
-	if (rate) //To use us?
+	if ((rate) && (dcc!=DIVIDERCHAIN_DISABLED)) //To use us, also are we allowed to be ticking?
 	{
 		if (rate<3) //Rates 1&2 are actually the rate of 8&9!
 		{
@@ -499,13 +511,14 @@ uint_32 getGenericCMOSRate()
 
 OPTINLINE void CMOS_onWrite() //When written to CMOS!
 {
-	if (CMOS.ADDR==0xB) //Might have enabled IRQ8 functions!
+	if ((CMOS.ADDR==0xB) || (CMOS.ADDR==0xA)) //Might have changed IRQ8 functions!
 	{
+		updatedividerchain(); //Update the divider chain setting!
 		CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
 	}
 	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
 	{
-		if ((CMOS.ADDR != 1) && (CMOS.ADDR != 3) && (CMOS.ADDR != 5)) //Date/Time has been updated(not Alarm being set)?
+		if ((CMOS.ADDR>5) || ((CMOS.ADDR&1)==0)) //Date/Time has been updated(not Alarm being set)?
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
@@ -599,7 +612,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			lowerirq(8); //Lower the IRQ, if raised!
 			acnowledgeIRQrequest(8); //Acnowledge the IRQ, if needed!
 			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
-			CMOS.DATA.DATA80.data[0x0C] &= 0xF; //Clear the interrupt raised flags to allow new interrupts to fire!
+			CMOS.DATA.DATA80.data[0x0C] = 0x00; //Clear the interrupt raised flags to allow new interrupts to fire! Used to be &=0xF, but according to Bochs, the entire register is cleared!
 		}
 		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert to binary?
 		{
@@ -683,6 +696,18 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		{
 			if ((CMOS.ADDR!=0xC) && (CMOS.ADDR!=0xD)) //Read only values?
 			{
+				if (CMOS.ADDR==0xA) //Register A has a read-only bit!
+				{
+					value &= 0x7F; //Only allow the writable bits!
+					value |= (CMOS.DATA.DATA80.data[0xA]&SRA_UPDATEINPROGRESS); //Read-only bit!
+				}
+				else if (CMOS.ADDR==0xB) //Special time update functionality?
+				{
+					if ((CMOS.DATA.DATA80.data[0xB]&SRB_ENABLECYCLEUPDATE) && ((value&SRB_ENABLECYCLEUPDATE)==0x00)) //We've halted time and starting it again? Update the RTC timing that's synchronized!
+					{
+						updateTimeDivergeance(); //Make sure the divergeance is set accordingly when restarting the RTC clock!
+					}
+				}
 				CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
 			}
 		}
