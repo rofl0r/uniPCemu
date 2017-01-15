@@ -478,11 +478,16 @@ void updateCMOS(double timepassed)
 
 uint_32 getGenericCMOSRate()
 {
-	byte rate;
+	INLINEREGISTER byte rate;
 	rate = CMOS.DATA.DATA80.data[0xA]; //Load the rate register!
 	rate &= 0xF; //Only the rate bits themselves are used!
 	if (rate) //To use us?
 	{
+		if (rate<3) //Rates 1&2 are actually the rate of 8&9!
+		{
+			--rate; //Rate is one less: rates 1&2 become 0&1 for patching!
+			rate |= 8; //Convert rates 0&1 to rates 8&9!
+		}
 		--rate; //Rate is one less!
 		return (1<<rate); //The tap to look at(as a binary number) for a square wave to change state!
 	}
