@@ -1541,14 +1541,17 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of CPU types!
-	for (i=0; i<3; i++) //Process options!
+	numlist = 6; //Ammount of CPU types!
+	for (i=0; i<6; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
 	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
 	strcpy(itemlist[CPU_80286], "Intel 80286"); //Set filename from options!
+	strcpy(itemlist[CPU_80386], "Intel 80386(unfinished)"); //Set filename from options!
+	strcpy(itemlist[CPU_80486], "Intel 80486(unfinished)"); //Set filename from options!
+	strcpy(itemlist[CPU_PENTIUM], "Intel Pentium(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
@@ -1557,6 +1560,18 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
 	{
 		current = CPU_80286; //80286!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_80386) //80386?
+	{
+		current = CPU_80386; //80386!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_80486) //80486?
+	{
+		current = CPU_80486; //80486!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_PENTIUM) //PENTIUM?
+	{
+		current = CPU_PENTIUM; //PENTIUM!
 	}
 	else //NEC V20/V30 (default)?
 	{
