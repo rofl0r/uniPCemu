@@ -1601,6 +1601,15 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 			case CPU_80286: //80286?
 				BIOS_Settings.emulated_CPU = CPU_80286; //Use the 80286!
 				break;
+			case CPU_80386: //80386?
+				BIOS_Settings.emulated_CPU = CPU_80386; //Use the 80386!
+				break;
+			case CPU_80486: //80486?
+				BIOS_Settings.emulated_CPU = CPU_80486; //Use the 80486!
+				break;
+			case CPU_PENTIUM: //PENTIUM?
+				BIOS_Settings.emulated_CPU = CPU_PENTIUM; //Use the PENTIUM!
+				break;
 			default: //Unknown CPU?
 				BIOS_Settings.emulated_CPU = CPU_8086; //Use the 8086!
 				break;
@@ -4577,6 +4586,15 @@ void BIOS_InitCPUText()
 		break;
 	case CPU_80286: //80286?
 		strcat(menuoptions[advancedoptions++], "Intel 80286"); //Add installed CPU!
+		break;
+	case CPU_80386: //80386?
+		strcat(menuoptions[advancedoptions++], "Intel 80386(unfinished)"); //Add installed CPU!
+		break;
+	case CPU_80486: //80486?
+		strcat(menuoptions[advancedoptions++], "Intel 80486(unfinished)"); //Add installed CPU!
+		break;
+	case CPU_PENTIUM: //PENTIUM?
+		strcat(menuoptions[advancedoptions++], "Intel Pentium(unfinished)"); //Add installed CPU!
 		break;
 	default:
 		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!

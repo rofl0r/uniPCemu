@@ -612,6 +612,18 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	{
 		printmsg(0xF, "Installed CPU: Intel 80286\r\n"); //Emulated CPU!
 	}
+	else if (BIOS_Settings.emulated_CPU == CPU_80386) //80386?
+	{
+		printmsg(0xF, "Installed CPU: Intel 80386(unfinished)\r\n"); //Emulated CPU!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_80486) //80486?
+	{
+		printmsg(0xF, "Installed CPU: Intel 80486(unfinished)\r\n"); //Emulated CPU!
+	}
+	else if (BIOS_Settings.emulated_CPU == CPU_PENTIUM) //80286?
+	{
+		printmsg(0xF, "Installed CPU: Intel Pentium(unfinished)\r\n"); //Emulated CPU!
+	}
 	else //Unknown CPU?
 	{
 		printmsg(0x4,"Installed CPU: Unknown\r\n"); //Emulated CPU!
