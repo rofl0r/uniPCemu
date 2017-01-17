@@ -1363,6 +1363,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		return; //Don't run the CPU: we're in a permanent reset state!
 	}
 
+	CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
+
 	//Initialize stuff needed for local CPU timing!
 	didJump = 0; //Default: we didn't jump!
 	ENTER_L = 0; //Default to no L depth!

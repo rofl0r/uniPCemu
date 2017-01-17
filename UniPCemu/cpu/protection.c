@@ -74,6 +74,12 @@ void CPU_GP(int toinstruction,int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 	}
+
+	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
+	{
+		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
+	}
 	
 	if (CPU_faultraised()) //Fault raising exception!
 	{
@@ -87,6 +93,12 @@ void CPU_SegNotPresent(int_64 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
 
+	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
+	{
+		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
+	}
+
 	if (CPU_faultraised()) //Fault raising exception!
 	{
 		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
@@ -98,6 +110,11 @@ void CPU_SegNotPresent(int_64 errorcode)
 void CPU_StackFault(int_64 errorcode)
 {
 	CPU_resetOP(); //Point to the faulting instruction!
+	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
+	{
+		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
+	}
 
 	if (CPU_faultraised()) //Fault raising exception!
 	{

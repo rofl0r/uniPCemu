@@ -459,6 +459,10 @@ void CPU186_OPC8()
 	{
 		if (checkStackAccess(1,1,0)) return; //Abort on error!		
 	}
+
+	CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
+	CPU[activeCPU].oldESP = REG_ESP; //Back-up!
+
 	CPU_PUSH16(&REG_BP);
 	word frametemp = REG_SP;
 	if (nestlev)
@@ -469,8 +473,7 @@ void CPU186_OPC8()
 			{
 				if (checkENTERStackAccess(1,0)) return; //Abort on error!				
 			}
-			REG_BP -= 2; //Push BP to the next size of BP!
-			bpdata = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_BP,0); //Read the value to copy.
+			bpdata = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_BP-(temp16<<1),0); //Read the value to copy.
 			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 			{
 				if (checkStackAccess(1,1,0)) return; //Abort on error!

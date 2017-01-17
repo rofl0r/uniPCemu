@@ -2,6 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU reqs!
 #include "headers/mmu/mmu_internals.h" //Internal transfer support!
 #include "headers/mmu/mmuhandler.h" //MMU direct access support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -52,7 +53,7 @@ byte getUserLevel(byte CPL)
 	return (CPL==3)?1:0; //1=User, 0=Supervisor
 }
 
-void FLAG_PF(uint_32 address, word flags)
+void raisePF(uint_32 address, word flags)
 {
 	if (!(flags&1) && CPU[activeCPU].registers) //Not present?
 	{
@@ -60,6 +61,11 @@ void FLAG_PF(uint_32 address, word flags)
 	}
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
+	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
+	{
+		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
+	}
 	call_soft_inthandler(EXCEPTION_PAGEFAULT,(int_64)flags); //Call IVT entry #13 decimal!
 	//Execute the interrupt!
 	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
@@ -91,12 +97,12 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
 	if (!(PDE&PXE_P)) //Not present?
 	{
-		FLAG_PF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
 	if (!verifyCPL(iswrite,CPL,(PDE&PXE_RW)>>1,(PDE&PXE_US)>>2)) //Protection fault?
 	{
-		FLAG_PF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
 	if (!(PDE&PXE_A)) //Not accessed yet?
@@ -109,12 +115,12 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	PTE = memory_directrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
 	if (!(PTE&PXE_P)) //Not present?
 	{
-		FLAG_PF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
 	if (!verifyCPL(iswrite,CPL,(PTE&PXE_RW),(PTE&PXE_US))) //Protection fault?
 	{
-		FLAG_PF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
 	if (!(PTE&PXE_A))
