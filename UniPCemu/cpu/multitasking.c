@@ -15,6 +15,8 @@
 
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 
+extern uint_32 destEIP; //Destination address for CS JMP instruction!
+
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
@@ -154,6 +156,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			TSS32.TSS.ESI = DESC_32BITS(CPU[activeCPU].registers->ESI);
 			TSS32.TSS.EDI = DESC_32BITS(CPU[activeCPU].registers->EDI);
 			TSS32.TSS.CS = DESC_16BITS(CPU[activeCPU].registers->CS);
+			TSS32.TSS.EIP = DESC_32BITS(CPU[activeCPU].registers->EIP);
 			TSS32.TSS.SS = DESC_16BITS(CPU[activeCPU].registers->SS);
 			TSS32.TSS.DS = DESC_16BITS(CPU[activeCPU].registers->DS);
 			TSS32.TSS.FS = DESC_16BITS(CPU[activeCPU].registers->FS);
@@ -171,6 +174,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			TSS16.TSS.SI = DESC_16BITS(CPU[activeCPU].registers->SI);
 			TSS16.TSS.DI = DESC_16BITS(CPU[activeCPU].registers->DI);
 			TSS16.TSS.CS = DESC_16BITS(CPU[activeCPU].registers->CS);
+			TSS16.TSS.IP = DESC_16BITS(CPU[activeCPU].registers->IP);
 			TSS16.TSS.SS = DESC_16BITS(CPU[activeCPU].registers->SS);
 			TSS16.TSS.DS = DESC_16BITS(CPU[activeCPU].registers->DS);
 			TSS16.TSS.FLAGS = DESC_16BITS(CPU[activeCPU].registers->FLAGS);
@@ -375,6 +379,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!
 
 	//First, load CS!
+	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
 		segmentWritten(CPU_SEGMENT_CS,DESC_16BITS(TSS32.TSS.CS),0); //Load CS!
