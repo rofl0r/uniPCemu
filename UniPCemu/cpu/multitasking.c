@@ -141,7 +141,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 		if (isJMPorCALL == 3) //IRET?
 		{
-			FLAGW_NT(0); //Clear Nested Task flag!
+			FLAGW_NT(0); //Clear Nested Task flag of the leaving task!
 		}
 
 		//16 or 32-bit TSS is loaded, now save the registers!
