@@ -243,7 +243,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		return 0; //Not present: limit exceeded!
 	}
 	
-	if ((!getDescriptorIndex(descriptor_index)) && ((segment==CPU_SEGMENT_CS) || ((segment==CPU_SEGMENT_SS)))) //NULL segment loaded into CS or SS?
+	if ((!getDescriptorIndex(descriptor_index)) && ((segment==CPU_SEGMENT_CS) || ((segment==CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL segment loaded into CS or SS?
 	{
 		return 0; //Not present: limit exceeded!	
 	}
@@ -287,12 +287,6 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		return 0; //Not present: limit exceeded!	
 	}
 
-	if ((segment==CPU_SEGMENT_CS) &&
-		(getLoadedTYPE(container)!=1) //Data or System in CS (non-exec)?
-		)
-	{
-		return 0; //Not present: limit exceeded!	
-	}
 	return 1; //OK!
 }
 
@@ -308,7 +302,7 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		return; //Not present: limit exceeded!
 	}
 
-	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS)))) //NULL segment loaded into CS or SS?
+	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL GDT segment loaded into CS or SS?
 	{
 		return; //Not present: limit exceeded!	
 	}
@@ -578,6 +572,14 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 	}
 
+	if ((segment==CPU_SEGMENT_CS) &&
+		(getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) //Data or System in CS (non-exec)?
+		)
+	{
+		return 0; //Not present: limit exceeded!	
+	}
+
+
 	memcpy(dest,&LOADEDDESCRIPTOR,sizeof(LOADEDDESCRIPTOR)); //Give the loaded descriptor!
 
 	return dest; //Give the segment descriptor read from memory!
@@ -801,7 +803,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (getcpumode() == CPU_MODE_PROTECTED) //Not real mode? Check rights for zero descriptors!
 	{
-		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && !getDescriptorIndex(segmentval)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && (!getDescriptorIndex(segmentval)) && ((segmentval&4)==0)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
 		{
 			return 1; //Error!
 		}
@@ -1009,7 +1011,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 		return 0; //Not present: limit exceeded!
 	}
 
-	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS)))) //NULL segment loaded into CS or SS?
+	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL GDT segment loaded into CS or SS?
 	{
 		return 0; //Not present: limit exceeded!	
 	}
