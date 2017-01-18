@@ -302,6 +302,10 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= (result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Reading from RAM: %08X=%02X (%c)", realaddress, result, result ? result : 0x20); //Log it!
+	}
 	return result; //Give existant memory!
 }
 
@@ -337,6 +341,10 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	{
 		MMU_INTERNAL_INVMEM(realaddress, 1); //Invalid memory accessed!
 		return; //Abort!
+	}
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, value ? value : 0x20); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
