@@ -3,6 +3,8 @@
 #include "headers/mmu/mmu_internals.h" //Internal transfer support!
 #include "headers/mmu/mmuhandler.h" //MMU direct access support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/support/log.h" //Logging support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -55,6 +57,10 @@ byte getUserLevel(byte CPL)
 
 void raisePF(uint_32 address, word flags)
 {
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
+	}
 	if (!(flags&1) && CPU[activeCPU].registers) //Not present?
 	{
 		CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
