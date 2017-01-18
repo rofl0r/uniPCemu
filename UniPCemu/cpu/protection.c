@@ -7,6 +7,7 @@
 #include "headers/support/locks.h" //We need to unlock ourselves during triple faults, to reset ourselves!
 #include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/support/log.h" //Logging support!
 
 /*
 
@@ -70,6 +71,17 @@ byte CPU_faultraised()
 //General Protection fault.
 void CPU_GP(int toinstruction,int_64 errorcode)
 {
+	if (debugger_logging()) //Are we logging?
+	{
+		if (errorcode>=0)
+		{
+			dolog("debugger","#GP fault(%08X)!",errorcode);
+		}
+		else
+		{
+			dolog("debugger","#GP fault(-1)!");
+		}
+	}
 	if (toinstruction) //Point to the faulting instruction?
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
@@ -91,6 +103,17 @@ void CPU_GP(int toinstruction,int_64 errorcode)
 
 void CPU_SegNotPresent(int_64 errorcode)
 {
+	if (debugger_logging()) //Are we logging?
+	{
+		if (errorcode>=0)
+		{
+			dolog("debugger","#NP fault(%08X)!",errorcode);
+		}
+		else
+		{
+			dolog("debugger","#NP fault(-1)!");
+		}
+	}
 	CPU_resetOP(); //Point to the faulting instruction!
 
 	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
@@ -109,6 +132,17 @@ void CPU_SegNotPresent(int_64 errorcode)
 
 void CPU_StackFault(int_64 errorcode)
 {
+	if (debugger_logging()) //Are we logging?
+	{
+		if (errorcode>=0)
+		{
+			dolog("debugger","#SS fault(%08X)!",errorcode);
+		}
+		else
+		{
+			dolog("debugger","#SS fault(-1)!");
+		}
+	}
 	CPU_resetOP(); //Point to the faulting instruction!
 	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
 	{
@@ -315,7 +349,7 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer)) //Loaded the old container?
 		{
 			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
-			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ingore the data to write!
+			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
 		}
 		//Don't handle any errors on descriptor loading!
 	}
@@ -721,7 +755,32 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
 			}
-			if (segment == CPU_SEGMENT_CS) //CS register?
+			if (segment==CPU_SEGMENT_TR) //Loading the Task Register? We're to mask us as busy!
+			{
+				if (isJMPorCALL==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
+				{
+					SEGDESCRIPTOR_TYPE segdesc;
+					CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights |= 2; //Mark not idle in our own descriptor!
+					if (LOADDESCRIPTOR(segment,value,&segdesc)) //Loaded descriptor for modification!
+					{
+						switch (GENERALSEGMENT_TYPE(tempdescriptor)) //What kind of TSS?
+						{
+						case AVL_SYSTEM_BUSY_TSS32BIT:
+						case AVL_SYSTEM_BUSY_TSS16BIT:
+							THROWDESCGP(value,0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+							break;
+						case AVL_SYSTEM_TSS32BIT:
+						case AVL_SYSTEM_TSS16BIT:
+							segdesc.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
+							SAVEDESCRIPTOR(segment,value,&segdesc); //Save it back to RAM!
+							break;
+						default: //Invalid segment?
+							break; //Ignore!
+						}
+					}
+				}
+			}
+			else if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 				CPU_flushPIQ(); //We're jumping to another address!
