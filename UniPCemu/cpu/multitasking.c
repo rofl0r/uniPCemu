@@ -3,6 +3,8 @@
 #include "headers/mmu/mmuhandler.h" //Direct MMU support!
 #include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/support/log.h" //Logging support!
+#include "headers/emu/debugger/debugger.h" //Debugging support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
@@ -38,6 +40,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		byte data[108]; //All our data!
 	} TSS32;
 	byte TSSSize = 0; //The TSS size!
+
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Switching task to task %04X",destinationtask);
+	}
 
 	if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR->desc) != getCPL()) //Different CPL? Stack switch?
 	{
@@ -201,7 +208,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	//Now, load all the registers required as needed!
 	CPU[activeCPU].faultraised = 0; //We have no fault raised: we need this to run the segment change!
-	segmentWritten(CPU_SEGMENT_TR,destinationtask,0x40); //Execute the task switch itself, loading our new descriptor!
+
+	segmentWritten(CPU_SEGMENT_TR,destinationtask,0); //Execute the task switch itself, loading our new descriptor!
+	if (CPU[activeCPU].faultraised) return 1; //Abort on fault: invalid(or busy) task we're switching to!
 
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
@@ -495,6 +504,10 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 {
 	uint_32 errorcode;
 	errorcode = (segmentval&0xFFFB)|(is_external&1)|(tbl<<1);
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","#TSS fault(%08X)!",errorcode);
+	}
 	CPU_resetOP(); //Point to the faulting instruction!
 	
 	if (CPU_faultraised()) //We're raising a fault!
