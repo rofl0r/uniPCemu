@@ -891,6 +891,9 @@ OPTINLINE byte coreHandler()
 				}
 			}
 
+			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+			MMU_logging = debugger_logging(); //Are we logging?
+
 			HWINT_saved = 0; //No HW interrupt by default!
 			CPU_beforeexec(); //Everything before the execution!
 			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
@@ -936,8 +939,6 @@ OPTINLINE byte coreHandler()
 			}
 			#endif
 
-			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-			MMU_logging = debugger_logging(); //Are we logging?
 			CPU_exec(); //Run CPU!
 
 			//Increase the instruction counter every instruction/HLT time!
@@ -963,6 +964,7 @@ OPTINLINE byte coreHandler()
 			MHZ14passed = 0; //No time has passed on the 14MHz Master clock!
 		}
 
+		MMU_logging = 0; //Are we logging hardware memory accesses(DMA etc)?
 		tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync!
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
