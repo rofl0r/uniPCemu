@@ -22,6 +22,9 @@
 //Log flags only?
 //#define LOGFLAGSONLY
 
+//Debug logging for protected mode?
+#define DEBUG_PROTECTEDMODE
+
 //Debugger skipping functionality
 uint_32 skipopcodes = 0; //Skip none!
 byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination.
@@ -87,6 +90,7 @@ OPTINLINE byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
+byte harddebugging = 0; //Hard-coded debugger set?
 
 OPTINLINE byte debugging() //Debugging?
 {
@@ -135,6 +139,7 @@ byte debugger_logging()
 		break;
 	}
 	enablelog |= startreached; //Start logging from this point(emulator internal debugger)!
+	enablelog |= harddebugging; //Same as startreached, but special operations only!
 	enablelog |= waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	if (skipstep) enablelog = 0; //Disable when skipping!
@@ -844,6 +849,9 @@ void debugger_step() //Processes the debugging step!
 	{
 		--singlestep; //Start single-stepping the next X instruction!
 	}
+	#ifdef DEBUG_PROTECTEDMODE
+	harddebugging = (getcpumode()!=CPU_MODE_REAL); //Protected/V86 mode forced debugging log?
+	#endif
 }
 
 extern byte cpudebugger;
