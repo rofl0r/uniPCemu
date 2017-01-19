@@ -101,6 +101,8 @@ void saveTSS32(TSS386 *TSS)
 	}
 }
 
+byte enableMMUbuffer; //To buffer the MMU writes?
+
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
@@ -113,6 +115,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	TSS286 TSS16;
 	TSS386 TSS32;
 	byte TSSSize = 0; //The TSS size!
+
+	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
 	if (debugger_logging()) //Are we logging?
 	{
