@@ -189,6 +189,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (CPU[activeCPU].registers->TR) //Valid task to switch FROM?
 	{
+		if (debugger_logging()) //Are we logging?
+		{
+			dolog("debugger","Preparing outgoing task %04X for transfer",CPU[activeCPU].registers->TR);
+		}
+		
 		if (isJMPorCALL != 2) //Not a call?
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
@@ -240,6 +245,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS;
 		}
 
+		if (debugger_logging()) //Are we logging?
+		{
+			dolog("debugger","Saving outgoing task %04X to memory",CPU[activeCPU].registers->TR);
+		}
+
 		if (TSSSize) //32-bit TSS?
 		{
 			saveTSS32(&TSS32); //Save us!
@@ -255,6 +265,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	//Now, load all the registers required as needed!
 	CPU[activeCPU].faultraised = 0; //We have no fault raised: we need this to run the segment change!
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Switching active TSS to segment selector %04X",destinationtask);
+	}
 
 	segmentWritten(CPU_SEGMENT_TR,destinationtask,0); //Execute the task switch itself, loading our new descriptor!
 	if (CPU[activeCPU].faultraised) return 1; //Abort on fault: invalid(or busy) task we're switching to!
@@ -283,6 +297,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 	#endif
 
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading incoming TSS %04X state",CPU[activeCPU].registers->TR);
+	}
+
 	//Load the new TSS!
 	if (TSSSize) //32-bit TSS?
 	{
@@ -291,6 +310,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	else //16-bit TSS?
 	{
 		loadTSS16(&TSS16); //Load the TSS!
+	}
+
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Checking for backlink to TSS %04X",oldtask);
 	}
 
 	if (TSSSize) //32-bit TSS?
@@ -312,6 +336,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
+		if (debugger_logging()) //Are we logging?
+		{
+			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed.",CPU[activeCPU].registers->TR);
+		}
 		if (TSSSize) //32-bit TSS?
 		{
 			saveTSS32(&TSS32); //Save the TSS!
@@ -322,10 +350,20 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 	}
 
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Marking incoming TSS %04X busy if needed",CPU[activeCPU].registers->TR);
+	}
+
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
 		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
+	}
+
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading incoming TSS %04X state into the registers.",CPU[activeCPU].registers->TR);
 	}
 
 	//Now we're ready to load all registers!
@@ -369,6 +407,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->EIP = (uint_32)TSS16.IP;
 		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
 		LDTsegment = TSS16.LDT; //LDT used!
+	}
+
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading incoming TSS LDT %04X",LDTsegment);
 	}
 
 	//Check and verify the LDT descriptor!
@@ -416,12 +459,21 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: not an IDT!	
 	}
 
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Setting Task Switched flag in CR0");
+	}
+
 	CPU[activeCPU].registers->CR0 |= CR0_TS; //Set the high bit of the TS bit(bit 3)!
 
 	//Now, load all normal registers in order, keeping aborts possible!
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!
 
 	//First, load CS!
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading incoming TSS CS register");
+	}
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
@@ -439,6 +491,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: limit exceeded!
 	}
 
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading incoming TSS Stack address");
+	}
 	word *SSPtr=&TSS32.SS;
 	uint_32 *ESPPtr=&TSS32.ESP;
 	word *SPPtr=&TSS16.SP;
@@ -498,6 +554,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->SP = *SPPtr;
 	}
 
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","Loading remaining TSS segment registers");
+	}
 	if (TSSSize) //32-bit?
 	{
 		segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0); //Load reg!
@@ -518,6 +578,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	//All segments are valid and readable!
+
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger","New task ready for execution.");
+	}
 
 	if (hascallinterrupttaken_type==0xFF) //Not set yet?
 	{

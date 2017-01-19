@@ -212,7 +212,7 @@ typedef union PACKED
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
-typedef struct PACKED
+typedef union PACKED
 {
 	struct
 	{
