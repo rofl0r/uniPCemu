@@ -371,12 +371,20 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"Registers:"); //Start of the registers!
 		dolog(filename,"AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
-		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+		if (registers->CR0&1) //Protected mode?
+		{
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		}
+		else //Real mode?
+		{
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+		}
 		dolog(filename,"SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
 		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
 		{
 			dolog(filename, "CR0: %04X", (registers->CR0&0xFFFF)); //Rest!
+			dolog(filename,"GDTR: %08X, IDTR: %08X",registers->GDTR.data,registers->IDTR.data); //GDTR/IDTR!
 		}
 		#endif
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -388,7 +396,14 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
 		
-		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
+		if (registers->CR0&1) //Protected mode?
+		{
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		}
+		else //Real mode?
+		{
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
+		}
 
 		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
@@ -398,6 +413,8 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
 		dolog(filename, "DR4&6: %08X; DR5&7: %08X", registers->DR4_6, registers->DR5_7); //Rest!
+
+		dolog(filename,"GDTR: %08X, IDTR: %08X",registers->GDTR.data,registers->IDTR.data); //GDTR/IDTR!
 		#endif
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
@@ -443,7 +460,7 @@ OPTINLINE static void debugger_autolog()
 		//Now generate debugger information!
 		if (last_modrm)
 		{
-			if (getcpumode()==CPU_MODE_REAL) //16-bits addresses?
+			if ((debuggerregisters.CR0&1)==0) //16-bits addresses?
 			{
 				dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
 			}
@@ -513,13 +530,20 @@ OPTINLINE static void debugger_autolog()
 			}
 		}
 
-		if (getcpumode() == CPU_MODE_REAL) //Emulating 80(1)86? Use IP!
+		if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
 		{
 			dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 		}
 		else //286+? Use EIP!
 		{
-			dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+			if (EMULATED_CPU>CPU_80286) //Newer? Use 32-bits addressing!
+			{
+				dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+			}
+			else //16-bits offset?
+			{
+				dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+			}
 		}
 
 		dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
@@ -570,15 +594,23 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "OP:%02X; ROP: %02X", MMU_rb(-1, debuggerregisters.CS, debuggerregisters.IP, 1), CPU[activeCPU].lastopcode); //Debug opcode!
 
 		//First: location!
-		if (((getcpumode() == CPU_MODE_REAL) || (getcpumode() == CPU_MODE_8086)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
+		if ((((debuggerregisters.CR0&1)==0) || (debuggerregisters.EFLAGS&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 15, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", debuggerregisters.CS, debuggerregisters.IP); //Debug CS:IP!
 		}
 		else //386+?
 		{
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 20, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:EIP %04X:%08X", debuggerregisters.CS, debuggerregisters.EIP); //Debug IP!
+			if (EMULATED_CPU>=CPU_80386) //32-bit CPU?
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 20, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:EIP %04X:%08X", debuggerregisters.CS, debuggerregisters.EIP); //Debug IP!
+			}
+			else //286-?
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", debuggerregisters.CS, debuggerregisters.IP); //Debug IP!
+			}
 		}
 
 		//Now: Rest segments!
@@ -591,10 +623,14 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X; GS:%04X", debuggerregisters.FS, debuggerregisters.GS); //Debug FS&GS!
 		}
-
+		if (debuggerregisters.CR0&1) //Protected mode?
+		{
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 18, debuggerrow++); //Second debug row!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "TR:%04X; LDTR:%04X", debuggerregisters.TR, debuggerregisters.LDTR); //Debug TR&LDTR!
+		}
 
 		//General purpose registers!
-		if (((getcpumode() == CPU_MODE_REAL) || (getcpumode()==CPU_MODE_8086)) || (EMULATED_CPU==CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
+		if ((((debuggerregisters.CR0&1)==0) || (debuggerregisters.EFLAGS&F_V8)) || (EMULATED_CPU==CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			//General purpose registers!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 17, debuggerrow++); //Second debug row!
@@ -650,9 +686,15 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4&6:%08X; DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
 		}
 
+		if (EMULATED_CPU>=CPU_80286) //We have extra registers in all modes?
+		{
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "GDTR:%08X; IDTR:%08X", debuggerregisters.GDTR.data, debuggerregisters.IDTR.data); //Debug GDTR&IDTR!
+		}
+
 		//Finally, the flags!
 		//First, flags fully...
-		if (((getcpumode() == CPU_MODE_REAL)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode? 80386 virtual 8086 mode uses 32-bit flags!
+		if (((debuggerregisters.CR0&1)==0) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode? 80386 virtual 8086 mode uses 32-bit flags!
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%04X", debuggerregisters.FLAGS); //Debug FLAGS!
@@ -850,7 +892,7 @@ void debugger_step() //Processes the debugging step!
 		--singlestep; //Start single-stepping the next X instruction!
 	}
 	#ifdef DEBUG_PROTECTEDMODE
-	harddebugging = (getcpumode()!=CPU_MODE_REAL); //Protected/V86 mode forced debugging log?
+	harddebugging = (getcpumode()!=CPU_MODE_REAL); //Protected/V86 mode forced debugging log to start/stop? Don't include the real mode this way(as it's already disabled after execution), do include the final instruction, leaving protected mode this way(as it's already handled).
 	#endif
 }
 
