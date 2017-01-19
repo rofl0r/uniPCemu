@@ -162,12 +162,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 	#endif
 
-	if (busy) //Busy?
-	{
-		THROWDESCGP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
-		return 1; //Error out!
-	}
-
 	limit = LOADEDDESCRIPTOR->desc.limit_low; //Low limit (286+)!
 	if (EMULATED_CPU >= CPU_80386) //Gotten high limit?
 	{
@@ -198,7 +192,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			dolog("debugger","Preparing outgoing task %04X for transfer",CPU[activeCPU].registers->TR);
 		}
 		
-		if (isJMPorCALL != 2) //Not a call?
+		if (isJMPorCALL != 2) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
@@ -263,7 +257,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			saveTSS16(&TSS16); //Save us!
 		}
 	}
-
 
 	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
 
