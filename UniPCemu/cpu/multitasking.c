@@ -338,6 +338,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 	}
 
+
 	if (TSS_dirty) //Destination TSS dirty?
 	{
 		if (debugger_logging()) //Are we logging?
@@ -411,6 +412,15 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->EIP = (uint_32)TSS16.IP;
 		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
 		LDTsegment = TSS16.LDT; //LDT used!
+	}
+
+	if (isJMPorCALL == 1) //JMP?
+	{
+		FLAGW_NT(0); //Clear Nested Task flag of the leaving task!
+	}
+	else if (isJMPorCALL == 2) //CALL?
+	{
+		FLAGW_NT(1); //Set Nested Task flag of the leaving task!
 	}
 
 	if (debugger_logging()) //Are we logging?
