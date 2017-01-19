@@ -158,12 +158,12 @@ void int13_init(int floppy0, int floppy1, int hdd0, int hdd1, int cdrom0, int cd
 
 byte getdiskbymount(int drive) //Drive to disk converter (reverse of int13_init)!
 {
-	int i;
+	word i;
 	for (i = 0; i < 0xFF; i++)
 	{
 		if (mounteddrives[i] == drive) //Found?
 		{
-			return i; //Give the drive number!
+			return (byte)i; //Give the drive number!
 		}
 	}
 	return 0xFF; //Unknown disk!

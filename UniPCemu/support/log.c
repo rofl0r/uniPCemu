@@ -54,7 +54,8 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	static char filenametmp[256];
 	static char logtext[256], logtext2[512]; //Original and prepared text!
 	static char timestamp[256];
-	word i, logtextlen = 0;
+	word i;
+	uint_32 logtextlen = 0;
 	char c, newline=0;
 	va_list args; //Going to contain the list!
 	float time;

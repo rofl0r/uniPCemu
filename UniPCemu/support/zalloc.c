@@ -110,7 +110,7 @@ OPTINLINE sword matchptr(void *ptr, uint_32 index, uint_32 size, char *name) //A
 		if (currentstart != address_start) return -1; //Partly match!
 		if (currentend != address_end) return -1; //Partly match!
 		//We're a full match!
-		return left; //Full match at this index!
+		return (sword)left; //Full match at this index!
 	}
 
 	//Compatiblity only!

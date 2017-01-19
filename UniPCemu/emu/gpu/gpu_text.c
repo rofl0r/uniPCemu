@@ -283,7 +283,9 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	INLINEREGISTER byte isnottransparent=0; //Are we not a transparent pixel(drawable)?
 	byte curchar=0; //The current character loaded font row!
 	int fx=0, fy=0, sx=0, sy=0; //Used when rendering on the screen!
+#ifdef ADAPTIVETEXT
 	float relx=0.0, rely=0.0; //Relative X/Y position to use for updating the current pixel!
+#endif
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
 	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
@@ -417,7 +419,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 						notbackground >>= 1; //Take the next pixel from the background mask!
 					}
 				}
-				if (isnottransparent = (notbackground&1)) //To render us?
+				if ((isnottransparent = (notbackground&1))) //To render us?
 				{
 					color = *renderpixel; //Apply the new pixel to render!
 				}

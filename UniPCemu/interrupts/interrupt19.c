@@ -45,7 +45,7 @@ extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 
 void POSTThread()
 {
-	reset = EMU_BIOSPOST(); //Execute POST, process emulator reset if needed!
+	reset = (byte)EMU_BIOSPOST(); //Execute POST, process emulator reset if needed!
 }
 
 void BIOS_int19()

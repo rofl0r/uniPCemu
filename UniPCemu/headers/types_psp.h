@@ -36,6 +36,10 @@
 //PSP pointers are always 32-bit!
 typedef uint_32 ptrnum;
 
+#ifndef SDL_SwapLE32
+#define SDL_SwapLE32(x) (x)
+#endif
+
 //We're PSP!
 #define IS_PSP
 

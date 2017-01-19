@@ -6452,6 +6452,7 @@ uint_32 hex2int(char *s)
 void BIOS_breakpoint()
 {
 	char breakpointstr[8+1+4+1+1]; //32-bits offset, colon, 16-bits segment and mode if required, final character(always zero)!
+	bzero(&breakpointstr,sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
 	{
@@ -6535,7 +6536,7 @@ void BIOS_breakpoint()
 		}
 		else //Unset?
 		{
-			BIOS_Changed = BIOS_Changed||(BIOS_Settings.breakpoint!=0)?1:0; //We've changed!			
+			BIOS_Changed = BIOS_Changed||((BIOS_Settings.breakpoint!=0)?1:0); //We've changed!			
 			BIOS_Settings.breakpoint = 0; //No breakpoint!
 		}
 	}

@@ -567,7 +567,8 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 	memset(&MID_data, 0, sizeof(MID_data)); //Init data!
 	memset(&MID_tracks, 0, sizeof(MID_tracks)); //Init tracks!
 
-	if ((numMIDchannels = readMID(filename, &MID_header, &MID_tracks[0], &MID_data[0], 100)))
+	numMIDchannels = readMID(filename, &MID_header, &MID_tracks[0], &MID_data[0], 100); //Load the number of channels!
+	if (numMIDchannels)
 	{
 		stopTimers(0); //Stop most timers for max compatiblity and speed!
 		//Initialise our device!

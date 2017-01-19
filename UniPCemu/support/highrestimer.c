@@ -85,7 +85,7 @@ OPTINLINE float getrealtickspassed(TicksHolder *ticksholder)
 	{
 	    //Temp is already equal to oldticks!
 	    temp -= currentticks; //Difference between the numbers(old-new=difference)!
-		currentticks = ~0; //Max to substract from instead of the current ticks!
+		currentticks = (u64)~0; //Max to substract from instead of the current ticks!
 		if (tickresolution_SDL) //Are we SDL ticks?
 		{
 			currentticks &= (u64)(((uint_32)~0)); //We're limited to the uint_32 type, so wrap around it!

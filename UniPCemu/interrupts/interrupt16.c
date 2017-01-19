@@ -607,8 +607,8 @@ void BIOS_SetupKeyboard() {
 	CALLBACK_Setup(call_irq1,&IRQ1_Handler,CB_IRQ1,Real2Phys(BIOS_DEFAULT_IRQ1_LOCATION),"IRQ 1 Keyboard");
 	RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION);
 	*/
-	addCBHandler(CB_DOSBOX_IRQ1,&IRQ1_Handler,BIOS_DEFAULT_IRQ1_LOCATION);
-	Dosbox_RealSetVec(0x09,BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
+	addCBHandler(CB_DOSBOX_IRQ1,&IRQ1_Handler,(uint_32)BIOS_DEFAULT_IRQ1_LOCATION);
+	Dosbox_RealSetVec(0x09,(uint_32)BIOS_DEFAULT_IRQ1_LOCATION); //Our pointer!
 
 	irq1handler = PORT_IN_B(0x21); //Read the current IRQ status!
 	irq1handler &= ~0x02; //Enable IRQ1: Keyboard handler!

@@ -251,10 +251,12 @@ uint_32 MEMsize() //Total size of memory in use?
 OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 {
 	return; //Don't ever give NMI's from memory!
+	/*
 	if (execNMI(1)) //Execute an NMI from memory!
 	{
 		MMU.invaddr = 1; //Signal invalid address!
 	}
+	*/
 }
 
 //Low memory hole start!
@@ -292,7 +294,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		}
 		else
 		{
-			return (mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+			return (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
 		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
@@ -488,7 +490,7 @@ byte hasmemory()
 //Memory has gone wrong in direct access?
 byte MMU_invaddr()
 {
-	return MMU.invaddr; //Given an invalid adress?
+	return (byte)MMU.invaddr; //Given an invalid adress?
 }
 
 void MMU_resetaddr()

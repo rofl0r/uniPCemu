@@ -384,7 +384,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
 		{
 			dolog(filename, "CR0: %04X", (registers->CR0&0xFFFF)); //Rest!
-			dolog(filename,"GDTR: %08X, IDTR: %08X",registers->GDTR.data,registers->IDTR.data); //GDTR/IDTR!
+			dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		}
 		#endif
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -414,7 +414,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
 		dolog(filename, "DR4&6: %08X; DR5&7: %08X", registers->DR4_6, registers->DR5_7); //Rest!
 
-		dolog(filename,"GDTR: %08X, IDTR: %08X",registers->GDTR.data,registers->IDTR.data); //GDTR/IDTR!
+		dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
@@ -689,7 +689,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		if (EMULATED_CPU>=CPU_80286) //We have extra registers in all modes?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "GDTR:%08X; IDTR:%08X", debuggerregisters.GDTR.data, debuggerregisters.IDTR.data); //Debug GDTR&IDTR!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "GDTR:" LONGLONGSPRINTX "; IDTR:" LONGLONGSPRINTX, (LONG64SPRINTF)debuggerregisters.GDTR.data, (LONG64SPRINTF)debuggerregisters.IDTR.data); //Debug GDTR&IDTR!
 		}
 
 		//Finally, the flags!
