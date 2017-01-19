@@ -19,26 +19,99 @@ extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are th
 
 extern uint_32 destEIP; //Destination address for CS JMP instruction!
 
+void loadTSS16(TSS286 *TSS)
+{
+	word n;
+	word *data16;
+	data16 = &TSS->BackLink; //Load all addresses as 16-bit values!
+	for (n = 0;n < sizeof(*TSS);n+=2) //Load our TSS!
+	{
+		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	}
+}
+
+void loadTSS32(TSS386 *TSS)
+{
+	byte ssspreg;
+	word n;
+	uint_32 *data32;
+	word *data16;
+	TSS->BackLink = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	//SP0/ESP0 initializing!
+	n = 4; //Start of our block!
+	data32 = &TSS->ESP0; //Start with 32-bit data!
+	data16 = &TSS->SS0; //Start with 16-bit data!
+
+	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
+	{
+		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		n += 4; //Next item!
+		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		n += 4; //Next item!
+		++data32; //Skip the 32-bit item(the SS entry) accordingly!
+	}
+
+	data32 = &TSS->CR3; //Start with CR3!
+	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
+	{
+		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	}
+
+	data16 = &TSS->ES; //Start with ES!
+	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
+	{
+		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	}
+
+	data16 = &TSS->T; //Start of the last data!
+	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25*4), 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (26*4), 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+}
+
+void saveTSS16(TSS286 *TSS)
+{
+	word n;
+	word *data16;
+	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+	data16 = &TSS->IP; //Start with IP!
+	for (n=((7*4));n<sizeof(*TSS);n+=2) //Write our TSS 16-bit data!
+	{
+		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		++data16; //Next data!		
+	}
+}
+
+void saveTSS32(TSS386 *TSS)
+{
+	word n;
+	uint_32 *data32;
+	word *data16;
+	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+	data32 = &TSS->EIP; //Start with EIP!
+	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data!
+	{
+		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data32); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		++data32; //Next data!
+	}
+	data16 = &TSS->ES; //Start with ES!
+	for (n=(((8+10)*4));n<((8+10+7)*4);n+=4) //Write our TSS 16-bit data!
+	{
+		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		++data16; //Next data!		
+	}
+}
+
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
 	byte destStack = 3; //Destination stack!
 	//Both structures to use for the TSS!
 	word LDTsegment;
-	word n;
 	word oldtask;
 	byte busy=0;
 	byte TSS_dirty = 0; //Is the new TSS dirty?
-	union
-	{
-		TSS286 TSS;
-		byte data[44]; //All our data!
-	} TSS16;
-	union
-	{
-		TSS386 TSS;
-		byte data[108]; //All our data!
-	} TSS32;
+	TSS286 TSS16;
+	TSS386 TSS32;
 	byte TSSSize = 0; //The TSS size!
 
 	if (debugger_logging()) //Are we logging?
@@ -70,14 +143,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		busy = 1;
 	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
 		TSSSize = 1; //32-bit TSS!
-		/*
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
+			goto invalidsrctask; //Thow #GP!
 		}
-		*/
 		break;
 	default: //Invalid descriptor!
+		invalidsrctask:
 		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
@@ -105,33 +177,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	//Now going to switch to the current task, save the registers etc in the current task!
-	if (CPU[activeCPU].registers->TR) //We have an active program?
+
+	if (TSSSize) //32-bit TSS?
 	{
-		if (TSSSize) //32-bit TSS?
-		{
-			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
-			{
-				TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,n,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-			}
-		}
-		else //16-bit TSS?
-		{
-			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
-			{
-				TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-			}
-		}
+		memset(&TSS32,0,sizeof(TSS32)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
-	else //Unknown size?
+	else //16-bit TSS?
 	{
-		if (TSSSize) //32-bit TSS?
-		{
-			memset(&TSS32.data,0,sizeof(TSS32.data)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		}
-		else //16-bit TSS?
-		{
-			memset(&TSS16.data, 0, sizeof(TSS16.data)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		}
+		memset(&TSS16, 0, sizeof(TSS16)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	if (CPU[activeCPU].registers->TR) //Valid task to switch FROM?
@@ -154,52 +207,46 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		//16 or 32-bit TSS is loaded, now save the registers!
 		if (TSSSize) //We're a 32-bit TSS?
 		{
-			TSS32.TSS.EAX = DESC_32BITS(CPU[activeCPU].registers->EAX);
-			TSS32.TSS.ECX = DESC_32BITS(CPU[activeCPU].registers->ECX);
-			TSS32.TSS.EDX = DESC_32BITS(CPU[activeCPU].registers->EDX);
-			TSS32.TSS.EBX = DESC_32BITS(CPU[activeCPU].registers->EBX);
-			TSS32.TSS.ESP = DESC_32BITS(CPU[activeCPU].registers->ESP);
-			TSS32.TSS.EBP = DESC_32BITS(CPU[activeCPU].registers->EBP);
-			TSS32.TSS.ESI = DESC_32BITS(CPU[activeCPU].registers->ESI);
-			TSS32.TSS.EDI = DESC_32BITS(CPU[activeCPU].registers->EDI);
-			TSS32.TSS.CS = DESC_16BITS(CPU[activeCPU].registers->CS);
-			TSS32.TSS.EIP = DESC_32BITS(CPU[activeCPU].registers->EIP);
-			TSS32.TSS.SS = DESC_16BITS(CPU[activeCPU].registers->SS);
-			TSS32.TSS.DS = DESC_16BITS(CPU[activeCPU].registers->DS);
-			TSS32.TSS.FS = DESC_16BITS(CPU[activeCPU].registers->FS);
-			TSS32.TSS.GS = DESC_16BITS(CPU[activeCPU].registers->GS);
-			TSS32.TSS.EFLAGS = DESC_32BITS(CPU[activeCPU].registers->EFLAGS);
+			TSS32.EAX = CPU[activeCPU].registers->EAX;
+			TSS32.ECX = CPU[activeCPU].registers->ECX;
+			TSS32.EDX = CPU[activeCPU].registers->EDX;
+			TSS32.EBX = CPU[activeCPU].registers->EBX;
+			TSS32.ESP = CPU[activeCPU].registers->ESP;
+			TSS32.EBP = CPU[activeCPU].registers->EBP;
+			TSS32.ESI = CPU[activeCPU].registers->ESI;
+			TSS32.EDI = CPU[activeCPU].registers->EDI;
+			TSS32.CS = CPU[activeCPU].registers->CS;
+			TSS32.EIP = CPU[activeCPU].registers->EIP;
+			TSS32.SS = CPU[activeCPU].registers->SS;
+			TSS32.DS = CPU[activeCPU].registers->DS;
+			TSS32.FS = CPU[activeCPU].registers->FS;
+			TSS32.GS = CPU[activeCPU].registers->GS;
+			TSS32.EFLAGS = CPU[activeCPU].registers->EFLAGS;
 		}
 		else //We're a 16-bit TSS?
 		{
-			TSS16.TSS.AX = DESC_16BITS(CPU[activeCPU].registers->AX);
-			TSS16.TSS.CX = DESC_16BITS(CPU[activeCPU].registers->CX);
-			TSS16.TSS.DX = DESC_16BITS(CPU[activeCPU].registers->DX);
-			TSS16.TSS.BX = DESC_16BITS(CPU[activeCPU].registers->BX);
-			TSS16.TSS.SP = DESC_16BITS(CPU[activeCPU].registers->SP);
-			TSS16.TSS.BP = DESC_16BITS(CPU[activeCPU].registers->BP);
-			TSS16.TSS.SI = DESC_16BITS(CPU[activeCPU].registers->SI);
-			TSS16.TSS.DI = DESC_16BITS(CPU[activeCPU].registers->DI);
-			TSS16.TSS.CS = DESC_16BITS(CPU[activeCPU].registers->CS);
-			TSS16.TSS.IP = DESC_16BITS(CPU[activeCPU].registers->IP);
-			TSS16.TSS.SS = DESC_16BITS(CPU[activeCPU].registers->SS);
-			TSS16.TSS.DS = DESC_16BITS(CPU[activeCPU].registers->DS);
-			TSS16.TSS.FLAGS = DESC_16BITS(CPU[activeCPU].registers->FLAGS);
+			TSS16.AX = CPU[activeCPU].registers->AX;
+			TSS16.CX = CPU[activeCPU].registers->CX;
+			TSS16.DX = CPU[activeCPU].registers->DX;
+			TSS16.BX = CPU[activeCPU].registers->BX;
+			TSS16.SP = CPU[activeCPU].registers->SP;
+			TSS16.BP = CPU[activeCPU].registers->BP;
+			TSS16.SI = CPU[activeCPU].registers->SI;
+			TSS16.DI = CPU[activeCPU].registers->DI;
+			TSS16.CS = CPU[activeCPU].registers->CS;
+			TSS16.IP = CPU[activeCPU].registers->IP;
+			TSS16.SS = CPU[activeCPU].registers->SS;
+			TSS16.DS = CPU[activeCPU].registers->DS;
+			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS;
 		}
 
 		if (TSSSize) //32-bit TSS?
 		{
-			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
-			{
-				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-			}
+			saveTSS32(&TSS32); //Save us!
 		}
 		else //16-bit TSS?
 		{
-			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
-			{
-				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-			}
+			saveTSS16(&TSS16); //Save us!
 		}
 	}
 
@@ -221,14 +268,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	case AVL_SYSTEM_BUSY_TSS32BIT:
 	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
 		TSSSize = 1; //32-bit TSS!
-		/*
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
-		THROWDESCGP(CPU[activeCPU].registers->TR); //Thow #GP!
+			goto invaliddesttask; //Thow #GP!
 		}
-		*/
 		break;
 	default: //Invalid descriptor!
+		invaliddesttask:
 		THROWDESCGP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
@@ -240,24 +286,18 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	//Load the new TSS!
 	if (TSSSize) //32-bit TSS?
 	{
-		for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
-		{
-			TSS32.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		}
+		loadTSS32(&TSS32); //Load the TSS!
 	}
 	else //16-bit TSS?
 	{
-		for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
-		{
-			TSS16.data[n] = MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		}
+		loadTSS16(&TSS16); //Load the TSS!
 	}
 
 	if (TSSSize) //32-bit TSS?
 	{
 		if (isJMPorCALL == 2 && oldtask) //CALL?
 		{
-			TSS32.TSS.BackLink = DESC_16BITS(oldtask); //Save the old task as a backlink in the new task!
+			TSS32.BackLink = oldtask; //Save the old task as a backlink in the new task!
 			TSS_dirty = 1; //We're dirty!
 		}
 	}
@@ -265,7 +305,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		if (isJMPorCALL == 2 && oldtask) //CALL?
 		{
-			TSS16.TSS.BackLink = DESC_16BITS(oldtask); //Save the old task as a backlink in the new task!
+			TSS16.BackLink = oldtask; //Save the old task as a backlink in the new task!
 			TSS_dirty = 1; //We're dirty!
 		}
 	}
@@ -274,17 +314,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		if (TSSSize) //32-bit TSS?
 		{
-			for (n = 0;n < sizeof(TSS32);++n) //Load our TSS!
-			{
-				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS32.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-			}
+			saveTSS32(&TSS32); //Save the TSS!
 		}
 		else //16-bit TSS?
 		{
-			for (n = 0;n < sizeof(TSS16);++n) //Load our TSS!
-			{
-				MMU_wb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS16.data[n]); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-			}
+			saveTSS16(&TSS16); //Save the TSS!
 		}
 	}
 
@@ -297,44 +331,44 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	//Now we're ready to load all registers!
 	if (TSSSize) //We're a 32-bit TSS?
 	{
-		CPU[activeCPU].registers->EAX = DESC_32BITS(TSS32.TSS.EAX);
-		CPU[activeCPU].registers->ECX = DESC_32BITS(TSS32.TSS.ECX);
-		CPU[activeCPU].registers->EDX = DESC_32BITS(TSS32.TSS.EDX);
-		CPU[activeCPU].registers->EBX = DESC_32BITS(TSS32.TSS.EBX);
-		CPU[activeCPU].registers->ESP = DESC_32BITS(TSS32.TSS.ESP);
-		CPU[activeCPU].registers->EBP = DESC_32BITS(TSS32.TSS.EBP);
-		CPU[activeCPU].registers->ESI = DESC_32BITS(TSS32.TSS.ESI);
-		CPU[activeCPU].registers->EDI = DESC_32BITS(TSS32.TSS.EDI);
-		CPU[activeCPU].registers->CR3 = DESC_32BITS(TSS32.TSS.CR3); //Load the new CR3 register to use the new Paging table!
-		CPU[activeCPU].registers->EFLAGS = DESC_32BITS(TSS32.TSS.EFLAGS);
+		CPU[activeCPU].registers->EAX = TSS32.EAX;
+		CPU[activeCPU].registers->ECX = TSS32.ECX;
+		CPU[activeCPU].registers->EDX = TSS32.EDX;
+		CPU[activeCPU].registers->EBX = TSS32.EBX;
+		CPU[activeCPU].registers->ESP = TSS32.ESP;
+		CPU[activeCPU].registers->EBP = TSS32.EBP;
+		CPU[activeCPU].registers->ESI = TSS32.ESI;
+		CPU[activeCPU].registers->EDI = TSS32.EDI;
+		CPU[activeCPU].registers->CR3 = TSS32.CR3; //Load the new CR3 register to use the new Paging table!
+		CPU[activeCPU].registers->EFLAGS = TSS32.EFLAGS;
 		//Load all remaining registers manually for exceptions!
-		CPU[activeCPU].registers->CS = DESC_16BITS(TSS32.TSS.CS);
-		CPU[activeCPU].registers->DS = DESC_16BITS(TSS32.TSS.DS);
-		CPU[activeCPU].registers->ES = DESC_16BITS(TSS32.TSS.ES);
-		CPU[activeCPU].registers->FS = DESC_16BITS(TSS32.TSS.FS);
-		CPU[activeCPU].registers->GS = DESC_16BITS(TSS32.TSS.GS);
-		CPU[activeCPU].registers->EIP = DESC_32BITS(TSS32.TSS.EIP);
-		CPU[activeCPU].registers->SS = DESC_16BITS(TSS32.TSS.SS); //Default stack to use: the old stack!
-		LDTsegment = DESC_16BITS(TSS32.TSS.LDT); //LDT used!
+		CPU[activeCPU].registers->CS = TSS32.CS;
+		CPU[activeCPU].registers->DS = TSS32.DS;
+		CPU[activeCPU].registers->ES = TSS32.ES;
+		CPU[activeCPU].registers->FS = TSS32.FS;
+		CPU[activeCPU].registers->GS = TSS32.GS;
+		CPU[activeCPU].registers->EIP = TSS32.EIP;
+		CPU[activeCPU].registers->SS = TSS32.SS; //Default stack to use: the old stack!
+		LDTsegment = TSS32.LDT; //LDT used!
 	}
 	else //We're a 16-bit TSS?
 	{
-		CPU[activeCPU].registers->AX = DESC_16BITS(TSS16.TSS.AX);
-		CPU[activeCPU].registers->CX = DESC_16BITS(TSS16.TSS.CX);
-		CPU[activeCPU].registers->DX = DESC_16BITS(TSS16.TSS.DX);
-		CPU[activeCPU].registers->BX = DESC_16BITS(TSS16.TSS.BX);
-		CPU[activeCPU].registers->SP = DESC_16BITS(TSS16.TSS.SP);
-		CPU[activeCPU].registers->BP = DESC_16BITS(TSS16.TSS.BP);
-		CPU[activeCPU].registers->SI = DESC_16BITS(TSS16.TSS.SI);
-		CPU[activeCPU].registers->DI = DESC_16BITS(TSS16.TSS.DI);
-		CPU[activeCPU].registers->FLAGS = DESC_16BITS(TSS16.TSS.FLAGS);
+		CPU[activeCPU].registers->AX = TSS16.AX;
+		CPU[activeCPU].registers->CX = TSS16.CX;
+		CPU[activeCPU].registers->DX = TSS16.DX;
+		CPU[activeCPU].registers->BX = TSS16.BX;
+		CPU[activeCPU].registers->SP = TSS16.SP;
+		CPU[activeCPU].registers->BP = TSS16.BP;
+		CPU[activeCPU].registers->SI = TSS16.SI;
+		CPU[activeCPU].registers->DI = TSS16.DI;
+		CPU[activeCPU].registers->FLAGS = TSS16.FLAGS;
 		//Load all remaining registers manually for exceptions!
-		CPU[activeCPU].registers->CS = DESC_16BITS(TSS16.TSS.CS); //This should also load the privilege level!
-		CPU[activeCPU].registers->DS = DESC_16BITS(TSS16.TSS.DS);
-		CPU[activeCPU].registers->ES = DESC_16BITS(TSS16.TSS.ES);
-		CPU[activeCPU].registers->EIP = (uint_32)DESC_16BITS(TSS16.TSS.IP);
-		CPU[activeCPU].registers->SS = DESC_16BITS(TSS16.TSS.SS); //Default stack to use: the old stack!
-		LDTsegment = DESC_16BITS(TSS16.TSS.LDT); //LDT used!
+		CPU[activeCPU].registers->CS = TSS16.CS; //This should also load the privilege level!
+		CPU[activeCPU].registers->DS = TSS16.DS;
+		CPU[activeCPU].registers->ES = TSS16.ES;
+		CPU[activeCPU].registers->EIP = (uint_32)TSS16.IP;
+		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
+		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
 	//Check and verify the LDT descriptor!
@@ -391,11 +425,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
-		segmentWritten(CPU_SEGMENT_CS,DESC_16BITS(TSS32.TSS.CS),0); //Load CS!
+		segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0); //Load CS!
 	}
 	else
 	{
-		segmentWritten(CPU_SEGMENT_CS, DESC_16BITS(TSS16.TSS.CS), 0); //Load CS!
+		segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0); //Load CS!
 	}
 	CPU_flushPIQ(); //We're jumping to another address!
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
@@ -405,28 +439,28 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: limit exceeded!
 	}
 
-	word *SSPtr=&TSS32.TSS.SS;
-	uint_32 *ESPPtr=&TSS32.TSS.ESP;
-	word *SPPtr=&TSS16.TSS.SP;
+	word *SSPtr=&TSS32.SS;
+	uint_32 *ESPPtr=&TSS32.ESP;
+	word *SPPtr=&TSS16.SP;
 	if (TSSSize) //32-bit to load?
 	{
 		switch (destStack) //What are we switching to?
 		{
 		case 0: //Level 0?
-			SSPtr = &TSS32.TSS.SS0;
-			ESPPtr = &TSS32.TSS.ESP0;
+			SSPtr = &TSS32.SS0;
+			ESPPtr = &TSS32.ESP0;
 			break;
 		case 1: //Level 1?
-			SSPtr = &TSS32.TSS.SS1;
-			ESPPtr = &TSS32.TSS.ESP1;
+			SSPtr = &TSS32.SS1;
+			ESPPtr = &TSS32.ESP1;
 			break;
 		case 2: //Level 2?
-			SSPtr = &TSS32.TSS.SS2;
-			ESPPtr = &TSS32.TSS.ESP2;
+			SSPtr = &TSS32.SS2;
+			ESPPtr = &TSS32.ESP2;
 			break;
 		case 3: //Level 3?
-			SSPtr = &TSS32.TSS.SS;
-			ESPPtr = &TSS32.TSS.ESP;
+			SSPtr = &TSS32.SS;
+			ESPPtr = &TSS32.ESP;
 			break;
 		}
 	}
@@ -435,51 +469,51 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		switch (destStack) //What are we switching to?
 		{
 		case 0: //Level 0?
-			SSPtr = &TSS16.TSS.SS0;
-			SPPtr = &TSS16.TSS.SP0;
+			SSPtr = &TSS16.SS0;
+			SPPtr = &TSS16.SP0;
 			break;
 		case 1: //Level 1?
-			SSPtr = &TSS16.TSS.SS1;
-			SPPtr = &TSS16.TSS.SP1;
+			SSPtr = &TSS16.SS1;
+			SPPtr = &TSS16.SP1;
 			break;
 		case 2: //Level 2?
-			SSPtr = &TSS16.TSS.SS2;
-			SPPtr = &TSS16.TSS.SP2;
+			SSPtr = &TSS16.SS2;
+			SPPtr = &TSS16.SP2;
 			break;
 		case 3: //Level 3?
-			SSPtr = &TSS16.TSS.SS;
-			SPPtr = &TSS16.TSS.SP;
+			SSPtr = &TSS16.SS;
+			SPPtr = &TSS16.SP;
 			break;
 		}
 	}
 
-	segmentWritten(CPU_SEGMENT_SS, DESC_16BITS(*SSPtr), 0); //Update the segment!
+	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment!
 	if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	if (TSSSize) //32-bit?
 	{
-		CPU[activeCPU].registers->ESP = DESC_32BITS(*ESPPtr);
+		CPU[activeCPU].registers->ESP = *ESPPtr;
 	}
 	else //16-bit?
 	{
-		CPU[activeCPU].registers->SP = DESC_16BITS(*SPPtr);
+		CPU[activeCPU].registers->SP = *SPPtr;
 	}
 
 	if (TSSSize) //32-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, DESC_16BITS(TSS32.TSS.DS), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, DESC_16BITS(TSS32.TSS.ES), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_FS, DESC_16BITS(TSS32.TSS.FS), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_GS, DESC_16BITS(TSS32.TSS.GS), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 	else //16-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, DESC_16BITS(TSS16.TSS.DS), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, DESC_16BITS(TSS16.TSS.ES), 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 

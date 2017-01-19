@@ -65,11 +65,6 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define u8 byte
 #define u32 uint_32
 
-//NULL pointer definition
-#define NULLPTR(x) ((x.segment==0) && (x.offset==0))
-//Same, but for pointer dereference
-#define NULLPTR_PTR(x,location) (ANTINULL(x,location)?((x->segment==0) && (x->offset==0)):1)
-
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
 {
@@ -169,74 +164,82 @@ typedef struct PACKED
 #define SEGDESCPTR_NONCALLGATE_G(desc) ((desc->noncallgate_info>>7)&1)
 
 #include "headers/packed.h" //Packed type!
-typedef struct PACKED
+typedef union PACKED
 {
-	word BackLink; //Back Link to Previous TSS
-	word Unused0;
-	uint_32 ESP0;
-	word SS0;
-	word Unused8;
-	uint_32 ESP1;
-	word SS1;
-	word Unused10;
-	uint_32 ESP2;
-	word SS2;
-	word Unused20;
-	uint_32 CR3; //CR3 (PDPR)
-	uint_32 EIP;
-	uint_32 EFLAGS;
-	uint_32 EAX;
-	uint_32 ECX;
-	uint_32 EDX;
-	uint_32 EBX;
-	uint_32 ESP;
-	uint_32 EBP;
-	uint_32 ESI;
-	uint_32 EDI;
-	word ES;
-	word Unused48;
-	word CS;
-	word Unused4C;
-	word SS;
-	word Unused50;
-	word DS;
-	word Unused54;
-	word FS;
-	word Unused58;
-	word GS;
-	word Unused5C;
-	word LDT;
-	word Unused60;
-	word T; //1-bit, upper 15 bits unused!
-	word IOMapBase;
+	struct
+	{
+		word BackLink; //Back Link to Previous TSS
+		word Unused0;
+		uint_32 ESP0;
+		word SS0;
+		word Unused8;
+		uint_32 ESP1;
+		word SS1;
+		word Unused10;
+		uint_32 ESP2;
+		word SS2;
+		word Unused20;
+		uint_32 CR3; //CR3 (PDPR)
+		uint_32 EIP;
+		uint_32 EFLAGS;
+		uint_32 EAX;
+		uint_32 ECX;
+		uint_32 EDX;
+		uint_32 EBX;
+		uint_32 ESP;
+		uint_32 EBP;
+		uint_32 ESI;
+		uint_32 EDI;
+		word ES;
+		word Unused48;
+		word CS;
+		word Unused4C;
+		word SS;
+		word Unused50;
+		word DS;
+		word Unused54;
+		word FS;
+		word Unused58;
+		word GS;
+		word Unused5C;
+		word LDT;
+		word Unused60;
+		word T; //1-bit, upper 15 bits unused!
+		word IOMapBase;
+	};
+	byte data[108]; //All our data!
 } TSS386; //80386 32-Bit Task State Segment
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
 {
-	word BackLink; //Back Link to Previous TSS
-	word SP0;
-	word SS0;
-	word SP1;
-	word SS1;
-	word SP2;
-	word SS2;
-	word IP;
-	word FLAGS;
-	word AX;
-	word CX;
-	word DX;
-	word BX;
-	word SP;
-	word BP;
-	word SI;
-	word DI;
-	word ES;
-	word CS;
-	word SS;
-	word DS;
-	word LDT;
+	struct
+	{
+		word BackLink; //Back Link to Previous TSS
+		word SP0;
+		word SS0;
+		word SP1;
+		word SS1;
+		word SP2;
+		word SS2;
+		word IP;
+		word FLAGS;
+		word AX;
+		word CX;
+		word DX;
+		word BX;
+		word SP;
+		word BP;
+		word SI;
+		word DI;
+		word ES;
+		word CS;
+		word SS;
+		word DS;
+		word LDT;
+	};
+	byte data[44]; //All our data!
 } TSS286; //80286 32-Bit Task State Segment
 #include "headers/endpacked.h" //End of packed type!
 
@@ -523,67 +526,6 @@ typedef struct PACKED
 		uint_64 data; //48 bits long!
 	};
 } TR_PTR;
-#include "headers/endpacked.h" //End of packed type!
-
-//Different kinds of pointers!
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
-{
-	union
-	{
-		struct
-		{
-			uint_32 offset; //Default: 0
-			word segment; //Default: 0
-		};
-		unsigned char data[6]; //46-bits as bytes!
-	};
-} ptr48; //48-bit pointer Adress (32-bit mode)!
-#include "headers/endpacked.h" //End of packed type!
-
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
-{
-	union
-	{
-		struct
-		{
-			word offset; //Default: 0
-			word segment; //Default: 0
-		};
-		unsigned char data[4]; //32-bits as bytes!
-	};
-} ptr32; //32-bit pointer Adress (16-bit mode)!
-#include "headers/endpacked.h" //End of packed type!
-
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
-{
-	union
-	{
-		struct
-		{
-			word limit; //Limit!
-			unsigned int base; //Base!
-		};
-		unsigned char data[6]; //46-bit adress!
-	};
-} GDTR_PTR;
-#include "headers/endpacked.h" //End of packed type!
-
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
-{
-	union
-	{
-		struct
-		{
-			word limit;
-			uint_32 base;
-		};
-		unsigned char data[6]; //46-bit adress!
-	};
-} IDTR_PTR;
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
@@ -1123,7 +1065,7 @@ void CPU_exec(); //Run one CPU OPCode!
 
 
 word CPU_segment(byte defaultsegment); //Plain segment to use (Plain and overrides)!
-char * CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
+char *CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
 
 //PUSH and POP for CPU STACK!
 
