@@ -1232,8 +1232,8 @@ char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 
 void CPU_afterexec(); //Prototype for below!
 
-word CPU_exec_CS; //OPCode CS
-uint_32 CPU_exec_EIP; //OPCode EIP
+word CPU_exec_CS, CPU_debugger_CS; //OPCode CS
+uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 
 word CPU_exec_lastCS=0; //OPCode CS
 uint_32 CPU_exec_lastEIP=0; //OPCode EIP
@@ -1384,6 +1384,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 	}
+	
+	CPU_debugger_lastCS = CPU_exec_CS;
+	CPU_debugger_lastEIP = CPU_exec_lastEIP;
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
