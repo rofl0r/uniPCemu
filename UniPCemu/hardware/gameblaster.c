@@ -384,8 +384,10 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	generateSAA1099channelsample(chip,5,&output_l,&output_r); //Channel 5 sample!
 	generateSAA1099channelsample(chip,6,&output_l,&output_r); //Channel 6 sample!
 
+	/*
 	output_l <<= 1; //Multiply left output by 2 to get 16-bit samples!
 	output_r <<= 1; //Multiply right output by 2 to get 16-bit samples!
+	*/
 
 	//Finally, write the resultant samples to the result!
 	tickSAA1099noise(chip,0); //Tick first noise channel!
