@@ -74,7 +74,7 @@ void saveTSS16(TSS286 *TSS)
 	word *data16;
 	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	data16 = &TSS->IP; //Start with IP!
-	for (n=((7*4));n<sizeof(*TSS);n+=2) //Write our TSS 16-bit data!
+	for (n=((7*2));n<sizeof(*TSS);n+=2) //Write our TSS 16-bit data!
 	{
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
@@ -102,6 +102,9 @@ void saveTSS32(TSS386 *TSS)
 }
 
 byte enableMMUbuffer; //To buffer the MMU writes?
+
+extern word CPU_exec_CS; //Save for handling!
+extern uint_32 CPU_exec_EIP; //Save for handling!
 
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
@@ -168,7 +171,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		limit |= (SEGDESC_NONCALLGATE_LIMIT_HIGH(LOADEDDESCRIPTOR->desc) << 16); //High limit too!
 	}
 
-	if (limit < (uint_32)((EMULATED_CPU==CPU_80286)?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
+	if (limit < (uint_32)(TSSSize?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
 	{
 		CPU_TSSFault(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #TS!
 		return 1; //Error out!
@@ -416,6 +419,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		FLAGW_NT(1); //Set Nested Task flag of the leaving task!
 	}
 
+	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","Loading incoming TSS LDT %04X",LDTsegment);
@@ -433,15 +439,15 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Not present: we cannot reside in the LDT!
 	}
 
-	if ((word)(descriptor_index|0x7)>=((LDTsegment & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low|(SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])<<16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index|0x7)>CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
-	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into CS or SS?
+	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into LDTR? Also LDTR in LDT is invalid(not possible)!
 	{
-		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return 1; //Not present: limit exceeded!
 	}
 
