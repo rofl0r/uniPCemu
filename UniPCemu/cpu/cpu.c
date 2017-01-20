@@ -1385,8 +1385,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 	}
 	
-	CPU_debugger_lastCS = CPU_exec_CS;
-	CPU_debugger_lastEIP = CPU_exec_lastEIP;
+	//Save the starting point when debugging!
+	CPU_debugger_CS = CPU_exec_CS;
+	CPU_debugger_EIP = CPU_exec_lastEIP;
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
