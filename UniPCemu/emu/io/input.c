@@ -1167,7 +1167,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
 	memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
 
-	#ifdef ANDROID
+	#ifndef IS_PSP
 	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 'S'; //OSK Input mode!
 	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
 	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 3;
