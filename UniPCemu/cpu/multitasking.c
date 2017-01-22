@@ -574,20 +574,20 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 	if (TSSSize) //32-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 	else //16-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0); //Load reg!
+		segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 

@@ -422,9 +422,17 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
 
-	if (((segmentval&~3)==0) && (segment==CPU_SEGMENT_LDTR)) //NULL GDT segment in LDTR? We're valid!
+	if (((segmentval&~3)==0)) //NULL GDT segment?
 	{
-		goto validLDTR; //Skip all checks, and check out as valid! We're allowed on the LDTR only!
+		if (segment==CPU_SEGMENT_LDTR) //in LDTR? We're valid!
+		{
+			goto validLDTR; //Skip all checks, and check out as valid! We're allowed on the LDTR only!
+		}
+		else //Skip checks: we're invalid to check any further!
+		{
+			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			return NULL; //Error, by specified reason!			
+		}
 	}
 
 	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
