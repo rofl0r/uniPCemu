@@ -65,7 +65,7 @@ void loadTSS32(TSS386 *TSS)
 
 	data16 = &TSS->T; //Start of the last data!
 	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25*4), 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (26*4), 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25*4)+2, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 }
 
 void saveTSS16(TSS286 *TSS)
@@ -74,7 +74,7 @@ void saveTSS16(TSS286 *TSS)
 	word *data16;
 	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	data16 = &TSS->IP; //Start with IP!
-	for (n=((7*2));n<sizeof(*TSS);n+=2) //Write our TSS 16-bit data!
+	for (n=((7*2));n<(sizeof(*TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
@@ -88,13 +88,13 @@ void saveTSS32(TSS386 *TSS)
 	word *data16;
 	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	data32 = &TSS->EIP; //Start with EIP!
-	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data!
+	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data32); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data32; //Next data!
 	}
 	data16 = &TSS->ES; //Start with ES!
-	for (n=(((8+10)*4));n<((8+10+7)*4);n+=4) //Write our TSS 16-bit data!
+	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
