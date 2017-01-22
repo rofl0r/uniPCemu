@@ -272,31 +272,45 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index|0x7)>((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	byte isNULLdescriptor = 0;
+
+	if (((segmentval&~3)==0) && (segment==CPU_SEGMENT_LDTR)) //LDT loaded with the reserved GDT NULL descriptor?
 	{
-		return 0; //Not present: limit exceeded!
+		memset(&container->descdata,0,sizeof(container->descdata)); //Load an invalid LDTR, which is marked invalid!
+		isNULLdescriptor = 1; //Special reserved NULL descriptor loading valid!
 	}
+	else //Try to load a normal segment descriptor!
+	{
+		if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
+		{
+			return 0; //Abort: invalid LDTR to use!
+		}
+		if ((word)(descriptor_index|0x7)>((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+		{
+			return 0; //Not present: limit exceeded!
+		}
 	
-	if ((!getDescriptorIndex(descriptor_index)) && ((segment==CPU_SEGMENT_CS) || ((segment==CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL segment loaded into CS or SS?
-	{
-		return 0; //Not present: limit exceeded!	
-	}
+		if ((!getDescriptorIndex(descriptor_index)) && ((segment==CPU_SEGMENT_CS) || ((segment==CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL segment loaded into CS or SS?
+		{
+			return 0; //Not present: limit exceeded!	
+		}
 	
-	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
+		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
-	int i;
-	for (i=0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
-	{
-		container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
-	}
+		int i;
+		for (i=0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
+		{
+			container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+		}
 
-	container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
-	container->desc.base_low = DESC_16BITS(container->desc.base_low);
+		container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+		container->desc.base_low = DESC_16BITS(container->desc.base_low);
 
-	if (EMULATED_CPU == CPU_80286) //80286 has less options?
-	{
-		container->desc.base_high = 0; //No high byte is present!
-		container->desc.noncallgate_info &= ~0xF; //No high limit is present!
+		if (EMULATED_CPU == CPU_80286) //80286 has less options?
+		{
+			container->desc.base_high = 0; //No high byte is present!
+			container->desc.noncallgate_info &= ~0xF; //No high limit is present!
+		}
 	}
 
 	if (segment == CPU_SEGMENT_LDTR) //Loading a LDT with no LDT entry used?
@@ -305,7 +319,7 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		{
 			return 0; //Not present: limit exceeded!
 		}
-		if (GENERALSEGMENT_TYPE(container->desc) != AVL_SYSTEM_LDT) //We're not an LDT?
+		if ((GENERALSEGMENT_TYPE(container->desc) != AVL_SYSTEM_LDT) && (!isNULLdescriptor)) //We're not an LDT while not a NULL LDTR?
 		{
 			return 0; //Not present: limit exceeded!
 		}
@@ -330,6 +344,13 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
+
+	if ((segmentval&~3)==0) return; //Don't write the reserved NULL GDT entry, which isn't to be used!
+
+	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
+	{
+		return; //Abort!
+	}
 
 	if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
@@ -394,6 +415,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	byte is_gated = 0;
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
+
+	if (((segmentval&~3)==0) && (segment==CPU_SEGMENT_LDTR)) //NULL GDT segment in LDTR? We're valid!
+	{
+		goto validLDTR; //Skip all checks, and check out as valid! We're allowed on the LDTR only!
+	}
 
 	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
 	{
@@ -613,7 +639,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		return 0; //Not present: limit exceeded!	
 	}
 
-
+	validLDTR:
 	memcpy(dest,&LOADEDDESCRIPTOR,sizeof(LOADEDDESCRIPTOR)); //Give the loaded descriptor!
 
 	return dest; //Give the segment descriptor read from memory!
@@ -1065,34 +1091,51 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	byte isNULLdescriptor = 0;
+
+	if (((segmentval&~3)==0) && (segment==CPU_SEGMENT_LDTR)) //LDT loaded with the reserved GDT NULL descriptor?
 	{
-		return 0; //Not present: limit exceeded!
+		memset(&container->descdata,0,sizeof(container->descdata)); //Load an invalid LDTR, which is marked invalid!
+		isNULLdescriptor = 1; //Special reserved NULL descriptor loading valid!
 	}
-
-	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL GDT segment loaded into CS or SS?
+	else //Try to load a normal segment descriptor!
 	{
-		return 0; //Not present: limit exceeded!	
-	}
+		if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
+		{
+			return 0; //Abort: invalid LDTR to use!
+		}
 
-	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
+		if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+		{
+			return 0; //Not present: limit exceeded!
+		}
 
-	int i;
-	for (i = 0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
-	{
-		container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
-	}
+		if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL GDT segment loaded into CS or SS?
+		{
+			return 0; //Not present: limit exceeded!	
+		}
 
-	if (EMULATED_CPU == CPU_80286) //80286 has less options?
-	{
-		container->desc.base_high = 0; //No high byte is present!
-		container->desc.noncallgate_info &= ~0xF; //No high limit is present!
+		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
+
+		int i;
+		for (i = 0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
+		{
+			container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+		}
+
+		if (EMULATED_CPU == CPU_80286) //80286 has less options?
+		{
+			container->desc.base_high = 0; //No high byte is present!
+			container->desc.noncallgate_info &= ~0xF; //No high limit is present!
+		}
 	}
 
 	if ((segment == CPU_SEGMENT_CS) &&
-		(getLoadedTYPE(container) != 1) //Not an executable segment?
+		(
+			(getLoadedTYPE(container) != 1) //Not an executable segment?
+			|| (isNULLdescriptor) //NULL descriptor loaded? Invalid too!
 		)
-
+		)
 	{
 		return 0; //Not present: limit exceeded!	
 	}

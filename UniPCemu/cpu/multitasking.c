@@ -433,43 +433,44 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	descriptor_address = (LDTsegment & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid<<16))| CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high<<24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = (LDTsegment&~0x7); //The full index within the descriptor table!
 
-	if (LDTsegment & 4) //We cannot reside in the LDT!
+	if (!(descriptor_index&~3)) //NULL segment loaded into LDTR? Special case: no LDT available!
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: we cannot reside in the LDT!
+		memset(&LDTsegdesc.descdata,0,sizeof(LDTsegdesc.descdata)); //No descriptor available to use: mark as invalid!
 	}
-
-	if ((word)(descriptor_index|0x7)>CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
+	else //Valid LDT index?
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: limit exceeded!
-	}
+		if (LDTsegment & 4) //We cannot reside in the LDT!
+		{
+			CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return 1; //Not present: we cannot reside in the LDT!
+		}
 
-	if ((!descriptor_index) /*&& ((whatsegment == CPU_SEGMENT_CS) || (whatsegment == CPU_SEGMENT_SS))*/) //NULL segment loaded into LDTR? Also LDTR in LDT is invalid(not possible)!
-	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: limit exceeded!
-	}
+		if ((word)(descriptor_index|0x7)>CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
+		{
+			CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return 1; //Not present: limit exceeded!
+		}
 
-	descriptor_address += descriptor_index; //Make sure to index into the descriptor table!
+		descriptor_address += descriptor_index; //Make sure to index into the descriptor table!
 
-	int i;
-	for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);) //Process the descriptor data!
-	{
-		LDTsegdesc.descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
-	}
+		int i;
+		for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);) //Process the descriptor data!
+		{
+			LDTsegdesc.descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+		}
 
-	//Now the LDT entry is loaded for testing!
-	if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
-	{
-		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: not an IDT!	
-	}
+		//Now the LDT entry is loaded for testing!
+		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
+		{
+			THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return 1; //Not present: not an IDT!	
+		}
 
-	if (!GENERALSEGMENT_P(LDTsegdesc.desc)) //Not present?
-	{
-		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: not an IDT!	
+		if (!GENERALSEGMENT_P(LDTsegdesc.desc)) //Not present?
+		{
+			THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return 1; //Not present: not an IDT!	
+		}
 	}
 
 	if (debugger_logging()) //Are we logging?
