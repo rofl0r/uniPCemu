@@ -616,7 +616,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 {
 	uint_32 errorcode;
-	errorcode = (segmentval&0xFFFB)|(is_external&1)|(tbl<<1);
+	errorcode = (segmentval&0xFFF8)|(is_external&1)|(tbl<<1);
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","#TSS fault(%08X)!",errorcode);

@@ -249,17 +249,17 @@ int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 
 void THROWDESCGP(word segmentval, byte external, byte tbl)
 {
-	CPU_GP(1,(external&1)|(segmentval&(0xFFFB))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_GP(1,(external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCSP(word segmentval, byte external, byte tbl)
 {
-	CPU_StackFault((external&1)|(segmentval&(0xFFFB))|((tbl&0x3)<<1)); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_StackFault((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCNP(word segmentval, byte external, byte tbl)
 {
-	CPU_SegNotPresent((external&1)|(segmentval&(0xFFFB))|((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_SegNotPresent((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 //Another source: http://en.wikipedia.org/wiki/General_protection_fault
