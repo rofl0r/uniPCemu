@@ -405,6 +405,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 {
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 
+	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
+	{
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		return NULL; //We're an invalid TSS to execute!
+	}
+
 	if (!LOADDESCRIPTOR(segment,segmentval,&LOADEDDESCRIPTOR)) //Error loading current descriptor?
 	{
 		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
