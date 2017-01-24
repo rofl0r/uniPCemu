@@ -412,13 +412,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if (isJMPorCALL == 1) //JMP?
+	if (isJMPorCALL == 2) //CALL?
 	{
-		FLAGW_NT(0); //Clear Nested Task flag of the leaving task!
-	}
-	else if (isJMPorCALL == 2) //CALL?
-	{
-		FLAGW_NT(1); //Set Nested Task flag of the leaving task!
+		FLAGW_NT(1); //Set Nested Task flag of the new task!
 	}
 
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
