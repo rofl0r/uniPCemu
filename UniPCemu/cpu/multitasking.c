@@ -225,6 +225,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			TSS32.EIP = CPU[activeCPU].registers->EIP;
 			TSS32.SS = CPU[activeCPU].registers->SS;
 			TSS32.DS = CPU[activeCPU].registers->DS;
+			TSS32.ES = CPU[activeCPU].registers->ES;
 			TSS32.FS = CPU[activeCPU].registers->FS;
 			TSS32.GS = CPU[activeCPU].registers->GS;
 			TSS32.EFLAGS = CPU[activeCPU].registers->EFLAGS;
@@ -243,6 +244,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			TSS16.IP = CPU[activeCPU].registers->IP;
 			TSS16.SS = CPU[activeCPU].registers->SS;
 			TSS16.DS = CPU[activeCPU].registers->DS;
+			TSS16.ES = CPU[activeCPU].registers->ES;
 			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS;
 		}
 
