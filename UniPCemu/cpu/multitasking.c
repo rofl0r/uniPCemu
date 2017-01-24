@@ -313,43 +313,24 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		loadTSS16(&TSS16); //Load the TSS!
 	}
+	TSS_dirty = 0; //Not dirty!
 
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","Checking for backlink to TSS %04X",oldtask);
 	}
 
-	if (TSSSize) //32-bit TSS?
+	if ((isJMPorCALL == 2) && oldtask) //CALL?
 	{
-		if (isJMPorCALL == 2 && oldtask) //CALL?
+		if (TSSSize) //32-bit TSS?
 		{
 			TSS32.BackLink = oldtask; //Save the old task as a backlink in the new task!
 			TSS_dirty = 1; //We're dirty!
 		}
-	}
-	else //16-bit TSS?
-	{
-		if (isJMPorCALL == 2 && oldtask) //CALL?
+		else //16-bit TSS?
 		{
 			TSS16.BackLink = oldtask; //Save the old task as a backlink in the new task!
 			TSS_dirty = 1; //We're dirty!
-		}
-	}
-
-
-	if (TSS_dirty) //Destination TSS dirty?
-	{
-		if (debugger_logging()) //Are we logging?
-		{
-			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed.",CPU[activeCPU].registers->TR);
-		}
-		if (TSSSize) //32-bit TSS?
-		{
-			saveTSS32(&TSS32); //Save the TSS!
-		}
-		else //16-bit TSS?
-		{
-			saveTSS16(&TSS16); //Save the TSS!
 		}
 	}
 
@@ -412,9 +393,34 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if (isJMPorCALL == 2) //CALL?
+	if ((isJMPorCALL == 2) && oldtask) //CALL?
 	{
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
+		if (TSSSize) //32-bit TSS?
+		{
+			TSS32.EFLAGS = CPU[activeCPU].registers->EFLAGS; //Save the new flag!
+		}
+		else //16-bit TSS?
+		{
+			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS; //Save the new flag!
+		}
+		TSS_dirty = 1; //We're dirty!
+	}
+
+	if (TSS_dirty) //Destination TSS dirty?
+	{
+		if (debugger_logging()) //Are we logging?
+		{
+			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed.",CPU[activeCPU].registers->TR);
+		}
+		if (TSSSize) //32-bit TSS?
+		{
+			saveTSS32(&TSS32); //Save the TSS!
+		}
+		else //16-bit TSS?
+		{
+			saveTSS16(&TSS16); //Save the TSS!
+		}
 	}
 
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
