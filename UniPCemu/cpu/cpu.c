@@ -702,7 +702,7 @@ word CPU_readOPw() //Reads the operation (word) at CS:EIP
 {
 	INLINEREGISTER byte temp, temp2;
 	temp = CPU_readOP(); //Read OPcode!
-	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+	if (CPU[activeCPU].faultraised) return 0xFFFF; //Abort on fault!
 	temp2 = CPU_readOP(); //Read OPcode!
 	return LE_16BITS(temp|(temp2<<8)); //Give result!
 }
@@ -711,7 +711,7 @@ uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
 	INLINEREGISTER uint_32 result;
 	result = CPU_readOPw(); //Read OPcode!
-	if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+	if (CPU[activeCPU].faultraised) return 0xFFFFFFFF; //Abort on fault!
 	result |= CPU_readOPw()<<16; //Read OPcode!
 	return LE_32BITS(result); //Give result!
 }
