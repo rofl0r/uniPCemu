@@ -652,6 +652,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
 	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
 	CPU[activeCPU].is_reset = 1; //We're reset!
+	CPU[activeCPU].CPL = 0; //We're real mode, so CPL=0!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -1013,6 +1014,14 @@ void updateCPUmode() //Update the CPU mode!
 	mode = FLAG_V8; //VM86 mode?
 	mode <<= 1;
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
+	if ((CPUmode==CPU_MODE_REAL) && (modes[mode]==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
+	{
+		CPU[activeCPU].CPL = 0; //Start at CPL 0!
+	}
+	else if ((CPUmode!=CPU_MODE_REAL) && (modes[mode]==CPU_MODE_REAL)) //Switching from protected mode, back to real mode?
+	{
+		CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
+	}
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 }
 

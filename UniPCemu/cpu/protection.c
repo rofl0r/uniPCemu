@@ -403,6 +403,7 @@ result:
 
 SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word segmentval, byte isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
+	byte CPLReloaded = 0;
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 
 	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
@@ -593,6 +594,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
 			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc); //New privilege level!
+			CPLReloaded = 1; //We've reloaded CPL!
 		}
 	}
 
@@ -651,6 +653,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		)
 	{
 		return 0; //Not present: limit exceeded!	
+	}
+
+	if ((segment==CPU_SEGMENT_CS) && (CPLReloaded==0)) //We need to reload a new CPL?
+	{
+		CPU[activeCPU].CPL = (segmentval&3); //New privilege level!
 	}
 
 	validLDTR:

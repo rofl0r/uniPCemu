@@ -13,7 +13,7 @@ typedef struct
 	};
 } SEGDESCRIPTOR_TYPE;
 
-#define getCPL() GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])
+#define getCPL() CPU[activeCPU].CPL
 #define getRPL(segment) (segment&3)
 #define setRPL(segment,RPL) segment = ((segment&~3)|(RPL&3))
 #define getDescriptorIndex(segmentval) ((segmentval>>3)&0x1FFF)
