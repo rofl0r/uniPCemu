@@ -1788,19 +1788,19 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		case 2: //Load defaults?
 			BIOSMenu_LoadDefaults(); //Load BIOS defaults option!
 			BIOS_Changed = 1; //The BIOS has been changed!
-			reboot_needed = 2; //We need a reboot!
+			reboot_needed |= 2; //We need a reboot!
 			break;
 		case 3: //Restart emulator?
 			bootBIOS = 0; //Not a forced first run!
 			BIOS_Menu = -1; //Quit!
 			BIOS_SaveStat = 1; //Save the BIOS!
-			reboot_needed = 2; //We need a reboot!
+			reboot_needed |= 2; //We need a reboot!
 			break;
 		case 4: //Restart emulator and enter BIOS menu?
 			bootBIOS = 1; //Forced first run!
 			BIOS_Menu = -1; //Quit!
 			BIOS_SaveStat = 1; //Save the BIOS!
-			reboot_needed = 2; //We need a reboot!
+			reboot_needed |= 2; //We need a reboot!
 			break;
 		}
 		break;
@@ -2253,7 +2253,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
-						reboot_needed = 2; //We're in need of a reboot!
+						reboot_needed |= 2; //We're in need of a reboot!
 					}
 				}
 			}
@@ -2308,7 +2308,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
-						reboot_needed = 2; //We're in need of a reboot!
+						reboot_needed |= 2; //We're in need of a reboot!
 					}
 				}
 			}
@@ -2379,7 +2379,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
-						reboot_needed = 2; //We're in need of a reboot!
+						reboot_needed |= 2; //We're in need of a reboot!
 					}
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
@@ -2552,7 +2552,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 				{
 					BIOS_Changed = 1; //We've changed!
-					reboot_needed = 2; //We're in need of a reboot!
+					reboot_needed |= 2; //We're in need of a reboot!
 				}
 				EMU_locktext();
 				EMU_gotoxy(0, 6); //Next row!
@@ -3086,7 +3086,7 @@ void BIOS_ExecutionMode()
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.executionmode = file; //Select Debug Mode!
-			reboot_needed = EMU_RUNNING; //We need to reboot when running: our execution mode has been changed!
+			reboot_needed |= (EMU_RUNNING?1:0); //We need to reboot when running: our execution mode has been changed!
 		}
 		break;
 	}
@@ -3167,7 +3167,7 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	BIOS_Menu = 8; //Goto Advanced menu!
 	BIOS_Settings.memory = 0; //Reset the memory flag!
 	BIOS_Changed = 1; //We're changed!
-	reboot_needed = 2; //We need to reboot!
+	reboot_needed |= 2; //We need to reboot!
 	return; //Disable due to the fact that memory allocations aren't 100% OK atm.
 
 	force_memoryredetect = 1; //We're forcing memory redetect!
@@ -3178,7 +3178,7 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 8; //Goto Advanced menu!
-	reboot_needed = 2; //We need to reboot!
+	reboot_needed |= 2; //We need to reboot!
 }
 
 void BIOS_DirectPlotSetting()
@@ -3966,6 +3966,7 @@ void BIOS_VGAModeSetting()
 			if (isSVGA!=wasSVGA) //Switching to/from SVGA mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
+				reboot_needed |= 1; //Reboot needed to apply!
 			}
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.VGA_Mode = file; //Select VGA Mode setting!
@@ -5141,7 +5142,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	if ((BIOS_Settings.got_CMOS) || (memcmp(&BIOS_Settings.CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
 	{
 		BIOS_Changed = 1; //We've changed!
-		reboot_needed = 2; //We're needing a reboot!
+		reboot_needed |= 2; //We're needing a reboot!
 	}
 	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
 	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
@@ -5150,7 +5151,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
 	BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
 	BIOS_Changed = 1; //We've changed!
-	reboot_needed = 2; //We're needing a reboot!
+	reboot_needed |= 2; //We're needing a reboot!
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }
 
