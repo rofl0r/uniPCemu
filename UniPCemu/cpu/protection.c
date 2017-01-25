@@ -465,7 +465,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			return NULL; //Error, by specified reason!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
-		if ((GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc) & 0x1D) == AVL_SYSTEM_TASKGATE) //Task gate?
+		if (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc) == AVL_SYSTEM_TASKGATE) //Task gate?
 		{
 			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal!
 			{
@@ -512,7 +512,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		)
 		)
 	{
-		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //Not present: limit exceeded!	
 	}
 	
@@ -538,7 +538,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		&& (!((isJMPorCALL==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
 	{
-		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
@@ -546,7 +546,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		if (segmentval & 2) //LDT lookup set?
 		{
-			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //We're an invalid TSS to call!
 		}
 		//Handle the task switch normally! We're allowed to use the TSS!
@@ -556,11 +556,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else
 		{
-			THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -583,7 +583,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		{
 			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)<getCPL()) //Target DPL must be less-or-equal to the CPL.
 			{
-				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
 		}
@@ -591,7 +591,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		{
 			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Check for equal only when using Gate Descriptors?
 			{
-				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
 		}
@@ -1209,7 +1209,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	//Now, the (gate) descriptor to use is loaded!
 	switch (IDTENTRY_TYPE(idtentry)) //What type are we?
 	{
-	case IDTENTRY_32BIT_TASKGATE: //32-bit task gate?
+	case IDTENTRY_TASKGATE: //32-bit task gate?
 		desttask = idtentry.selector; //Read the destination task!
 		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
