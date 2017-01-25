@@ -266,7 +266,7 @@ typedef union PACKED
 //A segment descriptor
 
 //Full gate value
-#define IDTENTRY_32BIT_TASKGATE 0x5
+#define IDTENTRY_TASKGATE 0x5
 
 //Partial value for interrupt/trap gates!
 #define IDTENTRY_16BIT_INTERRUPTGATE 0x6
