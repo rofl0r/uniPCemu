@@ -407,11 +407,11 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
-		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 		if (debugger_logging()) //Are we logging?
 		{
-			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed.",CPU[activeCPU].registers->TR);
+			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).",CPU[activeCPU].registers->TR);
 		}
+		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 		if (TSSSize) //32-bit TSS?
 		{
 			saveTSS32(&TSS32); //Save the TSS!
