@@ -72,7 +72,6 @@ void saveTSS16(TSS286 *TSS)
 {
 	word n;
 	word *data16;
-	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	data16 = &TSS->IP; //Start with IP!
 	for (n=((7*2));n<(sizeof(*TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
@@ -86,7 +85,6 @@ void saveTSS32(TSS386 *TSS)
 	word n;
 	uint_32 *data32;
 	word *data16;
-	MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSS->BackLink); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	data32 = &TSS->EIP; //Start with EIP!
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
@@ -409,6 +407,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
+		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 		if (debugger_logging()) //Are we logging?
 		{
 			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed.",CPU[activeCPU].registers->TR);
