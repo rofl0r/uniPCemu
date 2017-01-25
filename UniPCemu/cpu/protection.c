@@ -403,8 +403,8 @@ result:
 
 SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word segmentval, byte isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
-	byte CPLReloaded = 0;
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
+	word originalval=segmentval; //Back-up of the original segment value!
 
 	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
@@ -581,7 +581,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		if (EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Conforming segment?
 		{
-			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)>getCPL()) //Target DPL must be less-or-equal to the CPL.
+			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)<getCPL()) //Target DPL must be less-or-equal to the CPL.
 			{
 				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
@@ -654,9 +654,9 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		return 0; //Not present: limit exceeded!	
 	}
 
-	if ((segment==CPU_SEGMENT_CS) && (CPLReloaded==0)) //We need to reload a new CPL?
+	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
 	{
-		CPU[activeCPU].CPL = (segmentval&3); //New privilege level!
+		CPU[activeCPU].CPL = MAX(getRPL(originalval),getCPL()); //New privilege level is the lowest of CPL and RPL!
 	}
 
 	validLDTR:
@@ -1216,7 +1216,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			THROWDESCGP(desttask,((errorcode!=-1)&&(errorcode&1)?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 			return 0; //Error, by specified reason!
 		}
-		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 0,1,errorcode)) //Execute a task switch to the new task!
+		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode)) //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!
 		{
 			if (errorcode!=-1) //Error code to be pushed on the stack?
 			{

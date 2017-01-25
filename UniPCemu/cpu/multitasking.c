@@ -423,6 +423,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 	}
 
+	updateCPUmode(); //Make sure the CPU mode is updated, according to the task!
+
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 
@@ -486,6 +488,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	//Now, load all normal registers in order, keeping aborts possible!
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!
+
+	//Set the default CPL!
+	CPU[activeCPU].CPL = (getcpumode()==CPU_MODE_8086)?3:((getcpumode()==CPU_MODE_REAL)?0:getRPL(TSSSize?TSS32.CS:TSS16.CS)); //Load default CPL, according to the mode!
 
 	//First, load CS!
 	if (debugger_logging()) //Are we logging?
@@ -571,6 +576,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		CPU[activeCPU].registers->SP = *SPPtr;
 	}
+
+	//Set the default CPL!
+	CPU[activeCPU].CPL = (getcpumode()==CPU_MODE_8086)?3:((getcpumode()==CPU_MODE_REAL)?0:GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS])); //Load default CPL to use from SS if needed!
 
 	if (debugger_logging()) //Are we logging?
 	{
