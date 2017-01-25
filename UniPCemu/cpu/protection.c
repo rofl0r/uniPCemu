@@ -594,8 +594,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
-			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc); //New privilege level!
-			CPLReloaded = 1; //We've reloaded CPL!
 		}
 	}
 
