@@ -521,10 +521,10 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,1,0,1,0,0,0x01 }, //89 MOV
 			{ 1,1,0,0,0,1,0,0x01 }, //8A MOV
 			{ 1,1,1,0,0,1,0,0x01 }, //8B MOV
-			{ 1,1,1,2,1,0,0,0x01 }, //8C MOV
+			{ 1,1,1,2,1,0,0,0x01 }, //8C MOV Ew,Sw
 			{ 1,1,1,0,0,0,0,0x03 }, //8D LEA
-			{ 1,1,1,2,0,0,0,0x01 }, //8E MOV
-			{ 1,1,1,0,1,0,0,0x00 }, //8F Undocumented GRP opcode POP
+			{ 1,1,1,2,0,0,0,0x01 }, //8E MOV Sw,Ew
+			{ 1,1,1,0,1,0,0,0x00 }, //8F Undocumented GRP opcode POP Ev
 			{ 1,0,0,0,0,0,0,0x00 }, //90 NOP
 			{ 1,0,0,0,0,0,0,0x00 }, //91 XCHG REG,AX
 			{ 1,0,0,0,0,0,0,0x00 }, //92 XCHG REG,AX
@@ -581,10 +581,10 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,1,0,0,0,0,0x00 }, //C5 LDS
 			{ 1,1,0,0,0,0,1,0x00 }, //C6 MOV Mem/reg,imm8
 			{ 1,1,1,0,0,0,2,0x00 }, //C7 MOV Mem/reg,imm16
-			{ 1,0,0,0,0,0,2,0x00 }, //C8 RETF imm16
-			{ 1,0,0,0,0,0,0,0x00 }, //C9 RETF
-			{ 1,0,0,0,0,0,2,0x00 }, //CA RET imm16
-			{ 1,0,0,0,0,0,0,0x00 }, //CB RET
+			{ 1,0,0,0,0,0,0,0x00 }, //C8 ENTER 186+
+			{ 1,0,0,0,0,0,0,0x00 }, //C9 LEAVE 186+
+			{ 1,0,0,0,0,0,2,0x00 }, //CA RETF imm16
+			{ 1,0,0,0,0,0,0,0x00 }, //CB RETF
 			{ 1,0,0,0,0,0,0,0x00 }, //CC INT3
 			{ 1,0,0,0,0,0,1,0x00 }, //CD INT
 			{ 1,0,0,0,0,0,0,0x00 }, //CE INTO
@@ -635,7 +635,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,0,0,0,0,0,0,0x00 }, //FB STI
 			{ 1,0,0,0,0,0,0,0x00 }, //FC CLD
 			{ 1,0,0,0,0,0,0,0x00 }, //FD STD
-			{ 1,1,0,0,1,0,0,0x00 }, //FE GRP4 Eb Case 0&1 read and write back. Case 7 takes immediate operands(Special callback instruction in this emulation only).
+			{ 1,1,0,0,1,0,0,0x00 }, //FE GRP4 Eb Case 0&1 read and write back. Others are invalid.
 			{ 1,1,1,0,1,0,0,0x00 } //FF GRP5 Various operations depending on REG.
 		}, //16-bit
 		{ //32-bit
@@ -839,8 +839,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,1,0,0,0,0,0x00 }, //C5 LDS
 			{ 1,1,0,0,0,0,1,0x00 }, //C6 MOV Mem/reg,imm8
 			{ 1,1,1,0,0,0,2,0x00 }, //C7 MOV Mem/reg,imm16
-			{ 1,0,0,0,0,0,2,0x00 }, //C8 RETF imm16
-			{ 1,0,0,0,0,0,0,0x00 }, //C9 RETF
+			{ 1,0,0,0,0,0,0,0x00 }, //C8 ENTER 186+ 8086 skips
+			{ 1,0,0,0,0,0,0,0x00 }, //C9 LEAVE 186+ 8086 skips
 			{ 1,0,0,0,0,0,2,0x00 }, //CA RET imm16
 			{ 1,0,0,0,0,0,0,0x00 }, //CB RET
 			{ 1,0,0,0,0,0,0,0x00 }, //CC INT3
@@ -1631,7 +1631,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,1,1,0,1,0,0,0x00 }, //D3 GRP2
 			{ 0,0,0,0,0,0,1,0x00 }, //D4 AAM
 			{ 0,0,0,0,0,0,1,0x00 }, //D5 AAD
-			{ 0,0,0,0,0,0,0,0x00 }, //D6 SALC
+			{ 1,0,0,0,0,0,0,0x00 }, //D6 SALC
 			{ 0,0,0,0,0,0,0,0x00 }, //D7 XLAT
 			{ 0,1,0,0,0,0,0,0x00 }, //D8 <COOP ESC>
 			{ 0,1,0,0,0,0,0,0x00 }, //D9 <COOP ESC>
@@ -1658,7 +1658,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //EE OUT DX,AL
 			{ 0,0,0,0,0,0,0,0x00 }, //EF OUT DX,AX
 			{ 0,0,0,0,0,0,0,0x00 }, //F0: LOCK prefix
-			{ 1,0,0,0,0,0,0,0x00 }, //F1: Undefined and reserved opcode. Doesn't generate exceptions!
+			{ 1,0,0,0,0,0,0,0x00 }, //F1: ICEBP!
 			{ 0,0,0,0,0,0,0,0x00 }, //F2 REPNZ prefix
 			{ 0,0,0,0,0,0,0,0x00 }, //F3 REPZ prefix
 			{ 0,0,0,0,0,0,0,0x00 }, //F4 HLT
@@ -2395,7 +2395,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,2,0,0,0,2,0x00 }, //C7 MOV Mem/reg,imm16
 			{ 0,0,0,0,0,0,8,0x00 }, //C8 186+ ENTER imm16,imm8
 			{ 0,0,0,0,0,0,0,0x00 }, //C9 186+ LEAVE
-			{ 1,0,0,0,0,0,3,0x00 }, //CA RETF imm32
+			{ 0,0,0,0,0,0,3,0x00 }, //CA RETF imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //CB RETF
 			{ 0,0,0,0,0,0,0,0x00 }, //CC INT3
 			{ 0,0,0,0,0,0,1,0x00 }, //CD INT

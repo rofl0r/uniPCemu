@@ -154,6 +154,12 @@ void CPU186_OP62()
 	modrm_debugger16(&params,0,1); //Debug the location!
 	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
 
+	if (modrm_isregister(params)) //ModR/M may only be referencing memory?
+	{
+		unkOP_186(); //Raise #UD!
+		return; //Abort!
+	}
+
 	word bound_min, bound_max;
 	word theval;
 	modrm_addoffset = 0; //No offset!
