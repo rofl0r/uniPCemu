@@ -320,11 +320,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldel
 
 	//Next, apply finish!
 	loopflags = (samplepos >= voice->endaddressoffset) || (play_counter<0); //Expired or not started yet?
-	if (loopflags) //Sound is finished?
-	{
-		//No sample!
-		return; //Done!
-	}
+	if (loopflags) goto finishedsample;
 
 	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
 	{
@@ -348,6 +344,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldel
 	}
 	else
 	{
+		finishedsample: //loopflags set?
 		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][0],0.0f); //Left channel output!
 		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][1],0.0f); //Right channel output!
 	}
