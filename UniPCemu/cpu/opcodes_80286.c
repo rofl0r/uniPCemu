@@ -628,7 +628,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0&CR0_PE); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
 	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
 	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
-	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.IP; //IP
+	CPU[activeCPU].registers->EIP = (uint_32)LOADALLDATA.fields.IP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDT; //LDT
 	CPU[activeCPU].registers->DS = DESC_16BITS(LOADALLDATA.fields.DS); //DS
 	CPU[activeCPU].registers->SS = DESC_16BITS(LOADALLDATA.fields.SS); //SS
