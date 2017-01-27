@@ -4,17 +4,25 @@
 #include "headers/support/signedness.h" //Sign conversion support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/ports.h" //I/O support!
+#include "headers/support/filters.h" //Filter support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
 
-float gameblaster_samplelength = 0.0f;
+float gameblaster_baselength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
-//Game blaster runs at 14MHz divided by 2 divided by 256 clocks!
-#define MHZ14_TICK 512
-#define __GAMEBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
-#define __GAMEBLASTER_SAMPLEBUFFERSIZE 2048
+//Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at!
+#define MHZ14_BASETICK 2
+//We render at ~44.1kHz!
+#define MHZ14_RENDERTICK 324
+
+//Base rate of the Game Blaster to run at!
+#define __GAMEBLASTER_BASERATE (MHZ14/MHZ14_BASETICK) 
+
+//Renderer defines to use!
+#define __GAMEBLASTER_SAMPLERATE (MHZ14/MHZ14_RENDERTICK)
+#define __GAMEBLASTER_SAMPLEBUFFERSIZE 4096
 #define __GAMEBLASTER_VOLUME 100.0f
 
 #define __GAMEBLASTER_AMPLIFIER (1.0/6.0)
@@ -73,6 +81,8 @@ struct
 	SOUNDDOUBLEBUFFER soundbuffer[2]; //Our two sound buffers for our two chips!
 	byte storelatch[2]; //Two store/latch buffers!
 	SAA1099 chips[2]; //The two chips for generating output!
+	HIGHLOWPASSFILTER filter[4]; //Filter for left and right channels, first the low-pass, then the high-pass!
+	uint_32 baseclock; //Base clock to render at(up to bus rate of 14.31818MHz)!
 } GAMEBLASTER; //Our game blaster information!
 
 float AMPLIFIER = 0.0; //The amplifier, amplifying samples to the full range!
@@ -271,12 +281,12 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	double dummy;
 
 	channel &= 7;
-	chip->channels[channel].freq = ((2*15625)<<chip->channels[channel].octave)/(511.0f-chip->channels[channel].frequency); //Calculate the current frequency to use!
+	chip->channels[channel].freq = (float)((double)((2*GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
 
 	chip->channels[channel].level = getSAA1099SquareWave(chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
 
 	//Now, tick the square wave generator!
-	chip->channels[channel].time += gameblaster_samplelength; //New position for the noise generator!
+	chip->channels[channel].time += gameblaster_baselength; //New position for the noise generator!
 
 	temp = chip->channels[channel].time*chip->channels[channel].freq; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
@@ -335,7 +345,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	chip->noise[channel].laststatus = noise_flipflop; //Save the last status!
 
 	//Now, tick the noise generator!
-	chip->noise[channel].time += gameblaster_samplelength; //New position for the noise generator!
+	chip->noise[channel].time += gameblaster_baselength; //New position for the noise generator!
 
 	if (chip->noise[channel].freq!=0.0) //Valid frequency?
 	{
@@ -346,11 +356,12 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	}
 }
 
+float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
+
 OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *rightsample) //Generate a sample on the requested chip!
 {
 	int_32 output_l, output_r;
 
-	const static float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
 	switch (chip->noise_params[0]) //What frequency to use?
 	{
 	default:
@@ -404,16 +415,19 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 }
 
 uint_32 gameblaster_soundtiming=0;
+uint_32 gameblaster_rendertiming=0;
+
 void updateGameBlaster(uint_32 MHZ14passed)
 {
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
-	//Adlib sound output
+	//Game Blaster sound output
 	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
-	if (gameblaster_soundtiming>=MHZ14_TICK)
+	if (gameblaster_soundtiming>=MHZ14_BASETICK)
 	{
-		for (;gameblaster_soundtiming>=MHZ14_TICK;)
+		for (;gameblaster_soundtiming>=MHZ14_BASETICK;)
 		{
 			sword leftsample[2], rightsample[2]; //Two stereo samples!
+			float leftsamplef[2], rightsamplef[2]; //Two stereo samples, floating point format!
 			//Generate the sample!
 
 			if (GAMEBLASTER.chips[0].all_ch_enable) //Sound generation of first chip?
@@ -434,10 +448,40 @@ void updateGameBlaster(uint_32 MHZ14passed)
 				leftsample[1] = rightsample[1] = 0; //No sample!
 			}
 
-			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(rightsample[0])<<16)|signed2unsigned16(leftsample[0])); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(rightsample[1])<<16)|signed2unsigned16(leftsample[1])); //Output the sample to the renderer!
-			gameblaster_soundtiming -= MHZ14_TICK; //Decrease timer to get time left!
+			gameblaster_soundtiming -= MHZ14_BASETICK; //Decrease timer to get time left!
+
+			//Convert to floating point to apply filters!
+			leftsamplef[0] = (float)leftsample[0];
+			rightsamplef[0] = (float)rightsample[0];
+			leftsamplef[1] = (float)leftsample[1];
+			rightsamplef[1] = (float)rightsample[1];
+			//Low-pass filters!
+			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass left!
+			//High-pass filters!
+			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter high-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter high-pass right!
+			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter high-pass right!
+			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter high-pass right!
+			//Move back to samples!
+			leftsample[0] = (sword)leftsamplef[0];
+			rightsample[0] = (sword)rightsamplef[0];
+			leftsample[1] = (sword)leftsamplef[1];
+			rightsample[1] = (sword)rightsamplef[1];
+
+			gameblaster_rendertiming += MHZ14_BASETICK; //Tick the base by our passed time!
+			if (gameblaster_rendertiming>=MHZ14_RENDERTICK) //To render a sample or more samples?
+			{
+				for (;gameblaster_rendertiming>=MHZ14_RENDERTICK;)
+				{
+					//Now push the samples to the output!
+					writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(rightsample[0])<<16)|signed2unsigned16(leftsample[0])); //Output the sample to the renderer!
+					writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(rightsample[1])<<16)|signed2unsigned16(leftsample[1])); //Output the sample to the renderer!
+					gameblaster_rendertiming -= MHZ14_RENDERTICK; //Tick the renderer by our passed time!
+				}
+			}
 		}
 	}
 }
@@ -592,7 +636,6 @@ void initGameBlaster(word baseaddr)
 				{
 					setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],__GAMEBLASTER_VOLUME);
 					GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
-					gameblaster_samplelength = 1.0f/(float)__GAMEBLASTER_SAMPLERATE; //The partial duration of a sample!
 				}
 			}
 		}
@@ -612,6 +655,22 @@ void initGameBlaster(word baseaddr)
 	register_PORTOUT(&outGameBlaster); //Output ports!
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
+	GAMEBLASTER.baseclock = (uint_32)__GAMEBLASTER_BASERATE; //We're currently clocking at the sample rate!
+	gameblaster_baselength = 1.0f/GAMEBLASTER.baseclock; //The partial duration of a sample to render, in base timings!
+	noise_frequencies[0] = (float)(GAMEBLASTER.baseclock/256.0 * 2);
+	noise_frequencies[1] = (float)(GAMEBLASTER.baseclock/512.0 * 2);
+	noise_frequencies[2] = (float)(GAMEBLASTER.baseclock/1024.0 * 2);
+
+	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
+	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
+	initSoundFilter(&GAMEBLASTER.filter[2],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
+	initSoundFilter(&GAMEBLASTER.filter[3],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
+	initSoundFilter(&GAMEBLASTER.filter[4],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
+	initSoundFilter(&GAMEBLASTER.filter[5],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
+	initSoundFilter(&GAMEBLASTER.filter[6],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
+	initSoundFilter(&GAMEBLASTER.filter[7],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
+
+	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
 }
 
 void doneGameBlaster()
