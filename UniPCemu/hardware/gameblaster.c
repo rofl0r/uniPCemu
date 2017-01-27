@@ -281,7 +281,7 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	double dummy;
 
 	channel &= 7;
-	chip->channels[channel].freq = (float)((double)((2*GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
 
 	chip->channels[channel].level = getSAA1099SquareWave(chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
 
@@ -657,9 +657,9 @@ void initGameBlaster(word baseaddr)
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)__GAMEBLASTER_BASERATE; //We're currently clocking at the sample rate!
 	gameblaster_baselength = 1.0f/GAMEBLASTER.baseclock; //The partial duration of a sample to render, in base timings!
-	noise_frequencies[0] = (float)(GAMEBLASTER.baseclock/256.0 * 2);
-	noise_frequencies[1] = (float)(GAMEBLASTER.baseclock/512.0 * 2);
-	noise_frequencies[2] = (float)(GAMEBLASTER.baseclock/1024.0 * 2);
+	noise_frequencies[0] = (float)(GAMEBLASTER.baseclock/256.0); //Previously x2
+	noise_frequencies[1] = (float)(GAMEBLASTER.baseclock/512.0); //Previously x2
+	noise_frequencies[2] = (float)(GAMEBLASTER.baseclock/1024.0); //Previously x2
 
 	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
