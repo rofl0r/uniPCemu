@@ -40,7 +40,7 @@ typedef struct
 	float time; //Time
 	float freq; //Frequency!
 	byte laststatus; //The last outputted status for detecting cycles!
-	byte level; //The level!
+	uint_32 level; //The level!
 } SAA1099_NOISE;
 
 typedef struct
@@ -326,7 +326,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	{
 		if (noise_flipflop != chip->noise[channel].laststatus) //Actually risen?
 		{
-			if (((chip->noise[channel].level & 0x4000) == 0) == ((chip->noise[channel].level & 0x0040) == 0))
+			if (((chip->noise[channel].level & 0x20000) == 0) == ((chip->noise[channel].level & 0x0400) == 0))
 				chip->noise[channel].level = (chip->noise[channel].level << 1) | 1;
 			else
 				chip->noise[channel].level <<= 1;
