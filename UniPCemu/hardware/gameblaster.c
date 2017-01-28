@@ -656,7 +656,7 @@ void initGameBlaster(word baseaddr)
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
-	gameblaster_baselength = 1.0f/(float)GAMEBLASTER.baseclock; //The partial duration of a sample to render, in base timings!
+	gameblaster_baselength = 1.0f/(float)GAMEBLASTER_BASERATE; //The partial duration of a sample to render, in base timings!
 	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/256.0);
 	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/512.0);
 	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/1024.0);
