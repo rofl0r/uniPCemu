@@ -13,8 +13,8 @@ float gameblaster_baselength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at!
-#define MHZ14_BASETICK 2
-//#define MHZ14_BASETICK 512
+//#define MHZ14_BASETICK 2
+#define MHZ14_BASETICK 512
 //We render at ~44.1kHz!
 #define MHZ14_RENDERTICK 324
 
@@ -656,7 +656,7 @@ void initGameBlaster(word baseaddr)
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
-	gameblaster_baselength = 1.0f/(float)GAMEBLASTER_BASERATE; //The partial duration of a sample to render, in base timings!
+	gameblaster_baselength = 1.0f/(float)__GAMEBLASTER_BASERATE; //The partial duration of a sample to render, in base timings!
 	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/256.0);
 	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/512.0);
 	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/1024.0);
