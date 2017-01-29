@@ -54,6 +54,12 @@ typedef struct
 
 typedef struct
 {
+	float lastsignalpoint; //All possible signal points for normal and noise channels!
+	float relativepoint; //To move the signal to the next point?
+} SAA1099_SQUAREWAVE;
+
+typedef struct
+{
 	//Basic storage!
 	byte regsel; //The selected register!
 	byte registers[0x20]; //All selectable registers!
@@ -69,10 +75,10 @@ typedef struct
 	byte all_ch_enable;
 	byte sync_state;
 	
-
 	//Information taken from the registers!
 	SAA1099_CHANNEL channels[8]; //Our channels!
 	SAA1099_NOISE noise[2]; //Noise generators!
+	SAA1099_SQUAREWAVE squarewave[10]; //Everything needed to generate a square wave!
 } SAA1099; //All data for one SAA-1099 chip!
 
 struct
@@ -180,6 +186,12 @@ OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
 	}
 }
 
+OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/frequency change!
+{
+	channel &= 7; //Safety on channel!
+	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+}
+
 OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 {
 	INLINEREGISTER byte reg;
@@ -205,13 +217,16 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 		case 0x0D: //Channel n frequency?
 			reg &= 7;
 			chip->channels[reg].frequency = value; //Set the frequency!
+			updateSAA1099frequency(chip,reg);
 			break;
 		case 0x10:
 		case 0x11:
 		case 0x12: //Channel n octave?
 			reg &= 3;
 			chip->channels[reg<<1].octave = (value&7);
+			updateSAA1099frequency(chip,(reg<<1));
 			chip->channels[(reg<<1)|1].octave = ((value>>4)&7);
+			updateSAA1099frequency(chip,((reg<<1)|1));
 			break;
 		case 0x14: //Channel n frequency enable?
 			chip->channels[0].frequency_enable = (value&1);
@@ -271,11 +286,29 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 	}
 }
 
-OPTINLINE byte getSAA1099SquareWave(float frequencytime)
+float y; //Unused temp data for modff
+OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel, float frequencytime)
 {
-	float x;
-	float t = modff(frequencytime, &x);
-	return (t>=0.5f)?1:0; //Give a square wave at the requested speed!
+	INLINEREGISTER float x;
+	if (frequencytime<chip->squarewave[channel].lastsignalpoint) //To reset the square wave to a new point?
+	{
+		chip->squarewave[channel].lastsignalpoint = frequencytime; //Last point!
+		chip->squarewave[channel].relativepoint = modff(frequencytime,&y); //Relative point to start at!
+		return !!(chip->squarewave[channel].relativepoint>=0.5f); //Square wave output, converted to 0/1!
+	}
+	//Normal running stream?
+	chip->squarewave[channel].relativepoint += frequencytime-chip->squarewave[channel].lastsignalpoint; //Add the difference to the relative point!
+	chip->squarewave[channel].lastsignalpoint = frequencytime; //Save the last position!
+	if (chip->squarewave[channel].relativepoint>=1.0f) //Wrap when needed!
+	{
+		x = chip->squarewave[channel].relativepoint; //Load for processing!
+		for (;x>=1.0f;) //To lower more?
+		{
+			x -= 1.0f; //Lower us when needed!
+		}
+		chip->squarewave[channel].relativepoint = x; //Store the wrapped value back!
+	}
+	return !!(chip->squarewave[channel].relativepoint>=0.5f); //Square wave output, converted to 0/1!
 }
 
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
@@ -284,9 +317,7 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	double dummy;
 
 	channel &= 7;
-	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
-
-	chip->channels[channel].level = getSAA1099SquareWave(chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
+	chip->channels[channel].level = getSAA1099SquareWave(chip,channel,chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
 
 	//Now, tick the square wave generator!
 	chip->channels[channel].time += gameblaster_baselength; //New position for the noise generator!
@@ -334,7 +365,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 
 	//Check the current noise generators and update them!
 	//Noise channel output!
-	noise_flipflop = getSAA1099SquareWave(chip->noise[channel].freq*chip->noise[channel].time); //Current flipflop output of the noise timer!
+	noise_flipflop = getSAA1099SquareWave(chip,channel|8,chip->noise[channel].freq*chip->noise[channel].time); //Current flipflop output of the noise timer!
 	if (noise_flipflop & (noise_flipflop ^ chip->noise[channel].laststatus)) //High and risen?
 	{
 		if (((chip->noise[channel].level & 0x20000) == 0) == ((chip->noise[channel].level & 0x0400) == 0))
@@ -458,13 +489,15 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			//Low-pass filters!
 			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
+			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
 			//High-pass filters!
-			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter high-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter high-pass right!
-			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter high-pass right!
-			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter high-pass right!
+			/*
+			applySoundFilter(&GAMEBLASTER.filter[4],&leftsamplef[0]); //Filter high-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[5],&leftsamplef[1]); //Filter high-pass left!
+			applySoundFilter(&GAMEBLASTER.filter[6],&rightsamplef[0]); //Filter high-pass right!
+			applySoundFilter(&GAMEBLASTER.filter[7],&rightsamplef[1]); //Filter high-pass right!
+			*/
 			//Move back to samples!
 			leftsample[0] = (sword)leftsamplef[0];
 			rightsample[0] = (sword)rightsamplef[0];
@@ -612,6 +645,7 @@ void GameBlaster_setVolume(float volume)
 
 void initGameBlaster(word baseaddr)
 {
+	byte channel;
 	if (__HW_DISABLED) return; //We're disabled!
 	memset(&GAMEBLASTER,0,sizeof(GAMEBLASTER)); //Full init!
 	GAMEBLASTER.baseaddr = baseaddr; //Base address of the Game Blaster!
@@ -669,6 +703,12 @@ void initGameBlaster(word baseaddr)
 	initSoundFilter(&GAMEBLASTER.filter[5],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
 	initSoundFilter(&GAMEBLASTER.filter[6],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
 	initSoundFilter(&GAMEBLASTER.filter[7],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
+
+	for (channel=0;channel<8;++channel) //Init all channels, when needed!
+	{
+		updateSAA1099frequency(&GAMEBLASTER.chips[0],channel); //Init frequency!
+		updateSAA1099frequency(&GAMEBLASTER.chips[1],channel); //Init frequency!
+	}
 
 	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
 }
