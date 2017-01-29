@@ -44,7 +44,7 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	}
 	else //Low-pass filter?
 	{
-		last_result = last_result + (filter->solid*(*currentsample-last_result));
+		last_result += (filter->solid*(*currentsample-last_result));
 	}
 	filter->sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
