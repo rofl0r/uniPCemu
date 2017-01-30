@@ -12,9 +12,9 @@
 float gameblaster_baselength = 0.0f;
 
 //Game Blaster sample rate and other audio defines!
-//Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at!
-//#define MHZ14_BASETICK 2
-#define MHZ14_BASETICK 512
+//Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
+#define MHZ14_BASETICK 4
+//#define MHZ14_BASETICK 256
 //We render at ~44.1kHz!
 #define MHZ14_RENDERTICK 324
 
@@ -41,12 +41,12 @@ typedef struct
 	float time; //Time
 	float freq; //Frequency!
 	byte level; //The level!
+	int_32 ampenv[8]; //All envelope outputs!
 } SAA1099_CHANNEL;
 
 typedef struct
 {
 	//Data required for simulating noise generators!
-	float time; //Time
 	float freq; //Frequency!
 	byte laststatus; //The last outputted status for detecting cycles!
 	uint_32 level; //The level!
@@ -54,8 +54,10 @@ typedef struct
 
 typedef struct
 {
-	float lastsignalpoint; //All possible signal points for normal and noise channels!
-	float relativepoint; //To move the signal to the next point?
+	float freq; //Currently used frequency!
+	uint_32 timepoint; //Point that overflows in time!
+	uint_32 timeout; //Half-wave timeout!
+	byte output; //Flipflop output!
 } SAA1099_SQUAREWAVE;
 
 typedef struct
@@ -137,9 +139,20 @@ OPTINLINE word calcAmplitude(byte amplitude)
 	return ((0x10000>>4)-1)*amplitude; //Simple calculation for our range!
 }
 
+OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
+{
+	chip->channels[channel].ampenv[4] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Load First envelope base vaue!
+	chip->channels[channel].ampenv[5] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Second envelope!
+	chip->channels[channel].ampenv[6] = chip->channels[channel].ampenv[4]>>1; //Noise left is half the volume!
+	chip->channels[channel].ampenv[7] = chip->channels[channel].ampenv[5]>>1; //Noise right is half the volume!
+	//No output affected when input is 0!
+}
+
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 {
+	INLINEREGISTER byte basechannel;
 	channel &= 1; //Only two channels available!
+	basechannel = channel*3; //Base channel!
 	if (chip->env_enable[channel]) //Envelope enabled and running?
 	{
 		byte step,mode,mask; //Temp data!
@@ -153,22 +166,25 @@ OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 		mask &= ~chip->env_bits[channel]; //Apply the bit resolution we use to mask bits off when needed!
 		
 		//Now, apply the current envelope!
-		chip->channels[channel*3].envelope[0] = chip->channels[(channel*3)+1].envelope[0] = chip->channels[(channel*3)+2].envelope[0] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
+		chip->channels[basechannel].envelope[0] = chip->channels[basechannel+1].envelope[0] = chip->channels[basechannel+2].envelope[0] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
 		if (chip->env_reverse_right[channel]) //Reverse right envelope?
 		{
-			chip->channels[channel*3].envelope[1] = chip->channels[(channel*3)+1].envelope[1] = chip->channels[(channel*3)+2].envelope[1] = ((0xF-SAAEnvelope(mode,step))&mask); //Apply the reversed envelope!
+			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = ((0xF-SAAEnvelope(mode,step))&mask); //Apply the reversed envelope!
 		}
 		else //Normal right envelope?
 		{
-			chip->channels[channel*3].envelope[1] = chip->channels[(channel*3)+1].envelope[1] = chip->channels[(channel*3)+2].envelope[1] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
+			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
 		}
 	}
 	else //Envelope mode off, set all envelope factors to 16!
 	{
-		chip->channels[(channel*3)+0].envelope[0] = chip->channels[(channel*3)+0].envelope[1] = 
-			chip->channels[(channel*3)+1].envelope[0] = chip->channels[(channel*3)+1].envelope[1] =
-			chip->channels[(channel*3)+2].envelope[0] = chip->channels[(channel*3)+2].envelope[1] = 0x10; //We're off!
+		chip->channels[basechannel].envelope[0] = chip->channels[basechannel].envelope[1] = 
+			chip->channels[basechannel+1].envelope[0] = chip->channels[basechannel+1].envelope[1] =
+			chip->channels[basechannel+2].envelope[0] = chip->channels[basechannel+2].envelope[1] = 0x10; //We're off!
 	}
+	updateAmpEnv(chip,basechannel); //Update the amplitude/envelope!
+	updateAmpEnv(chip,basechannel+1); //Update the amplitude/envelope!
+	updateAmpEnv(chip,basechannel+2); //Update the amplitude/envelope!
 }
 
 OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
@@ -186,10 +202,27 @@ OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
 	}
 }
 
+OPTINLINE void updateSAA1099RNGfrequency(SAA1099 *chip, byte channel)
+{
+	byte channel2=channel|8;
+	if (chip->noise[channel].freq!=chip->squarewave[channel2].freq) //Frequency changed?
+	{
+		chip->squarewave[channel2].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->noise[channel].freq)); //New timeout!
+		chip->squarewave[channel2].timepoint = 0; //Reset the timepoint!
+		chip->squarewave[channel2].freq = chip->noise[channel].freq; //We're updated!
+	}
+}
+
 OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/frequency change!
 {
 	channel &= 7; //Safety on channel!
 	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	if (chip->channels[channel].freq!=chip->squarewave[channel].freq) //Frequency changed?
+	{
+		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->channels[channel].freq)); //New timeout!
+		chip->squarewave[channel].timepoint = 0; //Reset!
+		chip->squarewave[channel].freq = chip->channels[channel].freq; //We're updated!
+	}
 }
 
 OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
@@ -208,6 +241,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			reg &= 7;
 			chip->channels[reg].amplitude[0] = calcAmplitude(value&0xF);
 			chip->channels[reg].amplitude[1] = calcAmplitude(value>>4);
+			updateAmpEnv(chip,reg); //Update amplitude/envelope!
 			break;
 		case 0x08:
 		case 0x09:
@@ -277,7 +311,8 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 				for (reg=0;reg<6;++reg)
 				{
 					chip->channels[reg].level = 0;
-					chip->channels[reg].time = 0.0;
+					chip->squarewave[reg].timepoint = 0;
+					chip->squarewave[reg].output = 0; //Reset wave output signal voltage?
 				}
 			}
 			break;
@@ -286,46 +321,26 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 	}
 }
 
-float y; //Unused temp data for modff
-OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel, float frequencytime)
+OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 {
-	INLINEREGISTER float x;
-	if (frequencytime<chip->squarewave[channel].lastsignalpoint) //To reset the square wave to a new point?
+	INLINEREGISTER byte result;
+	INLINEREGISTER uint_32 timepoint;
+	result = chip->squarewave[channel].output; //Save the current output to give!
+	timepoint = chip->squarewave[channel].timepoint; //Next timepoint!
+	++timepoint; //Next timepoint!
+	if (timepoint>=chip->squarewave[channel].timeout) //Timeout? Flip-flop!
 	{
-		chip->squarewave[channel].lastsignalpoint = frequencytime; //Last point!
-		chip->squarewave[channel].relativepoint = modff(frequencytime,&y); //Relative point to start at!
-		return !!(chip->squarewave[channel].relativepoint>=0.5f); //Square wave output, converted to 0/1!
+		chip->squarewave[channel].output = result^1; //Flip-flop to produce a square wave!
+		timepoint = 0; //Reset the timepoint!
 	}
-	//Normal running stream?
-	chip->squarewave[channel].relativepoint += frequencytime-chip->squarewave[channel].lastsignalpoint; //Add the difference to the relative point!
-	chip->squarewave[channel].lastsignalpoint = frequencytime; //Save the last position!
-	if (chip->squarewave[channel].relativepoint>=1.0f) //Wrap when needed!
-	{
-		x = chip->squarewave[channel].relativepoint; //Load for processing!
-		for (;x>=1.0f;) //To lower more?
-		{
-			x -= 1.0f; //Lower us when needed!
-		}
-		chip->squarewave[channel].relativepoint = x; //Store the wrapped value back!
-	}
-	return !!(chip->squarewave[channel].relativepoint>=0.5f); //Square wave output, converted to 0/1!
+	chip->squarewave[channel].timepoint = timepoint; //Save the resulting timepoint to advance the wave!
+	return result; //Give the resulting square wave!
 }
 
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
 {
-	float temp;
-	double dummy;
-
 	channel &= 7;
-	chip->channels[channel].level = getSAA1099SquareWave(chip,channel,chip->channels[channel].freq*chip->channels[channel].time); //Current flipflop output of the square wave generator!
-
-	//Now, tick the square wave generator!
-	chip->channels[channel].time += gameblaster_baselength; //New position for the noise generator!
-
-	temp = chip->channels[channel].time*chip->channels[channel].freq; //Calculate for overflow!
-	if (temp >= 1.0f) { //Overflow?
-		chip->channels[channel].time = (float)modf(temp, &dummy) / chip->channels[channel].freq;
-	}
+	chip->channels[channel].level = getSAA1099SquareWave(chip,channel); //Current flipflop output of the square wave generator!
 
 	//Tick the envelopes when needed!
 	if ((channel==1) && (chip->env_clock[0]==0))
@@ -333,39 +348,30 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	if ((channel==4) && (chip->env_clock[1]==0))
 		tickSAAEnvelope(chip,1);
 
-	//Check and apply for noise!
-	if (chip->channels[channel].noise_enable) //Use noise?
-	{
-		if (chip->noise[(channel / 3)&1].level & 1) //If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5)
-		{
-			//Substract to avoid overflows, half amplitude only
-			*output_l -= (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) / 16 / 2; //Noise left!
-			*output_r -= (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) / 16 / 2; //Noise right!
-		}
-	}
+	INLINEREGISTER byte enablenoise,enablefreq;
+	enablenoise = (chip->channels[channel].noise_enable & (chip->noise[(channel / 3)&1].level & 1))<<2; //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always!
+	enablefreq = (chip->channels[channel].frequency_enable & chip->channels[channel].level)<<2; //Level is always 1-bit!
+	//Check and apply for noise! Substract to avoid overflows, half amplitude only
+	enablenoise |= 2; //Left channel!
+	*output_l -= chip->channels[channel].ampenv[enablenoise]; //Noise left!
+	enablenoise |= 1; //Right channel!
+	*output_r -= chip->channels[channel].ampenv[enablenoise]; //Noise right!
 
 	//Check and apply the square wave!
-	if (chip->channels[channel].frequency_enable) //Square wave enabled?
-	{
-		if (chip->channels[channel].level & 1) //Channel level is high?
-		{
-			*output_l += chip->channels[channel].amplitude[0]*(chip->channels[channel].envelope[0]) / 16; //Square wave left!
-			*output_r += chip->channels[channel].amplitude[1]*(chip->channels[channel].envelope[1]) / 16; //Square wave left!
-		}
-	}
+	*output_l += chip->channels[channel].ampenv[enablefreq]; //Square wave left!
+	enablefreq |= 1; //Right channel!
+	*output_r += chip->channels[channel].ampenv[enablefreq]; //Square wave left!
 }
 
 OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 {
-	float temp;
-	double dummy;
 	byte noise_flipflop;
 
 	channel &= 1; //Only two channels!
 
 	//Check the current noise generators and update them!
 	//Noise channel output!
-	noise_flipflop = getSAA1099SquareWave(chip,channel|8,chip->noise[channel].freq*chip->noise[channel].time); //Current flipflop output of the noise timer!
+	noise_flipflop = getSAA1099SquareWave(chip,channel|8); //Current flipflop output of the noise timer!
 	if (noise_flipflop & (noise_flipflop ^ chip->noise[channel].laststatus)) //High and risen?
 	{
 		if (((chip->noise[channel].level & 0x20000) == 0) == ((chip->noise[channel].level & 0x0400) == 0))
@@ -374,17 +380,6 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 			chip->noise[channel].level <<= 1;
 	}
 	chip->noise[channel].laststatus = noise_flipflop; //Save the last status!
-
-	//Now, tick the noise generator!
-	chip->noise[channel].time += gameblaster_baselength; //New position for the noise generator!
-
-	if (chip->noise[channel].freq!=0.0) //Valid frequency?
-	{
-		temp = chip->noise[channel].time*chip->noise[channel].freq; //Calculate for overflow!
-		if (temp >= 1.0f) { //Overflow?
-			chip->noise[channel].time = (float)modf(temp, &dummy) / chip->noise[channel].freq;
-		}
-	}
 }
 
 float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
@@ -404,6 +399,7 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	case 3:
 		chip->noise[0].freq = chip->channels[0].freq; //Channel 0 frequency instead!
 	}
+	updateSAA1099RNGfrequency(chip,0);
 
 	switch (chip->noise_params[1]) //What frequency to use?
 	{
@@ -416,6 +412,7 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	case 3:
 		chip->noise[1].freq = chip->channels[3].freq; //Channel 3 frequency instead!
 	}
+	updateSAA1099RNGfrequency(chip,1);
 
 	output_l = output_r = 0; //Reset the output!
 	generateSAA1099channelsample(chip,0,&output_l,&output_r); //Channel 0 sample!
@@ -487,10 +484,12 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			leftsamplef[1] = (float)leftsample[1];
 			rightsamplef[1] = (float)rightsample[1];
 			//Low-pass filters!
+			/*
 			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
 			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
+			*/
 			//High-pass filters!
 			/*
 			applySoundFilter(&GAMEBLASTER.filter[4],&leftsamplef[0]); //Filter high-pass left!
@@ -709,6 +708,10 @@ void initGameBlaster(word baseaddr)
 		updateSAA1099frequency(&GAMEBLASTER.chips[0],channel); //Init frequency!
 		updateSAA1099frequency(&GAMEBLASTER.chips[1],channel); //Init frequency!
 	}
+	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],0); //Init frequency!
+	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
+	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],1); //Init frequency!
+	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],1); //Init frequency!
 
 	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
 }
