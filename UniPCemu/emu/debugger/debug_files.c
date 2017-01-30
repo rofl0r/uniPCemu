@@ -66,6 +66,7 @@ void DoDebugFiles() //Do the debug files!
 			refreshscreen(); //Update the screen now!
 			int verified = 0;
 			verified = runromverify(file_name,file_nameres); //Verified?
+			if (shuttingdown()) goto doshutdown;
 			if (verified)
 			{
 				GPU_EMU_printscreen(-1,-1," Verified.");
@@ -84,6 +85,7 @@ void DoDebugFiles() //Do the debug files!
 				dolog("ROM_log", "%s has gone wrong!", file_name);
 				unlock(LOCK_CPU); //Done with the CPU!
 				delay(5000000); //Wait a bit before closing!
+				if (shuttingdown()) goto doshutdown;
 				lock(LOCK_MAINTHREAD); //Lock the main thread!
 				initEMU(0); //Make sure we still exist when terinating us!
 				EMU_Shutdown(1); //Request shutdown!
@@ -93,15 +95,18 @@ void DoDebugFiles() //Do the debug files!
 			}
 			refreshscreen(); //Update the screen now!
 		} //Not a result file?
+		if (shuttingdown()) goto doshutdown;
 	}
 	while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
-	closedirlist(&dir); //Close the directory!
 
 	dolog("ROM_log","END FLAG_OF VERIFICATION PROCEDURE!"); //End!
-	unlock(LOCK_CPU); //Done with the CPU!
+
 	GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verification complete!");
 	refreshscreen(); //Update the screen now!
-	delay(5000000); //Wait a bit before closing!
+doshutdown:
+	closedirlist(&dir); //Close the directory!
+	unlock(LOCK_CPU); //Done with the CPU!
+	if (!shuttingdown()) delay(5000000); //Wait a bit before closing!
 	lock(LOCK_MAINTHREAD); //Lock the main thread!
 	initEMU(0); //Make sure we still exist when terinating us!
 	EMU_Shutdown(1); //Request shutdown!

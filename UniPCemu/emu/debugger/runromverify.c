@@ -142,6 +142,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		cpudebugger = needdebugger(); //Debugging?
 		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!
+		if (shuttingdown()) goto doshutdown;
 		if (useHWInterrupts) //HW interrupts enabled for this ROM?
 		{
 			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
@@ -174,6 +175,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	} //Main debug CPU loop!
 	LOG_MMU_WRITES = 0; //Disable logging!
 
+doshutdown:
 	if (CPU[activeCPU].halt) //HLT Received?
 	{
 		dolog("ROM_log","Emulator terminated OK."); //Log!
