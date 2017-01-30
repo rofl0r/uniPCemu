@@ -41,7 +41,7 @@ typedef struct
 	float time; //Time
 	float freq; //Frequency!
 	byte level; //The level!
-	int_32 ampenv[8]; //All envelope outputs!
+	int_32 ampenv[8]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output!
 } SAA1099_CHANNEL;
 
 typedef struct
@@ -141,11 +141,67 @@ OPTINLINE word calcAmplitude(byte amplitude)
 
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	chip->channels[channel].ampenv[4] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Load First envelope base vaue!
-	chip->channels[channel].ampenv[5] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Second envelope!
-	chip->channels[channel].ampenv[6] = chip->channels[channel].ampenv[4]>>1; //Noise left is half the volume!
-	chip->channels[channel].ampenv[7] = chip->channels[channel].ampenv[5]>>1; //Noise right is half the volume!
-	//No output affected when input is 0!
+	INLINEREGISTER byte input;
+	byte env[2];
+	env[0] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
+	env[1] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
+	//bit0=right channel
+	//bit1=square wave output
+	//bit2=noise output
+	//Original algorithm from Dosbox&MAME was:
+	/*
+	INLINEREGISTER int_32 output;
+	for (input=0;input<8;++input)
+	{
+		output = 0; //Init!
+		if ((input&4) && (chip->channels[channel].noise_enable)) //Noise on?
+		{
+			output -= env[input&1]>>1; //Half volume substracted!
+		}
+		if ((input&2) && (chip->channels[channel].frequency_enable)) //Frequency on?
+		{
+			output += env[input&1]; //Full volume added!
+		}
+		chip->channels[channel].ampenv[input] = output; //Give the output!
+	}
+	return;
+	*/
+
+	switch (chip->channels[channel].noise_enable|(chip->channels[channel].frequency_enable<<1)) //Noise/frequency mode?
+	{
+		case 0: //Both disabled?
+			memset(&chip->channels[channel].ampenv,0,sizeof(chip->channels[channel].ampenv)); //No output!
+			break;
+		case 1: //Noise only?
+			for (input=0;input<8;++input) //Check all inputs!
+			{
+				chip->channels[channel].ampenv[input] = ((input&4)>>2)*env[input&1]; //Noise at max volume!
+			}
+			break;
+		case 2: //Frequency only?
+			for (input=0;input<8;++input) //Check all inputs!
+			{
+				chip->channels[channel].ampenv[input] = ((input&2)>>1)*env[input&1]; //Noise at max volume!
+			}
+			break;
+		case 3: //Noise+Frequency?
+			for (input=0;input<8;++input) //Check all inputs!
+			{
+				if (input&2) //Tone high state?
+				{
+					chip->channels[channel].ampenv[input] = env[input&1]; //Noise at max volume!
+				}
+				else if ((input&4)==0) //Tone low and noise is low? Low at full amplitude!
+				{
+					chip->channels[channel].ampenv[input] = -env[input&1]; //Noise at max volume!
+				}
+				else //Tone low and noise is high? 50% amplitude!
+				{
+					chip->channels[channel].ampenv[input] = env[input&1]>>1; //Noise at half volume!
+				}
+			}
+			break;
+	}
 }
 
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
@@ -274,6 +330,13 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			chip->channels[4].frequency_enable = (value&1);
 			value >>= 1;
 			chip->channels[5].frequency_enable = (value&1);
+			//Update all environment variables!
+			updateAmpEnv(chip,0);
+			updateAmpEnv(chip,1);
+			updateAmpEnv(chip,2);
+			updateAmpEnv(chip,3);
+			updateAmpEnv(chip,4);
+			updateAmpEnv(chip,5);
 			break;
 		case 0x15: //Channel n noise enable?
 			reg = value; //Load for processing!
@@ -288,6 +351,13 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			chip->channels[4].noise_enable = (reg&1);
 			reg >>= 1;
 			chip->channels[5].noise_enable = (reg&1);
+			//Update all environment variables!
+			updateAmpEnv(chip,0);
+			updateAmpEnv(chip,1);
+			updateAmpEnv(chip,2);
+			updateAmpEnv(chip,3);
+			updateAmpEnv(chip,4);
+			updateAmpEnv(chip,5);
 			break;
 		case 0x16: //Noise generators parameters?
 			chip->noise_params[0] = (value&3);
@@ -348,19 +418,15 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	if ((channel==4) && (chip->env_clock[1]==0))
 		tickSAAEnvelope(chip,1);
 
-	INLINEREGISTER byte enablenoise,enablefreq;
-	enablenoise = (chip->channels[channel].noise_enable & (chip->noise[(channel / 3)&1].level & 1))<<2; //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always!
-	enablefreq = (chip->channels[channel].frequency_enable & chip->channels[channel].level)<<2; //Level is always 1-bit!
+	INLINEREGISTER byte output;
+	output = (chip->noise[(channel / 3)&1].level & 1); //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always!
+	output <<= 1; //Noise to bit 1!
+	output |= (chip->channels[channel].level); //Level is always 1-bit! Level to bit 1!
+	output <<= 1; //Both to bits 1&2 from bits 0&1!
 	//Check and apply for noise! Substract to avoid overflows, half amplitude only
-	enablenoise |= 2; //Left channel!
-	*output_l -= chip->channels[channel].ampenv[enablenoise]; //Noise left!
-	enablenoise |= 1; //Right channel!
-	*output_r -= chip->channels[channel].ampenv[enablenoise]; //Noise right!
-
-	//Check and apply the square wave!
-	*output_l += chip->channels[channel].ampenv[enablefreq]; //Square wave left!
-	enablefreq |= 1; //Right channel!
-	*output_r += chip->channels[channel].ampenv[enablefreq]; //Square wave left!
+	*output_l += chip->channels[channel].ampenv[output]; //Output left!
+	output |= 1; //Right channel!
+	*output_r += chip->channels[channel].ampenv[output]; //Output right!
 }
 
 OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
