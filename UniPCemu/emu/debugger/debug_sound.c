@@ -45,10 +45,13 @@ void dosoundtest()
 
 	BIOS_enableCursor(0); //Disable the cursor!
 	delay(1000000); //Wait 1 second!
+	if (shuttingdown()) goto doshutdown;
 
 	printmsg(0xF, "\r\nStarting sound test...\r\n");
 	delay(1000000);
+	if (shuttingdown()) goto doshutdown;
 	VGA_waitforVBlank(); //Wait 1 frame!
+	if (shuttingdown()) goto doshutdown;
 
 	#ifdef __DEBUG_SPEAKER
 	printmsg(0xF,"Debugging PC Speaker...\r\n");
@@ -56,16 +59,20 @@ void dosoundtest()
 	setPITFrequency(2,(word)(1190000.0f/100.0f)); //Low!
 	PORT_OUT_B(0x61,(PORT_IN_B(0x61)|3)); //Enable the second speaker!
 	delay(1000000);
+	if (shuttingdown()) goto doshutdown;
 	
 	setPITFrequency(2,(word)(1190000.0f/1000.0f)); //Medium!
 	delay(1000000);
+	if (shuttingdown()) goto doshutdown;
 
 	setPITFrequency(2,(word)(1190000.0f/2000.0f)); //High!
 	delay(1000000);
+	if (shuttingdown()) goto doshutdown;
 
 	PORT_OUT_B(0x61, (PORT_IN_B(0x61) & 0xFC)); //Disable the speaker!
 
 	delay(4000000); //Wait 1 second for the next test!
+	if (shuttingdown()) goto doshutdown;
 #endif
 
 #ifdef __DEBUG_ADLIB
@@ -73,9 +80,12 @@ void dosoundtest()
 	printmsg(0xF, "Detecting adlib...");
 	if (detectadlib()) //Detected?
 	{
+		if (shuttingdown()) goto doshutdown;
 		printmsg(0xF, "\r\nAdlib detected. Starting sound in 1 second...");
 		VGA_waitforVBlank(); //Wait 1 frame!
+		if (shuttingdown()) goto doshutdown;
 		VGA_waitforVBlank(); //Wait 1 frame!
+		if (shuttingdown()) goto doshutdown;
 		printmsg(0xF, "\r\nStarting adlib sound...");
 		if (playDROFile("music/ADLIB.DRO",1)) goto skipadlib;
 		adlibsetreg(0x20, 0x21); //Modulator multiple to 1!
@@ -92,6 +102,7 @@ void dosoundtest()
 		adlibsetreg(0xC0, 0x00); //No feedback and use FM synthesis!
 		printmsg(0xF, "\r\nYou should only be hearing the Adlib tone now.");
 		delay(5000000); //Basic tone!
+		if (shuttingdown()) goto doshutdown;
 		int i,j;
 		adlibsetreg(0x40, 0x10); //Modulator level about 40dB!
 		for (j = 0; j < 2; j++)
@@ -108,14 +119,17 @@ void dosoundtest()
 				}
 				adlibsetreg(0xC0, ((i << 1) | j));
 				delay(3000000); //Wait some time!
+				if (shuttingdown()) goto doshutdown;
 			}
 		}
 		printmsg(0xF, "\r\nResetting synthesis to fm synthesis without feedback...");
 		adlibsetreg(0xC0, 0); //Reset synthesis mode and disable feedback!
 		delay(10000000); //Adlib only!
+		if (shuttingdown()) goto doshutdown;
 		printmsg(0xF, "\r\nSilencing Adlib tone...");
 		adlibsetreg(0xB0,0x11); //Turn voice off!
 		delay(4000000); //Wait 1 second for the next test!
+		if (shuttingdown()) goto doshutdown;
 		printmsg(0xF, "\r\n"); //Finisher!
 	}
 	skipadlib: //Skip test playback?
@@ -124,8 +138,10 @@ void dosoundtest()
 	#ifdef __DEBUG_MIDI
 	printmsg(0xF,"Debugging MIDI...\r\n");
 	VGA_waitforVBlank(); //Wait for a VBlank, to allow the screen to be up to date!
+	if (shuttingdown()) goto doshutdown;
 	if (!playMIDIFile("music/MPU.MID",1)) //Play the default(we're showing info when playing MIDI files)?
 	{
+		if (shuttingdown()) goto doshutdown;
 		stopTimers(1); //Stop ALL timers for testing speed!
 		//dolog("SF2","Sounding test central C...");
 		//printmsg(0xF,"MIDI Piano central C...");
@@ -161,6 +177,7 @@ void dosoundtest()
 			PORT_OUT_B(0x330,0x40); //Enabled!
 			*/
 			delay(10000); //Wait 1 second!
+			if (shuttingdown()) goto doshutdown;
 			PORT_OUT_B(0x330, 0x80); //Note off!
 			PORT_OUT_B(0x330, notes[i]); //Previous note!
 			PORT_OUT_B(0x330, 100); //Normally off!
@@ -170,12 +187,13 @@ void dosoundtest()
 			PORT_OUT_B(0x330,0x00); //Disabled!
 			*/
 			delay(1000000); //Wait 1 second!
+			if (shuttingdown()) goto doshutdown;
 			++i; //Next note!
 		}
 		delay(10000000);
 	}
 	#endif
-	
+doshutdown:
 	exit(0); //Quit the application!
 	sleep(); //Wait forever!
 }
