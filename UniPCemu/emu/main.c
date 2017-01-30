@@ -359,7 +359,6 @@ int main(int argc, char * argv[])
 	initLocks(); //Initialise all locks before anything: we have the highest priority!
 
 	//First, allocate all locks needed!
-	getLock(LOCK_VGA);
 	getLock(LOCK_GPU);
 	getLock(LOCK_CPU);
 	getLock(LOCK_VIDEO);

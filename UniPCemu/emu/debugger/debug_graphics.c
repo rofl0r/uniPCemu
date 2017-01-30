@@ -304,6 +304,7 @@ extern byte VGA_LOGPRECALCS; //Log precalcs after this ammount of scanlines!
 
 void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 {
+	if (shuttingdown()) goto doshutdown;
 	enableKeyboard(0); //Allow to test the keyboard!
 	#ifdef DEBUG256
 	goto specialdebugging;
@@ -376,6 +377,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 
 		startTimers(0); //Start timers up!
 		delay(5000000); //Wait a bit!
+		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AH = 0x0B; //Advanced:!
 		CPU[activeCPU].registers->BH = 0x00; //Set background/border color!
@@ -384,6 +386,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
+		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = 0x01; //40x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
@@ -404,6 +407,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
+		if (shuttingdown()) goto doshutdown;
 
 		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
 		BIOS_int10();
@@ -413,6 +417,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 10 seconds!
+		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
@@ -431,6 +436,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
+		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
 		BIOS_int10(); //Reset!
@@ -448,6 +454,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(10000000); //Wait 1 seconds!
+		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = 0x02; //80x25 b/w!
 		BIOS_int10(); //Switch video modes!
@@ -473,6 +480,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		BIOS_int10(); //Show!
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
+	doshutdown:
+		return; //We're finished!
 	}
 
 	//Text modes work!

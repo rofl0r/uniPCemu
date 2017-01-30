@@ -381,8 +381,8 @@ typedef uint_32 (*VGA_addresswrapextensionhandler)(VGA_Type *VGA, uint_32 memory
 extern VGA_Type *ActiveVGA; //Currently active VGA chipset!
 #endif
 
-#define lockVGA() lock(LOCK_VGA)
-#define unlockVGA() unlock(LOCK_VGA)
+#define lockVGA() lock(LOCK_CPU)
+#define unlockVGA() unlock(LOCK_CPU)
 //Give the active VGA!
 #define getActiveVGA() ActiveVGA
 

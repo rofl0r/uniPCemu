@@ -702,7 +702,7 @@ void Tseng34k_init()
 			}
 
 			debugrow("VGA: Allocating VGA VRAM...");
-			Tseng_VRAM = (byte *)zalloc(Tseng4k_VRAMSize, "VGA_VRAM", getLock(LOCK_VGA)); //The VRAM allocated to 0!
+			Tseng_VRAM = (byte *)zalloc(Tseng4k_VRAMSize, "VGA_VRAM", getLock(LOCK_CPU)); //The VRAM allocated to 0!
 			if (Tseng_VRAM) //VRAM allocated?
 			{
 				freez((void **)&getActiveVGA()->VRAM,getActiveVGA()->VRAM_size,"VGA_VRAM"); //Release the original VGA VRAM!
@@ -1314,7 +1314,7 @@ void SVGA_Setup_TsengET4K(uint_32 VRAMSize) {
 		VGA_registerExtension(&Tseng34K_readIO, &Tseng34K_writeIO, &Tseng34k_init,&Tseng34k_calcPrecalcs,&Tseng34k_getClockRate,NULL);
 	else return; //Invalid SVGA!		
 	Tseng4k_VRAMSize = VRAMSize; //Set this VRAM size to use!
-	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET34K_DATA),"SVGA_ET34K_DATA",getLock(LOCK_VGA)); //Our SVGA extension data!
+	getActiveVGA()->SVGAExtension = zalloc(sizeof(SVGA_ET34K_DATA),"SVGA_ET34K_DATA",getLock(LOCK_CPU)); //Our SVGA extension data!
 	if (!getActiveVGA()->SVGAExtension)
 	{
 		raiseError("ET4000","Couldn't allocate SVGA card ET4000 data! Ran out of memory!");
