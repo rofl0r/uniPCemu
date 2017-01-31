@@ -14,7 +14,7 @@
 //#define TESTWAVE
 
 //Define to enable the Dosbox/MAME synthesis method, instead of the improved one(testing purposes only)!
-#define DOSBOXMAMESYNTH
+//#define DOSBOXMAMESYNTH
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
