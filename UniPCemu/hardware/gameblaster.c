@@ -10,7 +10,11 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
-float gameblaster_baselength = 0.0f;
+//Define to log a test wave of 440Hz!
+//#define TESTWAVE
+
+//Define to enable the Dosbox/MAME synthesis method, instead of the improved one(testing purposes only)!
+#define DOSBOXMAMESYNTH
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
@@ -43,6 +47,7 @@ typedef struct
 	float freq; //Frequency!
 	byte level; //The level!
 	int_32 ampenv[8]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output!
+	byte noisechannel; //Linked noise channel!
 } SAA1099_CHANNEL;
 
 typedef struct
@@ -142,7 +147,7 @@ OPTINLINE word calcAmplitude(byte amplitude)
 
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	INLINEREGISTER byte input;
+	byte input;
 	byte env[2];
 	env[0] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
 	env[1] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
@@ -150,8 +155,8 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	//bit1=square wave output
 	//bit2=noise output
 	//Original algorithm from Dosbox&MAME was:
-	/*
-	INLINEREGISTER int_32 output;
+#ifdef DOSBOXMAMESYNTH
+	int_32 output;
 	for (input=0;input<8;++input)
 	{
 		output = 0; //Init!
@@ -166,7 +171,7 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 		chip->channels[channel].ampenv[input] = output; //Give the output!
 	}
 	return;
-	*/
+#endif
 
 	switch (chip->channels[channel].noise_enable|(chip->channels[channel].frequency_enable<<1)) //Noise/frequency mode?
 	{
@@ -207,9 +212,10 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 {
-	INLINEREGISTER byte basechannel;
+	static byte basechannels[2] = {0,3}; //The base channels!
+	byte basechannel;
 	channel &= 1; //Only two channels available!
-	basechannel = channel*3; //Base channel!
+	basechannel = basechannels[channel]; //Base channel!
 	if (chip->env_enable[channel]) //Envelope enabled and running?
 	{
 		byte step,mode,mask; //Temp data!
@@ -394,8 +400,8 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 
 OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 {
-	INLINEREGISTER byte result;
-	INLINEREGISTER uint_32 timepoint;
+	byte result;
+	uint_32 timepoint;
 	result = chip->squarewave[channel].output; //Save the current output to give!
 	timepoint = chip->squarewave[channel].timepoint; //Next timepoint!
 	++timepoint; //Next timepoint!
@@ -410,6 +416,7 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
 {
+	byte output;
 	channel &= 7;
 	chip->channels[channel].level = getSAA1099SquareWave(chip,channel); //Current flipflop output of the square wave generator!
 
@@ -419,15 +426,13 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	if ((channel==4) && (chip->env_clock[1]==0))
 		tickSAAEnvelope(chip,1);
 
-	INLINEREGISTER byte output;
-	output = (chip->noise[(channel / 3)&1].level & 1); //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always!
+	output = (chip->noise[chip->channels[channel].noisechannel&1].level & 1); //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always!
 	output <<= 1; //Noise to bit 1!
 	output |= (chip->channels[channel].level); //Level is always 1-bit! Level to bit 1!
 	output <<= 1; //Both to bits 1&2 from bits 0&1!
 	//Check and apply for noise! Substract to avoid overflows, half amplitude only
 	*output_l += chip->channels[channel].ampenv[output]; //Output left!
-	output |= 1; //Right channel!
-	*output_r += chip->channels[channel].ampenv[output]; //Output right!
+	*output_r += chip->channels[channel].ampenv[output|1]; //Output right!
 }
 
 OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
@@ -489,11 +494,6 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	generateSAA1099channelsample(chip,4,&output_l,&output_r); //Channel 4 sample!
 	generateSAA1099channelsample(chip,5,&output_l,&output_r); //Channel 5 sample!
 	generateSAA1099channelsample(chip,6,&output_l,&output_r); //Channel 6 sample!
-
-	/*
-	output_l <<= 1; //Multiply left output by 2 to get 16-bit samples!
-	output_r <<= 1; //Multiply right output by 2 to get 16-bit samples!
-	*/
 
 	//Finally, write the resultant samples to the result!
 	tickSAA1099noise(chip,0); //Tick first noise channel!
@@ -756,7 +756,6 @@ void initGameBlaster(word baseaddr)
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
-	gameblaster_baselength = 1.0f/(float)__GAMEBLASTER_BASERATE; //The partial duration of a sample to render, in base timings!
 	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/256.0);
 	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/512.0);
 	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/1024.0);
@@ -775,7 +774,7 @@ void initGameBlaster(word baseaddr)
 	Test values!
 
 	*/
-	/*
+#ifdef TESTWAVE
 	//Load test wave information for generating samples!
 	GAMEBLASTER.chips[0].squarewave[7].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(440.0f*2.0f)); //New timeout!
 	GAMEBLASTER.chips[0].squarewave[7].timepoint = 0; //Reset!
@@ -795,13 +794,14 @@ void initGameBlaster(word baseaddr)
 	}
 
 	closeWAV(&testoutput); //Close the wave file!
-	*/
+#endif
 	//End test
 
 	for (channel=0;channel<8;++channel) //Init all channels, when needed!
 	{
 		updateSAA1099frequency(&GAMEBLASTER.chips[0],channel); //Init frequency!
 		updateSAA1099frequency(&GAMEBLASTER.chips[1],channel); //Init frequency!
+		GAMEBLASTER.chips[0].channels[channel].noisechannel = (channel/3); //Our noise channel linked to this channel!
 	}
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],0); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
