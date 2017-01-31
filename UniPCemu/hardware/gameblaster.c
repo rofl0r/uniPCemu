@@ -5,6 +5,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/ports.h" //I/O support!
 #include "headers/support/filters.h" //Filter support!
+#include "headers/support/wave.h" //WAV logging test support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -768,6 +769,34 @@ void initGameBlaster(word baseaddr)
 	initSoundFilter(&GAMEBLASTER.filter[5],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
 	initSoundFilter(&GAMEBLASTER.filter[6],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
 	initSoundFilter(&GAMEBLASTER.filter[7],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
+
+	/*
+
+	Test values!
+
+	*/
+	/*
+	//Load test wave information for generating samples!
+	GAMEBLASTER.chips[0].squarewave[7].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(440.0f*2.0f)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[7].timepoint = 0; //Reset!
+	GAMEBLASTER.chips[0].squarewave[7].freq = 440.0f; //We're updated!
+
+	WAVEFILE *testoutput=NULL;
+
+	uint_32 i;
+	byte signal;
+
+	testoutput = createWAV("captures/testgameblaster500hz.wav",1,(uint_32)__GAMEBLASTER_BASERATE); //Start the log!
+
+	for (i=0;i<__GAMEBLASTER_BASERATE;++i) //Generate one second of data!
+	{
+		signal = getSAA1099SquareWave(&GAMEBLASTER.chips[0],7);
+		writeWAVMonoSample(testoutput,signed2unsigned16(signal?(sword)32767:(sword)-32768)); //Write a sample!
+	}
+
+	closeWAV(&testoutput); //Close the wave file!
+	*/
+	//End test
 
 	for (channel=0;channel<8;++channel) //Init all channels, when needed!
 	{
