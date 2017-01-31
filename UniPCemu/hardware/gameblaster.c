@@ -786,7 +786,7 @@ void initGameBlaster(word baseaddr)
 	uint_32 i;
 	byte signal;
 
-	testoutput = createWAV("captures/testgameblaster500hz.wav",1,(uint_32)__GAMEBLASTER_BASERATE); //Start the log!
+	testoutput = createWAV("captures/testgameblaster440hz.wav",1,(uint_32)__GAMEBLASTER_BASERATE); //Start the log!
 
 	for (i=0;i<__GAMEBLASTER_BASERATE;++i) //Generate one second of data!
 	{
