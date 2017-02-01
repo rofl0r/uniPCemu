@@ -18,7 +18,8 @@
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
-#define MHZ14_BASETICK 4
+//Divided by 4 when rendering 16-level output using PWM equals 4 times lower frequency when using levels instead of PWM(16-level PCM). So divide 4 further by 16 for the used rate!
+#define MHZ14_BASETICK 64
 //#define MHZ14_BASETICK 256
 //We render at ~44.1kHz!
 #define MHZ14_RENDERTICK 324
@@ -592,12 +593,10 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			leftsamplef[1] = (float)leftsample[1];
 			rightsamplef[1] = (float)rightsample[1];
 			//Low-pass filters!
-			/*
 			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
 			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
-			*/
 			//High-pass filters!
 			/*
 			applySoundFilter(&GAMEBLASTER.filter[4],&leftsamplef[0]); //Filter high-pass left!
