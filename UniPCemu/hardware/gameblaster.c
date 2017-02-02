@@ -37,6 +37,9 @@
 
 #define __GAMEBLASTER_AMPLIFIER (1.0/6.0)
 
+//Set up a test wave, with special signal, when enabled?
+//#define DEBUG_OUTPUT 550.0f
+
 typedef struct
 {
 	byte frequency;
@@ -154,14 +157,14 @@ OPTINLINE word calcAmplitude(byte amplitude)
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	sword envdata[2];
+	int_32 envdata[2];
 #ifndef DOSBOXMAMESYNTH
 	int_32 statetranslation[8]; //All states we can use!
 	byte *AmpEnvPrecalc;
 	int_32 *output;
 #endif
-	envdata[0] = (sword)(chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
-	envdata[1] = (sword)(chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
+	envdata[0] = (int_32)(chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
+	envdata[1] = (int_32)(chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
@@ -190,10 +193,10 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 
 #else
 	//Generate our translation table first!
-	statetranslation[0] = -envdata[0]; //Left channel, negative!
-	statetranslation[1] = -envdata[1]; //Right channel, negative!
-	statetranslation[2] = envdata[0]; //Left channel, positive!
-	statetranslation[3] = envdata[1]; //Right channel, positive!
+	statetranslation[0] = (int_32)-envdata[0]; //Left channel, negative!
+	statetranslation[1] = (int_32)-envdata[1]; //Right channel, negative!
+	statetranslation[2] = (int_32)envdata[0]; //Left channel, positive!
+	statetranslation[3] = (int_32)envdata[1]; //Right channel, positive!
 	memset(&statetranslation[4],0,sizeof(statetranslation)>>1); //Rest: Either channel, ignore sign: we're silence! 
 
 	AmpEnvPrecalc = &AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)]; //First frequency/noise lookup entry!
@@ -889,6 +892,21 @@ void initGameBlaster(word baseaddr)
 	calcAmpEnvPrecalcs(); //Calculate the AmpEnv precalcs!
 
 	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
+
+	#ifdef DEBUG_OUTPUT
+	//manually set a test frequency!
+	GAMEBLASTER.chips[0].squarewave[0].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[0].timepoint = 0; //Reset!
+	GAMEBLASTER.chips[0].squarewave[0].freq = DEBUG_OUTPUT; //We're updated!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x00); //Channel 0 amplitude!
+	outGameBlaster(GAMEBLASTER.baseaddr,0xFF); //Maximum amplitude!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x18); //Channel 0-3 settings!
+	outGameBlaster(GAMEBLASTER.baseaddr,0x82); //Enable frequency output at full volume!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x1C); //General settings!
+	outGameBlaster(GAMEBLASTER.baseaddr,0x01); //Enable all outputs!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x14); //Channel n frequency!
+	outGameBlaster(GAMEBLASTER.baseaddr,0x01); //Enable frequency output!
+	#endif
 }
 
 void doneGameBlaster()
