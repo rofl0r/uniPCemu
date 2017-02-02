@@ -527,7 +527,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	//Check the current noise generators and update them!
 	//Noise channel output!
 	noise_flipflop = getSAA1099SquareWave(chip,channel|8); //Current flipflop output of the noise timer!
-	if (noise_flipflop & (noise_flipflop ^ chip->noise[channel].laststatus)) //High and risen?
+	if ((noise_flipflop ^ chip->noise[channel].laststatus)) //Half-wave switched state? We're to update the noise output!
 	{
 		if (((chip->noise[channel].level & 0x20000) == 0) == ((chip->noise[channel].level & 0x0400) == 0))
 			chip->noise[channel].level = (chip->noise[channel].level << 1) | 1;
