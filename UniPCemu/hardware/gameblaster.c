@@ -151,6 +151,7 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
 	INLINEREGISTER byte input, left;
 	byte env[2];
+	static byte flipflop[2] = {-1,1};
 	env[0] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
 	env[1] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
 	//bit0=right channel
@@ -186,14 +187,14 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 		case 1: //Noise only?
 			do //Check all inputs!
 			{
-				chip->channels[channel].ampenv[input] = ((input&4)>>2)*env[input&1]; //Noise at max volume!
+				chip->channels[channel].ampenv[input] = flipflop[((input&4)>>2)]*env[input&1]; //Noise at max volume!
 				++input;
 			} while (--left); //Next input!
 			break;
 		case 2: //Frequency only?
 			do //Check all inputs!
 			{
-				chip->channels[channel].ampenv[input] = ((input&2)>>1)*env[input&1]; //Noise at max volume!
+				chip->channels[channel].ampenv[input] = flipflip[((input&2)>>1)]*env[input&1]; //Noise at max volume!
 				++input;
 			} while (--left); //Next input!
 			break;
