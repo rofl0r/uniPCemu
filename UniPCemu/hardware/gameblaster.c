@@ -16,6 +16,9 @@
 //Define to enable the Dosbox/MAME synthesis method, instead of the improved one(testing purposes only)!
 //#define DOSBOXMAMESYNTH
 
+//To filter the output signal before resampling?
+//#define FILTER_SIGNAL
+
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
 //Divided by 4 when rendering 16-level output using PWM equals 4 times lower frequency when using levels instead of PWM(16-level PCM). So divide 4 further by 16 for the used rate!
@@ -629,6 +632,7 @@ void updateGameBlaster(uint_32 MHZ14passed)
 
 			gameblaster_soundtiming -= MHZ14_BASETICK; //Decrease timer to get time left!
 
+			#ifdef FILTER_SIGNAL
 			//Convert to floating point to apply filters!
 			leftsamplef[0] = (float)leftsample[0];
 			rightsamplef[0] = (float)rightsample[0];
@@ -639,18 +643,12 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
 			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
 			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
-			//High-pass filters!
-			/*
-			applySoundFilter(&GAMEBLASTER.filter[4],&leftsamplef[0]); //Filter high-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[5],&leftsamplef[1]); //Filter high-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[6],&rightsamplef[0]); //Filter high-pass right!
-			applySoundFilter(&GAMEBLASTER.filter[7],&rightsamplef[1]); //Filter high-pass right!
-			*/
 			//Move back to samples!
 			leftsample[0] = (sword)leftsamplef[0];
 			rightsample[0] = (sword)rightsamplef[0];
 			leftsample[1] = (sword)leftsamplef[1];
 			rightsample[1] = (sword)rightsamplef[1];
+			#endif
 		}
 	}
 
@@ -846,10 +844,6 @@ void initGameBlaster(word baseaddr)
 	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[2],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[3],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
-	initSoundFilter(&GAMEBLASTER.filter[4],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
-	initSoundFilter(&GAMEBLASTER.filter[5],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used left!
-	initSoundFilter(&GAMEBLASTER.filter[6],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
-	initSoundFilter(&GAMEBLASTER.filter[7],1,18.2f,(float)__GAMEBLASTER_BASERATE); //High-pass filter used right!
 
 	/*
 
