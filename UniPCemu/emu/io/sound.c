@@ -1273,6 +1273,10 @@ void doneAudio()
 	resetchannels(); //Stop all channels!
 	//dolog("soundservice","Resetting channels for terminating...");
 	//dolog("soundservice","Channels have been reset.");
+	if (recording) //Already recording?
+	{
+		sound_stopRecording(); //Stop recording first!
+	}
 	if (SDL_WasInit(SDL_INIT_AUDIO)) //Audio loaded?
 	{
 #ifdef SDL_QUEUEAUDIO
