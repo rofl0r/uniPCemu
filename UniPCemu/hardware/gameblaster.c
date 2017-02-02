@@ -17,7 +17,7 @@
 //#define DOSBOXMAMESYNTH
 
 //To filter the output signal before resampling?
-//#define FILTER_SIGNAL
+#define FILTER_SIGNAL
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
