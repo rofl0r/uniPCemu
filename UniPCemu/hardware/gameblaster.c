@@ -602,6 +602,9 @@ uint_32 gameblaster_rendertiming=0;
 void updateGameBlaster(uint_32 MHZ14passed)
 {
 	static sword leftsample[2]={0,0}, rightsample[2]={0,0}; //Two stereo samples!
+	#ifdef FILTER_SIGNAL
+	float leftsamplef[2], rightsamplef[2]; //Two stereo samples, floating point format!
+	#endif
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Game Blaster sound output
 	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
@@ -609,7 +612,6 @@ void updateGameBlaster(uint_32 MHZ14passed)
 	{
 		for (;gameblaster_soundtiming>=MHZ14_BASETICK;)
 		{
-			float leftsamplef[2], rightsamplef[2]; //Two stereo samples, floating point format!
 			//Generate the sample!
 
 			if (GAMEBLASTER.chips[0].all_ch_enable) //Sound generation of first chip?
