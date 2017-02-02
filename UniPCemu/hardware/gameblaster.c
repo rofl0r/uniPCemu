@@ -47,7 +47,8 @@ typedef struct
 	float time; //Time
 	float freq; //Frequency!
 	byte level; //The level!
-	int_32 ampenv[8]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output!
+	int_32 ampenv[16]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output!
+	byte toneonnoiseonflipflop; //Flipflop used for mode 3 rendering!
 	byte noisechannel; //Linked noise channel!
 } SAA1099_CHANNEL;
 
@@ -157,9 +158,10 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
+	//bit3=PWM period
 	//Original algorithm from Dosbox&MAME was:
 	input = 0; //First input!
-	left = 8; //How many left?
+	left = 0x10; //How many left?
 #ifdef DOSBOXMAMESYNTH
 	INLINEREGISTER int_32 output;
 	INLINEREGISTER byte curenv;
@@ -194,7 +196,7 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 		case 2: //Frequency only?
 			do //Check all inputs!
 			{
-				chip->channels[channel].ampenv[input] = flipflip[((input&2)>>1)]*env[input&1]; //Noise at max volume!
+				chip->channels[channel].ampenv[input] = flipflop[((input&2)>>1)]*env[input&1]; //Noise at max volume!
 				++input;
 			} while (--left); //Next input!
 			break;
@@ -209,9 +211,9 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 				{
 					chip->channels[channel].ampenv[input] = -env[input&1]; //Noise at max volume!
 				}
-				else //Tone low and noise is high? 50% amplitude!
+				else //Tone low? Then noise is high every other PWM period!
 				{
-					chip->channels[channel].ampenv[input] = env[input&1]>>1; //Noise at half volume!
+					chip->channels[channel].ampenv[input] = flipflop[((input&8)>>3)]*env[input&1]; //Noise at half volume!
 				}
 				++input;
 			} while (--left); //Next input!
@@ -470,7 +472,9 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	if ((channel==4) && (chip->env_clock[1]==0))
 		tickSAAEnvelope(chip,1);
 
-	output = chip->noise[chip->channels[channel].noisechannel].levelbit; //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always to bit 2!
+	output = chip->channels[channel].toneonnoiseonflipflop; //Tone/noise flipflop every other PWM sample!
+	chip->channels[channel].toneonnoiseonflipflop = (output^8); //Trigger the flipflop at PWM rate!
+	output |= chip->noise[chip->channels[channel].noisechannel].levelbit; //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always to bit 2!
 	output |= chip->channels[channel].level; //Level is always 1-bit! Level to bit 2!
 	//Check and apply for noise! Substract to avoid overflows, half amplitude only
 	*output_l += chip->channels[channel].ampenv[output]; //Output left!
