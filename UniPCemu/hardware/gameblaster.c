@@ -145,29 +145,34 @@ OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 
 OPTINLINE word calcAmplitude(byte amplitude)
 {
-	return ((0x10000>>4)-1)*amplitude; //Simple calculation for our range!
+	return (((amplitude<<15)-amplitude)>>4); //Simple calculation for our range!
 }
 
+byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	INLINEREGISTER byte input, left;
-	byte env[2];
-	static byte flipflop[2] = {-1,1};
-	env[0] = (chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
-	env[1] = (chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
+	sword envdata[2];
+#ifndef DOSBOXMAMESYNTH
+	int_32 statetranslation[8]; //All states we can use!
+	byte *AmpEnvPrecalc;
+	int_32 *output;
+#endif
+	envdata[0] = (sword)(chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
+	envdata[1] = (sword)(chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
 	//bit3=PWM period
 	//Original algorithm from Dosbox&MAME was:
-	input = 0; //First input!
-	left = 0x10; //How many left?
 #ifdef DOSBOXMAMESYNTH
+	INLINEREGISTER byte input;
+	INLINEREGISTER byte left = 0x10; //How many left?
 	INLINEREGISTER int_32 output;
 	INLINEREGISTER byte curenv;
+	input = 0; //First input!
 	do {
 		output = 0; //Init!
-		curenv = env[input&1]; //Current environment!
+		curenv = envdata[input&1]; //Current environment!
 		if ((input&4) && chip->channels[channel].noise_enable) //Noise on?
 		{
 			output -= (int_32)(curenv>>1); //Half volume substracted!
@@ -181,47 +186,79 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	} while (--left); //Next input!
 
 #else
-	switch (chip->channels[channel].noise_enable|(chip->channels[channel].frequency_enable<<1)) //Noise/frequency mode?
+	//Generate our translation table first!
+	statetranslation[0] = -envdata[0]; //Left channel, negative!
+	statetranslation[1] = -envdata[1]; //Right channel, negative!
+	statetranslation[2] = envdata[0]; //Left channel, positive!
+	statetranslation[3] = envdata[1]; //Right channel, positive!
+	memset(&statetranslation[4],0,sizeof(statetranslation)>>1); //Rest: Either channel, ignore sign: we're silence! 
+
+	AmpEnvPrecalc = &AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)]; //First frequency/noise lookup entry!
+	output = &chip->channels[channel].ampenv[0]; //Where to store the precalcs table!
+	//Generate all 16 state precalcs!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
+	*output = statetranslation[*AmpEnvPrecalc]; //Take the precalcs for this channel!
+#endif
+}
+
+OPTINLINE void calcAmpEnvPrecalcs()
+{
+	word i;
+	byte input;
+	for (i=0;i<NUMITEMS(AmpEnvPrecalcs);++i) //Process all precalcs!
 	{
-		case 0: //Both disabled?
-			memset(&chip->channels[channel].ampenv,0,sizeof(chip->channels[channel].ampenv)); //No output!
-			break;
-		case 1: //Noise only?
-			do //Check all inputs!
-			{
-				chip->channels[channel].ampenv[input] = flipflop[((input&4)>>2)]*env[input&1]; //Noise at max volume!
+		input = (i&0xF); //Input signal we're precalculating!
+		//Output:
+		//bit0=Right channel
+		//bit1=Sign. 0=Negative, 1=Positive
+		//bit2=Ignore sign. We're silence!
+		//Lookup table input:
+		//bits0-3=Index into the lookup table to generate!
+		//bit4=Noise enable
+		//bit5=Frequency enable
+		switch ((i>>4)&3) //Noise/frequency mode?
+		{
+			default: //Safety check
+			case 0: //Both disabled?
+				AmpEnvPrecalcs[i] = 4; //No output, channel and positive/negative doesn't matter!
+				break;
+			case 1: //Noise only?
+				AmpEnvPrecalcs[i] = ((input&4)>>1)|(input&1); //Noise at max volume!
 				++input;
-			} while (--left); //Next input!
-			break;
-		case 2: //Frequency only?
-			do //Check all inputs!
-			{
-				chip->channels[channel].ampenv[input] = flipflop[((input&2)>>1)]*env[input&1]; //Noise at max volume!
-				++input;
-			} while (--left); //Next input!
-			break;
-		case 3: //Noise+Frequency?
-			do //Check all inputs!
-			{
+				break;
+			case 2: //Frequency only?
+				AmpEnvPrecalcs[i] = (input&3); //Noise at max volume!
+				break;
+			case 3: //Noise+Frequency?
 				if (input&2) //Tone high state?
 				{
-					chip->channels[channel].ampenv[input] = env[input&1]; //Noise at max volume!
+					AmpEnvPrecalcs[i] = (input&1)|2; //Noise at max volume, positive!
 				}
 				else if ((input&4)==0) //Tone low and noise is low? Low at full amplitude!
 				{
-					chip->channels[channel].ampenv[input] = -env[input&1]; //Noise at max volume!
+					AmpEnvPrecalcs[i] = (input&1); //Noise at max volume, negative!
 				}
 				else //Tone low? Then noise is high every other PWM period!
 				{
-					chip->channels[channel].ampenv[input] = flipflop[((input&8)>>3)]*env[input&1]; //Noise at half volume!
+					AmpEnvPrecalcs[i] = ((input&8)>>2)|(input&1); //Noise at half volume!
 				}
-				++input;
-			} while (--left); //Next input!
-			break;
-		default: //Safety check
-			break; //Ignore!
+				break;
+		}
 	}
-#endif
 }
 
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
@@ -852,6 +889,8 @@ void initGameBlaster(word baseaddr)
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],1); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],1); //Init frequency!
+
+	calcAmpEnvPrecalcs(); //Calculate the AmpEnv precalcs!
 
 	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
 }
