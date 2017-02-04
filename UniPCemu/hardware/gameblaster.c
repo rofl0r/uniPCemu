@@ -501,7 +501,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	#ifdef PWM_OUTPUT
 	if (((PWM->output&4)==0) && (counter>=PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished!
 	{
-		PWM->flipflopoutput = PWM->output = 4; //We're finished! Return to 0V always for the rest of the period!
+		PWM->output = 4; //We're finished! Return to 0V always for the rest of the period!
 		PWM->result = 0; //No output anymore!
 	}
 	return PWM->result; //Give the proper output as a 16-bit sample!
