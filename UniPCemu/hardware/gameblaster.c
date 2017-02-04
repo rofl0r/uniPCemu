@@ -39,7 +39,7 @@
 //#define LOG_GAMEBLASTER
 
 //Enable generation of PWM signal instead of direct signal to generate samples?
-//#define PWM_OUTPUT
+#define PWM_OUTPUT
 
 //Set up a test wave, with special signal, when enabled?
 //#define DEBUG_OUTPUT 550.0f
@@ -526,7 +526,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	#ifdef PWM_OUTPUT
 	if ((chip->channels[channel].PWMOutput[output].output&4)==0) //Not zeroed always? We're a running channel!
 	{
-		if (counter>chip->channels[channel].PWMOutput[output].Amplitude) //Finished PWM period to use?
+		if (counter>=chip->channels[channel].PWMOutput[output].Amplitude) //Finished PWM period to use?
 		{
 			chip->channels[channel].PWMOutput[output].flipflopoutput = 2; //We're finished! Return to 0V!
 		}
