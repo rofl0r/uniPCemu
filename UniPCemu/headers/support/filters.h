@@ -21,6 +21,8 @@ typedef struct
 //Global high and low pass filters support!
 void initSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate); //Initialize the filter!
 void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate); //Update the filter information/type!
+void applySoundHighPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample); //Apply the filter to a sample stream!
+void applySoundLowPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample); //Apply the filter to a sample stream!
 void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample); //Apply the filter to a sample stream!
 
 #endif

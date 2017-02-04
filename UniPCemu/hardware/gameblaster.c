@@ -652,10 +652,10 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			leftsamplef[1] = (float)leftsample[1];
 			rightsamplef[1] = (float)rightsample[1];
 			//Low-pass filters!
-			applySoundFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
-			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
-			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
+			applySoundLowPassFilter(&GAMEBLASTER.filter[0],&leftsamplef[0]); //Filter low-pass left!
+			applySoundLowPassFilter(&GAMEBLASTER.filter[1],&leftsamplef[1]); //Filter low-pass left!
+			applySoundLowPassFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
+			applySoundLowPassFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
 			//Move back to samples!
 			leftsample[0] = (int_32)leftsamplef[0];
 			rightsample[0] = (int_32)rightsamplef[0];

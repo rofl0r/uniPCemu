@@ -5,6 +5,7 @@ void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_
 	filter->isHighPass = ishighpass; //Highpass filter?
 	if (filter->isInit || (filter->cutoff_freq!=cutoff_freq) || (filter->samplerate!=samplerate) || (ishighpass!=filter->isHighPass)) //We're to update?
 	{
+		if ((ishighpass!=filter->isHighPass) && (filter->isInit==0) return; //Don't allow changing filter types of running channels!
 		if (ishighpass) //High-pass filter?
 		{
 			float RC = (1.0f / (cutoff_freq * (2.0f * (float)PI))); //RC is used multiple times, calculate once!
@@ -46,6 +47,36 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	{
 		last_result += (filter->alpha*(*currentsample-last_result));
 	}
+	filter->sound_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = filter->sound_last_result = last_result; //Give the new result!
+}
+
+void applySoundHighPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
+{
+	INLINEREGISTER float last_result;
+	if (filter->isFirstSample) //No last? Only executed once when starting playback!
+	{
+		filter->sound_last_result = filter->sound_last_sample = *currentsample; //Save the current sample!
+		filter->isFirstSample = 0; //Not the first sample anymore!
+		return; //Abort: don't filter the first sample!
+	}
+	last_result = filter->sound_last_result; //Load the last result to process!
+	last_result = filter->alpha * (last_result + *currentsample - filter->sound_last_sample);
+	filter->sound_last_sample = *currentsample; //The last sample that was processed!
+	*currentsample = filter->sound_last_result = last_result; //Give the new result!
+}
+
+void applySoundLowPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
+{
+	INLINEREGISTER float last_result;
+	if (filter->isFirstSample) //No last? Only executed once when starting playback!
+	{
+		filter->sound_last_result = filter->sound_last_sample = *currentsample; //Save the current sample!
+		filter->isFirstSample = 0; //Not the first sample anymore!
+		return; //Abort: don't filter the first sample!
+	}
+	last_result = filter->sound_last_result; //Load the last result to process!
+	last_result += (filter->alpha*(*currentsample-last_result));
 	filter->sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
 }
