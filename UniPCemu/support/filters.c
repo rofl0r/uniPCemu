@@ -2,10 +2,9 @@
 
 void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate)
 {
-	filter->isHighPass = ishighpass; //Highpass filter?
 	if (filter->isInit || (filter->cutoff_freq!=cutoff_freq) || (filter->samplerate!=samplerate) || (ishighpass!=filter->isHighPass)) //We're to update?
 	{
-		if ((ishighpass!=filter->isHighPass) && (filter->isInit==0) return; //Don't allow changing filter types of running channels!
+		if ((ishighpass!=filter->isHighPass) && (filter->isInit==0)) return; //Don't allow changing filter types of running channels!
 		if (ishighpass) //High-pass filter?
 		{
 			float RC = (1.0f / (cutoff_freq * (2.0f * (float)PI))); //RC is used multiple times, calculate once!
