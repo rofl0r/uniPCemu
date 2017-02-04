@@ -475,8 +475,8 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	#else
 	static int_32 outputs[5] = {-1,1,0,0,0}; //Output, if any!
 	#endif
-	INLINEREGISTER byte counter;
-	INLINEREGISTER PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
+	byte counter;
+	PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
 	counter = PWM->PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	if (counter==0) //Timeout? Load new information and start the next PWM sample!
