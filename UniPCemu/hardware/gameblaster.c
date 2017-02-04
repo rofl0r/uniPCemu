@@ -176,42 +176,14 @@ int_32 amplitudes[0x10]; //All possible amplitudes!
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	byte statetranslation[8]; //All states we can use!
-	byte *AmpEnvPrecalc;
-	byte *output;
-
 	chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
 	chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
 	//bit3=PWM period
-	//Generate our translation table first! Bit0=Right channel, Bit1=Positive output, Bit 2=Zero output(overrides bit 1)!
-	statetranslation[0] = 0; //Left channel, negative!
-	statetranslation[1] = 1; //Right channel, negative!
-	statetranslation[2] = 2; //Left channel, positive!
-	statetranslation[3] = 3; //Right channel, positive!
-	memset(&statetranslation[4],4,sizeof(statetranslation)>>1); //Rest: Either channel, ignore sign: we're silence! 
-
-	AmpEnvPrecalc = &AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)]; //First frequency/noise lookup entry!
-	output = &chip->channels[channel].ampenv[0]; //Where to store the precalcs table!
 	//Generate all 16 state precalcs!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
-	*output = statetranslation[*AmpEnvPrecalc]; //Take the precalcs for this channel!
+	memcpy(&chip->channels[channel].ampenv[0],&AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)],(sizeof(AmpEnvPrecalcs[0])<<4)); //Copy
 }
 
 OPTINLINE void calcAmpEnvPrecalcs()
