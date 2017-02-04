@@ -35,6 +35,12 @@
 
 #define __GAMEBLASTER_AMPLIFIER (1.0/6.0)
 
+//Log the rendered Game Blaster raw output stream?
+//#define LOG_GAMEBLASTER
+
+//Enable generation of PWM signal instead of direct signal to generate samples?
+//#define PWM_OUTPUT
+
 //Set up a test wave, with special signal, when enabled?
 //#define DEBUG_OUTPUT 550.0f
 
@@ -119,6 +125,8 @@ struct
 
 float AMPLIFIER = 0.0; //The amplifier, amplifying samples to the full range!
 
+WAVEFILE *GAMEBLASTER_LOG = NULL; //Logging the Game Blaster output?
+
 OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 {
 	switch (waveform&7) //What waveform?
@@ -161,6 +169,8 @@ OPTINLINE word calcAmplitude(byte amplitude)
 {
 	return (((amplitude<<15)-amplitude)>>4); //Simple calculation for our range!
 }
+
+int_32 amplitudes[0x10]; //All possible amplitudes!
 
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
@@ -487,7 +497,11 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 
 OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 {
+	#ifdef PWM_OUTPUT
 	static int_32 outputs[4] = {-SHRT_MAX,SHRT_MAX,0,0}; //Output, if any!
+	#else
+	static int_32 outputs[4] = {-1,1,0,0}; //Output, if any!
+	#endif
 	byte counter;
 	counter = chip->channels[channel].PWMOutput[output&1].PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
@@ -509,6 +523,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	{
 		output &= 1; //We're only interested in the channel from now on!
 	}
+	#ifdef PWM_OUTPUT
 	if ((chip->channels[channel].PWMOutput[output].output&4)==0) //Not zeroed always? We're a running channel!
 	{
 		if (counter>chip->channels[channel].PWMOutput[output].Amplitude) //Finished PWM period to use?
@@ -517,6 +532,9 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		}
 	}
 	return outputs[chip->channels[channel].PWMOutput[output].flipflopoutput]; //Give the proper output as a 16-bit sample!
+	#else
+	return outputs[chip->channels[channel].PWMOutput[output].flipflopoutput]*(sword)amplitudes[chip->channels[channel].PWMAmplitude[output]]; //Give the proper output as a simple pre-defined 16-bit sample!
+	#endif
 }
 
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
@@ -561,7 +579,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 
 float noise_frequencies[3] = {31250.0f*2.0f,15625.0f*2.0f,7812.0f*2.0f}; //Normal frequencies!
 
-OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *rightsample) //Generate a sample on the requested chip!
+OPTINLINE void generateSAA1099sample(SAA1099 *chip, int_32 *leftsample, int_32 *rightsample) //Generate a sample on the requested chip!
 {
 	int_32 output_l, output_r;
 
@@ -604,14 +622,8 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, sword *leftsample, sword *ri
 	tickSAA1099noise(chip,0); //Tick first noise channel!
 	tickSAA1099noise(chip,1); //Tick second noise channel!
 
-	output_l = (int_32)(((float)output_l)*AMPLIFIER); //Left channel output!
-	output_r = (int_32)(((float)output_r)*AMPLIFIER); //Right channel output!
-
-	output_l = LIMITRANGE(output_l, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
-	output_r = LIMITRANGE(output_r, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
-
-	*leftsample = (sword)output_l; //Left sample result!
-	*rightsample = (sword)output_r; //Right sample result!
+	*leftsample = output_l; //Left sample result!
+	*rightsample = output_r; //Right sample result!
 }
 
 uint_32 gameblaster_soundtiming=0;
@@ -619,7 +631,7 @@ uint_32 gameblaster_rendertiming=0;
 
 void updateGameBlaster(uint_32 MHZ14passed)
 {
-	static sword leftsample[2]={0,0}, rightsample[2]={0,0}; //Two stereo samples!
+	static int_32 leftsample[2]={0,0}, rightsample[2]={0,0}; //Two stereo samples!
 	#ifdef FILTER_SIGNAL
 	float leftsamplef[2], rightsamplef[2]; //Two stereo samples, floating point format!
 	#endif
@@ -652,6 +664,14 @@ void updateGameBlaster(uint_32 MHZ14passed)
 
 			gameblaster_soundtiming -= MHZ14_BASETICK; //Decrease timer to get time left!
 
+			#ifdef LOG_GAMEBLASTER
+			if (GAMEBLASTER_LOG) //Logging output?
+			{
+				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(leftsample[0]*AMPLIFIER)),signed2unsigned16((sword)(rightsample[0]*AMPLIFIER)));
+				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(leftsample[1]*AMPLIFIER)),signed2unsigned16((sword)(rightsample[1]*AMPLIFIER)));
+			}
+			#endif
+
 			#ifdef FILTER_SIGNAL
 			//Convert to floating point to apply filters!
 			leftsamplef[0] = (float)leftsample[0];
@@ -664,10 +684,22 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			applySoundFilter(&GAMEBLASTER.filter[2],&rightsamplef[0]); //Filter low-pass right!
 			applySoundFilter(&GAMEBLASTER.filter[3],&rightsamplef[1]); //Filter low-pass right!
 			//Move back to samples!
-			leftsample[0] = (sword)leftsamplef[0];
-			rightsample[0] = (sword)rightsamplef[0];
-			leftsample[1] = (sword)leftsamplef[1];
-			rightsample[1] = (sword)rightsamplef[1];
+			leftsample[0] = (int_32)leftsamplef[0];
+			rightsample[0] = (int_32)rightsamplef[0];
+			leftsample[1] = (int_32)leftsamplef[1];
+			rightsample[1] = (int_32)rightsamplef[1];
+
+			//Now, apply all seperate channel stuff and limits!
+			leftsample[0] = (int_32)(((float)leftsample[0])*AMPLIFIER); //Left channel output!
+			rightsample[0] = (int_32)(((float)rightsample[0])*AMPLIFIER); //Right channel output!
+			leftsample[1] = (int_32)(((float)leftsample[1])*AMPLIFIER); //Left channel output!
+			rightsample[1] = (int_32)(((float)rightsample[1])*AMPLIFIER); //Right channel output!
+
+			leftsample[0] = LIMITRANGE(leftsample[0], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+			rightsample[0] = LIMITRANGE(rightsample[0], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+
+			leftsample[1] = LIMITRANGE(leftsample[1], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+			rightsample[1] = LIMITRANGE(rightsample[1], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
 			#endif
 		}
 	}
@@ -678,8 +710,8 @@ void updateGameBlaster(uint_32 MHZ14passed)
 		for (;gameblaster_rendertiming>=MHZ14_RENDERTICK;)
 		{
 			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16(rightsample[0])<<16)|signed2unsigned16(leftsample[0])); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16(rightsample[1])<<16)|signed2unsigned16(leftsample[1])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)rightsample[0])<<16)|signed2unsigned16((sword)leftsample[0])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)rightsample[1])<<16)|signed2unsigned16((sword)leftsample[1])); //Output the sample to the renderer!
 			gameblaster_rendertiming -= MHZ14_RENDERTICK; //Tick the renderer by our passed time!
 		}
 	}
@@ -737,15 +769,27 @@ byte outGameBlaster(word port, byte value)
 	switch (port&0xF)
 	{
 		case 0: //Left SAA-1099?
+			#ifdef LOG_GAMEBLASTER
+			if (!GAMEBLASTER_LOG) GAMEBLASTER_LOG = createWAV("captures/gameblaster.wav",4,(uint_32)__GAMEBLASTER_BASERATE); //Create a wave file at our rate!
+			#endif
 			writeSAA1099Value(&GAMEBLASTER.chips[0],value); //Write value!
 			return 1; //Handled!
 		case 1: //Left SAA-1099?
+			#ifdef LOG_GAMEBLASTER
+			if (!GAMEBLASTER_LOG) GAMEBLASTER_LOG = createWAV("captures/gameblaster.wav",4,(uint_32)__GAMEBLASTER_BASERATE); //Create a wave file at our rate!
+			#endif
 			writeSAA1099Address(&GAMEBLASTER.chips[0],value); //Write address!
 			return 1; //Handled!
 		case 2: //Right SAA-1099?
+			#ifdef LOG_GAMEBLASTER
+			if (!GAMEBLASTER_LOG) GAMEBLASTER_LOG = createWAV("captures/gameblaster.wav",4,(uint_32)__GAMEBLASTER_BASERATE); //Create a wave file at our rate!
+			#endif
 			writeSAA1099Value(&GAMEBLASTER.chips[1],value); //Write value!
 			return 1; //Handled!
 		case 3: //Right SAA-1099?
+			#ifdef LOG_GAMEBLASTER
+			if (!GAMEBLASTER_LOG) GAMEBLASTER_LOG = createWAV("captures/gameblaster.wav",4,(uint_32)__GAMEBLASTER_BASERATE); //Create a wave file at our rate!
+			#endif
 			writeSAA1099Address(&GAMEBLASTER.chips[1],value); //Write address!
 			return 1; //Handled!
 		default: //Other addresses(16 addresses)? CT-1302!
@@ -811,6 +855,7 @@ void GameBlaster_setVolume(float volume)
 
 void initGameBlaster(word baseaddr)
 {
+	uint_32 i;
 	byte channel;
 	if (__HW_DISABLED) return; //We're disabled!
 	memset(&GAMEBLASTER,0,sizeof(GAMEBLASTER)); //Full init!
@@ -878,7 +923,6 @@ void initGameBlaster(word baseaddr)
 
 	WAVEFILE *testoutput=NULL;
 
-	uint_32 i;
 	byte signal;
 
 	testoutput = createWAV("captures/testgameblaster440hz.wav",1,(uint_32)__GAMEBLASTER_BASERATE); //Start the log!
@@ -908,6 +952,11 @@ void initGameBlaster(word baseaddr)
 
 	gameblaster_rendertiming = gameblaster_soundtiming = 0; //Reset rendering!
 
+	for (i=0;i<0x10;++i)
+	{
+		amplitudes[i] = calcAmplitude(i); //Possible amplitudes, for easy lookup!
+	}
+
 	#ifdef DEBUG_OUTPUT
 	//manually set a test frequency!
 	GAMEBLASTER.chips[0].squarewave[0].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
@@ -926,6 +975,7 @@ void initGameBlaster(word baseaddr)
 
 void doneGameBlaster()
 {
+	if (GAMEBLASTER_LOG) closeWAV(&GAMEBLASTER_LOG); //Close our log, if logging!
 	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0],0); //Stop the sound emulation?
 	freeDoubleBufferedSound(&GAMEBLASTER.soundbuffer[0]);
 	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],0); //Stop the sound emulation?
