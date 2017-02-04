@@ -13,16 +13,14 @@
 //Define to log a test wave of 440Hz!
 //#define TESTWAVE
 
-//Define to enable the Dosbox/MAME synthesis method, instead of the improved one(testing purposes only)!
-//#define DOSBOXMAMESYNTH
-
 //To filter the output signal before resampling?
 #define FILTER_SIGNAL
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
 //Divided by 4 when rendering 16-level output using PWM equals 4 times lower frequency when using levels instead of PWM(16-level PCM). So divide 4 further by 16 for the used rate!
-#define MHZ14_BASETICK 64
+//Reduce it by 16 times to provide 16-PWM states both positive and negative(using positive and negative signals, e.g. +5V, 0V and -5V)!
+#define MHZ14_BASETICK 4
 //#define MHZ14_BASETICK 256
 //We render at ~44.1kHz!
 #define MHZ14_RENDERTICK 324
@@ -42,20 +40,30 @@
 
 typedef struct
 {
+	byte Amplitude; //Amplitude: 0-16, to wrap around!
+	byte PWMCounter; //Counter 0-16 that's counting!
+	byte output; //Output signal that's saved!
+	byte flipflopoutput; //Output signal of the PWM!
+} PWMOUTPUT; //Channel PWM output signal for left or right channel!
+
+typedef struct
+{
 	byte frequency;
 	byte frequency_enable;
 	byte noise_enable;
 	byte octave; //0-7
-	word amplitude[2]; //0-F?
+	byte amplitude[2]; //0-F?
 	byte envelope[2]; //0-F, 10=off.
 
 	//Data required for timing the square wave
 	float time; //Time
 	float freq; //Frequency!
 	byte level; //The level!
-	int_32 ampenv[16]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output!
+	byte ampenv[16]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output! Output: 0=Negative, 1=Positive, 2=Neutral(no output)
 	byte toneonnoiseonflipflop; //Flipflop used for mode 3 rendering!
 	byte noisechannel; //Linked noise channel!
+	byte PWMAmplitude[2]; //PWM amplitude for left and right channel to use!
+	PWMOUTPUT PWMOutput[2]; //Left/right channel PWM output signal
 } SAA1099_CHANNEL;
 
 typedef struct
@@ -157,47 +165,22 @@ OPTINLINE word calcAmplitude(byte amplitude)
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	int_32 envdata[2];
-#ifndef DOSBOXMAMESYNTH
-	int_32 statetranslation[8]; //All states we can use!
+	byte statetranslation[8]; //All states we can use!
 	byte *AmpEnvPrecalc;
-	int_32 *output;
-#endif
-	envdata[0] = (int_32)(chip->channels[channel].amplitude[0]*chip->channels[channel].envelope[0]) >> 4; //Left envelope!
-	envdata[1] = (int_32)(chip->channels[channel].amplitude[1]*chip->channels[channel].envelope[1]) >> 4; //Right envelope!
+	byte *output;
+
+	chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
+	chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
 	//bit3=PWM period
-	//Original algorithm from Dosbox&MAME was:
-#ifdef DOSBOXMAMESYNTH
-	INLINEREGISTER byte input;
-	INLINEREGISTER byte left = 0x10; //How many left?
-	INLINEREGISTER int_32 output;
-	INLINEREGISTER byte curenv;
-	input = 0; //First input!
-	do {
-		output = 0; //Init!
-		curenv = envdata[input&1]; //Current environment!
-		if ((input&4) && chip->channels[channel].noise_enable) //Noise on?
-		{
-			output -= (int_32)(curenv>>1); //Half volume substracted!
-		}
-		if ((input&2) && chip->channels[channel].frequency_enable) //Frequency on?
-		{
-			output += (int_32)curenv; //Full volume added!
-		}
-		chip->channels[channel].ampenv[input] = output; //Give the output!
-		++input; //Less left!
-	} while (--left); //Next input!
-
-#else
-	//Generate our translation table first!
-	statetranslation[0] = (int_32)-envdata[0]; //Left channel, negative!
-	statetranslation[1] = (int_32)-envdata[1]; //Right channel, negative!
-	statetranslation[2] = (int_32)envdata[0]; //Left channel, positive!
-	statetranslation[3] = (int_32)envdata[1]; //Right channel, positive!
-	memset(&statetranslation[4],0,sizeof(statetranslation)>>1); //Rest: Either channel, ignore sign: we're silence! 
+	//Generate our translation table first! Bit0=Right channel, Bit1=Positive output, Bit 2=Zero output(overrides bit 1)!
+	statetranslation[0] = 0; //Left channel, negative!
+	statetranslation[1] = 1; //Right channel, negative!
+	statetranslation[2] = 2; //Left channel, positive!
+	statetranslation[3] = 3; //Right channel, positive!
+	memset(&statetranslation[4],4,sizeof(statetranslation)>>1); //Rest: Either channel, ignore sign: we're silence! 
 
 	AmpEnvPrecalc = &AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)]; //First frequency/noise lookup entry!
 	output = &chip->channels[channel].ampenv[0]; //Where to store the precalcs table!
@@ -218,7 +201,6 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
 	*output++ = statetranslation[*AmpEnvPrecalc++]; //Take the precalcs for this channel!
 	*output = statetranslation[*AmpEnvPrecalc]; //Take the precalcs for this channel!
-#endif
 }
 
 OPTINLINE void calcAmpEnvPrecalcs()
@@ -362,11 +344,11 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 		case 0x05: //Channel n amplitude?
 			reg &= 7;
 			oldvalw = chip->channels[reg].amplitude[0];
-			chip->channels[reg].amplitude[0] = calcAmplitude(value&0xF);
+			chip->channels[reg].amplitude[0] = value&0xF;
 			updated = (chip->channels[reg].amplitude[0]!=oldvalw); //Changed?
 
 			oldvalw = chip->channels[reg].amplitude[1];
-			chip->channels[reg].amplitude[1] = calcAmplitude(value>>4);
+			chip->channels[reg].amplitude[1] = (value>>4);
 			updated |= (chip->channels[reg].amplitude[1]!=oldvalw); //Changed?
 
 			if (updated) updateAmpEnv(chip,reg); //Update amplitude/envelope!
@@ -503,6 +485,40 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 	return result; //Give the resulting square wave!
 }
 
+OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
+{
+	static int_32 outputs[4] = {-SHRT_MAX,SHRT_MAX,0,0}; //Output, if any!
+	byte counter;
+	counter = chip->channels[channel].PWMOutput[output&1].PWMCounter++; //Apply the current counter!
+	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
+	if (counter==0) //Timeout? Load new information and start the next PWM sample!
+	{
+		chip->channels[channel].PWMOutput[output&1].output = output; //Save the output for reference in the entire PWM output!
+		output &= 1; //We're only interested in the channel from now on!
+		chip->channels[channel].PWMOutput[output].PWMCounter = 0; //Reset the counter!
+		//Load the new PWM timeout from the channel!
+		chip->channels[channel].PWMOutput[output].Amplitude = chip->channels[channel].PWMAmplitude[output]; //Update the amplitude to use!
+		chip->channels[channel].PWMOutput[output].flipflopoutput = ((chip->channels[channel].PWMOutput[output].output&4)|((chip->channels[channel].PWMOutput[output].output&2))>>1); //Start output, if any! We're starting high!
+	}
+	else if ((counter==0xF) && ((output&1)==0)) //To start a new PWM pulse next sample?
+	{
+		chip->channels[channel].toneonnoiseonflipflop ^= 8; //Trigger the flipflop at PWM samplerate!	
+		output &= 1; //We're only interested in the channel from now on!
+	}
+	else
+	{
+		output &= 1; //We're only interested in the channel from now on!
+	}
+	if ((chip->channels[channel].PWMOutput[output].output&4)==0) //Not zeroed always? We're a running channel!
+	{
+		if (counter>chip->channels[channel].PWMOutput[output].Amplitude) //Finished PWM period to use?
+		{
+			chip->channels[channel].PWMOutput[output].flipflopoutput = 2; //We're finished! Return to 0V!
+		}
+	}
+	return outputs[chip->channels[channel].PWMOutput[output].flipflopoutput]; //Give the proper output as a 16-bit sample!
+}
+
 OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 *output_l, int_32 *output_r)
 {
 	byte output;
@@ -516,12 +532,11 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 		tickSAAEnvelope(chip,1);
 
 	output = chip->channels[channel].toneonnoiseonflipflop; //Tone/noise flipflop every other PWM sample!
-	chip->channels[channel].toneonnoiseonflipflop = (output^8); //Trigger the flipflop at PWM rate!
 	output |= chip->noise[chip->channels[channel].noisechannel].levelbit; //Use noise? If the noise level is high (noise 0 for channel 0-2, noise 1 for channel 3-5); Level bit 0 taken always to bit 2!
 	output |= chip->channels[channel].level; //Level is always 1-bit! Level to bit 2!
 	//Check and apply for noise! Substract to avoid overflows, half amplitude only
-	*output_l += chip->channels[channel].ampenv[output]; //Output left!
-	*output_r += chip->channels[channel].ampenv[output|1]; //Output right!
+	*output_l += getSAA1099PWM(chip,channel,chip->channels[channel].ampenv[output]); //Output left!
+	*output_r += getSAA1099PWM(chip,channel,chip->channels[channel].ampenv[output|1]); //Output right!
 }
 
 OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
