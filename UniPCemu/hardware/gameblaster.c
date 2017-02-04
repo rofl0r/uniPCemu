@@ -50,6 +50,7 @@ typedef struct
 	byte PWMCounter; //Counter 0-16 that's counting!
 	byte output; //Output signal that's saved!
 	byte flipflopoutput; //Output signal of the PWM!
+	int_32 result; //The resulting output of the PWM signal!
 } PWMOUTPUT; //Channel PWM output signal for left or right channel!
 
 typedef struct
@@ -498,21 +499,23 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 {
 	#ifdef PWM_OUTPUT
-	static int_32 outputs[4] = {-SHRT_MAX,SHRT_MAX,0,0}; //Output, if any!
+	static int_32 outputs[5] = {-SHRT_MAX,SHRT_MAX,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 1 0V entry!
 	#else
-	static int_32 outputs[4] = {-1,1,0,0}; //Output, if any!
+	static int_32 outputs[5] = {-1,1,0,0,0}; //Output, if any!
 	#endif
-	byte counter;
-	counter = chip->channels[channel].PWMOutput[output&1].PWMCounter++; //Apply the current counter!
+	INLINEREGISTER byte counter;
+	INLINEREGISTER PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
+	counter = PWM->PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	if (counter==0) //Timeout? Load new information and start the next PWM sample!
 	{
-		chip->channels[channel].PWMOutput[output&1].output = output; //Save the output for reference in the entire PWM output!
-		output &= 1; //We're only interested in the channel from now on!
-		chip->channels[channel].PWMOutput[output].PWMCounter = 0; //Reset the counter!
+		counter = ((PWM->output = output)&1); //Save the output for reference in the entire PWM output! Also save bit 1 for usage!
 		//Load the new PWM timeout from the channel!
-		chip->channels[channel].PWMOutput[output].Amplitude = chip->channels[channel].PWMAmplitude[output]; //Update the amplitude to use!
-		chip->channels[channel].PWMOutput[output].flipflopoutput = ((chip->channels[channel].PWMOutput[output].output&4)|((chip->channels[channel].PWMOutput[output].output&2))>>1); //Start output, if any! We're starting high!
+		PWM->flipflopoutput = ((output&6)>>1); //Start output, if any! We're starting high!
+		PWM->PWMCounter = 0; //Reset the counter!
+		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
+		PWM->result = outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
+		counter = 0; //Reset the counter again: we're restored!
 	}
 	else if ((counter==0xF) && ((output&1)==0)) //To start a new PWM pulse next sample?
 	{
@@ -524,16 +527,14 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		output &= 1; //We're only interested in the channel from now on!
 	}
 	#ifdef PWM_OUTPUT
-	if ((chip->channels[channel].PWMOutput[output].output&4)==0) //Not zeroed always? We're a running channel!
+	if (((PWM->output&4)==0) && (counter>=PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished!
 	{
-		if (counter>=chip->channels[channel].PWMOutput[output].Amplitude) //Finished PWM period to use?
-		{
-			chip->channels[channel].PWMOutput[output].flipflopoutput = 2; //We're finished! Return to 0V!
-		}
+		PWM->flipflopoutput = PWM->output = 4; //We're finished! Return to 0V always for the rest of the period!
+		PWM->result = 0; //No output anymore!
 	}
-	return outputs[chip->channels[channel].PWMOutput[output].flipflopoutput]; //Give the proper output as a 16-bit sample!
+	return PWM->result; //Give the proper output as a 16-bit sample!
 	#else
-	return outputs[chip->channels[channel].PWMOutput[output].flipflopoutput]*(sword)amplitudes[chip->channels[channel].PWMAmplitude[output]]; //Give the proper output as a simple pre-defined 16-bit sample!
+	return outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
 }
 
