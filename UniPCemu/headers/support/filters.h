@@ -10,7 +10,7 @@ typedef struct
 	float sound_last_result; //Last result!
 	float sound_last_sample; //Last sample!
 
-	float solid; //Solid value that doesn't change for the filter, until the filter is updated!
+	float alpha; //Solid value that doesn't change for the filter, until the filter is updated!
 
 	//General filter information and settings set for the filter!
 	byte isHighPass;

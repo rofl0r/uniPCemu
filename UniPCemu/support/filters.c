@@ -8,12 +8,12 @@ void updateSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_
 		if (ishighpass) //High-pass filter?
 		{
 			float RC = (1.0f / (cutoff_freq * (2.0f * (float)PI))); //RC is used multiple times, calculate once!
-			filter->solid = (RC / (RC + (1.0f / samplerate))); //Solid value to use!
+			filter->alpha = (RC / (RC + (1.0f / samplerate))); //Alpha value to use!
 		}
 		else //Low-pass filter?
 		{
 			float dt = (1.0f / samplerate); //DT is used multiple times, calculate once!
-			filter->solid = (dt / ((1.0f / (cutoff_freq * (2.0f * (float)PI))) + dt)); //Solid value to use!
+			filter->alpha = (dt / ((1.0f / (cutoff_freq * (2.0f * (float)PI))) + dt)); //Alpha value to use!
 		}
 	}
 	filter->isHighPass = ishighpass; //Hi-pass filter?
@@ -40,11 +40,11 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	last_result = filter->sound_last_result; //Load the last result to process!
 	if (filter->isHighPass) //High-pass filter?
 	{
-		last_result = filter->solid * (last_result + *currentsample - filter->sound_last_sample);
+		last_result = filter->alpha * (last_result + *currentsample - filter->sound_last_sample);
 	}
 	else //Low-pass filter?
 	{
-		last_result += (filter->solid*(*currentsample-last_result));
+		last_result += (filter->alpha*(*currentsample-last_result));
 	}
 	filter->sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
