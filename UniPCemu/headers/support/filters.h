@@ -5,8 +5,7 @@
 
 typedef struct
 {
-	byte isInit; //Initialized filter?
-	byte isFirstSample; //First sample?
+	byte isInit; //New uninitialized filter?
 	float sound_last_result; //Last result!
 	float sound_last_sample; //Last sample!
 
