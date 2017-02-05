@@ -33,7 +33,8 @@
 #define __GAMEBLASTER_SAMPLEBUFFERSIZE 4096
 #define __GAMEBLASTER_VOLUME 100.0f
 
-#define __GAMEBLASTER_AMPLIFIER (1.0/6.0)
+//We're two times 6 channels mixed on left and right, so not 6 channels but 12 channels each!
+#define __GAMEBLASTER_AMPLIFIER (1.0/12.0)
 
 //Log the rendered Game Blaster raw output stream?
 //#define LOG_GAMEBLASTER
@@ -117,10 +118,10 @@ struct
 {
 	word baseaddr; //Base address of the Game Blaster!
 	byte soundblastercompatible; //Do we use sound blaster compatible I/O
-	SOUNDDOUBLEBUFFER soundbuffer[2]; //Our two sound buffers for our two chips!
+	SOUNDDOUBLEBUFFER soundbuffer; //Our two sound buffers for our two chips!
 	byte storelatch[2]; //Two store/latch buffers!
 	SAA1099 chips[2]; //The two chips for generating output!
-	HIGHLOWPASSFILTER filter[4]; //Filter for left and right channels, first the low-pass, then the high-pass!
+	HIGHLOWPASSFILTER filter[2]; //Filter for left and right channels, low-pass type!
 	uint_32 baseclock; //Base clock to render at(up to bus rate of 14.31818MHz)!
 } GAMEBLASTER; //Our game blaster information!
 
@@ -479,8 +480,11 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
 	counter = PWM->PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
-	if (counter==0) //Timeout? Load new information and start the next PWM sample!
+	switch (counter|((output<<4)&0x10)) //What special cases to apply?
 	{
+	case 0: //Counter is zero?
+	case 0x10: //Counter is zero?
+		//Timeout? Load new information and start the next PWM sample!
 		counter = ((PWM->output = output)&1); //Save the output for reference in the entire PWM output! Also save bit 1 for usage!
 		//Load the new PWM timeout from the channel!
 		PWM->flipflopoutput = ((output&6)>>1); //Start output, if any! We're starting high!
@@ -488,15 +492,13 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
 		PWM->result = outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
 		counter = 0; //Reset the counter again: we're restored!
-	}
-	else if ((counter==0xF) && ((output&1)==0)) //To start a new PWM pulse next sample?
-	{
+		break;
+	case 0xF: //Start a PWM new pulse next sample!
 		chip->channels[channel].toneonnoiseonflipflop ^= 8; //Trigger the flipflop at PWM samplerate!	
+		//Passthrough!
+	default: //Normal case?
 		output &= 1; //We're only interested in the channel from now on!
-	}
-	else
-	{
-		output &= 1; //We're only interested in the channel from now on!
+		break;
 	}
 	#ifdef PWM_OUTPUT
 	if (((PWM->output&4)==0) && (counter>=PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished!
@@ -648,22 +650,18 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			//Convert to floating point to apply filters&output each time!
 			leftsamplef[0] = (float)leftsample[0];
 			rightsamplef[0] = (float)rightsample[0];
-			leftsamplef[1] = (float)leftsample[1];
-			rightsamplef[1] = (float)rightsample[1];
+			leftsamplef[0] += (float)leftsample[1]; //Add left channel outputs together!
+			rightsamplef[0] += (float)rightsample[1]; //Add right channel outputs together!
 
 			#ifdef FILTER_SIGNAL
 			//Low-pass filters, when enabled!
 			applySoundLowPassFilterObj(GAMEBLASTER.filter[0],leftsamplef[0]); //Filter low-pass left!
-			applySoundLowPassFilterObj(GAMEBLASTER.filter[1],leftsamplef[1]); //Filter low-pass left!
-			applySoundLowPassFilterObj(GAMEBLASTER.filter[2],rightsamplef[0]); //Filter low-pass right!
-			applySoundLowPassFilterObj(GAMEBLASTER.filter[3],rightsamplef[1]); //Filter low-pass right!
+			applySoundLowPassFilterObj(GAMEBLASTER.filter[1],rightsamplef[0]); //Filter low-pass right!
 			#endif
 		}
 		//Now, apply all seperate channel limits!
 		leftsamplef[0] *= AMPLIFIER; //Left channel output!
 		rightsamplef[0] *= AMPLIFIER; //Right channel output!
-		leftsamplef[1] *= AMPLIFIER; //Left channel output!
-		rightsamplef[1] *= AMPLIFIER; //Right channel output!
 	}
 
 	gameblaster_rendertiming += MHZ14passed; //Tick the base by our passed time!
@@ -672,8 +670,7 @@ void updateGameBlaster(uint_32 MHZ14passed)
 		for (;gameblaster_rendertiming>=MHZ14_RENDERTICK;)
 		{
 			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)LIMITRANGE(rightsamplef[0], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[0], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)LIMITRANGE(rightsamplef[1], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[1], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer,(signed2unsigned16((sword)LIMITRANGE(rightsamplef[0], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[0], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
 			gameblaster_rendertiming -= MHZ14_RENDERTICK; //Tick the renderer by our passed time!
 		}
 	}
@@ -811,8 +808,7 @@ void setGameBlaster_SoundBlaster(byte useSoundBlasterIO)
 void GameBlaster_setVolume(float volume)
 {
 	if (__HW_DISABLED) return; //We're disabled!
-	setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0], volume); //Set the volume!
-	setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1], volume); //Set the volume!
+	setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer, volume); //Set the volume!
 }
 
 void initGameBlaster(word baseaddr)
@@ -824,31 +820,15 @@ void initGameBlaster(word baseaddr)
 	GAMEBLASTER.baseaddr = baseaddr; //Base address of the Game Blaster!
 	setGameBlaster_SoundBlaster(0); //Default to Game Blaster I/O!
 
-	if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[0],0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
+	if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer,0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
 	{
-		if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer[1],0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
+		if (!addchannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer,"GameBlaster",(float)__GAMEBLASTER_SAMPLERATE,__GAMEBLASTER_SAMPLEBUFFERSIZE,1,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
 		{
-			if (!addchannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0],"GameBlaster",(float)__GAMEBLASTER_SAMPLERATE,__GAMEBLASTER_SAMPLEBUFFERSIZE,1,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
-			{
-				dolog("GameBlaster","Error registering sound channel for output!");
-			}
-			else
-			{
-				setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0],__GAMEBLASTER_VOLUME);
-				if (!addchannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],"GameBlaster",(float)__GAMEBLASTER_SAMPLERATE,__GAMEBLASTER_SAMPLEBUFFERSIZE,1,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
-				{
-					dolog("GameBlaster","Error registering sound channel for output!");
-				}
-				else
-				{
-					setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],__GAMEBLASTER_VOLUME);
-					GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
-				}
-			}
+			dolog("GameBlaster","Error registering sound channel for output!");
 		}
 		else
 		{
-			dolog("GameBlaster","Error registering second double buffer for output!");
+			setVolume(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer,__GAMEBLASTER_VOLUME);
 		}
 	}
 	else
@@ -861,6 +841,8 @@ void initGameBlaster(word baseaddr)
 	//All output!
 	register_PORTOUT(&outGameBlaster); //Output ports!
 
+	GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
+
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
 	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/256.0);
@@ -868,10 +850,8 @@ void initGameBlaster(word baseaddr)
 	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/1024.0);
 
 	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
-	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
-	initSoundFilter(&GAMEBLASTER.filter[2],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
-	initSoundFilter(&GAMEBLASTER.filter[3],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
-
+	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
+	
 	/*
 
 	Test values!
@@ -938,8 +918,6 @@ void initGameBlaster(word baseaddr)
 void doneGameBlaster()
 {
 	if (GAMEBLASTER_LOG) closeWAV(&GAMEBLASTER_LOG); //Close our log, if logging!
-	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[0],0); //Stop the sound emulation?
-	freeDoubleBufferedSound(&GAMEBLASTER.soundbuffer[0]);
-	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer[1],0); //Stop the sound emulation?
-	freeDoubleBufferedSound(&GAMEBLASTER.soundbuffer[1]);
+	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer,0); //Stop the sound emulation?
+	freeDoubleBufferedSound(&GAMEBLASTER.soundbuffer);
 }
