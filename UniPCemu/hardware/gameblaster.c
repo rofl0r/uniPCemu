@@ -604,9 +604,9 @@ uint_32 gameblaster_rendertiming=0;
 
 void updateGameBlaster(uint_32 MHZ14passed)
 {
-	static int_32 leftsample[2]={0,0}, rightsample[2]={0,0}; //Two stereo samples!
+	int_32 leftsample[2], rightsample[2]; //Two stereo samples!
 	#ifdef FILTER_SIGNAL
-	float leftsamplef[2], rightsamplef[2]; //Two stereo samples, floating point format!
+	static float leftsamplef[2]={0.0f,0.0f}, rightsamplef[2]={0.0f,0.0f}; //Two stereo samples, floating point format!
 	#endif
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Game Blaster sound output
@@ -645,36 +645,25 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			}
 			#endif
 
-			#ifdef FILTER_SIGNAL
-			//Convert to floating point to apply filters!
+			//Convert to floating point to apply filters&output each time!
 			leftsamplef[0] = (float)leftsample[0];
 			rightsamplef[0] = (float)rightsample[0];
 			leftsamplef[1] = (float)leftsample[1];
 			rightsamplef[1] = (float)rightsample[1];
-			//Low-pass filters!
+
+			#ifdef FILTER_SIGNAL
+			//Low-pass filters, when enabled!
 			applySoundLowPassFilterObj(GAMEBLASTER.filter[0],leftsamplef[0]); //Filter low-pass left!
 			applySoundLowPassFilterObj(GAMEBLASTER.filter[1],leftsamplef[1]); //Filter low-pass left!
 			applySoundLowPassFilterObj(GAMEBLASTER.filter[2],rightsamplef[0]); //Filter low-pass right!
 			applySoundLowPassFilterObj(GAMEBLASTER.filter[3],rightsamplef[1]); //Filter low-pass right!
-			//Move back to samples!
-			leftsample[0] = (int_32)leftsamplef[0];
-			rightsample[0] = (int_32)rightsamplef[0];
-			leftsample[1] = (int_32)leftsamplef[1];
-			rightsample[1] = (int_32)rightsamplef[1];
-
-			//Now, apply all seperate channel stuff and limits!
-			leftsample[0] = (int_32)(((float)leftsample[0])*AMPLIFIER); //Left channel output!
-			rightsample[0] = (int_32)(((float)rightsample[0])*AMPLIFIER); //Right channel output!
-			leftsample[1] = (int_32)(((float)leftsample[1])*AMPLIFIER); //Left channel output!
-			rightsample[1] = (int_32)(((float)rightsample[1])*AMPLIFIER); //Right channel output!
-
-			leftsample[0] = LIMITRANGE(leftsample[0], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
-			rightsample[0] = LIMITRANGE(rightsample[0], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
-
-			leftsample[1] = LIMITRANGE(leftsample[1], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
-			rightsample[1] = LIMITRANGE(rightsample[1], SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
 			#endif
 		}
+		//Now, apply all seperate channel limits!
+		leftsamplef[0] *= AMPLIFIER; //Left channel output!
+		rightsamplef[0] *= AMPLIFIER; //Right channel output!
+		leftsamplef[1] *= AMPLIFIER; //Left channel output!
+		rightsamplef[1] *= AMPLIFIER; //Right channel output!
 	}
 
 	gameblaster_rendertiming += MHZ14passed; //Tick the base by our passed time!
@@ -683,8 +672,8 @@ void updateGameBlaster(uint_32 MHZ14passed)
 		for (;gameblaster_rendertiming>=MHZ14_RENDERTICK;)
 		{
 			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)rightsample[0])<<16)|signed2unsigned16((sword)leftsample[0])); //Output the sample to the renderer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)rightsample[1])<<16)|signed2unsigned16((sword)leftsample[1])); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[0],(signed2unsigned16((sword)LIMITRANGE(rightsamplef[0], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[0], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer[1],(signed2unsigned16((sword)LIMITRANGE(rightsamplef[1], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[1], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
 			gameblaster_rendertiming -= MHZ14_RENDERTICK; //Tick the renderer by our passed time!
 		}
 	}
