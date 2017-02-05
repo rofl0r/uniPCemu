@@ -23,7 +23,7 @@ typedef struct
 #define applySoundHighPassFilterObj(filter,currentsample,last_resulttmp) last_resulttmp = filter.sound_last_result; \ //Load the last result to process!
 	last_resulttmp = filter.alpha * (last_resulttmp + currentsample - filter.sound_last_sample); \
 	filter.sound_last_sample = currentsample; \ //The last sample that was processed!
-	currentsample = filter.sound_last_result = last_resulttmp; //Give the new result!
+	currentsample = filter.sound_last_result = last_resulttmp
 
 //Global high and low pass filters support!
 void initSoundFilter(HIGHLOWPASSFILTER *filter, byte ishighpass, float cutoff_freq, float samplerate); //Initialize the filter!
