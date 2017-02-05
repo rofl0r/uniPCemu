@@ -10,11 +10,24 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+/* Generic enable/disable flags: */
+
 //Define to log a test wave of 440Hz!
 //#define TESTWAVE
 
-//To filter the output signal before resampling?
+//To filter the output signal before resampling(Only required here when not using PWM, always required to be used with PWM)?
 #define FILTER_SIGNAL
+
+//Log the rendered Game Blaster raw output stream?
+//#define LOG_GAMEBLASTER
+
+//Enable generation of PWM signal instead of direct signal to generate samples?
+#define PWM_OUTPUT
+
+//Set up a test wave, with special signal, when enabled?
+//#define DEBUG_OUTPUT 550.0f
+
+/* Required defines to function correctly and compile: */
 
 //Game Blaster sample rate and other audio defines!
 //Game blaster runs at 14MHz divided by 2 divided by 256 clocks to get our sample rate to play at! Or divided by 4 to get 3.57MHz!
@@ -25,6 +38,7 @@
 //We render at ~44.1kHz!
 #define MHZ14_RENDERTICK 324
 
+//Sample rate settings and output volume!
 //Base rate of the Game Blaster to run at!
 #define __GAMEBLASTER_BASERATE (MHZ14/MHZ14_BASETICK) 
 
@@ -35,15 +49,6 @@
 
 //We're two times 6 channels mixed on left and right, so not 6 channels but 12 channels each!
 #define __GAMEBLASTER_AMPLIFIER (1.0/12.0)
-
-//Log the rendered Game Blaster raw output stream?
-//#define LOG_GAMEBLASTER
-
-//Enable generation of PWM signal instead of direct signal to generate samples?
-#define PWM_OUTPUT
-
-//Set up a test wave, with special signal, when enabled?
-//#define DEBUG_OUTPUT 550.0f
 
 typedef struct
 {
@@ -124,6 +129,15 @@ struct
 	HIGHLOWPASSFILTER filter[2]; //Filter for left and right channels, low-pass type!
 	uint_32 baseclock; //Base clock to render at(up to bus rate of 14.31818MHz)!
 } GAMEBLASTER; //Our game blaster information!
+
+//Safety check of above defines to make sure we don't generate wrong samples(PWM without filter creates an invalid output when resampled)!
+#ifdef PWM_OUTPUT
+//We're outputting PWM?
+#ifndef FILTER_SIGNAL
+//Not filtering when outputting PWM? Enforce filtering on!
+#define FILTER_SIGNAL
+#endif
+#endif
 
 float AMPLIFIER = 0.0; //The amplifier, amplifying samples to the full range!
 
@@ -482,26 +496,28 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	switch (counter|((output<<4)&0x10)) //What special cases to apply?
 	{
-	case 0: //Counter is zero?
-	case 0x10: //Counter is zero?
+	case 0: //Counter is zero(left channel)?
+	case 0x10: //Counter is zero(right channel)?
 		//Timeout? Load new information and start the next PWM sample!
-		counter = ((PWM->output = output)&1); //Save the output for reference in the entire PWM output! Also save bit 1 for usage!
-		//Load the new PWM timeout from the channel!
-		PWM->flipflopoutput = ((output&6)>>1); //Start output, if any! We're starting high!
-		PWM->PWMCounter = 0; //Reset the counter!
-		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
+		counter = (output&1); //Save the output channel for reference in the entire PWM output! Also save bit 1 for usage!
+		//Load the new PWM timeout and PWM settings from the channel!
+		output &= 6; //Only bits that we need!
+		PWM->output = (output&4); //Bit 2 determines whether we're 0V to render entirely!
+		PWM->flipflopoutput = (output>>1); //Start output, if any! We're starting high!
 		PWM->result = outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
+		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
 		counter = 0; //Reset the counter again: we're restored!
 		break;
-	case 0xF: //Start a PWM new pulse next sample!
-		chip->channels[channel].toneonnoiseonflipflop ^= 8; //Trigger the flipflop at PWM samplerate!	
-		//Passthrough!
+	case 0xF: //Start a new PWM pulse next sample(left channel)!
+		chip->channels[channel].toneonnoiseonflipflop ^= 8; //Trigger the flipflop at PWM samplerate only once(entire channel)!
+		//Passthrough to apply PWM resetting the counter always!
+	case 0x1F: //Start a new PWM pulse next sample(right channel)!
+		PWM->PWMCounter = 0; //Reset the counter to count the active time!
 	default: //Normal case?
-		output &= 1; //We're only interested in the channel from now on!
 		break;
 	}
 	#ifdef PWM_OUTPUT
-	if (((PWM->output&4)==0) && (counter>=PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished!
+	if ((PWM->output==0) && (counter==PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished during timing!
 	{
 		PWM->output = 4; //We're finished! Return to 0V always for the rest of the period!
 		PWM->result = 0; //No output anymore!
