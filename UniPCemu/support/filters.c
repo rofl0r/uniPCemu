@@ -35,12 +35,12 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	if (filter->isHighPass) //High-pass filter?
 	{
 		last_result = filter->alpha * (last_result + *currentsample - filter->sound_last_sample);
-		filter->sound_last_sample = *currentsample; //The last sample that was processed!
 	}
 	else //Low-pass filter?
 	{
 		last_result += (filter->alpha*(*currentsample-last_result));
 	}
+	filter->sound_last_sample = *currentsample; //The last sample that was processed!
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
 }
 
@@ -53,10 +53,9 @@ void applySoundHighPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 	*currentsample = filter->sound_last_result = last_result; //Give the new result!
 }
 
+#define calcSoundLowPassFilter(filter,currentsample) *currentsample = filter->sound_last_result = filter->sound_last_result+(filter->alpha*((*currentsample)-filter->sound_last_result))
+
 void applySoundLowPassFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 {
-	INLINEREGISTER float last_result;
-	last_result = filter->sound_last_result; //Load the last result to process!
-	last_result += (filter->alpha*(*currentsample-last_result));
-	*currentsample = filter->sound_last_result = last_result; //Give the new result!
+	calcSoundLowPassFilter(filter,currentsample); //Filter manually!
 }
