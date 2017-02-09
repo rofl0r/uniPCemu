@@ -2,7 +2,8 @@
 #include "headers/cpu/cpu_OP8086.h" //8086 REAL opcode functions!
 #include "headers/cpu/fpu_OP8087.h" //8086 REAL opcode functions!
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 REAL opcode functions!
-#include "headers/cpu/cpu_OP80286.h" //Unknown opcodes under 80286+!
+#include "headers/cpu/cpu_OP80286.h" //All opcodes under 80286+!
+#include "headers/cpu/cpu_OP80386.h" //Opcodes from the 80386+
 
 /*
 
@@ -864,123 +865,123 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 
 		//0x00:
 		{ NULL, NULL }, //00h:
-		{ NULL, NULL }, //01h:
+		{ NULL, CPU80386_OP01 }, //01h:
 		{ NULL, NULL }, //02h:
-		{ NULL, NULL }, //03h:
+		{ NULL, CPU80386_OP03 }, //03h:
 		{ NULL, NULL }, //04h:
-		{ NULL, NULL }, //05h:
+		{ NULL, CPU80386_OP05 }, //05h:
 		{ NULL, NULL }, //06h:
 		{ NULL, NULL }, //07h:
 		{ NULL, NULL }, //08h:
-		{ NULL, NULL }, //09h:
+		{ NULL, CPU80386_OP09 }, //09h:
 		{ NULL, NULL }, //0Ah:
-		{ NULL, NULL }, //0Bh:
+		{ NULL, CPU80386_OP0B }, //0Bh:
 		{ NULL, NULL }, //0Ch:
-		{ NULL, NULL }, //0Dh:
+		{ NULL, CPU80386_OP0D }, //0Dh:
 		{ NULL, NULL }, //0Eh:
-		{ NULL, NULL }, //0Fh: NECV30 specific OPcode!
+		{ NULL, NULL }, //0Fh: Two-byte instruction opcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
-		{ NULL, NULL }, //11h:
+		{ NULL, CPU80386_OP11 }, //11h:
 		{ NULL, NULL }, //12h:
-		{ NULL, NULL }, //13h:
+		{ NULL, CPU80386_OP13 }, //13h:
 		{ NULL, NULL }, //14h:
-		{ NULL, NULL }, //15h:
+		{ NULL, CPU80386_OP15 }, //15h:
 		{ NULL, NULL }, //16h:
 		{ NULL, NULL }, //17h:
 		{ NULL, NULL }, //18h:
-		{ NULL, NULL }, //19h:
+		{ NULL, CPU80386_OP19 }, //19h:
 		{ NULL, NULL }, //1Ah:
-		{ NULL, NULL }, //1Bh:
+		{ NULL, CPU80386_OP1B }, //1Bh:
 		{ NULL, NULL }, //1Ch:
-		{ NULL, NULL }, //1Dh:
+		{ NULL, CPU80386_OP1D }, //1Dh:
 		{ NULL, NULL }, //1Eh:
 		{ NULL, NULL }, //1Fh:
 		//0x20:
 		{ NULL, NULL }, //20h:
-		{ NULL, NULL }, //21h:
+		{ NULL, CPU80386_OP21 }, //21h:
 		{ NULL, NULL }, //22h:
-		{ NULL, NULL }, //23h:
+		{ NULL, CPU80386_OP23 }, //23h:
 		{ NULL, NULL }, //24h:
-		{ NULL, NULL }, //25h:
+		{ NULL, CPU80386_OP25 }, //25h:
 		{ NULL, NULL }, //26h: Special
-		{ NULL, NULL }, //27h:
+		{ NULL, CPU80386_OP27 }, //27h:
 		{ NULL, NULL }, //28h:
-		{ NULL, NULL }, //29h:
+		{ NULL, CPU80386_OP29 }, //29h:
 		{ NULL, NULL }, //2Ah:
-		{ NULL, NULL }, //2Bh:
+		{ NULL, CPU80386_OP2B }, //2Bh:
 		{ NULL, NULL }, //2Ch:
-		{ NULL, NULL }, //2Dh:
+		{ NULL, CPU80386_OP2D }, //2Dh:
 		{ NULL, NULL }, //2Eh: Special
-		{ NULL, NULL }, //2Fh:
+		{ NULL, CPU80386_OP2F }, //2Fh:
 		//0x30:
 		{ NULL, NULL }, //30h:
-		{ NULL, NULL }, //31h:
+		{ NULL, CPU80386_OP31 }, //31h:
 		{ NULL, NULL }, //32h:
-		{ NULL, NULL }, //33h:
+		{ NULL, CPU80386_OP33 }, //33h:
 		{ NULL, NULL }, //34h:
-		{ NULL, NULL }, //35h:
+		{ NULL, CPU80386_OP35 }, //35h:
 		{ NULL, NULL }, //36h: Special
-		{ NULL, NULL }, //37h:
+		{ NULL ,CPU80386_OP37 }, //37h:
 		{ NULL, NULL }, //38h:
-		{ NULL, NULL }, //39h:
+		{ NULL, CPU80386_OP39 }, //39h:
 		{ NULL, NULL }, //3Ah:
-		{ NULL, NULL }, //3Bh:
+		{ NULL, CPU80386_OP3B }, //3Bh:
 		{ NULL, NULL }, //3Ch:
-		{ NULL, NULL }, //3Dh:
+		{ NULL, CPU80386_OP3D }, //3Dh:
 		{ NULL, NULL }, //3Eh: Special
-		{ NULL, NULL }, //3Fh:
+		{ NULL, CPU80386_OP3F }, //3Fh:
 		//0x40:
-		{ NULL, NULL }, //40h:
-		{ NULL, NULL }, //41h:
-		{ NULL, NULL }, //42h:
-		{ NULL, NULL }, //43h:
-		{ NULL, NULL }, //44h:
-		{ NULL, NULL }, //45h:
-		{ NULL, NULL }, //46h:
-		{ NULL, NULL }, //47h:
-		{ NULL, NULL }, //48h:
-		{ NULL, NULL }, //49h:
-		{ NULL, NULL }, //4Ah:
-		{ NULL, NULL }, //4Bh:
-		{ NULL, NULL }, //4Ch:
-		{ NULL, NULL }, //4Dh:
-		{ NULL, NULL }, //4Eh:
-		{ NULL, NULL }, //4Fh:
+		{ NULL, CPU80386_OP40 }, //40h:
+		{ NULL, CPU80386_OP41 }, //41h:
+		{ NULL, CPU80386_OP42 }, //42h:
+		{ NULL, CPU80386_OP43 }, //43h:
+		{ NULL, CPU80386_OP44 }, //44h:
+		{ NULL, CPU80386_OP45 }, //45h:
+		{ NULL, CPU80386_OP46 }, //46h:
+		{ NULL, CPU80386_OP47 }, //47h:
+		{ NULL, CPU80386_OP48 }, //48h:
+		{ NULL, CPU80386_OP49 }, //49h:
+		{ NULL, CPU80386_OP4A }, //4Ah:
+		{ NULL, CPU80386_OP4B }, //4Bh:
+		{ NULL, CPU80386_OP4C }, //4Ch:
+		{ NULL, CPU80386_OP4D }, //4Dh:
+		{ NULL, CPU80386_OP4E }, //4Eh:
+		{ NULL, CPU80386_OP4F }, //4Fh:
 		//0x50:
-		{ NULL, NULL }, //50h:
-		{ NULL, NULL }, //51h:
-		{ NULL, NULL }, //52h:
-		{ NULL, NULL }, //53h:
-		{ NULL, NULL }, //54h:
-		{ NULL, NULL }, //55h:
-		{ NULL, NULL }, //56h:
-		{ NULL, NULL }, //57h:
-		{ NULL, NULL }, //58h:
-		{ NULL, NULL }, //59h:
-		{ NULL, NULL }, //5Ah:
-		{ NULL, NULL }, //5Bh:
-		{ NULL, NULL }, //5Ch:
-		{ NULL, NULL }, //5Dh:
-		{ NULL, NULL }, //5Eh:
-		{ NULL, NULL }, //5Fh:
+		{ NULL, CPU80386_OP50 }, //50h:
+		{ NULL, CPU80386_OP51 }, //51h:
+		{ NULL, CPU80386_OP52 }, //52h:
+		{ NULL, CPU80386_OP53 }, //53h:
+		{ NULL, CPU80386_OP54 }, //54h:
+		{ NULL, CPU80386_OP55 }, //55h:
+		{ NULL, CPU80386_OP56 }, //56h:
+		{ NULL, CPU80386_OP57 }, //57h:
+		{ NULL, CPU80386_OP58 }, //58h:
+		{ NULL, CPU80386_OP59 }, //59h:
+		{ NULL, CPU80386_OP5A }, //5Ah:
+		{ NULL, CPU80386_OP5B }, //5Bh:
+		{ NULL, CPU80386_OP5C }, //5Ch:
+		{ NULL, CPU80386_OP5D }, //5Dh:
+		{ NULL, CPU80386_OP5E }, //5Eh:
+		{ NULL, CPU80386_OP5F }, //5Fh:
 		//0x60:
-		{ NULL, NULL }, //60h: PUSHA(removed here)
-		{ NULL, NULL }, //61h: POPA(removed here)
+		{ NULL, CPU386_OP60 }, //60h: PUSHA(removed here)
+		{ NULL, CPU386_OP61 }, //61h: POPA(removed here)
+		{ NULL, CPU386_OP62 }, //UNK
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
 		{ NULL, NULL }, //UNK
-		{ NULL, NULL }, //UNK
-		{ NULL, NULL }, //68h:
-		{ NULL, NULL }, //69h:
+		{ NULL, CPU386_OP68 }, //68h:
+		{ NULL, CPU386_OP69 }, //69h:
 		{ NULL, NULL }, //6Ah:
-		{ NULL, NULL }, //6Bh:
+		{ NULL, CPU386_OP6B }, //6Bh:
 		{ NULL, NULL }, //6Ch:
-		{ NULL, NULL }, //6Dh:
+		{ NULL, CPU386_OP6D }, //6Dh:
 		{ NULL, NULL }, //6Eh:
-		{ NULL, NULL }, //6Fh:
+		{ NULL, CPU386_OP6F }, //6Fh:
 		//0x70: Conditional JMP OPcodes:
 		{ NULL, NULL }, //70h:
 		{ NULL, NULL }, //71h:
@@ -1000,55 +1001,55 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //7Fh:
 		//0x80:
 		{ NULL, NULL }, //80h:
-		{ NULL, NULL }, //81h:
+		{ NULL, CPU80386_OP81 }, //81h:
 		{ NULL, NULL }, //82h:
-		{ NULL, NULL }, //83h:
+		{ NULL, CPU80386_OP83 }, //83h:
 		{ NULL, NULL }, //84h:
-		{ NULL, NULL }, //85h:
+		{ NULL, CPU80386_OP85 }, //85h:
 		{ NULL, NULL }, //86h:
-		{ NULL, NULL }, //87h:
+		{ NULL, CPU80386_OP87 }, //87h:
 		{ NULL, NULL }, //88h:
-		{ NULL, NULL }, //89h:
+		{ NULL, CPU80386_OP89 }, //89h:
 		{ NULL, NULL }, //8Ah:
-		{ NULL, NULL }, //8Bh:
+		{ NULL, CPU80386_OP8B }, //8Bh:
 		{ NULL, NULL }, //8Ch:
-		{ NULL, NULL }, //8Dh:
+		{ NULL, CPU80386_OP8D }, //8Dh:
 		{ NULL, NULL }, //8Eh:
-		{ NULL, NULL }, //8Fh:
+		{ NULL, CPU80386_OP8F }, //8Fh:
 		//0x90:
-		{ NULL, NULL }, //90h:
-		{ NULL, NULL }, //91h:
-		{ NULL, NULL }, //92h:
-		{ NULL, NULL }, //93h:
-		{ NULL, NULL }, //94h:
-		{ NULL, NULL }, //95h:
-		{ NULL, NULL }, //96h:
-		{ NULL, NULL }, //97h:
-		{ NULL, NULL }, //98h:
-		{ NULL, NULL }, //99h:
-		{ NULL, NULL }, //9Ah:
+		{ NULL, CPU80386_OP90 }, //90h:
+		{ NULL, CPU80386_OP91 }, //91h:
+		{ NULL, CPU80386_OP92 }, //92h:
+		{ NULL, CPU80386_OP93 }, //93h:
+		{ NULL, CPU80386_OP94 }, //94h:
+		{ NULL, CPU80386_OP95 }, //95h:
+		{ NULL, CPU80386_OP96 }, //96h:
+		{ NULL, CPU80386_OP97 }, //97h:
+		{ NULL, CPU80386_OP98 }, //98h:
+		{ NULL, CPU80386_OP99 }, //99h:
+		{ NULL, CPU80386_OP9A }, //9Ah:
 		{ NULL, NULL }, //9Bh:
 		{ NULL, NULL }, //9Ch:
 		{ NULL, NULL }, //9Dh:
 		{ NULL, NULL }, //9Eh:
 		{ NULL, NULL }, //9Fh:
 		//0xA0:
-		{ NULL, NULL }, //A0h:
-		{ NULL, NULL }, //A1h:
-		{ NULL, NULL }, //A2h:
-		{ NULL, NULL }, //A3h:
+		{ CPU80386_OPA0_16, NULL }, //A0h:
+		{ CPU80386_OPA1_16, CPU80386_OPA1_32 }, //A1h:
+		{ CPU80386_OPA2_16, NULL }, //A2h:
+		{ CPU80386_OPA3_16, CPU80386_OPA3_32 }, //A3h:
 		{ NULL, NULL }, //A4h:
-		{ NULL, NULL }, //A5h:
+		{ NULL, CPU80386_OPA5 }, //A5h:
 		{ NULL, NULL }, //A6h:
-		{ NULL, NULL }, //A7h:
+		{ NULL, CPU80386_OPA7 }, //A7h:
 		{ NULL, NULL }, //A8h:
-		{ NULL, NULL }, //A9h:
+		{ NULL, CPU80386_OPA9 }, //A9h:
 		{ NULL, NULL }, //AAh:
-		{ NULL, NULL }, //ABh:
+		{ NULL, CPU80386_OPAB }, //ABh:
 		{ NULL, NULL }, //ACh:
-		{ NULL, NULL }, //ADh:
+		{ NULL, CPU80386_OPAD }, //ADh:
 		{ NULL, NULL }, //AEh:
-		{ NULL, NULL }, //AFh:
+		{ NULL, CPU80386_OPAF }, //AFh:
 		//0xB0:
 		{ NULL, NULL }, //B0h:
 		{ NULL, NULL }, //B1h:
@@ -1058,40 +1059,40 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //B5h:
 		{ NULL, NULL }, //B6h:
 		{ NULL, NULL }, //B7h:
-		{ NULL, NULL }, //B8h:
-		{ NULL, NULL }, //B9h:
-		{ NULL, NULL }, //BAh:
-		{ NULL, NULL }, //BBh:
-		{ NULL, NULL }, //BCh:
-		{ NULL, NULL }, //BDh:
-		{ NULL, NULL }, //BEh:
-		{ NULL, NULL }, //BFh:
+		{ NULL, CPU80386_OPB8 }, //B8h:
+		{ NULL, CPU80386_OPB9 }, //B9h:
+		{ NULL, CPU80386_OPBA }, //BAh:
+		{ NULL, CPU80386_OPBB }, //BBh:
+		{ NULL, CPU80386_OPBC }, //BCh:
+		{ NULL, CPU80386_OPBD }, //BDh:
+		{ NULL, CPU80386_OPBE }, //BEh:
+		{ NULL, CPU80386_OPBF }, //BFh:
 		//0xC0:
 		{ NULL, NULL }, //C0h:
-		{ NULL, NULL }, //C1h:
-		{ NULL, NULL }, //C2h:
-		{ NULL, NULL }, //C3h:
-		{ NULL, NULL }, //C4h:
-		{ NULL, NULL }, //C5h:
+		{ NULL, CPU386_OPC1 }, //C1h:
+		{ NULL, CPU80386_OPC2 }, //C2h:
+		{ NULL, CPU80386_OPC3 }, //C3h:
+		{ NULL, CPU80386_OPC4 }, //C4h:
+		{ NULL, CPU80386_OPC5 }, //C5h:
 		{ NULL, NULL }, //C6h:
-		{ NULL, NULL }, //C7h:
-		{ NULL, NULL }, //C8h:
-		{ NULL, NULL }, //C9h:
-		{ NULL, NULL }, //CAh:
-		{ NULL, NULL }, //CBh:
-		{ NULL, NULL }, //CCh:
-		{ NULL, NULL }, //CDh:
-		{ NULL, NULL }, //CEh:
-		{ NULL, NULL }, //CFh:
+		{ NULL, CPU80386_OPC7 }, //C7h:
+		{ NULL, CPU386_OPC8 }, //C8h:
+		{ NULL, CPU386_OPC9 }, //C9h:
+		{ NULL, CPU80386_OPCA }, //CAh:
+		{ NULL, CPU80386_OPCB }, //CBh:
+		{ NULL, CPU80386_OPCC }, //CCh:
+		{ NULL, CPU80386_OPCD }, //CDh:
+		{ NULL, CPU80386_OPCE }, //CEh:
+		{ NULL, CPU80386_OPCF }, //CFh:
 		//0xD0:
 		{ NULL, NULL }, //D0h:
-		{ NULL, NULL }, //D1h:
+		{ NULL, CPU80386_OPD1 }, //D1h:
 		{ NULL, NULL }, //D2h:
-		{ NULL, NULL }, //D3h:
-		{ NULL, NULL }, //D4h:
-		{ NULL, NULL }, //D5h:
-		{ NULL, NULL }, //D6h: UNK
-		{ NULL, NULL }, //D7h:
+		{ NULL, CPU80386_OPD3 }, //D3h:
+		{ NULL, CPU80386_OPD4 }, //D4h:
+		{ NULL, CPU80386_OPD5 }, //D5h:
+		{ NULL, CPU80386_OPD6 }, //D6h: UNK
+		{ NULL, CPU80386_OPD7 }, //D7h:
 		{ NULL, NULL }, //D8h: UNK
 		{ NULL, NULL }, //D9h: CoProcessor Minimum
 		{ NULL, NULL }, //DAh: UNK
@@ -1101,31 +1102,31 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //DEh: UNK
 		{ NULL, NULL }, //DFh: COProcessor minimum
 		//0xE0:
-		{ NULL, NULL }, //E0h:
-		{ NULL, NULL }, //E1h:
-		{ NULL, NULL }, //E2h:
-		{ NULL, NULL }, //E3h:
+		{ NULL, CPU80386_OPE0 }, //E0h:
+		{ NULL, CPU80386_OPE1 }, //E1h:
+		{ NULL, CPU80386_OPE2 }, //E2h:
+		{ NULL, CPU80386_OPE3 }, //E3h:
 		{ NULL, NULL }, //E4h:
-		{ NULL, NULL }, //E5h:
+		{ NULL, CPU80386_OPE5 }, //E5h:
 		{ NULL, NULL }, //E6h:
-		{ NULL, NULL }, //E7h:
-		{ NULL, NULL }, //E8h:
-		{ NULL, NULL }, //E9h:
-		{ NULL, NULL }, //EAh:
-		{ NULL, NULL }, //EBh:
+		{ NULL, CPU80386_OPE7 }, //E7h:
+		{ NULL, CPU80386_OPE8 }, //E8h:
+		{ NULL, CPU80386_OPE9 }, //E9h:
+		{ NULL, CPU80386_OPEA }, //EAh:
+		{ NULL, CPU80386_OPEB }, //EBh:
 		{ NULL, NULL }, //ECh:
-		{ NULL, NULL }, //EDh:
+		{ NULL, CPU80386_OPED }, //EDh:
 		{ NULL, NULL }, //EEh:
-		{ NULL, NULL }, //EFh:
+		{ NULL, CPU80386_OPEF }, //EFh:
 		//0xF0:
 		{ NULL, NULL }, //F0h: Special
-		{ NULL, NULL }, //F1h: UNK
+		{ NULL, CPU80386_OPF1 }, //F1h: UNK
 		{ NULL, NULL }, //F2h: Special
 		{ NULL, NULL }, //F3h: Special
 		{ NULL, NULL }, //F4h:
 		{ NULL, NULL }, //F5h:
 		{ NULL, NULL }, //F6h:
-		{ NULL, NULL }, //F7h:
+		{ NULL, CPU80386_OPF7 }, //F7h:
 		{ NULL, NULL }, //F8h:
 		{ NULL, NULL }, //F9h:
 		{ NULL, NULL }, //FAh:
@@ -1133,7 +1134,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //FCh:
 		{ NULL, NULL }, //FDh:
 		{ NULL, NULL }, //FEh:
-		{ NULL, NULL }  //FFh:
+		{ NULL, CPU80386_OPFF }  //FFh:
 	},
 
 	//80486
