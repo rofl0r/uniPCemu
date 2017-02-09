@@ -262,7 +262,7 @@ void CPU186_OP6B()
 	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow occurred?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
-	FLAGW_SF((temp3.val16&0x8000)>>31); //Sign!
+	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
 	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 }
