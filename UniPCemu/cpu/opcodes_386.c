@@ -1104,17 +1104,17 @@ OPTINLINE void CPU80386_internal_MOVSD()
 	}
 	data = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_ESI, 0); //Try to read the data!
 	CPUPROT1
-	MMU_wdw(CPU_SEGMENT_ES,REG_ES,REG_DI,data); //Try to write the data!
+	MMU_wdw(CPU_SEGMENT_ES,REG_ES,REG_EDI,data); //Try to write the data!
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		REG_ESI -= 2;
-		REG_EDI -= 2;
+		REG_ESI -= 4;
+		REG_EDI -= 4;
 	}
 	else
 	{
-		REG_ESI += 2;
-		REG_EDI += 2;
+		REG_ESI += 4;
+		REG_EDI += 4;
 	}
 	CPUPROT2
 	CPUPROT2
@@ -1179,13 +1179,13 @@ OPTINLINE void CPU80386_internal_CMPSD()
 	CMP_dw(data1,data2,4);
 	if (FLAG_DF)
 	{
-		REG_ESI -= 2;
-		REG_EDI -= 2;
+		REG_ESI -= 4;
+		REG_EDI -= 4;
 	}
 	else
 	{
-		REG_ESI += 2;
-		REG_EDI += 2;
+		REG_ESI += 4;
+		REG_EDI += 4;
 	}
 	CPUPROT2
 	CPUPROT2
@@ -1225,15 +1225,15 @@ OPTINLINE void CPU80386_internal_STOSD()
 	{
 		return; //Abort on fault!
 	}
-	MMU_wdw(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_DI,REG_EAX);
+	MMU_wdw(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,REG_EDI,REG_EAX);
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		REG_EDI -= 2;
+		REG_EDI -= 4;
 	}
 	else
 	{
-		REG_EDI += 2;
+		REG_EDI += 4;
 	}
 	CPUPROT2
 	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
@@ -1275,16 +1275,16 @@ OPTINLINE void CPU80386_internal_LODSD()
 		return; //Abort on fault!
 	}
 
-	value = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0); //Try to read the result!
+	value = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), REG_ESI, 0); //Try to read the result!
 	CPUPROT1
 	REG_EAX = value;
 	if (FLAG_DF)
 	{
-		REG_ESI -= 2;
+		REG_ESI -= 4;
 	}
 	else
 	{
-		REG_ESI += 2;
+		REG_ESI += 4;
 	}
 	CPUPROT2
 	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
@@ -1329,11 +1329,11 @@ OPTINLINE void CPU80386_internal_SCASD()
 	CMP_dw(REG_EAX,cmp1,4);
 	if (FLAG_DF)
 	{
-		REG_EDI -= 2;
+		REG_EDI -= 4;
 	}
 	else
 	{
-		REG_EDI += 2;
+		REG_EDI += 4;
 	}
 	CPUPROT2
 	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
@@ -1447,9 +1447,9 @@ OPTINLINE void CPU80386_internal_XLAT()
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,0,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_EBX+REG_AL,0,getCPL())) return; //Abort on fault!
 	CPUPROT1
-	INLINEREGISTER byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,0);    //XLAT
+	INLINEREGISTER byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_EBX+REG_AL,0);    //XLAT
 	CPUPROT1
 	REG_AL = value;
 	CPUPROT2
