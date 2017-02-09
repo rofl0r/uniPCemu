@@ -107,7 +107,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0;
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		if (modrm_check32(&params,1,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
@@ -163,7 +163,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0;
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		if (modrm_check32(&params,1,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		oper1 = modrm_read16(&params, 1); //Read the limit first!
@@ -179,12 +179,12 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		break;
 	case 4: //SMSW: Same as 80286!
 		debugger_setcommand("SMSW %s", info.text);
-		if (modrm_check16(&params,1,0)) return; //Abort on fault!
-		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
+		if (modrm_check32(&params,1,0)) return; //Abort on fault!
+		modrm_write32(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW: Same as 80286!
 		debugger_setcommand("LMSW %s", info.text);
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		if (modrm_check32(&params,1,1)) return; //Abort on fault!
 		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
 		{
 			THROWDESCGP(0,0,0); //Throw #GP!
@@ -283,7 +283,7 @@ void CPU286_OP0F07() //Undocumented LOADALL instruction
 			DESCRIPTORCACHE386 CSdescriptor;
 			DESCRIPTORCACHE386 ESdescriptor;
 		} fields; //Fields
-		uint_32 datad[33]; //Our data size!
+		uint_32 datad[51]; //Our data size!
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 

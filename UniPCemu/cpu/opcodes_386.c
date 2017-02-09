@@ -2628,7 +2628,7 @@ void CPU386_OP61()
 	CPUPROT1
 	REG_EBP = CPU_POP32();
 	CPUPROT1
-	CPU_POP16();
+	CPU_POP32();
 	CPUPROT1
 	REG_EBX = CPU_POP32();
 	CPUPROT1
@@ -2714,7 +2714,7 @@ void CPU386_OP69()
 		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
 	if ((temp1.val32 &0x80000000)==0x80000000) temp1.val32 |= 0xFFFFFFFF00000000;
-	if ((temp2.val32 &0x80000000)==0x80000000) temp2.val32 |= 0xFFFFFFFF0000;
+	if ((temp2.val32 &0x80000000)==0x80000000) temp2.val32 |= 0xFFFFFFFF00000000;
 	temp3.val32s = temp1.val32s; //Load and...
 	temp3.val32s *= temp2.val32s; //Signed multiplication!
 	modrm_write32(&params,0,temp3.val32); //Write to the destination(register)!
