@@ -111,7 +111,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	//Both structures to use for the TSS!
 	word LDTsegment;
 	word oldtask;
-	byte busy=0;
+	//byte busy=0;
 	byte TSS_dirty = 0; //Is the new TSS dirty?
 	TSS286 TSS16;
 	TSS386 TSS32;
@@ -140,12 +140,12 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR->desc)) //Check the type of descriptor we're executing!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
-		busy = 1;
+		//busy = 1;
 	case AVL_SYSTEM_TSS16BIT:
 		TSSSize = 0; //16-bit TSS!
 		break;
 	case AVL_SYSTEM_BUSY_TSS32BIT:
-		busy = 1;
+		//busy = 1;
 	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
 		TSSSize = 1; //32-bit TSS!
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?

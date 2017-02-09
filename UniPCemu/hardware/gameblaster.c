@@ -247,12 +247,13 @@ OPTINLINE void calcAmpEnvPrecalcs()
 	}
 }
 
+byte SAA1099_basechannels[2] = {0,3}; //The base channels!
+
 OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 {
-	static byte basechannels[2] = {0,3}; //The base channels!
 	byte basechannel;
 	channel &= 1; //Only two channels available!
-	basechannel = basechannels[channel]; //Base channel!
+	basechannel = SAA1099_basechannels[channel]; //Base channel!
 	if (chip->env_enable[channel]) //Envelope enabled and running?
 	{
 		byte step,mode,mask; //Temp data!
@@ -483,13 +484,14 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 	return result; //Give the resulting square wave!
 }
 
+#ifdef PWM_OUTPUT
+int_32 PWM_outputs[5] = {-SHRT_MAX,SHRT_MAX,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 1 0V entry!
+#else
+int_32 PWM_outputs[5] = {-1,1,0,0,0}; //Output, if any!
+#endif
+
 OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 {
-	#ifdef PWM_OUTPUT
-	static int_32 outputs[5] = {-SHRT_MAX,SHRT_MAX,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 1 0V entry!
-	#else
-	static int_32 outputs[5] = {-1,1,0,0,0}; //Output, if any!
-	#endif
 	byte counter;
 	PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
 	counter = PWM->PWMCounter++; //Apply the current counter!
@@ -504,7 +506,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		output &= 6; //Only bits that we need!
 		PWM->output = (output&4); //Bit 2 determines whether we're 0V to render entirely!
 		PWM->flipflopoutput = (output>>1); //Start output, if any! We're starting high!
-		PWM->result = outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
+		PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
 		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
 		counter = 0; //Reset the counter again: we're restored!
 		break;
@@ -524,7 +526,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	}
 	return PWM->result; //Give the proper output as a 16-bit sample!
 	#else
-	return outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
+	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
 }
 

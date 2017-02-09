@@ -531,10 +531,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
+		(
 		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && !(segment==CPU_SEGMENT_CS && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc))) || //We are a lower privilege level and non-conforming?
 		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && //We must be at the same privilege level?
 			!(EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Not conforming checking further ahead makes sure that we don't double check things?
 			)
+		)
 		&& (!((isJMPorCALL==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
 	{
