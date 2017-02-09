@@ -308,6 +308,8 @@ void unkOP_8086(); //Unknown opcode on 8086?
 
 void external8086RETF(word popbytes); //Support for special interrupt handlers!
 
+void CPU8086_external_XLAT(); //XLAT for extensions!
+
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
 
 void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);

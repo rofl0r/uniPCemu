@@ -1092,7 +1092,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, CPU80386_OPD4 }, //D4h:
 		{ NULL, CPU80386_OPD5 }, //D5h:
 		{ NULL, CPU80386_OPD6 }, //D6h: UNK
-		{ NULL, CPU80386_OPD7 }, //D7h:
+		{ CPU80386_OPD7, NULL }, //D7h: 32-bit extension of address size of XLAT!
 		{ NULL, NULL }, //D8h: UNK
 		{ NULL, NULL }, //D9h: CoProcessor Minimum
 		{ NULL, NULL }, //DAh: UNK

@@ -1907,6 +1907,8 @@ OPTINLINE void CPU8086_internal_XLAT()
 	CPU[activeCPU].cycles_OP = 11; //XLAT timing!
 }
 
+void CPU8086_external_XLAT() {CPU8086_internal_XLAT();} //External variant!
+
 OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
 	if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
