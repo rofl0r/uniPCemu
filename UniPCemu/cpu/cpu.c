@@ -1609,6 +1609,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		switch (EMULATED_CPU) //What CPU to use?
 		{
+		default: //All newer CPUs using the instruction timing table!
 		case CPU_80286: //Special 286 case for easy 8086-compatibility!
 			//80286 uses other timings than the other chips!
 			ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
@@ -1730,10 +1731,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			apply286cycles: //Apply the 286+ cycles used!
 			//cycles_counted = 1; //Cycles have been counted!
 			#endif
-			break;
-		default: //Not implemented yet?
-			CPU[activeCPU].cycles = 4; //Take 4 cycles per instruction for now(1 PIT tick at 8086 speed)!
-			//cycles_counted = 1; //Cycles have been counted!
 			break;
 		}
 	}
