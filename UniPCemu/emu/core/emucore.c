@@ -754,7 +754,7 @@ void updateSpeedLimit()
 	}
 	else //Cycles specified?
 	{
-		setDosboxCycles((BIOS_Settings.CPUSpeedMode && (EMULATED_CPU<=CPU_80286))?0:1,CPUSpeed); //Use either Dosbox clock(Instructions per millisecond) or actual clocks when supported!
+		setDosboxCycles(BIOS_Settings.CPUSpeedMode?0:1,CPUSpeed); //Use either Dosbox clock(Instructions per millisecond) or actual clocks when supported!
 	}
 }
 

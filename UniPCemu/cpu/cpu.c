@@ -456,7 +456,7 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0)); //Copy offset!
 }
 
-byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
+byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
 
 OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
 {
@@ -646,7 +646,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	}
 	CPU[activeCPU].CallGateStack = allocfifobuffer(32<<2,0); //Non-lockable 32-bit 32 arguments FIFO buffer for call gate stack parameter copy!
 	#ifdef CPU_USECYCLES
-	CPU_useCycles = (EMULATED_CPU<=CPU_80286); //Are we using cycle-accurate emulation?
+	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
 	#endif
 	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
 	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
@@ -1712,6 +1712,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				}
 			}
 			//Fall back to the default handler on 80(1)86 systems!
+		CPU[activeCPU].cycles_OP = 4; //Default to NOP timings!
 		case CPU_8086: //8086/8088?
 		case CPU_NECV30: //NEC V20/V30/80188?
 			//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
