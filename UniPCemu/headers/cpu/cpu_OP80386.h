@@ -1,6 +1,8 @@
 #ifndef CPU_OP80386_H
 #define CPU_OP80386_H
 
+void unkOP0F_386(); //0F unknown opcode handler on 386+?
+
 void CPU80386_OP01();
 void CPU80386_OP03();
 void CPU80386_OP05();
@@ -182,7 +184,7 @@ No 80286 normal extensions exist.
 */
 
 void CPU386_OP0F01(); //Various extended 286+ instruction GRP opcode.
-void CPU286_OP0F07(); //Undocumented LOADALL instruction
+void CPU386_OP0F07(); //Undocumented LOADALL instruction
 
 extern byte didJump; //Did we jump?
 

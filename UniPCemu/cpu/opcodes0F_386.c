@@ -180,7 +180,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 	case 4: //SMSW: Same as 80286!
 		debugger_setcommand("SMSW %s", info.text);
 		if (modrm_check32(&params,1,0)) return; //Abort on fault!
-		modrm_write32(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
+		modrm_write32(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF)); //Store the MSW into the specified location!
 		break;
 	case 6: //LMSW: Same as 80286!
 		debugger_setcommand("LMSW %s", info.text);
@@ -243,7 +243,7 @@ void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 }
 
-void CPU286_OP0F07() //Undocumented LOADALL instruction
+void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
 	word address;
 #include "headers/packed.h" //Packed!
