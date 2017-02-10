@@ -688,7 +688,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		if (EMULATED_CPU>=CPU_80286) //We have extra registers in all modes?
 		{
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 44, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "GDTR:" LONGLONGSPRINTX "; IDTR:" LONGLONGSPRINTX, (LONG64SPRINTF)debuggerregisters.GDTR.data, (LONG64SPRINTF)debuggerregisters.IDTR.data); //Debug GDTR&IDTR!
 		}
 
