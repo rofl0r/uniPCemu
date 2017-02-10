@@ -405,8 +405,8 @@ void CPU186_OPC0()
 
 void CPU186_OPC1()
 {
-	if (modrm_check8(&params,1,1)) return; //Abort on error!
-	if (modrm_check8(&params,1,0)) return; //Abort on error!
+	if (modrm_check16(&params,1,1)) return; //Abort on error!
+	if (modrm_check16(&params,1,0)) return; //Abort on error!
 	oper1 = modrm_read16(&params,1);
 	oper2 = (word)immb;
 	thereg = MODRM_REG(params.modrm);

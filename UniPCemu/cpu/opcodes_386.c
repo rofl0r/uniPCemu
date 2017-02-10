@@ -2651,7 +2651,7 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 //62 not implemented in fake86? Does this not exist?
 void CPU386_OP62()
 {
-	modrm_debugger16(&params,0,1); //Debug the location!
+	modrm_debugger32(&params,0,1); //Debug the location!
 	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
 
 	if (modrm_isregister(params)) //ModR/M may only be referencing memory?
@@ -2684,7 +2684,7 @@ void CPU386_OP62()
 void CPU386_OP68()
 {
 	uint_32 val = imm32;    //PUSH Iz
-	debugger_setcommand("PUSH %04X",val);
+	debugger_setcommand("PUSH %08X",val);
 	if (checkStackAccess(1,1,1)) return; //Abort on fault!
 	CPU_PUSH32(&val);
 }
@@ -2900,8 +2900,8 @@ word op_grp2_32(byte cnt, byte varshift) { //TODO!
 
 void CPU386_OPC1()
 {
-	if (modrm_check8(&params,1,1)) return; //Abort on error!
-	if (modrm_check8(&params,1,0)) return; //Abort on error!
+	if (modrm_check32(&params,1,1)) return; //Abort on error!
+	if (modrm_check32(&params,1,0)) return; //Abort on error!
 	oper1d = modrm_read32(&params,1);
 	oper2d = (word)immb;
 	thereg = MODRM_REG(params.modrm);
