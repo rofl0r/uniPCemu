@@ -8,6 +8,7 @@
 #include "headers/support/signedness.h" //CPU support functions!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/cpu_OP80286.h" //80286 support!
+#include "headers/cpu/cpu_OP80386.h" //80386 support!
 #include "headers/cpu/protection.h" //Protection support!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
@@ -382,3 +383,120 @@ void CPU80386_OP0F8C_32() {INLINEREGISTER int_32 rel32;/*JL rel8: (FLAG_SF!=FLAG
 void CPU80386_OP0F8D_32() {INLINEREGISTER int_32 rel32;/*JGE rel8 : (FLAG_SF=FLAG_OF)*/ rel32 = imm32(); modrm_generateInstructionTEXT("JGE",0,REG_EIP + rel32,PARAM_IMM32); /* JUMP to destination? */ if (FLAG_SF==FLAG_OF) {REG_EIP += rel32; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 void CPU80386_OP0F8E_32() {INLINEREGISTER int_32 rel32;/*JLE rel8 : (FLAG_ZF|(FLAG_SF!=FLAG_OF))*/ rel32 = imm32(); modrm_generateInstructionTEXT("JLE",0,REG_EIP + rel32,PARAM_IMM32); /* JUMP to destination? */ if ((FLAG_SF!=FLAG_OF) || FLAG_ZF) {REG_EIP += rel32; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 void CPU80386_OP0F8F_32() {INLINEREGISTER int_32 rel32;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel32 = imm32(); modrm_generateInstructionTEXT("JG",0,REG_EIP + rel32,PARAM_IMM32); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_EIP += rel32; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
+
+//MOV [C/D]Rn instructions
+void CPU80386_OP0F20() {unkOP0F_386();} //MOV /r r32,CRn
+void CPU80386_OP0F21() {unkOP0F_386();} //MOV /r r32,DRn
+void CPU80386_OP0F22() {unkOP0F_386();} //MOV /r CRn,r32
+void CPU80386_OP0F23() {unkOP0F_386();} //MOV /r DRn,r32
+
+//SETCC instructions
+void CPU80386_OP0F90() {unkOP0F_386();} //SETO r/m8
+void CPU80386_OP0F91() {unkOP0F_386();} //SETNO r/m8
+void CPU80386_OP0F92() {unkOP0F_386();} //SETC r/m8
+void CPU80386_OP0F93() {unkOP0F_386();} //SETAE r/m8
+void CPU80386_OP0F94() {unkOP0F_386();} //SETE r/m8
+void CPU80386_OP0F95() {unkOP0F_386();} //SETNE r/m8
+void CPU80386_OP0F96() {unkOP0F_386();} //SETNA r/m8
+void CPU80386_OP0F97() {unkOP0F_386();} //SETA r/m8
+void CPU80386_OP0F98() {unkOP0F_386();} //SETS r/m8
+void CPU80386_OP0F99() {unkOP0F_386();} //SETNS r/m8
+void CPU80386_OP0F9A() {unkOP0F_386();} //SETP r/m8
+void CPU80386_OP0F9B() {unkOP0F_386();} //SETNP r/m8
+void CPU80386_OP0F9C() {unkOP0F_386();} //SETL r/m8
+void CPU80386_OP0F9D() {unkOP0F_386();} //SETGE r/m8
+void CPU80386_OP0F9E() {unkOP0F_386();} //SETLE r/m8
+void CPU80386_OP0F9F() {unkOP0F_386();} //SETG r/m8
+
+//Push/pop FS
+void CPU80386_OP0FA0() {unkOP0F_386();} //PUSH FS
+void CPU80386_OP0FA1() {unkOP0F_386();} //POP FS
+
+void CPU80386_OP0FA3_16() {unkOP0F_386();} //BT /r r/m16,r16
+void CPU80386_OP0FA3_32() {unkOP0F_386();} //BT /r r/m32,r32
+
+void CPU80386_OP0FA4_16() {unkOP0F_386();} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32() {unkOP0F_386();} //SHLD /r r/m32,r32,imm8
+
+void CPU80386_OP0FA5_16() {unkOP0F_386();} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32() {unkOP0F_386();} //SHLD /r r/m32,r32,CL
+
+void CPU80386_OP0FA8() {unkOP0F_386();} //PUSH GS
+void CPU80386_OP0FA9() {unkOP0F_386();} //POP GS
+
+//0F AA is RSM FLAGS on 386++
+
+void CPU80386_OP0FAB_16() {unkOP0F_386();} //BTS /r r/m16,r16
+void CPU80386_OP0FAB_32() {unkOP0F_386();} //BTS /r r/m32,r32
+void CPU80386_OP0FAC_16() {unkOP0F_386();} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32() {unkOP0F_386();} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16() {unkOP0F_386();} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32() {unkOP0F_386();} //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAF_16() {unkOP0F_386();} //IMUL /r r16,r/m16
+void CPU80386_OP0FAF_32() {unkOP0F_386();} //IMUL /r r32,r/m32
+
+//LSS
+void CPU80386_OP0FB2_16() {unkOP0F_386();} //LSS /r r16,m16:16
+void CPU80386_OP0FB2_32() {unkOP0F_386();} //LSS /r r32,m16:32
+
+void CPU80386_OP0FB3_16() {unkOP0F_386();} //BTR /r r/m16,r16
+void CPU80386_OP0FB3_32() {unkOP0F_386();} //BTR /r r/m32,r32
+
+void CPU80386_OP0FB4_16() {unkOP0F_386();} //LFS /r r16,m16:16
+void CPU80386_OP0FB4_32() {unkOP0F_386();} //LFS /r r32,m16:32
+
+void CPU80386_OP0FB5_16() {unkOP0F_386();} //LGS /r r16,m16:16
+void CPU80386_OP0FB5_32() {unkOP0F_386();} //LGS /r r32,m16:32
+
+void CPU80386_OP0FB6_16() {unkOP0F_386();} //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32() {unkOP0F_386();} //MOVZX /r r32,r/m8
+
+void CPU80386_OP0FB7_16() {unkOP0F_386();} //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32() {unkOP0F_386();} //MOVZX /r r32,r/m16
+
+void CPU80386_OP0FBA_16() {
+	thereg = MODRM_REG(params.modrm);
+
+	modrm_decode16(&params, &info, 1); //Store the address for debugging!
+	switch (thereg)
+	{
+		case 4: //BT r/m16,imm8
+		case 5: //BTS r/m16,imm8
+		case 6: //BTR r/m16,imm8
+		case 7: //BTC r/m16,imm8
+		default: //Unknown instruction?
+			unkOP0F_386(); //Unknown instruction!
+			break;
+	}
+}
+
+void CPU80386_OP0FBA_32() {
+	thereg = MODRM_REG(params.modrm);
+
+	modrm_decode32(&params, &info, 1); //Store the address for debugging!
+	switch (thereg)
+	{
+		case 4: //BT r/m32,imm8
+		case 5: //BTS r/m32,imm8
+		case 6: //BTR r/m32,imm8
+		case 7: //BTC r/m32,imm8
+		default: //Unknown instruction?
+			unkOP0F_386(); //Unknown instruction!
+			break;
+	}
+}
+
+void CPU80386_OP0FBB_16() {unkOP0F_386();} //BTC /r r/m16,r16
+void CPU80386_OP0FBB_32() {unkOP0F_386();} //BTC /r r/m32,r32
+
+void CPU80386_OP0FBC_16() {unkOP0F_386();} //BSF /r r16,r/m16
+void CPU80386_OP0FBC_32() {unkOP0F_386();} //BSF /r r32,r/m32
+
+void CPU80386_OP0FBD_16() {unkOP0F_386();} //BSR /r r16,r/m16
+void CPU80386_OP0FBD_32() {unkOP0F_386();} //BSR /r r32,r/m32
+
+void CPU80386_OP0FBE_16() {unkOP0F_386();} //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32() {unkOP0F_386();} //MOVSX /r r32,r/m8
+
+void CPU80386_OP0FBF_16() {unkOP0F_386();} //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32() {unkOP0F_386();} //MOVSX /r r32,r/m16

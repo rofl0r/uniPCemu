@@ -186,8 +186,6 @@ No 80286 normal extensions exist.
 void CPU386_OP0F01(); //Various extended 286+ instruction GRP opcode.
 void CPU386_OP0F07(); //Undocumented LOADALL instruction
 
-extern byte didJump; //Did we jump?
-
 //New: 16-bit and 32-bit variants of OP70-7F as a 0F opcode!
 //16-bits variant
 void CPU80386_OP0F80_16();
@@ -223,5 +221,95 @@ void CPU80386_OP0F8C_32();
 void CPU80386_OP0F8D_32();
 void CPU80386_OP0F8E_32();
 void CPU80386_OP0F8F_32();
+
+//All remaining 0F opcodes
+
+//MOV [D/C]Rn instructions
+void CPU80386_OP0F20(); //MOV /r r32,CRn
+void CPU80386_OP0F21(); //MOV /r r32,DRn
+void CPU80386_OP0F22(); //MOV /r CRn,r32
+void CPU80386_OP0F23(); //MOV /r DRn,r32
+
+//SETCC instructions
+void CPU80386_OP0F90(); //SETO r/m8
+void CPU80386_OP0F91(); //SETNO r/m8
+void CPU80386_OP0F92(); //SETC r/m8
+void CPU80386_OP0F93(); //SETAE r/m8
+void CPU80386_OP0F94(); //SETE r/m8
+void CPU80386_OP0F95(); //SETNE r/m8
+void CPU80386_OP0F96(); //SETNA r/m8
+void CPU80386_OP0F97(); //SETA r/m8
+void CPU80386_OP0F98(); //SETS r/m8
+void CPU80386_OP0F99(); //SETNS r/m8
+void CPU80386_OP0F9A(); //SETP r/m8
+void CPU80386_OP0F9B(); //SETNP r/m8
+void CPU80386_OP0F9C(); //SETL r/m8
+void CPU80386_OP0F9D(); //SETGE r/m8
+void CPU80386_OP0F9E(); //SETLE r/m8
+void CPU80386_OP0F9F(); //SETG r/m8
+
+//Push/pop FS
+void CPU80386_OP0FA0(); //PUSH FS
+void CPU80386_OP0FA1(); //POP FS
+
+void CPU80386_OP0FA3_16(); //BT /r r/m16,r16
+void CPU80386_OP0FA3_32(); //BT /r r/m32,r32
+
+void CPU80386_OP0FA4_16(); //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32(); //SHLD /r r/m32,r32,imm8
+
+void CPU80386_OP0FA5_16(); //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32(); //SHLD /r r/m32,r32,CL
+
+void CPU80386_OP0FA8(); //PUSH GS
+void CPU80386_OP0FA9(); //POP GS
+
+//0F AA is RSM FLAGS on 386++
+
+void CPU80386_OP0FAB_16(); //BTS /r r/m16,r16
+void CPU80386_OP0FAB_32(); //BTS /r r/m32,r32
+void CPU80386_OP0FAC_16(); //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32(); //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16(); //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32(); //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAF_16(); //IMUL /r r16,r/m16
+void CPU80386_OP0FAF_32(); //IMUL /r r32,r/m32
+
+//LSS
+void CPU80386_OP0FB2_16(); //LSS /r r16,m16:16
+void CPU80386_OP0FB2_32(); //LSS /r r32,m16:32
+
+void CPU80386_OP0FB3_16(); //BTR /r r/m16,r16
+void CPU80386_OP0FB3_32(); //BTR /r r/m32,r32
+
+void CPU80386_OP0FB4_16(); //LFS /r r16,m16:16
+void CPU80386_OP0FB4_32(); //LFS /r r32,m16:32
+
+void CPU80386_OP0FB5_16(); //LGS /r r16,m16:16
+void CPU80386_OP0FB5_32(); //LGS /r r32,m16:32
+
+void CPU80386_OP0FB6_16(); //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32(); //MOVZX /r r32,r/m8
+
+void CPU80386_OP0FB7_16(); //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32(); //MOVZX /r r32,r/m16
+
+void CPU80386_OP0FBA_16();
+void CPU80386_OP0FBA_32();
+
+void CPU80386_OP0FBB_16(); //BTC /r r/m16,r16
+void CPU80386_OP0FBB_32(); //BTC /r r/m32,r32
+
+void CPU80386_OP0FBC_16(); //BSF /r r16,r/m16
+void CPU80386_OP0FBC_32(); //BSF /r r32,r/m32
+
+void CPU80386_OP0FBD_16(); //BSR /r r16,r/m16
+void CPU80386_OP0FBD_32(); //BSR /r r32,r/m32
+
+void CPU80386_OP0FBE_16(); //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32(); //MOVSX /r r32,r/m8
+
+void CPU80386_OP0FBF_16(); //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32(); //MOVSX /r r32,r/m16
 
 #endif
