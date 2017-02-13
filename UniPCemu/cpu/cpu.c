@@ -853,7 +853,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 //Determine the stack&attribute sizes(286+)!
 	CPU_StackAddress_size[activeCPU] = STACK_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
 
-	if (CODE_SEGMENT_D_BIT()) //32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
+	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
 	{
 		CPU_Operand_size[activeCPU] = 1; //Set!
 		CPU_Address_size[activeCPU] = 1; //Set!
