@@ -192,6 +192,18 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
 
 //For CPU itself:
+/*
+
+Slashr:
+0: No slashr! (Use displacement if needed!)
+1: RM=> REG2 (No displacement etc.)
+2: REG1=> SEGMENTREGISTER (Use displacement if needed!)
+3: R/M=> CRn(/r implied)
+4: R/M=> DRn(/r implied)
+5: Reg is 16-bits instead!
+6: Reg is 32-bits instead!
+
+*/
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
 
 //For fixing segment loads through MOV instructions.
