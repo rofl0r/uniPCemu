@@ -885,15 +885,15 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,0,0,0,0,0,0,0x00 }, //F3 REPZ prefix
 			{ 1,0,0,0,0,0,0,0x00 }, //F4 HLT
 			{ 1,0,0,0,0,0,0,0x00 }, //F5 CMC
-			{ 1,1,0,0,1,0,0,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
-			{ 1,1,1,0,1,0,0,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
+			{ 1,1,0,0,1,0,5,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
+			{ 1,1,1,0,1,0,6,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
 			{ 1,0,0,0,0,0,0,0x00 }, //F8 CLC
 			{ 1,0,0,0,0,0,0,0x00 }, //F9 STC
 			{ 1,0,0,0,0,0,0,0x00 }, //FA CLI
 			{ 1,0,0,0,0,0,0,0x00 }, //FB STI
 			{ 1,0,0,0,0,0,0,0x00 }, //FC CLD
 			{ 1,0,0,0,0,0,0,0x00 }, //FD STD
-			{ 1,1,0,0,1,0,0,0x00 }, //FE GRP4 Eb Case 0&1 read and write back. Case 7 takes immediate operands(Special callback instruction in this emulation only).
+			{ 1,1,0,0,1,0,0,0x00 }, //FE GRP4 Eb Case 0&1 read and write back.
 			{ 1,1,1,0,1,0,0,0x00 } //FF GRP5 Various operations depending on REG.
 		}
 	}, //8086+
@@ -1005,7 +1005,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //67/77 JXX
 			{ 1,0,0,0,0,0,2,0x00 }, //68 186+ PUSH immw
 			{ 1,1,1,0,0,0,2,0x00 }, //69 186+ IMUL ModR/M imm16
-			{ 1,0,0,0,0,0,1,0x00 }, //6A 186+ PUSH immb
+			{ 1,0,0,0,0,0,1,0x08 }, //6A 186+ PUSH immb
 			{ 1,1,1,0,0,0,1,0x00 }, //6B 186+ IMUL ModR/M imm8
 			{ 1,0,0,0,0,0,0,0x00 }, //6C 186+ INSB
 			{ 1,0,0,0,0,0,0,0x00 }, //6D 186+ INSW
@@ -2439,8 +2439,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //F3 REPZ prefix
 			{ 0,0,0,0,0,0,0,0x00 }, //F4 HLT
 			{ 0,0,0,0,0,0,0,0x00 }, //F5 CMC
-			{ 0,1,0,0,1,0,0,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
-			{ 1,1,2,0,1,0,0,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
+			{ 0,1,0,0,1,0,5,0x00 }, //F6 Grp3a Eb Uses writeback with REG 2&3 only! REG 0&1 also have an immediate byte parameter!
+			{ 1,1,2,0,1,0,7,0x00 }, //F7 Grp3b Ev See opcode F6(Grp3a Eb), but with word values for all cases!
 			{ 0,0,0,0,0,0,0,0x00 }, //F8 CLC
 			{ 0,0,0,0,0,0,0,0x00 }, //F9 STC
 			{ 0,0,0,0,0,0,0,0x00 }, //FA CLI
