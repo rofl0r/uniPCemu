@@ -3871,6 +3871,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	}
 	BIOS_Menu = 27; //Goto Colors menu!
 }
+
 void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Assign keyboard colors");
