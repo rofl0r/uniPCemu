@@ -861,11 +861,11 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 	if (CPU[activeCPU].is0Fopcode) //0F opcode?
 	{
-		timing = &CPUTimings0F[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
+		timing = &CPUTimings0F[CPU_Operand_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
 	}
 	else //Normal opcode?
 	{
-		timing = &CPUTimings[CPU_Address_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
+		timing = &CPUTimings[CPU_Operand_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
 	}
 
 	if (timing->used==0) goto skiptimings; //Are we not used?
