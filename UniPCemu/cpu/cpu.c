@@ -116,7 +116,7 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 				return 1; //Abort on fault!
 			}
 		}
-		ESP += isPUSH?stack_pushchange(0):stack_popchange(0); //Apply the change in virtual (E)SP to check the next value!
+		ESP += isPUSH?stack_pushchange(isdword):stack_popchange(isdword); //Apply the change in virtual (E)SP to check the next value!
 		--poptimesleft; //One POP processed!
 	}
 	return 0; //OK!
@@ -128,7 +128,7 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 	uint_32 EBP = CPU[activeCPU].registers->EBP; //Load the stack pointer to verify!
 	for (;poptimesleft;) //Anything left?
 	{
-		EBP += stack_popchange(0); //Apply the change in virtual (E)BP to check the next value!
+		EBP += stack_popchange(isdword); //Apply the change in virtual (E)BP to check the next value!
 		
 		//We're at least a word access!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
