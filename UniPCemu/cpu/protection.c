@@ -630,7 +630,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
 				for (;arguments--;) //Copy as many arguments as needed!
 				{
-					if (DATA_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit source?
+					if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit source?
 					{
 						argument = CPU_POP32(); //POP 32-bit argument!
 					}
@@ -722,7 +722,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						{
 							if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
 							{
-								if ((DATA_SEGMENT_DESCRIPTOR_B_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+								if ((CODE_SEGMENT_DESCRIPTOR_D_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
 								{
 									CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
 								}
