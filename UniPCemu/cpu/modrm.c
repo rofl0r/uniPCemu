@@ -572,10 +572,6 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 		result->reg32 = &CPU[activeCPU].registers->CR0;
 		if (cpudebugger) strcpy(result->text,"CR0");
 		break;
-	case MODRM_REG_CR1:
-		result->reg32 = &CPU[activeCPU].registers->CR1;
-		if (cpudebugger) strcpy(result->text,"CR1");
-		break;
 	case MODRM_REG_CR2:
 		result->reg32 = &CPU[activeCPU].registers->CR2;
 		if (cpudebugger) strcpy(result->text,"CR2");
@@ -588,19 +584,11 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 		result->reg32 = &CPU[activeCPU].registers->CR[4];
 		if (cpudebugger) strcpy(result->text,"CR4");
 		break;
+	case MODRM_REG_CR1:
 	case MODRM_REG_CR5:
-		result->reg32 = &CPU[activeCPU].registers->CR[5];
-		if (cpudebugger) strcpy(result->text,"CR5");
-		break;
 	case MODRM_REG_CR6:
-		result->reg32 = &CPU[activeCPU].registers->CR[6];
-		if (cpudebugger) strcpy(result->text,"CR6");
-		break;
 	case MODRM_REG_CR7:
-		result->reg32 = &CPU[activeCPU].registers->CR[7];
-		if (cpudebugger) strcpy(result->text,"CR7");
-		break;
-
+		//CR1 and CR5-7 are undefined, raising an #UD!
 	default: //Catch handler!
 		result->reg32 = NULL; //Unknown!
 		if (cpudebugger) strcpy(result->text,"<UNKCREG>");
@@ -2158,6 +2146,10 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	}
 
 	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register specified?
+	{
+		param->error = 1; //We've detected an error!
+	}
+	else if ((slashr==3) || (slashr==4) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
 	{
 		param->error = 1; //We've detected an error!
 	}
