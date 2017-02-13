@@ -409,10 +409,17 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
 		dolog(filename, "CR0: %08X; CR1: %08X; CR2: %08X; CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
-		dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->unusedCR[0], registers->unusedCR[1], registers->unusedCR[2], registers->unusedCR[3]); //Rest!
+		dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
 
 		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
-		dolog(filename, "DR4&6: %08X; DR5&7: %08X", registers->DR4_6, registers->DR5_7); //Rest!
+		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium has DR4?
+		{
+			dolog(filename, "DR4: %08X; DR6: %08X; DR5&7: %08X", registers->DR4, registers->DR6, registers->DR7); //Rest!
+		}
+		else //DR4=>DR6
+		{
+			dolog(filename, "DR6: %08X; DR5&7: %08X", registers->DR6, registers->DR7); //Rest!
+		}
 
 		dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
@@ -673,17 +680,25 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR2:%08X; CR3:%08X", debuggerregisters.CR2, debuggerregisters.CR3); //Debug CR2&CR3!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR4:%08X; CR5:%08X", debuggerregisters.unusedCR[0], debuggerregisters.unusedCR[1]); //Debug CR4&CR5!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR4:%08X; CR5:%08X", debuggerregisters.CR4, debuggerregisters.CR5); //Debug CR4&CR5!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR6:%08X; CR7:%08X", debuggerregisters.unusedCR[2], debuggerregisters.unusedCR[3]); //Debug CR6&CR7!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CR6:%08X; CR7:%08X", debuggerregisters.CR6, debuggerregisters.CR7); //Debug CR6&CR7!
 
 			//Debugger registers!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR0:%08X; DR1:%08X", debuggerregisters.DR[0], debuggerregisters.DR[1]); //Debug DR0&DR1!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR2:%08X; DR3:%08X", debuggerregisters.DR[2], debuggerregisters.DR[3]); //Debug DR2&DR3!
-			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 31, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4&6:%08X; DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
+			if (EMULATED_CPU<CPU_PENTIUM) //DR4=>DR6?
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 31, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4&6:%08X; DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
+			}
+			else //DR4 and DR6 are seperated and both implemented on Pentium+!
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 42, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4:%08X; DR6:%08X DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
+			}
 		}
 
 		if (EMULATED_CPU>=CPU_80286) //We have extra registers in all modes?

@@ -49,6 +49,26 @@
 #define MODRM_REG_ESI 6
 #define MODRM_REG_EDI 7
 
+//Control registers(always 32-bit)
+#define MODRM_REG_CR0 0
+#define MODRM_REG_CR1 1
+#define MODRM_REG_CR2 2
+#define MODRM_REG_CR3 3
+#define MODRM_REG_CR4 4
+#define MODRM_REG_CR5 5
+#define MODRM_REG_CR6 6
+#define MODRM_REG_CR7 7
+
+//Debugger registers(always 32-bit)
+#define MODRM_REG_DR0 0
+#define MODRM_REG_DR1 1
+#define MODRM_REG_DR2 2
+#define MODRM_REG_DR3 3
+#define MODRM_REG_DR4 4
+#define MODRM_REG_DR5 5
+#define MODRM_REG_DR6 6
+#define MODRM_REG_DR7 7
+
 //Finally: the data for r/m operands:
 
 #define MODRM_MEM_BXSI 0
@@ -198,10 +218,10 @@ Slashr:
 0: No slashr! (Use displacement if needed!)
 1: RM=> REG2 (No displacement etc.)
 2: REG1=> SEGMENTREGISTER (Use displacement if needed!)
-3: R/M=> CRn(/r implied)
-4: R/M=> DRn(/r implied)
-5: Reg is 16-bits instead!
-6: Reg is 32-bits instead!
+3: Reg=> CRn(/r implied), R/M is General Purpose register!
+4: Reg=> DRn(/r implied), R/M is General Purpose register!
+5: General purpose register(Reg) is 16-bits instead!
+6: General purpose register(Reg) is 32-bits instead!
 
 */
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP

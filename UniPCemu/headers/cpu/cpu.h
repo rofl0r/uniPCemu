@@ -769,20 +769,25 @@ typedef struct PACKED //The registers!
 				uint_32 CR1; //Unused!
 				uint_32 CR2; //Page Fault Linear Address
 				uint_32 CR3;
-				uint_32 unusedCR[4]; //4 unused CRs!
+				uint_32 CR4; //4 unused CRs until Pentium!
+				uint_32 CR5;
+				uint_32 CR6;
+				uint_32 CR7;
 			}; //CR0-3!
 		}; //CR0-3!
 		union
 		{
-			uint_32 DR[6]; //All debugger registers! index 4=6 and index 5=7!
+			uint_32 DR[7]; //All debugger registers! index 4=>6 and index 5=>7!
 			struct
 			{
 				uint_32 DR0;
 				uint_32 DR1;
 				uint_32 DR2;
 				uint_32 DR3;
-				uint_32 DR4_6; //DR4&6!
-				uint_32 DR5_7; //DR5&7!
+				uint_32 DR4; //Existant on Pentium+ only! Redirected to DR6 on 386+, except when enabled using CR4.
+				uint_32 noDRregister; //Not defined: DR5 on Pentium! Redirected to DR7 on 386+(when not disabled using CR4).
+				uint_32 DR6; //DR4->6 on 386+, DR6 on Pentium+!
+				uint_32 DR7; //DR5->7 on 386+, DR7 on Pentium+!
 			};
 		}; //DR0-7; 4=6&5=7!
 	}; //Special registers!
