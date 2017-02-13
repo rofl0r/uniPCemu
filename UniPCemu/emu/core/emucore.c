@@ -271,6 +271,7 @@ byte useGameBlaster; //Using the Game blaster?
 byte useAdlib; //Using the Adlib?
 byte useLPTDAC; //Using the LPT DAC?
 byte useSoundBlaster; //Using the Sound Blaster?
+byte useMPU; //Using the MPU-401?
 
 byte is_XT = 0; //Are we emulating an XT architecture?
 
@@ -351,17 +352,20 @@ void initEMU(int full) //Init!
 	}
 
 	debugrow("Initialising MPU...");
+	useMPU = 0; //Are we using the MPU-401?
 	if ((strcmp(BIOS_Settings.SoundFont,"")!=0) || (BIOS_Settings.useDirectMIDI)) //Gotten a soundfont?
 	{
 		memset(&soundfont,0,sizeof(soundfont)); //Init!
 		strcpy(soundfont,soundfontpath); //The path to the soundfont!
 		strcat(soundfont,"/");
 		strcat(soundfont,BIOS_Settings.SoundFont); //The full path to the soundfont!
+		useMPU = 1; //Try to use the MPU!
 		if (!initMPU(&soundfont[0],BIOS_Settings.useDirectMIDI)) //Initialise our MPU! Use the selected soundfont!
 		{
 			//We've failed loading!
 			memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
 			forceBIOSSave(); //Save the new BIOS!
+			useMPU = 0; //Don't use the MPU: we're rejected!
 		}
 	}
 
@@ -370,7 +374,7 @@ void initEMU(int full) //Init!
 
 	//Check if we're allowed to use full Sound Blaster emulation!
 	useSoundBlaster = BIOS_Settings.useSoundBlaster; //Sound blaster used?
-	if ((strcmp(BIOS_Settings.SoundFont,"")==0) && useSoundBlaster) //Sound Blaster without soundfont?
+	if ((useMPU==0) && useSoundBlaster) //Sound Blaster without soundfont?
 	{
 		useSoundBlaster = 0; //No sound blaster to emulate! We can't run without a soundfont!
 	}
