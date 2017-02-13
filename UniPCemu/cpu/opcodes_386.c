@@ -2696,13 +2696,13 @@ void CPU386_OP69()
 	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 	{
 		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = modrm_read32(&params,1); //Read R/M!
+		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
 	}
 	else
 	{
-		temp1.val64 = (uint_32)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
+		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
 	}
-	temp2.val64 = imm32; //Immediate word is second/third parameter!
+	temp2.val64 = (uint_64)imm32; //Immediate word is second/third parameter!
 	modrm_decode32(&params,&info,0); //Reg!
 	modrm_decode32(&params,&info2,1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -2713,17 +2713,17 @@ void CPU386_OP69()
 	{
 		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
-	if ((temp1.val32 &0x80000000)==0x80000000) temp1.val32 |= 0xFFFFFFFF00000000;
-	if ((temp2.val32 &0x80000000)==0x80000000) temp2.val32 |= 0xFFFFFFFF00000000;
-	temp3.val32s = temp1.val32s; //Load and...
-	temp3.val32s *= temp2.val32s; //Signed multiplication!
+	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
+	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
+	temp3.val64s = temp1.val32s; //Load and...
+	temp3.val64s *= temp2.val32s; //Signed multiplication!
 	modrm_write32(&params,0,temp3.val32); //Write to the destination(register)!
-	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF(((uint_64)temp3.val64&0x80000000U)>>63); //Sign!
-	FLAGW_PF(parity[temp3.val64&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val64==0)?1:0); //Set the zero flag!
+	FLAGW_SF(((uint_64)temp3.val32&0x80000000U)>>31); //Sign!
+	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
 
 void CPU386_OP6B()
@@ -2731,13 +2731,13 @@ void CPU386_OP6B()
 	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 	{
 		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = modrm_read32(&params,1); //Read R/M!
+		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
 	}
 	else
 	{
-		temp1.val64 = (uint_32)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
+		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
 	}
-	temp2.val64 = (uint_32)immb; //Read unsigned parameter!
+	temp2.val64 = (uint_64)immb; //Read unsigned parameter!
 	modrm_decode32(&params,&info,0); //Store the address!
 	modrm_decode32(&params,&info2,1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -2749,15 +2749,15 @@ void CPU386_OP6B()
 		debugger_setcommand("IMULW %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
 
-	if (temp1.val64&0x80000000) temp1.val64 |= 0xFFFFFFFF00000000;//Sign extend to 32 bits!
-	if (temp2.val64&0x80) temp2.val32 |= 0xFFFFFFFFFFFFFF00; //Sign extend to 32 bits!
+	if (temp1.val64&0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;//Sign extend to 32 bits!
+	if (temp2.val64&0x80ULL) temp2.val64 |= 0xFFFFFFFFFFFFFF00ULL; //Sign extend to 32 bits!
 	temp3.val64s = temp1.val64s * temp2.val64s;
 	modrm_write32(&params,0,temp3.val32); //Write to register!
-	if (((temp3.val64>>15)==0) || ((temp3.val64>>16)==0x1FFFFFF)) FLAGW_OF(0); //Overflow occurred?
+	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
-	FLAGW_PF(parity[temp3.val64&0xFF]); //Parity flag!
+	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
 

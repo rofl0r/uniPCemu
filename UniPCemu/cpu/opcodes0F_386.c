@@ -20,8 +20,14 @@ First, 32-bit 80386 variants of the 80286 opcodes!
 */
 
 //Reading of the 16-bit entries within descriptors!
+#ifdef SDL_SwapLE16
 #define DESC_16BITS(x) SDL_SwapLE16(x)
 #define DESC_32BITS(x) SDL_SwapLE32(x)
+#else
+//Unsupported? Placeholder!
+#define DESC_16BITS(x) (x)
+#define DESC_32BITS(x) (x)
+#endif
 
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 extern MODRM_PARAMS params;    //For getting all params!

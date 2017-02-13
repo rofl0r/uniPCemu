@@ -194,7 +194,7 @@ void CPU186_OP69()
 	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 	{
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		temp1.val32 = modrm_read16(&params,1); //Read R/M!
+		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
 	}
 	else
 	{
@@ -216,12 +216,12 @@ void CPU186_OP69()
 	temp3.val32s = temp1.val32s; //Load and...
 	temp3.val32s *= temp2.val32s; //Signed multiplication!
 	modrm_write16(&params,0,temp3.val16,0); //Write to the destination(register)!
-	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
+	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
-	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
+	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
+	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 }
 
 void CPU186_OP6A()
@@ -237,7 +237,7 @@ void CPU186_OP6B()
 	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 	{
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		temp1.val32 = modrm_read16(&params,1); //Read R/M!
+		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
 	}
 	else
 	{
@@ -259,11 +259,11 @@ void CPU186_OP6B()
 	if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
 	temp3.val32s = temp1.val32s * temp2.val32s;
 	modrm_write16(&params,0,temp3.val16,0); //Write to register!
-	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow occurred?
+	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
-	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 }
 
