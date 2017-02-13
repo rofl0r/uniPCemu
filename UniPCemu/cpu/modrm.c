@@ -2149,7 +2149,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	{
 		param->error = 1; //We've detected an error!
 	}
-	else if ((slashr==3) || (slashr==4) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
+	else if (((slashr==3) || (slashr==4)) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
 	{
 		param->error = 1; //We've detected an error!
 	}
