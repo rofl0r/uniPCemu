@@ -1702,31 +1702,28 @@ void generate_opcode_jmptbl()
 	byte cpu; //What CPU are we processing!
 	byte currentoperandsize = 0;
 	word OP; //The opcode to process!
+	byte operandsize; //Currently testing operand size!
 	for (currentoperandsize = 0; currentoperandsize < 2; currentoperandsize++) //Process all operand sizes!
 	{
-		byte operandsize = currentoperandsize; //Operand size to use!
 		for (OP = 0; OP < 0x100; OP++) //Process all opcodes!
 		{
+			operandsize = currentoperandsize; //Operand size to use!
 			cpu = (byte)EMULATED_CPU; //Start with the emulated CPU and work up to the predesessors!
 			while (!opcode_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
 			{
-				if (operandsize) //We have an operand size: switch to standard if possible!
+				if (cpu) //We have an CPU: switch to a higher level if possible!
 				{
-					operandsize = 0; //Not anymore!
+					--cpu; //Try our predecessor!
 					continue; //Try again!
 				}
-				else //No operand size: we're a standard, so go up one cpu and retry!
+				else //Last CPU has been checked?
 				{
-					operandsize = currentoperandsize; //Reset operand size!
-					if (cpu) //We've got CPUs left?
+					cpu = (byte)EMULATED_CPU; //Start with the emulated CPU and work up to the predecessors!
+					if (operandsize) //We've got operand sizes left?
 					{
-						--cpu; //Go up one CPU!
-						operandsize = currentoperandsize; //Reset operand size to search!
+						--operandsize; //Go up one operand size and try again!
 					}
-					else //No CPUs left!
-					{
-						break; //Stop searching!
-					}
+					else break; //No operand sizes left! We're finished: no valid instruction to handle!
 				}
 			}
 			if (opcode_jmptbl[cpu][OP][operandsize])

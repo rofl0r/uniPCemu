@@ -1123,6 +1123,7 @@ void generate_opcode0F_jmptbl()
 	byte cpu; //What CPU are we processing!
 	byte currentoperandsize = 0;
 	word OP; //The opcode to process!
+	byte currentCPU; //Current CPU to start off at!
 	for (currentoperandsize = 0; currentoperandsize < 2; currentoperandsize++) //Process all operand sizes!
 	{
 		byte operandsize = currentoperandsize; //Operand size to use!
@@ -1132,25 +1133,23 @@ void generate_opcode0F_jmptbl()
 			if (cpu >= CPU_80286) //286+?
 			{
 				cpu -= CPU_80286; //We start existing at the 286!
+				currentCPU = cpu; //Save for restoration during searching!
+				operandsize = currentoperandsize; //Initialize to our current operand size to search!
 				while (!opcode0F_jmptbl[cpu][OP][operandsize]) //No opcode to handle at current CPU&operand size?
 				{
-					if (operandsize) //We have an operand size: switch to standard if possible!
+					if (cpu) //We have an CPU size: switch to an earlier CPU if possible!
 					{
-						operandsize = 0; //Not anymore!
+						--cpu; //Not anymore! Look up one level!
 						continue; //Try again!
 					}
-					else //No operand size: we're a standard, so go up one cpu and retry!
+					else //No CPU: we're a standard, so go up one operand size and retry!
 					{
-						operandsize = currentoperandsize; //Reset operand size!
-						if (cpu) //We've got CPUs left?
+						cpu = currentCPU; //Reset CPU to search!
+						if (operandsize) //We've got operand sizes left?
 						{
-							--cpu; //Go up one CPU!
-							operandsize = currentoperandsize; //Reset operand size to search!
+							--operandsize; //Go up one operand size!
 						}
-						else //No CPUs left!
-						{
-							break; //Stop searching!
-						}
+						else break; //No CPUs left? Then stop searching!
 					}
 				}
 				if (opcode0F_jmptbl[cpu][OP][operandsize])
@@ -1162,7 +1161,7 @@ void generate_opcode0F_jmptbl()
 					CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = &unkOP0F_286; //Execute this instruction when we're triggered!
 				}
 			}
-			else //Too old a CPU to support?
+			else //Too old a CPU to support 0F opcodes? Install safety handlers instead!
 			{
 				CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = (cpu==CPU_8086)?&unkOP_8086:&unkOP_186; //Execute this instruction when we're triggered!
 			}
