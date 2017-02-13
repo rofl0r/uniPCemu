@@ -789,7 +789,7 @@ OPTINLINE byte CPU_isPrefix(byte prefix)
 	return 0; //No prefix!
 }
 
-byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+byte STACK_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
 {
 	if (EMULATED_CPU<=CPU_NECV30) //8086-NEC V20/V30?
 	{
@@ -797,6 +797,16 @@ byte DATA_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 	}
 
 	return SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS])&CPU[activeCPU].D_B_Mask; //Give the B-BIT of the SS-register!
+}
+
+byte CODE_SEGMENT_DESCRIPTOR_D_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+{
+	if (EMULATED_CPU<=CPU_NECV30) //8086-NEC V20/V30?
+	{
+		return 0; //Always 16-bit descriptor!
+	}
+
+	return SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])&CPU[activeCPU].D_B_Mask; //Give the D-BIT of the CS-register!
 }
 
 uint_32 CPU_InterruptReturn = 0;
@@ -841,12 +851,19 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	}
 
 //Determine the stack&attribute sizes(286+)!
-	CPU_StackAddress_size[activeCPU] = DATA_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
-	if (CPU_StackAddress_size[activeCPU]) //32-bits stack? We're a 32-bit Operand&Address size!
+	CPU_StackAddress_size[activeCPU] = STACK_SEGMENT_DESCRIPTOR_B_BIT(); //16 or 32-bits stack!
+
+	if (CODE_SEGMENT_D_BIT()) //32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
 	{
 		CPU_Operand_size[activeCPU] = 1; //Set!
 		CPU_Address_size[activeCPU] = 1; //Set!
 	}
+	else //16-bit defaults?
+	{
+		CPU_Operand_size[activeCPU] = 0; //Set!
+		CPU_Address_size[activeCPU] = 0; //Set!
+	}
+
 	if (CPU_getprefix(0x66)) //Invert operand size?
 	{
 		CPU_Operand_size[activeCPU] = !CPU_Operand_size[activeCPU]; //Invert!
