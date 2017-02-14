@@ -899,6 +899,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS); //Default to SS!
 				result->mem_offset = REG_ESP; //Give addr!
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
+				return; //Give addr!
 			}
 			break;
 		case MODRM_MEM_DISP32: //EBP->32-bit Displacement-Only mode?
@@ -994,6 +995,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->mem_offset = REG_EBP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			return; //Give addr!
 			break;
 		default:
 			halt_modrm("Unknown modr/m32(8-bit): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
@@ -1084,6 +1086,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				result->mem_offset = REG_EBP+unsigned2signed32(params->displacement.dword); //Give addr!
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+				return;
 				break;
 			default:
 				halt_modrm("Unknown modr/m32(32-bit): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
@@ -1175,10 +1178,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 				return;
+				break;
 			default:
 				halt_modrm("Unknown modr/m32(16-bit): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 				result->isreg = 0; //Unknown modr/m!
 				return;
+				break;
 			}
 			break;
 		}
