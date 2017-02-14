@@ -1314,10 +1314,11 @@ void CPU_beforeexec()
 		tempflags &= 0xFFFB7FFF; //Bit 15 is always cleared! AC is stuck to 0!
 		break;
 	case CPU_80486:
-		CPU[activeCPU].registers->FLAGS &= 0xFFDF7FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID flag!
+		tempflags &= 0xFFDF7FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID flag!
 		break;
 	case CPU_PENTIUM:
-		//Allow all bits to be set!
+		//Allow all bits to be set, except the one needed from the 80386+ identification!
+		tempflags &= 0x3F7FFF;
 		break;
 	default: //Unknown CPU?
 		break;
