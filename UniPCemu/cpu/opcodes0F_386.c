@@ -454,11 +454,11 @@ void CPU80386_OP0FB4_32() {unkOP0F_386();} //LFS /r r32,m16:32
 void CPU80386_OP0FB5_16() {unkOP0F_386();} //LGS /r r16,m16:16
 void CPU80386_OP0FB5_32() {unkOP0F_386();} //LGS /r r32,m16:32
 
-void CPU80386_OP0FB6_16() {unkOP0F_386();} //MOVZX /r r16,r/m8
-void CPU80386_OP0FB6_32() {unkOP0F_386();} //MOVZX /r r32,r/m8
+void CPU80386_OP0FB6_16() {if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32() {if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r32,r/m8
 
-void CPU80386_OP0FB7_16() {unkOP0F_386();} //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32() {unkOP0F_386();} //MOVZX /r r32,r/m16
+void CPU80386_OP0FB7_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,modrm_read16(&params,1),0);} //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32() {if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read16(&params,1));} //MOVZX /r r32,r/m16
 
 void CPU80386_OP0FBA_16() {
 	thereg = MODRM_REG(params.modrm);
@@ -501,8 +501,8 @@ void CPU80386_OP0FBC_32() {unkOP0F_386();} //BSF /r r32,r/m32
 void CPU80386_OP0FBD_16() {unkOP0F_386();} //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {unkOP0F_386();} //BSR /r r32,r/m32
 
-void CPU80386_OP0FBE_16() {unkOP0F_386();} //MOVSX /r r16,r/m8
-void CPU80386_OP0FBE_32() {unkOP0F_386();} //MOVSX /r r32,r/m8
+void CPU80386_OP0FBE_16() {if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))),0);} //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32() {if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))));} //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16() {unkOP0F_386();} //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32() {unkOP0F_386();} //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed16(modrm_read16(&params,1))),0);} //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32() {if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned32((int_32)unsigned2signed16(modrm_read16(&params,1))));} //MOVSX /r r32,r/m16
