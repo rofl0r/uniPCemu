@@ -810,12 +810,13 @@ byte CODE_SEGMENT_DESCRIPTOR_D_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 
 uint_32 CPU_InterruptReturn = 0;
 
+CPU_Timings *timing = NULL; //The timing used for the current instruction!
+
 OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 {
 	INLINEREGISTER byte OP; //The current opcode!
 	INLINEREGISTER uint_32 last_eip;
 	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
-	CPU_Timings *timing; //The timing used!
 	byte result = 0;
 	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
