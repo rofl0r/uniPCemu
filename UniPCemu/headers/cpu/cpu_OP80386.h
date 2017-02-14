@@ -314,4 +314,6 @@ void CPU80386_OP0FBE_32(); //MOVSX /r r32,r/m8
 void CPU80386_OP0FBF_16(); //MOVSX /r r16,r/m16
 void CPU80386_OP0FBF_32(); //MOVSX /r r32,r/m16
 
+void CPU80386_internal_LXS(int segmentregister); //LDS, LES etc. 32-bit variant!
+
 #endif

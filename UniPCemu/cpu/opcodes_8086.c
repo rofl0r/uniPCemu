@@ -2032,7 +2032,7 @@ OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
-OPTINLINE void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
+void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
 	modrm_addoffset = 0; //Add this to the offset to use!
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!

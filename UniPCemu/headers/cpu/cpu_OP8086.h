@@ -314,4 +314,6 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much d
 
 void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);
 
+void CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
+
 #endif
