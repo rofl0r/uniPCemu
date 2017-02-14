@@ -80,8 +80,6 @@
 
 //Only in MOD0 instances, 16-bit address, instead of [BP]:
 #define MODRM_MEM_DISP16 6
-//Only in MOD0 instances, 32-bit address, instead of [EBP]:
-#define MODRM_MEM_DISP32 5
 //All other instances:
 #define MODRM_MEM_BP 6
 
@@ -98,6 +96,8 @@
 #define MODRM_MEM_EBP 5
 #define MODRM_MEM_ESI 6
 #define MODRM_MEM_EDI 7
+//Only in MOD0 instances, 32-bit address, instead of [EBP]:
+#define MODRM_MEM_DISP32 5
 
 //MOD:
 
