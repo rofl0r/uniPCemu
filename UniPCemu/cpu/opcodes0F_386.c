@@ -438,8 +438,8 @@ void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM1);
 void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(!FLAG_ZF && (FLAG_SF==FLAG_OF))?1:0);} //SETG r/m8
 
 //Push/pop FS
-void CPU80386_OP0FA0() {unkOP0F_386();} //PUSH FS
-void CPU80386_OP0FA1() {unkOP0F_386();} //POP FS
+void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (checkStackAccess(1,1,0)) return; CPU_PUSH16(&REG_FS);/*PUSH FS*/} //PUSH FS
+void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/ if (checkStackAccess(1,0,0)) return; segmentWritten(CPU_SEGMENT_FS,CPU_POP16(),0);} //POP FS
 
 void CPU80386_OP0FA3_16() {unkOP0F_386();} //BT /r r/m16,r16
 void CPU80386_OP0FA3_32() {unkOP0F_386();} //BT /r r/m32,r32
@@ -450,8 +450,8 @@ void CPU80386_OP0FA4_32() {unkOP0F_386();} //SHLD /r r/m32,r32,imm8
 void CPU80386_OP0FA5_16() {unkOP0F_386();} //SHLD /r r/m16,r16,CL
 void CPU80386_OP0FA5_32() {unkOP0F_386();} //SHLD /r r/m32,r32,CL
 
-void CPU80386_OP0FA8() {unkOP0F_386();} //PUSH GS
-void CPU80386_OP0FA9() {unkOP0F_386();} //POP GS
+void CPU80386_OP0FA8() {modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/ if (checkStackAccess(1,1,0)) return; CPU_PUSH16(&REG_GS);/*PUSH FS*/} //PUSH GS
+void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/ if (checkStackAccess(1,0,0)) return; segmentWritten(CPU_SEGMENT_GS,CPU_POP16(),0);} //POP GS
 
 //0F AA is RSM FLAGS on 386++
 
