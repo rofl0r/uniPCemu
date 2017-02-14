@@ -391,10 +391,16 @@ void CPU80386_OP0F8E_32() {INLINEREGISTER int_32 rel32;/*JLE rel8 : (FLAG_ZF|(FL
 void CPU80386_OP0F8F_32() {INLINEREGISTER int_32 rel32;/*JG rel8: ((FLAG_ZF=0)&&(FLAG_SF=FLAG_OF))*/ rel32 = imm32(); modrm_generateInstructionTEXT("JG",0,REG_EIP + rel32,PARAM_IMM32); /* JUMP to destination? */ if (!FLAG_ZF && (FLAG_SF==FLAG_OF)) {REG_EIP += rel32; /* JUMP to destination? */ CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 16; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 4; /* Branch not taken */} }
 
 //MOV [C/D]Rn instructions
-void CPU80386_OP0F20() {unkOP0F_386();} //MOV /r r32,CRn
-void CPU80386_OP0F21() {unkOP0F_386();} //MOV /r r32,DRn
-void CPU80386_OP0F22() {unkOP0F_386();} //MOV /r CRn,r32
-void CPU80386_OP0F23() {unkOP0F_386();} //MOV /r DRn,r32
+
+OPTINLINE byte allowCRDRaccess()
+{
+	return ((getCPL()==0) || (getcpumode()==CPU_MODE_REAL)); //Do we allow access?
+}
+
+void CPU80386_OP0F20() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,CRn
+void CPU80386_OP0F21() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,DRn
+void CPU80386_OP0F22() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r CRn,r32
+void CPU80386_OP0F23() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r DRn,r32
 
 //SETCC instructions
 
