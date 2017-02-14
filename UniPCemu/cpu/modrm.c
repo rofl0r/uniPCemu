@@ -26,7 +26,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
-	if (size==4) //32-bit mode?
+	if (size==2) //32-bit mode?
 	{
 		if (MODRM_RM(params->modrm) == 4 && MODRM_MOD(params->modrm) != 3) //Have a SIB byte?
 		{
@@ -78,7 +78,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 		switch (MODRM_MOD(params->modrm)) //MOD?
 		{
 		case 0:
-			if (MODRM_RM(params->modrm) == 5) //[sword]?
+			if (MODRM_RM(params->modrm) == 5) //[dword]?
 				return 3; //DWord displacement!
 			else
 				return 0; //No displacement!
@@ -664,44 +664,129 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 
 OPTINLINE static uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_base, char *result)
 {
-	if (is_base && mod==0 && reg==4)
+	int_32 disprel=0;
+	switch (mod) //What kind of parameter are we(signed vs unsigned, if used)?
 	{
-		if (cpudebugger) sprintf(result,"%08X",disp32); //Set for display!
-		return disp32; //No base: DISP32+index!
+		case 0: //Mem? 32-bit size!
+			disprel = unsigned2signed32(disp32); //Same!
+			break;
+		case 1: //8-bit? Needs sign-extending!
+			disprel = (int_32)unsigned2signed8((byte)disp32);
+			break;
+		case 2: //16-bit? Needs sign-extending!
+			disprel = (int_32)unsigned2signed16((word)disp32);
+			break;
+		case 3: //32-bit?
+			disprel = unsigned2signed32(disp32); //Sign is included!
+			break;
+		default: //Unknown?
+			//Don't apply!
+			break;
 	}
 	switch (reg)
 	{
 	case MODRM_REG_EAX:
-		if (cpudebugger) strcpy(result,"EAX");
-		return REG_EAX;
+		if (is_base==0) //Index?
+		{
+			if (cpudebugger) strcpy(result,"EAX");
+			return REG_EAX;
+		}
+		else //Base?
+		{
+			if (cpudebugger) sprintf(result,"EAX%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_EAX+disprel;
+		}
 		break;
 	case MODRM_REG_EBX:
-		if (cpudebugger) strcpy(result,"EBX");
-		return REG_EBX;
+		if (is_base==0) //Index?
+		{
+			if (cpudebugger) strcpy(result,"EBX");
+			return REG_EBX;
+		}
+		else //Base?
+		{
+			if (cpudebugger) sprintf(result,"EBX%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_EBX+disprel;
+		}
 		break;
 	case MODRM_REG_ECX:
-		if (cpudebugger) strcpy(result,"ECX");
-		return REG_ECX;
+		if (is_base==0) //Index?
+		{
+			if (cpudebugger) strcpy(result,"ECX");
+			return REG_ECX;
+		}
+		else //Base?
+		{
+			if (cpudebugger) sprintf(result,"ECX%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_ECX+disprel;
+		}
 		break;
 	case MODRM_REG_EDX:
-		if (cpudebugger) strcpy(result,"EDX");
-		return REG_EDX;
+		if (is_base==0) //Index?
+		{
+			if (cpudebugger) strcpy(result,"EDX");
+			return REG_EDX;
+		}
+		else //Base?
+		{
+			if (cpudebugger) sprintf(result,"EDX%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_EDX+disprel;
+		}
 		break;
-	case MODRM_REG_EBP:
-		if (cpudebugger) strcpy(result,"EBP");
-		return REG_EBP;
-		break;
-	case MODRM_REG_ESP:
-		if (cpudebugger) strcpy(result,"0");
-		return 0;
+	case MODRM_REG_ESP: //none/ESP(base), depending on base/index.
+		if (is_base==0) //We're the scaled index?
+		{
+			if (cpudebugger) strcpy(result,"0");
+			return 0;
+		}
+		else //Direct index?
+		{
+			if (cpudebugger) sprintf(result,"ESP%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_ESP+disprel;
+		}
 		break; //SIB doesn't have ESP!
+	case MODRM_REG_EBP:
+		if (is_base==0) //We're the scaled index?
+		{
+			if (cpudebugger) strcpy(result,"EBP");
+			return REG_EBP;
+		}
+		else //Base?
+		{
+			if (mod==MOD_MEM) //We're disp32 instead?
+			{
+				if (cpudebugger) sprintf(result,"%08X",unsigned2signed32(disp32));
+				return disp32; //Disp32 instead!
+			}
+			else //ESP!
+			{
+				if (cpudebugger) sprintf(result,"EBP%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+				return REG_EBP+disprel;
+			}
+		}		break;
 	case MODRM_REG_ESI:
-		if (cpudebugger) strcpy(result,"ESI");
-		return REG_ESI;
+		if (is_base==0) //Base has no entry!
+		{
+			if (cpudebugger) strcpy(result,"0");
+			return 0;
+		}
+		else //Index? Entry exists!
+		{
+			if (cpudebugger) sprintf(result,"ESI%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_ESI+disprel;
+		}
 		break;
 	case MODRM_REG_EDI:
-		if (cpudebugger) strcpy(result,"EDI");
-		return REG_EDI;
+		if (is_base==0) //Base has no entry!
+		{
+			if (cpudebugger) strcpy(result,"0");
+			return 0;
+		}
+		else //Index? Entry exists!
+		{
+			if (cpudebugger) sprintf(result,"EDI%s",unsigned2signedtext32(signed2unsigned32(disprel)));
+			return REG_EDI+disprel;
+		}
 		break;
 	}
 	halt_modrm("Unknown modr/mSIB16: reg: %i",reg);
@@ -826,6 +911,10 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	char indexstr[256]; //Index!
 	char basestr[256]; //Base!
 
+	//Determine R/M (reg2=>RM) pointer!
+
+	result->isreg = 2; //Memory!
+
 	switch (MODRM_MOD(params->modrm)) //Which mod?
 	{
 	case MOD_MEM: //[register]
@@ -880,11 +969,11 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			return; //Give addr!
 			break;
 		case MODRM_MEM_SIB: //SIB(reg1) or ESP(reg2)?
-			if (curreg==1) //SIB?
+			if (curreg==2) //SIB?
 			{
 				//SIB
-				index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM,unsigned2signed32(params->displacement.dword),0,&indexstr[0]);
-				base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM,unsigned2signed32(params->displacement.dword),1,&basestr[0]);
+				index = modrm_SIB_reg(SIB_INDEX(params->SIB),0,params->displacement.dword,0,&indexstr[0]);
+				base = modrm_SIB_reg(SIB_BASE(params->SIB),0,params->displacement.dword,1,&basestr[0]);
 
 				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
@@ -898,6 +987,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				if (cpudebugger) sprintf(result->text,"[%s:ESP]",CPU_textsegment(CPU_SEGMENT_SS));
 				result->mem_segment = CPU_segment(CPU_SEGMENT_SS); //Default to SS!
 				result->mem_offset = REG_ESP; //Give addr!
+				result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
 				result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 				return; //Give addr!
 			}
@@ -967,10 +1057,10 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			return; //Give addr!
 			break;
 		case MODRM_MEM_SIB: //SIB/ESP?
-			if (curreg==1) //SIB?
+			if (curreg==2) //SIB?
 			{
-				index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),0,indexstr);
-				base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP8,unsigned2signed8(params->displacement.low16_low),1,basestr);
+				index = modrm_SIB_reg(SIB_INDEX(params->SIB),1,params->displacement.low16_low,0,indexstr);
+				base = modrm_SIB_reg(SIB_BASE(params->SIB),1,params->displacement.low16_low,1,basestr);
 
 				if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 				result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
@@ -1058,10 +1148,10 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				return; //Give addr!
 				break;
 			case MODRM_MEM_SIB: //SIB/ESP?
-				if (curreg==1) //SIB?
+				if (curreg==2) //SIB?
 				{
-					index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),0,indexstr);
-					base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP32,unsigned2signed32(params->displacement.dword),1,basestr);
+					index = modrm_SIB_reg(SIB_INDEX(params->SIB),3,params->displacement.dword,0,indexstr);
+					base = modrm_SIB_reg(SIB_BASE(params->SIB),3,params->displacement.dword,1,basestr);
 
 					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
@@ -1149,10 +1239,10 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 				return; //Give addr!
 				break;
 			case MODRM_MEM_SIB: //SIB/ESP?
-				if (curreg==1) //SIB?
+				if (curreg==2) //SIB?
 				{
-					index = modrm_SIB_reg(SIB_INDEX(params->SIB),MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),0,indexstr);
-					base = modrm_SIB_reg(SIB_BASE(params->SIB),MOD_MEM_DISP16,unsigned2signed16(params->displacement.low16_low),1,basestr);
+					index = modrm_SIB_reg(SIB_INDEX(params->SIB),2,params->displacement.low16_low,0,indexstr);
+					base = modrm_SIB_reg(SIB_BASE(params->SIB),2,params->displacement.low16_low,1,basestr);
 
 					if (cpudebugger) sprintf(result->text,"[%s:%s*%02X+%s]",CPU_textsegment(CPU_SEGMENT_DS),indexstr,(1<<SIB_SCALE(params->SIB)),basestr); //Give addr!
 					result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
