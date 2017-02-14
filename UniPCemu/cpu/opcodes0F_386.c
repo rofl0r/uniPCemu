@@ -397,22 +397,45 @@ void CPU80386_OP0F22() {unkOP0F_386();} //MOV /r CRn,r32
 void CPU80386_OP0F23() {unkOP0F_386();} //MOV /r DRn,r32
 
 //SETCC instructions
-void CPU80386_OP0F90() {unkOP0F_386();} //SETO r/m8
-void CPU80386_OP0F91() {unkOP0F_386();} //SETNO r/m8
-void CPU80386_OP0F92() {unkOP0F_386();} //SETC r/m8
-void CPU80386_OP0F93() {unkOP0F_386();} //SETAE r/m8
-void CPU80386_OP0F94() {unkOP0F_386();} //SETE r/m8
-void CPU80386_OP0F95() {unkOP0F_386();} //SETNE r/m8
-void CPU80386_OP0F96() {unkOP0F_386();} //SETNA r/m8
-void CPU80386_OP0F97() {unkOP0F_386();} //SETA r/m8
-void CPU80386_OP0F98() {unkOP0F_386();} //SETS r/m8
-void CPU80386_OP0F99() {unkOP0F_386();} //SETNS r/m8
-void CPU80386_OP0F9A() {unkOP0F_386();} //SETP r/m8
-void CPU80386_OP0F9B() {unkOP0F_386();} //SETNP r/m8
-void CPU80386_OP0F9C() {unkOP0F_386();} //SETL r/m8
-void CPU80386_OP0F9D() {unkOP0F_386();} //SETGE r/m8
-void CPU80386_OP0F9E() {unkOP0F_386();} //SETLE r/m8
-void CPU80386_OP0F9F() {unkOP0F_386();} //SETG r/m8
+
+/*
+
+Info for different conditions:
+O: FLAG_OF
+NO: !FLAG_OF
+C: FLAG_CF
+NC: !FLAG_CF
+Z: FLAG_ZF
+NZ: !FLAG_ZF
+BE: (FLAG_CF||FLAG_ZF)
+A: (!FLAG_CF && !FLAG_ZF)
+S: FLAG_SF
+NS: !FLAG_SF
+P: FLAG_PF
+NP: !FLAG_PF
+L: (FLAG_SF!=FLAG_OF)
+GE: (FLAG_SF==FLAG_OF)
+LE: ((FLAG_SF!=FLAG_OF) || FLAG_ZF)
+G: (!FLAG_ZF && (FLAG_SF==FLAG_OF))
+
+*/
+
+void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_OF);} //SETO r/m8
+void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_OF?0:1);} //SETNO r/m8
+void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_CF);} //SETC r/m8
+void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_CF?0:1);;} //SETAE r/m8
+void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_ZF);} //SETE r/m8
+void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_ZF?0:1);} //SETNE r/m8
+void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETNA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_CF||FLAG_ZF)?1:0);} //SETNA r/m8
+void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(!FLAG_CF && !FLAG_ZF)?1:0);} //SETA r/m8
+void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_SF);} //SETS r/m8
+void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_SF?0:1);} //SETNS r/m8
+void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_PF);} //SETP r/m8
+void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_PF?0:1);} //SETNP r/m8
+void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_SF!=FLAG_OF)?1:0);} //SETL r/m8
+void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_SF==FLAG_OF)?1:0);} //SETGE r/m8
+void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,((FLAG_SF!=FLAG_OF) || FLAG_ZF)?1:0);} //SETLE r/m8
+void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(!FLAG_ZF && (FLAG_SF==FLAG_OF))?1:0);} //SETG r/m8
 
 //Push/pop FS
 void CPU80386_OP0FA0() {unkOP0F_386();} //PUSH FS
@@ -454,11 +477,58 @@ void CPU80386_OP0FB4_32() {unkOP0F_386();} //LFS /r r32,m16:32
 void CPU80386_OP0FB5_16() {unkOP0F_386();} //LGS /r r16,m16:16
 void CPU80386_OP0FB5_32() {unkOP0F_386();} //LGS /r r32,m16:32
 
-void CPU80386_OP0FB6_16() {if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r16,r/m8
-void CPU80386_OP0FB6_32() {if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r32,r/m8
+//Special debugger support for the following MOV[S/Z]X instructions.
 
-void CPU80386_OP0FB7_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,modrm_read16(&params,1),0);} //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32() {if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read16(&params,1));} //MOVZX /r r32,r/m16
+OPTINLINE void modrm_actualdebuggerSZX(char *instruction)
+{
+	char result[256];
+	bzero(result,sizeof(result));
+	strcpy(result,instruction); //Set the instruction!
+	strcat(result," %s,%s"); //2 params!
+	debugger_setcommand(result,modrm_param1,modrm_param2);
+}
+
+OPTINLINE void modrm_debugger16_8(char *instruction)
+{
+	bzero(modrm_param1,sizeof(modrm_param1));
+	bzero(modrm_param2,sizeof(modrm_param2));
+	modrm_text16(&params,1,&modrm_param1[0]);
+	modrm_text8(&params,0,&modrm_param2[0]);
+	modrm_actualdebuggerSZX(instruction); //Actual debugger call!
+}
+
+OPTINLINE void modrm_debugger32_8(char *instruction)
+{
+	bzero(modrm_param1,sizeof(modrm_param1));
+	bzero(modrm_param2,sizeof(modrm_param2));
+	modrm_text32(&params,1,&modrm_param1[0]);
+	modrm_text16(&params,0,&modrm_param2[0]);
+	modrm_actualdebuggerSZX(instruction); //Actual debugger call!
+}
+
+OPTINLINE void modrm_debugger16_16(char *instruction)
+{
+	bzero(modrm_param1,sizeof(modrm_param1));
+	bzero(modrm_param2,sizeof(modrm_param2));
+	modrm_text16(&params,1,&modrm_param1[0]);
+	modrm_text16(&params,0,&modrm_param2[0]);
+	modrm_actualdebuggerSZX(instruction); //Actual debugger call!
+}
+
+OPTINLINE void modrm_debugger32_16(char *instruction)
+{
+	bzero(modrm_param1,sizeof(modrm_param1));
+	bzero(modrm_param2,sizeof(modrm_param2));
+	modrm_text32(&params,1,&modrm_param1[0]);
+	modrm_text16(&params,0,&modrm_param2[0]);
+	modrm_actualdebuggerSZX(instruction); //Actual debugger call!
+}
+
+void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZX"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZX"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read8(&params,1));} //MOVZX /r r32,r/m8
+
+void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZX"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,modrm_read16(&params,1),0);} //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZX"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read16(&params,1));} //MOVZX /r r32,r/m16
 
 void CPU80386_OP0FBA_16() {
 	thereg = MODRM_REG(params.modrm);
@@ -501,8 +571,8 @@ void CPU80386_OP0FBC_32() {unkOP0F_386();} //BSF /r r32,r/m32
 void CPU80386_OP0FBD_16() {unkOP0F_386();} //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {unkOP0F_386();} //BSR /r r32,r/m32
 
-void CPU80386_OP0FBE_16() {if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))),0);} //MOVSX /r r16,r/m8
-void CPU80386_OP0FBE_32() {if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))));} //MOVSX /r r32,r/m8
+void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSX"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))),0);} //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSX"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))));} //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed16(modrm_read16(&params,1))),0);} //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32() {if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned32((int_32)unsigned2signed16(modrm_read16(&params,1))));} //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSX"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed16(modrm_read16(&params,1))),0);} //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSX"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned32((int_32)unsigned2signed16(modrm_read16(&params,1))));} //MOVSX /r r32,r/m16
