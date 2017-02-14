@@ -5564,8 +5564,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 	} //Pentium+
 };
 
-CPU_Timings CPUTimings[CPU_MODES][0x100]; //All normal CPU timings, which are used, for all modes available!
-CPU_Timings CPUTimings0F[CPU_MODES][0x100]; //All normal 0F CPU timings, which are used, for all modes available!
+CPU_Timings CPUTimings[CPU_MODES][0x200]; //All normal CPU timings, which are used, for all modes available!
 
 void generate_timings_tbl() //Generate the timings table!
 {
@@ -5574,7 +5573,7 @@ void generate_timings_tbl() //Generate the timings table!
 	byte theCPU;
 
 	//Normal instruction timings!
-	memset(CPUTimings,0,sizeof(CPUTimings)); //Clear the timing table!
+	memset(&CPUTimings,0,sizeof(CPUTimings)); //Clear the entire timing table for filling it!
 	for (mode = 0;mode<NUMITEMS(CPUTimings);++mode) //All processor modes?
 	{
 		for (opcode = 0;opcode < 0x100;++opcode) //Process all opcodes!
@@ -5586,19 +5585,13 @@ void generate_timings_tbl() //Generate the timings table!
 			if ((CPUInformation[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
 			{
 				--curmode; //Try lower-bit mode!
+				theCPU = (byte)EMULATED_CPU; //Start with the emulated CPU!
 				goto tryopcodes; //Try the next mode!
 			}
-			memcpy(&CPUTimings[mode][opcode],&CPUInformation[theCPU][curmode][opcode],sizeof(CPUTimings[mode][opcode])); //Set the mode to the highest mode detected that's available!
-		}
-	}
+			memcpy(&CPUTimings[mode][(opcode<<1)],&CPUInformation[theCPU][curmode][opcode],sizeof(CPUTimings[mode][opcode])); //Set the mode to the highest mode detected that's available!
 
-	//0F instruction timings!
-	memset(CPUTimings0F, 0, sizeof(CPUTimings0F)); //Clear the timing table!
-	if (EMULATED_CPU>=CPU_80286) //We need to be a 80286 or higher to use 0F extensions!
-	{
-		for (mode = 0;mode<NUMITEMS(CPUTimings0F);++mode) //All processor modes?
-		{
-			for (opcode = 0;opcode < 0x100;++opcode) //Process all opcodes!
+			//0F timings next for this opcode!
+			if (EMULATED_CPU>=CPU_80286) //0F opcodes as well?
 			{
 				curmode = mode; //The current mode we're processing!
 			tryopcodes0F: //Retry with the other mode!
@@ -5607,9 +5600,10 @@ void generate_timings_tbl() //Generate the timings table!
 				if ((CPUInformation0F[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
 				{
 					--curmode; //Try lower-bit mode!
+					theCPU = (byte)(EMULATED_CPU-CPU_80286); //Start with the emulated CPU! The first generation to support this is the 286!
 					goto tryopcodes0F; //Try the next mode!
 				}
-				memcpy(&CPUTimings0F[mode][opcode], &CPUInformation0F[theCPU][curmode][opcode], sizeof(CPUTimings0F[mode][opcode])); //Set the mode to the highest mode detected that's available!
+				memcpy(&CPUTimings[mode][(opcode<<1)|1], &CPUInformation0F[theCPU][curmode][opcode], sizeof(CPUTimings[mode][(opcode<<1)|1])); //Set the mode to the highest mode detected that's available!
 			}
 		}
 	}

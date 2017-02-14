@@ -50,8 +50,7 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 //CPU timings information
-extern CPU_Timings CPUTimings[CPU_MODES][0x100]; //All normal CPU timings, which are used, for all modes available!
-extern CPU_Timings CPUTimings0F[CPU_MODES][0x100]; //All normal 0F CPU timings, which are used, for all modes available!
+extern CPU_Timings CPUTimings[CPU_MODES][0x200]; //All normal and 0F CPU timings, which are used, for all modes available!
 
 //ModR/M information!
 MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
@@ -876,14 +875,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	result = OP; //Save the OPcode for later result!
 
-	if (CPU[activeCPU].is0Fopcode) //0F opcode?
-	{
-		timing = &CPUTimings0F[CPU_Operand_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
-	}
-	else //Normal opcode?
-	{
-		timing = &CPUTimings[CPU_Operand_size[activeCPU]][OP]; //Only 2 modes implemented so far, 32-bit or 16-bit mode!
-	}
+	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
 	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm) //Do we have ModR/M data?
