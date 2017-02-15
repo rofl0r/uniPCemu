@@ -13,6 +13,8 @@
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 
+extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+
 /*
 
 First, 32-bit 80386 variants of the 80286 opcodes!
@@ -573,8 +575,39 @@ void CPU80386_OP0FAC_16() {if (modrm_check16(&params,1,1)) return; if (modrm_che
 void CPU80386_OP0FAC_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHRD /r r/m32,r32,imm8
 void CPU80386_OP0FAD_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHRD /r r/m16,r16,CL
 void CPU80386_OP0FAD_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHRD /r r/m32,r32,CL
-void CPU80386_OP0FAF_16() {unkOP0F_386();} //IMUL /r r16,r/m16
-void CPU80386_OP0FAF_32() {unkOP0F_386();} //IMUL /r r32,r/m32
+
+void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
+	temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
+	temp2.val32 = (uint_32)modrm_read16(&params,1); //Immediate word is second/third parameter!
+	modrm_generateInstructionTEXT("IMUL",16,0,PARAM_MODRM12);
+	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
+	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
+	temp3.val32s = temp1.val32s; //Load and...
+	temp3.val32s *= temp2.val32s; //Signed multiplication!
+	modrm_write16(&params,0,temp3.val16,0); //Write to the destination(register)!
+	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+	else FLAGW_OF(1);
+	FLAGW_CF(FLAG_OF); //OF=CF!
+	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
+	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+}
+void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
+	temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
+	temp2.val64 = (uint_64)modrm_read32(&params,1); //Immediate word is second/third parameter!
+	modrm_generateInstructionTEXT("IMUL",32,0,PARAM_MODRM12);
+	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
+	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
+	temp3.val64s = temp1.val32s; //Load and...
+	temp3.val64s *= temp2.val32s; //Signed multiplication!
+	modrm_write32(&params,0,temp3.val32); //Write to the destination(register)!
+	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+	else FLAGW_OF(1);
+	FLAGW_CF(FLAG_OF); //OF=CF!
+	FLAGW_SF(((uint_64)temp3.val32&0x80000000U)>>31); //Sign!
+	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
+}
 
 //LSS
 void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16

@@ -1706,16 +1706,16 @@ OPTINLINE void CPU80386_OPA0_8exec_addr32() {debugger_setcommand("MOVB AL,[%s:%0
 
 //A1 16/32-bits address version with 16/32-bit reg
 OPTINLINE void CPU80386_OPA1_16exec_addr32() {debugger_setcommand("MOVW AX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL())) return; CPU80386_internal_MOV16(&REG_AX,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0),1);/*MOV AX,[imm32]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOVW EAX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL())) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0),1);/*MOV EAX,[imm16]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOVW EAX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL())) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0),1);/*MOV EAX,[imm32]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOVD EAX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL())) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0),1);/*MOV EAX,[imm16]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOVD EAX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL())) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL())) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0),1);/*MOV EAX,[imm32]*/ }
 
 //A2 32-bits address version with 8-bit reg
 OPTINLINE void CPU80386_OPA2_8exec_addr32() {debugger_setcommand("MOVB [%s:%08X],AL",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32],AL*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV8(NULL,REG_AL,1);/*MOV [imm32],AL*/ custommem = 0; }
 
 //A3 16/32-bits address version with 16/32-bit reg
 OPTINLINE void CPU80386_OPA3_16exec_addr32() {debugger_setcommand("MOVW [%s:%08X],AX",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32], AX*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV16(NULL,REG_AX,1);/*MOV [imm32], AX*/ custommem = 0; }
-OPTINLINE void CPU80386_OPA3_32exec_addr16() {debugger_setcommand("MOVW [%s:%04X],EAX",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32], AX*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV32(NULL,REG_EAX,1);/*MOV [imm32], AX*/ custommem = 0; }
-OPTINLINE void CPU80386_OPA3_32exec_addr32() {debugger_setcommand("MOVW [%s:%08X],EAX",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32], AX*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV32(NULL,REG_EAX,1);/*MOV [imm32], AX*/ custommem = 0; }
+OPTINLINE void CPU80386_OPA3_32exec_addr16() {debugger_setcommand("MOVD [%s:%04X],EAX",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32], AX*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV32(NULL,REG_EAX,1);/*MOV [imm32], AX*/ custommem = 0; }
+OPTINLINE void CPU80386_OPA3_32exec_addr32() {debugger_setcommand("MOVD [%s:%08X],EAX",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32], AX*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV32(NULL,REG_EAX,1);/*MOV [imm32], AX*/ custommem = 0; }
 
 //Our two calling methods for handling the jumptable!
 //16-bits versions having a new 32-bit address size override!
@@ -1734,19 +1734,19 @@ void CPU80386_OPA9() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstr
 void CPU80386_OPAB() {modrm_generateInstructionTEXT("STOSD",0,0,PARAM_NONE);/*STOSW*/ CPU80386_internal_STOSD();/*STOSW*/ }
 void CPU80386_OPAD() {modrm_generateInstructionTEXT("LODSD",0,0,PARAM_NONE);/*LODSW*/ CPU80386_internal_LODSD();/*LODSW*/ }
 void CPU80386_OPAF() {modrm_generateInstructionTEXT("SCASD",0,0,PARAM_NONE);/*SCASW*/ CPU80386_internal_SCASD();/*SCASW*/ }
-void CPU80386_OPB8() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW EAX,",0,theimm,PARAM_IMM32);/*MOV AX,imm32*/ CPU80386_internal_MOV32(&REG_EAX,theimm,4);/*MOV AX,imm32*/ }
-void CPU80386_OPB9() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW ECX,",0,theimm,PARAM_IMM32);/*MOV CX,imm32*/ CPU80386_internal_MOV32(&REG_ECX,theimm,4);/*MOV CX,imm32*/ }
-void CPU80386_OPBA() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW EDX,",0,theimm,PARAM_IMM32);/*MOV DX,imm32*/ CPU80386_internal_MOV32(&REG_EDX,theimm,4);/*MOV DX,imm32*/ }
-void CPU80386_OPBB() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW EBX,",0,theimm,PARAM_IMM32);/*MOV BX,imm32*/ CPU80386_internal_MOV32(&REG_EBX,theimm,4);/*MOV BX,imm32*/ }
-void CPU80386_OPBC() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW ESP,",0,theimm,PARAM_IMM32);/*MOV SP,imm32*/ CPU80386_internal_MOV32(&REG_ESP,theimm,4);/*MOV SP,imm32*/ }
-void CPU80386_OPBD() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW EBP,",0,theimm,PARAM_IMM32);/*MOV BP,imm32*/ CPU80386_internal_MOV32(&REG_EBP,theimm,4);/*MOV BP,imm32*/ }
-void CPU80386_OPBE() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW ESI,",0,theimm,PARAM_IMM32);/*MOV SI,imm32*/ CPU80386_internal_MOV32(&REG_ESI,theimm,4);/*MOV SI,imm32*/ }
-void CPU80386_OPBF() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVW EDI,",0,theimm,PARAM_IMM32);/*MOV DI,imm32*/ CPU80386_internal_MOV32(&REG_EDI,theimm,4);/*MOV DI,imm32*/ }
+void CPU80386_OPB8() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EAX,",0,theimm,PARAM_IMM32);/*MOV AX,imm32*/ CPU80386_internal_MOV32(&REG_EAX,theimm,4);/*MOV AX,imm32*/ }
+void CPU80386_OPB9() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD ECX,",0,theimm,PARAM_IMM32);/*MOV CX,imm32*/ CPU80386_internal_MOV32(&REG_ECX,theimm,4);/*MOV CX,imm32*/ }
+void CPU80386_OPBA() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EDX,",0,theimm,PARAM_IMM32);/*MOV DX,imm32*/ CPU80386_internal_MOV32(&REG_EDX,theimm,4);/*MOV DX,imm32*/ }
+void CPU80386_OPBB() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EBX,",0,theimm,PARAM_IMM32);/*MOV BX,imm32*/ CPU80386_internal_MOV32(&REG_EBX,theimm,4);/*MOV BX,imm32*/ }
+void CPU80386_OPBC() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD ESP,",0,theimm,PARAM_IMM32);/*MOV SP,imm32*/ CPU80386_internal_MOV32(&REG_ESP,theimm,4);/*MOV SP,imm32*/ }
+void CPU80386_OPBD() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EBP,",0,theimm,PARAM_IMM32);/*MOV BP,imm32*/ CPU80386_internal_MOV32(&REG_EBP,theimm,4);/*MOV BP,imm32*/ }
+void CPU80386_OPBE() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD ESI,",0,theimm,PARAM_IMM32);/*MOV SI,imm32*/ CPU80386_internal_MOV32(&REG_ESI,theimm,4);/*MOV SI,imm32*/ }
+void CPU80386_OPBF() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EDI,",0,theimm,PARAM_IMM32);/*MOV DI,imm32*/ CPU80386_internal_MOV32(&REG_EDI,theimm,4);/*MOV DI,imm32*/ }
 void CPU80386_OPC2() {INLINEREGISTER int_32 popbytes = imm32();/*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ modrm_generateInstructionTEXT("RET",0,popbytes,PARAM_IMM8); /*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ CPU80386_internal_RET(popbytes,1); }
 void CPU80386_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU80386_internal_RET(0,0); }
 void CPU80386_OPC4() /*LES modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
 void CPU80386_OPC5() /*LDS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
-void CPU80386_OPC7() {uint_32 val = imm32; modrm_debugger32(&params,0,1); debugger_setcommand("MOVW %s,%08x",modrm_param2,val); if (modrm_check32(&params,1,0)) return; modrm_write32(&params,1,val); if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP = 10+MODRM_EA(params); /* Imm->Mem */ } else CPU[activeCPU].cycles_OP = 4; /* Imm->Reg */ }
+void CPU80386_OPC7() {uint_32 val = imm32; modrm_debugger32(&params,0,1); debugger_setcommand("MOVD %s,%08x",modrm_param2,val); if (modrm_check32(&params,1,0)) return; modrm_write32(&params,1,val); if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP = 10+MODRM_EA(params); /* Imm->Mem */ } else CPU[activeCPU].cycles_OP = 4; /* Imm->Reg */ }
 void CPU80386_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm16 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
 void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
 void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ CPU80386_INTERNAL_int(EXCEPTION_CPUBREAKPOINT,1);/*INT 3*/ }
@@ -1870,56 +1870,56 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 	case 0: //ADD
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADDW %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
+			debugger_setcommand("ADDD %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
 		}
 		CPU80386_internal_ADD32(modrm_addr32(&params,1,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ORW %s,%04X",&modrm_param1,imm); //OR Eb, Ib
+			debugger_setcommand("ORD %s,%04X",&modrm_param1,imm); //OR Eb, Ib
 		}
 		CPU80386_internal_OR32(modrm_addr32(&params,1,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ADCW %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
+			debugger_setcommand("ADCD %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
 		}
 		CPU80386_internal_ADC32(modrm_addr32(&params,1,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SBBW %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
+			debugger_setcommand("SBBD %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
 		}
 		CPU80386_internal_SBB32(modrm_addr32(&params,1,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("ANDW %s,%04X",&modrm_param1,imm); //AND Eb, Ib
+			debugger_setcommand("ANDD %s,%04X",&modrm_param1,imm); //AND Eb, Ib
 		}
 		CPU80386_internal_AND32(modrm_addr32(&params,1,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("SUBW %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
+			debugger_setcommand("SUBD %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
 		}
 		CPU80386_internal_SUB32(modrm_addr32(&params,1,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("XORW %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
+			debugger_setcommand("XORD %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
 		}
 		CPU80386_internal_XOR32(modrm_addr32(&params,1,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("CMPW %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
+			debugger_setcommand("CMPD %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		if (modrm_check32(&params,1,1)) return; //Abort when needed!
 		CMP_dw(modrm_read32(&params,1),imm,3); //CMP Eb, Ib
@@ -1940,7 +1940,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 	case 0: //POP
 		if (cpudebugger) //Debugger on?
 		{
-			modrm_generateInstructionTEXT("POPD",32,0,PARAM_MODRM2); //POPW Ew
+			modrm_generateInstructionTEXT("POPD",32,0,PARAM_MODRM2); //POPD Ew
 		}
 		if (checkStackAccess(1,0,1)) return; //Abort when needed!
 		modrm_write32(&params,1,CPU_POP32()); //POP r/m32
@@ -2709,11 +2709,11 @@ void CPU386_OP69()
 	modrm_decode32(&params,&info2,1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULW %s,%04X",info.text,immw); //IMUL reg,imm16
+		debugger_setcommand("IMULD %s,%04X",info.text,immw); //IMUL reg,imm16
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
+		debugger_setcommand("IMULD %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
 	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
 	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
@@ -2744,11 +2744,11 @@ void CPU386_OP6B()
 	modrm_decode32(&params,&info2,1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULW %s,%02X",info.text,immb); //IMUL reg,imm8
+		debugger_setcommand("IMULD %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULW %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
+		debugger_setcommand("IMULD %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
 
 	if (temp1.val64&0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;//Sign extend to 32 bits!
@@ -2912,28 +2912,28 @@ void CPU386_OPC1()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLW %s,%02X",info.text,oper2d);
+			debugger_setcommand("ROLD %s,%02X",info.text,oper2d);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORW %s,%02X",info.text,oper2d);
+			debugger_setcommand("RORD %s,%02X",info.text,oper2d);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLW %s,%02X",info.text,oper2d);
+			debugger_setcommand("RCLD %s,%02X",info.text,oper2d);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRW %s,%02X",info.text,oper2d);
+			debugger_setcommand("RCRD %s,%02X",info.text,oper2d);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHLD %s,%02X",info.text,oper2d);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRW %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHRD %s,%02X",info.text,oper2d);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHLD %s,%02X",info.text,oper2d);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARW %s,%02X",info.text,oper2d);
+			debugger_setcommand("SARD %s,%02X",info.text,oper2d);
 			break;
 		default:
 			break;
