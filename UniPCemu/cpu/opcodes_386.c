@@ -1036,7 +1036,7 @@ OPTINLINE void CPU80386_internal_AAS()
 OPTINLINE void CPU80386_internal_CWDE()
 {
 	CPUPROT1
-	if ((REG_AX&0x80)==0x80)
+	if ((REG_AX&0x8000)==0x8000)
 	{
 		REG_EAX |= 0xFFFF0000;
 	}
