@@ -86,7 +86,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT
-		debugger_setcommand("SGDT %s", info.text);
+		debugger_setcommand("SGDTD %s", info.text);
 		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
@@ -106,7 +106,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 1: //SIDT
-		debugger_setcommand("SIDT %s", info.text);
+		debugger_setcommand("SIDTD %s", info.text);
 		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
@@ -127,7 +127,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 2: //LGDT
-		debugger_setcommand("LGDT %s", info.text);
+		debugger_setcommand("LGDTD %s", info.text);
 		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
@@ -157,7 +157,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 3: //LIDT
-		debugger_setcommand("LIDT %s", info.text);
+		debugger_setcommand("LIDTD %s", info.text);
 		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
@@ -399,10 +399,10 @@ OPTINLINE byte allowCRDRaccess()
 	return ((getCPL()==0) || (getcpumode()==CPU_MODE_REAL)); //Do we allow access?
 }
 
-void CPU80386_OP0F20() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,CRn
-void CPU80386_OP0F21() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,DRn
-void CPU80386_OP0F22() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r CRn,r32
-void CPU80386_OP0F23() {if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r DRn,r32
+void CPU80386_OP0F20() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,CRn
+void CPU80386_OP0F21() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1));} //MOV /r r32,DRn
+void CPU80386_OP0F22() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r CRn,r32
+void CPU80386_OP0F23() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0));} //MOV /r DRn,r32
 
 //SETCC instructions
 
@@ -454,13 +454,13 @@ void CPU80386_BT16(word val, word bit)
 	FLAGW_CF(val>>(bit&0xF));
 }
 
-void CPU80386_BT32(word val, uint_32 bit)
+void CPU80386_BT32(uint_32 val, uint_32 bit)
 {
 	FLAGW_CF(val>>(bit&0x1F));
 }
 
-void CPU80386_OP0FA3_16() {modrm_generateInstructionTEXT("BT",16,0,PARAM_MODRM12); word bit = modrm_read16(&params,0); modrm_addoffset = ((bit>>4)<<1); if (modrm_check16(&params,1,1)) return; CPU80386_BT16(modrm_read16(&params,1),bit);} //BT /r r/m16,r16
-void CPU80386_OP0FA3_32() {modrm_generateInstructionTEXT("BT",32,0,PARAM_MODRM12); uint_32 bit = modrm_read32(&params,0); modrm_addoffset = ((bit>>5)<<2); if (modrm_check32(&params,1,1)) return; CPU80386_BT32(modrm_read16(&params,1),bit);} //BT /r r/m32,r32
+void CPU80386_OP0FA3_16() {modrm_generateInstructionTEXT("BTW",16,0,PARAM_MODRM12); word bit = modrm_read16(&params,0); modrm_addoffset = ((bit>>4)<<1); if (modrm_check16(&params,1,1)) return; CPU80386_BT16(modrm_read16(&params,1),bit);} //BT /r r/m16,r16
+void CPU80386_OP0FA3_32() {modrm_generateInstructionTEXT("BTD",32,0,PARAM_MODRM12); uint_32 bit = modrm_read32(&params,0); modrm_addoffset = ((bit>>5)<<2); if (modrm_check32(&params,1,1)) return; CPU80386_BT32(modrm_read32(&params,1),bit);} //BT /r r/m32,r32
 
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
@@ -525,8 +525,20 @@ void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/
 
 //0F AA is RSM FLAGS on 386++
 
-void CPU80386_OP0FAB_16() {unkOP0F_386();} //BTS /r r/m16,r16
-void CPU80386_OP0FAB_32() {unkOP0F_386();} //BTS /r r/m32,r32
+void CPU80386_BTS16(word *val, word bit)
+{
+	FLAGW_CF(*val>>(bit&0xF));
+	*val |= (1<<(bit&0xF)); //Set!
+}
+
+void CPU80386_BTS32(uint_32 *val, uint_32 bit)
+{
+	FLAGW_CF(*val>>(bit&0x1F));
+	*val |= (1<<(bit&0x1F)); //Set!
+}
+
+void CPU80386_OP0FAB_16() {modrm_generateInstructionTEXT("BTSW",16,0,PARAM_MODRM12); word bit = modrm_read16(&params,0); word val; modrm_addoffset = ((bit>>4)<<1); if (modrm_check16(&params,1,1)) return; val = modrm_read16(&params,1); CPU80386_BTS16(&val,bit); modrm_write16(&params,1,val,0); } //BTS /r r/m16,r16
+void CPU80386_OP0FAB_32() {modrm_generateInstructionTEXT("BTSD",32,0,PARAM_MODRM12); uint_32 bit = modrm_read32(&params,0); uint_32 val; modrm_addoffset = ((bit>>5)<<2); if (modrm_check32(&params,1,1)) return; val = modrm_read32(&params,1); CPU80386_BTS32(&val,bit); modrm_write32(&params,1,val); } //BTS /r r/m32,r32
 
 void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 {
@@ -589,7 +601,7 @@ void CPU80386_OP0FAD_32() {if (modrm_check32(&params,1,1)) return; if (modrm_che
 void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 	temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
 	temp2.val32 = (uint_32)modrm_read16(&params,1); //Immediate word is second/third parameter!
-	modrm_generateInstructionTEXT("IMUL",16,0,PARAM_MODRM12);
+	modrm_generateInstructionTEXT("IMULW",16,0,PARAM_MODRM12);
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
 	temp3.val32s = temp1.val32s; //Load and...
@@ -605,7 +617,7 @@ void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 	temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
 	temp2.val64 = (uint_64)modrm_read32(&params,1); //Immediate word is second/third parameter!
-	modrm_generateInstructionTEXT("IMUL",32,0,PARAM_MODRM12);
+	modrm_generateInstructionTEXT("IMULD",32,0,PARAM_MODRM12);
 	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
 	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
 	temp3.val64s = temp1.val32s; //Load and...
@@ -623,8 +635,20 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16
 void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
 
-void CPU80386_OP0FB3_16() {unkOP0F_386();} //BTR /r r/m16,r16
-void CPU80386_OP0FB3_32() {unkOP0F_386();} //BTR /r r/m32,r32
+void CPU80386_BTR16(word *val, word bit)
+{
+	FLAGW_CF(*val>>(bit&0xF));
+	*val &= ~(1<<(bit&0xF)); //Reset!
+}
+
+void CPU80386_BTR32(uint_32 *val, uint_32 bit)
+{
+	FLAGW_CF(*val>>(bit&0x1F));
+	*val &= ~(1<<(bit&0x1F)); //Reset!
+}
+
+void CPU80386_OP0FB3_16() {modrm_generateInstructionTEXT("BTRW",16,0,PARAM_MODRM12); word bit = modrm_read16(&params,0); word val; modrm_addoffset = ((bit>>4)<<1); if (modrm_check16(&params,1,1)) return; val = modrm_read16(&params,1); CPU80386_BTR16(&val,bit); modrm_write16(&params,1,val,0);} //BTR /r r/m16,r16
+void CPU80386_OP0FB3_32() {modrm_generateInstructionTEXT("BTRD",32,0,PARAM_MODRM12); uint_32 bit = modrm_read32(&params,0); uint_32 val; modrm_addoffset = ((bit>>5)<<2); if (modrm_check32(&params,1,1)) return; val = modrm_read32(&params,1); CPU80386_BTR32(&val,bit); modrm_write32(&params,1,val);} //BTR /r r/m32,r32
 
 void CPU80386_OP0FB4_16() /*LFS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r16,m16:16
 void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
@@ -691,13 +715,26 @@ OPTINLINE void modrm_debugger32_16(char *instruction)
 	}
 }
 
-void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZX"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r16,r/m8
-void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZX"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read8(&params,1));} //MOVZX /r r32,r/m8
+void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZXW"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,(word)modrm_read8(&params,1),0);} //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZXD"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read8(&params,1));} //MOVZX /r r32,r/m8
 
-void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZX"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,modrm_read16(&params,1),0);} //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZX"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read16(&params,1));} //MOVZX /r r32,r/m16
+void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZXW"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,modrm_read16(&params,1),0);} //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZXD"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,(uint_32)modrm_read16(&params,1));} //MOVZX /r r32,r/m16
+
+void CPU80386_BTC16(word *val, word bit)
+{
+	FLAGW_CF(*val>>(bit&0xF));
+	*val ^= (1<<(bit&0xF)); //Complement!
+}
+
+void CPU80386_BTC32(uint_32 *val, uint_32 bit)
+{
+	FLAGW_CF(*val>>(bit&0x1F));
+	*val ^= (1<<(bit&0x1F)); //Complement!
+}
 
 void CPU80386_OP0FBA_16() {
+	word val;
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params, &info, 1); //Store the address for debugging!
@@ -709,7 +746,7 @@ void CPU80386_OP0FBA_16() {
 			{
 				bzero(modrm_param1,sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
-				debugger_setcommand("BT %s,%02X",modrm_param1,immb); //Log the command!
+				debugger_setcommand("BTW %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
@@ -717,8 +754,50 @@ void CPU80386_OP0FBA_16() {
 			CPU80386_BT16(modrm_read16(&params,1),immb);
 			break;
 		case 5: //BTS r/m16,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTSW %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>4)<<1);
+			if (modrm_check16(&params,1,1)) return;
+			if (modrm_check16(&params,1,0)) return;
+			val = modrm_read16(&params,1);
+			CPU80386_BTS16(&val,immb);
+			modrm_write16(&params,1,val,0);
+			break;
 		case 6: //BTR r/m16,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTRW %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>4)<<1);
+			if (modrm_check16(&params,1,1)) return;
+			if (modrm_check16(&params,1,0)) return;
+			val = modrm_read16(&params,1);
+			CPU80386_BTR16(&val,immb);
+			modrm_write16(&params,1,val,0);
+			break;
 		case 7: //BTC r/m16,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTCW %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>4)<<1);
+			if (modrm_check16(&params,1,1)) return;
+			if (modrm_check16(&params,1,0)) return;
+			val = modrm_read16(&params,1);
+			CPU80386_BTC16(&val,immb);
+			modrm_write16(&params,1,val,0);
+			break;
 		default: //Unknown instruction?
 			unkOP0F_386(); //Unknown instruction!
 			break;
@@ -726,6 +805,7 @@ void CPU80386_OP0FBA_16() {
 }
 
 void CPU80386_OP0FBA_32() {
+	uint_32 val;
 	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode32(&params, &info, 1); //Store the address for debugging!
@@ -737,7 +817,7 @@ void CPU80386_OP0FBA_32() {
 			{
 				bzero(modrm_param1,sizeof(modrm_param1));
 				modrm_text32(&params,1,&modrm_param1[0]);
-				debugger_setcommand("BT %s,%02X",modrm_param1,immb); //Log the command!
+				debugger_setcommand("BTD %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>5)<<2);
@@ -745,25 +825,155 @@ void CPU80386_OP0FBA_32() {
 			CPU80386_BT32(modrm_read32(&params,1),immb);
 			break;
 		case 5: //BTS r/m32,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTSD %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>5)<<2);
+			if (modrm_check32(&params,1,1)) return;
+			if (modrm_check32(&params,1,0)) return;
+			val = modrm_read32(&params,1);
+			CPU80386_BTS32(&val,immb);
+			modrm_write32(&params,1,val);
+			break;
 		case 6: //BTR r/m32,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTRD %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>5)<<2);
+			if (modrm_check32(&params,1,1)) return;
+			if (modrm_check32(&params,1,0)) return;
+			val = modrm_read32(&params,1);
+			CPU80386_BTR32(&val,immb);
+			modrm_write32(&params,1,val);
+			break;
 		case 7: //BTC r/m32,imm8
+			if (cpudebugger)
+			{
+				bzero(modrm_param1,sizeof(modrm_param1));
+				modrm_text16(&params,1,&modrm_param1[0]);
+				debugger_setcommand("BTCD %s,%02X",modrm_param1,immb); //Log the command!
+			}
+			//Actual execution!
+			modrm_addoffset = ((immb>>5)<<2);
+			if (modrm_check32(&params,1,1)) return;
+			if (modrm_check32(&params,1,0)) return;
+			val = modrm_read32(&params,1);
+			CPU80386_BTC32(&val,immb);
+			modrm_write32(&params,1,val);
+			break;
 		default: //Unknown instruction?
 			unkOP0F_386(); //Unknown instruction!
 			break;
 	}
 }
 
-void CPU80386_OP0FBB_16() {unkOP0F_386();} //BTC /r r/m16,r16
-void CPU80386_OP0FBB_32() {unkOP0F_386();} //BTC /r r/m32,r32
+void CPU80386_OP0FBB_16() {modrm_generateInstructionTEXT("BTCW",16,0,PARAM_MODRM12); word bit = modrm_read16(&params,0); word val; modrm_addoffset = ((bit>>4)<<1); if (modrm_check16(&params,1,1)) return; val = modrm_read16(&params,1); CPU80386_BTC16(&val,bit); modrm_write16(&params,1,val,0);} //BTC /r r/m16,r16
+void CPU80386_OP0FBB_32() {modrm_generateInstructionTEXT("BTCD",32,0,PARAM_MODRM12); uint_32 bit = modrm_read32(&params,0); uint_32 val; modrm_addoffset = ((bit>>5)<<2); if (modrm_check32(&params,1,1)) return; val = modrm_read32(&params,1); CPU80386_BTC32(&val,bit); modrm_write32(&params,1,val);} //BTC /r r/m32,r32
 
-void CPU80386_OP0FBC_16() {unkOP0F_386();} //BSF /r r16,r/m16
-void CPU80386_OP0FBC_32() {unkOP0F_386();} //BSF /r r32,r/m32
+void CPU80386_OP0FBC_16() {
+	word src,dest,temp;
+	modrm_generateInstructionTEXT("BSFW",16,0,PARAM_MODRM12);
+	if (modrm_check16(&params,1,1)) return;
+	if (modrm_check16(&params,1,0)) return;
+	src = modrm_read16(&params,1); //Read src!
+	if (src==0) //Nothing?
+	{
+		FLAGW_ZF(1); //Set zero flag!
+	}
+	else
+	{
+		dest = modrm_read16(&params,0); //Read dest!
+		FLAGW_ZF(0);
+		temp = 0;
+		for (;(((src>>temp)&1)==0) && (temp<16);) //Still searching?
+		{
+			++temp;
+			dest = temp;
+		}
+		modrm_write16(&params,0,dest,0); //Write the result!
+	}
+} //BSF /r r16,r/m16
+void CPU80386_OP0FBC_32() {
+	uint_32 src,dest,temp;
+	modrm_generateInstructionTEXT("BSFD",16,0,PARAM_MODRM12);
+	if (modrm_check32(&params,1,1)) return;
+	if (modrm_check32(&params,1,0)) return;
+	src = modrm_read32(&params,1); //Read src!
+	if (src==0) //Nothing?
+	{
+		FLAGW_ZF(1); //Set zero flag!
+	}
+	else
+	{
+		dest = modrm_read32(&params,0); //Read dest!
+		FLAGW_ZF(0);
+		temp = 0;
+		for (;(((src>>temp)&1)==0) && (temp<32);) //Still searching?
+		{
+			++temp;
+			dest = temp; //Store temporary result!
+		}
+		modrm_write32(&params,0,dest); //Write the result!
+	}
+} //BSF /r r32,r/m32
 
-void CPU80386_OP0FBD_16() {unkOP0F_386();} //BSR /r r16,r/m16
-void CPU80386_OP0FBD_32() {unkOP0F_386();} //BSR /r r32,r/m32
+void CPU80386_OP0FBD_16() {
+	word src,dest,temp;
+	modrm_generateInstructionTEXT("BSRW",16,0,PARAM_MODRM12);
+	if (modrm_check16(&params,1,1)) return;
+	if (modrm_check16(&params,1,0)) return;
+	src = modrm_read16(&params,1); //Read src!
+	if (src==0) //Nothing?
+	{
+		FLAGW_ZF(1); //Set zero flag!
+	}
+	else
+	{
+		dest = modrm_read16(&params,0); //Read dest!
+		FLAGW_ZF(0);
+		temp = 15;
+		for (;(((src>>temp)&1)==0) && (temp!=0xFFFF);) //Still searching?
+		{
+			--temp;
+			dest = temp;
+		}
+		modrm_write16(&params,0,dest,0); //Write the result!
+	}
+} //BSR /r r16,r/m16
+void CPU80386_OP0FBD_32() {
+	uint_32 src,dest,temp;
+	modrm_generateInstructionTEXT("BSRD",16,0,PARAM_MODRM12);
+	if (modrm_check32(&params,1,1)) return;
+	if (modrm_check32(&params,1,0)) return;
+	src = modrm_read32(&params,1); //Read src!
+	if (src==0) //Nothing?
+	{
+		FLAGW_ZF(1); //Set zero flag!
+	}
+	else
+	{
+		dest = modrm_read32(&params,0); //Read dest!
+		FLAGW_ZF(0);
+		temp = 15;
+		for (;(((src>>temp)&1)==0) && (temp!=0xFFFFFFFF);) //Still searching?
+		{
+			++temp;
+			dest = temp; //Store temporary result!
+		}
+		modrm_write32(&params,0,dest); //Write the result!
+	}
+} //BSR /r r32,r/m32
 
-void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSX"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))),0);} //MOVSX /r r16,r/m8
-void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSX"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))));} //MOVSX /r r32,r/m8
+void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSXW"); if (modrm_check8(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))),0);} //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSXD"); if (modrm_check8(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned16((sword)unsigned2signed8(modrm_read8(&params,1))));} //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSX"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed16(modrm_read16(&params,1))),0);} //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSX"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned32((int_32)unsigned2signed16(modrm_read16(&params,1))));} //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSXW"); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,0)) return; modrm_write16(&params,0,signed2unsigned16((sword)unsigned2signed16(modrm_read16(&params,1))),0);} //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSXD"); if (modrm_check16(&params,1,1)) return; if (modrm_check32(&params,0,0)) return; modrm_write32(&params,0,signed2unsigned32((int_32)unsigned2signed16(modrm_read16(&params,1))));} //MOVSX /r r32,r/m16
