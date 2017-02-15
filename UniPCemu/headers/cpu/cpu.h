@@ -973,11 +973,83 @@ typedef struct PACKED
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
+typedef union PACKED
+{
+	struct
+	{
+		#ifdef IS_BIG_ENDIAN
+		word val16high; //Filler
+		#endif
+		union
+		{
+			struct
+			{
+				#ifdef IS_BIG_ENDIAN
+				byte val8high;
+				#endif
+				union
+				{
+					byte val8;
+					sbyte val8s;
+				};
+				#ifndef IS_BIG_ENDIAN
+				byte val8high;
+				#endif
+			};
+			word val16; //Normal
+			sword val16s; //Signed
+		};
+		#ifndef IS_BIG_ENDIAN
+		word val16high; //Filler
+		#endif
+	};
+	uint_32 val32; //Normal
+	int_32 val32s; //Signed
+} VAL32Splitter; //Our 32-bit value splitter!
+#include "headers/endpacked.h" //End of packed type!
+
+#include "headers/packed.h" //Packed type!
+typedef union PACKED
+{
+	struct
+	{
+		#ifdef IS_BIG_ENDIAN
+		uint_32 val32high; //Filler
+		#endif
+		union
+		{
+			struct
+			{
+				union
+				{
+					uint_32 val32;
+					struct
+					{
+						#ifdef IS_BIG_ENDIAN
+						word val16_high;
+						#endif
+						word val16;
+						#ifndef IS_BIG_ENDIAN
+						word val16_high;
+						#endif
+					};
+				};
+			};
+			int_32 val32s;
+		};
+		#ifndef IS_BIG_ENDIAN
+		uint_32 val32high; //Filler
+		#endif
+	};
+	uint_32 val64; //Normal
+	int_32 val64s; //Signed
+} VAL64Splitter; //Our 32-bit value splitter!
+#include "headers/endpacked.h" //End of packed type!
+
 #define SIB_BASE(SIB) (SIB&7)
 #define SIB_INDEX(SIB) ((SIB>>3)&7)
 #define SIB_SCALE(SIB) ((SIB>>6)&3)
 typedef byte SIBType; //SIB byte!
-#include "headers/endpacked.h" //End of packed type!
 
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!
