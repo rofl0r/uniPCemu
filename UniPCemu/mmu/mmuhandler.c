@@ -351,7 +351,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, stringsafe(value); //Log it!
+		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, stringsafe(value)); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
