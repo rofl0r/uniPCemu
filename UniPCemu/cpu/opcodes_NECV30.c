@@ -272,20 +272,33 @@ void CPU186_OP6C()
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
 	byte data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,0,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL())) return; //Abort on fault!
 	CPU_PORT_IN_B(REG_DX,&data); //Read the port!
 	CPUPROT1
-	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,data);    //INSB
+	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data);    //INSB
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		--REG_DI;
+		if (CPU_Address_size[activeCPU])
+		{
+			--REG_EDI;
+		}
+		else
+		{
+			--REG_DI;
+		}
 	}
 	else
 	{
-		++REG_DI;
-	}
-	CPUPROT2
+		if (CPU_Address_size[activeCPU])
+		{
+			++REG_EDI;
+		}
+		else
+		{
+			++REG_DI;
+		}
+	}	CPUPROT2
 	CPUPROT2
 }
 
@@ -294,19 +307,33 @@ void CPU186_OP6D()
 	debugger_setcommand("INSW");
 	if (blockREP) return; //Disabled REP!
 	word data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,0,getCPL())) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI+1,0,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL())) return; //Abort on fault!
 	CPU_PORT_IN_W(REG_DX, &data); //Read the port!
 	CPUPROT1
-	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),REG_DI,data);    //INSW
+	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data);    //INSW
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		REG_DI -= 2;
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI -= 2;
+		}
+		else
+		{
+			REG_DI -= 2;
+		}
 	}
 	else
 	{
-		REG_DI += 2;
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI += 2;
+		}
+		else
+		{
+			REG_DI += 2;
+		}
 	}
 	CPUPROT2
 	CPUPROT2
@@ -317,20 +344,33 @@ void CPU186_OP6E()
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
 	byte data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI,1,getCPL())) return; //Abort on fault!
-	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0);
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL())) return; //Abort on fault!
+	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0);
 	CPUPROT1
 	CPU_PORT_OUT_B(REG_DX,data); //OUTS DX,Xb
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		--REG_SI;
+		if (CPU_Address_size[activeCPU])
+		{
+			--REG_ESI;
+		}
+		else
+		{
+			--REG_SI;
+		}
 	}
 	else
 	{
-		++REG_SI;
-	}
-	CPUPROT2
+		if (CPU_Address_size[activeCPU])
+		{
+			++REG_ESI;
+		}
+		else
+		{
+			++REG_SI;
+		}
+	}	CPUPROT2
 	CPUPROT2
 }
 
@@ -339,21 +379,34 @@ void CPU186_OP6F()
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
 	word data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI,1,getCPL())) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),REG_SI+1,1,getCPL())) return; //Abort on fault!
-	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), REG_SI, 0);
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL())) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL())) return; //Abort on fault!
+	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0);
 	CPUPROT1
 	CPU_PORT_OUT_W(REG_DX,data);    //OUTS DX,Xz
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		REG_SI -= 2;
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI -= 2;
+		}
+		else
+		{
+			REG_SI -= 2;
+		}
 	}
 	else
 	{
-		REG_SI += 2;
-	}
-	CPUPROT2
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI += 2;
+		}
+		else
+		{
+			REG_SI += 2;
+		}
+	}	CPUPROT2
 	CPUPROT2
 }
 
