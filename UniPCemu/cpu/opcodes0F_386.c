@@ -449,33 +449,64 @@ void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/
 
 void CPU80386_OP0FA3_16() {unkOP0F_386();} //BT /r r/m16,r16
 void CPU80386_OP0FA3_32() {unkOP0F_386();} //BT /r r/m32,r32
-void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
+
+void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
-	uint_32 s = dest?*dest:modrm_read32(&params,1);
-	cnt &= 0x1F;
-	for (shift = 1; shift <= cnt; shift++)
+	byte shift;
+	if (cnt) //To actually shift?
 	{
-		if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
-		s = ((s << 1) & 0xFFFFFFFF)|((src>>31)&1);
-		src <<= 1; //Next bit to shift in!
-	}
-	if ((cnt) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
-	flag_szp32(s);
-	if (dest)
-	{
-		*dest = s;
-	}
-	else
-	{
-		modrm_write32(&params,s);
+		word s = dest?*dest:modrm_read16(&params,1);
+		cnt &= 0x1F;
+		for (shift = 1; shift <= cnt; shift++)
+		{
+			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+			s = ((s << 1) & 0xFFFF)|((src>>15)&1);
+			src <<= 1; //Next bit to shift in!
+		}
+		if ((cnt==1) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
+		flag_szp16(s);
+		if (dest)
+		{
+			*dest = s;
+		}
+		else
+		{
+			modrm_write16(&params,1,s,0);
+		}
 	}
 }
 
-void CPU80386_OP0FA4_16() {unkOP0F_386();} //SHLD /r r/m16,r16,imm8
-void CPU80386_OP0FA4_32() {unkOP0F_386();} //SHLD /r r/m32,r32,imm8
+void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
+{
+	byte shift;
+	uint_32 s = dest?*dest:modrm_read32(&params,1);
+	cnt &= 0x1F;
+	if (cnt)
+	{
+		for (shift = 1; shift <= cnt; shift++)
+		{
+			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
+			s = ((s << 1) & 0xFFFFFFFF)|((src>>31)&1);
+			src <<= 1; //Next bit to shift in!
+		}
+		if ((cnt==1) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
+		flag_szp32(s);
+		if (dest)
+		{
+			*dest = s;
+		}
+		else
+		{
+			modrm_write32(&params,1,s);
+		}
+	}
+}
 
-void CPU80386_OP0FA5_16() {unkOP0F_386();} //SHLD /r r/m16,r16,CL
-void CPU80386_OP0FA5_32() {unkOP0F_386();} //SHLD /r r/m32,r32,CL
+void CPU80386_OP0FA4_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHLD /r r/m32,r32,imm8
+
+void CPU80386_OP0FA5_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHLD /r r/m32,r32,CL
 
 void CPU80386_OP0FA8() {modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/ if (checkStackAccess(1,1,0)) return; CPU_PUSH16(&REG_GS);/*PUSH FS*/} //PUSH GS
 void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/ if (checkStackAccess(1,0,0)) return; segmentWritten(CPU_SEGMENT_GS,CPU_POP16(),0);} //POP GS
@@ -485,32 +516,63 @@ void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/
 void CPU80386_OP0FAB_16() {unkOP0F_386();} //BTS /r r/m16,r16
 void CPU80386_OP0FAB_32() {unkOP0F_386();} //BTS /r r/m32,r32
 
-void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
+void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 {
-	uint_32 s = dest?*dest:modrm_read32(&params,1);
+	byte shift;
+	word s = dest?*dest:modrm_read16(&params,1);
 	cnt &= 0x1F;
-	if (cnt) FLAGW_OF((s & 0x80000000) ? 1 : 0);
-	for (shift = 1; shift <= cnt; shift++)
+	if (cnt)
 	{
-		FLAGW_CF(s & 1);
-		s = ((s >> 1)|((src&1)<<31));
-		src >>= 1; //Next bit to shift in!
-	}
-	flag_szp32(s);
-	if (dest)
-	{
-		*dest = s;
-	}
-	else
-	{
-		modrm_write32(&params,s);
+		if (cnt==1) FLAGW_OF((s & 0x8000) ? 1 : 0);
+		for (shift = 1; shift <= cnt; shift++)
+		{
+			FLAGW_CF(s & 1);
+			s = ((s >> 1)|((src&1)<<15));
+			src >>= 1; //Next bit to shift in!
+		}
+		flag_szp16(s);
+		if (dest)
+		{
+			*dest = s;
+		}
+		else
+		{
+			modrm_write16(&params,1,s,0);
+		}
 	}
 }
 
-void CPU80386_OP0FAC_16() {unkOP0F_386();} //SHRD /r r/m16,r16,imm8
-void CPU80386_OP0FAC_32() {unkOP0F_386();} //SHRD /r r/m32,r32,imm8
-void CPU80386_OP0FAD_16() {unkOP0F_386();} //SHRD /r r/m16,r16,CL
-void CPU80386_OP0FAD_32() {unkOP0F_386();} //SHRD /r r/m32,r32,CL
+
+void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
+{
+	byte shift;
+	uint_32 s = dest?*dest:modrm_read32(&params,1);
+	cnt &= 0x1F;
+	if (cnt)
+	{
+		if (cnt==1) FLAGW_OF((s & 0x80000000) ? 1 : 0);
+		for (shift = 1; shift <= cnt; shift++)
+		{
+			FLAGW_CF(s & 1);
+			s = ((s >> 1)|((src&1)<<31));
+			src >>= 1; //Next bit to shift in!
+		}
+		flag_szp32(s);
+		if (dest)
+		{
+			*dest = s;
+		}
+		else
+		{
+			modrm_write32(&params,1,s);
+		}
+	}
+}
+
+void CPU80386_OP0FAC_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16() {if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32() {if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHRD /r r/m32,r32,CL
 void CPU80386_OP0FAF_16() {unkOP0F_386();} //IMUL /r r16,r/m16
 void CPU80386_OP0FAF_32() {unkOP0F_386();} //IMUL /r r32,r/m32
 
