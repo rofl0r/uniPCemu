@@ -265,6 +265,11 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
+OPTINLINE char stringsafe(byte x)
+{
+	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
+}
+
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
@@ -306,7 +311,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Reading from RAM: %08X=%02X (%c)", realaddress, result, result ? result : 0x20); //Log it!
+		dolog("debugger", "Reading from RAM: %08X=%02X (%c)", realaddress, result, stringsafe(result)); //Log it!
 	}
 	return result; //Give existant memory!
 }
@@ -315,7 +320,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 {
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
-		dolog("debugger", "MMU: Writing to real %08X=%02X (%c)", realaddress, value, value ? value : 0x20);
+		dolog("debugger", "MMU: Writing to real %08X=%02X (%c)", realaddress, value, stringsafe(value));
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
@@ -346,7 +351,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, value ? value : 0x20); //Log it!
+		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, stringsafe(value); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
@@ -389,7 +394,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index
 	}
 	if (MMU_logging && (!opcode)) //To log?
 	{
-		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data, data ? data : 0x20); //Log it!
+		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data, stringsafe(data)); //Log it!
 	}
 	return data;
 }
@@ -420,7 +425,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val, val ? val : 0x20); //Log it!
+		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val, stringsafe(val)); //Log it!
 	}
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
