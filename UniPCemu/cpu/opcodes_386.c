@@ -927,7 +927,7 @@ OPTINLINE void CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 }
 
 //LEA for LDS, LES
-OPTINLINE word getLEA32(MODRM_PARAMS *theparams)
+OPTINLINE uint_32 getLEA32(MODRM_PARAMS *theparams)
 {
 	return modrm_lea32(theparams,1);
 }
@@ -1038,7 +1038,7 @@ OPTINLINE void CPU80386_internal_CWDE()
 	CPUPROT1
 	if ((REG_AX&0x80)==0x80)
 	{
-		REG_EAX |= 0xFFFF;
+		REG_EAX |= 0xFFFF0000;
 	}
 	else
 	{
@@ -1376,7 +1376,7 @@ OPTINLINE void CPU80386_internal_RETF(word popbytes, byte isimm)
 	{
 		return; //Abort on fault!
 	}
-	INLINEREGISTER word val = CPU_POP32(); //Far return
+	INLINEREGISTER uint_32 val = CPU_POP32(); //Far return
 	word destCS;
 	CPUPROT1
 	destCS = CPU_POP32(); //POP CS!
@@ -1524,7 +1524,7 @@ OPTINLINE void CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte fla
 	oper2d = data2?*data2:modrm_read32(&params,MODRM_src1);
 	CPUPROT1
 	//Do a simple swap!
-	word temp = oper1d; //Copy!
+	uint_32 temp = oper1d; //Copy!
 	oper1d = oper2d; //We're ...
 	oper2d = temp; //Swapping this!
 	if (data1)
@@ -1580,7 +1580,7 @@ void CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 
 	CPUPROT1
 	modrm_addoffset = 0; //Add this to the offset to use!
-	word offset = modrm_read32(&params,1);
+	uint_32 offset = modrm_read32(&params,1);
 	CPUPROT1
 	modrm_addoffset = 2; //Add this to the offset to use!
 	word segment = modrm_read16(&params,1);
@@ -1604,7 +1604,7 @@ void CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 	}
 }
 
-void CPU80386_CALLF(word segment, word offset)
+void CPU80386_CALLF(word segment, uint_32 offset)
 {
 	destEIP = offset;
 	segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed, call version!*/
@@ -1695,9 +1695,9 @@ void CPU80386_OP96() {modrm_generateInstructionTEXT("XCHGD ESI,EAX",0,0,PARAM_NO
 void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHGD EDI,EAX",0,0,PARAM_NONE);/*XCHG AX,DI*/ CPU80386_internal_XCHG32(&REG_EDI,&REG_EAX,1); /*XCHG DI,AX*/ }
 void CPU80386_OP98() {modrm_generateInstructionTEXT("CWDE",0,0,PARAM_NONE);/*CBW : sign extend AX to EAX*/ CPU80386_internal_CWDE();/*CWDE : sign extend AX to EAX (80386+)*/ }
 void CPU80386_OP99() {modrm_generateInstructionTEXT("CWQ",0,0,PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CDQ : sign extend EAX to EDX::EAX (80386+)*/ }
-void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%04x", (segmentoffset>>32), (segmentoffset&0xFFFF)); CPU80386_CALLF((segmentoffset>>16)&0xFFFF,segmentoffset&0xFFFF); CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
+void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%04x", (segmentoffset>>32), (segmentoffset&0xFFFFFFFF)); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&0xFFFFFFFF); CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
 void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*PUSHFD*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EFLAGS); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
-void CPU80386_OP9D() {modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPFD*/ word tempflags; if (checkStackAccess(1,0,1)) return;  tempflags = CPU_POP32(); if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ } if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ } REG_FLAGS = tempflags; updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ }
+void CPU80386_OP9D() {modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPFD*/ uint_32 tempflags; if (checkStackAccess(1,0,1)) return;  tempflags = CPU_POP32(); if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ } if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ } REG_FLAGS = tempflags; updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ }
 
 //Different addressing modes affect us! Combine operand size and address size into new versions of the instructions, where needed!
 //16/32 depending on address size!
@@ -1757,16 +1757,16 @@ void CPU80386_OPD4() {INLINEREGISTER byte theimm = immb; modrm_generateInstructi
 void CPU80386_OPD5() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAD",0,theimm,PARAM_IMM8);/*AAD*/ CPU80386_internal_AAD(theimm);/*AAD*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; CPU[activeCPU].cycles_OP = 2;} //Special case on the 80386: SALC!
 void CPU80386_OPD7(){if (CPU_Address_size[activeCPU]) CPU80386_internal_XLAT(); else CPU8086_external_XLAT(); } //We depend on the address size instead!
-void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&0xFFFF),PARAM_IMM32); if ((--REG_ECX) && (!FLAG_ZF)){REG_EIP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
-void CPU80386_OPE1(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_EIP+rel8)&0xFFFF),PARAM_IMM32);if ((--REG_ECX) && (FLAG_ZF)){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
-void CPU80386_OPE2(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_EIP+rel8)&0xFFFF),PARAM_IMM32);if (--REG_ECX){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
-void CPU80386_OPE3(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_EIP+rel8)&0xFFFF),PARAM_IMM16); if (!REG_ECX){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */}else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
+void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&0xFFFFFFFF),PARAM_IMM32); if ((--REG_ECX) && (!FLAG_ZF)){REG_EIP += rel8; CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
+void CPU80386_OPE1(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_EIP+rel8)&0xFFFFFFFF),PARAM_IMM32);if ((--REG_ECX) && (FLAG_ZF)){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
+void CPU80386_OPE2(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_EIP+rel8)&0xFFFFFFFF),PARAM_IMM32);if (--REG_ECX){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
+void CPU80386_OPE3(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_EIP+rel8)&0xFFFFFFFF),PARAM_IMM16); if (!REG_ECX){REG_EIP += rel8;CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */}else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
 void CPU80386_OPE5(){INLINEREGISTER byte theimm = immb;modrm_generateInstructionTEXT("IN EAX,",0,theimm,PARAM_IMM8); CPU_PORT_IN_D(theimm,&REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ }
 void CPU80386_OPE7(){INLINEREGISTER byte theimm = immb; debugger_setcommand("OUT %02X,EAX",theimm); CPU_PORT_OUT_D(theimm,REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ }
-void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EIP); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
-void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
-void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%04X", (segmentoffset>>32), (segmentoffset&0xFFFF)); destEIP = (segmentoffset&0xFFFF); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
-void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFF),PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
+void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&0xFFFFFFFF),PARAM_IMM32); if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EIP); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
+void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFFFFFF),PARAM_IMM32); REG_IP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
+void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%08X", (segmentoffset>>32), (segmentoffset&0xFFFFFFFF)); destEIP = (segmentoffset&0xFFFFFFFF); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
+void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&0xFFFFFFFF),PARAM_IMM32); REG_EIP += reloffset;CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); CPU_PORT_IN_D(REG_DX,&REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
 void CPU80386_OPEF(){modrm_generateInstructionTEXT("OUT DX,EAX",0,0,PARAM_NONE); CPU_PORT_OUT_D(REG_DX,REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
 void CPU80386_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
@@ -2206,57 +2206,57 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 	switch (thereg) {
 	case 0: //ROL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 31) & 1));
 		break;
 
 	case 1: //ROR r/m32
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			s = (s >> 1) | (FLAG_CF << 15);
+			s = (s >> 1) | (FLAG_CF << 31);
 		}
-		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
+		if (cnt) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 2: //RCL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
-			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = s << 1;
 			s = s | oldCF;
 			//oldCF = ((s&0x8000)>>15)&1; //Save FLAG_CF!
 			//s = (s<<1)+FLAG_CF;
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
+		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 31) & 1));
 		break;
 
 	case 3: //RCR r/m32
-		if (cnt) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
+		if (cnt) FLAGW_OF(((s >> 31) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
 			FLAGW_CF(s & 1);
-			s = (s >> 1) | (oldCF << 15);
+			s = (s >> 1) | (oldCF << 31);
 			//oldCF = s&1;
 			//s = (s<<1)+(FLAG_CF<<32);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
+		if (cnt) FLAGW_OF((s >> 31) ^ ((s >> 30)) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m32
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
-			s = (s << 1) & 0xFFFF;
+			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
+			s = (s << 1) & 0xFFFFFFFF;
 		}
-		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
+		if ((cnt) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp32(s); break;
 
 	case 5: //SHR r/m32
-		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
+		if (cnt) FLAGW_OF((s & 0x80000000) ? 1 : 0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = s >> 1;
@@ -2265,7 +2265,7 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 
 	case 7: //SAR r/m32
 		if (cnt) FLAGW_OF(0);
-		msb = s & 0x8000; //Read the MSB!
+		msb = s & 0x80000000; //Read the MSB!
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
@@ -2280,7 +2280,7 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 		break;
 	}
 	op386_grp2_cycles(cnt, varshift|4);
-	return(s & 0xFFFF);
+	return(s & 0xFFFFFFFF);
 }
 
 byte tmps,tmpp; //Sign/parity backup!
@@ -2343,13 +2343,13 @@ OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor) {
 	dataw2.valdivs = dataw1.valdivs; //Set and...
 	dataw2.valdivs /= datab1.divisors; //... Divide!
 
-	datab2.divisors = (sword)dataw2.valdivs; //Try to load the signed result!
+	datab2.divisors = (int_32)dataw2.valdivs; //Try to load the signed result!
 	if ((int_32)dataw2.valdivw != (int_32)datab2.divisors) { CPU_exDIV0(); return; } //Overflow (data loss)!
 
 	REG_EAX = datab2.divisorb; //Divided!
 	dataw2.valdivs = dataw1.valdivs; //Reload and...
 	dataw2.valdivs %= datab1.divisors; //... Modulo!
-	datab1.divisors = (sword)dataw2.valdivs; //Convert to 8-bit!
+	datab1.divisors = (int_32)dataw2.valdivs; //Convert to 8-bit!
 	REG_EDX = datab1.divisorb; //Move rest into result!
 
 							  //if (valdiv > 0x7FFFFFFF) v1 = valdiv - 0xFFFFFFFF - 1; else v1 = valdiv;
@@ -2813,7 +2813,7 @@ void CPU386_OP6F()
 	CPUPROT2
 }
 
-word op_grp2_32(byte cnt, byte varshift) { //TODO!
+uint_32 op_grp2_32(byte cnt, byte varshift) { //TODO!
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
@@ -2908,7 +2908,7 @@ void CPU386_OPC1()
 	oper2d = (word)immb;
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params,&info,1); //Store the address for debugging!
+	modrm_decode32(&params,&info,1); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
