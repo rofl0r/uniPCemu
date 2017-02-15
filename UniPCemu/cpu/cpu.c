@@ -229,7 +229,11 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 			case PARAM_MODRM1: //Param1 only?
 			case PARAM_MODRM2: //Param2 only?
 			case PARAM_MODRM12: //param1,param2
+			case PARAM_MODRM12_IMM8: //param1,param2,imm8
+			case PARAM_MODRM12_CL: //param1,param2,CL
 			case PARAM_MODRM21: //param2,param1
+			case PARAM_MODRM21_IMM8: //param2,param1,imm8
+			case PARAM_MODRM21_CL: //param2,param1,CL
 				//We use modr/m decoding!
 				switch (debuggersize)
 				{
@@ -265,8 +269,24 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 				strcat(result," %s,%s"); //2 params!
 				debugger_setcommand(result,modrm_param1,modrm_param2);
 				break;
+			case PARAM_MODRM12_IMM8: //param1,param2,imm8
+				strcat(result," %s,%s,%02X"); //2 params!
+				debugger_setcommand(result,modrm_param1,modrm_param2,paramdata);
+				break;
+			case PARAM_MODRM12_CL: //param1,param2,CL
+				strcat(result," %s,%s,CL"); //2 params!
+				debugger_setcommand(result,modrm_param1,modrm_param2);
+				break;
 			case PARAM_MODRM21: //param2,param1
 				strcat(result," %s,%s"); //2 params!
+				debugger_setcommand(result,modrm_param2,modrm_param1);
+				break;
+			case PARAM_MODRM21_IMM8: //param2,param1,imm8
+				strcat(result," %s,%s,%02X"); //2 params!
+				debugger_setcommand(result,modrm_param2,modrm_param1,paramdata);
+				break;
+			case PARAM_MODRM21_CL: //param2,param1,CL
+				strcat(result," %s,%s,CL"); //2 params!
 				debugger_setcommand(result,modrm_param2,modrm_param1);
 				break;
 			case PARAM_IMM8: //imm8
