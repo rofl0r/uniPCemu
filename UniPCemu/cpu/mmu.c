@@ -264,7 +264,7 @@ OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word
 
 OPTINLINE void MMU_INTERNAL_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte index) //Set adress (dword)!
 {
-	INLINEREGISTER word d;
+	INLINEREGISTER uint_32 d;
 	d = val;
 	MMU_INTERNAL_ww(segdesc,segment,offset,d&0xFFFF,index); //Low first!
 	d >>= 16; //Shift low!
