@@ -47,7 +47,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 	4: DWord displacement
 	*/
 
-	if (params->slashr==1) return 0; //No displacement on /r operands: REQUIRED FOR SOME OPCODES!!!
+	if (((params->specialflags==3) || (params->specialflags==4) || (params->specialflags==7))) return 0; //No displacement on register-only operands(forced to mode 3): REQUIRED FOR SOME OPCODES!!!
 
 	if (size<2)   //16 bits operand size?
 	{
@@ -688,9 +688,8 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 
 //Whichregister:
 /*
-0=Invalid/unimplemented
-1=reg1 (params->slashr==0) or segment register (params->slashr==1)
-2=reg2 as register (params->slashr==1) or mode 0 (RM value).
+0=reg1 (params->specialflags==0) or segment register (params->specialflags==2)
+1+=reg2(r/m) as register (params->specialflags special cases) or memory address (RM value).
 */
 
 //First the decoders:
@@ -848,10 +847,6 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr==1) //Register (R/M with /r)?
-	{
-		isregister = 1; //Register!
-	}
 	else if (MODRM_MOD(params->modrm)==MOD_REG) //Register R/M?
 	{
 		isregister = 1; //Register!
@@ -863,7 +858,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	bzero(result, sizeof(*result)); //Init!
 
-	if (params->slashr==3) //Reg is CR, R/M is General Purpose Register?
+	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
 		if (isregister) //CR?
 		{
@@ -875,7 +870,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==4) //Reg is DR? R/M is General Purpose register?
+	else if (params->specialflags==4) //Reg is DR? R/M is General Purpose register?
 	{
 		if (isregister) //CR?
 		{
@@ -887,7 +882,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	else if (params->specialflags==7) //Reg is TR? R/M is General Purpose register?
 	{
 		if (isregister) //CR?
 		{
@@ -1361,10 +1356,6 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr==1) //Register (R/M with /r)?
-	{
-		isregister = 1; //Register!
-	}
 	else if (MODRM_MOD(params->modrm)==MOD_REG) //Register R/M?
 	{
 		isregister = 1; //Register!
@@ -1374,7 +1365,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		isregister = 0; //No register (R/M=Memory Address)!
 	}
 
-	if (params->slashr==3) //Reg is CR, R/M is General Purpose Register?
+	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
 		if (isregister) //CR?
 		{
@@ -1386,7 +1377,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==4) //Reg is DR? R/M is General Purpose register?
+	else if (params->specialflags==4) //Reg is DR? R/M is General Purpose register?
 	{
 		if (isregister) //CR?
 		{
@@ -1398,7 +1389,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	else if (params->specialflags==7) //Reg is TR? R/M is General Purpose register?
 	{
 		if (isregister) //TR?
 		{
@@ -1411,11 +1402,11 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		}
 	}
 
-	if ((params->slashr==5) && isregister) //Reg is 16-bits instead?
+	if ((params->specialflags==5) && isregister) //Reg is 16-bits instead?
 	{
 		//Normal 16-bit register!
 	}
-	else if ((params->slashr==6) && isregister) //Reg is 32-bits instead?
+	else if ((params->specialflags==6) && isregister) //Reg is 32-bits instead?
 	{
 		modrm_decode32(params,result,whichregister); //Redirect to 32-bit register!
 		return;
@@ -1840,10 +1831,6 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 	{
 		isregister = 1; //Register!
 	}
-	else if (params->slashr==1) //Register (R/M with /r)?
-	{
-		isregister = 1; //Register!
-	}
 	else if (MODRM_MOD(params->modrm)==MOD_REG) //Register R/M?
 	{
 		isregister = 1; //Register!
@@ -1853,7 +1840,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		isregister = 0; //No register, so use memory R/M!
 	}
 
-	if (params->slashr==3) //Reg is CR, R/M is General Purpose Register?
+	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
 		if (isregister) //CR?
 		{
@@ -1865,7 +1852,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==4) //Reg is DR? R/M is General Purpose register?
+	else if (params->specialflags==4) //Reg is DR? R/M is General Purpose register?
 	{
 		if (isregister) //CR?
 		{
@@ -1877,7 +1864,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
-	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	else if (params->specialflags==7) //Reg is TR? R/M is General Purpose register?
 	{
 		if (isregister) //TR?
 		{
@@ -1890,12 +1877,12 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		}
 	}
 
-	if ((params->slashr==5) && isregister) //Reg is 16-bits instead?
+	if ((params->specialflags==5) && isregister) //Reg is 16-bits instead?
 	{
 		modrm_decode16(params,result,whichregister); //Normal 16-bit register!
 		return;
 	}
-	else if ((params->slashr==6) && isregister) //Reg is 32-bits instead?
+	else if ((params->specialflags==6) && isregister) //Reg is 32-bits instead?
 	{
 		modrm_decode32(params,result,whichregister); //Redirect to 32-bit register!
 		return;
@@ -2239,26 +2226,26 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 
 /*
 
-Slashr:
-0: No slashr! (Use displacement if needed!)
+specialflags:
+0: No special flags! (Use displacement if needed!)
 1: RM=> REG2 (No displacement etc.)
 2: REG1=> SEGMENTREGISTER (Use displacement if needed!)
-3: Reg=> CRn(/r implied), R/M is General Purpose register!
-4: Reg=> DRn(/r implied), R/M is General Purpose register!
+3: Reg=> CRn, R/M is General Purpose register!
+4: Reg=> DRn, R/M is General Purpose register!
 5: General purpose register(Reg) is 16-bits instead!
 6: General purpose register(Reg) is 32-bits instead!
 
 */
 
-void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
+void modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags)
 {
 //Special data we already know:
 	memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
 	param->reg_is_segmentregister = 0; //REG2 is NORMAL!
 
-	param->slashr = slashr; //Is this a /r modr/m?
+	param->specialflags = specialflags; //Is this a /r modr/m?
 
-	if (slashr==2) //reg1 is segment register?
+	if (specialflags==2) //reg1 is segment register?
 	{
 		param->reg_is_segmentregister = 1; //REG2 is segment register!
 	}
@@ -2314,7 +2301,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	{
 		param->error = 1; //We've detected an error!
 	}
-	else if (((slashr==3) || (slashr==4) || (slashr==7)) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
+	else if (((specialflags==3) || (specialflags==4) || (specialflags==7)) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
 	{
 		param->error = 1; //We've detected an error!
 	}

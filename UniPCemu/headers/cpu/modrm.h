@@ -154,7 +154,7 @@ typedef struct
 	byte modrm; //MODR/M!
 	SIBType SIB; //SIB Byte if applied.
 	dwordsplitterb displacement; //byte/word/dword!
-	byte slashr; //Is this a /r MODR/M (=RM is reg2)?
+	byte specialflags; //Is this a /r MODR/M (=RM is reg2)?
 	byte reg_is_segmentregister; //REG is segment register?
 	MODRM_PTR info[3]; //All versions of info!
 	byte EA_cycles; //The effective address cycles we're using!
@@ -235,7 +235,7 @@ Slashr:
 7: Reg=>TRn(/r implied), R/M is General Purpose register!
 
 */
-void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
+void modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags); //Read params for modr/m processing from CS:(E)IP
 
 //For fixing segment loads through MOV instructions.
 void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check for updated segment registers!
