@@ -309,6 +309,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 AT+ PC?
 			{
+				if (EMULATED_CPU>=CPU_80386) //386+ CPU? We're 32-bit!
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				}
+
 				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 

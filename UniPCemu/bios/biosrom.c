@@ -335,6 +335,10 @@ int BIOS_load_custom(char *path, char *rom)
 		}
 		fclose(f); //Close the file!
 		strcpy(customROMname,filename); //Custom ROM name for easy dealloc!
+		//Update the base address to use for this CPU!
+		BIOSROM_BASE_AT = 0xFFFFFF-(BIOS_custom_ROM_size-1); //AT ROM size!
+		BIOSROM_BASE_XT = 0xFFFFF-(BIOS_custom_ROM_size-1); //XT ROM size!
+		BIOSROM_BASE_Modern = 0xFFFFFFFF-(BIOS_custom_ROM_size-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
 	
@@ -650,12 +654,15 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
-			return 1; //Unwritable BIOS!
+			if (tempoffset<0x10000) //Within range?
+			{
+				tempoffset &= 0xFFFF; //16-bit ROM!
+				return 1; //Ignore writes!
+			}
 		}
-		if (tempoffset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
+		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
 			return 1; //Ignore writes!
 		}
@@ -763,15 +770,17 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	basepos = tempoffset; //Save for easy reference!
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
 	{
-		tempoffset &= 0xFFFF; //16-bit ROM!
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
-			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
-			return 1; //Direct offset used!
+			if (tempoffset<0x10000) //Within range?
+			{
+				tempoffset &= 0xFFFF; //16-bit ROM!
+				*value = BIOS_custom_ROM[tempoffset]; //Give the value!
+				return 1; //Direct offset used!
+			}
 		}
-		if (tempoffset>(0xFFFF-BIOS_custom_ROM_size)) //Within range?
+		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
-			tempoffset -= (0xFFFF - BIOS_custom_ROM_size)+1;
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
 		}
