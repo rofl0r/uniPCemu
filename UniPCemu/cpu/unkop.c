@@ -12,7 +12,7 @@
 #include "headers/support/log.h" //Logging support!
 
 //Shutdown the application when an unknown instruction is executed?
-#define UNKOP_SHUTDOWN
+//#define UNKOP_SHUTDOWN
 
 void halt_modrm(char *message, ...) //Unknown modr/m?
 {
@@ -35,6 +35,9 @@ extern uint_32 CPU_exec_EIP;
 extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
+extern char debugger_command_text[256]; //Current command!
+extern byte debugger_set; //Debugger set?
+
 //Normal instruction #UD handlers for 80(1)8X+!
 void unkOP_8086() //Unknown opcode on 8086?
 {
@@ -48,7 +51,7 @@ void unkOP_8086() //Unknown opcode on 8086?
 
 void unkOP_186() //Unknown opcode on 186+?
 {
-	debugger_setcommand("<NECV20/V30+ #UD>"); //Command is unknown opcode!
+	debugger_setcommand("<NECV20/V30+ #UD(Cause:%s)>",debugger_set?debugger_command_text:""); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt with return addres of the OPcode!
@@ -62,7 +65,7 @@ void unkOP_186() //Unknown opcode on 186+?
 //0F opcode extensions #UD handler
 void unkOP0F_286() //0F unknown opcode handler on 286+?
 {
-	debugger_setcommand("<80286+ 0F #UD>"); //Command is unknown opcode!
+	debugger_setcommand("<80286+ 0F #UD(Cause:%s)>",debugger_set?debugger_command_text:""); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
@@ -76,7 +79,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 //0F opcode extensions #UD handler
 void unkOP0F_386() //0F unknown opcode handler on 386+?
 {
-	debugger_setcommand("<80386+ 0F #UD>"); //Command is unknown opcode!
+	debugger_setcommand("<80386+ 0F #UD(Cause:%s)>",debugger_set?debugger_command_text:""); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
@@ -89,7 +92,7 @@ void unkOP0F_386() //0F unknown opcode handler on 386+?
 
 void unkOP0F_486() //0F unknown opcode handler on 486+?
 {
-	debugger_setcommand("<80486+ 0F #UD>"); //Command is unknown opcode!
+	debugger_setcommand("<80486+ 0F #UD(Cause:%s)>",debugger_set?debugger_command_text:""); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
@@ -102,7 +105,7 @@ void unkOP0F_486() //0F unknown opcode handler on 486+?
 
 void unkOP0F_586() //0F unknown opcode handler on 586+?
 {
-	debugger_setcommand("<80586+ 0F #UD>"); //Command is unknown opcode!
+	debugger_setcommand("<80586+ 0F #UD(Cause:%s)>",debugger_set?debugger_command_text:""); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
 	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
