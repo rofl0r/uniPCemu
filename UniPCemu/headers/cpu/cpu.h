@@ -73,8 +73,8 @@ typedef struct PACKED
 {
 	byte used; //Valid instruction? If zero, passthrough to earlier CPU timings.
 	byte has_modrm; //Do we have ModR/M parameters?
-	byte modrm_readparams_0; //First parameter of ModR/M setting
-	byte modrm_readparams_1; //Second parameter of ModR/M setting
+	byte modrm_size; //First parameter of ModR/M setting
+	byte modrm_specialflags; //Second parameter of ModR/M setting
 	byte modrm_src0; //ModR/M first parameter!
 	byte modrm_src1; //ModR/M second parameter!
 	byte parameters; //The type of parameters to follow the ModR/M! 0=No parameters, 1=imm8, 2=imm16, 3=imm32, bit 2=Immediate is enabled on the REG of the RM byte(only when <2).

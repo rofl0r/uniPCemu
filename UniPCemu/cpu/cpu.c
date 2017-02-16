@@ -901,7 +901,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm) //Do we have ModR/M data?
 	{
-		modrm_readparams(&params,timing->modrm_readparams_0,timing->modrm_readparams_1); //Read the params!
+		modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags); //Read the params!
 		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?
 		{
