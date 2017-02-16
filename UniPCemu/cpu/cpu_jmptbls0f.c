@@ -327,9 +327,9 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	{ CPU80386_OP0F21, NULL },
 	{ CPU80386_OP0F22, NULL },
 	{ CPU80386_OP0F23, NULL },
+	{ CPU80386_OP0F24, NULL },
 	{ NULL, NULL },
-	{ NULL, NULL },
-	{ NULL, NULL },
+	{ CPU80386_OP0F26, NULL },
 	{ NULL, NULL },
 	{ NULL, NULL },
 	{ NULL, NULL },
@@ -879,9 +879,9 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
+		{ unkOP0F_586, NULL }, //24h: Test register instructions become invalid!
 		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
+		{ unkOP0F_586, NULL }, //26h: Test register instructions become invalid!
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },

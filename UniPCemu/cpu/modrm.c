@@ -585,6 +585,7 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 		if (cpudebugger) strcpy(result->text,"CR3");
 		break;
 	case MODRM_REG_CR4:
+		if (EMULATED_CPU<CPU_80486) goto unkcreg; //Invalid: register 4 doesn't exist?
 		result->reg32 = &CPU[activeCPU].registers->CR[4];
 		if (cpudebugger) strcpy(result->text,"CR4");
 		break;
@@ -594,6 +595,7 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 	case MODRM_REG_CR7:
 		//CR1 and CR5-7 are undefined, raising an #UD!
 	default: //Catch handler!
+		unkcreg:
 		result->reg32 = NULL; //Unknown!
 		if (cpudebugger) strcpy(result->text,"<UNKCREG>");
 		break;
@@ -653,6 +655,33 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 		unkdreg:
 		result->reg32 = NULL; //Unknown!
 		if (cpudebugger) strcpy(result->text,"<UNKDREG>");
+		break;
+	}
+}
+
+OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
+{
+	result->isreg = 1; //Register!
+	result->regsize = 3; //DWord register!
+	switch (reg) //What debug register?
+	{
+	case MODRM_REG_TR6:
+		result->reg32 = &CPU[activeCPU].registers->TR6;
+		if (cpudebugger) strcpy(result->text,"TR6");
+		break;
+	case MODRM_REG_TR7:
+		result->reg32 = &CPU[activeCPU].registers->TR7;
+		if (cpudebugger) strcpy(result->text,"TR7");
+		break;
+	case MODRM_REG_TR0:
+	case MODRM_REG_TR1:
+	case MODRM_REG_TR2:
+	case MODRM_REG_TR3:
+	case MODRM_REG_TR4:
+	case MODRM_REG_TR5:
+	default: //Catch handler!
+		result->reg32 = NULL; //Unknown!
+		if (cpudebugger) strcpy(result->text,"<UNKTREG>");
 		break;
 	}
 }
@@ -851,6 +880,18 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		if (isregister) //CR?
 		{
 			modrm_get_debugregister(reg,result); //Return CR register!
+			return; //Give the segment register!
+		}
+		else
+		{
+			isregister = 1; //We're a General Purpose register!
+		}
+	}
+	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	{
+		if (isregister) //CR?
+		{
+			modrm_get_testregister(reg,result); //Return TR register!
 			return; //Give the segment register!
 		}
 		else
@@ -1357,6 +1398,18 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
+	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	{
+		if (isregister) //TR?
+		{
+			modrm_get_testregister(reg,result); //Return TR register!
+			return; //Give the segment register!
+		}
+		else
+		{
+			isregister = 1; //We're a General Purpose register!
+		}
+	}
 
 	if ((params->slashr==5) && isregister) //Reg is 16-bits instead?
 	{
@@ -1824,6 +1877,18 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 			isregister = 1; //We're a General Purpose register!
 		}
 	}
+	else if (params->slashr==7) //Reg is TR? R/M is General Purpose register?
+	{
+		if (isregister) //TR?
+		{
+			modrm_get_testregister(reg,result); //Return TR register!
+			return; //Give the segment register!
+		}
+		else
+		{
+			isregister = 1; //We're a General Purpose register!
+		}
+	}
 
 	if ((params->slashr==5) && isregister) //Reg is 16-bits instead?
 	{
@@ -2188,6 +2253,7 @@ Slashr:
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 {
 //Special data we already know:
+	memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
 	param->reg_is_segmentregister = 0; //REG2 is NORMAL!
 
 	param->slashr = slashr; //Is this a /r modr/m?
@@ -2248,7 +2314,7 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr)
 	{
 		param->error = 1; //We've detected an error!
 	}
-	else if (((slashr==3) || (slashr==4)) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
+	else if (((slashr==3) || (slashr==4) || (slashr==7)) && (param->info[0].reg32==NULL)) //Invalid CR/DR register specified?
 	{
 		param->error = 1; //We've detected an error!
 	}

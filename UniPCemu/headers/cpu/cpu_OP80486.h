@@ -4,5 +4,6 @@
 //Not emulated yet. Bare minimum instruction to run!
 
 void CPU486_CPUID();
+void unkOP0F_486();
 
 #endif

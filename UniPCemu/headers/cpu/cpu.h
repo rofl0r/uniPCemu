@@ -780,7 +780,7 @@ typedef struct PACKED //The registers!
 		}; //CR0-3!
 		union
 		{
-			uint_32 DR[7]; //All debugger registers! index 4=>6 and index 5=>7!
+			uint_32 DR[8]; //All debugger registers! index 4=>6 and index 5=>7!
 			struct
 			{
 				uint_32 DR0;
@@ -791,6 +791,21 @@ typedef struct PACKED //The registers!
 				uint_32 noDRregister; //Not defined: DR5 on Pentium! Redirected to DR7 on 386+(when not disabled using CR4).
 				uint_32 DR6; //DR4->6 on 386+, DR6 on Pentium+!
 				uint_32 DR7; //DR5->7 on 386+, DR7 on Pentium+!
+			};
+		}; //DR0-7; 4=6&5=7!
+		union
+		{
+			uint_32 TRX[8]; //All debugger registers! index 4=>6 and index 5=>7!
+			struct
+			{
+				uint_32 TR0;
+				uint_32 TR1;
+				uint_32 TR2;
+				uint_32 TR3;
+				uint_32 TR4;
+				uint_32 TR5;
+				uint_32 TR6;
+				uint_32 TR7;
 			};
 		}; //DR0-7; 4=6&5=7!
 	}; //Special registers!

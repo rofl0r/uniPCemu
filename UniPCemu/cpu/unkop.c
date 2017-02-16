@@ -74,7 +74,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 }
 
 //0F opcode extensions #UD handler
-void unkOP0F_386() //0F unknown opcode handler on 286+?
+void unkOP0F_386() //0F unknown opcode handler on 386+?
 {
 	debugger_setcommand("<80386+ 0F #UD>"); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
@@ -83,6 +83,32 @@ void unkOP0F_386() //0F unknown opcode handler on 286+?
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
 	dolog("unkOP","Unknown 386+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	EMU_Shutdown(1); //Request to shut down!
+	#endif
+}
+
+void unkOP0F_486() //0F unknown opcode handler on 486+?
+{
+	debugger_setcommand("<80486+ 0F #UD>"); //Command is unknown opcode!
+	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
+	#ifdef UNKOP_SHUTDOWN
+	dolog("unkOP","Unknown 486+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	EMU_Shutdown(1); //Request to shut down!
+	#endif
+}
+
+void unkOP0F_586() //0F unknown opcode handler on 586+?
+{
+	debugger_setcommand("<80586+ 0F #UD>"); //Command is unknown opcode!
+	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	CPU_resetOP(); //Go back to the opcode itself!
+	CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault!
+	#ifdef UNKOP_SHUTDOWN
+	dolog("unkOP","Unknown 586+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
 }

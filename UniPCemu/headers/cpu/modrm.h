@@ -69,6 +69,16 @@
 #define MODRM_REG_DR6 6
 #define MODRM_REG_DR7 7
 
+//Test registers(always 32-bit)
+#define MODRM_REG_TR0 0
+#define MODRM_REG_TR1 1
+#define MODRM_REG_TR2 2
+#define MODRM_REG_TR3 3
+#define MODRM_REG_TR4 4
+#define MODRM_REG_TR5 5
+#define MODRM_REG_TR6 6
+#define MODRM_REG_TR7 7
+
 //Finally: the data for r/m operands:
 
 #define MODRM_MEM_BXSI 0
@@ -222,6 +232,7 @@ Slashr:
 4: Reg=> DRn(/r implied), R/M is General Purpose register!
 5: General purpose register(Reg) is 16-bits instead!
 6: General purpose register(Reg) is 32-bits instead!
+7: Reg=>TRn(/r implied), R/M is General Purpose register!
 
 */
 void modrm_readparams(MODRM_PARAMS *param, byte size, byte slashr); //Read params for modr/m processing from CS:(E)IP
