@@ -277,7 +277,7 @@ void initThreads() //Initialise&reset thread subsystem!
 	//dolog("threads","debugThreads?...");
 	atexit(&onThreadExit); //Register out cleanup function!
 	memset(threadpool,0,sizeof(threadpool)); //Clear thread pool!
-	if (DEBUG_THREADS) startThread(&debug_threads,"UniPCemu_Thread Debugger",NULL); //Plain debug threads!
+	if (DEBUG_THREADS) startThread(&debug_threads,"UniPCemu_ThreadDebugger",NULL); //Plain debug threads!
 	//dolog("threads","initThreads: RET...");
 }
 

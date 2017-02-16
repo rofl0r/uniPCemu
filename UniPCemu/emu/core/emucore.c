@@ -1017,14 +1017,14 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
-	if ((psp_keypressed(BUTTON_SELECT) || Settings_request) && (BIOSMenuThread==NULL)) //Run in-emulator BIOS menu requested?
+	if ((psp_keypressed(BUTTON_SELECT) || Settings_request) && (BIOSMenuThread==NULL) && (debugger_thread==NULL)) //Run in-emulator BIOS menu requested while running?
 	{
 		if ((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || Settings_request) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
 			lock(LOCK_INPUT);
 			Settings_request = 0; //We're handling the request!
 			unlock(LOCK_INPUT);
-			BIOSMenuThread = startThread(&BIOSMenuExecution,"BIOSMenu",NULL); //Start the BIOS menu thread!
+			BIOSMenuThread = startThread(&BIOSMenuExecution,"UniPCemu_BIOSMenu",NULL); //Start the BIOS menu thread!
 			delay(0); //Wait a bit for the thread to start up!
 		}
 	}

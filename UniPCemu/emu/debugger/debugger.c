@@ -754,9 +754,12 @@ void toggleAndroidInput(byte finishInput, byte *lastStatus)
 	#endif
 }
 
+extern byte Settings_request; //Settings requested to be executed?
+
 void debuggerThread()
 {
 	static byte AndroidInput = 1; //Default: finished status(not toggled)!
+	byte openBIOS = 0;
 	int i;
 	int done = 0;
 	byte displayed = 0; //Are we displayed?
@@ -834,13 +837,24 @@ void debuggerThread()
 			}
 			MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
 		}
-		if (psp_keypressed(BUTTON_SELECT) && !is_gamingmode()) //Goto BIOS?
+		openBIOS = 0; //Init!
+		lock(LOCK_MAINTHREAD); //We're checking some input!
+		openBIOS = Settings_request;
+		Settings_request = 0; //We're handling it if needed!
+		unlock(LOCK_MAINTHREAD); //We've finished checking for input!
+		openBIOS |= psp_keypressed(BUTTON_SELECT); //Are we to open the BIOS menu?
+		if (openBIOS && !is_gamingmode()) //Goto BIOS?
 		{
+			while (psp_keypressed(BUTTON_SELECT)) //Wait for release when pressed!
+			{
+			}
+			//Start the BIOS
 			if (runBIOS(0)) //Run the BIOS, reboot needed?
 			{
 				skipopcodes = 0; //Nothing to be skipped!
 				goto singlestepenabled; //We're rebooting, abort!
 			}
+			//Check the current state to continue at!
 			if (debugging()) //Recheck the debugger!
 			{
 				goto restartdebugger; //Restart the debugger!
@@ -899,7 +913,7 @@ void debugger_step() //Processes the debugging step!
 		}
 		if (!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) //To debug when not skipping repeating or skipping opcodes?
 		{
-			debugger_thread = startThread(debuggerThread,"debugger",NULL); //Start the debugger!
+			debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
 		}
 	} //Step mode?
 	if (singlestep>1) //Start single-stepping from the next instruction?

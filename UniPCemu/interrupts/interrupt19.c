@@ -60,7 +60,7 @@ void BIOS_int19()
 	CPU_resetOP(); //Reset the CPU to re-run this opcode by default!
 	if (BIOSMenuThread==NULL) //Not started yet?
 	{
-		BIOSMenuThread = startThread(&POSTThread,"BIOSMenu",NULL); //Start the POST thread at default priority!
+		BIOSMenuThread = startThread(&POSTThread,"UniPCemu_POST",NULL); //Start the POST thread at default priority!
 	}
 	delay(0); //Wait a bit to start up the thread!
 }
