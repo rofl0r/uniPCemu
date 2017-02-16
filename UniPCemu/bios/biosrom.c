@@ -25,6 +25,7 @@ byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator
 byte EMU_VGAROM[0x10000]; //Maximum size custom BIOS VGA ROM!
 
 byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
+byte BIOS_ROMS_ext[0x100]; //Extended load used to load us?
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
 
 byte numOPT_ROMS = 0;
@@ -236,14 +237,29 @@ void BIOS_freeOPTROMS()
 
 int BIOS_load_ROM(byte nr)
 {
+	byte tryext = 0; //Try extra ROMs?
 	uint_32 ROM_size=0; //The size of both ROMs!
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
+	retryext:
+	if ((tryext==0) && (EMULATED_CPU>=CPU_80386)) //Extension ROM available?
+	{
+		sprintf(filename,"%s/BIOSROM.32.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+		tryext = 1; //We're trying an extension!
+	}
+	else //Normal ROM try?
+	{
+		sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
+	}
 	f = fopen(filename,"rb");
 	if (!f)
 	{
+		if (tryext==1) //Extension try and tried?
+		{
+			tryext = 2; //Try second time!
+			goto retryext;
+		}
 		return 0; //Failed to load!
 	}
 	fseek(f,0,SEEK_END); //Goto EOF!
@@ -264,6 +280,9 @@ int BIOS_load_ROM(byte nr)
 			return 0; //Failed to read!
 		}
 		fclose(f); //Close the file!
+
+		BIOS_ROMS_ext[nr] = (tryext==1)?1:0; //Extension enabled?
+
 		switch (nr) //What ROM has been loaded?
 		{
 			case 18:
@@ -351,7 +370,14 @@ void BIOS_free_ROM(byte nr)
 {
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+	if (BIOS_ROMS_ext[nr]) //Extension ROM?
+	{
+		sprintf(filename,"BIOSROM.32.U%u.BIN",nr); //Create the filename for the ROM!
+	}
+	else
+	{
+		sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+	}
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
 		freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
