@@ -2681,11 +2681,9 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 	{
 		modrm_debugger16(&params,0,1);
 	}
-	/*
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //POP
-	*/
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("POPW",16,0,PARAM_MODRM2); //POPW Ew
@@ -2707,7 +2705,6 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		{
 			CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/
 		}
-	/*
 		break;
 	default: //Unknown opcode or special?
 		if (cpudebugger) //Debugger on?
@@ -2717,7 +2714,6 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;
 	}
-	*/
 }
 
 void CPU8086_OPD0() //GRP2 Eb,1
