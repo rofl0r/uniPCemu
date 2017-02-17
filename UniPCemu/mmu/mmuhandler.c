@@ -283,7 +283,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		}
 		else
 		{
-			realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+			//realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
 		}
 	}
 	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
@@ -293,7 +293,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(realaddress, 0); //Invalid memory accessed!
-		if (is_XT==0) //To give NOT for detecting memory?
+		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}
@@ -332,7 +332,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		}
 		else
 		{
-			realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+			//realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
 		}
 	}
 	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
