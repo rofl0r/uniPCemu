@@ -34,17 +34,17 @@ typedef struct
 //Factor is 16 at 8086, 16/4K at 386.
 
 void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size); //Gives direct memory pointer!
-byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress!
-word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (word)!
-uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode); //Get adress (dword)!
-void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val); //Get adress!
-void MMU_ww(sword segdesc, word segment, uint_32 offset, word val); //Get adress (word)!
-void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val); //Get adress (dword)!
+byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16); //Get adress!
+word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16); //Get adress (word)!
+uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16); //Get adress (dword)!
+void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val, byte is_offset16); //Get adress!
+void MMU_ww(sword segdesc, word segment, uint_32 offset, word val, byte is_offset16); //Get adress (word)!
+void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte is_offset16); //Get adress (dword)!
 
 //uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
 
-byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 #endif

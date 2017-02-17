@@ -95,22 +95,22 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 	for (;poptimesleft;) //Anything left?
 	{
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (ESP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -130,22 +130,22 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 		EBP += stack_popchange(isdword); //Apply the change in virtual (E)BP to check the next value!
 		
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),1,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_SS), CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),1,getCPL(),!CPU_StackAddress_size[activeCPU])) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -471,8 +471,8 @@ void CPU_ErrorCallback_RESET() //Error callback with error code!
 
 void copyint(byte src, byte dest) //Copy interrupt handler pointer to different interrupt!
 {
-	MMU_ww(-1,0x0000,(dest<<2),MMU_rw(-1,0x0000,(src<<2),0)); //Copy segment!
-	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0)); //Copy offset!
+	MMU_ww(-1,0x0000,(dest<<2),MMU_rw(-1,0x0000,(src<<2),0,0),0); //Copy segment!
+	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0,0),0); //Copy offset!
 }
 
 byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
@@ -691,7 +691,7 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL())) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
 			{
 				return 0xFF; //Abort on fault!
 			}
@@ -705,11 +705,11 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,1,getCPL())) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,1,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
 	{
 		return 0xFF; //Abort on fault!
 	}
-	result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1); //Read OPcode directly from memory!
+	result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 1,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
 	if (cpudebugger) //We're an OPcode retrieval and debugging?
 	{
 		MMU_addOP(result); //Add to the opcode cache!
@@ -1138,7 +1138,7 @@ void CPU_PUSH16(word *val) //Push Word!
 	if (EMULATED_CPU<=CPU_NECV30) //186- we push the decremented value of SP to the stack instead of the original value?
 	{
 		stack_push(0); //We're pushing a 16-bit value!
-		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
+		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val,!CPU_StackAddress_size[activeCPU]); //Put value!
 	}
 	else //286+?
 	{
@@ -1146,11 +1146,11 @@ void CPU_PUSH16(word *val) //Push Word!
 		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 16-bit or 32-bit value!
 		if (CPU_Operand_size[activeCPU]) //32-bit?
 		{
-			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval); //Put value!
+			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!CPU_StackAddress_size[activeCPU]); //Put value!
 		}
 		else
 		{
-			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!CPU_StackAddress_size[activeCPU]); //Put value!
 		}
 	}
 }
@@ -1160,11 +1160,11 @@ word CPU_POP16() //Pop Word!
 	word result;
 	if (CPU_Operand_size[activeCPU]) //32-bit?
 	{
-		result = (word)MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
+		result = (word)MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0,!CPU_StackAddress_size[activeCPU]); //Get value!
 	}
 	else //16-bit?
 	{
-		result = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0); //Get value!
+		result = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0,!CPU_StackAddress_size[activeCPU]); //Get value!
 	}
 	stack_pop(CPU_Operand_size[activeCPU]); //We're popping a 16-bit value!
 	return result; //Give the result!
@@ -1175,7 +1175,7 @@ void CPU_PUSH32(uint_32 *val) //Push DWord!
 	if (EMULATED_CPU<CPU_80386) //286-?
 	{
 		stack_push(0); //We're pushing a 32-bit value!
-		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val); //Put value!
+		MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), *val,!CPU_StackAddress_size[activeCPU]); //Put value!
 	}
 	else //386+?
 	{
@@ -1183,11 +1183,11 @@ void CPU_PUSH32(uint_32 *val) //Push DWord!
 		stack_push(CPU_Operand_size[activeCPU]); //We're pushing a 32-bit value!
 		if (CPU_Operand_size[activeCPU]) //32-bit?
 		{
-			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval); //Put value!
+			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!CPU_StackAddress_size[activeCPU]); //Put value!
 		}
 		else //16-bit?
 		{
-			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (word)oldval); //Put value!
+			MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (word)oldval,!CPU_StackAddress_size[activeCPU]); //Put value!
 		}
 	}
 }
@@ -1197,11 +1197,11 @@ uint_32 CPU_POP32() //Full stack used!
 	uint_32 result;
 	if (CPU_Operand_size[activeCPU]) //32-bit?
 	{
-		result = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
+		result = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0,!CPU_StackAddress_size[activeCPU]); //Get value!
 	}
 	else //16-bit?
 	{
-		result = (uint_32)MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0); //Get value!
+		result = (uint_32)MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0,!CPU_StackAddress_size[activeCPU]); //Get value!
 	}
 	stack_pop(CPU_Operand_size[activeCPU]); //We're popping a 32-bit value!
 	return result; //Give the result!
@@ -1927,7 +1927,7 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 	byte oldMMUCycles;
 	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
 	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
-	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1)); //Add the next byte from memory into the buffer!
+	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
 	CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMUR; //Apply the memory cycles to prefetching!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!

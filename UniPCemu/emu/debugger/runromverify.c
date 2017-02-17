@@ -209,7 +209,7 @@ doshutdown:
 	for (;!feof(f);) //Data left?
 	{
 		if (fread(&data, 1, sizeof(data), f) != sizeof(data)) break; //Read data to verify!
-		last = MMU_rb(-1,datastart,memloc,0); //One byte to compare from memory!
+		last = MMU_rb(-1,datastart,memloc,0,0); //One byte to compare from memory!
 		byte verified2;
 		verified2 = (data==last); //Verify with memory!
 		verified &= verified2; //Check for verified!

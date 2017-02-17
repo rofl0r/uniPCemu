@@ -610,13 +610,13 @@ void CALLBACK_SZF(byte val) {
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!
-		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0);
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
 	}
 	if (val) FLAGW_ZF(1);
 	else FLAGW_ZF(0); 
 	if (EMU_RUNNING==1)
 	{
-		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS);
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
 	}
 }
@@ -626,13 +626,13 @@ void CALLBACK_SCF(byte val) {
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!
-		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0);
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
 	}
 	if (val) FLAGW_CF(1);
 	else FLAGW_CF(0); 
 	if (EMU_RUNNING==1)
 	{
-		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS);
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
 	}
 }
@@ -642,13 +642,13 @@ void CALLBACK_SIF(byte val) {
 	if (EMU_RUNNING == 1)
 	{
 		flags = REG_EFLAGS; //Read flags!
-		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0);
+		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
 	}
 	if (val) FLAGW_IF(1);
 	else FLAGW_IF(0); 
 	if (EMU_RUNNING==1)
 	{
-		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS);
+		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
 	}
 }

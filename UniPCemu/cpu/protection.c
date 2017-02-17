@@ -698,7 +698,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
 						TSS_StackPos += (4<<TSSSize)*GENERALSEGMENTPTR_DPL(descriptor); //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
-						stackval = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0); //Read (E)SP for the privilege level from the TSS!
+						stackval = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
 						if (TSSSize) //32-bit?
 						{
 							TSS_StackPos += 8; //Take SS position!
@@ -707,7 +707,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						{
 							TSS_StackPos += 4; //Take SS position!
 						}
-						segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0),0); //Read SS!
+						segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()),0); //Read SS!
 						if (CPU[activeCPU].faultraised) return; //Abort on fault!
 						if (TSSSize) //32-bit?
 						{
@@ -1091,12 +1091,12 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) << 16); //The limit of the descriptor!
-			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0); //Add the map location to the specified address!
+			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
 			if (maplocation >= limit) //Over the limit? We're an invalid entry or got no bitmap!
 			{
 				return 1; //We're to cause an exception!
 			}
-			if (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0)&mappos) //We're to cause an exception: we're not allowed to access this port!
+			if (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos) //We're to cause an exception: we're not allowed to access this port!
 			{
 				return 1; //We're to cause an exception!
 			}

@@ -86,8 +86,8 @@ void initMEM() //Initialise memory for reset!
 	int i; //For multiple setup!
 	for (i=0; i<4; i++)
 	{
-		MMU_ww(-1,0x40,i<<1,0); //Not used COM port address!
-		MMU_ww(-1,0x40,(i<<1)|8,0); //Not used LPT port address!
+		MMU_ww(-1,0x40,i<<1,0,0); //Not used COM port address!
+		MMU_ww(-1,0x40,(i<<1)|8,0,0); //Not used LPT port address!
 	}
 
 	/*
@@ -113,14 +113,14 @@ void initMEM() //Initialise memory for reset!
 	eq |= (0<<1); //Math CO-OP installed?
 	eq |= (0<<0); //Boot floppy installed?
 
-	MMU_wb(-1, 0x0040, 0x0010, (eq&0xFF)); //Write the equipment flag!
-	MMU_wb(-1, 0x0040, 0x0011, ((eq>>8)&0xFF)); //Write the equipment flag!
+	MMU_wb(-1, 0x0040, 0x0010, (eq&0xFF),0); //Write the equipment flag!
+	MMU_wb(-1, 0x0040, 0x0011, ((eq>>8)&0xFF),0); //Write the equipment flag!
 
 	uint_32 sizeinKB;
 	sizeinKB = MEMsize();
 	sizeinKB >>= 10; //Size in KB!
 
-	MMU_ww(-1,0x0040,0x0013,(sizeinKB>=640)?640:sizeinKB); //MMU size in KB! Limit it to 640K!
+	MMU_ww(-1,0x0040,0x0013,(sizeinKB>=640)?640:sizeinKB,0); //MMU size in KB! Limit it to 640K!
 
 //End of Video part!
 

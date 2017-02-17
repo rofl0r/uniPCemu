@@ -153,7 +153,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	addCBHandler(CB_IRET,NULL,0x17); //Printer to IRET!
 	addCBHandler(CB_IRET,NULL,0x1B); //BIOS CTRL-BREAK!
 	addCBHandler(CB_IRET,NULL,0x1C); //System tick!
-	CPU_setint(0x19, MMU_rw(-1, 0xF000, 0xFFF3, 0), MMU_rw(-1, 0xF000, 0xFFF1, 0)); //Interrupt 19 (bootstrap)!
+	CPU_setint(0x19, MMU_rw(-1, 0xF000, 0xFFF3, 0,1), MMU_rw(-1, 0xF000, 0xFFF1, 0,1)); //Interrupt 19 (bootstrap)!
 
 	//1D=Video control parameter table
 	//1E=Disk base table
@@ -184,7 +184,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 	//Now, setup overriding interrupts which are installed now!
 	BIOS_SetupKeyboard(); //Setup the Dosbox keyboard handler!
 
-	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234); //Make sure we boot the disk only, not do the BIOS again!
+	MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0x1234,1); //Make sure we boot the disk only, not do the BIOS again!
 }
 
 extern byte is_XT; //XT Architecture?
@@ -198,7 +198,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	pauseEMU(); //Stop the emu&input from running!
 
 	lock(LOCK_MAINTHREAD); //Make sure we're in control!
-	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0) != 0x1234) //Normal BIOS POST?
+	if (MMU_rw(CPU_segment_index(CPU_SEGMENT_DS), 0x40, 0x72, 0,1) != 0x1234) //Normal BIOS POST?
 	{
 		debugrow("Running BIOS POST!");
 	#ifdef ALLOW_BIOS
@@ -606,7 +606,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 	{
 		printmsg(0xF, "You can't use the 80286+ with the default BIOS. Please insert a BIOS ROM.");
 		delay(1000000); //Wait 1 second before rebooting!
-		MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x0000, 0x0472, 0); //Clear reboot flag!
+		MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x0000, 0x0472, 0,1); //Clear reboot flag!
 		REG_CS = 0xF000; //Go back to our bootstrap, by using a simulated jump to ROM!
 		REG_IP = 0xFFFF;
 		CPU_flushPIQ(); //We're jumping to another address!

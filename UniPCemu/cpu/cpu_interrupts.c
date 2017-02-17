@@ -19,14 +19,14 @@
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
-	MMU_ww(-1,0x0000,((intnr<<2)|2),segment); //Copy segment!
-	MMU_ww(-1,0x0000,(intnr<<2),offset); //Copy offset!
+	MMU_ww(-1,0x0000,((intnr<<2)|2),segment,0); //Copy segment!
+	MMU_ww(-1,0x0000,(intnr<<2),offset,0); //Copy offset!
 }
 
 void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT entry!
 {
-	*segment = MMU_rw(-1,0x0000,((intnr<<2)|2),0); //Copy segment!
-	*offset = MMU_rw(-1,0x0000,(intnr<<2),0); //Copy offset!
+	*segment = MMU_rw(-1,0x0000,((intnr<<2)|2),0,0); //Copy segment!
+	*offset = MMU_rw(-1,0x0000,(intnr<<2),0,0); //Copy offset!
 }
 
 extern uint_32 destEIP;
@@ -132,7 +132,7 @@ void CPU_IRET()
 		{
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
 			word desttask;
-			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0); //Read the destination task!
+			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
 			if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
 				CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!

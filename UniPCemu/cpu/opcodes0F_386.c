@@ -309,12 +309,12 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address)
 	{
-		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,REG_EDI,0,getCPL())) return; //Abort on fault!
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,REG_EDI,0,getCPL(),1)) return; //Abort on fault!
 	}
 
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address) //Load all remaining data in default byte order!
 	{
-		LOADALLDATA.datad[address] = DESC_32BITS(MMU_rdw(CPU_SEGMENT_ES,REG_ES,REG_EDI+(address<<2),0)); //Read the raw data to load from memory!
+		LOADALLDATA.datad[address] = DESC_32BITS(MMU_rdw(CPU_SEGMENT_ES,REG_ES,REG_EDI+(address<<2),0,1)); //Read the raw data to load from memory!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!

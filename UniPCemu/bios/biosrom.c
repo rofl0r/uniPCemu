@@ -934,7 +934,7 @@ OPTINLINE byte checkTurboXTBIOS()
 		}
 		for (index=0;index<sizeof(TurboID);index++) //Check our ID for checking the BIOS!
 		{
-			rom_value = MMU_rb(CPU_SEGMENT_CS,0xF000,index+biosaddress,0); //The value in the ROM!
+			rom_value = MMU_rb(CPU_SEGMENT_CS,0xF000,index+biosaddress,0,!CPU_Address_size[activeCPU]); //The value in the ROM!
 			if (rom_value!=TurboID[index])
 			{
 				return 0; //Not Turbo XT BIOS after all!
