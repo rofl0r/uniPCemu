@@ -72,7 +72,7 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress &= MMU.wraparround; //Apply A20!
 
-	if (is_XT) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT!
+	if (is_XT && (EMULATED_CPU<CPU_80286)) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT without newer CPU!
 	else if (EMULATED_CPU==CPU_80286) realaddress &= 0xFFFFFF; //Only 24-bits is available on a AT!
 
 	//We work!

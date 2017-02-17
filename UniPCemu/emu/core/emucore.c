@@ -1131,7 +1131,7 @@ extern byte SystemControlPortA;
 void EMU_onCPUReset()
 {
 	SystemControlPortA &= ~2; //Clear A20 here!
-	if (is_XT==0) //AT CPU?
+	if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //AT CPU?
 	{
 		Controller8042.outputport |= 2; //Set A20 here!
 	}
