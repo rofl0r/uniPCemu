@@ -264,7 +264,7 @@ OPTINLINE char stringsafe(byte x)
 	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
 }
 
-//Low memory hole start!
+//Memory hole start/end locations!
 #define LOW_MEMORYHOLE_START 0xA0000
 #define LOW_MEMORYHOLE_END 0x100000
 #define MID_MEMORYHOLE_START 0xF00000
