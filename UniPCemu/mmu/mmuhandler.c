@@ -259,18 +259,19 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 	*/
 }
 
+OPTINLINE char stringsafe(byte x)
+{
+	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
+}
+
 //Low memory hole start!
 #define LOW_MEMORYHOLE_START 0xA0000
 #define LOW_MEMORYHOLE_END 0x100000
 #define MID_MEMORYHOLE_START 0xF00000
 #define MID_MEMORYHOLE_END 0x1000000
+#define HIGH_MEMORYHOLE_START 0xC0000000
 
 extern byte is_XT; //Are we emulating a XT architecture?
-
-OPTINLINE char stringsafe(byte x)
-{
-	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
-}
 
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 {
@@ -280,9 +281,17 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 		{
 			*nonexistant = 1; //Non-existant memory!
 		}
-		else
+		else if (*realaddress<MID_MEMORYHOLE_START) //Mid memory(IBM AT memory range)?
 		{
 			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+		}
+		else if (!((*realaddress>=MID_MEMORYHOLE_END) && (*realaddress<HIGH_MEMORYHOLE_START))) //Not High memory hole(32-bit memory range)?
+		{
+			*nonexistant = 1; //Non-existant memory!
+		}
+		else //High memory?
+		{
+			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START)+(MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch to less memory to make memory linear!			
 		}
 	}
 	else if (*realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
