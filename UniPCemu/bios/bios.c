@@ -116,7 +116,7 @@ extern byte is_XT; //Are we emulating a XT architecture?
 void autoDetectArchitecture()
 {
 	is_XT = (BIOS_Settings.architecture==ARCHITECTURE_XT); //XT architecture?
-	if (EMULATED_CPU >= CPU_80386) //Are we emulating a AT architecture CPU?
+	if (EMULATED_CPU >= CPU_80486) //Are we emulating a AT-only architecture CPU? 80386 is 32-bit, but there's the Inboard 386 for that to be emulated.
 	{
 		is_XT = 0; //We're forcing AT or PS/2 architecture!
 	}
