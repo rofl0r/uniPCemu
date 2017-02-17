@@ -284,8 +284,8 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
-			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current]); //Write the data to memory!
-			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position++, 0) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
+			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current],1); //Write the data to memory!
+			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position++, 0,1) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
 			{
 				last_status = 0x00;
 				CALLBACK_SCF(1); //Error!
@@ -326,7 +326,7 @@ OPTINLINE byte writediskdata(uint_32 startpos)
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
-			int13_buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position++,0); //Read the data from memory (no opcode)!
+			int13_buffer[current] = MMU_rb(CPU_SEGMENT_ES,REG_ES,position++,0,1); //Read the data from memory (no opcode)!
 			if (!--left) goto dosector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
 		}
@@ -644,7 +644,7 @@ void int13_04()
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
+				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0,1)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!
@@ -670,7 +670,7 @@ void int13_04()
 			sectorverified = 1; //Default: verified!
 			for (t=0; t<512; t++)
 			{
-				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0)) //Error?
+				if (int13_buffer[t]!=MMU_rb(CPU_SEGMENT_ES,REG_ES,REG_BX+(i<<9)+t,0,1)) //Error?
 				{
 					sectorverified = 0; //Not verified!
 					break; //Stop checking!

@@ -248,12 +248,12 @@ typedef byte *PhysPt; //Physical pointer!
 #define RealOff(real) ((real)&0xFFFF)
 
 //Simple memory compatiblity for real mode!
-#define mem_readb(off) MMU_rb(-1,RealSeg(off),RealOff(off),0)
-#define mem_writeb(off,val) MMU_wb(-1,RealSeg(off),RealOff(off),val)
-#define mem_readw(off) MMU_rw(-1,RealSeg(off),RealOff(off),0)
-#define mem_writew(off,val) MMU_ww(-1,RealSeg(off),RealOff(off),val)
-#define mem_readd(off) MMU_rdw(-1,RealSeg(off),RealOff(off),0)
-#define mem_writed(off,val) MMU_wdw(-1,RealSeg(off),RealOff(off),val)
+#define mem_readb(off) MMU_rb(-1,RealSeg(off),RealOff(off),0,1)
+#define mem_writeb(off,val) MMU_wb(-1,RealSeg(off),RealOff(off),val,1)
+#define mem_readw(off) MMU_rw(-1,RealSeg(off),RealOff(off),0,1)
+#define mem_writew(off,val) MMU_ww(-1,RealSeg(off),RealOff(off),val,1)
+#define mem_readd(off) MMU_rdw(-1,RealSeg(off),RealOff(off),0,1)
+#define mem_writed(off,val) MMU_wdw(-1,RealSeg(off),RealOff(off),val,1)
 
 #define PhysMake(seg,offs) (byte *)MMU_ptr(-1,seg,offs,0,1)
 

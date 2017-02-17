@@ -52,9 +52,9 @@ SVGAmode svgaCard = SVGA_None; //Default to no SVGA card!
 word getscreenwidth() //Get the screen width (in characters), based on the video mode!
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0);
+	return MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1);
 	byte result;
-	switch (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)) //What video mode?
+	switch (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1)) //What video mode?
 	{
 	case 0x00:
 	case 0x01: //40x25?
@@ -75,7 +75,7 @@ word getscreenwidth() //Get the screen width (in characters), based on the video
 OPTINLINE byte GPUgetvideomode()
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Give mode!
+	return MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1); //Give mode!
 }
 
 void GPUswitchvideomode(word mode)
@@ -100,7 +100,7 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
                 {
                         Bit16u off=(y>>1)*80+(x>>2);
                         if (y&1) off+=8*1024;
-                        Bit8u val=MMU_rb(-1,0xb800,off,0);
+                        Bit8u val=MMU_rb(-1,0xb800,off,0,1);
                         *color=(val>>(((3-(x&3)))*2)) & 3 ;
                 }
                 break;
@@ -108,7 +108,7 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
                 {
                         Bit16u off=(y>>1)*80+(x>>3);
                         if (y&1) off+=8*1024;
-                        Bit8u val=MMU_rb(-1,0xb800,off,0);
+                        Bit8u val=MMU_rb(-1,0xb800,off,0,1);
                         *color=(val>>(((7-(x&7))))) & 1 ;
                 }
                 break;
@@ -119,8 +119,8 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
                                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel_EGA_p: %x!=%x",CurMode->plength,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0));
                         //if (CurMode->swidth!=(Bitu)MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8)
                                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel_EGA_w: %x!=%x",CurMode->swidth,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8);
-                        RealPt off=RealMake(0xa000,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)*page+
-                                ((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)*8+x)>>3));
+                        RealPt off=RealMake(0xa000,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0,1)*page+
+                                ((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1)*8+x)>>3));
                         Bitu shift=7-(x & 7);
                         /* Set the read map */
                         *color=0;
@@ -528,12 +528,12 @@ OPTINLINE void updateCursorLocation()
 	word xy;
 	int x;
 	int y;
-	xy = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)*2),0); //X,Y!
+	xy = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0,1)*2),0,1); //X,Y!
 	x = (xy&0xFF); //X!
 	y = (xy>>8); //Y
 	word address; //Address of the cursor location!
-	address = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)+
-			(y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x;
+	address = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0,1)+
+			(y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1))+x;
 
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xF); //Select cursor location low register!
@@ -547,9 +547,9 @@ OPTINLINE void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 {
 	if (__HW_DISABLED) return; //Abort!
 //First: BDA entry update!
-	MMU_ww(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(displaypage*2),x|(y<<8)); //X,Y!
+	MMU_ww(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(displaypage*2),x|(y<<8),1); //X,Y!
 
-	if (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0)==displaypage) //Current page?
+	if (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0,1)==displaypage) //Current page?
 	{
 		//Apply the cursor position to the VGA!
 		updateCursorLocation(); //Update the cursor's location!
@@ -559,8 +559,8 @@ OPTINLINE void EMU_CPU_setCursorXY(byte displaypage, byte x, byte y)
 OPTINLINE void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 {
 	if (__HW_DISABLED) return; //Abort!
-	*start = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0); //Get start line!
-	*end = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0); //Get end line!
+	*start = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, 0,1); //Get start line!
+	*end = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0,1); //Get end line!
 }
 
 OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
@@ -600,18 +600,18 @@ OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register address!
 
 	//Update our values!
-	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start); //Set start line!
-	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end); //Set end line!
+	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE, start,1); //Set start line!
+	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end,1); //Set end line!
 }
 
 OPTINLINE void GPU_clearscreen() //Clears the screen!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte oldmode;
-	oldmode = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0); //Active video mode!
-	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode&0x7F); //Clear!
-	GPUswitchvideomode(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Reset the resolution!
-	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode); //Restore old mode!
+	oldmode = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1); //Active video mode!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode&0x7F,1); //Clear!
+	GPUswitchvideomode(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1)); //Reset the resolution!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode,1); //Restore old mode!
 }
 
 OPTINLINE void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
@@ -623,14 +623,14 @@ OPTINLINE void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
 OPTINLINE void int10_nextcol(byte thepage)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2),0);
-	byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2)+1,0);
+	byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2),0,1);
+	byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(thepage*2)+1,0,1);
 	++x; //Next X!
 	if ((word)x>=getscreenwidth()) //Overflow?
 	{
 		x = 0; //Reset!
 		++y; //Next Y!
-		if (y>=MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)) //Overflow?
+		if (y>=MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0,1)) //Overflow?
 		{
 			y = 0; //Reset!
 		}
@@ -680,10 +680,10 @@ OPTINLINE void int10_vram_writecharacter(byte x, byte y, byte page, byte charact
 		//+ _4KB * vdupage + 160 * y + 2 * x
 			uint_32 where = (CurMode->pstart>>4); //Position of the character, all above the fourth bit (pstart=segment<<4)!
 			word address = (CurMode->pstart&0xF); //Rest address!
-			address += (page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)); //Start of page!
-			address += (((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)<<1); //Character offset within page!
-			MMU_wb(-1,where,address,character); //The character! Write plane 0!
-			MMU_wb(-1,where,address+1,attribute); //The attribute! Write plane 1!
+			address += (page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0,1)); //Start of page!
+			address += (((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1))+x)<<1); //Character offset within page!
+			MMU_wb(-1,where,address,character,1); //The character! Write plane 0!
+			MMU_wb(-1,where,address+1,attribute,1); //The attribute! Write plane 1!
 			return; //Done!
 		}
 		break;
@@ -702,10 +702,10 @@ OPTINLINE void int10_vram_readcharacter(byte x, byte y, byte page, byte *charact
 		//+ _4KB * vdupage + 160 * y + 2 * x
 			uint_32 where = (CurMode->pstart>>4); //Position of the character, all above the fourth bit (pstart=segment<<4)!
 			word address = (CurMode->pstart&0xF); //Rest address!
-			address += page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0); //Start of page!
-			address += (((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0))+x)<<1); //Character offset within page!
-			*character = MMU_rb(-1,where,address,0); //The character!
-			*attribute = MMU_rb(-1,where,address+1,0); //The attribute!
+			address += page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0,1); //Start of page!
+			address += (((y*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1))+x)<<1); //Character offset within page!
+			*character = MMU_rb(-1,where,address,0,1); //The character!
+			*attribute = MMU_rb(-1,where,address+1,0,1); //The attribute!
 		}
 		break;
 	default:
@@ -716,22 +716,22 @@ OPTINLINE void int10_vram_readcharacter(byte x, byte y, byte page, byte *charact
 OPTINLINE void emu_setactivedisplaypage(byte page) //Set active display page!
 {
 	if (__HW_DISABLED) return; //Abort!
-	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,page); //Active video page!
-	MMU_ww(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0)); //Display page offset!
+	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,page,1); //Active video page!
+	MMU_ww(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,page*MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_PAGE_SIZE,0,1),1); //Display page offset!
 //Now for the VGA!
 
 	byte oldcrtc = PORT_IN_B(0x3D4); //Save old address!
 	PORT_OUT_B(0x3D4,0xE); //Select high register!
-	PORT_OUT_B(0x3D5,((MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)>>8)&0xFF));  //High!
+	PORT_OUT_B(0x3D5,((MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0,1)>>8)&0xFF));  //High!
 	PORT_OUT_B(0x3D4,0xF); //Select low register!
-	PORT_OUT_B(0x3D5,(MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0)&0xFF)); //Low!
+	PORT_OUT_B(0x3D5,(MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_START,0,1)&0xFF)); //Low!
 	PORT_OUT_B(0x3D4,oldcrtc); //Restore old CRTC register!
 }
 
 OPTINLINE byte emu_getdisplaypage()
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0); //Active page!
+	return MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0,1); //Active page!
 }
 
 /*
@@ -761,7 +761,7 @@ OPTINLINE void int10_LoadFont(word segment, uint_32 offset, //font in dosbox!
 	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
 	uint_32 i;
 	for (i=0;i<count;i++) {
-		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(vramoffset*32),MMU_rb(-1,segment,offset,0)); //Write to VRAM plane 2!
+		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(vramoffset*32),MMU_rb(-1,segment,offset,0,1),1); //Write to VRAM plane 2!
 	}
 	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
 	IO_Write(0x3ce,0x6);
@@ -792,7 +792,7 @@ OPTINLINE void int10_LoadFontSystem(byte *data, //font in dosbox!
 	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
 	uint_32 i;
 	for (i=0;i<count;i++) {
-		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(offset*32),data[i]); //Write to VRAM plane 2!
+		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(offset*32),data[i],1); //Write to VRAM plane 2!
 	}
 	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
 	IO_Write(0x3ce,0x6);
@@ -976,7 +976,7 @@ void int10_GetCursorPositionAndSize()
 		DL=Column
 	*/
 	REG_AX = 0;
-	REG_DX = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Cursor x,y!
+	REG_DX = MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0,1); //Cursor x,y!
 	EMU_CPU_getCursorScanlines(&REG_CH,&REG_CL); //Scan lines of the cursor!
 }
 
@@ -1101,8 +1101,8 @@ void int10_ReadCharAttrAtCursor()
 	AH=Color
 	AL=Character!
 	*/
-	int10_vram_readcharacter(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0),
-				 MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0),REG_BH,&REG_AL,&REG_AH); //Read character REG_AL font REG_AH from page!
+	int10_vram_readcharacter(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0,1),
+				 MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0,1),REG_BH,&REG_AL,&REG_AH); //Read character REG_AL font REG_AH from page!
 }
 
 void int10_WriteCharAttrAtCursor()
@@ -1115,14 +1115,14 @@ void int10_WriteCharAttrAtCursor()
 	*/
 
 	byte tempx,tempy;
-	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
-	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0,1); //Column!
+	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0,1); //Row!
 
 	while (REG_CX--) //Times left?
 	{
 		int10_vram_writecharacter(
-			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0),
-			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0)
+			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0,1),
+			MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0,1)
 			, REG_BH, REG_AL, REG_BL); //Write character REG_AL font REG_BL at page!
 		int10_nextcol(REG_BH); //Next column!
 	}
@@ -1138,15 +1138,15 @@ void int10_WriteCharOnlyAtCursor()
 	*/
 
 	word tempx, tempy;
-	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0); //Column!
-	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0); //Row!
+	tempx = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0,1); //Column!
+	tempy = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0,1); //Row!
 
 	while (REG_CX--)
 	{
 		byte oldchar = 0;
 		byte oldattr = 0;
-		byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0);
-		byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0);
+		byte x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0,1);
+		byte y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0,1);
 		int10_vram_readcharacter(x,y,REG_BH,&oldchar,&oldattr); //Get old info!
 		int10_vram_writecharacter(x,y,REG_BH,REG_AL,oldattr); //Write character REG_AL with old font at page!
 		int10_nextcol(REG_BH); //Next column!
@@ -1239,25 +1239,25 @@ OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte at
 		//TODO BEEP
 		break;
 	case 0x08: //Backspace?
-		if (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0)>0)
+		if (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1)>0)
 		{
-			MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0)-1); //Decrease only!
+			MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1)-1,1); //Decrease only!
 		}
 		EMU_CPU_setCursorXY(videopage,
-					MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0),
-					MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)); //Refresh x,y of cursor!
+					MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1),
+					MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1)); //Refresh x,y of cursor!
 		break;
 	case 0x09: //Tab (8 horizontal, 6 vertical)?
 		do
 		{
 			int10_nextcol(videopage); //Next column!
 		}
-		while (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0)%8);   //Loop to next 8th position!
+		while (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1)%8);   //Loop to next 8th position!
 		break;
 	case 0x0A: //LF?
 		EMU_CPU_setCursorXY(videopage,
-				    MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0), //Same X!
-				    MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)+1 //Next row!
+				    MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1), //Same X!
+				    MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1)+1 //Next row!
 				    ); //Give x,y+1 of cursor!
 		break;
 	case 0x0B: //Vertical tab?
@@ -1265,35 +1265,36 @@ OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte at
 		{
 			int10_internal_outputchar(videopage,0x0A,attribute); //Next row!
 		}
-		while (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)%6);   //Loop to next 6th row!
+		while (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1)%6);   //Loop to next 6th row!
 		break;
 	case 0x0D: //CR?
-		EMU_CPU_setCursorXY(videopage,0,MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)); //Give 0,y of cursor!
+		EMU_CPU_setCursorXY(videopage,0,MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1)); //Give 0,y of cursor!
 		break;
 	default: //Normal character?
-		int10_vram_writecharacter(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0),
-					  MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0),
+		int10_vram_writecharacter(MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2),0,1),
+					  MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1),
 					  videopage,character,attribute); //Write character & font at page!
 		int10_nextcol(videopage); //Next column!
 		break;
 	}
-	byte maxrows = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); //Maximum number of rows minus 1!
+	byte maxrows = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0,1); //Maximum number of rows minus 1!
 	++maxrows; //Row at which to scroll is one past maximum rows!
-	for (;MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0)>=maxrows;) //Past limit: scroll one down!
+	for (;MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1)>=maxrows;) //Past limit: scroll one down!
 	{
-		byte currow = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0); //Current row!
-		switch (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)) //Active video mode?
+		byte currow = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1,0,1); //Current row!
+		switch (MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1)) //Active video mode?
 		{
 		case 0:
 		case 1:
 		case 2:
 		case 3:
 		case 7:
-			int10_ScrollUpWindow_real(1,attribute,videopage,0,0,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0)-1,
-										MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0)); //XxY rows?
+			int10_ScrollUpWindow_real(1,attribute,videopage,0,0,MMU_rw(-1,BIOSMEM_SEG,BIOSMEM_NB_COLS,0,1)-1,
+										MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0,1)); //XxY rows?
 			MMU_wb(-1,
 				BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(videopage*2)+1, //Row=...
-				currow-1 //One row up!
+				currow-1, //One row up!
+				1
 				);
 			break;
 		default: //Not supported: graphics mode?
@@ -1313,8 +1314,8 @@ void int10_TeleTypeOutput()
 
 	byte oldchar = 0;
 	byte oldattr = 0;
-	byte x = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0);
-	byte y = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0);
+	byte x = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2), 0,1);
+	byte y = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_POS + (REG_BH * 2) + 1, 0,1);
 	int10_vram_readcharacter(x, y, REG_BH, &oldchar, &oldattr); //Get old info!
 	int10_internal_outputchar(REG_BH, REG_AL, oldattr); //Write character REG_AL with old font at page!
 }
@@ -1354,20 +1355,20 @@ void int10_WriteString()
 	len = REG_CX; //The length of the string!
 	word cur=0; //Current value!
 
-	x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0); //Old x!
-	y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0); //Old y!
+	x = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),0,1); //Old x!
+	y = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,0,1); //Old y!
 
 	while (len)
 	{
-		c = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_ES):-1,REG_ES,REG_BP+cur,0); //Read character from memory!
+		c = MMU_rb(CB_ISCallback()?CPU_segment_index(CPU_SEGMENT_ES):-1,REG_ES,REG_BP+cur,0,1); //Read character from memory!
 		int10_internal_outputchar(REG_BH,c,REG_BL); //Output&update!
 		--len; //Next item!
 	}
 
 	if (!(REG_AL&0x01)) //No Update cursor?
 	{
-		MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),x); //Restore x!
-		MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,y); //Restore y!
+		MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2),x,1); //Restore x!
+		MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURSOR_POS+(REG_BH*2)+1,y,1); //Restore y!
 	}
 }
 
@@ -2253,9 +2254,9 @@ void int10_dumpscreen() //Dump screen to file!
 	int firstrow = 1;
 	f = fopen("INT10.TXT","w"); //Open file!
 	byte displaypage;
-	displaypage = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0); //Active video page!
+	displaypage = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0,1); //Active video page!
 
-	writehex(f,MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0)); //Current display mode!
+	writehex(f,MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,0,1)); //Current display mode!
 	writehex(f,displaypage); //Write the display page first!
 	writehex(f,(byte)getscreenwidth()); //Screen width!
 
@@ -2265,7 +2266,7 @@ void int10_dumpscreen() //Dump screen to file!
 
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Write a line break first!
 
-	for (y=0; y<MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0); y++) //Process rows!
+	for (y=0; y<MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0,1); y++) //Process rows!
 	{
 		if (!firstrow)
 		{

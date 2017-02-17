@@ -37,14 +37,14 @@ OPTINLINE byte CMOS_readAutoBCD(byte number)
 void BIOS_IRQ0()
 {
 	uint_32 result;
-	result = MMU_rdw(CPU_SEGMENT_DS, 0x0040, 0x6C, 0); //Read the result!
+	result = MMU_rdw(CPU_SEGMENT_DS, 0x0040, 0x6C, 0,1); //Read the result!
 	++result; //Increase the number!
 	if (result == 0x1800B0) //Midnight count reached?
 	{
-		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x01); //Set Midnight flag!
+		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x01,1); //Set Midnight flag!
 		result = 0; //Clear counter!
 	}
-	MMU_wdw(CPU_SEGMENT_DS, 0x0040, 0x6c, result); //Write data!
+	MMU_wdw(CPU_SEGMENT_DS, 0x0040, 0x6c, result,1); //Write data!
 }
 
 void BIOS_int1A() //Handler!
@@ -54,17 +54,17 @@ void BIOS_int1A() //Handler!
 	{
 	case 0x00: //Get system clock?
 		CALLBACK_SCF(0); //Clear carry flag to indicate no error!
-		result = MMU_rdw(CPU_SEGMENT_DS, 0x0040, 0x6C, 0); //Read the result!
+		result = MMU_rdw(CPU_SEGMENT_DS, 0x0040, 0x6C, 0,1); //Read the result!
 		REG_DX = (result >> 16); //High value!
 		REG_CX = (result & 0xFFFF); //Low value!
-		REG_AL = MMU_rb(CPU_SEGMENT_DS, 0x0040, 0x0070,0); //Midnight flag!
-		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x00); //Clear Midnight flag!
+		REG_AL = MMU_rb(CPU_SEGMENT_DS, 0x0040, 0x0070,0,1); //Midnight flag!
+		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x00,1); //Clear Midnight flag!
 		break;
 	case 0x001: //Set system clock!
 		CALLBACK_SCF(0); //Clear carry flag to indicate no error!; / Clear error flag!
 		result = ((REG_DX << 16) | REG_CX); //Calculate result!
-		MMU_wdw(CPU_SEGMENT_DS, 0x0040, 0x6c, result); //Write data!
-		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x00); //Clear Midnight flag!
+		MMU_wdw(CPU_SEGMENT_DS, 0x0040, 0x6c, result,1); //Write data!
+		MMU_wb(CPU_SEGMENT_DS, 0x0040, 0x0070, 0x00,1); //Clear Midnight flag!
 		break;
 	default: //Unknown function?
 		CALLBACK_SCF(1); //Set carry flag to indicate an error!

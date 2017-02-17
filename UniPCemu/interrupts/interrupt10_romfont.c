@@ -17,8 +17,8 @@ OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fonto
 	byte data;
 	for (counter=0;counter<height;counter++)
 	{
-		data = MMU_rb(-1,fontseg,fontoffs+counter,0); //Load the data!
-		MMU_wb(-1,segment,offset+counter,data); //Write to VRAM!
+		data = MMU_rb(-1,fontseg,fontoffs+counter,0,1); //Load the data!
+		MMU_wb(-1,segment,offset+counter,data,1); //Write to VRAM!
 	}
 }
 
