@@ -261,7 +261,9 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
 
 //Low memory hole start!
 #define LOW_MEMORYHOLE_START 0xA0000
+#define LOW_MEMORYHOLE_END 0x100000
 #define MID_MEMORYHOLE_START 0xF00000
+#define MID_MEMORYHOLE_END 0x1000000
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
@@ -270,30 +272,35 @@ OPTINLINE char stringsafe(byte x)
 	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
 }
 
+OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
+{
+	if (*realaddress >= LOW_MEMORYHOLE_END) //1MB+?
+	{
+		if ((*realaddress >= MID_MEMORYHOLE_START) && (*realaddress < MID_MEMORYHOLE_END)) //15-16M ISA memory hole?
+		{
+			*nonexistant = 1; //Non-existant memory!
+		}
+		else
+		{
+			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
+		}
+	}
+	else if (*realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
+	{
+		*nonexistant = 1; //Non-existant memory!
+	}
+}
+
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
 	byte result;
 	byte nonexistant = 0;
-	if (realaddress & ~0xFFFFF) //1MB+?
-	{
-		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
-		{
-			nonexistant = 1; //Non-existant memory!
-		}
-		else
-		{
-			//realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
-		}
-	}
-	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
-	{
-		nonexistant = 1; //Non-existant memory!
-	}
+	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
 	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(realaddress, 0); //Invalid memory accessed!
-		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory?
+		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory(also 80286/80386 on XT boards)?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}
@@ -324,21 +331,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if (realaddress & ~0xFFFFF) //1MB+?
-	{
-		if ((realaddress >= MID_MEMORYHOLE_START) && (realaddress < 0x100000)) //15-16M ISA memory hole?
-		{
-			nonexistant = 1; //Non-existant memory!
-		}
-		else
-		{
-			//realaddress -= (0x100000 - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
-		}
-	}
-	else if (realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
-	{
-		nonexistant = 1; //Non-existant memory!
-	}
+	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
