@@ -1100,79 +1100,36 @@ byte CPU_POP8()
 //Changes in stack during PUSH and POP operations!
 sbyte stack_pushchange(byte dword)
 {
-	if (topdown_stack()) //--?
-	{
-		return -(2 << dword); //Decrease!
-	}
-	else //++?
-	{
-		return (2 << dword); //Increase!
-	}
+	return -(2 << dword); //Decrease!
 }
 
 sbyte stack_popchange(byte dword)
 {
-	if (topdown_stack()) //--?
-	{
-		return (2 << dword); //Decrease!
-	}
-	else //++?
-	{
-		return -(2 << dword); //Increase!
-	}
+	return (2 << dword); //Decrease!
 }
 
 
 OPTINLINE void stack_push(byte dword) //Push 16/32-bits to stack!
 {
-	if (topdown_stack()) //--?
+	if (CPU_StackAddress_size[activeCPU]) //32-bits?
 	{
-		if (CPU_StackAddress_size[activeCPU]) //32-bits?
-		{
-			CPU[activeCPU].registers->ESP -= (2 << dword); //Decrease!
-		}
-		else //16-bits?
-		{
-			CPU[activeCPU].registers->SP -= (2 << dword); //Decrease!
-		}
+		CPU[activeCPU].registers->ESP -= (2 << dword); //Decrease!
 	}
-	else //++?
+	else //16-bits?
 	{
-		if (CPU_StackAddress_size[activeCPU]) //32-bits?
-		{
-			CPU[activeCPU].registers->ESP += (2 << dword); //Increase!
-		}
-		else //16-bits?
-		{
-			CPU[activeCPU].registers->SP += (2 << dword); //Increase!
-		}
+		CPU[activeCPU].registers->SP -= (2 << dword); //Decrease!
 	}
 }
 
 OPTINLINE void stack_pop(byte dword) //Push 16/32-bits to stack!
 {
-	if (topdown_stack()) //++?
+	if (CPU_StackAddress_size[activeCPU]) //32-bits?
 	{
-		if (CPU_StackAddress_size[activeCPU]) //32-bits?
-		{
-			CPU[activeCPU].registers->ESP += (2 << dword); //Increase!
-		}
-		else //16-bits?
-		{
-			CPU[activeCPU].registers->SP += (2 << dword); //Increase!
-		}
+		CPU[activeCPU].registers->ESP += (2 << dword); //Increase!
 	}
-	else //--?
+	else //16-bits?
 	{
-
-		if (CPU_StackAddress_size[activeCPU]) //32-bits?
-		{
-			CPU[activeCPU].registers->ESP -= (2 << dword); //Decrease!
-		}
-		else //16-bits?
-		{
-			CPU[activeCPU].registers->SP -= (2 << dword); //Decrease!
-		}
+		CPU[activeCPU].registers->SP += (2 << dword); //Increase!
 	}
 }
 
