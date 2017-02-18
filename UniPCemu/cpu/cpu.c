@@ -1238,22 +1238,14 @@ uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 word CPU_exec_lastCS=0; //OPCode CS
 uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
-extern Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
-extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
 void CPU_OP(byte OP) //Normal CPU opcode execution!
 {
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
-	CPU[activeCPU].lastopcode = OP; //Last OPcode!
-	if (CPU[activeCPU].is0Fopcode) //0F opcode?
-	{
-		CurrentCPU_opcode0F_jmptbl[(OP << 1) | CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
-	}
-	else
-	{
-		CurrentCPU_opcode_jmptbl[(OP<<1)|CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
-	}
-	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the jmptbl.
+	CPU[activeCPU].lastopcode = OP; //Last OPcode for reference!
+	CurrentCPU_opcode_jmptbl[((word)OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
+	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
 }
 
 void CPU_beforeexec()

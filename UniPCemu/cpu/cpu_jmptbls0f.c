@@ -1116,7 +1116,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 
 };
 
-Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal opcode jmptbl!
 
 void generate_opcode0F_jmptbl()
 {
@@ -1154,16 +1154,16 @@ void generate_opcode0F_jmptbl()
 				}
 				if (opcode0F_jmptbl[cpu][OP][operandsize])
 				{
-					CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = opcode0F_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
+					CurrentCPU_opcode_jmptbl[(OP << 2) | 2 | currentoperandsize] = opcode0F_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
 				}
 				else
 				{
-					CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = &unkOP0F_286; //Execute this instruction when we're triggered!
+					CurrentCPU_opcode_jmptbl[(OP << 2) | 2 | currentoperandsize] = &unkOP0F_286; //Execute this instruction when we're triggered!
 				}
 			}
 			else //Too old a CPU to support 0F opcodes? Install safety handlers instead!
 			{
-				CurrentCPU_opcode0F_jmptbl[(OP << 1) | currentoperandsize] = (cpu==CPU_8086)?&unkOP_8086:&unkOP_186; //Execute this instruction when we're triggered!
+				CurrentCPU_opcode_jmptbl[(OP << 1) | 2 | currentoperandsize] = (cpu==CPU_8086)?&unkOP_8086:&unkOP_186; //Execute this instruction when we're triggered!
 			}
 		}
 	}

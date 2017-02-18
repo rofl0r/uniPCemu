@@ -1690,7 +1690,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 	}
 };
 
-Handler CurrentCPU_opcode_jmptbl[512]; //Our standard internal standard opcode jmptbl!
+Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal opcode jmptbl!
 
 void unhandled_CPUjmptblitem()
 {
@@ -1728,11 +1728,11 @@ void generate_opcode_jmptbl()
 			}
 			if (opcode_jmptbl[cpu][OP][operandsize])
 			{
-				CurrentCPU_opcode_jmptbl[(OP << 1) | currentoperandsize] = opcode_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
+				CurrentCPU_opcode_jmptbl[(OP << 2) | currentoperandsize] = opcode_jmptbl[cpu][OP][operandsize]; //Execute this instruction when we're triggered!
 			}
 			else
 			{
-				CurrentCPU_opcode_jmptbl[(OP << 1) | currentoperandsize] = &unhandled_CPUjmptblitem; //Execute this instruction when we're triggered!
+				CurrentCPU_opcode_jmptbl[(OP << 2) | currentoperandsize] = &unhandled_CPUjmptblitem; //Execute this instruction when we're triggered!
 			}
 		}
 	}
