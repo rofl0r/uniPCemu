@@ -104,6 +104,8 @@ byte NMIMasked = 0; //Are NMI masked?
 void CPU_IRET()
 {
 	byte oldCPL = getCPL(); //Original CPL
+	word tempCS, tempSS;
+	uint_32 tempEFLAGS;
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		destEIP = CPU_POP16(); //POP IP!
@@ -128,6 +130,35 @@ void CPU_IRET()
 	}
 	else //Use protected mode IRET?
 	{
+		if (FLAG_V8) //Virtual 8086 mode?
+		{
+			//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
+			if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
+			{
+				if (CPU_Operand_size) //32-bit operand size?
+				{
+					if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
+					destEIP = CPU_POP32();
+					tempCS = (CPU_POP32()&0xFFFF);
+					tempEFLAGS = CPU_POP32();
+					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
+					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
+				}
+				else //16-bit operand size?
+				{
+					if (checkStackAccess(3,0,0)) return; //3 Word POPs!
+					destEIP = CPU_POP16();
+					tempCS = CPU_POP16();
+					tempEFLAGS = CPU_POP16();
+					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
+					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
+				}
+			}
+			else THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
+			return; //Don't execute normally!
+		}
 		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 		{
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
@@ -150,7 +181,6 @@ void CPU_IRET()
 			{
 				destEIP = CPU_POP16(); //POP IP!
 			}
-			word tempCS, tempSS;
 			uint_32 tempesp;
 			tempCS = CPU_POP16(); //CS to be loaded!
 			if (CPU_Operand_size[activeCPU]) //32-bit mode?
