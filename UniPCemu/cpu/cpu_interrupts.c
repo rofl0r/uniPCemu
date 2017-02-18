@@ -135,7 +135,7 @@ void CPU_IRET()
 			//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
 			if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
 			{
-				if (CPU_Operand_size) //32-bit operand size?
+				if (CPU_Operand_size[activeCPU]) //32-bit operand size?
 				{
 					if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
 					destEIP = CPU_POP32();
