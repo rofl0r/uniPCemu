@@ -373,15 +373,15 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 	else //We're a 16-bit TSS?
 	{
-		CPU[activeCPU].registers->AX = TSS16.AX;
-		CPU[activeCPU].registers->CX = TSS16.CX;
-		CPU[activeCPU].registers->DX = TSS16.DX;
-		CPU[activeCPU].registers->BX = TSS16.BX;
-		CPU[activeCPU].registers->SP = TSS16.SP;
-		CPU[activeCPU].registers->BP = TSS16.BP;
-		CPU[activeCPU].registers->SI = TSS16.SI;
-		CPU[activeCPU].registers->DI = TSS16.DI;
-		CPU[activeCPU].registers->FLAGS = TSS16.FLAGS;
+		CPU[activeCPU].registers->EAX = TSS16.AX;
+		CPU[activeCPU].registers->ECX = TSS16.CX;
+		CPU[activeCPU].registers->EDX = TSS16.DX;
+		CPU[activeCPU].registers->EBX = TSS16.BX;
+		CPU[activeCPU].registers->ESP = TSS16.SP;
+		CPU[activeCPU].registers->EBP = TSS16.BP;
+		CPU[activeCPU].registers->ESI = TSS16.SI;
+		CPU[activeCPU].registers->EDI = TSS16.DI;
+		CPU[activeCPU].registers->EFLAGS = (uint_32)TSS16.FLAGS;
 		//Load all remaining registers manually for exceptions!
 		CPU[activeCPU].registers->CS = TSS16.CS; //This should also load the privilege level!
 		CPU[activeCPU].registers->DS = TSS16.DS;
