@@ -503,7 +503,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 //ADPCM decoder from Dosbox
 OPTINLINE byte decode_ADPCM_4_sample(byte sample, byte *reference, int_32 *scale)
 {
-	static const byte scaleMap[64] = {
+	static const sbyte scaleMap[64] = {
 		0,  1,  2,  3,  4,  5,  6,  7,  0,  -1,  -2,  -3,  -4,  -5,  -6,  -7,
 		1,  3,  5,  7,  9, 11, 13, 15, -1,  -3,  -5,  -7,  -9, -11, -13, -15,
 		2,  6, 10, 14, 18, 22, 26, 30, -2,  -6, -10, -14, -18, -22, -26, -30,
@@ -520,7 +520,7 @@ OPTINLINE byte decode_ADPCM_4_sample(byte sample, byte *reference, int_32 *scale
 		240, 0, 0, 0, 0,  0,  0,  0
 	};
 
-	byte samp = sample + *scale;
+	int_32 samp = sample + *scale;
 
 	if ((samp < 0) || (samp > 63)) {
 		//LOG(LOG_SB, LOG_ERROR)("Bad ADPCM-4 sample");
@@ -528,7 +528,7 @@ OPTINLINE byte decode_ADPCM_4_sample(byte sample, byte *reference, int_32 *scale
 		if (samp > 63) samp = 63;
 	}
 
-	sword ref = *reference + scaleMap[samp];
+	int_32 ref = *reference + scaleMap[samp];
 	if (ref > 0xff) *reference = 0xff;
 	else if (ref < 0x00) *reference = 0x00;
 	else *reference = (byte)(ref & 0xff);
@@ -584,14 +584,14 @@ OPTINLINE byte decode_ADPCM_3_sample(byte sample, byte *reference,int_32 *scale)
 		248, 0, 0, 0, 248, 0, 0, 0
 	};
 
-	byte samp = sample + *scale;
+	int_32 samp = sample + *scale;
 	if ((samp < 0) || (samp > 39)) {
 		//LOG(LOG_SB, LOG_ERROR)("Bad ADPCM-3 sample");
 		if (samp < 0) samp = 0;
 		if (samp > 39) samp = 39;
 	}
 
-	byte ref = *reference + scaleMap[samp];
+	int_32 ref = *reference + scaleMap[samp];
 	if (ref > 0xff) *reference = 0xff;
 	else if (ref < 0x00) *reference = 0x00;
 	else *reference = (byte)(ref & 0xff);
