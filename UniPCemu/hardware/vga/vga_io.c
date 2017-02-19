@@ -345,7 +345,13 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		{
 			readInputStatus1:
 			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER,7,1,0); //Reset flipflop for 3C0!
+
 			*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER; //Give!
+			const static byte bittablelow[4] = {0,4,1,6};
+			const static byte bittablehigh[4] = {2,5,3,7};
+			byte DACOutput = 				getActiveVGA->CRTC.DACOutput; //Current DAC output to give!
+			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[GETBITS(getActiveVGA->registers->AttributeControllerRegisters.COLORPLANEENABLEREGISTER,4,3)],1));
+			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[GETBITS(getActiveVGA->registers->AttributeControllerRegisters.COLORPLANEENABLEREGISTER,4,3)],1));
 			ok = 1;
 		}
 		break;

@@ -542,6 +542,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 	else //VGA compatibility mode? 8-bit color!
 	{
+		VGA->CRTC.DACOutput = (Sequencer->lastDACcolor&0xFF); //DAC index!
 		DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
 	}
 	if (Sequencer->is_topwindow) return; //Don't draw the top window!
@@ -577,6 +578,7 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	else //VGA compatibility mode?
 	{
 	*/
+		VGA->CRTC.DACOutput = VGA->precalcs.overscancolor; //Overscan index!
 		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
 	//}
 	++VGA->CRTC.x; //Next x!
