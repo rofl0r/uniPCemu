@@ -194,7 +194,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	
 	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Reset the graphics pointer!
 
-	VGA->enable_SVGA = (extension && (extension!=3))?extension:0; //Enable the extension when set!
+	VGA->enable_SVGA = extension; //Enable the extension when set!
 
 	if (extension==3) //EGA?
 	{
@@ -238,7 +238,7 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 void resetPCISpaceVGA()
 {
 	//Info from: http://wiki.osdev.org/PCI
-	PCI_VGA.VendorID = getActiveVGA()->enable_SVGA?0x100C:0x0000; //Tseng labs or plain VGA!
+	PCI_VGA.VendorID = ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2))?0x100C:0x0000; //Tseng labs or plain VGA!
 	PCI_VGA.DeviceID = 0x0000; //We're a VGA card!
 	PCI_VGA.ClassCode = 3; //We...
 	PCI_VGA.Subclass = 0; //Are...

@@ -143,6 +143,7 @@ typedef struct //Contains the precalculated values!
 	byte recalcScanline; //Recalculate the scanline data?
 	byte WriteMemoryMode; //Write memory mode!
 	byte ReadMemoryMode; //Read memory mode!
+	byte EGA_DisableInternalVideoDrivers; //Disable internal video drivers(EGA)?
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

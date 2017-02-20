@@ -542,8 +542,15 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 	else //VGA compatibility mode? 8-bit color!
 	{
-		VGA->CRTC.DACOutput = (Sequencer->lastDACcolor&0xFF); //DAC index!
-		DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
+		if (VGA->precalcs.EGA_DisableInternalVideoDrivers) //Special case: internal video drivers disabled?
+		{
+			DACcolor = VGA_DAC(VGA,VGA->CRTC.DACOutput = (VGA->registers->ExternalRegisters.FEATURECONTROLREGISTER&3)); //The FEAT0 and FEAT1 outputs become the new output!
+		}
+		else
+		{
+			VGA->CRTC.DACOutput = (Sequencer->lastDACcolor&0xFF); //DAC index!
+			DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
+		}
 	}
 	if (Sequencer->is_topwindow) return; //Don't draw the top window!
 	//Draw the pixel(s) that is/are latched!
@@ -578,8 +585,16 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	else //VGA compatibility mode?
 	{
 	*/
-		VGA->CRTC.DACOutput = VGA->precalcs.overscancolor; //Overscan index!
-		drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+		if (VGA->precalcs.EGA_DisableInternalVideoDrivers) //Special case: internal video drivers disabled?
+		{
+			VGA->CRTC.DACOutput = (VGA->registers->ExternalRegisters.FEATURECONTROLREGISTER&3); //The FEAT0 and FEAT1 outputs become the new output!
+			drawPixel(VGA, VGA_DAC(VGA, VGA->CRTC.DACOutput)); //Draw overscan in the specified color instead!
+		}
+		else //Normal VGA behaviour?
+		{
+			VGA->CRTC.DACOutput = VGA->precalcs.overscancolor; //Overscan index!
+			drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
+		}
 	//}
 	++VGA->CRTC.x; //Next x!
 }

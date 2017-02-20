@@ -287,6 +287,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		ClocksUpdated |= ((((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER)^(VGA->precalcs.LastMiscOutputRegister))&0xC) || FullUpdate); //Are we to update the clock?
 		VGA->precalcs.LastMiscOutputRegister = VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER; //Save the last version of us!
 
+		if (VGA->enable_SVGA==3) //EGA?
+		{
+			if (VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER&0x10) //Disable internal video drivers?
+			{
+				VGA->precalcs.EGA_DisableInternalVideoDrivers = 1; //Disable it!
+			}
+			else //Enable internal video drivers?
+			{
+				VGA->precalcs.EGA_DisableInternalVideoDrivers = 0; //Enable it!
+			}
+		}
+
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
 		pattern = 0x6; //Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
