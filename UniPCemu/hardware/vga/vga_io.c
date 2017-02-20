@@ -412,6 +412,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		goto accessfc;
 	case 0x3CA: //Same as above!
+		goto accessfc; //Always access at this address!
 	case 0x3DA: //Same!
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accessfc: //Allow!
