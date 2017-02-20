@@ -64,14 +64,13 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	uint_32 location; //The location within the OPT ROM area!
 	location = 0; //Init location!
 	ISVGA = 0; //Are we a VGA ROM?
-	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location!=0x20000);i++) //Process all ROMS we can process!
+	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location<0x20000);i++) //Process all ROMS we can process!
 	{
 		FILE *f;
 		char filename[100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
 		if (i) //Not Graphics Adapter ROM?
 		{
-			ISVGA = 0; //No VGA!
 			//Default!
 			sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,is_XT?"XT":"AT", i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
@@ -517,9 +516,9 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 							break;
 					}
 				}
-				if (ISVGA==8) //EGA ROM is reversed?
+				if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 				{
-					*value = OPT_ROMS[i][ROMsize-(basepos-currentpos)]; //Read the data from the ROM, reversed!
+					*value = OPT_ROMS[i][ROMsize-(basepos-currentpos)-1]; //Read the data from the ROM, reversed!
 					return 1; //Done: we've been read!				
 				}
 				*value = OPT_ROMS[i][basepos-currentpos]; //Read the data from the ROM!
@@ -648,6 +647,10 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						break;
 					}
 					if (!OPTROM_writeenabled[i]) return 1; //Handled: ignore writes to ROM or protected ROM!
+					if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
+					{
+						OPTROM_address = ((OPTROM_location[i]>>32)-OPTROM_address)-1; //The ROM is reversed, so reverse write too!
+					}
 					//We're a EEPROM with write protect disabled!
 					FILE *f; //For opening the ROM file!
 					f = fopen(OPTROM_filename[i], "rb+"); //Open the ROM for writing!

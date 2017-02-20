@@ -453,4 +453,7 @@ void VGA_registerExtension(PORTIN readhandler, PORTOUT writehandler, Handler ini
 void PORT_write_MISC_3C2(byte value); //Misc Output register updating for SVGA!
 
 void updateVGAWaitState(); //Update the new WaitState for the VGA handler!
+
+void VGA_setupEGAPalette(VGA_Type *VGA); //Setup the EGA palette for the EGA emulation!
+
 #endif

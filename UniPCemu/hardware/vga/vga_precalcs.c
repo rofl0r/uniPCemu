@@ -919,7 +919,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_DAC) || SECTIONISUPDATED(whereupdated,WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Updated?
 	{
-		if (SECTIONISUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
+		if (UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
 		{
 			if (SECTIONISUPDATEDFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || ((whereupdated==WHEREUPDATED_DACMASKREGISTER) && VGA->precalcs.lastDACMask!=VGA->registers->DACMaskRegister)) //DAC Mask changed only?
 			{
