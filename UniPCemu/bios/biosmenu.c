@@ -593,7 +593,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	EMU_unlocktext();
 	printcenter(BIOSText,0); //Show the BIOS's text!
 	EMU_locktext();
-	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/MBMEMORY)); //Show ammount of memory to be able to use!
+	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/MBMEMORY)); //Show amount of memory to be able to use!
 	EMU_textcolor(BIOS_ATTR_TEXT); //Std: display text!
 	EMU_unlocktext();
 }
@@ -800,7 +800,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 
 //File list functions!
 
-//Ammount of files in the list MAX
+//Amount of files in the list MAX
 char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
 int numlist = 0; //Number of files!
 
@@ -821,7 +821,7 @@ void addList(char *text)
 //Generate file list based on extension!
 void generateFileList(char *path, char *extensions, int allowms0, int allowdynamic)
 {
-	numlist = 0; //Reset ammount of files!
+	numlist = 0; //Reset amount of files!
 	clearList(); //Clear the list!
 	if (allowms0) //Allow Memory Stick option?
 	{
@@ -926,7 +926,7 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 }
 
 //x,y = coordinates of file list
-//maxlen = ammount of characters for the list (width of the list)
+//maxlen = amount of characters for the list (width of the list)
 
 int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information informationhandler) //Runs the file list!
 {
@@ -1505,7 +1505,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Boot Order: "); //Show selection init!
 	EMU_unlocktext();
-	numlist = NUMITEMS(BOOT_ORDER_STRING); //Ammount of files (orders)
+	numlist = NUMITEMS(BOOT_ORDER_STRING); //Amount of files (orders)
 	int i = 0; //Counter!
 	for (i=0; i<numlist; i++) //Process options!
 	{
@@ -1541,7 +1541,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of CPU types!
+	numlist = 6; //Amount of CPU types!
 	for (i=0; i<6; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -2971,7 +2971,7 @@ void BIOS_DebugMode()
 	GPU_EMU_printscreen(0,4,"Debug mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 4; //Ammount of Debug modes!
+	numlist = 4; //Amount of Debug modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -3033,7 +3033,7 @@ void BIOS_ExecutionMode()
 	GPU_EMU_printscreen(0, 4, "Execution mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of Execution modes!
+	numlist = 6; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3102,7 +3102,7 @@ void BIOS_DebugLog()
 	GPU_EMU_printscreen(0, 4, "Debugger log: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of Execution modes!
+	numlist = 6; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3190,7 +3190,7 @@ void BIOS_DirectPlotSetting()
 	GPU_EMU_printscreen(0,4,"Direct plot: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of Direct modes!
+	numlist = 3; //Amount of Direct modes!
 	for (i=0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -3250,7 +3250,7 @@ void BIOS_FontSetting()
 	GPU_EMU_printscreen(0,4,"Settings menu Font: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = NUMITEMS(BIOSMenu_Fonts); //Ammount of Direct modes!
+	numlist = NUMITEMS(BIOSMenu_Fonts); //Amount of Direct modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -3298,7 +3298,7 @@ void BIOS_AspectRatio()
 	GPU_EMU_printscreen(0, 4, "Aspect ratio: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 7; //Ammount of Aspect Ratio modes!
+	numlist = 7; //Amount of Aspect Ratio modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3372,7 +3372,7 @@ void BIOS_BWMonitor()
 	GPU_EMU_printscreen(0, 4, "Monitor: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 4; //Ammount of Execution modes!
+	numlist = 4; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3828,7 +3828,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	GPU_EMU_printscreen(0, 4, "Color: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 16; //Ammount of colors!
+	numlist = 16; //Amount of colors!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -3906,7 +3906,7 @@ void BIOS_VGAModeSetting()
 	GPU_EMU_printscreen(0,4,"VGA Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 8; //Ammount of VGA modes! Only use two modes, as the precursor compatibility mode(CGA) isn't finished yet!
+	numlist = 9; //Amount of VGA modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
@@ -4092,6 +4092,9 @@ setVGAModetext: //For fixing it!
 		break;
 	case 7:
 		strcat(menuoptions[advancedoptions++], "Tseng ET3000"); //Tseng ET3000 SVGA card!
+		break;
+	case 8:
+		strcat(menuoptions[advancedoptions++], "EGA"); //EGA card!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!
@@ -4522,7 +4525,7 @@ void BIOS_Architecture()
 	GPU_EMU_printscreen(0, 4, "Architecture: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of Direct modes!
+	numlist = 3; //Amount of Direct modes!
 	for (i = 0; i<3; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -5292,7 +5295,7 @@ void BIOS_DataBusSizeSetting()
 	GPU_EMU_printscreen(0, 4, "Data bus size: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of Direct modes!
+	numlist = 2; //Amount of Direct modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -5554,7 +5557,7 @@ void BIOS_VGASynchronization()
 	GPU_EMU_printscreen(0, 4, "VGA Synchronization: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of Synchronization modes!
+	numlist = 3; //Amount of Synchronization modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -5837,7 +5840,7 @@ void BIOS_CGAModel()
 	GPU_EMU_printscreen(0, 4, "CGA Model: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 4; //Ammount of CGA Models!
+	numlist = 4; //Amount of CGA Models!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -5897,7 +5900,7 @@ void BIOS_gamingmodeJoystick()
 	GPU_EMU_printscreen(0, 4, "Gaming mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 6; //Ammount of Joysticks supported plus Gaming mode mapping!
+	numlist = 6; //Amount of Joysticks supported plus Gaming mode mapping!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -6004,7 +6007,7 @@ void BIOS_useSoundBlaster()
 	GPU_EMU_printscreen(0, 4, "Sound Blaster: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Ammount of Synchronization modes!
+	numlist = 3; //Amount of Synchronization modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -6303,7 +6306,7 @@ void BIOS_CPUSpeedMode()
 	GPU_EMU_printscreen(0, 4, "CPU Speed Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of CPU Speed Modes!
+	numlist = 2; //Amount of CPU Speed Modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
@@ -6358,7 +6361,7 @@ void BIOS_TurboCPUSpeedMode()
 	GPU_EMU_printscreen(0, 4, "Turbo CPU Speed Mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Ammount of CPU Speed Modes!
+	numlist = 2; //Amount of CPU Speed Modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
