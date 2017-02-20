@@ -468,7 +468,14 @@ void updateVGA(double timepassed)
 			}
 		} while (--renderings); //Ticks left to tick?
 
-		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,(getActiveVGA()->CRTC.DisplayEnabled^1)); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		if (getActiveVGA()->enable_SVGA!=4) //EGA/VGA+(Not MDA/CGA)?
+		{
+			SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,retracing); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		}
+		else
+		{
+			SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,(getActiveVGA()->CRTC.DisplayEnabled^1)); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+		}
 
 		#ifdef LIMITVGA
 		if (passedcounter && currentVGASpeed) //Still counting?
