@@ -91,7 +91,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 
 	debugrow("VGA: Initializing clocks if needed...");
 
-	initVGAclocks(); //Initialize all clocks!
+	initVGAclocks(extension); //Initialize all clocks!
 
 	VGA_Type *VGA; //The VGA to be allocated!
 	debugrow("VGA: Allocating VGA...");

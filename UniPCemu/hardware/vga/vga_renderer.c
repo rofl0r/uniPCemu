@@ -38,10 +38,18 @@ uint_32 CGAOutputBuffer[2048]; //Full CGA NTSC buffer!
 
 VGA_clockrateextensionhandler VGA_calcclockrateextensionhandler; //The clock rate extension handler!
 
-void initVGAclocks()
+void initVGAclocks(byte extension)
 {
-	VGA_clocks[0] = VGA25MHZ; //25MHZ clock!
-	VGA_clocks[1] = VGA28MHZ; //28MHZ clock!
+	if (extension!=4) //VGA clock?
+	{
+		VGA_clocks[0] = VGA25MHZ; //25MHZ clock!
+		VGA_clocks[1] = VGA28MHZ; //28MHZ clock!
+	}
+	else //EGA clock?
+	{
+		VGA_clocks[0] = MHZ14; //14MHz clock!
+		VGA_clocks[1] = 16000000.0f; //16MHz clock
+	}
 	VGA_clocks[2] = 0.0; //Unused!
 	VGA_clocks[3] = 0.0; //Unused!
 }
