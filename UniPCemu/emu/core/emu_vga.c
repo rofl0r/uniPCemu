@@ -498,6 +498,7 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 		default: //Pure VGA?
 		case 6: //Tseng ET4000?
 		case 0: //Pure VGA?
+		case 8: //EGA?
 			setVGA_NMIonPrecursors(0); //No NMI on precursors!
 			setVGA_CGA(0); //No CGA!
 			setVGA_MDA(0); //No MDA!

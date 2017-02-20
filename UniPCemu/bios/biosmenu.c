@@ -3919,6 +3919,7 @@ void BIOS_VGAModeSetting()
 	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
 	strcpy(itemlist[6],"Tseng ET4000"); //Tseng ET4000 card!
 	strcpy(itemlist[7],"Tseng ET3000"); //Tseng ET4000 card!
+	strcpy(itemlist[8],"EGA"); //EGA card!
 
 	int current = 0;
 	switch (BIOS_Settings.VGA_Mode) //What setting?
@@ -3931,6 +3932,7 @@ void BIOS_VGAModeSetting()
 	case 5: //Valid
 	case 6: //Valid
 	case 7: //Valid
+	case 8: //Valid
 		current = BIOS_Settings.VGA_Mode; //Valid: use!
 		break;
 	default: //Invalid
@@ -3959,6 +3961,7 @@ void BIOS_VGAModeSetting()
 	case 5:
 	case 6:
 	case 7:
+	case 8:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{

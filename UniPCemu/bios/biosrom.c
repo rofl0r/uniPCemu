@@ -132,6 +132,23 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 						strcpy(filename, ""); //VGA ROM!
 					}
 				}
+				else if (BIOS_Settings.VGA_Mode == 8) //EGA?
+				{
+					sprintf(filename, "%s/EGAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+					{
+						sprintf(filename, "%s/EGAROM.BIN", ROMpath); //EGA ROM!
+					}
+					if (file_exists(filename)) //Full ET3000?
+					{
+						ISVGA = 4; //EGA!
+						//EGA ROM!
+					}
+					else //VGA ROM?
+					{
+						strcpy(filename, ""); //VGA ROM!
+					}
+				}
 				else //Plain VGA?
 				{
 					sprintf(filename, "%s/VGAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
@@ -458,6 +475,7 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
+	uint_32 ROMsize;
 	INLINEREGISTER uint_64 basepos, currentpos, temppos; //Current position!
 	basepos = currentpos = offset; //Load the offset!
 	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
@@ -473,7 +491,8 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	do //Check OPT ROMS!
 	{
 		currentpos = OPTROM_location[i]; //Load the current location for analysis and usage!
-		if (OPT_ROMS[i] && ((currentpos>>32)>basepos)) //Before the end location and valid rom?
+		ROMsize = (currentpos>>32); //Save ROM size!
+		if (OPT_ROMS[i] && (ROMsize>basepos)) //Before the end location and valid rom?
 		{
 			currentpos &= 0xFFFFFFFF; //The location of the ROM itself!
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
@@ -497,6 +516,11 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 						default: //Don't handle specially?
 							break;
 					}
+				}
+				if (ISVGA==8) //EGA ROM is reversed?
+				{
+					*value = OPT_ROMS[i][ROMsize-(basepos-currentpos)]; //Read the data from the ROM, reversed!
+					return 1; //Done: we've been read!				
 				}
 				*value = OPT_ROMS[i][basepos-currentpos]; //Read the data from the ROM!
 				return 1; //Done: we've been read!
