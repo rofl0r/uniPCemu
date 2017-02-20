@@ -347,11 +347,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ATTRIBUTECONTROLLERTOGGLEREGISTER,7,1,0); //Reset flipflop for 3C0!
 
 			*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER; //Give!
-			const static byte bittablelow[4] = {0,4,1,6};
-			const static byte bittablehigh[4] = {2,5,3,7};
+			const static byte bittablelow[2][4] = {{0,4,1,6},{0,4,1,8}}; //Bit 6 is undefined on EGA!
+			const static byte bittablehigh[2][4] = {{2,5,3,7},{2,5,3,8}}; //Bit 7 is undefined on EGA!
 			byte DACOutput = getActiveVGA()->CRTC.DACOutput; //Current DAC output to give!
-			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
-			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
+			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[(getActiveVGA()->enable_SVGA==4)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
+			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[(getActiveVGA()->enable_SVGA==4)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
 			ok = 1;
 		}
 		break;
@@ -410,7 +410,6 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3BA: //Write: Feature Control Register (mono)		DATA
 		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
-		goto accessfc;
 	case 0x3CA: //Same as above!
 		goto accessfc; //Always access at this address!
 	case 0x3DA: //Same!
