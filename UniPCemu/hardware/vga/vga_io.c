@@ -262,8 +262,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtaddress:
-		*result = getActiveVGA()->registers->CRTControllerRegisters_Index; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->CRTControllerRegisters_Index; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3B1:
 	case 0x3B3:
@@ -274,71 +277,111 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
-		*result = PORT_readCRTC_3B5(); //Read port 3B5!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = PORT_readCRTC_3B5(); //Read port 3B5!
+			ok = 1;
+		}
 		break;
 	case 0x3C0: //Attribute Address/Data register		ADDRESS/DATA
 		//Do nothing: write only port! Undefined!
-		*result = (VGA_3C0_PALR<<5)|VGA_3C0_INDEXR; //Give the saved information!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = (VGA_3C0_PALR<<5)|VGA_3C0_INDEXR; //Give the saved information!
+			ok = 1;
+		}
 		break;
 	case 0x3C1: //Attribute Data Read Register		DATA
 		if (VGA_3C0_INDEXR>=sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
-		*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR]; //Read from current index!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR]; //Read from current index!
+			ok = 1;
+		}
 		break;
 	case 0x3C2: //Read: Input Status #0 Register		DATA
 		//Switch sense: 0=Switch closed(value of the switch being 1)
-		switchval = (((getActiveVGA()->registers->switches)>>GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3))&1); //Switch value to set!
-		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER,4,1,switchval); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
+		switchval = ((getActiveVGA()->registers->switches)>>GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3)); //Switch value to set!
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA? We're a VGA emulation or compatible!
+		{
+			switchval = ~switchval; //Reverse the switch!
+		}
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER,4,1,(switchval&1)); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER; //Give the register!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable?
-		*result = GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1); //RAM enabled?
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //VGA+?
+		{
+			*result = GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1); //RAM enabled?
+			ok = 1;
+		}
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
 		*result = getActiveVGA()->registers->SequencerRegisters_Index; //Give the index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
-		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
-		*result = getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index]; //Give the data!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
+			*result = getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index]; //Give the data!
+			ok = 1;
+		}
 		break;
 	case 0x3C6: //DAC Mask Register?
-		*result = getActiveVGA()->registers->DACMaskRegister; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->DACMaskRegister; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3C7: //Read: DAC State Register			DATA
-		*result = getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
-		*result = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3C9: //DAC Data Register				DATA
-		*result = PORT_read_DAC_3C9(); //Read port 3C9!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = PORT_read_DAC_3C9(); //Read port 3C9!
+			ok = 1;
+		}
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
-		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3CC: //Read: Miscellaneous Output Register	DATA
-		*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			*result = getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
 		*result = getActiveVGA()->registers->GraphicsRegisters_Index; //Give!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
-		if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Out of range!
-		*result = getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index]; //Give!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Out of range!
+			*result = getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index]; //Give!
+			ok = 1;
+		}
 		break;
 	case 0x3BA:	//Read: Input Status #1 Register (mono)	DATA
 		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
@@ -436,9 +479,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable
-		value &= 1; //Only 1 bit!
-		SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,value); //Enable RAM?
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //VGA+
+		{
+			value &= 1; //Only 1 bit!
+			SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,value); //Enable RAM?
+			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_MISCOUTPUTREGISTER); //Updated index!
+			ok = 1;
+		}
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
 		getActiveVGA()->registers->SequencerRegisters_Index = value; //Set!
@@ -464,27 +511,39 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		ok = 1;
 		break;
 	case 0x3C6: //DAC Mask Register?
-		getActiveVGA()->registers->DACMaskRegister = value; //Set!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We have been updated!				
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			getActiveVGA()->registers->DACMaskRegister = value; //Set!
+			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We have been updated!				
+			ok = 1;
+		}
 		break;
 	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS
-		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
-		SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,0); //Prepared for reads!
-		getActiveVGA()->registers->current_3C9 = 0; //Reset!
-		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
+			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,0); //Prepared for reads!
+			getActiveVGA()->registers->current_3C9 = 0; //Reset!
+			//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
+			ok = 1;
+		}
 		break;
 	case 0x3C8: //DAC Address Write Mode Register		ADDRESS
-		getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
-		SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,3); //Prepared for writes!
-		getActiveVGA()->registers->current_3C9 = 0; //Reset!
-		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
+			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,3); //Prepared for writes!
+			getActiveVGA()->registers->current_3C9 = 0; //Reset!
+			//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
+			ok = 1;
+		}
 		break;
 	case 0x3C9: //DAC Data Register				DATA
-		PORT_write_DAC_3C9(value); //Write to 3C9!
-		ok = 1;
+		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		{
+			PORT_write_DAC_3C9(value); //Write to 3C9!
+			ok = 1;
+		}
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
 		getActiveVGA()->registers->GraphicsRegisters_Index = value; //Set index!

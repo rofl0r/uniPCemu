@@ -308,6 +308,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			pattern = 0x2; //Bit 1=Monochrome?, originally 0010 for Monochrome!
 		}
 
+		if (VGA->enable_SVGA==3) //EGA?
+		{
+			pattern = 0x6; //Start up as a EGA 80x25 color!
+		}
+
 		//Set the dipswitches themselves!
 		VGA->registers->switches = pattern; //Set the pattern to use!
 	}

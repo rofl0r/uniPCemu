@@ -3919,7 +3919,7 @@ void BIOS_VGAModeSetting()
 	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
 	strcpy(itemlist[6],"Tseng ET4000"); //Tseng ET4000 card!
 	strcpy(itemlist[7],"Tseng ET3000"); //Tseng ET4000 card!
-	strcpy(itemlist[8],"EGA"); //EGA card!
+	strcpy(itemlist[8],"Pure EGA"); //EGA card!
 
 	int current = 0;
 	switch (BIOS_Settings.VGA_Mode) //What setting?
@@ -3965,8 +3965,8 @@ void BIOS_VGAModeSetting()
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
-			byte isSVGA = ((file==6) || (file==7)); //Chosen SVGA card?
-			byte wasSVGA = ((current==6) || (current==7)); //Was SVGA card?
+			byte isSVGA = ((file==6) || (file==7))?1:((file==8)?2:0); //Chosen SVGA-extension card type?
+			byte wasSVGA = ((current==6) || (current==7))?1:((current==8)?2:0); //Previous SVGA-extension card type?
 			if (isSVGA!=wasSVGA) //Switching to/from SVGA mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
@@ -4094,7 +4094,7 @@ setVGAModetext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "Tseng ET3000"); //Tseng ET3000 SVGA card!
 		break;
 	case 8:
-		strcat(menuoptions[advancedoptions++], "EGA"); //EGA card!
+		strcat(menuoptions[advancedoptions++], "Pure EGA"); //EGA card!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!

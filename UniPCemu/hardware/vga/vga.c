@@ -189,12 +189,12 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	fillCGAfont(); //Initialise the CGA font map if needed to use it!
 	fillMDAfont(); //Initialise the MDA font map if needed to use it!
 
-	debugrow("VGA: Executing initial precalculations...");
-	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
-	
 	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Reset the graphics pointer!
 
 	VGA->enable_SVGA = extension; //Enable the extension when set!
+
+	debugrow("VGA: Executing initial precalculations...");
+	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
 
 	if (extension==3) //EGA?
 	{
