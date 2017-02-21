@@ -302,10 +302,11 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//Update our dipswitches according to the emulated monitor!
 		//Dipswitch source: https://groups.google.com/d/msg/comp.sys.ibm.pc.classic/O-oivadTYck/kLe4xxf7wDIJ
 		pattern = 0x6; //Pattern 0110: Enhanced Color - Enhanced Mode, 0110 according to Dosbox's VGA
-		/*if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
+		//Pattern 0001=CGA, Pattern 0010=MDA
+		if (DAC_Use_BWMonitor(0xFF)) //Are we using a non-color monitor?
 		{
-			pattern &= ~4; //Bit 1=Monochrome?, originally 0010 for Monochrome!
-		}*/ //Not working correctly yet, so disable this!
+			pattern = 0x2; //Bit 1=Monochrome?, originally 0010 for Monochrome!
+		}
 
 		//Set the dipswitches themselves!
 		VGA->registers->switches = pattern; //Set the pattern to use!
