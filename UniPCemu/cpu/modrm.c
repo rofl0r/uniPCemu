@@ -26,7 +26,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
-	if (size==2) //32-bit mode?
+	if (CPU_Address_size[activeCPU]) //32-bit mode?
 	{
 		if (MODRM_RM(params->modrm) == 4 && MODRM_MOD(params->modrm) != 3) //Have a SIB byte?
 		{
@@ -49,7 +49,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 
 	if (((params->specialflags==3) || (params->specialflags==4) || (params->specialflags==7))) return 0; //No displacement on register-only operands(forced to mode 3): REQUIRED FOR SOME OPCODES!!!
 
-	if (size<2)   //16 bits operand size?
+	if (CPU_Address_size[activeCPU]==0)   //16 bits operand size?
 	{
 		//figure out 16 bit displacement size
 		switch (MODRM_MOD(params->modrm)) //MOD?
@@ -66,7 +66,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 		case 2:
 			return 2; //Word displacement!
 			break;
-		default:
+		default: //Any register?
 		case 3:
 			return 0; //No displacement!
 			break;
@@ -90,7 +90,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 			return 3; //DWord displacement!
 			break;
 		default:
-		case 3:
+		case 3: //Any register?
 			return 0; //No displacement!
 			break;
 		}
