@@ -532,7 +532,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && !(segment==CPU_SEGMENT_CS && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc))) || //We are a lower privilege level and non-conforming?
+		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && !(EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR.desc) && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc))) || //We are a lower privilege level and non-conforming?
 		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && //We must be at the same privilege level?
 			!(EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Not conforming checking further ahead makes sure that we don't double check things?
 			)
@@ -1000,16 +1000,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		break;
 	}
 
-	if (getcpumode()==CPU_MODE_PROTECTED) //Not in real mode? Perform rights checks!
-	{
-		if (segment!=CPU_SEGMENT_TR) //Not task register?
-		{
-			if (((MAX(getCPL(), getRPL(segmentval)) <= GENERALSEGMENTPTR_DPL(descriptor)) || isconforming)==0) //Invalid privilege?
-			{
-				return 1; //Not enough rights!
-			}
-		}
-	}
+	//Don't perform rights checks: This is done when loading the segment register only!
 
 	//Fifth: Accessing data in Code segments?
 
