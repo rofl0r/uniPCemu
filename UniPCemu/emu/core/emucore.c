@@ -738,6 +738,7 @@ void updateSpeedLimit()
 				}
 				break;
 			case CPU_80286: //286?
+			case CPU_80386: //386?
 				DosboxClock = 0; //We're executing using actual clocks!
 				if (is_Turbo) //Turbo speed instead?
 				{
@@ -749,7 +750,6 @@ void updateSpeedLimit()
 				}
 				break;
 			default: //Unknown CPU?
-			case CPU_80386: //386?
 			case CPU_80486: //486?
 			case CPU_PENTIUM: //586?
 				setDosboxCycles(1,3000); //Unsupported so far! Default to 3000 Dosbox cycles!
