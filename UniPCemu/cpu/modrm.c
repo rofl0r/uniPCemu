@@ -860,7 +860,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
-		if (isregister) //CR?
+		if (curreg==1) //CR?
 		{
 			modrm_get_controlregister(reg,result); //Return CR register!
 			return; //Give the segment register!
@@ -872,7 +872,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	}
 	else if (params->specialflags==4) //Reg is DR? R/M is General Purpose register?
 	{
-		if (isregister) //CR?
+		if (curreg==1) //DR?
 		{
 			modrm_get_debugregister(reg,result); //Return CR register!
 			return; //Give the segment register!
@@ -884,7 +884,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	}
 	else if (params->specialflags==7) //Reg is TR? R/M is General Purpose register?
 	{
-		if (isregister) //CR?
+		if (curreg==1) //TR?
 		{
 			modrm_get_testregister(reg,result); //Return TR register!
 			return; //Give the segment register!
@@ -1333,15 +1333,18 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 {
 	INLINEREGISTER byte isregister;
 	INLINEREGISTER byte reg = 0;
+	byte curreg;
 
 	reg = params->modrm; //Load the modr/m byte!
 	if (whichregister) //reg2?
 	{
 		reg = MODRM_RM(reg); //Take rm!
+		curreg = 2;
 	}
 	else //1 or default (unknown)?
 	{
 		reg = MODRM_REG(reg); //Default/reg!
+		curreg = 1;
 	}
 
 	bzero(result, sizeof(*result)); //Init!
@@ -1367,7 +1370,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
-		if (isregister) //CR?
+		if (curreg==1) //CR?
 		{
 			modrm_get_controlregister(reg,result); //Return CR register!
 			return; //Give the segment register!
@@ -1379,7 +1382,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	}
 	else if (params->specialflags==4) //Reg is DR? R/M is General Purpose register?
 	{
-		if (isregister) //CR?
+		if (curreg==1) //DR?
 		{
 			modrm_get_debugregister(reg,result); //Return CR register!
 			return; //Give the segment register!
@@ -1391,7 +1394,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	}
 	else if (params->specialflags==7) //Reg is TR? R/M is General Purpose register?
 	{
-		if (isregister) //TR?
+		if (curreg==1) //TR?
 		{
 			modrm_get_testregister(reg,result); //Return TR register!
 			return; //Give the segment register!
