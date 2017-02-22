@@ -5,377 +5,377 @@
 CPUPM_Timings CPUPMTimings[216] = {
 	//286 CPU timings
 	//MOV
-	{0,0,0x88,0xFE,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Register to Register/Memory
-	,{0,0,0x8A,0xFE,0x00,{{{{2,0,0},{5,0,1}}},{{{2,0,0},{5,0,1}}}}} //MOV Register/memory to Register
-	,{0,0,0xC6,0xFE,0x01,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Immediate to register/memory
-	,{0,0,0xB0,0xF0,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //MOV Immediate to register
-	,{0,0,0xA0,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOV Memory to accumulator
-	,{0,0,0xA2,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //MOV Accumulator to memory
-	,{0,0,0x8E,0xFF,0x00,{{{{2,0,0},{5,0,1}}},{{{17,0,0},{19,0,1}}}}} //MOV Register/memory to segment register
-	,{0,0,0x8C,0xFF,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Segment register to register/memory
+	{0,0,0,0x88,0xFE,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Register to Register/Memory
+	,{0,0,0,0x8A,0xFE,0x00,{{{{2,0,0},{5,0,1}}},{{{2,0,0},{5,0,1}}}}} //MOV Register/memory to Register
+	,{0,0,0,0xC6,0xFE,0x01,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Immediate to register/memory
+	,{0,0,0,0xB0,0xF0,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //MOV Immediate to register
+	,{0,0,0,0xA0,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOV Memory to accumulator
+	,{0,0,0,0xA2,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //MOV Accumulator to memory
+	,{0,0,0,0x8E,0xFF,0x00,{{{{2,0,0},{5,0,1}}},{{{17,0,0},{19,0,1}}}}} //MOV Register/memory to segment register
+	,{0,0,0,0x8C,0xFF,0x00,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //MOV Segment register to register/memory
 	//PUSH
-	,{0,0,0xFF,0xFF,0x07,{{{{5,0,1},{5,0,1}}},{{{5,0,1},{5,0,1}}}}} //PUSH Memory
-	,{0,0,0x50,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Register
-	,{0,0,0x06,0xE7,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Segment register
-	,{0,0,0x68,0xFD,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH immediate
-	,{0,0,0x60,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{17,0,0},{17,0,0}}}}} //PUSHA
+	,{0,0,0,0xFF,0xFF,0x07,{{{{5,0,1},{5,0,1}}},{{{5,0,1},{5,0,1}}}}} //PUSH Memory
+	,{0,0,0,0x50,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Register
+	,{0,0,0,0x06,0xE7,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH Segment register
+	,{0,0,0,0x68,0xFD,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSH immediate
+	,{0,0,0,0x60,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{17,0,0},{17,0,0}}}}} //PUSHA
 	//POP
-	,{0,0,0x8F,0xFF,0x01,{{{{5,0,1},{5,0,1}}},{{{5,0,1},{5,0,1}}}}} //POP Memory
-	,{0,0,0x58,0xF8,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //POP Register
-	,{0,0,0x07,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}} //POP Segment register
-	,{0,0,0x17,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}}  //POP Segment register
-	,{0,0,0x1F,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}} //POP Segment register
-	,{0,0,0x61,0xFF,0x00,{{{{19,0,0},{19,0,0}}},{{{19,0,0},{19,0,0}}}}} //POPA
+	,{0,0,0,0x8F,0xFF,0x01,{{{{5,0,1},{5,0,1}}},{{{5,0,1},{5,0,1}}}}} //POP Memory
+	,{0,0,0,0x58,0xF8,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //POP Register
+	,{0,0,0,0x07,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}} //POP Segment register
+	,{0,0,0,0x17,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}}  //POP Segment register
+	,{0,0,0,0x1F,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{20,0,0},{20,0,0}}}}} //POP Segment register
+	,{0,0,0,0x61,0xFF,0x00,{{{{19,0,0},{19,0,0}}},{{{19,0,0},{19,0,0}}}}} //POPA
 	//XCHG
-	,{0,0,0x86,0xFE,0x00,{{{{3,0,0},{5,0,1}}},{{{3,0,0},{5,0,1}}}}} //XCHG Register/memory with register
-	,{0,0,0x90,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XCHG Register with accumulator
+	,{0,0,0,0x86,0xFE,0x00,{{{{3,0,0},{5,0,1}}},{{{3,0,0},{5,0,1}}}}} //XCHG Register/memory with register
+	,{0,0,0,0x90,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XCHG Register with accumulator
 	//IN
-	,{0,0,0xE4,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //IN Fixed port
-	,{0,0,0xEC,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //IN Variable port
+	,{0,0,0,0xE4,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //IN Fixed port
+	,{0,0,0,0xEC,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //IN Variable port
 	//OUT
-	,{0,0,0xE6,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OUT Fixed port
-	,{0,0,0xEE,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OUT Variable port
+	,{0,0,0,0xE6,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OUT Fixed port
+	,{0,0,0,0xEE,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OUT Variable port
 	//XLAT
-	,{0,0,0xD7,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //XLAT
+	,{0,0,0,0xD7,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //XLAT
 	//LEA
-	,{0,0,0x8D,0xFF,0x00,{{{{3,0,1},{3,0,1}}},{{{3,0,1},{3,0,1}}}}} //LEA
+	,{0,0,0,0x8D,0xFF,0x00,{{{{3,0,1},{3,0,1}}},{{{3,0,1},{3,0,1}}}}} //LEA
 	//LDS
-	,{0,0,0xC5,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LDS
+	,{0,0,0,0xC5,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LDS
 	//LES
-	,{0,0,0xC4,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LES
+	,{0,0,0,0xC4,0xFF,0x00,{{{{7,0,1},{7,0,1}}},{{{21,0,1},{21,0,1}}}}} //LES
 
 	//Page 3-48
 	//LAHF
-	,{0,0,0x9F,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //LAHF
+	,{0,0,0,0x9F,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //LAHF
 	//SAHF
-	,{0,0,0x9E,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SAHF
+	,{0,0,0,0x9E,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SAHF
 	//PUSHF
-	,{0,0,0x9C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSHF
+	,{0,0,0,0x9C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //PUSHF
 	//POPF
-	,{0,0,0x9D,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //POPF
+	,{0,0,0,0x9D,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //POPF
 	//ADD
-	,{0,0,0x00,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADD Reg/memory with register to either
-	,{0,0,0x80,0xFC,0x01,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADD Immediate to register/memory
-	,{0,0,0x04,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADD Immediate to accumulator
+	,{0,0,0,0x00,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADD Reg/memory with register to either
+	,{0,0,0,0x80,0xFC,0x01,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADD Immediate to register/memory
+	,{0,0,0,0x04,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADD Immediate to accumulator
 	//ADC
-	,{0,0,0x10,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADC Reg/memory with register to either
-	,{0,0,0x80,0xFC,0x03,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADC Immediate to register/memory
-	,{0,0,0x14,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADC Immediate to accumulator
+	,{0,0,0,0x10,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //ADC Reg/memory with register to either
+	,{0,0,0,0x80,0xFC,0x03,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //ADC Immediate to register/memory
+	,{0,0,0,0x14,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //ADC Immediate to accumulator
 	//INC
-	,{0,0,0xFE,0xFE,0x01,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //INC Register/memory
-	,{0,0,0x40,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //INC Register
+	,{0,0,0,0xFE,0xFE,0x01,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //INC Register/memory
+	,{0,0,0,0x40,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //INC Register
 	//SUB
-	,{0,0,0x28,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SUB Reg/memory and register to either
-	,{0,0,0x80,0xFC,0x06,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SUB Immediate from register/memory
-	,{0,0,0x2C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SUB Immediate from accumulator
+	,{0,0,0,0x28,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SUB Reg/memory and register to either
+	,{0,0,0,0x80,0xFC,0x06,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SUB Immediate from register/memory
+	,{0,0,0,0x2C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SUB Immediate from accumulator
 	//SBB
-	,{0,0,0x18,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SBB Reg/memory and register to either
-	,{0,0,0x80,0xFC,0x04,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SBB Immediate from register/memory
-	,{0,0,0x1C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SBB Immediate from accumulator
+	,{0,0,0,0x18,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //SBB Reg/memory and register to either
+	,{0,0,0,0x80,0xFC,0x04,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //SBB Immediate from register/memory
+	,{0,0,0,0x1C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //SBB Immediate from accumulator
 	//DEC
-	,{0,0,0xFE,0xFE,0x02,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //DEC Register/memory
-	,{0,0,0x48,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //DEC Register
+	,{0,0,0,0xFE,0xFE,0x02,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //DEC Register/memory
+	,{0,0,0,0x48,0xF8,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //DEC Register
 	//CMP
-	,{0,0,0x3A,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //CMP Register/memory with register
-	,{0,0,0x38,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //CMP Register with register/memory
-	,{0,0,0x80,0xFC,0x08,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //CMP Immediate with register/memory
-	,{0,0,0x3C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CMP Immediate with accumulator
+	,{0,0,0,0x3A,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //CMP Register/memory with register
+	,{0,0,0,0x38,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //CMP Register with register/memory
+	,{0,0,0,0x80,0xFC,0x08,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //CMP Immediate with register/memory
+	,{0,0,0,0x3C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CMP Immediate with accumulator
 	//NEG
-	,{0,0,0xF6,0xFE,0x04,{{{{2,0,0},{2,0,0}}},{{{7,0,1},{7,0,1}}}}} //NEG
+	,{0,0,0,0xF6,0xFE,0x04,{{{{2,0,0},{2,0,0}}},{{{7,0,1},{7,0,1}}}}} //NEG
 	//AAA
-	,{0,0,0x37,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAA
+	,{0,0,0,0x37,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAA
 	//DAA
-	,{0,0,0x27,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAA
+	,{0,0,0,0x27,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAA
 
 	//Page 3-49
 	//AAS
-	,{0,0,0x3F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAS
+	,{0,0,0,0x3F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AAS
 	//DAS
-	,{0,0,0x2F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAS
+	,{0,0,0,0x2F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //DAS
 	//MUL
-	,{0,0,0xF6,0xFF,0x05,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //MULB Register/Memory-Byte
-	,{0,0,0xF7,0xFF,0x05,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //MULW Register/Memory-Word
+	,{0,0,0,0xF6,0xFF,0x05,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //MULB Register/Memory-Byte
+	,{0,0,0,0xF7,0xFF,0x05,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //MULW Register/Memory-Word
 	//IMUL
-	,{0,0,0xF6,0xFF,0x06,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //IMULB Register/Memory-Byte
-	,{0,0,0xF7,0xFF,0x06,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMULW Register/Memory-Word
+	,{0,0,0,0xF6,0xFF,0x06,{{{{13,0,0},{16,0,1}}},{{{13,0,0},{16,0,1}}}}} //IMULB Register/Memory-Byte
+	,{0,0,0,0xF7,0xFF,0x06,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMULW Register/Memory-Word
 	//IMUL (186+ instruction)
-	,{0,0,0x69,0xFD,0x00,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMUL
+	,{0,0,0,0x69,0xFD,0x00,{{{{21,0,0},{24,0,1}}},{{{21,0,0},{24,0,1}}}}} //IMUL
 	//DIV
-	,{0,0,0xF6,0xFF,0x07,{{{{14,0,0},{17,0,1}}},{{{14,0,0},{17,0,1}}}}} //DIV Register/Memory-Byte
-	,{0,0,0xF7,0xFF,0x07,{{{{22,0,0},{25,0,1}}},{{{22,0,0},{25,0,1}}}}} //DIV Register/Memory-Word
+	,{0,0,0,0xF6,0xFF,0x07,{{{{14,0,0},{17,0,1}}},{{{14,0,0},{17,0,1}}}}} //DIV Register/Memory-Byte
+	,{0,0,0,0xF7,0xFF,0x07,{{{{22,0,0},{25,0,1}}},{{{22,0,0},{25,0,1}}}}} //DIV Register/Memory-Word
 	//IDIV
-	,{0,0,0xF6,0xFF,0x08,{{{{17,0,0},{20,0,1}}},{{{17,0,0},{20,0,1}}}}} //IDIV Register/Memory-Byte
-	,{0,0,0xF7,0xFF,0x08,{{{{25,0,0},{28,0,1}}},{{{25,0,0},{28,0,1}}}}} //IDIV Register/Memory-Word
+	,{0,0,0,0xF6,0xFF,0x08,{{{{17,0,0},{20,0,1}}},{{{17,0,0},{20,0,1}}}}} //IDIV Register/Memory-Byte
+	,{0,0,0,0xF7,0xFF,0x08,{{{{25,0,0},{28,0,1}}},{{{25,0,0},{28,0,1}}}}} //IDIV Register/Memory-Word
 	//AAM
-	,{0,0,0xD4,0xFF,0x00,{{{{16,0,0},{16,0,0}}},{{{16,0,0},{16,0,0}}}}} //AAM
+	,{0,0,0,0xD4,0xFF,0x00,{{{{16,0,0},{16,0,0}}},{{{16,0,0},{16,0,0}}}}} //AAM
 	//AAD
-	,{0,0,0xD5,0xFF,0x00,{{{{14,0,0},{14,0,0}}},{{{14,0,0},{14,0,0}}}}} //AAD
+	,{0,0,0,0xD5,0xFF,0x00,{{{{14,0,0},{14,0,0}}},{{{14,0,0},{14,0,0}}}}} //AAD
 	//CBW
-	,{0,0,0x98,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CBW
+	,{0,0,0,0x98,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CBW
 	//CWD
-	,{0,0,0x99,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CWD
+	,{0,0,0,0x99,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CWD
 	//Shift/Rotate Instructions
-	,{0,0,0xD0,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //Shift/Rotate Register/Memory by 1
-	,{0,0,0xD2,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by CL
-	,{0,0,0xC0,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by Count
+	,{0,0,0,0xD0,0xFE,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //Shift/Rotate Register/Memory by 1
+	,{0,0,0,0xD2,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by CL
+	,{0,0,0,0xC0,0xFE,0x00,{{{{5,1,0},{8,1,1}}},{{{5,1,0},{8,1,1}}}}} //Shift/Rotate Register/Memory by Count
 
 	//Page 3-50
 	//AND
-	,{0,0,0x20,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //AND Reg/memory and register to either
-	,{0,0,0x80,0xFE,0x05,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //AND Immediate to register/memory
-	,{0,0,0x24,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AND Immediate to accumulator
+	,{0,0,0,0x20,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //AND Reg/memory and register to either
+	,{0,0,0,0x80,0xFE,0x05,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //AND Immediate to register/memory
+	,{0,0,0,0x24,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AND Immediate to accumulator
 	//TEST
-	,{0,0,0x84,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //TEST Register/memory and register
-	,{0,0,0xF6,0xFE,0x01,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //TEST Immediate data and register/memory
-	,{0,0,0xA8,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //TEST Immediate data and accumulator
+	,{0,0,0,0x84,0xFE,0x00,{{{{2,0,0},{6,0,1}}},{{{2,0,0},{6,0,1}}}}} //TEST Register/memory and register
+	,{0,0,0,0xF6,0xFE,0x01,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //TEST Immediate data and register/memory
+	,{0,0,0,0xA8,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //TEST Immediate data and accumulator
 	//OR
-	,{0,0,0x08,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //OR Reg/memory and register to either
-	,{0,0,0x80,0xFE,0x02,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //OR Immediate to register/memory
-	,{0,0,0x0C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OR Immediate to accumulator
+	,{0,0,0,0x08,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //OR Reg/memory and register to either
+	,{0,0,0,0x80,0xFE,0x02,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //OR Immediate to register/memory
+	,{0,0,0,0x0C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OR Immediate to accumulator
 	//XOR
-	,{0,0,0x30,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //XOR Reg/memory and register to either
-	,{0,0,0x80,0xFE,0x07,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //XOR Immediate to register/memory
-	,{0,0,0x34,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XOR Immediate to accumulator
+	,{0,0,0,0x30,0xFC,0x00,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //XOR Reg/memory and register to either
+	,{0,0,0,0x80,0xFE,0x07,{{{{3,0,0},{7,0,1}}},{{{3,0,0},{7,0,1}}}}} //XOR Immediate to register/memory
+	,{0,0,0,0x34,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XOR Immediate to accumulator
 	//NOT
-	,{0,0,0xF6,0xFE,0x03,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //NOT
+	,{0,0,0,0xF6,0xFE,0x03,{{{{2,0,0},{7,0,1}}},{{{2,0,0},{7,0,1}}}}} //NOT
 
 	//String instructions without REP((N)Z)
 	//MOVS
-	,{0,0,0xA4,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOVS
+	,{0,0,0,0xA4,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //MOVS
 	//CMPS
-	,{0,0,0xA6,0xFE,0x00,{{{{8,0,0},{8,0,0}}},{{{8,0,0},{8,0,0}}}}} //CMPS
+	,{0,0,0,0xA6,0xFE,0x00,{{{{8,0,0},{8,0,0}}},{{{8,0,0},{8,0,0}}}}} //CMPS
 	//SCAS
-	,{0,0,0xAE,0xFE,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //SCAS
+	,{0,0,0,0xAE,0xFE,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //SCAS
 	//LODS
-	,{0,0,0xAC,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LODS
+	,{0,0,0,0xAC,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LODS
 	//STOS
-	,{0,0,0xAA,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //STOS
+	,{0,0,0,0xAA,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //STOS
 	//INS
-	,{0,0,0x6C,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //INS
+	,{0,0,0,0x6C,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //INS
 	//OUTS
-	,{0,0,0x6E,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //OUTS
+	,{0,0,0,0x6E,0xFE,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //OUTS
 
 	//String instructions with REP(N)(Z)
 	//MOVS
-	,{0,0,0xA4,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //MOVS
+	,{0,0,0,0xA4,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //MOVS
 	//CMPS
-	,{0,0,0xA6,0xFE,0x00,{{{{5,9,2},{5,9,2}}},{{{5,9,2},{5,9,2}}}}} //CMPS
+	,{0,0,0,0xA6,0xFE,0x00,{{{{5,9,2},{5,9,2}}},{{{5,9,2},{5,9,2}}}}} //CMPS
 	//SCAS
-	,{0,0,0xAE,0xFE,0x00,{{{{5,8,2},{5,8,2}}},{{{5,8,2},{5,8,2}}}}} //SCAS
+	,{0,0,0,0xAE,0xFE,0x00,{{{{5,8,2},{5,8,2}}},{{{5,8,2},{5,8,2}}}}} //SCAS
 	//LODS
-	,{0,0,0xAC,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //LODS
+	,{0,0,0,0xAC,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //LODS
 	//STOS
-	,{0,0,0xAA,0xFE,0x00,{{{{4,3,2},{4,3,2}}},{{{4,3,2},{4,3,2}}}}} //STOS
+	,{0,0,0,0xAA,0xFE,0x00,{{{{4,3,2},{4,3,2}}},{{{4,3,2},{4,3,2}}}}} //STOS
 	//INS
-	,{0,0,0x6C,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //INS
+	,{0,0,0,0x6C,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //INS
 	//OUTS
-	,{0,0,0x6E,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //OUTS
+	,{0,0,0,0x6E,0xFE,0x00,{{{{5,4,2},{5,4,2}}},{{{5,4,2},{5,4,2}}}}} //OUTS
 
 	//Page 3-51
 	//We don't use the m value: this is done by the prefetch unit itself.
 	//CALL Direct Intersegment
-	,{0,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
-	,{0,0,0xFF,0xFF,0x03,{{{{7,0,0},{11,0,1}}},{{{7,0,0},{11,0,1}}}}} //CALL Register/memory indirect within segment
-	,{0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
+	,{0,0,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
+	,{0,0,0,0xFF,0xFF,0x03,{{{{7,0,0},{11,0,1}}},{{{7,0,0},{11,0,1}}}}} //CALL Register/memory indirect within segment
+	,{0,0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
 
 	//Protected mode variants
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{182,OTHERGATE_NORMALTASKGATE,4},{182,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{182,OTHERGATE_NORMALTASKGATE,4},{182,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
 
 	//CALL Indirect Intersegment
-	,{0,0,0xFF,0xFF,0x04,{{{{16,0,0},{16,0,0}}},{{{29,0,1},{29,0,1}}}}} //CALL Register/memory indirect within segment
+	,{0,0,0,0xFF,0xFF,0x04,{{{{16,0,0},{16,0,0}}},{{{29,0,1},{29,0,1}}}}} //CALL Register/memory indirect within segment
 
 	//Protected mode variants
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
-	,{0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
+	,{0,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
 
 	//JMP
-	,{0,0,0xEB,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Short/long
-	,{0,0,0xE9,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
-	,{0,0,0xFF,0xFF,0x05,{{{{7,0,0},{11,0,0}}},{{{7,0,0},{11,0,0}}}}} //JMP Register/memory indirect within segment
-	,{0,0,0xEA,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{23,0,0},{23,0,0}}}}} //JMP Direct intersegment
+	,{0,0,0,0xEB,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Short/long
+	,{0,0,0,0xE9,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
+	,{0,0,0,0xFF,0xFF,0x05,{{{{7,0,0},{11,0,0}}},{{{7,0,0},{11,0,0}}}}} //JMP Register/memory indirect within segment
+	,{0,0,0,0xEA,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{23,0,0},{23,0,0}}}}} //JMP Direct intersegment
 	
 	//Protected mode variants(Direct Intersegment)
-	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{38,CALLGATE_SAMELEVEL,5},{38,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
-	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{175,OTHERGATE_NORMALTSS,5},{175,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
-	,{0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTASKGATE,5},{180,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	,{0,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{38,CALLGATE_SAMELEVEL,5},{38,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{0,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{175,OTHERGATE_NORMALTSS,5},{175,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{0,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTASKGATE,5},{180,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
 
 	//JMP Indirect Intersegment
-	,{0,0,0xFF,0xFF,0x06,{{{{15,0,1},{15,0,1}}},{{{26,0,1},{26,0,1}}}}} //JMP Indirect intersegment
+	,{0,0,0,0xFF,0xFF,0x06,{{{{15,0,1},{15,0,1}}},{{{26,0,1},{26,0,1}}}}} //JMP Indirect intersegment
 
 	//Protected mode variants (Indirect Intersegment)
-	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,5},{41,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
-	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{178,OTHERGATE_NORMALTSS,5},{178,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
-	,{0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{183,OTHERGATE_NORMALTASKGATE,5},{183,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	,{0,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,5},{41,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{0,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{178,OTHERGATE_NORMALTSS,5},{178,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{0,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{183,OTHERGATE_NORMALTASKGATE,5},{183,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
 
 	//RET
-	,{0,0,0xC3,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within segment
-	,{0,0,0xC2,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within seg adding immed to SP
-	,{0,0,0xCB,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{25,0,0},{25,0,0}}}}} //RET Intersegment
-	,{0,0,0xCA,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{15,0,0},{15,0,0}}}}} //RET Intersegment adding immediate to SP
+	,{0,0,0,0xC3,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within segment
+	,{0,0,0,0xC2,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{11,0,0},{11,0,0}}}}} //RET Within seg adding immed to SP
+	,{0,0,0,0xCB,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{25,0,0},{25,0,0}}}}} //RET Intersegment
+	,{0,0,0,0xCA,0xFF,0x00,{{{{15,0,0},{15,0,0}}},{{{15,0,0},{15,0,0}}}}} //RET Intersegment adding immediate to SP
 
 	//Protected mode variants (Intersegment)
-	,{0,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
-	,{0,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
+	,{0,0,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
+	,{0,0,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,RET_DIFFERENTLEVEL,4},{55,RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
 
 	//Page 3-52
 
 	//JE/JZ
-	,{0,0,0x74,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JZ Not taken!
-	,{0,0,0x74,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JZ taken!
+	,{0,0,0,0x74,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JZ Not taken!
+	,{0,0,0,0x74,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JZ taken!
 	//JL/JNGE
-	,{0,0,0x7C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JL Not taken!
-	,{0,0,0x7C,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JL taken!
+	,{0,0,0,0x7C,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JL Not taken!
+	,{0,0,0,0x7C,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JL taken!
 	//JLE/JNG
-	,{0,0,0x7E,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JLE Not taken!
-	,{0,0,0x7E,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JLE taken!
+	,{0,0,0,0x7E,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JLE Not taken!
+	,{0,0,0,0x7E,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JLE taken!
 	//JB/JNAE
-	,{0,0,0x72,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
-	,{0,0,0x72,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
+	,{0,0,0,0x72,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
+	,{0,0,0,0x72,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
 	//JBE/JNA
-	,{0,0,0x76,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JBE Not taken!
-	,{0,0,0x76,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JBE taken!
+	,{0,0,0,0x76,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JBE Not taken!
+	,{0,0,0,0x76,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JBE taken!
 	//JP/JPE
-	,{0,0,0x7A,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JP Not taken!
-	,{0,0,0x7A,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JP taken!
+	,{0,0,0,0x7A,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JP Not taken!
+	,{0,0,0,0x7A,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JP taken!
 	//JO
-	,{0,0,0x70,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JO Not taken!
-	,{0,0,0x70,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JO taken!
+	,{0,0,0,0x70,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JO Not taken!
+	,{0,0,0,0x70,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JO taken!
 	//JB
-	,{0,0,0x78,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
-	,{0,0,0x78,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
+	,{0,0,0,0x78,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JB Not taken!
+	,{0,0,0,0x78,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JB taken!
 	//JNE/JNZ
-	,{0,0,0x75,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNE Not taken!
-	,{0,0,0x75,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNE taken!
+	,{0,0,0,0x75,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNE Not taken!
+	,{0,0,0,0x75,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNE taken!
 	//JNL/JGE
-	,{0,0,0x7D,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNL Not taken!
-	,{0,0,0x7D,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNL taken!
+	,{0,0,0,0x7D,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNL Not taken!
+	,{0,0,0,0x7D,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNL taken!
 	//JNLE/JG
-	,{0,0,0x7F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNLE Not taken!
-	,{0,0,0x7F,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNLE taken!
+	,{0,0,0,0x7F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNLE Not taken!
+	,{0,0,0,0x7F,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNLE taken!
 	////JNB/JAE
-	,{0,0,0x73,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNB Not taken!
-	,{0,0,0x73,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNB taken!
+	,{0,0,0,0x73,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNB Not taken!
+	,{0,0,0,0x73,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNB taken!
 	//JNBE/JA
-	,{0,0,0x77,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNBE Not taken!
-	,{0,0,0x77,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNBE taken!
+	,{0,0,0,0x77,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNBE Not taken!
+	,{0,0,0,0x77,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNBE taken!
 	//JNP/JPO
-	,{0,0,0x7B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNP Not taken!
-	,{0,0,0x7B,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNP taken!
+	,{0,0,0,0x7B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNP Not taken!
+	,{0,0,0,0x7B,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNP taken!
 	//JNO
-	,{0,0,0x71,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNO Not taken!
-	,{0,0,0x71,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNO taken!
+	,{0,0,0,0x71,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNO Not taken!
+	,{0,0,0,0x71,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNO taken!
 	//JNS
-	,{0,0,0x79,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNS Not taken!
-	,{0,0,0x79,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNS taken!
+	,{0,0,0,0x79,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNS Not taken!
+	,{0,0,0,0x79,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNS taken!
 	//LOOP
-	,{0,0,0xE2,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOP Not taken!
-	,{0,0,0xE2,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOP taken!
+	,{0,0,0,0xE2,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOP Not taken!
+	,{0,0,0,0xE2,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOP taken!
 	//LOOPZ/LOOPE
-	,{0,0,0xE1,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPZ Not taken!
-	,{0,0,0xE1,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPZ taken!
+	,{0,0,0,0xE1,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPZ Not taken!
+	,{0,0,0,0xE1,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPZ taken!
 	//LOOPNZ/LOOPNE
-	,{0,0,0xE0,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPNZ Not taken!
-	,{0,0,0xE0,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPNZ taken!
+	,{0,0,0,0xE0,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //LOOPNZ Not taken!
+	,{0,0,0,0xE0,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //LOOPNZ taken!
 	//JCXZ
-	,{0,0,0xE3,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //JCXZ Not taken!
-	,{0,0,0xE3,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //JCXZ taken!
+	,{0,0,0,0xE3,0xFF,0x00,{{{{4,0,0},{4,0,0}}},{{{4,0,0},{4,0,0}}}}} //JCXZ Not taken!
+	,{0,0,0,0xE3,0xFF,0x00,{{{{8,0,8},{8,0,8}}},{{{8,0,8},{8,0,8}}}}} //JCXZ taken!
 	//ENTER
-	,{0,0,0xC8,0xFF,0x00,{{{{11,0,16},{11,0,16}}},{{{11,0,16},{11,0,16}}}}} //ENTER L=0
-	,{0,0,0xC8,0xFF,0x00,{{{{15,1,16},{15,1,16}}},{{{15,1,16},{15,1,16}}}}} //ENTER L=1
-	,{0,0,0xC8,0xFF,0x00,{{{{16,4,32},{16,4,32}}},{{{16,4,32},{16,4,32}}}}} //ENTER L>1
+	,{0,0,0,0xC8,0xFF,0x00,{{{{11,0,16},{11,0,16}}},{{{11,0,16},{11,0,16}}}}} //ENTER L=0
+	,{0,0,0,0xC8,0xFF,0x00,{{{{15,1,16},{15,1,16}}},{{{15,1,16},{15,1,16}}}}} //ENTER L=1
+	,{0,0,0,0xC8,0xFF,0x00,{{{{16,4,32},{16,4,32}}},{{{16,4,32},{16,4,32}}}}} //ENTER L>1
 	//LEAVE
-	,{0,0,0xC9,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LEAVE
+	,{0,0,0,0xC9,0xFF,0x00,{{{{5,0,0},{5,0,0}}},{{{5,0,0},{5,0,0}}}}} //LEAVE
 	//INT (Real mode only)
-	,{0,0,0xCD,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT Type specified
-	,{0,0,0xCC,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT 3
+	,{0,0,0,0xCD,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT Type specified
+	,{0,0,0,0xCC,0xFF,0x00,{{{{23,0,0},{23,0,0}}},{{{0,0,0},{0,0,0}}}}} //INT 3
 	//INTO (Real mode only)
-	,{0,0,0xCE,0xFF,0x00,{{{{24,0,8},{24,0,0}}},{{{0,0,0},{0,0,0}}}}} //INTO Taken
-	,{0,0,0xCE,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //INTO Not taken
+	,{0,0,0,0xCE,0xFF,0x00,{{{{24,0,8},{24,0,0}}},{{{0,0,0},{0,0,0}}}}} //INTO Taken
+	,{0,0,0,0xCE,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //INTO Not taken
 
 	//Page 3-53
 	//INT&INTO Protected mode variants
-	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
-	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
-	,{0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATETIMING_TASKGATE,4},{167,INTERRUPTGATETIMING_TASKGATE,4}}}}} //INT Via Task Gate
-	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
-	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
-	,{0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATE_TASKGATE,4},{167,INTERRUPTGATE_TASKGATE,4}}}}} //INT Via Task Gate
+	,{0,0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
+	,{0,0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
+	,{0,0,0,0xCD,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATETIMING_TASKGATE,4},{167,INTERRUPTGATETIMING_TASKGATE,4}}}}} //INT Via Task Gate
+	,{0,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{40,INTERRUPTGATETIMING_SAMELEVEL,4},{40,INTERRUPTGATETIMING_SAMELEVEL,4}}}}} //INT Via Interrupt or Trap Gate to same privilege level
+	,{0,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
+	,{0,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATE_TASKGATE,4},{167,INTERRUPTGATE_TASKGATE,4}}}}} //INT Via Task Gate
 
 	//BOUND
-	,{0,0,0x62,0xFF,0x00,{{{{13,0,0},{13,0,1}}},{{{13,0,0},{13,0,1}}}}} //BOUND
+	,{0,0,0,0x62,0xFF,0x00,{{{{13,0,0},{13,0,1}}},{{{13,0,0},{13,0,1}}}}} //BOUND
 
 	//Processor Control
 	//CLC
-	,{0,0,0xF8,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
+	,{0,0,0,0xF8,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
 	//CMC
-	,{0,0,0xF5,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CMC
+	,{0,0,0,0xF5,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CMC
 	//STC
-	,{0,0,0xF9,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STC
+	,{0,0,0,0xF9,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STC
 	//CLD
-	,{0,0,0xFC,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLD
+	,{0,0,0,0xFC,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLD
 	//STD
-	,{0,0,0xFD,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STD
+	,{0,0,0,0xFD,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //STD
 	//CLI
-	,{0,0,0xFA,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CLI
+	,{0,0,0,0xFA,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //CLI
 	//STI
-	,{0,0,0xFB,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
+	,{0,0,0,0xFB,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CLC
 	//HLT
-	,{0,0,0xF4,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //HLT
+	,{0,0,0,0xF4,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //HLT
 	//WAIT
-	,{0,0,0x9B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //WAIT
+	,{0,0,0,0x9B,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //WAIT
 	//LOCK
-	,{0,0,0xF0,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //LOCK
+	,{0,0,0,0xF0,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //LOCK
 	//CTS
-	,{0,1,0x06,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CTS
+	,{0,0,1,0x06,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CTS
 	//ESC (Coprocessor Instruction Escape)
-	,{0,0,0xD8,0xF8,0x00,{{{{9,0,0},{9,0,0}}},{{{9,0,0},{9,0,0}}}}} //ESC
+	,{0,0,0,0xD8,0xF8,0x00,{{{{9,0,0},{9,0,0}}},{{{9,0,0},{9,0,0}}}}} //ESC
 	//Segment override prefix
-	,{0,0,0x26,0xE7,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //Any Segment override prefix (CS,SS,DS,ES,FS,GS)
+	,{0,0,0,0x26,0xE7,0x00,{{{{0,0,0},{0,0,0}}},{{{0,0,0},{0,0,0}}}}} //Any Segment override prefix (CS,SS,DS,ES,FS,GS)
 	
 	//Protection control
 	//LGDT
-	,{0,1,0x01,0xFF,0x03,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //LGDT
+	,{0,0,1,0x01,0xFF,0x03,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //LGDT
 	//SGDT
-	,{0,1,0x01,0xFF,0x01,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //SGDT
+	,{0,0,1,0x01,0xFF,0x01,{{{{11,0,1},{11,0,1}}},{{{11,0,1},{11,0,1}}}}} //SGDT
 	//LIDT
-	,{0,1,0x01,0xFF,0x04,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
+	,{0,0,1,0x01,0xFF,0x04,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
 	//SIDT
-	,{0,1,0x01,0xFF,0x02,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
+	,{0,0,1,0x01,0xFF,0x02,{{{{12,0,1},{12,0,1}}},{{{12,0,1},{12,0,1}}}}} //LIDT
 	//LLDT
-	,{0,1,0x00,0xFF,0x03,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LLDT
+	,{0,0,1,0x00,0xFF,0x03,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LLDT
 	//SLDT
-	,{0,1,0x00,0xFF,0x01,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //SLDT
+	,{0,0,1,0x00,0xFF,0x01,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //SLDT
 
 	//Page 3-54
 
 	//LTR
-	,{0,1,0x00,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LTR
+	,{0,0,1,0x00,0xFF,0x04,{{{{0,0,0},{0,0,0}}},{{{17,0,1},{19,0,1}}}}} //LTR
 	//STR
-	,{0,1,0x00,0xFF,0x02,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //STR
+	,{0,0,1,0x00,0xFF,0x02,{{{{0,0,0},{0,0,0}}},{{{2,0,1},{3,0,1}}}}} //STR
 	//LMSW
-	,{0,1,0x01,0xFF,0x07,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //LMSW
+	,{0,0,1,0x01,0xFF,0x07,{{{{3,0,0},{6,0,1}}},{{{3,0,0},{6,0,1}}}}} //LMSW
 	//SMSW
-	,{0,1,0x01,0xFF,0x05,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //SMSW
+	,{0,0,1,0x01,0xFF,0x05,{{{{2,0,0},{3,0,1}}},{{{2,0,0},{3,0,1}}}}} //SMSW
 	//LAR
-	,{0,1,0x02,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LAR
+	,{0,0,1,0x02,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LAR
 	//LSL
-	,{0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LSL
+	,{0,0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //LSL
 	//ARPL
-	,{0,0,0x63,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,1},{11,0,1}}}}} //ARPL
+	,{0,0,0,0x63,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{14,0,1},{11,0,1}}}}} //ARPL
 	//VERR
-	,{0,1,0x00,0xFF,0x05,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
+	,{0,0,1,0x00,0xFF,0x05,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
 	//VERW
-	,{0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
+	,{0,0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16,0,1}}}}} //VERR
 	//215 items at this point!
 	//Undocumented instruction: LOADALL
-	,{0,1,0x05,0xFF,0x00,{{{{195,0,0},{195,0,0}}},{{{195,0,0},{195,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
+	,{0,0,1,0x05,0xFF,0x00,{{{{195,0,0},{195,0,0}}},{{{195,0,0},{195,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {

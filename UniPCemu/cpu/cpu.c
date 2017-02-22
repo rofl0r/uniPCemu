@@ -1615,9 +1615,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				if (*currentinstructiontiming) //Valid timing?
 				{
-					if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
+					if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU])].ismemory[ismemory].basetiming) //Do we have valid timing to use?
 					{
-						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
+						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU]<<1)].ismemory[ismemory]; //Our current info to check!
 						if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
 						{
 							if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
@@ -1746,12 +1746,13 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 	word tempsublist; //Temporary value for swapping items!
 	byte latestCPU; //Last supported CPU for this instruction timing!
 	byte currentCPU; //The CPU we're emulating, relative to the 80286!
+	byte current32; //32-bit opcode?
 	byte notfound = 0; //Not found CPU timings?
 	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
 
 	memset(&CPU[activeCPU].timing286lookup,0,sizeof(CPU[activeCPU].timing286lookup)); //Clear the entire list!
 
-	for (CPUmode=0;CPUmode<2;++CPUmode) //All CPU modes!
+	for (CPUmode=0;CPUmode<4;++CPUmode) //All CPU modes! Real vs Protected is bit 0, 16-bit vs 32-bit is bit 1!
 	{
 		for (ismemory=0;ismemory<2;++ismemory) //All memory modes!
 		{
@@ -1764,12 +1765,14 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 						sublistsize = 0; //Initialize our size to none!
 						latestCPU = currentCPU; //Start off with the current CPU that's supported!
 						notfound = 1; //Default to not found!
+						current32 = (CPUmode>>1); //32-bit opcode?
+						try16bit:
 						for (;;) //Find the top CPU supported!
 						{
 							//First, detect the latest supported CPU!
 							for (index=0;index<NUMITEMS(CPUPMTimings);++index) //Process all timings available!
 							{
-								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
+								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].is32==current32) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
 								{
 									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==(modrm_register+1))) //MODR/M filter matches to full opcode?
 									{
@@ -1785,6 +1788,13 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 						memset(&sublist,0,sizeof(sublist)); //Clear our sublist!
 						if (notfound) //No CPU found matching this instruction?
 						{
+							if (current32) //32-bit opcode to check?
+							{
+								current32 = 0; //Try 16-bit opcode instead!
+								latestCPU = currentCPU; //Start off with the current CPU that's supported!
+								notfound = 1; //Default to not found!
+								goto try16bit; //Try the 16-bit variant instead!
+							}
 							memset(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
 						}
 						else //Valid CPU found for this instruction?

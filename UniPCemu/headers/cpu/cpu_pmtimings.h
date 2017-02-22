@@ -19,6 +19,7 @@ typedef struct
 typedef struct
 {
 	byte CPU; //For what CPU(286 relative)? 0=286, 1=386, 2=486, 3=586(Pentium) etc
+	byte is32; //32-bit variant of the opcode?
 	byte is0F; //Are we an extended instruction(0F instruction)?
 	byte OPcode; //The opcode to be applied to!
 	byte OPcodemask; //The mask to be applied to the original opcode to match this opcode in order to be applied!
