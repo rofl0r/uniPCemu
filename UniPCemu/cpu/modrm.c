@@ -953,6 +953,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	//Determine R/M (reg2=>RM) pointer!
 
+	if (!CPU_Address_size[activeCPU]) //We need to decode as a 16-bit pointer instead?
+	{
+		modrm_decode16(params,result,whichregister); //Decode 16-bit pointer!
+		return; //Don't decode ourselves!
+	}
+
 	result->isreg = 2; //Memory!
 
 	switch (MODRM_MOD(params->modrm)) //Which mod?
@@ -1463,6 +1469,12 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 
 	//Determine R/M (reg2=>RM) pointer!
 
+	if (CPU_Address_size[activeCPU]) //We need to decode as a 32-bit pointer instead?
+	{
+		modrm_decode32(params,result,whichregister); //Decode 32-bit pointer!
+		return; //Don't decode ourselves!
+	}
+
 	result->isreg = 2; //Memory!
 
 	INLINEREGISTER uint_32 offset=0; //The offset calculated!
@@ -1814,7 +1826,6 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 	}
 	result->mem_offset = offset; //Save the offset we use!
 }
-
 
 OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 {
