@@ -7,6 +7,8 @@
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/cpu/flags.h" //Flag support!
+#include "headers/cpu/cpu_OP8086.h" //8086 support!
 #include "headers/cpu/cpu_OP80286.h" //80286 support!
 #include "headers/cpu/cpu_OP80386.h" //80386 support!
 #include "headers/cpu/protection.h" //Protection support!

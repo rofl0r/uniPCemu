@@ -522,6 +522,9 @@
     <ClCompile Include="support\filters.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
+    <ClCompile Include="hardware\inboard.c">
+      <Filter>Source Files\hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h">
@@ -943,6 +946,9 @@
     </ClInclude>
     <ClInclude Include="headers\support\filters.h">
       <Filter>Header Files\support</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\hardware\inboard.h">
+      <Filter>Header Files\hardware</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

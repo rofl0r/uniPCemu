@@ -17,6 +17,8 @@ extern MMU_type MMU; //MMU itself!
 
 #define CPU286_WAITSTATE_DELAY 1
 
+byte CPU386_WAITSTATE_DELAY = 0; //386+ Waitstate, which is software-programmed?
+
 byte writeword = 0; //Hi-end word written?
 
 //Pointer support (real mode only)!
@@ -164,13 +166,17 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	if (segdesc!=-1) //Normal memory access by the CPU itself?
 	{
-		if (writewordbackup==0) //First data of the word access?
+		if (writewordbackup==0) //First data of the (d)word access?
 		{
 			wordaddress = realaddress; //Word address used during memory access!
 			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 			{
 				CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			}
+			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+			{
+				CPU[activeCPU].cycles_MMUR += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
 			}
 		}
 		else //Second data of a word access?
@@ -181,6 +187,10 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 				{
 					CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!				
 					CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+				}
+				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+				{
+					CPU[activeCPU].cycles_MMUR += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
 				}
 			}
 		}
@@ -247,6 +257,10 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 				CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!
 				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
 			}
+			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+			{
+				CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+			}
 		}
 		else //Second data of a word access?
 		{
@@ -256,6 +270,10 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 				{
 					CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!				
 					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+				}
+				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+				{
+					CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
 				}
 			}
 		}

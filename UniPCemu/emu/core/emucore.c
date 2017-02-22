@@ -61,6 +61,8 @@
 #include "headers/cpu/memory_adressing.h" //Internal MMU call support! For CPU_MMU_start functionality!
 #include "headers/support/mid.h" //MIDI player support!
 
+#include "headers/hardware/inboard.h" //Inboard support!
+
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0; //The segment:offset address!
@@ -452,6 +454,9 @@ void initEMU(int full) //Init!
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
 	initCPU(); //Initialise CPU for emulation!
+
+	debugrow("Initializing Inboard when required...");
+	initInboard(); //Initialise CPU for emulation!
 	
 	debugrow("Initialising CMOS...");
 	initCMOS(); //Initialise the CMOS!
@@ -1139,7 +1144,7 @@ void EMU_onCPUReset()
 	{
 		Controller8042.outputport &= ~2; //Clear A20 here!
 	}
-	Controller8042.outputport |= 1; //Prevent us from deadlocking(calling this function over and over fininitely within itself)!
+	Controller8042.outputport |= 1; //Prevent us from deadlocking(calling this function over and over infinitely within itself)!
 	refresh_outputport(); //Refresh from 8042!
 	checkPPIA20(); //Refresh from Fast A20!
 }
