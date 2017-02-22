@@ -697,7 +697,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	{
 		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU >= CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -729,6 +729,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		case CPU_8086:
 		case CPU_NECV30: //5160 PC!
 			originaloffset = basepos; //Save the original offset for reference!
+			if (basepos>=0x10000) return 0; //Not us!
 			basepos &= 0x7FFF; //Our offset within the ROM!
 			if (originaloffset&0x8000) //u18?
 			{
@@ -814,7 +815,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU >= CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -847,6 +848,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		case CPU_8086:
 		case CPU_NECV30: //5160 PC!
 			tempoffset = basepos;
+			if (basepos>=0x10000) return 0; //Not us!
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
 			if (basepos&0x8000) //u18?
 			{
