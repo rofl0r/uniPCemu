@@ -270,33 +270,78 @@ OPTINLINE char stringsafe(byte x)
 #define MID_MEMORYHOLE_START 0xF00000
 #define MID_MEMORYHOLE_END 0x1000000
 #define HIGH_MEMORYHOLE_START 0xC0000000
+#define HIGH_MEMORYHOLE_END 0x100000000
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
+byte MoveLowMemoryHigh; //Disable HMA memory and enable the memory hole?
+
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 {
-	if (*realaddress >= LOW_MEMORYHOLE_END) //1MB+?
+	INLINEREGISTER byte memloc; //What memory block?
+	INLINEREGISTER byte memoryhole;
+	memloc = 0; //Default: first memory block: low memory!
+	memoryhole = 0; //Default: memory unavailable!
+	if (*realaddress>=LOW_MEMORYHOLE_START) //Start of first hole?
 	{
-		if ((*realaddress >= MID_MEMORYHOLE_START) && (*realaddress < MID_MEMORYHOLE_END)) //15-16M ISA memory hole?
+		if (*realaddress<LOW_MEMORYHOLE_END) //First hole?
 		{
-			*nonexistant = 1; //Non-existant memory!
+			memoryhole = 1; //First memory hole!
 		}
-		else if (*realaddress<MID_MEMORYHOLE_START) //Mid memory(IBM AT memory range)?
+		else //Mid memory?
 		{
-			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch to less memory to make memory linear!
-		}
-		else if (!((*realaddress>=MID_MEMORYHOLE_END) && (*realaddress<HIGH_MEMORYHOLE_START))) //Not High memory hole(32-bit memory range)?
-		{
-			*nonexistant = 1; //Non-existant memory!
-		}
-		else //High memory?
-		{
-			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START)+(MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch to less memory to make memory linear!			
+			memloc = 1; //Second memory block: mid memory!
+			if (*realaddress>=MID_MEMORYHOLE_START) //Start of second hole?
+			{
+				if (*realaddress<MID_MEMORYHOLE_END) //Second hole?
+				{
+					memoryhole = 2; //Second memory hole!
+				}
+				else //High memory?
+				{
+					memloc = 2; //Third memory block!
+					if (*realaddress>=HIGH_MEMORYHOLE_START) //Start of third hole?
+					{
+						memoryhole = 3; //Third memory hole!
+					}
+					else
+					{
+						memloc = 3; //Fourth memory block!
+					}
+				}
+			}
 		}
 	}
-	else if (*realaddress >= LOW_MEMORYHOLE_START) //640K ISA memory hole addressed?
+
+	if (memoryhole) //Memory hole?
 	{
-		*nonexistant = 1; //Non-existant memory!
+		*nonexistant = 1; //We're non-existant!
+	}
+	else //Plain memory?
+	{
+		switch (memloc) //What block?
+		{
+			case 0: //Main memory?
+				return; //Nothing to be done!
+			case 3: //4GB+ 64-bit memory?
+				if (MoveLowMemoryHigh&4) //Move high memory high?
+				{
+					*realaddress -= ((uint_64)HIGH_MEMORYHOLE_END-(uint_64)HIGH_MEMORYHOLE_START);
+				}
+				break;
+			case 2: //16MB+ high memory?
+				if (MoveLowMemoryHigh&2) //Move mid memory high?
+				{
+					*realaddress -= (MID_MEMORYHOLE_END-MID_MEMORYHOLE_START);
+				}
+				break;
+			case 1: //1MB+ mid memory?
+				if (MoveLowMemoryHigh&1) //Move low memory high?
+				{
+					*realaddress -= (LOW_MEMORYHOLE_END-LOW_MEMORYHOLE_START);
+				}
+				break;
+		}
 	}
 }
 

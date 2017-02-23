@@ -697,7 +697,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	{
 		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU >= CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -718,6 +718,10 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
 			return 1; //Ignore writes!
+		}
+		else //Custom ROM, but nothing to give? Special mapping!
+		{
+			return 1; //Abort!
 		}
 		tempoffset = basepos; //Restore the temporary offset!
 	}
@@ -815,7 +819,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU >= CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -837,6 +841,11 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		{
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
+		}
+		else //Custom ROM, but nothing to give? Give 0x00!
+		{
+			*value = 0x00; //Dummy value for the ROM!
+			return 1; //Abort!
 		}
 		tempoffset = basepos; //Restore the temporary offset!
 	}
