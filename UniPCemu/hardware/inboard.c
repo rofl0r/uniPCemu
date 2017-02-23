@@ -2,6 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU support! 
 #include "headers/hardware/ports.h" //I/O port support!
 #include "headers/hardware/8042.h" //8042 support!
+#include "headers/mmu/mmuhandler.h" //MMU support!
 
 extern byte CPU386_WAITSTATE_DELAY; //386+ Waitstate, which is software-programmed?
 extern byte is_XT; //XT?
@@ -56,12 +57,21 @@ byte Inboard_writeIO(word port, byte value)
 	return 0; //Unknown port!
 }
 
+extern MMU_type MMU;
+
 void initInboard() //Initialize the Inboard chipset, if needed for the current CPU!
 {
+	uint_32 extendedmemory;
+	MMU.maxsize = 0; //Default: no limit!
 	MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 	//Add any Inboard support!
 	if ((EMULATED_CPU==CPU_80386) && is_XT) //XT 386? We're an Inboard 386!
 	{
+		if (MMU.size>=0xA0000) //1MB+ detected?
+		{
+			extendedmemory = (MMU.size-0xA0000); //The amount of expanded memory!
+			MMU.maxsize = 0xA0000+(extendedmemory&0xFFF00000); //Only take extended memory in chunks of 1MB!
+		}
 		register_PORTOUT(&Inboard_writeIO);
 		register_PORTIN(&Inboard_readIO);
 	}

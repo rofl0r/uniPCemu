@@ -6,6 +6,7 @@
 typedef struct
 {
 	uint_32 size; //The total size of memory allocated!
+	uint_32 maxsize; //Limit when set(0=no limit)!
 	byte *memory; //The memory itself!
 	int invaddr; //Invalid adress in memory with MMU_ptr?
 	uint_32 wraparround; //To wrap arround memory mask?

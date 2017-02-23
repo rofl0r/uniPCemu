@@ -12,6 +12,9 @@ extern MMU_type MMU; //MMU for direct access!
 
 #define __HW_DISABLED 0
 
+//Log invalid memory accesses?
+#define LOG_INVALID_MEMORY
+
 //Now the core memory support!
 
 byte MMU_logging = 0; //Are we logging?
@@ -248,8 +251,11 @@ uint_32 MEMsize() //Total size of memory in use?
 	}
 }
 
-OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 realddress, byte iswrite)
+OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress, byte iswrite, byte writevalue, byte index, byte ismemoryhole)
 {
+	#ifdef LOG_INVALID_MEMORY
+	dolog("MMU","Invalid memory location addressed: %08X(=>%08X), Is write: %i, value on write: %02X index:%i, Memory hole: %i",originaladdress,realaddress,iswrite,writevalue,index,ismemoryhole);
+	#endif
 	return; //Don't ever give NMI's from memory!
 	/*
 	if (execNMI(1)) //Execute an NMI from memory!
@@ -348,13 +354,14 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
+	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
 	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
-	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
+	if ((realaddress >= MMU.size) || ((realaddress>=MMU.maxsize) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(realaddress, 0); //Invalid memory accessed!
-		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory(also 80286/80386 on XT boards)?
+		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
+		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}
@@ -368,7 +375,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	if (index != 0xFF) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
-		mem_BUSValue |= (result << ((index & 3) << 3)); //Or into the last read/written value!
+		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
 	if (MMU_logging) //To log?
 	{
@@ -379,6 +386,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 
 void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
+	uint_32 originaladdress = realaddress; //Original address!
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
 		dolog("debugger", "MMU: Writing to real %08X=%02X (%c)", realaddress, value, stringsafe(value));
@@ -389,11 +397,11 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	if (index != 0xFF) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
-		mem_BUSValue |= (value << ((index & 3) << 3)); //Or into the last read/written value!
+		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if ((realaddress >= MMU.size) || nonexistant) //Overflow/invalid location?
+	if ((realaddress >= MMU.size) || ((realaddress>=MMU.maxsize) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(realaddress, 1); //Invalid memory accessed!
+		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
 	if (MMU_logging) //To log?
