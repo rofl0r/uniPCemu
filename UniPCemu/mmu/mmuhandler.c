@@ -306,7 +306,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 				else //High memory?
 				{
 					memloc = 2; //Third memory block!
-					if (*realaddress>=HIGH_MEMORYHOLE_START) //Start of third hole?
+					if ((*realaddress>=HIGH_MEMORYHOLE_START) && ((uint_64)*realaddress<(uint_64)HIGH_MEMORYHOLE_END)) //Start of third hole?
 					{
 						memoryhole = 3; //Third memory hole!
 					}
