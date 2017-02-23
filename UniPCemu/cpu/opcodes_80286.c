@@ -90,6 +90,18 @@ void CPU286_OP63() //ARPL r/m16,r16
 	CPUPROT2
 }
 
+void CPU286_OP9D() {
+	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
+	word tempflags;
+	if (checkStackAccess(1,0,0)) return;
+	tempflags = CPU_POP16();
+	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
+	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	REG_FLAGS = tempflags;
+	updateCPUmode(); /*POPF*/
+	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+}
+
 void CPU286_OPD6() //286+ SALC
 {
 	debugger_setcommand("SALC");

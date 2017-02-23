@@ -1746,8 +1746,52 @@ void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHGD EDI,EAX",0,0,PARAM_NO
 void CPU80386_OP98() {modrm_generateInstructionTEXT("CWDE",0,0,PARAM_NONE);/*CBW : sign extend AX to EAX*/ CPU80386_internal_CWDE();/*CWDE : sign extend AX to EAX (80386+)*/ }
 void CPU80386_OP99() {modrm_generateInstructionTEXT("CWQ",0,0,PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CDQ : sign extend EAX to EDX::EAX (80386+)*/ }
 void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%04x", (segmentoffset>>32), (segmentoffset&0xFFFFFFFF)); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&0xFFFFFFFF); CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
-void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*PUSHFD*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EFLAGS); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
-void CPU80386_OP9D() {modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPFD*/ uint_32 tempflags; if (checkStackAccess(1,0,1)) return;  tempflags = CPU_POP32(); if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ } if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ } REG_FLAGS = tempflags; updateCPUmode(); /*POPF*/ CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/ }
+void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*PUSHFD*/ if (checkStackAccess(1,1,1)) return; uint_32 flags = REG_EFLAGS; if (FLAG_V8) flags &=~0x20000; /* VM is never pushed during Virtual 8086 mode! */ CPU_PUSH32(&flags); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
+void CPU80386_OP9D_16() {
+	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) THROWDESCGP(0,0,0); //#GP fault!
+	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
+	word tempflags;
+	if (checkStackAccess(1,0,0)) return;
+	tempflags = CPU_POP16();
+	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
+	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	REG_FLAGS = tempflags;
+	updateCPUmode(); /*POPF*/
+	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+}
+
+void CPU80386_OP9D_32() {
+	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPFD*/
+	uint_32 tempflags;
+	if (checkStackAccess(1,0,1)) return;
+	tempflags = CPU_POP32();
+	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
+	if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode?
+	{
+		if (FLAG_PL==3) //IOPL 3?
+		{
+			tempflags = ((tempflags&~0x3000)|(REG_EFLAGS&0x3000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+		}
+		else
+		{
+			THROWDESCGP(0,0,0); //#GP(0)!
+		}
+	}
+	else //Protected/real mode?
+	{
+		if (getCPL())
+		{
+			tempflags = ((tempflags&~0x1A3000)|(REG_EFLAGS&0x23000)); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */			
+		}
+		else
+		{
+			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* Ignore any changes to the VIP/VIF are cleared. Ignore any changes to VM! */			
+		}
+	}
+	REG_EFLAGS = tempflags;
+	updateCPUmode(); /*POPF*/
+	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+}
 
 //Different addressing modes affect us! Combine operand size and address size into new versions of the instructions, where needed!
 //16/32 depending on address size!

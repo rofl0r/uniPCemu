@@ -80,7 +80,8 @@ void CPU80386_OP98();
 void CPU80386_OP99();
 void CPU80386_OP9A();
 void CPU80386_OP9C();
-void CPU80386_OP9D();
+void CPU80386_OP9D_16();
+void CPU80386_OP9D_32();
 
 //Our two calling methods for handling the jumptable!
 //16-bits versions having a new 32-bit address size override!

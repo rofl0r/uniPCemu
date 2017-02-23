@@ -7,6 +7,7 @@ void unkOP0F_286(); //0F unknown opcode handler on 286+?
 //The 80286 instructions themselves!
 void CPU286_OP63(); //ARPL r/m16,r16
 void CPU286_OPD6(); //286+ SALC
+void CPU286_OP9D(); //286+ POPF
 
 //0F opcodes!
 void CPU286_OP0F00(); //Various extended 286+ instructions GRP opcode.
