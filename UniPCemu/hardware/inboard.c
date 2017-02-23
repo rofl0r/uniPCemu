@@ -63,14 +63,18 @@ void initInboard() //Initialize the Inboard chipset, if needed for the current C
 {
 	uint_32 extendedmemory;
 	MMU.maxsize = 0; //Default: no limit!
-	MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
+	MoveLowMemoryHigh = 1; //Default: enable the HMA memory and enable the memory hole and BIOS ROM!
 	//Add any Inboard support!
 	if ((EMULATED_CPU==CPU_80386) && is_XT) //XT 386? We're an Inboard 386!
 	{
+		MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 		if (MMU.size>=0xA0000) //1MB+ detected?
 		{
-			extendedmemory = (MMU.size-0xA0000); //The amount of expanded memory!
+			/*
+			extendedmemory = (MMU.size-0xA0000); //The amount of extended memory!
 			MMU.maxsize = 0xA0000+(extendedmemory&0xFFF00000); //Only take extended memory in chunks of 1MB!
+			*/
+			MMU.maxsize = ((MMU.size+(0x100000-0xA0000))&0xFFF00000)-(0x100000-0xA0000); //Round memory down to 1MB chunks!
 		}
 		register_PORTOUT(&Inboard_writeIO);
 		register_PORTIN(&Inboard_readIO);
