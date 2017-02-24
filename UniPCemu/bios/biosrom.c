@@ -138,7 +138,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					{
 						sprintf(filename, "%s/EGAROM.BIN", ROMpath); //EGA ROM!
 					}
-					if (file_exists(filename)) //Full ET3000?
+					if (file_exists(filename)) //Full EGA?
 					{
 						ISVGA = 4; //EGA!
 						//EGA ROM!
@@ -490,15 +490,16 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	do //Check OPT ROMS!
 	{
 		currentpos = OPTROM_location[i]; //Load the current location for analysis and usage!
-		ROMsize = (currentpos>>32); //Save ROM size!
+		ROMsize = (currentpos>>32); //Save ROM end location!
 		if (OPT_ROMS[i] && (ROMsize>basepos)) //Before the end location and valid rom?
 		{
 			currentpos &= 0xFFFFFFFF; //The location of the ROM itself!
+			ROMsize -= currentpos; //Convert ROMsize to the actual ROM size to use!
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
+				temppos = basepos-currentpos; //Calculate the offset within the ROM!
 				if (VGAROM_mapping!=0xFF) //Special mapping?
 				{
-					temppos = basepos-currentpos; //Calculate the offset!
 					switch (VGAROM_mapping) //What special mapping?
 					{
 						case 0: //C000-C3FF enabled
@@ -518,10 +519,10 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 				}
 				if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 				{
-					*value = OPT_ROMS[i][ROMsize-(basepos-currentpos)-1]; //Read the data from the ROM, reversed!
+					*value = OPT_ROMS[i][ROMsize-temppos-1]; //Read the data from the ROM, reversed!
 					return 1; //Done: we've been read!				
 				}
-				*value = OPT_ROMS[i][basepos-currentpos]; //Read the data from the ROM!
+				*value = OPT_ROMS[i][temppos]; //Read the data from the ROM!
 				return 1; //Done: we've been read!
 			}
 		}
