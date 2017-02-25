@@ -100,6 +100,8 @@ typedef struct PACKED
 #define DEBUGGERLOG_DIAGNOSTICCODES 4
 //Always, don't log register state
 #define DEBUGGERLOG_ALWAYS_NOREGISTERS 5
+//Always, even during skipping?
+#define DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP 6
 
 //Execution modes:
 //None:

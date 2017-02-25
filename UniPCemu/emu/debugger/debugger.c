@@ -124,6 +124,7 @@ byte debugger_logging()
 	{
 	case DEBUGGERLOG_ALWAYS:
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Same, but no register state logging?
+	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, but also when skipping?
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
@@ -142,7 +143,7 @@ byte debugger_logging()
 	enablelog |= harddebugging; //Same as startreached, but special operations only!
 	enablelog |= waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
-	if (skipstep) enablelog = 0; //Disable when skipping!
+	if (skipstep && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP)) enablelog = 0; //Disable when skipping?
 	return enablelog; //Logging?
 }
 
