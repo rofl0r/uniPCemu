@@ -82,9 +82,49 @@ void setVGA_NMIonPrecursors(byte enabled)
 
 //CRTC
 
+/*
+
+Notes on VGA vs EGA differences:
+CRTC index 5h bit 7: Start odd memory address (after horizontal retrace)
+CRTC index 11h read: Light pen low
+CRTC index 17h: bit 4: Output control. When 1, CRTC output is in high-impedance state.
+
+Port 3CC(w): Graphics 1 position register. Bits 0-1. Usually programmed to 0.
+Port 3CA(w): Graphics 2 position register. BIts 0-1. Usually programmed to 1.
+
+Graphics index 5 bit 2: Test condition. When 1, Graphics controller output is placed in high-impedance state for testing.
+
+Input Status register 0 bits 5-6: Feature connector code that's input.
+
+*/
+
+//Main index 0=VGA+, index 1=EGA
+byte VGA_RegisterWriteMasks_CRTC[2][0x25] = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}, //VGA
+												{0xFF,0xFF,0xFF,0x7F,0xFF,0xFF,0xFF,0x3F,0x1F,0x1F,0x1F,0x7F,0xFF,0xFF,0xFF,0xFF,0xFF,0x3F,0xFF,0xFF,0x1F,0xFF,0x1F,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}; //EGA
+byte VGA_RegisterWriteMasks_Attribute[2][0x15] = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}, //VGA
+													{0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x0F,0x3F,0x3F,0x0F,0x00}}; //EGA
+byte VGA_RegisterWriteMasks_InputStatus0[2] = {0xFF,0x90};
+byte VGA_RegisterWriteMasks_InputStatus1[2] = {0xFF,0x7F};
+byte VGA_RegisterWriteMasks_FeatureControl[2] = {0x03,0x03};
+byte VGA_RegisterWriteMasks_MiscOutput[2] = {0xFF,0xFF};
+byte VGA_RegisterWriteMasks_Sequencer[2][8] = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}, //VGA
+												{0x03,0x0F,0x0F,0x0F,0x07,0x00,0x00,0x00}}; //EGA
+byte VGA_RegisterWriteMasks_Graphics[2][9] = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}, //VGA
+												{0x0F,0x0F,0x0F,0x3F,0x07,0x3F,0x0F,0x0F,0xFF}}; //EGA
+//Limits are the maximum valid index+1(the total amount of registers that are addressable by index in the index register(including holes)).
+byte VGA_RegisterWriteLimits_CRTC[2] = {0x25,0x19};
+byte VGA_RegisterWriteLimits_Attribute[2] = {0x15,0x14};
+byte VGA_RegisterWriteLimits_Sequencer[2] = {8,5};
+byte VGA_RegisterWriteLimits_Graphics[2] = {9,9};
+
+byte VGA_RegisterWriteMask_CRTCIndex[2] = {0xFF,0x1F};
+byte VGA_RegisterWriteMask_AttributeIndex[2] = {0xFF,0x3F};
+byte VGA_RegisterWriteMask_SequencerIndex[2] = {0xFF,0x1F};
+byte VGA_RegisterWriteMask_GraphicsIndex[2] = {0xFF,0x0F}; //A.k.a. Graphics 1 and 2 Address register
+
 OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 {
-	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1))) //Reading from light pen location registers?
+	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1) || (getActiveVGA()->enable_SVGA==3)))) //Reading from light pen location registers?
 	{
 		switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //What index?
 		{
@@ -96,7 +136,7 @@ OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 			break; //Run normally.
 		}
 	}
-	if (getActiveVGA()->registers->CRTControllerRegisters_Index>=sizeof(getActiveVGA()->registers->CRTControllerRegisters.DATA)) //Out of range?
+	if (getActiveVGA()->registers->CRTControllerRegisters_Index>=VGA_RegisterWriteLimits_CRTC[(getActiveVGA()->enable_SVGA==3)?1:0]) //Out of range?
 	{
 		return PORT_UNDEFINED_RESULT; //Undefined!
 	}
@@ -136,8 +176,9 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 	{
 		return; //Write protected OR invalid register!
 	}
-	if (index<sizeof(getActiveVGA()->registers->CRTControllerRegisters.DATA)) //Within range?
+	if (index<VGA_RegisterWriteLimits_CRTC[(getActiveVGA()->enable_SVGA==3)?1:0]) //Within range?
 	{
+		value &= VGA_RegisterWriteMasks_CRTC[(getActiveVGA()->enable_SVGA==3)?1:0][index]; //Apply the write mask to the data written to the register!
 		//Normal register update?
 		getActiveVGA()->registers->CRTControllerRegisters.DATA[index] = value; //Set!
 		if (index==0x11) //Bit 4&5 of the Vertical Retrace End register have other effects!
@@ -168,6 +209,7 @@ OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 {
 	if (!VGA_3C0_FLIPFLOPR) //Index mode?
 	{
+		value &= VGA_RegisterWriteMask_AttributeIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		//Mirror to state register!
 		VGA_3C0_PALW((value&0x20)>>5); //Palette Address Source!
 		VGA_3C0_INDEXW(value&0x1F); //Which index?
@@ -176,8 +218,9 @@ OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 	}
 	else //Data mode?
 	{
-		if (VGA_3C0_INDEXR<sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) //Within range?
+		if (VGA_3C0_INDEXR<VGA_RegisterWriteLimits_Attribute[(getActiveVGA()->enable_SVGA==3)?1:0]) //Within range?
 		{
+			value &= VGA_RegisterWriteMasks_Attribute[(getActiveVGA()->enable_SVGA==3)?1:0][VGA_3C0_INDEXR]; //Apply the write mask to the data written to the register!		
 			getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR] = value; //Set!
 		}
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|VGA_3C0_INDEXR); //We have been updated!
@@ -191,6 +234,7 @@ OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 
 void PORT_write_MISC_3C2(byte value) //Misc Output register!
 {
+	value &= VGA_RegisterWriteMasks_MiscOutput[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 	getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER = value; //Set!
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_MISCOUTPUTREGISTER); //We have been updated!
 }
@@ -277,7 +321,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
-		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
+		if ((getActiveVGA()->enable_SVGA!=3) || (((getActiveVGA()->registers->CRTControllerRegisters_Index==0x11) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x12)) && (getActiveVGA()->enable_SVGA==3))) //Not EGA or EGA light pen registers?
 		{
 			*result = PORT_readCRTC_3B5(); //Read port 3B5!
 			ok = 1;
@@ -292,7 +336,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		}
 		break;
 	case 0x3C1: //Attribute Data Read Register		DATA
-		if (VGA_3C0_INDEXR>=sizeof(getActiveVGA()->registers->AttributeControllerRegisters.DATA)) break; //Out of range!
+		if (VGA_3C0_INDEXR>=VGA_RegisterWriteLimits_Attribute[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Out of range!
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
 			*result = getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR]; //Read from current index!
@@ -305,6 +349,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		switchval = ~switchval; //Reverse the switch for EGA+!
 		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER,4,1,(switchval&1)); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER; //Give the register!
+		*result &= VGA_RegisterWriteMasks_InputStatus0[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		ok = 1;
 		break;
 	case 0x3C3: //Video subsystem enable?
@@ -321,7 +366,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3C5: //Sequencer Data Register			DATA
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
-			if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA)) break; //Out of range!
+			if (getActiveVGA()->registers->SequencerRegisters_Index>=VGA_RegisterWriteLimits_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Out of range!
 			*result = getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index]; //Give the data!
 			ok = 1;
 		}
@@ -375,7 +420,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3CF: //Graphics Controller Data Register		DATA
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
-			if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Out of range!
+			if (getActiveVGA()->registers->GraphicsRegisters_Index>=VGA_RegisterWriteLimits_Graphics[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Out of range!
 			*result = getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index]; //Give!
 			ok = 1;
 		}
@@ -393,8 +438,8 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 			const static byte bittablelow[2][4] = {{0,4,1,6},{0,4,1,8}}; //Bit 6 is undefined on EGA!
 			const static byte bittablehigh[2][4] = {{2,5,3,7},{2,5,3,8}}; //Bit 7 is undefined on EGA!
 			byte DACOutput = getActiveVGA()->CRTC.DACOutput; //Current DAC output to give!
-			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[(getActiveVGA()->enable_SVGA==4)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
-			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[(getActiveVGA()->enable_SVGA==4)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
+			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[(getActiveVGA()->enable_SVGA==3)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
+			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[(getActiveVGA()->enable_SVGA==3)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
 			ok = 1;
 		}
 		break;
@@ -435,6 +480,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3D4: //CRTC Controller Address Register		ADDRESS
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtaddress:
+		value &= VGA_RegisterWriteMask_CRTCIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		getActiveVGA()->registers->CRTControllerRegisters_Index = value; //Set!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
 		ok = 1;
@@ -458,7 +504,8 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 	case 0x3DA: //Same!
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accessfc: //Allow!
-		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER = (value&3); //Set our used bits only!
+		value &= VGA_RegisterWriteMasks_FeatureControl[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
+		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER = value; //Set our used bits only!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_FEATURECONTROLREGISTER); //We have been updated!
 		ok = 1;
 		break;
@@ -485,12 +532,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		}
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
+		value &= VGA_RegisterWriteMask_SequencerIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		getActiveVGA()->registers->SequencerRegisters_Index = value; //Set!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
-		if (getActiveVGA()->registers->SequencerRegisters_Index>7) break; //Invalid data!
+		if (getActiveVGA()->registers->SequencerRegisters_Index>=VGA_RegisterWriteLimits_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Invalid data!
 		if (getActiveVGA()->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
 		{
 			getActiveVGA()->registers->CRTControllerDontRender = 0xFF; //Force to 0xFF indicating display disabled!
@@ -499,10 +547,11 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		{
 			getActiveVGA()->registers->CRTControllerDontRender = 0x00; //Reset, effectively enabling VGA rendering!
 		}
-		if (getActiveVGA()->registers->SequencerRegisters_Index>=sizeof(getActiveVGA()->registers->SequencerRegisters.DATA))
+		if (getActiveVGA()->registers->SequencerRegisters_Index>=VGA_RegisterWriteLimits_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0])
 		{
 			break; //Out of range!
 		}
+		value &= VGA_RegisterWriteMasks_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0][getActiveVGA()->registers->SequencerRegisters_Index]; //Apply the write mask to the data written to the register!
 		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_SEQUENCER|getActiveVGA()->registers->SequencerRegisters_Index); //We have been updated!		
 		ok = 1;
@@ -543,12 +592,14 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		}
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
+		value &= VGA_RegisterWriteMask_GraphicsIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		getActiveVGA()->registers->GraphicsRegisters_Index = value; //Set index!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
-		if (getActiveVGA()->registers->GraphicsRegisters_Index>=sizeof(getActiveVGA()->registers->GraphicsRegisters.DATA)) break; //Invalid index!
+		if (getActiveVGA()->registers->GraphicsRegisters_Index>=VGA_RegisterWriteLimits_Graphics[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Invalid index!
+		value &= VGA_RegisterWriteMasks_Graphics[(getActiveVGA()->enable_SVGA==3)?1:0][getActiveVGA()->registers->GraphicsRegisters_Index]; //Apply the write mask to the data written to the register!
 		getActiveVGA()->registers->GraphicsRegisters.DATA[getActiveVGA()->registers->GraphicsRegisters_Index] = value; //Set!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_GRAPHICSCONTROLLER|getActiveVGA()->registers->GraphicsRegisters_Index); //We have been updated!				
 		ok = 1;

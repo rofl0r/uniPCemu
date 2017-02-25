@@ -1776,6 +1776,7 @@ void initCGA_MDAState() //Initialise our compatibility layer!
 			applyMDAModeControl();
 			applyCGAMDAMode(); //Make sure we're initialized!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
+			getActiveVGA()->enable_SVGA = 4; //We're a special VGA extension!
 		}
 		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) //Pure CGA mode?
 		{
@@ -1784,8 +1785,8 @@ void initCGA_MDAState() //Initialise our compatibility layer!
 			applyCGAPaletteRegister();
 			applyCGAMDAMode(); //Make sure we're initialized!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
+			getActiveVGA()->enable_SVGA = 4; //We're a special VGA extension!
 		}
-		getActiveVGA()->enable_SVGA = 4; //We're a special VGA extension!
 	}
 }
 

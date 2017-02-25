@@ -935,7 +935,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		}
 	}
 
-	if (SECTIONISUPDATED(whereupdated,WHEREUPDATED_DAC) || SECTIONISUPDATED(whereupdated,WHEREUPDATED_DACMASKREGISTER) || FullUpdate) //DAC Updated?
+	if ((SECTIONISUPDATED(whereupdated,WHEREUPDATED_DAC) || (whereupdated==WHEREUPDATED_DACMASKREGISTER) || FullUpdate)) //DAC Updated(not on EGA emulation)?
 	{
 		if (UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_DAC,FullUpdate) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Fully needs to be updated?
 		{
@@ -945,7 +945,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				colorval = 0; //Init!
 				for (;;) //Precalculate colors for DAC!
 				{
-					VGA->precalcs.DAC[colorval] = getcol256(VGA,colorval); //Translate directly through DAC for output!
+					if (VGA->enable_SVGA!=3) //EGA can't change the DAC!
+					{
+						VGA->precalcs.DAC[colorval] = getcol256(VGA,colorval); //Translate directly through DAC for output!
+					}
 					DAC_updateEntry(VGA,colorval); //Update a DAC entry for rendering!
 					if (++colorval&0xFF00) break; //Overflow?
 				}
@@ -954,7 +957,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		}
 		else //Single register updated, no mask register updated?
 		{
-			VGA->precalcs.DAC[whereupdated&0xFF] = getcol256(VGA,whereupdated&0xFF); //Translate directly through DAC for output, single color only!
+			if (VGA->enable_SVGA!=3) //EGA can't change the DAC!
+			{
+				VGA->precalcs.DAC[whereupdated&0xFF] = getcol256(VGA,whereupdated&0xFF); //Translate directly through DAC for output, single color only!
+			}
 			DAC_updateEntry(VGA,whereupdated&0xFF); //Update a DAC entry for rendering!
 		}
 		//dolog("VGA","VTotal after DAC: %i",VGA->precalcs.verticaltotal); //Log it!
