@@ -640,7 +640,7 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 	}
 	CPU_resetOP(); //Point to the faulting instruction!
 	
-	if (CPU_faultraised()) //We're raising a fault!
+	if (CPU_faultraised(EXCEPTION_INVALIDTSSSEGMENT)) //We're raising a fault!
 	{
 		call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT,errorcode); //Call IVT entry #13 decimal!
 	}

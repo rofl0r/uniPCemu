@@ -43,9 +43,9 @@ void CPU_doublefault()
 	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
-byte CPU_faultraised()
+byte CPU_faultraised(byte type)
 {
-	if (CPU[activeCPU].faultlevel) //Double/triple fault raised?
+	if (CPU[activeCPU].faultlevel) //Double/triple fault might have been raised?
 	{
 		if (CPU[activeCPU].faultlevel == 2) //Triple fault?
 		{
@@ -54,9 +54,48 @@ byte CPU_faultraised()
 		}
 		else
 		{
-			++CPU[activeCPU].faultlevel; //Raise the fault level!
-			CPU_doublefault(); //Double faulting!
-			return 0; //Don't do anything anymore(partial shutdown)!
+			//Based on the table at http://os.phil-opp.com/double-faults.html whether or not to cause a double fault!
+			switch (CPU[activeCPU].faultraised_lasttype) //What type was first raised?
+			{
+				case EXCEPTION_DIVIDEERROR:
+				case EXCEPTION_INVALIDTSSSEGMENT:
+				case EXCEPTION_SEGMENTNOTPRESENT:
+				case EXCEPTION_STACKFAULT:
+				case EXCEPTION_GENERALPROTECTIONFAULT: //First cases?
+					switch (type) //What second cause?
+					{
+						case EXCEPTION_INVALIDTSSSEGMENT:
+						case EXCEPTION_SEGMENTNOTPRESENT:
+						case EXCEPTION_STACKFAULT:
+						case EXCEPTION_GENERALPROTECTIONFAULT:
+							++CPU[activeCPU].faultlevel; //Raise the fault level!
+							CPU_doublefault(); //Double faulting!
+							return 0; //Don't do anything anymore(partial shutdown)!
+							break;
+						default: //Normal handling!
+							break;
+					}
+					break;
+				case EXCEPTION_PAGEFAULT: //Page fault? Second case!
+					switch (type) //What second cause?
+					{
+						case EXCEPTION_PAGEFAULT:
+						case EXCEPTION_INVALIDTSSSEGMENT:
+						case EXCEPTION_SEGMENTNOTPRESENT:
+						case EXCEPTION_STACKFAULT:
+						case EXCEPTION_GENERALPROTECTIONFAULT:
+							++CPU[activeCPU].faultlevel; //Raise the fault level!
+							CPU_doublefault(); //Double faulting!
+							return 0; //Don't do anything anymore(partial shutdown)!
+							break;
+						default: //Normal handling!
+							break;
+					}
+					break;
+				default: //No double fault!
+					break;
+			}
+			CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 		}
 	}
 	else
@@ -64,6 +103,7 @@ byte CPU_faultraised()
 		CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 	}
 	CPU[activeCPU].faultraised = 0; //We've raised a fault! Ignore more errors for now!
+	CPU[activeCPU].faultraised_lasttype = type; //Last type raised!
 	return 1; //Handle the fault normally!
 }
 
@@ -93,7 +133,7 @@ void CPU_GP(int toinstruction,int_64 errorcode)
 		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
 	
-	if (CPU_faultraised()) //Fault raising exception!
+	if (CPU_faultraised(EXCEPTION_GENERALPROTECTIONFAULT)) //Fault raising exception!
 	{
 		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
@@ -122,7 +162,7 @@ void CPU_SegNotPresent(int_64 errorcode)
 		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
 
-	if (CPU_faultraised()) //Fault raising exception!
+	if (CPU_faultraised(EXCEPTION_SEGMENTNOTPRESENT)) //Fault raising exception!
 	{
 		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
@@ -150,7 +190,7 @@ void CPU_StackFault(int_64 errorcode)
 		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
 
-	if (CPU_faultraised()) //Fault raising exception!
+	if (CPU_faultraised(EXCEPTION_STACKFAULT)) //Fault raising exception!
 	{
 		call_soft_inthandler(EXCEPTION_STACKFAULT,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!

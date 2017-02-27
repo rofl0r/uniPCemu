@@ -45,7 +45,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	{
 		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?
 		{
-			if (CPU_faultraised()) //Able to fault?
+			if (CPU_faultraised(8)) //Able to fault?
 			{
 				return CPU_INT(8,-1); //IVT limit problem or double fault redirect!
 			}

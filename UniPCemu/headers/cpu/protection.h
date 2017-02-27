@@ -26,7 +26,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL); //A segment regi
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading); //Determines the limit of the segment, forreading=2 when reading an opcode!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest); //Check rights for VERR/VERW!
 
-byte CPU_faultraised(); //A fault has been raised (286+)?
+byte CPU_faultraised(byte type); //A fault has been raised (286+)?
 
 //Special support for error handling!
 void THROWDESCGP(word segmentval, byte external, byte tbl);

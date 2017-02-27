@@ -862,6 +862,7 @@ typedef struct PACKED
 	uint_32 previousCSstart; //Previous CS starting address!
 	byte faultraised; //Has a fault been raised by the protection module?
 	byte faultlevel; //The level of the raised fault!
+	byte faultraised_lasttype; //Last type of fault raised!
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
 
 	//PIQ support!
