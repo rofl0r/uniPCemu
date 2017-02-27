@@ -117,6 +117,19 @@ void MMU_clearOP()
 //CPU/EMU simple memory access routine.
 extern uint_32 wordaddress; //Word address used during memory access!
 
+byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
+{
+	//We need to block on Page Faults as well! This is still unimplemented!
+	if (is_paging()) //Are we paging?
+	{
+		if (CPU_Paging_checkPage(realaddress,readflags,CPL)) //Map it using the paging mechanism! Errored out?
+		{
+			return 1; //Error out!
+		}
+	}
+	return 0; //OK!	
+}
+
 //isread = 1|(opcode<<1) for reads! 0 for writes!
 byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 {
@@ -132,33 +145,18 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	//Check for paging next!
 	realaddress = MMU_realaddr(segdesc, segment, offset, 0,is_offset16); //Real adress!
 
-	//We need to block on Page Faults as well! This is still unimplemented!
-	if (is_paging()) //Are we paging?
+	if (checkDirectMMUaccess(realaddress,readflags,CPL)) //Failure in the Paging Unit?
 	{
-		if (CPU_Paging_checkPage(realaddress,readflags,CPL)) //Map it using the paging mechanism! Errored out?
-		{
-			return 1; //Error out!
-		}
+		return 1; //Error out!
 	}
 
 	//We're valid?
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
-OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
-	INLINEREGISTER byte result; //The result!
-	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
-	if (MMU.memory==NULL) //No mem?
-	{
-		//dolog("MMU","R:No memory present!");
-		MMU.invaddr = 1; //Invalid adress!
-		return 0xFF; //Out of bounds!
-	}
-
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
-
+	byte result;
 	if (is_paging()) //Are we paging?
 	{
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
@@ -199,6 +197,65 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
 
 	return result; //Give the result!
+}
+
+void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup)
+{
+	if (is_paging()) //Are we paging?
+	{
+		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+	}
+
+	if (segdesc!=-1) //Normal memory access?
+	{
+		if (writewordbackup==0) //First data of the word access?
+		{
+			wordaddress = realaddress; //Word address used during memory access!
+			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+			{
+				CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!
+				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			}
+			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+			{
+				CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+			}
+		}
+		else //Second data of a word access?
+		{
+			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
+			{
+				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
+				{
+					CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!				
+					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+				}
+				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+				{
+					CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+				}
+			}
+		}
+	}
+
+	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+}
+
+OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	INLINEREGISTER byte result; //The result!
+	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
+	if (MMU.memory==NULL) //No mem?
+	{
+		//dolog("MMU","R:No memory present!");
+		MMU.invaddr = 1; //Invalid adress!
+		return 0xFF; //Out of bounds!
+	}
+
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+
+	return Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
 }
 
 OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
@@ -242,44 +299,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
-	if (is_paging()) //Are we paging?
-	{
-		realaddress = mappage(realaddress); //Map it using the paging mechanism!
-	}
-
-	if (segdesc!=-1) //Normal memory access?
-	{
-		if (writewordbackup==0) //First data of the word access?
-		{
-			wordaddress = realaddress; //Word address used during memory access!
-			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
-			{
-				CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!
-				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-			{
-				CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-		}
-		else //Second data of a word access?
-		{
-			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
-			{
-				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
-				{
-					CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!				
-					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-				{
-					CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-			}
-		}
-	}
-
-	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup); //Write through the paging unit and hardware layer!
 }
 
 OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word val, byte index, byte is_offset16) //Set adress (word)!

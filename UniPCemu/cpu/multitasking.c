@@ -199,7 +199,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
 			{
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
-				SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc); //Save the new status into the old descriptor!
+				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)==0) //Save the new status into the old descriptor!
+				{
+					return 1; //Abort on fault raised!
+				}
 			}
 		}
 
@@ -340,7 +343,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
-		SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR); //Save the new status into the old descriptor!
+		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR)) //Save the new status into the old descriptor!
+		{
+			return 1; //Abort on fault raised!
+		}
 	}
 
 	if (debugger_logging()) //Are we logging?

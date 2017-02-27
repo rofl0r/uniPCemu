@@ -264,7 +264,20 @@ void THROWDESCNP(word segmentval, byte external, byte tbl)
 
 //Another source: http://en.wikipedia.org/wiki/General_protection_fault
 
-int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) //Result: 0=#GP, 1=container=descriptor.
+//Virtual memory support wrapper for memory accesses!
+byte memory_readlinear(uint_32 address, byte *result)
+{
+	*result = Paging_directrb(-1,address,0,0,0); //Read the address!
+	return 0; //No error!
+}
+
+byte memory_writelinear(uint_32 address, byte value)
+{
+	memory_directwb(address,value); //Write the address!
+	return 0; //No error!
+}
+
+byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) //Result: 0=#GP, 1=container=descriptor.
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
@@ -298,9 +311,20 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
 		int i;
+		for (i=0;i<(int)sizeof(container->descdata);++i)
+		{
+			if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+			{
+				return 1; //Error out!
+			}
+		}
+		descriptor_address -= sizeof(container->descdata); //Restore start address!
 		for (i=0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
 		{
-			container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+			if (memory_readlinear(descriptor_address++,&container->descdata[i++])) //Read a descriptor byte directly from flat memory!
+			{
+				return 0; //Failed to load the descriptor!
+			}
 		}
 
 		container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
@@ -338,28 +362,29 @@ int LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) 
 	return 1; //OK!
 }
 
-void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
+//Result: 1=OK, 0=Error!
+byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((segmentval&~3)==0) return; //Don't write the reserved NULL GDT entry, which isn't to be used!
+	if ((segmentval&~3)==0) return 0; //Don't write the reserved NULL GDT entry, which isn't to be used!
 
 	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
 	{
-		return; //Abort!
+		return 0; //Abort!
 	}
 
 	if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
-		return; //Not present: limit exceeded!
+		return 0; //Not present: limit exceeded!
 	}
 
 	if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL GDT segment loaded into CS or SS?
 	{
-		return; //Not present: limit exceeded!	
+		return 0; //Not present: limit exceeded!	
 	}
 
 	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
@@ -380,10 +405,23 @@ void SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	container->desc.base_low = DESC_16BITS(container->desc.base_low);
 
 	int i;
+	for (i = 0;i<(int)sizeof(container->descdata);++i) //Process the descriptor data!
+	{
+		if (checkDirectMMUaccess(descriptor_address++,0,getCPL())) //Error in the paging unit?
+		{
+			return 0; //Error out!
+		}
+	}
+	descriptor_address -= sizeof(container->descdata);
+
 	for (i = 0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
 	{
-		memory_directwb(descriptor_address++, container->descdata[i++]); //Write a descriptor byte directly to flat memory!
+		if (memory_writelinear(descriptor_address++,container->descdata[i++])) //Read a descriptor byte directly from flat memory!
+		{
+			return 0; //Failed to load the descriptor!
+		}
 	}
+	return 1; //OK!
 }
 
 
@@ -820,7 +858,10 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						case AVL_SYSTEM_TSS32BIT:
 						case AVL_SYSTEM_TSS16BIT:
 							segdesc.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
-							SAVEDESCRIPTOR(segment,value,&segdesc); //Save it back to RAM!
+							if (SAVEDESCRIPTOR(segment,value,&segdesc)) //Save it back to RAM!
+							{
+								return; //Abort on fault!
+							}
 							break;
 						default: //Invalid segment?
 							break; //Ignore!
@@ -1131,9 +1172,20 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
 		int i;
+		for (i=0;i<(int)sizeof(container->descdata);++i)
+		{
+			if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+			{
+				return 1; //Error out!
+			}
+		}
+		descriptor_address -= sizeof(container->descdata); //Restore start address!
 		for (i = 0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
 		{
-			container->descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+			if (memory_readlinear(descriptor_address++,&container->descdata[i++])) //Read a descriptor byte directly from flat memory!
+			{
+				return 0; //Failed to load the descriptor!
+			}
 		}
 
 		if (EMULATED_CPU == CPU_80286) //80286 has less options?
@@ -1176,9 +1228,20 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
 	
 	IDTENTRY idtentry; //The loaded IVT entry!
+	for (left=0;left<(int)sizeof(idtentry.descdata);++left)
+	{
+		if (checkDirectMMUaccess(base++,1,getCPL())) //Error in the paging unit?
+		{
+			return 1; //Error out!
+		}
+	}
+	base -= sizeof(idtentry.descdata); //Restore start address!
 	for (left=0;left<sizeof(idtentry.descdata);) //Data left to read?
 	{
-		idtentry.descdata[left++] = memory_directrb(base++); //Read a byte from the descriptor entry!
+		if (memory_readlinear(base++,&idtentry.descdata[left++])) //Read a descriptor byte directly from flat memory!
+		{
+			return 0; //Failed to load the descriptor!
+		}
 	}
 
 	idtentry.offsethigh = DESC_16BITS(idtentry.offsethigh); //Patch when needed!
