@@ -45,6 +45,7 @@ void CPU_doublefault()
 
 byte CPU_faultraised(byte type)
 {
+	if (EMULATED_CPU<CPU_80286) return 1; //Always allow on older processors without protection!
 	if (CPU[activeCPU].faultlevel) //Double/triple fault might have been raised?
 	{
 		if (CPU[activeCPU].faultlevel == 2) //Triple fault?

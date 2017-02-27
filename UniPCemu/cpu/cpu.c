@@ -1871,15 +1871,18 @@ byte tempcycles;
 void CPU_exDIV0() //Division by 0!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
+	if (CPU_faultraised(EXCEPTION_DIVIDEERROR))
 	{
-		//Points to next opcode!
-		call_soft_inthandler(EXCEPTION_DIVIDEERROR,-1); //Execute INT0 normally using current CS:(E)IP!
-	}
-	else
-	{
-		//Points to next opcode!
-		CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,-1); //Return to opcode!
+		if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
+		{
+			//Points to next opcode!
+			call_soft_inthandler(EXCEPTION_DIVIDEERROR,-1); //Execute INT0 normally using current CS:(E)IP!
+		}
+		else
+		{
+			//Points to next opcode!
+			CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,-1); //Return to opcode!
+		}
 	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
@@ -1893,7 +1896,10 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	call_soft_inthandler(EXCEPTION_DEBUG,-1); //Execute INT1 normally using current CS:(E)IP!
+	if (CPU_faultraised(EXCEPTION_DEBUG))
+	{
+		call_soft_inthandler(EXCEPTION_DEBUG,-1); //Execute INT1 normally using current CS:(E)IP!
+	}
 	CPU[activeCPU].cycles_Exception += 50; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -1902,7 +1908,10 @@ void CPU_BoundException() //Bound exception!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK))
+	{
+		CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -1911,7 +1920,10 @@ void CPU_COOP_notavailable() //COProcessor not available!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	CPU_customint(EXCEPTION_COPROCESSORNOTAVAILABLE,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE))
+	{
+		CPU_customint(EXCEPTION_COPROCESSORNOTAVAILABLE,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }

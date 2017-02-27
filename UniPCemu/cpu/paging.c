@@ -72,9 +72,12 @@ void raisePF(uint_32 address, word flags)
 		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
 		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
-	call_soft_inthandler(EXCEPTION_PAGEFAULT,(int_64)flags); //Call IVT entry #13 decimal!
-	//Execute the interrupt!
-	CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+	if (CPU_faultraised(EXCEPTION_PAGEFAULT)) //Fault raising exception!
+	{
+		call_soft_inthandler(EXCEPTION_PAGEFAULT,(int_64)flags); //Call IVT entry #13 decimal!
+		//Execute the interrupt!
+		CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
+	}
 }
 
 OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
