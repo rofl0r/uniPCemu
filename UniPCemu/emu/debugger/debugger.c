@@ -468,11 +468,11 @@ OPTINLINE static void debugger_autolog()
 		//Now generate debugger information!
 		if (last_modrm)
 		{
-			if ((debuggerregisters.CR0&1)==0) //16-bits addresses?
+			if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
 			{
 				dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
 			}
-			else
+			else //386+? Unknown addresses, so just take it as given!
 			{
 				dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
 			}
@@ -638,7 +638,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		}
 
 		//General purpose registers!
-		if ((((debuggerregisters.CR0&1)==0) || (debuggerregisters.EFLAGS&F_V8)) || (EMULATED_CPU==CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
+		if (EMULATED_CPU<=CPU_80286) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			//General purpose registers!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 17, debuggerrow++); //Second debug row!
@@ -710,7 +710,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		//Finally, the flags!
 		//First, flags fully...
-		if (((debuggerregisters.CR0&1)==0) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode? 80386 virtual 8086 mode uses 32-bit flags!
+		if (EMULATED_CPU <= CPU_80286) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode? 80386 virtual 8086 mode uses 32-bit flags!
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "F :%04X", debuggerregisters.FLAGS); //Debug FLAGS!
