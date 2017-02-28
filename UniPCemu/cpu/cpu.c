@@ -159,6 +159,33 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
+void CPU_JMPrel(int_32 reladdr)
+{
+	REG_EIP += reladdr; //Apply to EIP!
+	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
+	{
+		REG_EIP &= 0xFFFF; //Only 16-bits!
+	}
+}
+
+void CPU_JMPabs(uint_32 addr)
+{
+	REG_EIP = addr; //Apply to EIP!
+	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
+	{
+		REG_EIP &= 0xFFFF; //Only 16-bits!
+	}
+}
+
+uint_32 CPU_EIPmask()
+{
+	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
+	{
+		return 0xFFFF; //16-bit mask!
+	}
+	return 0xFFFFFFFF; //Full mask!
+}
+
 
 char modrm_param1[256]; //Contains param/reg1
 char modrm_param2[256]; //Contains param/reg2
