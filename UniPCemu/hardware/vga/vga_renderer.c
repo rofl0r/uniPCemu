@@ -103,10 +103,6 @@ void EGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 
 OPTINLINE void drawPixel_real(uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
-	byte lightpen_triggered;
-	lightpen_triggered = ((lightpen_x==x) && (lightpen_y==y)); //Are we at the location specified by the lightpen on the CRT?
-	CGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the CGA!
-	EGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the EGA!
 	INLINEREGISTER uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
 	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
 	//Apply light pen, directly connected to us!
@@ -520,11 +516,21 @@ typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attri
 uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
 uint_32 CLUT15bit[0x10000]; //15-bit color lookup table!
 
+//drawnto: 0=GPU, 1=CGALineBuffer
+void video_updateLightPen(VGA_Type *VGA, byte drawnto)
+{
+	byte lightpen_triggered;
+	lightpen_triggered = ((lightpen_x==VGA->CRTC.x) && (lightpen_y==VGA->CRTC.y)); //Are we at the location specified by the lightpen on the CRT?
+	CGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the CGA!
+	EGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the EGA!
+}
+
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace||Sequencer->is_topwindow) return; //Don't handle during horizontal retraces or top screen rendering!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -536,6 +542,7 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	{
 		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
+	video_updateLightPen(VGA,1); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -597,6 +604,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	do //We always render at least 1 pixel from the DAC!
 	{
 		drawPixel(VGA, DACcolor); //Draw the color pixel(s)!
+		video_updateLightPen(VGA,0); //Update the light pen!
 		++VGA->CRTC.x; //Next x!
 	} while (--doublepixels); //Any pixels left to render?
 }
@@ -610,6 +618,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	{
 		CGALineBuffer[VGA->CRTC.x] = (byte)attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
+	video_updateLightPen(VGA,1); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -636,6 +645,7 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 			drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
 		}
 	//}
+	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
 
@@ -648,6 +658,7 @@ OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	{
 		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
+	video_updateLightPen(VGA,1); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
 
