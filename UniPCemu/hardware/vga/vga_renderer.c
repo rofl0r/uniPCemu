@@ -84,7 +84,7 @@ word lightpen_currentvramlocation; //Current VRAM location for light pen detecti
 void EGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed) //Check the lightpen on the current location!
 {
 	word lightpenlocation;
-	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	if (getActiveVGA()->enable_SVGA==3) //EGA is emulated?
 	{
 		if (((getActiveVGA()->registers->EGA_lightpenstrobeswitch&3)==1) || (is_lightpenlocation && ((getActiveVGA()->registers->EGA_lightpenstrobeswitch&2)==0))) //Light pen preset and strobing? Are we the light pen location?
 		{
@@ -94,10 +94,10 @@ void EGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 			//Now set our lightpen!
 			getActiveVGA()->registers->lightpen_high = ((lightpenlocation>>8)&0xFF); //Our high bits!
 			getActiveVGA()->registers->lightpen_low = (lightpenlocation&0xFF); //Our low bits!
-
-			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~4; //Default: clear the pressed switch indicator: we're depressed!
-			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= ((is_lightpenpressed&1)<<2); //Set if we're switched or not!
 		}
+		//Always update the CGA lightpen button(live state)!
+		getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~4; //Default: clear the pressed switch indicator: we're depressed!
+		getActiveVGA()->registers->EGA_lightpenstrobeswitch |= ((is_lightpenpressed&1)<<2); //Set if we're switched or not!
 	}
 }
 

@@ -1331,10 +1331,10 @@ void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 			getActiveVGA()->registers->CGARegisters[0x10] &= ~0x3F; //Clear our light pen location bits that need to be set!
 			getActiveVGA()->registers->CGARegisters[0x10] = ((lightpenlocation>>8)&0x3F); //Our high bits!
 			getActiveVGA()->registers->CGARegisters[0x11] = (lightpenlocation&0xFF); //Our low bits!
-
-			getActiveVGA()->registers->specialCGAflags &= ~8; //Clear the switch output: we're off by default!
-			getActiveVGA()->registers->specialCGAflags |= ((is_lightpenpressed&1)<<3); //Set the switch status to be read by the CPU!
 		}
+		//Always update the CGA lightpen button(live state)!
+		getActiveVGA()->registers->specialCGAflags &= ~8; //Clear the switch output: we're off by default!
+		getActiveVGA()->registers->specialCGAflags |= ((is_lightpenpressed&1)<<3); //Set the switch status to be read by the CPU!
 	}
 }
 
