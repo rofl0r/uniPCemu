@@ -1300,16 +1300,18 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 
 OPTINLINE void CGA_clearlightpenlatch()
 {
-	getActiveVGA()->registers->specialCGAflags &= ~0x6; //Clear the lightpen latch and untrigger it!
+	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	{
+		getActiveVGA()->registers->specialCGAflags &= ~0x6; //Clear the lightpen latch and untrigger it!
+	}
 }
 
 extern word Sequencer_location; //Current location we're processing!
 
 OPTINLINE void CGA_presetlightpenlatch()
 {
-	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
 	{
-		if (!(getActiveVGA()->registers->specialCGAflags&1)) return; //CGA emulation only?
 		getActiveVGA()->registers->specialCGAflags |= 0x2; //Triggered the lightpen latch! Now wait for it to set!
 	}
 }
@@ -1317,16 +1319,15 @@ OPTINLINE void CGA_presetlightpenlatch()
 void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed) //Check the lightpen on the current location!
 {
 	word lightpenlocation;
-	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
 	{
-		if (!(getActiveVGA()->registers->specialCGAflags&1)) return; //CGA emulation only?
 		if (((getActiveVGA()->registers->specialCGAflags&0x6)==2) || (is_lightpenlocation && ((getActiveVGA()->registers->specialCGAflags&4)==0))) //Light pen preset or light pen pulse at our location?
 		{
 			getActiveVGA()->registers->specialCGAflags &= ~2; //Clear the preset: we're not set anymore!
 			getActiveVGA()->registers->specialCGAflags |= 4; //The light pen register is now set!
 			lightpenlocation = currentlocation; //Load the current location for converting to CGA location!
 			//Translate VGA location to CGA location!
-			lightpenlocation >>= 1; //We're in word mode, so divide by 2 to translate to CGA coordinates(format is the same as the CGA cursor address, so it's doubled in the VGA(VGA=2x CGA value due to word addressing mode)!
+			//lightpenlocation >>= 1; //We're in word mode, so divide by 2 to translate to CGA coordinates(format is the same as the CGA cursor address, so it's doubled in the VGA(VGA=2x CGA value due to word addressing mode)!
 			//Now set our lightpen!
 			getActiveVGA()->registers->CGARegisters[0x10] &= ~0x3F; //Clear our light pen location bits that need to be set!
 			getActiveVGA()->registers->CGARegisters[0x10] = ((lightpenlocation>>8)&0x3F); //Our high bits!
@@ -1452,7 +1453,7 @@ byte CGAMDA_readIO(word port, byte *result)
 					temp &= ~7; //Clear the light pen data and display disabled by default!
 					//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
 					temp |= ((getActiveVGA()->registers->specialCGAflags&0x4)>>1); //Bit 1 used normally!
-					temp |= (((~getActiveVGA()->registers->specialCGAflags)&0x8)>>1); //Bit 2 used to give the status (0=on)!				
+					temp |= (((getActiveVGA()->registers->specialCGAflags)&0x8)>>1); //Bit 2 used to give the status (0=on)!				
 					temp |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
 					#ifdef VGAIODUMP
 						if (dumpCGAIO()) //To dump?
