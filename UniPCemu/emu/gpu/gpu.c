@@ -572,6 +572,12 @@ void GPU_removeTextSurface(void *surface)
 	}	
 }
 
+extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
+
+int_32 lightpen_x=-1, lightpen_y=-1; //Current lightpen location, if any!
+byte lightpen_pressed = 0; //Lightpen pressed?
+byte lightpen_status = 0; //Are we capturing lightpen motion and presses?
+
 void GPU_mousebuttondown(word x, word y, byte finger)
 {
 	int i = (int)NUMITEMS(GPU.textsurfaces)-1; //Start with the last surface! The last registered surface has priority!
@@ -584,6 +590,26 @@ void GPU_mousebuttondown(word x, word y, byte finger)
 				return; //Abort: don't let lower priority surfaces override us!
 			}
 		}
+	}
+	if (EMU_RUNNING==1) //Handle light pen as well?
+	{
+		if ((finger==0xFF) && (EMU_RUNNING==1)) //Right mouse button? Handle as lightpen input activation!
+		{
+			lightpen_status = 1; //Capture as lightpen!
+		}		
+	}
+	if (lightpen_status) //Lightpen active?
+	{
+		if (finger==0xFE) //Left mouse button? Handle as lightpen pressing!
+		{
+			lightpen_pressed = 1; //We're pressed!
+		}
+		lightpen_x = SAFEDIV(x,window_xres)*GPU.xres; //Convert the X location to the GPU renderer location!
+		lightpen_y = SAFEDIV(y,window_yres)*GPU.yres; //Convert the X location to the GPU renderer location!
+	}
+	else
+	{
+		lightpen_x = lightpen_y = -1; //No lightpen used!
 	}
 }
 
@@ -600,6 +626,25 @@ void GPU_mousebuttonup(word x, word y, byte finger)
 		}
 	}
 	GPU_surfaceclicked = 1; //Signal a click of a GPU surface!
+	if (finger==0xFF) //Right mouse button? Handle as lightpen input deactivation!
+	{
+		lightpen_status = 0; //Don't capture as lightpen anymore!
+		lightpen_pressed = 0; //Not pressed anymore!
+		lightpen_x = lightpen_y = -1; //Nothing pressed!
+	}
+	else if (finger==0xFE) //Left mouse button released? Handle as lightpen button release always!
+	{
+		lightpen_pressed = 0; //Not pressed anymore!
+	}
+}
+
+void GPU_mousemove(word x, word y, byte finger)
+{
+	if (lightpen_status) //Lightpen is active?
+	{
+		lightpen_x = (int_32)(SAFEDIV((float)x,(float)window_xres)*(float)GPU.xres); //Convert the X location to the GPU renderer location!
+		lightpen_y = (int_32)(SAFEDIV((float)y,(float)window_yres)*(float)GPU.yres); //Convert the X location to the GPU renderer location!
+	}
 }
 
 void GPU_tickVideo()

@@ -2836,6 +2836,10 @@ void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 			mouse_xmove += lastxy[fingerId][0]-relxfull; //Move the mouse horizontally!
 			mouse_ymove += lastxy[fingerId][1]-relyfull; //Move the mouse vertically!
 		}
+		else //Not direct input?
+		{
+			GPU_mousemove((word)relxfull, (word)relyfull, (fingerId & 0xFF)); //We're moved to the current coordinates!
+		}
 		//Always update mouse coordinates for our own GUI handling!
 		mouse_x = (sword)relxfull; //X coordinate on the window!
 		mouse_y = (sword)relyfull; //Y coordinate on the window!
@@ -3642,6 +3646,11 @@ void updateInput(SDL_Event *event) //Update all input!
 				{
 					Mouse_buttons |= 2; //Right mouse button pressed!
 				}
+				else //Not executing direct input?
+				{
+					GPU_mousebuttondown(mouse_x, mouse_y,0xFF); //We're pressed at these coordinates!
+					updateFingerOSK();
+				}
 				break;
 			}
 			unlock(LOCK_INPUT);
@@ -3657,10 +3666,6 @@ void updateInput(SDL_Event *event) //Update all input!
 				toggleDirectInput(1); //Toggle direct input by middle button!
 				break;
 			case SDL_BUTTON_LEFT:
-				if ((mousebuttons==3) && (!DirectInput_Middle)) //Were we both pressed? Special action when not enabled by middle mouse button!
-				{
-					toggleDirectInput(0); //Toggle direct input by both buttons!
-				}
 				if (Direct_Input)
 				{
 					if (input_buffer_enabled) //Buffering?
@@ -3707,6 +3712,13 @@ void updateInput(SDL_Event *event) //Update all input!
 			updateFingerOSK();
 			unlock(LOCK_INPUT);
 		}
+		else if (event->button.button==SDL_BUTTON_RIGHT) //Release right button inside or outside our window?
+		{
+			lock(LOCK_INPUT);
+			GPU_mousebuttonup(mouse_x, mouse_y,0xFF); //We're released at the current coordinates!
+			updateFingerOSK();
+			unlock(LOCK_INPUT);
+		}
 		break;
 	case SDL_MOUSEMOTION: //Mouse moved?
 		if (hasmousefocus) //Do we have mouse focus?
@@ -3726,6 +3738,10 @@ void updateInput(SDL_Event *event) //Update all input!
 					mouse_xmove += (float)event->motion.xrel; //Move the mouse horizontally!
 					mouse_ymove += (float)event->motion.yrel; //Move the mouse vertically!
 				}
+			}
+			else //Not direct input?
+			{
+				GPU_mousemove((word)event->motion.x, (word)event->motion.y, 0xFE); //We're moved to the current coordinates, identify as left mouse button!
 			}
 
 			//Always update mouse coordinates for our own GUI handling!

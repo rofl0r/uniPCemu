@@ -141,6 +141,7 @@ void CPU_updateVideo(); //Actual video update from the CPU side of things!
 //Clicking support!
 void GPU_mousebuttondown(word x, word y, byte finger); //We've been clicked at these coordinates!
 void GPU_mousebuttonup(word x, word y, byte finger); //We've been released at these coordinates!
+void GPU_mousemove(word x, word y, byte finger); //We've been moved to these coordinates!
 
 void GPU_tickVideo(); //Tick the video display!
 
