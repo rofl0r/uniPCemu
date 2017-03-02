@@ -440,6 +440,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 			byte DACOutput = getActiveVGA()->CRTC.DACOutput; //Current DAC output to give!
 			SETBITS(*result,4,1,GETBITS(DACOutput,bittablelow[(getActiveVGA()->enable_SVGA==3)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
 			SETBITS(*result,5,1,GETBITS(DACOutput,bittablehigh[(getActiveVGA()->enable_SVGA==3)?1:0][GETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER,4,3)],1));
+			if (getActiveVGA()->enable_SVGA==3) //EGA has lightpen support here?
+			{
+				SETBITS(*result,1,1,GETBITS(getActiveVGA()->registers->EGA_lightpenstrobeswitch,1,1)); //Light pen has been triggered and stopped pending? Set light pen trigger!
+				SETBITS(*result,1,1,GETBITS(getActiveVGA()->registers->EGA_lightpenstrobeswitch,2,1)); //Light pen switch is open? Set light pen trigger!
+			}
 			ok = 1;
 		}
 		break;
@@ -606,6 +611,24 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	
 	//Precursors compatibility
+	//EGA compatibility!
+	case 0x3DB:
+		if (getActiveVGA()->enable_SVGA==3) //EGA?
+		{
+			//Light pen latch is to be cleared!
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~3; //Stop strobe(pending)&measurement?
+		}
+		break;
+	case 0x3DC:
+		if (getActiveVGA()->enable_SVGA==3) //EGA?
+		{
+			//Light pen latch is to be triggered!
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~2; //Not triggered yet!
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= 1; //Start strobing(pending)?
+		}
+		break;
+
+	//CGA/MDA comparitility
 	case 0x3D8: //Precursor port
 	case 0x3D9: //Precursor port
 	case 0x3B8: //Precursor port

@@ -74,10 +74,42 @@ double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in H
 
 //Main rendering routine: renders pixels to the emulated screen.
 
+//Information gotten from the GPU!
+extern int_32 lightpen_x, lightpen_y; //Current lightpen location, if any!
+extern byte lightpen_pressed; //Lightpen pressed?
+
+//Our internal information for determining the lightpen for the currently emulated video card!
+word lightpen_currentvramlocation; //Current VRAM location for light pen detection!
+
+void EGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed) //Check the lightpen on the current location!
+{
+	word lightpenlocation;
+	if (CGAMDAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	{
+		if (((getActiveVGA()->registers->EGA_lightpenstrobeswitch&3)==1) || (is_lightpenlocation && ((getActiveVGA()->registers->EGA_lightpenstrobeswitch&2)==0))) //Light pen preset and strobing? Are we the light pen location?
+		{
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~1; //Clear the preset: we're not set anymore!
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= 2; //The light pen register is now set!
+			lightpenlocation = currentlocation; //Load the current location for converting to CGA location!
+			//Now set our lightpen!
+			getActiveVGA()->registers->lightpen_high = ((lightpenlocation>>8)&0xFF); //Our high bits!
+			getActiveVGA()->registers->lightpen_low = (lightpenlocation&0xFF); //Our low bits!
+
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~4; //Default: clear the pressed switch indicator: we're depressed!
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= ((is_lightpenpressed&1)<<2); //Set if we're switched or not!
+		}
+	}
+}
+
 OPTINLINE void drawPixel_real(uint_32 pixel, uint_32 x, uint_32 y) //Manual version for CGA conversion!
 {
+	byte lightpen_triggered;
+	lightpen_triggered = ((lightpen_x==x) && (lightpen_y==y)); //Are we at the location specified by the lightpen on the CRT?
+	CGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the CGA!
+	EGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the EGA!
 	INLINEREGISTER uint_32 *screenpixel = &EMU_BUFFER(x,y); //Pointer to our pixel!
 	if (screenpixel>=EMU_SCREENBUFFEREND) return; //Out of bounds?
+	//Apply light pen, directly connected to us!
 	if ((*screenpixel)!=pixel) //Are we to update the changed pixel?
 	{
 		*screenpixel = pixel; //Update whether it's needed or not!
@@ -255,7 +287,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 
 	//Column logic
 	vramlocation = Sequencer->memoryaddress; //Load the address to be loaded!
-	CGA_checklightpen(vramlocation); //Check for anything requiring the lightpen on the CGA!
+	lightpen_currentvramlocation = vramlocation; //Save the new current location for light pen detection!
 
 	//Column/Row logic
 	vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?

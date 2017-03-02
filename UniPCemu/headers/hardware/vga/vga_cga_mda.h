@@ -12,7 +12,7 @@ void setVGA_MDA(byte enabled); //0=Disabled, 1=Enable with disabled VGA, 2=Enabl
 //Initialization call for registering us on the VGA!
 void initCGA_MDA();
 
-void CGA_checklightpen(word currentlocation); //Check the lightpen on the current location!
+void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed); //Check the lightpen on the current location!
 
 //CGA/MDA emulation enabled on the CRTC registers&timing?
 #define CGAEMULATION_ENABLED_CRTC(VGA) (((VGA->registers->specialCGAflags&0x81)==1) || (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,7,1) && ((VGA->registers->specialCGAflags&0xC1)==0xC1)))
