@@ -600,7 +600,7 @@ parameters:
 
 */
 
-void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_32 *pixels, int center, uint_32 row_start) //Based upon above, but for whole rows at once!
+void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_32 *pixels, int center, uint_32 row_start, word *xstart) //Based upon above, but for whole rows at once!
 {
 	if (surface && pixels) //Got surface and pixels!
 	{
@@ -632,6 +632,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 								memset(row, 0, restpixels<<2); //Clear to the start of the row, so that only the part we specified gets something!
 							}
 						}
+						if (xstart) *xstart = (word)restpixels; //Start of the row to apply, in pixels!
 						if (memdiff(&row[restpixels],pixels,use_rowsize)) //Different?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
@@ -654,6 +655,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 									memset(&row[start + use_rowsize], 0, (getlayervirtualwidth(surface) - (start + use_rowsize)) << 2); //Clear the right!
 								}
 							}
+							if (xstart) *xstart = (word)start; //Start of the row to apply, in pixels!
 							if (memdiff(&row[start], pixels, use_rowsize)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
@@ -665,6 +667,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 					default: //We default to left side plot!
 					case 0: //Left side plot?
 						restpixels -= row_start; //The pixels that are left are lessened by row_start in this mode too!
+						if (xstart) *xstart = (word)row_start; //Start of the row to apply, in pixels!
 						if (memdiff(&row[row_start],pixels,use_rowsize)) //Different, so draw?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!

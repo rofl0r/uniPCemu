@@ -101,6 +101,8 @@ uint_32 *get_rowempty()
 	return row_empty; //Give the empty row!
 }
 
+word renderarea_x_start=0, renderarea_y_start=0; //X and Y start of the rendering area of the real rendered active display!
+
 OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 {
 #ifdef IS_PSP
@@ -134,7 +136,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 						start = (rendersurface->sdllayer->h / 2) - (resized->sdllayer->h / 2); //Calculate start row of contents!
 						for (;y<start;) //Process top!
 						{
-							put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0); //Plot empty row, don't care about more black!
+							put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0,NULL); //Plot empty row, don't care about more black!
 							if (!rendersurface) goto abortrendering; //Error occurred?
 							if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 						}
@@ -146,6 +148,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 #if !defined(STATICSCREEN)
 		drawpixels:
 #endif
+		renderarea_y_start = y; //Start of the render area on real display!
 		if (check_surface(rendersurface)) //Valid surface to render?
 		{
 			if (resized) //Valid surface to render?
@@ -160,7 +163,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 							&& ((int_32)y<rendersurface->sdllayer->h) //Protect against destination overflow!
 							;) //Process row-by-row!
 						{
-							put_pixel_row(rendersurface, y++, width, get_pixel_row(resized,virtualrow++,0), 0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+							put_pixel_row(rendersurface, y++, width, get_pixel_row(resized,virtualrow++,0), 0, 0,&renderarea_x_start); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 							if (!resized) goto cantrender; //Error occurred?
 							if (!resized->sdllayer) goto cantrender; //Error occurred?
 						}
@@ -176,7 +179,7 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
 		for (; y<rendersurface->sdllayer->h;) //Process bottom!
 		{
-			put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0); //Plot empty row for the bottom, don't care about more black!
+			put_pixel_row(rendersurface, y++, widthclear, get_rowempty(), 0, 0,NULL); //Plot empty row for the bottom, don't care about more black!
 			if (!rendersurface) goto abortrendering; //Error occurred?
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 		}
@@ -234,12 +237,14 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 			nextrowtop: //Process top!
 			{
 				if (!count--) goto startemurendering; //Done?
-				put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row, don't care about more black!
+				put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0,NULL); //Plot empty row, don't care about more black!
 				goto nextrowtop; //Next row!
 			}
 		}
 		
 		startemurendering:
+		renderarea_y_start = y; //Start of the render area on real display!
+		renderarea_x_start = 0; //Default to the start of the row!
 		if (check_surface(resized) && resized) //Valid layer?
 		{
 			if (resized->sdllayer) //Valid layer?
@@ -251,7 +256,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 					{
 						if (!count--) goto startbottomrendering; //Stop when done!
 						if (!resized) goto startbottomrendering; //Skip when no resized anymore!
-						put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_row(resized,virtualrow++,0), letterbox?1:0, 0); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
+						put_pixel_row(rendersurface, y++, resized->sdllayer->w, get_pixel_row(resized,virtualrow++,0), letterbox?1:0, 0,&renderarea_x_start); //Copy the row to the screen buffer, centered horizontally if needed, from virtual if needed!
 						goto nextrowemu;
 					}
 				}
@@ -265,7 +270,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		nextrowbottom: //Process bottom!
 		{
 			if (!count--) goto finishbottomrendering; //Stop when done!
-			put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0); //Plot empty row for the bottom, don't care about more black!
+			put_pixel_row(rendersurface,y++,clearwidth,get_rowempty(),0,0,NULL); //Plot empty row for the bottom, don't care about more black!
 			goto nextrowbottom;
 		}
 
@@ -280,7 +285,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 		//Always clear the bottom: nothing, letterbox and direct plot both have to clear the bottom!
 		for (; y<rendersurface->sdllayer->h;) //Process bottom!
 		{
-			put_pixel_row(rendersurface, y++, clearwidth, get_rowempty(), 0, 0); //Plot empty row for the bottom, don't care about more black!
+			put_pixel_row(rendersurface, y++, clearwidth, get_rowempty(), 0, 0,NULL); //Plot empty row for the bottom, don't care about more black!
 			if (!rendersurface) return; //Error occurred?
 			if (!rendersurface->sdllayer) return; //Error occurred?
 		}

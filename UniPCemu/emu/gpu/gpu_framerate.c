@@ -269,7 +269,7 @@ void renderFramerateOnly()
 		uint_32 y;
 		for (y=0;y<(uint_32)rendersurface->sdllayer->h;y++)
 		{
-			put_pixel_row(rendersurface,y,PSP_SCREEN_COLUMNS,emptyrow,0,0); //Clear the screen!
+			put_pixel_row(rendersurface,y,PSP_SCREEN_COLUMNS,emptyrow,0,0,NULL); //Clear the screen!
 		}
 
 		framerate_rendertime = (uint_32)GPU_textrenderer(frameratesurface); //Render it!

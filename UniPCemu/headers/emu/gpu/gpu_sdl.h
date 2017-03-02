@@ -39,7 +39,7 @@ void *get_pixel_ptr(GPU_SDL_Surface *surface, const int y, const int x);
 
 //Row functions, by me!
 uint_32 *get_pixel_row(GPU_SDL_Surface *surface, const int y, const int x);
-void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_32 *pixels, int center, uint_32 row_start); //Based upon above, but for whole rows at once!
+void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_32 *pixels, int center, uint_32 row_start, word *xstart); //Based upon above, but for whole rows at once!
 
 //Full surface operations:
 void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerelease); //Register a surface to be able to cleanup!

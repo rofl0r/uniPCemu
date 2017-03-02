@@ -578,6 +578,14 @@ int_32 lightpen_x=-1, lightpen_y=-1; //Current lightpen location, if any!
 byte lightpen_pressed = 0; //Lightpen pressed?
 byte lightpen_status = 0; //Are we capturing lightpen motion and presses?
 
+extern word renderarea_x_start, renderarea_y_start; //X and Y start of the rendering area of the real rendered active display!
+
+void updateLightPenLocation(word x, word y)
+{
+	lightpen_x = (int_32)(SAFEDIV((float)(x-renderarea_x_start),(float)window_xres)*(float)GPU.xres); //Convert the X location to the GPU renderer location!
+	lightpen_y = (int_32)(SAFEDIV((float)(y-renderarea_y_start),(float)window_yres)*(float)GPU.yres); //Convert the X location to the GPU renderer location!
+}
+
 void GPU_mousebuttondown(word x, word y, byte finger)
 {
 	int i = (int)NUMITEMS(GPU.textsurfaces)-1; //Start with the last surface! The last registered surface has priority!
@@ -604,8 +612,7 @@ void GPU_mousebuttondown(word x, word y, byte finger)
 		{
 			lightpen_pressed = 1; //We're pressed!
 		}
-		lightpen_x = SAFEDIV(x,window_xres)*GPU.xres; //Convert the X location to the GPU renderer location!
-		lightpen_y = SAFEDIV(y,window_yres)*GPU.yres; //Convert the X location to the GPU renderer location!
+		updateLightPenLocation(x,y); //Update the light pen location!
 	}
 	else
 	{
@@ -642,8 +649,7 @@ void GPU_mousemove(word x, word y, byte finger)
 {
 	if (lightpen_status) //Lightpen is active?
 	{
-		lightpen_x = (int_32)(SAFEDIV((float)x,(float)window_xres)*(float)GPU.xres); //Convert the X location to the GPU renderer location!
-		lightpen_y = (int_32)(SAFEDIV((float)y,(float)window_yres)*(float)GPU.yres); //Convert the X location to the GPU renderer location!
+		updateLightPenLocation(x,y); //Update the light pen location!
 	}
 }
 
