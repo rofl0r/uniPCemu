@@ -1453,7 +1453,7 @@ byte CGAMDA_readIO(word port, byte *result)
 					temp &= ~7; //Clear the light pen data and display disabled by default!
 					//Bit 1=1: Light pen triggered, Bit 2=1: Light Pen switch is open
 					temp |= ((getActiveVGA()->registers->specialCGAflags&0x4)>>1); //Bit 1 used normally!
-					temp |= (((getActiveVGA()->registers->specialCGAflags)&0x8)>>1); //Bit 2 used to give the status (0=on)!				
+					temp |= (((~getActiveVGA()->registers->specialCGAflags&0x8))>>1); //Bit 2 used to give the status (0=on/pressed according to documentation)!				
 					temp |= ((~getActiveVGA()->CRTC.DisplayEnabled)&1); //Bit0=0 when active display area. Else 1.
 					#ifdef VGAIODUMP
 						if (dumpCGAIO()) //To dump?
