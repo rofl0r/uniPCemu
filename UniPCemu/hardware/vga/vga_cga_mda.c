@@ -1328,7 +1328,7 @@ void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 			lightpenlocation = currentlocation; //Load the current location for converting to CGA location!
 			//Translate VGA location to CGA location!
 			//lightpenlocation >>= 1; //We're in word mode, so divide by 2 to translate to CGA coordinates(format is the same as the CGA cursor address, so it's doubled in the VGA(VGA=2x CGA value due to word addressing mode)!
-			//Now set our lightpen!
+			//Now set our lightpen location!
 			getActiveVGA()->registers->CGARegisters[0x10] &= ~0x3F; //Clear our light pen location bits that need to be set!
 			getActiveVGA()->registers->CGARegisters[0x10] = ((lightpenlocation>>8)&0x3F); //Our high bits!
 			getActiveVGA()->registers->CGARegisters[0x11] = (lightpenlocation&0xFF); //Our low bits!

@@ -443,7 +443,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 			if (getActiveVGA()->enable_SVGA==3) //EGA has lightpen support here?
 			{
 				SETBITS(*result,1,1,GETBITS(getActiveVGA()->registers->EGA_lightpenstrobeswitch,1,1)); //Light pen has been triggered and stopped pending? Set light pen trigger!
-				SETBITS(*result,1,1,GETBITS(getActiveVGA()->registers->EGA_lightpenstrobeswitch,2,1)); //Light pen switch is open? Set light pen trigger!
+				SETBITS(*result,2,1,GETBITS(~getActiveVGA()->registers->EGA_lightpenstrobeswitch,2,1)); //Light pen switch is open(not pressed)?
 			}
 			ok = 1;
 		}
@@ -616,14 +616,13 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (getActiveVGA()->enable_SVGA==3) //EGA?
 		{
 			//Light pen latch is to be cleared!
-			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~3; //Stop strobe(pending)&measurement?
+			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~3; //Stop strobe(pending)&measurement ready flag?
 		}
 		break;
 	case 0x3DC:
 		if (getActiveVGA()->enable_SVGA==3) //EGA?
 		{
 			//Light pen latch is to be triggered!
-			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~2; //Not triggered yet!
 			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= 1; //Start strobing(pending)?
 		}
 		break;

@@ -91,7 +91,7 @@ void EGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 			getActiveVGA()->registers->EGA_lightpenstrobeswitch &= ~1; //Clear the preset: we're not set anymore!
 			getActiveVGA()->registers->EGA_lightpenstrobeswitch |= 2; //The light pen register is now set!
 			lightpenlocation = currentlocation; //Load the current location for converting to CGA location!
-			//Now set our lightpen!
+			//Now set our lightpen location!
 			getActiveVGA()->registers->lightpen_high = ((lightpenlocation>>8)&0xFF); //Our high bits!
 			getActiveVGA()->registers->lightpen_low = (lightpenlocation&0xFF); //Our low bits!
 		}
