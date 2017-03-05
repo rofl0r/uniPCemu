@@ -92,6 +92,9 @@ which is at the first row of the IBM AT POST3 function.
 //The AT runs an 6MHz 80286(2nd revision)! Although most sources say 8 MHz(MIPS etc.), this is the third revision of the motherboard?
 #define CPU80286_CLOCK 6000000.0
 
+//Inboard 386 runs at 16MHz.
+#define CPU80386_INBOARD_CLOCK 16000000.0
+
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
 #define TIMEOUT_TIME 1000000
@@ -752,6 +755,13 @@ void updateSpeedLimit()
 				else //Normal speed?
 				{
 					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+				}
+				if (EMULATED_CPU==CPU_80386) //80386?
+				{
+					if (is_XT) //XT 386?
+					{
+						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+					}
 				}
 				break;
 			default: //Unknown CPU?

@@ -83,6 +83,8 @@ extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
 #endif
 
+byte inboard386_WaitStates = 0; //How many clocks to idle each instruction!
+
 uint_32 getstackaddrsizelimiter()
 {
 	return CPU_StackAddress_size[activeCPU]? 0xFFFFFFFF : 0xFFFF; //Stack address size!
@@ -1745,6 +1747,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			apply286cycles: //Apply the 286+ cycles used!
 			//cycles_counted = 1; //Cycles have been counted!
+			CPU[activeCPU].cycles += inboard386_WaitStates; //Add 80386 WaitStates to slow us down!
 			#endif
 			break;
 		}
