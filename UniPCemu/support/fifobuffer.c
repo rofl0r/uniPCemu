@@ -416,9 +416,12 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
-			for (;readposhistory<0;) //Invalid?
+			if (readposhistory<0) //To make valid?
 			{
-				readposhistory += buffer->size; //Convert into valid range!
+				do //Invalid?
+				{
+					readposhistory += buffer->size; //Convert into valid range!
+				} while (readposhistory<0);
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
@@ -436,13 +439,16 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 	}
 	else
 	{
-		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-1)-(backtrace<<1))) //Filled enough?
+		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-1)-(backtrace<<1))) return 0; //Filled enough?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
-			for (;readposhistory<0;) //Invalid?
+			if (readposhistory<0) //To make valid?
 			{
-				readposhistory += buffer->size; //Convert into valid range!
+				do //Invalid?
+				{
+					readposhistory += buffer->size; //Convert into valid range!
+				} while (readposhistory<0);
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
@@ -503,9 +509,12 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
-			for (;readposhistory<0;) //Invalid?
+			if (readposhistory<0) //To make valid?
 			{
-				readposhistory += buffer->size; //Convert into valid range!
+				do //Invalid?
+				{
+					readposhistory += buffer->size; //Convert into valid range!
+				} while (readposhistory<0); //Convert to valid range!
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
@@ -523,13 +532,16 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	}
 	else
 	{
-		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-3)-(backtrace<<2))) //Filled?
+		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-3)-(backtrace<<2))) return 0; //Filled?
 		{
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
-			for (;readposhistory<0;) //Invalid?
+			if (readposhistory<0) //To make valid?
 			{
-				readposhistory += buffer->size; //Convert into valid range!
+				do //Invalid?
+				{
+					readposhistory += buffer->size; //Convert into valid range!
+				} while (readposhistory<0);
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
