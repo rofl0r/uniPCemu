@@ -135,6 +135,8 @@ OBJS += cpu/cpu_jmptbls.o
 OBJS += cpu/timings.o
 #Protection module of the CPU (286+).
 OBJS += cpu/protection.o
+#Protected mode debugger
+OBJS += cpu/protecteddebugging.o
 #Multitasking module of the CPU (286+).
 OBJS += cpu/multitasking.o
 #finally CPU module itself and flag support (global)

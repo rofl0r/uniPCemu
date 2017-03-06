@@ -9,6 +9,7 @@
 #include "headers/hardware/xtexpansionunit.h" //XT expansion unit support!
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
 #include "headers/mmu/mmuhandler.h" //MMU direct handler support!
+#include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
 
 extern MMU_type MMU; //MMU itself!
 
@@ -119,7 +120,7 @@ extern uint_32 wordaddress; //Word address used during memory access!
 
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 {
-	//We need to block on Page Faults as well! This is still unimplemented!
+	//Check for Page Faults!
 	if (is_paging()) //Are we paging?
 	{
 		if (CPU_Paging_checkPage(realaddress,readflags,CPL)) //Map it using the paging mechanism! Errored out?
@@ -142,8 +143,24 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 		return 1; //Not found.
 	}
 
-	//Check for paging next!
+	//Check for paging and debugging next!
 	realaddress = MMU_realaddr(segdesc, segment, offset, 0,is_offset16); //Real adress!
+
+	switch (readflags) //What kind of flags?
+	{
+		case 0: //Data Write?
+			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE)) return 1; //Error out!
+			break;
+		case 1: //Data Read?
+			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD)) return 1; //Error out!
+			break;
+		case 3: //Opcode read?
+			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) return 1; //Error out!
+			break;
+		case 2: //Unknown?
+		default: //Unknown? Unsupported!
+			break;
+	}
 
 	if (checkDirectMMUaccess(realaddress,readflags,CPL)) //Failure in the Paging Unit?
 	{

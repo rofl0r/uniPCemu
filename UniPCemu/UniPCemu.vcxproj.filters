@@ -525,6 +525,9 @@
     <ClCompile Include="hardware\inboard.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\protecteddebugging.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h">
@@ -949,6 +952,9 @@
     </ClInclude>
     <ClInclude Include="headers\hardware\inboard.h">
       <Filter>Header Files\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\protecteddebugging.h">
+      <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

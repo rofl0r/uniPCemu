@@ -72,6 +72,7 @@
     <ClCompile Include="cpu\opcodes_8086.c" />
     <ClCompile Include="cpu\opcodes_NECV30.c" />
     <ClCompile Include="cpu\paging.c" />
+    <ClCompile Include="cpu\protecteddebugging.c" />
     <ClCompile Include="cpu\protection.c" />
     <ClCompile Include="cpu\timings.c" />
     <ClCompile Include="cpu\unkop.c" />
@@ -215,6 +216,7 @@
     <ClInclude Include="headers\cpu\modrm.h" />
     <ClInclude Include="headers\cpu\multitasking.h" />
     <ClInclude Include="headers\cpu\paging.h" />
+    <ClInclude Include="headers\cpu\protecteddebugging.h" />
     <ClInclude Include="headers\cpu\protection.h" />
     <ClInclude Include="headers\emu\debugger\debugger.h" />
     <ClInclude Include="headers\emu\debugger\runromverify.h" />
