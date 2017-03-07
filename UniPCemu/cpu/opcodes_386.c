@@ -1761,6 +1761,7 @@ void CPU80386_OP9D_16() {
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
 	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+	CPU[activeCPU].allowTF = 0; //Disallow TF to be triggered after the instruction!
 }
 
 void CPU80386_OP9D_32() {
@@ -1794,6 +1795,7 @@ void CPU80386_OP9D_32() {
 	REG_EFLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
 	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+	CPU[activeCPU].allowTF = 0; //Disallow TF to be triggered after the instruction!
 }
 
 //Different addressing modes affect us! Combine operand size and address size into new versions of the instructions, where needed!

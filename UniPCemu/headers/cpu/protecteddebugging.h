@@ -10,5 +10,6 @@
 
 byte checkProtectedModeDebugger(uint_32 linearaddress, byte type); //Access at memory/IO port?
 void protectedModeDebugger_taskswitch(); //Task switched?
+void checkProtectedModeDebuggerAfter(); //Check after instruction for the protected mode debugger!
 
 #endif

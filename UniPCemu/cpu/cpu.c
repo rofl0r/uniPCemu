@@ -18,6 +18,7 @@
 #include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/memory_adressing.h" //CPU_MMU_start support!
+#include "headers/cpu/protecteddebugging.h" //Protected debugging support!
 
 //ALL INTERRUPTS
 
@@ -1379,6 +1380,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	uint_32 previousCSstart;
 	//byte cycles_counted = 0; //Cycles have been counted?
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
+	CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
+	CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 	bufferMMU(); //Buffer the MMU writes for us!
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
 	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
@@ -1418,6 +1421,22 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	//Save the starting point when debugging!
 	CPU_debugger_CS = CPU_exec_CS;
 	CPU_debugger_EIP = CPU_exec_lastEIP;
+
+	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+	{
+		if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
+		{
+			return; //Protected mode debugger activated! Don't fetch or execute!
+		}
+		if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active task?
+		{
+			if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
+			{
+				SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
+				CPU_INT(1,-1); //Call the interrupt, no error code!
+			}
+		}
+	}
 
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
@@ -1883,11 +1902,17 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 
 	if (FLAG_TF) //Trapped and to be trapped this instruction?
 	{
-		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts) //Are we trapped and allowed to trap?
+		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].allowTF)) //Are we trapped and allowed to trap?
 		{
 			CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
 			CPU_afterexec(); //All after execution fixing!
+			return; //Abort: we're finished!
 		}
+	}
+
+	if (getcpumode()!=CPU_MODE_REAL) //Debugging pending to fire to be handled?
+	{
+		checkProtectedModeDebuggerAfter(); //Check after executing the current instruction!
 	}
 }
 
@@ -1979,7 +2004,7 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 	byte oldMMUCycles;
 	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
 	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
-	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 1,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
+	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
 	CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMUR; //Apply the memory cycles to prefetching!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!

@@ -874,6 +874,7 @@ typedef struct PACKED
 
 	//POP SS inhabits interrupts!
 	byte allowInterrupts; //Do we allow interrupts to run?
+	byte allowTF; //Allow trapping now?
 	byte is0Fopcode; //Are we a 0F opcode to be executed?
 	byte D_B_Mask; //D_B bit mask when used for 16 vs 32-bits!
 	byte G_Mask; //G bit mask when used for 16 vs 32-bits!
@@ -887,6 +888,7 @@ typedef struct PACKED
 	word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!
+	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
