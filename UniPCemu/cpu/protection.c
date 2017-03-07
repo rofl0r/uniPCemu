@@ -1117,7 +1117,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			return 1; //Error out!
 			break;
 		case 3: //#SS?
-			THROWDESCSP(segment,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return 1; //Error out!
 			break;
 		}
