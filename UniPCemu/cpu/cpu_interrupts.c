@@ -185,28 +185,39 @@ void CPU_IRET()
 			tempCS = CPU_POP16(); //CS to be loaded!
 			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
-				REG_EFLAGS = CPU_POP32(); //Pop flags!
+				tempEFLAGS = CPU_POP32(); //Pop flags!
 			}
 			else
 			{
-				REG_FLAGS = CPU_POP16(); //Pop flags!
+				tempFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
 			}
-			segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
-			CPU_flushPIQ(); //We're jumping to another address!
-			if (oldCPL!=getCPL()) //Stack needs to be restored?
+
+			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
-				if (CPU_Operand_size[activeCPU])
+				//POP required remaining registers into buffers first!
+				//Set EFLAGS to the tempEFLAGS
+				//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
+			}
+			else //Normal protected mode return?
+			{
+				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
+				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
+				CPU_flushPIQ(); //We're jumping to another address!
+				if (oldCPL!=getCPL()) //Stack needs to be restored?
 				{
-					tempesp = CPU_POP32();
+					if (CPU_Operand_size[activeCPU])
+					{
+						tempesp = CPU_POP32();
+					}
+					else
+					{
+						tempesp = CPU_POP16();
+					}
+					tempSS = CPU_POP16();
+					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return;
+					REG_ESP = tempesp;
 				}
-				else
-				{
-					tempesp = CPU_POP16();
-				}
-				tempSS = CPU_POP16();
-				segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
-				if (CPU[activeCPU].faultraised) return;
-				REG_ESP = tempesp;
 			}
 		}
 	}
