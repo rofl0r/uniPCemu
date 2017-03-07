@@ -414,6 +414,13 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-1)-(backtrace<<1))) //Filled enough?
 		{
+			if (finalbacktrace) //No history? Just pop final input!
+			{
+				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock!
+				PostSem(buffer->lock)
+				return 1; //Read!
+			}
+			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
 			if (readposhistory<0) //To make valid?
@@ -425,9 +432,9 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
-			if (finalbacktrace==0) buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
+			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -437,6 +444,12 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-1)-(backtrace<<1))) return 0; //Filled enough?
 		{
+			if (finalbacktrace) //No history? Just pop final input!
+			{
+				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock!
+				return 1; //Read!
+			}
+			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
 			if (readposhistory<0) //To make valid?
@@ -448,9 +461,8 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
-			if (finalbacktrace) return 1; //Read final!
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			return 1; //Read!
 		}
@@ -500,6 +512,13 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-3)-(backtrace<<2))) //Filled?
 		{
+			if (finalbacktrace) //No history? Just pop final input!
+			{
+				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
+				PostSem(buffer->lock)
+				return 1; //Read!
+			}
+			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
 			if (readposhistory<0) //To make valid?
@@ -511,9 +530,9 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
-			if (finalbacktrace==0) buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
+			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -523,6 +542,12 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-3)-(backtrace<<2))) return 0; //Filled?
 		{
+			if (finalbacktrace) //No history? Just pop final input!
+			{
+				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
+				return 1; //Read!
+			}
+			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
 			if (readposhistory<0) //To make valid?
@@ -534,9 +559,8 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
-			if (finalbacktrace) return 1; //Read final!
+			buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			return 1; //Read!
 		}
