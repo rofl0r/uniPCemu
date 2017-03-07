@@ -425,13 +425,9 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
-			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
-			if (finalbacktrace) //Finished?
-			{
-				readfifobuffer16unlocked(buffer,&dummy,1); //Read the FIFO buffer without lock normally!
-			}
+			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
+			if (finalbacktrace==0) buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -452,13 +448,10 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer16unlocked(buffer,result,0); //Read the FIFO buffer without lock!
+			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer16unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
+			if (finalbacktrace) return 1; //Read final!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
-			if (finalbacktrace) //Finished?
-			{
-				readfifobuffer16unlocked(buffer,&dummy,1); //Read the FIFO buffer without lock normally!
-			}
 			return 1; //Read!
 		}
 	}
@@ -518,13 +511,9 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
-			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
-			if (finalbacktrace) //Finished?
-			{
-				readfifobuffer32unlocked(buffer,&dummy,1); //Read the FIFO buffer without lock normally!
-			}
+			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer32unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
+			if (finalbacktrace==0) buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -545,13 +534,10 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
-			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
+			if (finalbacktrace==0) buffer->readpos = readposhistory; //Patch the read position to the required state!
+			readfifobuffer32unlocked(buffer,result,finalbacktrace); //Read the FIFO buffer without lock!
+			if (finalbacktrace) return 1; //Read final!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
-			if (finalbacktrace) //Finished?
-			{
-				readfifobuffer32unlocked(buffer,&dummy,1); //Read the FIFO buffer without lock normally!
-			}
 			return 1; //Read!
 		}
 	}
