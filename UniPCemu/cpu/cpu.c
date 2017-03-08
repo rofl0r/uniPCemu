@@ -1441,6 +1441,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
+	CPU[activeCPU].faultraised = 0; //Default fault raised!
+	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
+
 	char debugtext[256]; //Debug text!
 	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
 

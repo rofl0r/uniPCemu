@@ -997,6 +997,7 @@ MMU: Memory limit!
 
 */
 
+byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
 {
@@ -1006,6 +1007,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && (!getDescriptorIndex(segmentval)) && ((segmentval&4)==0)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
 		{
+			CPU_MMU_checkrights_cause = 1; //What cause?
 			return 1; //Error!
 		}
 	}
@@ -1014,6 +1016,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (GENERALSEGMENTPTR_P(descriptor)==0) //Not present(invalid in the cache)?
 	{
+		CPU_MMU_checkrights_cause = 2; //What cause?
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
 			return 3; //Stack fault!
@@ -1028,15 +1031,18 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if (segment == CPU_SEGMENT_CS && !(EXECSEGMENTPTR_ISEXEC(descriptor)) && (forreading == 3)) //Non-executable segment execution?
 		{
+			CPU_MMU_checkrights_cause = 3; //What cause?
 			return 1; //Error!
 		}
 		else if (((EXECSEGMENTPTR_ISEXEC(descriptor)) || !(DATASEGMENTPTR_OTHERSTRUCT(descriptor) || DATASEGMENTPTR_W(descriptor))) && (forreading==0)) //Writing to executable segment or read-only data segment?
 		{
+			CPU_MMU_checkrights_cause = 4; //What cause?
 			return 1; //Error!
 		}
 		else if (EXECSEGMENTPTR_ISEXEC(descriptor) && !EXECSEGMENTPTR_R(descriptor) && forreading == 1) //Reading execute-only segment?
 		{
-			return 1; //Error!	
+			CPU_MMU_checkrights_cause = 5; //What cause?
+			return 1; //Error!
 		}
 	}
 
@@ -1068,6 +1074,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		}
 		if (!isvalid) //Not valid?
 		{
+			CPU_MMU_checkrights_cause = 6; //What cause?
 			if (segment==CPU_SEGMENT_SS) //Stack fault?
 			{
 				return 3; //Error!
@@ -1107,11 +1114,15 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 	//Determine the Limit!
 	if (EMULATED_CPU >= CPU_80286) //Handle like a 80286+?
 	{
-		if (segment==-1) return 0; //Enable: we're an emulator call!
-		if (CPU[activeCPU].faultraised) return 1; //Abort if already an fault has been raised!
-		if (segment==-1) //Emulator access? Unknown segment to use?
+		if (segment==-1)
 		{
-			return 0; //Enable all, we're direct after all!
+			CPU_MMU_checkrights_cause = 0x80; //What cause?
+			return 0; //Enable: we're an emulator call!
+		}
+		if (CPU[activeCPU].faultraised)
+		{
+			CPU_MMU_checkrights_cause = 0x81; //What cause?
+			return 1; //Abort if already an fault has been raised!
 		}
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!
@@ -1299,6 +1310,9 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			return 0; //Failed to load the descriptor!
 		}
 	}
+	base -= sizeof(idtentry.descdata); //Restore start address!
+	base -= CPU[activeCPU].registers->IDTR.base; //Substract the base for the actual offset into the IDT!
+	//Now, base is the restored vector into the IDT!
 
 	idtentry.offsethigh = DESC_16BITS(idtentry.offsethigh); //Patch when needed!
 	idtentry.offsetlow = DESC_16BITS(idtentry.offsetlow); //Patch when needed!
@@ -1524,7 +1538,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
-			THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_GDT); //#GP! We're always from the GDT!
+			THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP! We're always from the IDT!
 			return 0; //Errored out!
 			break;
 		}
