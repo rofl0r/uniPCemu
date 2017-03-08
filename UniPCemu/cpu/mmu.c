@@ -92,8 +92,17 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
-	latchBUS(realaddress); //This address is to be latched!
 	return realaddress; //Give real adress!
+}
+
+uint_32 BUSdatalatch=0;
+
+void processBUS(uint_32 address, byte index, byte data)
+{
+	byte masks[4] = {0xFF,0xFF00,0xFF0000,0xFF000000};
+	BUSdatalatch &= ~masks[index]; //Clear the bits!
+	BUSdatalatch |= (data<<(index<<3)); //Set the bits on the BUS!
+	latchBUS(address,BUSdatalatch); //This address is to be latched!
 }
 
 //OPcodes for the debugger!
@@ -272,7 +281,9 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
-	return Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
+	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
+	processBUS(realaddress, index, result); //Process us on the BUS!
+	return result; //Give the result!
 }
 
 OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
@@ -316,6 +327,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
+	processBUS(realaddress, index, val); //Process us on the BUS!
 	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup); //Write through the paging unit and hardware layer!
 }
 
