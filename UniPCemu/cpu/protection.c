@@ -108,6 +108,34 @@ byte CPU_faultraised(byte type)
 	return 1; //Handle the fault normally!
 }
 
+void CPU_onResettingFault()
+{
+	if (CPU[activeCPU].have_oldSS) //Returning the SS to it's old value?
+	{
+		REG_SS = CPU[activeCPU].oldSS; //Restore SS to it's original value!
+		CPU[activeCPU].have_oldSS = 0; //Don't have anything to restore anymore!
+	}
+	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
+	{
+		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
+	}
+	if (CPU[activeCPU].have_oldEFLAGS) //Returning the (E)SP to it's old value?
+	{
+		REG_EFLAGS = CPU[activeCPU].oldEFLAGS; //Restore EFLAGS to it's original value!
+		CPU[activeCPU].have_oldEFLAGS = 0; //Don't have anything to restore anymore!
+		updateCPUmode(); //Restore the CPU mode!
+	}
+	if (CPU[activeCPU].have_oldSegments) //Returning the (E)SP to it's old value?
+	{
+		REG_DS = CPU[activeCPU].oldSegmentDS; //Restore ESP to it's original value!
+		REG_ES = CPU[activeCPU].oldSegmentES; //Restore ESP to it's original value!
+		REG_FS = CPU[activeCPU].oldSegmentFS; //Restore ESP to it's original value!
+		REG_GS = CPU[activeCPU].oldSegmentGS; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldSegments = 0; //Don't have anything to restore anymore!
+	}
+}
+
 //More info: http://wiki.osdev.org/Paging
 //General Protection fault.
 void CPU_GP(int toinstruction,int_64 errorcode)
@@ -123,19 +151,13 @@ void CPU_GP(int toinstruction,int_64 errorcode)
 			dolog("debugger","#GP fault(-1)!");
 		}
 	}
-	if (toinstruction) //Point to the faulting instruction?
-	{
-		CPU_resetOP(); //Point to the faulting instruction!
-	}
-
-	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
-	{
-		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
-	}
-	
 	if (CPU_faultraised(EXCEPTION_GENERALPROTECTIONFAULT)) //Fault raising exception!
 	{
+		if (toinstruction) //Point to the faulting instruction?
+		{
+			CPU_resetOP(); //Point to the faulting instruction!
+		}
+		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
@@ -155,16 +177,10 @@ void CPU_SegNotPresent(int_64 errorcode)
 			dolog("debugger","#NP fault(-1)!");
 		}
 	}
-	CPU_resetOP(); //Point to the faulting instruction!
-
-	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
-	{
-		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
-	}
-
 	if (CPU_faultraised(EXCEPTION_SEGMENTNOTPRESENT)) //Fault raising exception!
 	{
+		CPU_resetOP(); //Point to the faulting instruction!
+		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
@@ -184,15 +200,11 @@ void CPU_StackFault(int_64 errorcode)
 			dolog("debugger","#SS fault(-1)!");
 		}
 	}
-	CPU_resetOP(); //Point to the faulting instruction!
-	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
-	{
-		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
-	}
 
 	if (CPU_faultraised(EXCEPTION_STACKFAULT)) //Fault raising exception!
 	{
+		CPU_resetOP(); //Point to the faulting instruction!
+		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_STACKFAULT,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
@@ -1260,6 +1272,9 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
+
+	byte oldCPL;
+	oldCPL = getCPL(); //Save the CPL!
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
@@ -1344,8 +1359,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
 		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
 
-//TODO: Implement V86 monitor support by adding to the stack(saving the old EFLAGS(EFLAGS backup) and clearing the V86 flag before setting the new registers(to make it run in Protected Mode until IRET, which restores EFLAGS/CS/EIP, stack and segment registers by popping them off the stack and restoring the V86 mode to be resumed. Keep EFLAGS as an backup(in CPU restoration structure, like SS:ESP) before clearing the V86 bit(to push) to load protected mode segments for the monitor. Turn off V86 to load all protected mode stack. Push the segments and IRET data on the stack(faults reset EFLAGS/SS/ESP to the backup). Finally load the remaining segments with zero(except SS/CS). Finally, transfer control to CS:EIP of the handler normally.
-//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
+			//TODO: Implement V86 monitor support by adding to the stack(saving the old EFLAGS(EFLAGS backup) and clearing the V86 flag before setting the new registers(to make it run in Protected Mode until IRET, which restores EFLAGS/CS/EIP, stack and segment registers by popping them off the stack and restoring the V86 mode to be resumed. Keep EFLAGS as an backup(in CPU restoration structure, like SS:ESP) before clearing the V86 bit(to push) to load protected mode segments for the monitor. Turn off V86 to load all protected mode stack. Push the segments and IRET data on the stack(faults reset EFLAGS/SS/ESP to the backup). Finally load the remaining segments with zero(except SS/CS). Finally, transfer control to CS:EIP of the handler normally.
+			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
@@ -1374,9 +1389,83 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			CPU[activeCPU].faultraised = 0; //No fault raised anymore, because we're at the new instruction to handle it!
 
+			uint_32 EFLAGSbackup;
+			EFLAGSbackup = REG_EFLAGS; //Back-up EFLAGS!
+
+			if (FLAG_V8 && ((getCPL()!=oldCPL) && (getCPL()!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
+			{
+				if (CPU[activeCPU].have_oldEFLAGS==0) //Setup back-up EFLAGS?
+				{
+					CPU[activeCPU].oldEFLAGS = EFLAGSbackup; //Save EFLAGS!
+					CPU[activeCPU].have_oldEFLAGS = 1; //We have EFLAGS to restore!
+				}
+				if (CPU[activeCPU].have_oldSS==0) //Setup back-up SS?
+				{
+					CPU[activeCPU].oldSS = REG_SS; //Save SS!
+					CPU[activeCPU].have_oldSS = 1; //We have SS to restore!
+				}
+				if (CPU[activeCPU].have_oldESP==0) //Setup back-up ESP?
+				{
+					CPU[activeCPU].oldESP = REG_ESP; //Save ESP!
+					CPU[activeCPU].have_oldESP = 1; //We have ESP to restore!
+				}
+				if (CPU[activeCPU].have_oldSegments==0) //Setup old segments?
+				{
+					CPU[activeCPU].oldSegmentDS = REG_DS; //Save DS!
+					CPU[activeCPU].oldSegmentES = REG_ES; //Save ES!
+					CPU[activeCPU].oldSegmentFS = REG_FS; //Save FS!
+					CPU[activeCPU].oldSegmentGS = REG_GS; //Save GS!
+					CPU[activeCPU].have_oldSegments = 1; //We have all segments to update!
+				}
+
+				word SS0;
+				uint_32 ESP0;
+
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(getCPL()<<2)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(getCPL()<<2)),0,0); //ESP0-2
+
+				//Now, switch to the new EFLAGS!
+				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
+				updateCPUmode(); //Update the CPU mode!
+
+				//We're back in protected mode now!
+
+				//Switch Stack segment first!
+				CPU[activeCPU].faultraised = 0; //Reset fault raised to try switching stacks!
+				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				REG_ESP = ESP0; //Set the stack to point to the new stack location!
+
+				//Verify that the new stack is available!
+				if (checkStackAccess(9,1,1)) return 0; //Abort on fault!
+
+				//Save the Segment registers on the new stack!
+				CPU_PUSH16(&REG_GS);
+				CPU_PUSH16(&REG_FS);
+				CPU_PUSH16(&REG_DS);
+				CPU_PUSH16(&REG_ES);
+				CPU_PUSH16(&REG_SS);
+				CPU_PUSH32(&REG_ESP);
+				//Other registers are the normal variants!
+
+				//Load all Segment registers with zeroes!
+				segmentWritten(CPU_SEGMENT_DS,0,0); //Clear DS!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				segmentWritten(CPU_SEGMENT_ES,0,0); //Clear ES!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				segmentWritten(CPU_SEGMENT_FS,0,0); //Clear FS!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				segmentWritten(CPU_SEGMENT_GS,0,0); //Clear GS!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+			}
+			else
+			{
+				if (checkStackAccess(3,1,1)) return 0; //Abort on fault!
+			}
+
 			if (is32bit)
 			{
-				CPU_PUSH32(&CPU[activeCPU].registers->EFLAGS); //Push EFLAGS!
+				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else

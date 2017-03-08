@@ -888,6 +888,12 @@ typedef struct PACKED
 	word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!
+	byte have_oldSS; //oldSS is set to use?
+	word oldSS;
+	byte have_oldSegments;
+	word oldSegmentFS, oldSegmentGS, oldSegmentDS, oldSegmentES; //Back-up of the segment registers to restore during faults!
+	byte have_oldEFLAGS;
+	uint_32 oldEFLAGS;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!

@@ -1397,6 +1397,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 
 	CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
+	CPU[activeCPU].have_oldSS = 0; //Default: no SS to return to during exceptions!
+	CPU[activeCPU].have_oldSegments = 0; //Default: no Segments to return during exceptions!
+	CPU[activeCPU].have_oldEFLAGS = 0; //Default: no EFLAGS to return during exceptions!
 
 	//Initialize stuff needed for local CPU timing!
 	didJump = 0; //Default: we didn't jump!

@@ -158,8 +158,11 @@ void CPU_IRET()
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 				}
 			}
-			else THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
-			return; //Don't execute normally!
+			else
+			{
+				THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
+				return; //Abort!
+			}
 		}
 		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 		{
@@ -194,6 +197,7 @@ void CPU_IRET()
 				tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
 			}
 
+			handleV86IRET:
 			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
 				tempesp = CPU_POP32(); //POP ESP!
