@@ -1431,7 +1431,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			return; //Protected mode debugger activated! Don't fetch or execute!
 		}
-		if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active task?
+		if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) && CPU[activeCPU].registers->TR) //Active task?
 		{
 			if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 			{
