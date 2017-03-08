@@ -103,6 +103,8 @@ byte NMIMasked = 0; //Are NMI masked?
 
 void CPU_IRET()
 {
+	word V86SegRegs[5]; //All V86 mode segment registers!
+	byte V86SegReg; //Currently processing segment register!
 	byte oldCPL = getCPL(); //Original CPL
 	word tempCS, tempSS;
 	uint_32 tempEFLAGS;
@@ -189,14 +191,26 @@ void CPU_IRET()
 			}
 			else
 			{
-				tempFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
+				tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
 			}
 
 			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
-				//POP required remaining registers into buffers first!
-				//Set EFLAGS to the tempEFLAGS
+				tempesp = CPU_POP32(); //POP ESP!
+				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
+				{
+					V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register!
+				}
+				REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
+				updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
 				//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
+				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
+				segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Load SS!
+				REG_ESP = tempesp; //Set the new ESP of the V86 task!
+				segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0); //Load ES!
+				segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0); //Load DS!
+				segmentWritten(CPU_SEGMENT_FS,V86SegRegs[2],0); //Load FS!
+				segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0); //Load GS!
 			}
 			else //Normal protected mode return?
 			{
