@@ -1422,7 +1422,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	
 	//Save the starting point when debugging!
 	CPU_debugger_CS = CPU_exec_CS;
-	CPU_debugger_EIP = CPU_exec_lastEIP;
+	CPU_debugger_EIP = CPU_exec_EIP;
 
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 	{
