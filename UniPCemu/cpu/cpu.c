@@ -1925,6 +1925,7 @@ extern uint_32 destEIP;
 
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
+	CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
 	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
 	CPU_flushPIQ(); //Flush the PIQ!
 	CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
