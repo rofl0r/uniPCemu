@@ -188,6 +188,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 }
 
 extern byte is_XT; //XT Architecture?
+extern byte is_Compaq; //Compaq Architecture?
 
 //Result: 0=Continue;1=Reset!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
@@ -309,26 +310,30 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 AT+ PC?
 			{
-				if (EMULATED_CPU>=CPU_80386) //386+ CPU? We're 32-bit instead!
+				if ((EMULATED_CPU>=CPU_80386)) //386+ CPU? We're 32-bit instead!
 				{
 					verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 					//Try Compaq Deskpro ROMs next!
-					//u13 (even) and u15(odd)
-					if (!BIOS_load_ROM(13)) //Failed to load u13?
+					if (is_Compaq==1) //Compaq ROMs?
 					{
-						dolog("emu", "Failed loading BIOS ROM u13, reverting to AT ROMs!");
-						goto tryATROM; //Try normal AT ROM!
+						//u13 (even) and u15(odd)
+						if (!BIOS_load_ROM(13)) //Failed to load u13?
+						{
+							dolog("emu", "Failed loading BIOS ROM u13, reverting to AT ROMs!");
+							goto tryATROM; //Try normal AT ROM!
+						}
+						if (!BIOS_load_ROM(15)) //Failed to load u15?
+						{
+							dolog("emu", "Failed loading BIOS ROM u15, reverting to AT ROMs!");
+							BIOS_free_ROM(13); //Release u13!
+							goto tryATROM; //Try normal AT ROM!
+						}
+
+						verified = 1; //Verified!
+						goto verifiedspecificROMs; //We've verified the specific ROMs!
 					}
-					if (!BIOS_load_ROM(15)) //Failed to load u15?
-					{
-						dolog("emu", "Failed loading BIOS ROM u15, reverting to AT ROMs!");
-						BIOS_free_ROM(13); //Release u13!
-						goto tryATROM; //Try normal AT ROM!
-					}
-					verified = 1; //Verified!
-					goto verifiedspecificROMs; //We've verified the specific ROMs!
 				}
 
 				tryATROM:
