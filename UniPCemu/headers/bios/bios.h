@@ -125,7 +125,8 @@ typedef struct PACKED
 enum Architectures {
 	ARCHITECTURE_XT = 0,
 	ARCHITECTURE_AT = 1,
-	ARCHITECTURE_PS2 = 2
+	ARCHITECTURE_PS2 = 2,
+	ARCHITECTURE_COMPAQ = 3
 }; //All possible architectures!
 
 //B/W monitor setting:

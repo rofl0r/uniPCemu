@@ -4527,20 +4527,22 @@ void BIOS_Architecture()
 	GPU_EMU_printscreen(0, 4, "Architecture: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 3; //Amount of Direct modes!
-	for (i = 0; i<3; i++) //Process options!
+	numlist = 4; //Amount of Direct modes!
+	for (i = 0; i<4; i++) //Process options!
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "XT"); //Set filename from options!
 	strcpy(itemlist[1], "AT"); //Set filename from options!
 	strcpy(itemlist[2], "PS/2"); //Set filename from options!
+	strcpy(itemlist[3], "Compaq Deskpro 386"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.architecture) //What setting?
 	{
 	case 0: //Valid
 	case 1: //Valid
 	case 2: //Valid
+	case 3: //Valid
 		current = BIOS_Settings.architecture; //Valid: use!
 		break;
 	default: //Invalid
@@ -4563,6 +4565,8 @@ void BIOS_Architecture()
 
 	case 0:
 	case 1:
+	case 2:
+	case 3:
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -4855,6 +4859,9 @@ setMousetext: //For fixing it!
 		break;
 	case 2:
 		strcat(menuoptions[advancedoptions++], "PS/2");
+		break;
+	case 3:
+		strcat(menuoptions[advancedoptions++], "Compaq Deskpro 386");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.architecture = 0; //Reset/Fix!

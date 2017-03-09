@@ -185,6 +185,7 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 }
 
 extern byte is_XT; //Are we emulating a XT architecture?
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 byte MoveLowMemoryHigh; //Disable HMA memory and enable the memory hole?
 
@@ -370,7 +371,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386)) //Compaq special register?
+	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
 		result = ((MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)+MMU_RESERVEDMEMORY)>=0xA0000)?0x40:0x00; //Second 1MB memory installed?
 		goto specialreadcycle; //Apply the special read cycle!
@@ -412,7 +413,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386)) //Compaq special register?
+	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
 		if (value&1) //Write-protect 128KB RAM at 0xFE0000?
 		{

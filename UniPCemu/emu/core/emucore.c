@@ -279,6 +279,7 @@ byte useSoundBlaster; //Using the Sound Blaster?
 byte useMPU; //Using the MPU-401?
 
 byte is_XT = 0; //Are we emulating an XT architecture?
+byte is_Compaq = 0; //Are we emulating an Compaq architecture?
 
 void initEMU(int full) //Init!
 {
@@ -758,9 +759,9 @@ void updateSpeedLimit()
 				}
 				if (EMULATED_CPU==CPU_80386) //80386?
 				{
-					if (is_XT) //XT 386?
+					if (is_XT || (is_Compaq==1)) //XT 386 or Compaq Deskpro 386? 16MHz clock!
 					{
-						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 					}
 				}
 				break;
@@ -1146,7 +1147,7 @@ extern byte SystemControlPortA;
 void EMU_onCPUReset()
 {
 	SystemControlPortA &= ~2; //Clear A20 here!
-	if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //AT CPU?
+	if ((is_XT==0) || (EMULATED_CPU>=CPU_80286) || (is_Compaq==1)) //AT-class CPU?
 	{
 		Controller8042.outputport |= 2; //Set A20 here!
 	}
