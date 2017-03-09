@@ -514,7 +514,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
 				temppos = basepos-currentpos; //Calculate the offset within the ROM!
-				if (VGAROM_mapping!=0xFF) //Special mapping?
+				if ((VGAROM_mapping!=0xFF) && (i==0)) //Special mapping for the VGA-reserved ROM?
 				{
 					switch (VGAROM_mapping) //What special mapping?
 					{
@@ -584,7 +584,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 				{
 					OPTROM_address = basepos;
 					OPTROM_address -= OPTROM_loc; //The location within the OPTROM!
-					if (VGAROM_mapping!=0xFF) //Special mapping?
+					if ((VGAROM_mapping!=0xFF) && (i==0)) //Special mapping?
 					{
 						switch (VGAROM_mapping) //What special mapping?
 						{
