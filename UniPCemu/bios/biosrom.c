@@ -315,7 +315,7 @@ int BIOS_load_ROM(byte nr)
 				break;
 			case 13:
 			case 15: //u13/u15 chips?
-				ROM_size = BIOS_ROM_size[13]+BIOS_ROM_size[15]; //ROM size!
+				ROM_size = (BIOS_ROM_size[13]+BIOS_ROM_size[15])<<1; //ROM size! The ROM is doubled in RAM(duplicated twice)
 				break;
 		}
 		
@@ -337,6 +337,7 @@ char customROMname[256]; //Custom ROM name!
 
 int BIOS_load_custom(char *path, char *rom)
 {
+	byte ROM_doubling; //Double the ROM?
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
@@ -375,9 +376,17 @@ int BIOS_load_custom(char *path, char *rom)
 		fclose(f); //Close the file!
 		strcpy(customROMname,filename); //Custom ROM name for easy dealloc!
 		//Update the base address to use for this CPU!
-		BIOSROM_BASE_AT = 0xFFFFFF-(BIOS_custom_ROM_size-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-(BIOS_custom_ROM_size-1); //XT ROM size!
-		BIOSROM_BASE_Modern = 0xFFFFFFFF-(BIOS_custom_ROM_size-1); //Modern ROM size!
+		ROM_doubling = 0; //Default: no ROM doubling!
+		if (BIOS_custom_ROM_size!=0x10000) //Safe to double?
+		{
+			if (EMULATED_CPU>=CPU_80386 && (is_XT==0)) //We're to emulate a Compaq Deskpro 386?
+			{
+				ROM_doubling = 1; //Double the ROM!
+			}
+		}
+		BIOSROM_BASE_AT = 0xFFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //AT ROM size!
+		BIOSROM_BASE_XT = 0xFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //XT ROM size!
+		BIOSROM_BASE_Modern = 0xFFFFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
 	
@@ -720,6 +729,13 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 				return 1; //Ignore writes!
 			}
 		}
+		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
+		{
+			if (tempoffset>=BIOS_custom_ROM_size) //Doubled copy?
+			{
+				tempoffset -= BIOS_custom_ROM_size; //Double in memory!
+			}
+		}
 		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
 			return 1; //Ignore writes!
@@ -766,6 +782,16 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
 			segment = basepos; //Load the offset!
+			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			{
+				if (tempoffset<((BIOS_ROM_size[15]+BIOS_ROM_size[13])<<1)) //This is doubled in ROM!
+				{
+					if (tempoffset>=(BIOS_ROM_size[15]+BIOS_ROM_size[13])) //Second copy?
+					{
+						tempoffset -= (BIOS_ROM_size[15]+BIOS_ROM_size[13]); //Patch to first block to address!
+					}
+				}
+			}
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
@@ -856,6 +882,13 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 				return 1; //Direct offset used!
 			}
 		}
+		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
+		{
+			if (tempoffset>=BIOS_custom_ROM_size) //Doubled copy?
+			{
+				tempoffset -= BIOS_custom_ROM_size; //Double in memory!
+			}
+		}
 		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
@@ -906,6 +939,16 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		case CPU_80486:
 		case CPU_PENTIUM: //5170 AT PC!
 			segment = tempoffset = basepos; //Load the offset!
+			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			{
+				if (tempoffset<((BIOS_ROM_size[15]+BIOS_ROM_size[13])<<1)) //This is doubled in ROM!
+				{
+					if (tempoffset>=(BIOS_ROM_size[15]+BIOS_ROM_size[13])) //Second copy?
+					{
+						tempoffset -= (BIOS_ROM_size[15]+BIOS_ROM_size[13]); //Patch to first block to address!
+					}
+				}
+			}
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
