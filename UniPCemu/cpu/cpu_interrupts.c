@@ -137,7 +137,7 @@ void CPU_IRET()
 			//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
 			if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
 			{
-				if (CPU_Operand_size[activeCPU]) //32-bit operand size?
+				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit operand size?
 				{
 					if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
 					destEIP = CPU_POP32();
@@ -178,7 +178,7 @@ void CPU_IRET()
 		}
 		else //Normal IRET?
 		{
-			if (CPU_Operand_size[activeCPU]) //32-bit mode?
+			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
 			{
 				destEIP = CPU_POP32(); //POP EIP!
 			}
@@ -188,7 +188,7 @@ void CPU_IRET()
 			}
 			uint_32 tempesp;
 			tempCS = CPU_POP16(); //CS to be loaded!
-			if (CPU_Operand_size[activeCPU]) //32-bit mode?
+			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
 			{
 				tempEFLAGS = CPU_POP32(); //Pop flags!
 			}
@@ -224,7 +224,10 @@ void CPU_IRET()
 				CPU_flushPIQ(); //We're jumping to another address!
 				if (oldCPL!=getCPL()) //Stack needs to be restored?
 				{
-					if (CPU_Operand_size[activeCPU])
+					tempSS = CPU_POP16();
+					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return;
+					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
 						tempesp = CPU_POP32();
 					}
@@ -232,9 +235,6 @@ void CPU_IRET()
 					{
 						tempesp = CPU_POP16();
 					}
-					tempSS = CPU_POP16();
-					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return;
 					REG_ESP = tempesp;
 				}
 			}

@@ -717,6 +717,13 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack to transfer!
 			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
 			{
+				//Backup the old stack data!
+				CPU[activeCPU].have_oldESP = 1;
+				CPU[activeCPU].have_oldSS = 1;
+				CPU[activeCPU].oldESP = REG_ESP; //Backup!
+				CPU[activeCPU].oldSS = REG_SS; //Backup!
+				//Now, copy the stack arguments!
+
 				*isdifferentCPL = 1; //We're a different level!
 				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
 				for (;arguments--;) //Copy as many arguments as needed!
@@ -829,15 +836,16 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				
 				if (isDifferentCPL) //CPL changed?
 				{
-					CPU_PUSH16(&REG_SS); //SS to return!
 					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
-						CPU_PUSH32(&REG_ESP);
+						CPU_PUSH32(&CPU[activeCPU].oldESP);
 					}
 					else
 					{
-						CPU_PUSH16(&REG_SP);
+						word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
+						CPU_PUSH16(&temp);
 					}
+					CPU_PUSH16(&CPU[activeCPU].oldSS); //SS to return!
 				}
 				
 				//Push the old address to the new stack!
@@ -872,19 +880,25 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				if (oldCPL!=getRPL(value)) //CPL changed?
 				{
 					//Privilege change!
+					//Backup the old stack data!
+					CPU[activeCPU].have_oldESP = 1;
+					CPU[activeCPU].have_oldSS = 1;
+					CPU[activeCPU].oldESP = REG_ESP; //Backup!
+					CPU[activeCPU].oldSS = REG_SS; //Backup!
+
+					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
-					{
-						tempesp = CPU_POP32();
-					}
-					else
-					{
-						tempesp = CPU_POP16();
-					}
 					tempSS = CPU_POP16();
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
-					REG_ESP = tempesp;
+					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
+					{
+						REG_ESP = CPU_POP32();
+					}
+					else
+					{
+						REG_ESP = (uint_32)CPU_POP16();
+					}
 				}
 			}
 
@@ -1472,6 +1486,63 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				segmentWritten(CPU_SEGMENT_GS,0,0); //Clear GS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
+			else if ((getCPL()!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
+			{
+				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
+				if (CPU[activeCPU].have_oldEFLAGS==0) //Setup back-up EFLAGS?
+				{
+					CPU[activeCPU].oldEFLAGS = EFLAGSbackup; //Save EFLAGS!
+					CPU[activeCPU].have_oldEFLAGS = 1; //We have EFLAGS to restore!
+				}
+				if (CPU[activeCPU].have_oldSS==0) //Setup back-up SS?
+				{
+					CPU[activeCPU].oldSS = REG_SS; //Save SS!
+					CPU[activeCPU].have_oldSS = 1; //We have SS to restore!
+				}
+				if (CPU[activeCPU].have_oldESP==0) //Setup back-up ESP?
+				{
+					CPU[activeCPU].oldESP = REG_ESP; //Save ESP!
+					CPU[activeCPU].have_oldESP = 1; //We have ESP to restore!
+				}
+				if (CPU[activeCPU].have_oldSegments==0) //Setup old segments?
+				{
+					CPU[activeCPU].oldSegmentDS = REG_DS; //Save DS!
+					CPU[activeCPU].oldSegmentES = REG_ES; //Save ES!
+					CPU[activeCPU].oldSegmentFS = REG_FS; //Save FS!
+					CPU[activeCPU].oldSegmentGS = REG_GS; //Save GS!
+					CPU[activeCPU].have_oldSegments = 1; //We have all segments to update!
+				}
+
+				word SS0;
+				uint_32 ESP0;
+
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(getCPL()<<2)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(getCPL()<<2)),0,0); //ESP0-2
+
+				//Unlike the other case, we're still in protected mode!
+
+				//Switch Stack segment first!
+				CPU[activeCPU].faultraised = 0; //Reset fault raised to try switching stacks!
+				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
+				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				REG_ESP = ESP0; //Set the stack to point to the new stack location!
+
+				//Verify that the new stack is available!
+				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
+
+				if (is32bit) //32-bit gate?
+				{
+					CPU_PUSH16(&CPU[activeCPU].oldSS);
+					CPU_PUSH32(&CPU[activeCPU].oldESP);
+				}
+				else //16-bit gate?
+				{
+					word temp = (word)(CPU[activeCPU].oldESP&0xFFFF); //Backup SP!
+					CPU_PUSH16(&CPU[activeCPU].oldSS);
+					CPU_PUSH16(&temp); //Old SP!
+				}
+				//Other registers are the normal variants!
+			}
 			else
 			{
 				if (checkStackAccess(3,1,1)) return 0; //Abort on fault!
@@ -1484,7 +1555,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->FLAGS); //Push FLAGS!
+				word temp2 = (word)(EFLAGSbackup&0xFFFF);
+				CPU_PUSH16(&temp2); //Push FLAGS!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 
