@@ -309,10 +309,36 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 AT+ PC?
 			{
-				if (EMULATED_CPU>=CPU_80386) //386+ CPU? We're 32-bit!
+				if (EMULATED_CPU>=CPU_80386) //386+ CPU? We're 32-bit instead!
 				{
 					verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+
+					//Try Compaq Deskpro ROMs next!
+					//u13 (even) and u15(odd)
+					if (!BIOS_load_ROM(13)) //Failed to load u13?
+					{
+						dolog("emu", "Failed loading BIOS ROM u13!");
+						CPU_INT(0x18,-1); //Error: no ROM!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						resumeEMU(1); //Resume the emulator!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
+					if (!BIOS_load_ROM(15)) //Failed to load u15?
+					{
+						dolog("emu", "Failed loading BIOS ROM u15!");
+						BIOS_free_ROM(13); //Release u13!
+						CPU_INT(0x18,-1); //Error: no ROM!
+						resumeEMU(1); //Resume the emulator!
+						allow_debuggerstep = 1; //Allow stepping from now on!
+						unlock(LOCK_CPU);
+						unlock(LOCK_MAINTHREAD);
+						return 0; //No reset!
+					}
+					verified = 1; //Verified!
+					goto verifiedspecificROMs; //We've verified the specific ROMs!
 				}
 
 				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
@@ -341,6 +367,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				verified = 1; //Verified!
 			}
+
+			verifiedspecificROMs:
 
 			BIOS_free_systemROM(); //Stop our own ROM: we're using the loaded ROMs now!
 

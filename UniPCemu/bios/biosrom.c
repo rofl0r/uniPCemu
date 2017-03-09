@@ -313,6 +313,10 @@ int BIOS_load_ROM(byte nr)
 			case 47: //u27/u47 chips?
 				ROM_size = BIOS_ROM_size[27]+BIOS_ROM_size[47]; //ROM size!
 				break;
+			case 13:
+			case 15: //u13/u15 chips?
+				ROM_size = BIOS_ROM_size[13]+BIOS_ROM_size[15]; //ROM size!
+				break;
 		}
 		
 		//Recalculate based on ROM size!
@@ -764,9 +768,16 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment = basepos; //Load the offset!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment) //u47/u35?
+			if (segment) //u47/u35/u15?
 			{
-				if (BIOS_ROMS[35]) //u34/u35 combination?
+				if (BIOS_ROMS[15]) //u13/u15 combination?
+				{
+					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					{
+						return 1; //Ignore writes!
+					}					
+				}
+				else if (BIOS_ROMS[35]) //u34/u35 combination?
 				{
 					if (BIOS_ROM_size[35]>tempoffset) //Within range?
 					{
@@ -784,9 +795,16 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 					}
 				}
 			}
-			else //u27/u34?
+			else //u27/u34/u13?
 			{
-				if (BIOS_ROMS[34]) //u34/u35 combination?
+				if (BIOS_ROMS[13]) //u13/u15 combination?
+				{
+					if (BIOS_ROM_size[13]>tempoffset) //Within range?
+					{
+						return 1; //Ignore writes!
+					}
+				}
+				else if (BIOS_ROMS[34]) //u34/u35 combination?
 				{
 					if (BIOS_ROM_size[34]>tempoffset) //Within range?
 					{
@@ -890,9 +908,17 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment = tempoffset = basepos; //Load the offset!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment) //u47/u35?
+			if (segment) //u47/u35/u15?
 			{
-				if (BIOS_ROMS[35]) //u34/u35 combination?
+				if (BIOS_ROMS[15]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[15][tempoffset]; //Give the value!
+						return 1;
+					}
+				}
+				else if (BIOS_ROMS[35]) //u34/u35 combination?
 				{
 					if (BIOS_ROM_size[35]>tempoffset) //Within range?
 					{
@@ -912,9 +938,17 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 					}
 				}
 			}
-			else //u27/u34?
+			else //u27/u34/u13?
 			{
-				if (BIOS_ROMS[34]) //u34/u35 combination?
+				if (BIOS_ROMS[13]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[13]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[13][tempoffset]; //Give the value!
+						return 1;
+					}
+				}
+				else if (BIOS_ROMS[34]) //u34/u35 combination?
 				{
 					if (BIOS_ROM_size[34]>tempoffset) //Within range?
 					{
