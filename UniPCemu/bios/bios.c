@@ -131,6 +131,8 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	uint_32 freememory = freemem(); //The free memory available!
 	int_32 memoryblocks;
 	
+	freememory -= MMU_RESERVEDMEMORY; //Apply reserved memory as well, to prevent the MMU from allocating too much(that's not available)!
+
 	autoDetectArchitecture(); //Detect the architecture to use!
 	if (is_XT) //XT?
 	{

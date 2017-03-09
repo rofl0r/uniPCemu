@@ -60,4 +60,7 @@ void memory_directww(uint_32 realadress, word value); //Direct write to real mem
 //For paging/system only!
 uint_32 memory_directrdw(uint_32 realaddress);
 void memory_directwdw(uint_32 realaddress, uint_32 value);
+
+//Reserved memory for special cases!
+#define MMU_RESERVEDMEMORY 0x20000
 #endif

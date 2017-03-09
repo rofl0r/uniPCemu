@@ -184,6 +184,13 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 	return 1; //Normal memory access!
 }
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
+byte MoveLowMemoryHigh; //Disable HMA memory and enable the memory hole?
+
+byte memoryprotect_FE0000 = 1; //Memory-protect block at FE0000?
+byte BIOSROM_LowMemoryBecomesHighMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
+extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
 void resetMMU()
 {
@@ -196,7 +203,7 @@ resetmmu:
 
 	if ((EMULATED_CPU <= CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
 																				  //dolog("zalloc","Allocating MMU memory...");
-	MMU.memory = (byte *)zalloc(MMU.size, "MMU_Memory", NULL); //Allocate the memory available for the segments
+	MMU.memory = (byte *)zalloc((MMU.size+MMU_RESERVEDMEMORY), "MMU_Memory", NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
 	user_memory_used = 0; //Default: no memory used yet!
 	if (MMU.memory != NULL && !force_memoryredetect) //Allocated and not forcing redetect?
@@ -222,6 +229,8 @@ resetmmu:
 		raiseError("MMU", "No memory available to use!");
 	}
 	MMUBuffer = allocfifobuffer(100 * 6, 0); //Alloc the write buffer with 100 entries (100 bytes)
+	BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Default low memory behaviour!
+	memoryprotect_FE0000 = 1; //Enable memory protection on FE0000+ by default!
 }
 
 void doneMMU()
@@ -278,13 +287,7 @@ OPTINLINE char stringsafe(byte x)
 #define HIGH_MEMORYHOLE_START 0xC0000000
 #define HIGH_MEMORYHOLE_END 0x100000000
 
-extern byte is_XT; //Are we emulating a XT architecture?
-
-byte MoveLowMemoryHigh; //Disable HMA memory and enable the memory hole?
-
-byte memoryprotect_FE0000 = 1; //Memory-protect block at FE0000?
-byte BIOSROM_LowMemoryBecomesHighMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
-OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
+OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte iswrite)
 {
 	INLINEREGISTER byte memloc; //What memory block?
 	INLINEREGISTER byte memoryhole;
@@ -321,7 +324,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 		}
 	}
 
-	if (memoryprotect_FE0000 && (*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF)) //Memory protected?
+	if (memoryprotect_FE0000 && (*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF) && iswrite) //Memory protected?
 	{
 		*nonexistant = 1; //We're non-existant!
 		return; //Abort!
@@ -331,38 +334,32 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 		*nonexistant = 1; //We're non-existant!
 		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1)) //Move memory FE0000-FFFFFF to E0000-FFFFF?
 		{
-			if ((*realaddress>=0xE0000) && (*realaddress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory?
+			if ((*realaddress>=0xE0000) && (*realaddress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
 			{
-				*nonexistant = 0; //We're existant now!
-				*realaddress += 0xF00000; //Patch to FE0000-FFFFFF memory range!
-				memloc = 2; //Take us as the 16MB block instead!
-				goto applycompaqlowmemoryremapping; //Apply the new block instead!
+				memloc = 2; //We're the second block instead!
+				*realaddress += MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)-0xE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+				return; //Apply the new block instead!
 			}
 		}
 	}
 	else //Plain memory?
 	{
-		switch (memloc) //What block?
+		*nonexistant = 0; //We're to be used directly!
+		if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
 		{
-			case 0: //Main memory?
-				return; //Nothing to be done!
-			case 3: //4GB+ 64-bit memory?
-				if (MoveLowMemoryHigh&4) //Move high memory high?
-				{
-					*realaddress -= ((uint_64)HIGH_MEMORYHOLE_END-(uint_64)HIGH_MEMORYHOLE_START);
-				}
-			case 2: //16MB+ high memory?
-				applycompaqlowmemoryremapping: //Apply low memory remapping?
-				if (MoveLowMemoryHigh&2) //Move mid memory high?
-				{
-					*realaddress -= (MID_MEMORYHOLE_END-MID_MEMORYHOLE_START);
-				}
-			case 1: //1MB+ mid memory?
-				if (MoveLowMemoryHigh&1) //Move low memory high?
-				{
-					*realaddress -= (LOW_MEMORYHOLE_END-LOW_MEMORYHOLE_START);
-				}
-				break;
+			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
+		}
+		if ((MoveLowMemoryHigh&2) && (memloc>=2)) //Move second block lower?
+		{
+			*realaddress -= (MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch into memory hole!
+		}
+		if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
+		{
+			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
+		}
+		if ((*realaddress >= MMU.size) || ((*realaddress>=MMU.maxsize) && MMU.maxsize)) //Reserved memory?
+		{
+			*nonexistant = 2; //Reserved for reading only!
 		}
 	}
 }
@@ -373,8 +370,13 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
-	if ((realaddress >= MMU.size) || ((realaddress>=MMU.maxsize) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
+	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386)) //Compaq special register?
+	{
+		result = ((MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)+MMU_RESERVEDMEMORY)>=0xA0000)?0x40:0x00; //Second 1MB memory installed?
+		goto specialreadcycle; //Apply the special read cycle!
+	}
+	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
+	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || ((realaddress>=(MMU.maxsize+MMU_RESERVEDMEMORY)) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
@@ -387,6 +389,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
+	specialreadcycle:
 	DRAM_access(realaddress); //Tick the DRAM!
 	if (index != 0xFF) //Don't ignore BUS?
 	{
@@ -399,8 +402,6 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	}
 	return result; //Give existant memory!
 }
-
-extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
 void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
@@ -426,13 +427,13 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory!
 		}
 	}
-	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
+	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if ((realaddress >= MMU.size) || ((realaddress>=MMU.maxsize) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
+	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || ((realaddress>=(MMU.maxsize+MMU_RESERVEDMEMORY)) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
