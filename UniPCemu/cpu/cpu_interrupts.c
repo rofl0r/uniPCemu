@@ -201,6 +201,7 @@ void CPU_IRET()
 			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
 				tempesp = CPU_POP32(); //POP ESP!
+				tempSS = CPU_POP16(); //POP SS!
 				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
 				{
 					V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register!
