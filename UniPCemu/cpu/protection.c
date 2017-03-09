@@ -721,7 +721,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
 				for (;arguments--;) //Copy as many arguments as needed!
 				{
-					if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit source?
+					if (callgatetype==2) //32-bit source?
 					{
 						argument = CPU_POP32(); //POP 32-bit argument!
 					}
@@ -813,7 +813,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						{
 							if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
 							{
-								if ((CODE_SEGMENT_DESCRIPTOR_D_BIT()) && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+								if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ TSSSize && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
 								{
 									CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
 								}
@@ -829,8 +829,8 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				
 				if (isDifferentCPL) //CPL changed?
 				{
-					CPU_PUSH16(&REG_SP); //SP to return!
-					if (CPU_Operand_size[activeCPU])
+					CPU_PUSH16(&REG_SS); //SS to return!
+					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
 						CPU_PUSH32(&REG_ESP);
 					}
@@ -873,7 +873,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					//Privilege change!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (CPU_Operand_size[activeCPU])
+					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
 						tempesp = CPU_POP32();
 					}
