@@ -282,6 +282,8 @@ extern byte is_XT; //Are we emulating a XT architecture?
 
 byte MoveLowMemoryHigh; //Disable HMA memory and enable the memory hole?
 
+byte memoryprotect_FE0000 = 1; //Memory-protect block at FE0000?
+byte BIOSROM_LowMemoryBecomesHighMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 {
 	INLINEREGISTER byte memloc; //What memory block?
@@ -319,9 +321,24 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 		}
 	}
 
+	if (memoryprotect_FE0000 && (*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF)) //Memory protected?
+	{
+		*nonexistant = 1; //We're non-existant!
+		return; //Abort!
+	}
 	if (memoryhole) //Memory hole?
 	{
 		*nonexistant = 1; //We're non-existant!
+		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1)) //Move memory FE0000-FFFFFF to E0000-FFFFF?
+		{
+			if ((*realaddress>=0xE0000) && (*realaddress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory?
+			{
+				*nonexistant = 0; //We're existant now!
+				*realaddress += 0xF00000; //Patch to FE0000-FFFFFF memory range!
+				memloc = 2; //Take us as the 16MB block instead!
+				goto applycompaqlowmemoryremapping; //Apply the new block instead!
+			}
+		}
 	}
 	else //Plain memory?
 	{
@@ -334,13 +351,12 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant)
 				{
 					*realaddress -= ((uint_64)HIGH_MEMORYHOLE_END-(uint_64)HIGH_MEMORYHOLE_START);
 				}
-				break;
 			case 2: //16MB+ high memory?
+				applycompaqlowmemoryremapping: //Apply low memory remapping?
 				if (MoveLowMemoryHigh&2) //Move mid memory high?
 				{
 					*realaddress -= (MID_MEMORYHOLE_END-MID_MEMORYHOLE_START);
 				}
-				break;
 			case 1: //1MB+ mid memory?
 				if (MoveLowMemoryHigh&1) //Move low memory high?
 				{
@@ -384,6 +400,8 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	return result; //Give existant memory!
 }
 
+extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
+
 void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
@@ -393,6 +411,21 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
+	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386)) //Compaq special register?
+	{
+		if (value&1) //Write-protect 128KB RAM at 0xFE0000?
+		{
+			memoryprotect_FE0000 = (value&1); //Protect the memory?
+		}
+		if (value&2) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
+		{
+			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
+		}
+		else
+		{
+			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory!
+		}
+	}
 	applyMemoryHoles(&realaddress,&nonexistant); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?
 	{

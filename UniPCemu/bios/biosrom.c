@@ -485,6 +485,8 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 	return 1; //Loaded!
 }
 
+byte BIOSROM_DisableLowMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
+
 byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
 {
 	uint_32 ROMsize;
@@ -497,6 +499,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	currentpos -= basepos; //Calculate from the base position!
+	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
 	basepos = currentpos; //Save a backup!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
 	if (!numOPT_ROMS) goto noOPTROMSR;
@@ -564,6 +567,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 		else return 0; //Our of range (32-bit)?
 	}
 	currentpos -= basepos; //Calculate from the base position!
+	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
 	basepos = currentpos; //Write back!
 	INLINEREGISTER uint_64 OPTROM_address, OPTROM_loc; //The address calculated in the EEPROM!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
@@ -717,6 +721,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	else return 0; //Our of range (32-bit)?
 
 	tempoffset -= basepos; //Calculate from the base position!
+	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
 	basepos = tempoffset; //Save for easy reference!
 
 	if (BIOS_custom_ROM) //Custom/system ROM loaded?
