@@ -53,6 +53,22 @@ uint_32 BIOSROM_BASE_Modern = 0xFFFF0000; //AT+ BIOS ROM base!
 uint_32 BIOSROM_BASE_AT = 0xFF0000; //AT BIOS ROM base!
 uint_32 BIOSROM_BASE_XT = 0xF0000; //XT BIOS ROM base!
 
+extern byte is_Compaq; //Are we emulating a Compaq device?
+
+void scanROM(char *device, char *filename)
+{
+	//Special case: 32-bit uses Compaq ROMs!
+	sprintf(filename, "%s/%s.%s.BIN", ROMpath,device,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+	if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+	{
+		sprintf(filename, "%s/%s.%s.BIN", ROMpath,device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+		if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+		{
+			sprintf(filename,"%s/%s.BIN",ROMpath,device); //CGA ROM!
+		}
+	}
+}
+
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
 	strcpy(originalROMpath,ROMpath); //Save the original ROM path for deallocation!
@@ -72,10 +88,14 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not Graphics Adapter ROM?
 		{
 			//Default!
-			sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,is_XT?"XT":"AT", i); //Create the filename for the ROM for the architecture!
+			sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT")), i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				sprintf(filename, "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+				sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,is_XT?"XT":"AT", i); //Create the filename for the ROM for the architecture!
+				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+				{
+					sprintf(filename, "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+				}
 			}
 		}
 		else
@@ -83,27 +103,19 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			ISVGA = 0; //No VGA!
 			if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
 			{
-				sprintf(filename, "%s/CGAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
-				{
-					sprintf(filename,"%s/CGAROM.BIN",ROMpath); //CGA ROM!
-				}
+				scanROM("CGAROM",&filename[0]); //Scan for a CGA ROM!
 			}
 			else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
 			{
-				sprintf(filename, "%s/MDAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-				sprintf(filename, "%s/MDAROM.BIN", ROMpath); //MDA ROM!
+				scanROM("MDAROM",&filename[0]); //Scan for a MDA ROM!
 			}
 			else
 			{	
 				ISVGA = 1; //We're a VGA!
 				if (BIOS_Settings.VGA_Mode==6) //ET4000?
 				{
-					sprintf(filename, "%s/ET4000.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
-					{
-						sprintf(filename, "%s/ET4000.BIN", ROMpath); //ET4000 ROM!
-					}
+					scanROM("ET4000",&filename[0]); //Scan for a ET4000 ROM!
+					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full ET4000?
 					{
 						ISVGA = 2; //ET4000!
@@ -116,11 +128,8 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				else if (BIOS_Settings.VGA_Mode == 7) //ET3000?
 				{
-					sprintf(filename, "%s/ET3000.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
-					{
-						sprintf(filename, "%s/ET3000.BIN", ROMpath); //ET3000 ROM!
-					}
+					scanROM("ET3000",&filename[0]); //Scan for a ET3000 ROM!
+					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full ET3000?
 					{
 						ISVGA = 3; //ET3000!
@@ -133,11 +142,8 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				else if (BIOS_Settings.VGA_Mode == 8) //EGA?
 				{
-					sprintf(filename, "%s/EGAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
-					{
-						sprintf(filename, "%s/EGAROM.BIN", ROMpath); //EGA ROM!
-					}
+					scanROM("EGAROM",&filename[0]); //Scan for a EGA ROM!
+					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full EGA?
 					{
 						ISVGA = 4; //EGA!
@@ -150,11 +156,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				else //Plain VGA?
 				{
-					sprintf(filename, "%s/VGAROM.%s.BIN", ROMpath, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
-					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
-					{
-						sprintf(filename, "%s/VGAROM.BIN", ROMpath); //VGA ROM!
-					}
+					scanROM("VGAROM",&filename[0]); //Scan for a VGA ROM!
 				}
 			}
 		}
