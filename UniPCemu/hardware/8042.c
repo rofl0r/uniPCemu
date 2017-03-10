@@ -42,6 +42,8 @@ PS/2 Controller chip (8042)
 
 */
 
+extern byte is_Compaq; //To emulate Compaq controller?
+
 //Keyboard has higher input priority: IRQ1 expects data always, so higher priority!
 byte ControllerPriorities[2] = {0,1}; //Port order to check if something's there 1=Second port, 0=First port else no port!
 
@@ -630,6 +632,25 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	reset8042(); //First 8042 controller reset!
 	if (is_XT==0) //IBM AT? We're setting up the input port!
 	{
+		/*
+		From Bochs' ports.lst:
+		AT keyboard controller input port bit definitions
+		  bit 7	  = 0  keyboard inhibited
+		  bit 6	  = 0  CGA, else MDA
+		  bit 5	  = 0  manufacturing jumper installed
+		  bit 4	  = 0  system RAM 512K, else 640K
+		  bit 3-0      reserved
+
+		 AT keyboard controller input port bit definitions by Compaq
+		  bit 7	  = 0  security lock is locked
+		  bit 6	  = 0  Compaq dual-scan display, 1=non-Compaq display
+		  bit 5	  = 0  system board dip switch 5 is ON
+		  bit 4	  = 0  auto speed selected, 1=high speed selected
+		  bit 3	  = 0  slow (4MHz), 1 = fast (8MHz)
+		  bit 2	  = 0  80287 installed, 1= no NDP installed
+		  bit 1-0      reserved
+
+		*/
 		Controller8042.inputport = 0x80|0x20; //Keyboard not inhibited, Manufacturing jumper not installed.
 		switch (BIOS_Settings.VGA_Mode) //What VGA mode?
 		{
@@ -640,6 +661,10 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 			break; //Report MDA!
 		default: //(S)VGA?
 			break; //Report CGA!
+		}
+		if (is_Compaq)
+		{
+			Controller8042.inputport = (Controller8042.inputport&0xA0)|0x4C; //Patch Compaq-compatible!
 		}
 	}
 	timing8042 = 0.0; //Nothing yet!
