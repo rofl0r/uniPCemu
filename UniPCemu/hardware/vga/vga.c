@@ -193,9 +193,17 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 
 	VGA->enable_SVGA = extension; //Enable the extension when set!
 
-	if (extension==3) //EGA? We're starting in color mode!
+	switch (extension)
 	{
-		VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER |= 1; //We're starting in color mode always!
+		case 3: //EGA? We're starting in color mode!
+		case 0: //VGA?
+		case 1: //SVGA?
+		case 2: //SVGA?
+			VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER |= 1; //We're starting in color mode always!
+			break;
+		default: //Non VGA?
+			//Leave it to the hardware defaults!
+			break;
 	}
 
 	debugrow("VGA: Executing initial precalculations...");
