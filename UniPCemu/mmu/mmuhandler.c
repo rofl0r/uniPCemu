@@ -373,7 +373,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	byte nonexistant = 0;
 	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
-		result = ~((MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)+MMU_RESERVEDMEMORY)>=0xA0000)?0xF0:0x30); //Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)). Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
+		result = ~((MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)+MMU_RESERVEDMEMORY)>=0xA0000)?0xF0:0x30; //Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)). Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
