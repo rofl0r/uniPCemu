@@ -271,7 +271,7 @@ int getLoadedTYPE(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 	return GENERALSEGMENT_S(loadeddescriptor->desc)?EXECSEGMENT_ISEXEC(loadeddescriptor->desc):2; //Executable or data, else System?
 }
 
-int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor) //0=Fault, 1=Gate, -1=System Segment descriptor
+int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor) //0=Fault, 1=Gate, -1=System Segment descriptor, 2=Normal segment descriptor.
 {
 	if (getLoadedTYPE(loadeddescriptor)==2) //System?
 	{
