@@ -37,6 +37,7 @@ void CPU_doublefault()
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode only?
 	{
 		uint_64 zerovalue=0; //Zero value pushed!
+		++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
 		CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
 		call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
 	}
@@ -56,6 +57,7 @@ byte CPU_faultraised(byte type)
 		else
 		{
 			//Based on the table at http://os.phil-opp.com/double-faults.html whether or not to cause a double fault!
+			CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 			switch (CPU[activeCPU].faultraised_lasttype) //What type was first raised?
 			{
 				case EXCEPTION_DIVIDEERROR:
@@ -69,7 +71,6 @@ byte CPU_faultraised(byte type)
 						case EXCEPTION_SEGMENTNOTPRESENT:
 						case EXCEPTION_STACKFAULT:
 						case EXCEPTION_GENERALPROTECTIONFAULT:
-							++CPU[activeCPU].faultlevel; //Raise the fault level!
 							CPU_doublefault(); //Double faulting!
 							return 0; //Don't do anything anymore(partial shutdown)!
 							break;
@@ -85,7 +86,6 @@ byte CPU_faultraised(byte type)
 						case EXCEPTION_SEGMENTNOTPRESENT:
 						case EXCEPTION_STACKFAULT:
 						case EXCEPTION_GENERALPROTECTIONFAULT:
-							++CPU[activeCPU].faultlevel; //Raise the fault level!
 							CPU_doublefault(); //Double faulting!
 							return 0; //Don't do anything anymore(partial shutdown)!
 							break;
@@ -96,7 +96,6 @@ byte CPU_faultraised(byte type)
 				default: //No double fault!
 					break;
 			}
-			CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 		}
 	}
 	else
