@@ -271,7 +271,7 @@ int getLoadedTYPE(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 	return GENERALSEGMENT_S(loadeddescriptor->desc)?EXECSEGMENT_ISEXEC(loadeddescriptor->desc):2; //Executable or data, else System?
 }
 
-int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
+int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor) //0=Fault, 1=Gate, -1=System Segment descriptor
 {
 	if (getLoadedTYPE(loadeddescriptor)==2) //System?
 	{
@@ -279,25 +279,29 @@ int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor)
 		{
 		case AVL_SYSTEM_RESERVED_0: //NULL descriptor?
 			return 0; //NULL descriptor!
-		case AVL_SYSTEM_BUSY_TSS16BIT: //TSS?
+		//32-bit only stuff?
 		case AVL_SYSTEM_BUSY_TSS32BIT: //TSS?
-		case AVL_SYSTEM_TSS16BIT: //TSS?
 		case AVL_SYSTEM_TSS32BIT: //TSS?
+			if (EMULATED_CPU<=CPU_80286) return 0; //Invalid descriptor on 286-!
+		//16-bit stuff? Always supported
+		case AVL_SYSTEM_BUSY_TSS16BIT: //TSS?
+		case AVL_SYSTEM_TSS16BIT: //TSS?
 		case AVL_SYSTEM_LDT: //LDT?
 			return -1; //System segment descriptor!
+		case AVL_SYSTEM_CALLGATE32BIT:
+		case AVL_SYSTEM_INTERRUPTGATE32BIT:
+		case AVL_SYSTEM_TRAPGATE32BIT: //Any type of gate?
+			if (EMULATED_CPU<=CPU_80286) return 0; //Invalid descriptor on 286-!
 		case AVL_SYSTEM_TASKGATE: //Task gate?
 		case AVL_SYSTEM_CALLGATE16BIT:
-		case AVL_SYSTEM_CALLGATE32BIT:
 		case AVL_SYSTEM_INTERRUPTGATE16BIT:
-		case AVL_SYSTEM_INTERRUPTGATE32BIT:
 		case AVL_SYSTEM_TRAPGATE16BIT:
-		case AVL_SYSTEM_TRAPGATE32BIT: //Any type of gate?
 			return 1; //We're a gate!
 		default: //Unknown type?
 			break;
 		}
 	}
-	return 0; //Not a gate descriptor!
+	return 2; //Not a gate descriptor, always valid!
 }
 
 void THROWDESCGP(word segmentval, byte external, byte tbl)
@@ -540,6 +544,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		return NULL; //We're an invalid TSS to execute!
 	}
 
+	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
+	{
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+		return NULL; //We're an invalid descriptor to use!
+	}
+
 	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && isJMPorCALL) //Handling of gate descriptors?
 	{
 		is_gated = 1; //We're gated!
@@ -555,10 +565,15 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //Error, by specified reason!
 		}
+		if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
+		{
+			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			return NULL; //We're an invalid descriptor to use!
+		}
 		privilegedone = 1; //Privilege has been precalculated!
 		if (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc) == AVL_SYSTEM_TASKGATE) //Task gate?
 		{
-			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal!
+			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal! TR doesn't support Task Gates directly(hardware only)!
 			{
 				THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //Don't load!
@@ -589,6 +604,13 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		equalprivilege = 1; //Enforce equal privilege!
 	}
 
+	//Final descriptor safety check!
+	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
+	{
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+		return NULL; //We're an invalid descriptor to use!
+	}
+
 	if (
 		(
 		(segment==CPU_SEGMENT_SS) ||
@@ -609,6 +631,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	
 	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc)) //We're a TSS? We're to perform a task switch!
 	{
+	case AVL_SYSTEM_BUSY_TSS16BIT:
+	case AVL_SYSTEM_TSS16BIT: //TSS?
 	case AVL_SYSTEM_BUSY_TSS32BIT:
 	case AVL_SYSTEM_TSS32BIT: //TSS?
 		is_TSS = (getLoadedTYPE(&LOADEDDESCRIPTOR)==2); //We're a TSS when a system segment!
