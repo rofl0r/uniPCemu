@@ -1190,26 +1190,27 @@ byte disallowPOPFI() //Allow POPF to change interrupt flag?
 
 byte checkPortRights(word port) //Are we allowed to not use this port?
 {
-	if (checkSpecialRights()) //We're to check the I/O permission bitmap!
+	if (checkSpecialRights()) //We're to check the I/O permission bitmap! 286+ only!
 	{
 		uint_32 maplocation;
 		byte mappos;
+		byte mapvalue;
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
-		//if ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_BUSY_TSS16BIT) || (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].Type == AVL_SYSTEM_TSS16BIT)) //16-bit TSS?
-		if ((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) //32-bit TSS?
+		mapvalue = 1; //Default to have the value 1!
+		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) << 16); //The limit of the descriptor!
 			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
-			if (maplocation >= limit) //Over the limit? We're an invalid entry or got no bitmap!
+			if (maplocation < limit) //Not over the limit? We're an valid entry!
 			{
-				return 1; //We're to cause an exception!
+				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos); //We're the bit to use!
 			}
-			if (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos) //We're to cause an exception: we're not allowed to access this port!
-			{
-				return 1; //We're to cause an exception!
-			}
+		}
+		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
+		{
+			return 1; //Trigger an exception!
 		}
 	}
 	return 0; //Allow all for now!
