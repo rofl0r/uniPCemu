@@ -609,9 +609,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	
 	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc)) //We're a TSS? We're to perform a task switch!
 	{
-	case AVL_SYSTEM_BUSY_TSS16BIT:
 	case AVL_SYSTEM_BUSY_TSS32BIT:
-	case AVL_SYSTEM_TSS16BIT:
 	case AVL_SYSTEM_TSS32BIT: //TSS?
 		is_TSS = (getLoadedTYPE(&LOADEDDESCRIPTOR)==2); //We're a TSS when a system segment!
 		break;
