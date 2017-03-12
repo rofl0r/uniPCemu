@@ -380,8 +380,8 @@ OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 			xres = (xres>EMU_MAX_X)?EMU_MAX_X:xres; //Limit to buffer width!
 			yres = (yres>EMU_MAX_Y)?EMU_MAX_Y:yres; //Limit to buffer height!
 
-			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(xres, yres, GPU.emu_screenbuffer, EMU_BUFFERPITCH); //Create container 32BPP pixel mode!
-			if (emu_screen) //Createn to render?
+			GPU_SDL_Surface *emu_screen = createSurfaceFromPixels(xres, yres, GPU.emu_screenbuffer, EMU_BUFFERPITCH); //Create container 32BPP pixel mode of the display buffer!
+			if (emu_screen) //Createn the screen buffer to render?
 			{
 				if (!(VIDEO_DIRECT) || GPU.aspectratio) //No direct plot or aspect ratio set?
 				{
