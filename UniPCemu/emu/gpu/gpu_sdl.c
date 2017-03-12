@@ -249,13 +249,7 @@ OPTINLINE word getlayerheight(GPU_SDL_Surface *img)
 
 OPTINLINE word getlayervirtualwidth(GPU_SDL_Surface *surface)
 {
-	INLINEREGISTER uint_32 pitch;
-	pitch = surface->sdllayer->pitch; //Load the pitch!
-	if (pitch >= 4) //Got pitch?
-	{
-		return (pitch >> 2); //Pitch in pixels!
-	}
-	return getlayerwidth(surface); //Just use the width as a pitch to fall back to!
+	return surface->pixelpitch; //Give the pixel pitch, in pixels!
 }
 
 OPTINLINE uint_32 **getlayerpixels(GPU_SDL_Surface *img)
@@ -324,6 +318,18 @@ void registerSurface(GPU_SDL_Surface *surface, char *name, byte allowsurfacerele
 			dolog("registerSurface", "Registering the surface failed.");
 			return;
 		}
+	}
+
+	//Pixel pitch is also pre-registered: we're not changed usually, unless released!
+	INLINEREGISTER uint_32 pitch;
+	pitch = surface->sdllayer->pitch; //Load the pitch!
+	if (pitch >= 4) //Got pitch?
+	{
+		surface->pixelpitch = (pitch >> 2); //Pitch in pixels!
+	}
+	else //Default width to work with?
+	{
+		surface->pixelpitch = getlayerwidth(surface); //Just use the width as a pitch to fall back to!
 	}
 
 	uint_32 pixels_size;
@@ -602,10 +608,12 @@ parameters:
 
 void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_32 *pixels, int center, uint_32 row_start, word *xstart) //Based upon above, but for whole rows at once!
 {
+	uint_32 use_rowsize;
+	uint_32 *row;
 	if (surface && pixels) //Got surface and pixels!
 	{
 		if (y >= getlayerheight(surface)) return; //Invalid row detection!
-		uint_32 use_rowsize = MIN(get_pixelrow_pitch(surface),rowsize); //Minimum is decisive!
+		use_rowsize = MIN(get_pixelrow_pitch(surface),rowsize); //Minimum is decisive!
 		if (use_rowsize) //Got something to copy and valid row?
 		{
 			if ((row_start+use_rowsize)>get_pixelrow_pitch(surface) && ((!(center&3)) && (!(center&4)))) //More than we can handle?
@@ -705,7 +713,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 #ifdef PPRLOG
 		dolog("PPR", "Rendering empty pixels because of invalid data to copy.");
 #endif
-		uint_32 *row = get_pixel_row(surface,y,0); //Row at the left!
+		row = get_pixel_row(surface,y,0); //Row at the left!
 		if (row && getlayervirtualwidth(surface)) //Got row?
 		{
 			if (filledmem(row, getlayervirtualwidth(surface))) //Different?

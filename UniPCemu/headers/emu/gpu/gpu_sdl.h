@@ -19,6 +19,7 @@ typedef struct {
 	int *hrowincrements, *vrowincrements;
 	uint_32 hrowincrements_precalcs, vrowincrements_precalcs; //Information about source and destination surfaces!
 	uint_32 hrowincrements_size, vrowincrements_size; //The size of the horizontal and vertical row increment sizes!
+	uint_32 pixelpitch; //Difference of a row of data in the surface, in pixels!
 } GPU_SDL_Surface; //Our userdata!
 
 GPU_SDL_Surface *getSurfaceWrapper(SDL_Surface *surface); //Retrieves a surface wrapper (for the GPU HW Surface only!)
