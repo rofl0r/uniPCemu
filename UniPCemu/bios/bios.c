@@ -227,6 +227,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT; //Default breakpoint setting!
 	BIOS_Settings.diagnosticsportoutput_timeout = DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT; //Default breakpoint setting!
 	BIOS_Settings.useDirectMIDI = DEFAULT_DIRECTMIDIMODE; //Default breakpoint setting!
+	BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE; //Default BIOS ROM mode setting!
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
 	keyboard_loadDefaults(); //Load the defaults for the keyboard!
@@ -350,6 +351,11 @@ void BIOS_LoadData() //Load BIOS settings!
 		if (bytesread < ((((ptrnum)&BIOS_Settings.useDirectMIDI) + sizeof(BIOS_Settings.useDirectMIDI)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
 		{
 			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIRECTMIDIMODE;
+			defaultsapplied = 1; //We've been applied!
+		}
+		if (bytesread < ((((ptrnum)&BIOS_Settings.BIOSROMmode) + sizeof(BIOS_Settings.BIOSROMmode)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
+		{
+			BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE;
 			defaultsapplied = 1; //We've been applied!
 		}
 	}

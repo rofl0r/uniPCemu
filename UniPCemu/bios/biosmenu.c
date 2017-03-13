@@ -60,12 +60,14 @@ extern byte diagnosticsportoutput; //Diagnostics port output!
 //Boot time in 2 seconds!
 #define BOOTTIME 2000000
 
+#define MENU_MAXITEMS 0x100
+
 extern char diskpath[256]; //The full disk path used!
 
 char soundfontpath[256] = "soundfonts";
 char musicpath[256] = "music"; //Music directory containing all music!
 
-char menuoptions[256][256]; //Going to contain the menu's for BIOS_ShowMenu!
+char menuoptions[MENU_MAXITEMS][256]; //Going to contain the menu's for BIOS_ShowMenu!
 
 typedef struct
 {
@@ -196,6 +198,7 @@ void BIOS_TurboCPUSpeedMode();
 void BIOS_useDirectMIDIPassthrough();
 void BIOS_breakpoint();
 void BIOS_syncTime(); //Reset the kept time in UniPCemu!
+void BIOS_ROMMode(); //ROM mode!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -264,6 +267,7 @@ Handler BIOS_Menus[] =
 	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #61!
 	,BIOS_breakpoint //Breakpoint is #62!
 	,BIOS_syncTime //Reset timekeeping is #63!
+	,BIOS_ROMMode //BIOS ROM mode is #64!
 };
 
 //Not implemented?
@@ -278,7 +282,7 @@ byte BIOS_EnablePlay = 0; //Enable play button=OK?
 GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 
 int advancedoptions = 0; //Number of advanced options!
-byte optioninfo[0x10]; //Option info for what option!
+byte optioninfo[MENU_MAXITEMS]; //Option info for what option!
 
 void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIOS allocation (so before MMU, because it may take it all)!
 {
@@ -691,7 +695,7 @@ byte BIOS_printscreen(word x, word y, byte attr, char *text, ...)
 
 extern byte GPU_surfaceclicked; //Surface clicked to handle?
 
-int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
+int ExecuteMenu(int numitems, int startrow, int allowspecs, word *stat)
 {
 	*stat = BIOSMENU_STAT_OK; //Plain status for default!
 	int key = 0; //Currently pressed key(s)
@@ -791,7 +795,7 @@ int BIOS_ShowMenu(int numitems, int startrow, int allowspecs, word *stat)
 					EMU_unlocktext();
 					return cur; //This item has been chosen!
 				}
-			} while (++cur<numitems);
+			} while (++cur<MIN(numitems,MENU_MAXITEMS));
 			EMU_unlocktext();
 		}
 	}
@@ -1387,7 +1391,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 {
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = BIOS_ShowMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_LTRIGGER: //L: Main menu?
@@ -1664,7 +1668,7 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 {
 	BIOS_Title("Advanced Menu");
 	BIOS_InitAdvancedText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_LTRIGGER: //L: Disk menu?
@@ -1766,7 +1770,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
 	}
 
-	int menuresult = BIOS_ShowMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
+	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
 
 	switch (menuresult) //What option has been chosen?
 	{
@@ -3499,7 +3503,7 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Input Settings Menu");
 	BIOS_InitInputText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -3696,7 +3700,7 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Map gaming mode buttons");
 	BIOS_InitGamingModeButtonsText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -3878,7 +3882,7 @@ void BIOS_gamingKeyboardColorsMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Assign keyboard colors");
 	BIOS_InitKeyboardColorsText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -4164,7 +4168,7 @@ void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Video Settings Menu");
 	BIOS_InitVideoSettingsText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -4337,7 +4341,7 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 {
 	BIOS_Title("Sound Settings Menu");
 	BIOS_InitSoundText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -4532,21 +4536,21 @@ void BIOS_Architecture()
 	{
 		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "XT"); //Set filename from options!
-	strcpy(itemlist[1], "AT"); //Set filename from options!
-	strcpy(itemlist[2], "PS/2"); //Set filename from options!
-	strcpy(itemlist[3], "Compaq Deskpro 386"); //Set filename from options!
+	strcpy(itemlist[ARCHITECTURE_XT], "XT"); //Set filename from options!
+	strcpy(itemlist[ARCHITECTURE_AT], "AT"); //Set filename from options!
+	strcpy(itemlist[ARCHITECTURE_PS2], "PS/2"); //Set filename from options!
+	strcpy(itemlist[ARCHITECTURE_COMPAQ], "Compaq Deskpro 386"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.architecture) //What setting?
 	{
-	case 0: //Valid
-	case 1: //Valid
-	case 2: //Valid
-	case 3: //Valid
+	case ARCHITECTURE_XT: //Valid
+	case ARCHITECTURE_AT: //Valid
+	case ARCHITECTURE_PS2: //Valid
+	case ARCHITECTURE_COMPAQ: //Valid
 		current = BIOS_Settings.architecture; //Valid: use!
 		break;
 	default: //Invalid
-		current = 0; //Default: none!
+		current = ARCHITECTURE_XT; //Default: none!
 		break;
 	}
 	if (BIOS_Settings.architecture != current) //Invalid?
@@ -4563,10 +4567,10 @@ void BIOS_Architecture()
 	case FILELIST_DEFAULT: //Default?
 		file = 0; //Default setting: Disabled!
 
-	case 0:
-	case 1:
-	case 2:
-	case 3:
+	case ARCHITECTURE_XT:
+	case ARCHITECTURE_AT:
+	case ARCHITECTURE_PS2:
+	case ARCHITECTURE_COMPAQ:
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -4846,27 +4850,45 @@ setShowCPUSpeed:
 	}
 	++advancedoptions; //Increase after!
 
-setMousetext: //For fixing it!
-	optioninfo[advancedoptions] = 13; //Mouse!
+setArchitecture: //For fixing it!
+	optioninfo[advancedoptions] = 13; //Architecture!
 	strcpy(menuoptions[advancedoptions], "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
-	case 0:
+	case ARCHITECTURE_XT:
 		strcat(menuoptions[advancedoptions++], "XT");
 		break;
-	case 1:
+	case ARCHITECTURE_AT:
 		strcat(menuoptions[advancedoptions++], "AT");
 		break;
-	case 2:
+	case ARCHITECTURE_PS2:
 		strcat(menuoptions[advancedoptions++], "PS/2");
 		break;
-	case 3:
+	case ARCHITECTURE_COMPAQ:
 		strcat(menuoptions[advancedoptions++], "Compaq Deskpro 386");
 		break;
 	default: //Error: fix it!
-		BIOS_Settings.architecture = 0; //Reset/Fix!
+		BIOS_Settings.architecture = ARCHITECTURE_XT; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
-		goto setMousetext; //Goto!
+		goto setArchitecture; //Goto!
+		break;
+	}
+
+setBIOSROMmode: //For fixing it!
+	optioninfo[advancedoptions] = 16; //BIOS ROM mode!
+	strcpy(menuoptions[advancedoptions], "BIOS ROM mode: ");
+	switch (BIOS_Settings.BIOSROMmode) //What architecture?
+	{
+	case BIOSROMMODE_NORMAL:
+		strcat(menuoptions[advancedoptions++], "Normal BIOS ROM");
+		break;
+	case BIOSROMMODE_DIAGNOSTICS:
+		strcat(menuoptions[advancedoptions++], "Diagnostic ROM");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setBIOSROMmode; //Goto!
 		break;
 	}
 }
@@ -4875,7 +4897,7 @@ void BIOS_CPU() //CPU menu!
 {
 	BIOS_Title("CPU Settings Menu");
 	BIOS_InitCPUText(); //Init text!
-	int menuresult = BIOS_ShowMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions, 4, BIOSMENU_SPEC_RETURN|BIOSMENU_SPEC_SQUAREOPTION, &Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //R: Main menu?
@@ -4897,7 +4919,8 @@ void BIOS_CPU() //CPU menu!
 	case 12:
 	case 13:
 	case 14:
-	case 15: //Valid option?
+	case 15:
+	case 16: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5028,6 +5051,9 @@ void BIOS_CPU() //CPU menu!
 			{
 				BIOS_Menu = 60; //Turbo CPU speed selection!
 			}
+			break;
+		case 16: //BIOS ROM mode
+			if (!EMU_RUNNING) BIOS_Menu = 64; //Architecture option!
 			break;
 		}
 		break;
@@ -5412,7 +5438,7 @@ void BIOS_GenerateFloppyDisk()
 	bzero(filename, sizeof(filename)); //Init!
 	for (i=0;i<NUMFLOPPYGEOMETRIES;i++) //Process all geometries into a list!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		memset(&itemlist[i],0,sizeof(itemlist[i])); //Reset!
 		if (floppygeometries[i].KB>=1024) //1024K+?
 		{
 			if (floppygeometries[i].measurement) //3.5"?
@@ -6561,5 +6587,60 @@ void BIOS_breakpoint()
 		}
 	}
 	abortcoloninput:
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_ROMMode()
+{
+	BIOS_Title("BIOS ROM mode");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "BIOS ROM mode: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Amount of Direct modes!
+	for (i = 0; i<2; i++) //Process options!
+	{
+		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[BIOSROMMODE_NORMAL], "Normal BIOS ROM"); //Set filename from options!
+	strcpy(itemlist[BIOSROMMODE_DIAGNOSTICS], "Diagnostic ROM"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.BIOSROMmode) //What setting?
+	{
+	case BIOSROMMODE_NORMAL: //Valid
+	case BIOSROMMODE_DIAGNOSTICS: //Valid
+		current = BIOS_Settings.BIOSROMmode; //Valid: use!
+		break;
+	default: //Invalid
+		current = DEFAULT_BIOSROMMODE; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.BIOSROMmode != current) //Invalid?
+	{
+		BIOS_Settings.BIOSROMmode = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(15, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_BIOSROMMODE; //Default setting: Disabled!
+
+	case BIOSROMMODE_NORMAL:
+	case BIOSROMMODE_DIAGNOSTICS:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.BIOSROMmode = file; //Select PS/2 Mouse setting!
+			reboot_needed |= 1; //A reboot is needed when applied!
+		}
+		break;
+	}
 	BIOS_Menu = 35; //Goto CPU menu!
 }

@@ -263,12 +263,26 @@ int BIOS_load_ROM(byte nr)
 	retryext:
 	if ((tryext==0) && (EMULATED_CPU>=CPU_80386)) //Extension ROM available?
 	{
-		sprintf(filename,"%s/BIOSROM.32.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+			sprintf(filename,"%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+		}
+		else //Normal mode?
+		{
+			sprintf(filename,"%s/BIOSROM.32.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+		}
 		tryext = 1; //We're trying an extension!
 	}
 	else //Normal ROM try?
 	{
-		sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
+		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+			sprintf(filename,"%s/BIOSROM.U%u.DIAGNOSTICS.BIN",originalROMpath,nr); //Create the filename for the ROM!
+		}
+		else
+		{
+			sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
+		}
 	}
 	f = fopen(filename,"rb");
 	if (!f)
@@ -299,7 +313,7 @@ int BIOS_load_ROM(byte nr)
 		}
 		fclose(f); //Close the file!
 
-		BIOS_ROMS_ext[nr] = (tryext==1)?1:0; //Extension enabled?
+		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?2:0)|((tryext==1)?1:0); //Extension enabled?
 
 		switch (nr) //What ROM has been loaded?
 		{
@@ -401,13 +415,27 @@ void BIOS_free_ROM(byte nr)
 {
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	if (BIOS_ROMS_ext[nr]) //Extension ROM?
+	if (BIOS_ROMS_ext[nr]&1) //Extension ROM?
 	{
-		sprintf(filename,"BIOSROM.32.U%u.BIN",nr); //Create the filename for the ROM!
+		if (BIOS_ROMS_ext[nr]&2) //Diagnostic ROM?
+		{
+			sprintf(filename,"BIOSROM.32.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+		}
+		else //Normal ROM?
+		{
+			sprintf(filename,"BIOSROM.32.U%u.BIN",nr); //Create the filename for the ROM!
+		}
 	}
 	else
 	{
-		sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+		if (BIOS_ROMS_ext[nr]&2) //Diagnostic ROM?
+		{
+			sprintf(filename,"BIOSROM.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+		}
+		else //Normal ROM?
+		{
+			sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+		}
 	}
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
