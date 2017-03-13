@@ -29,10 +29,10 @@ void DoDebugFiles() //Do the debug files!
 	byte isfile;
 	DirListContainer_t dir;
 	char curdir[256], succeeddir[256];
-	bzero(&curdir,sizeof(curdir));
+	cleardata(&curdir[0],sizeof(curdir));
 	strcpy(curdir, ROMpath); //Root dir!
 	strcat(curdir,"/debug"); //Debug directory!
-	bzero(&succeeddir, sizeof(succeeddir));
+	cleardata(&succeeddir[0], sizeof(succeeddir));
 	strcpy(succeeddir, ROMpath); //Root dir!
 	strcat(succeeddir, "/debugsucceeded"); //Succeed directory!
 	if (!opendirlist(&dir,curdir,&direntry[0],&isfile))
@@ -49,10 +49,10 @@ void DoDebugFiles() //Do the debug files!
 	{
 		if ( (direntry[0] == '.') ) continue; //. or ..?
 		//Assume files only!
-		bzero(file_name,sizeof(file_name));
-		bzero(file_nameres,sizeof(file_nameres));
-		bzero(finish_name,sizeof(finish_name));
-		bzero(finish_nameres,sizeof(finish_nameres));
+		cleardata(&file_name[0],sizeof(file_name));
+		cleardata(&file_nameres[0],sizeof(file_nameres));
+		cleardata(&finish_name[0],sizeof(finish_name));
+		cleardata(&finish_nameres[0],sizeof(finish_nameres));
 		//Source files
 		sprintf(file_name,"%s/%s",curdir,direntry); //Original file!
 		sprintf(file_nameres,"%s/res_%s",curdir,direntry); //Result file!

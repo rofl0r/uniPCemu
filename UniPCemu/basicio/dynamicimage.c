@@ -647,7 +647,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 	FILE *f;
 
 	char fullfilename[256];
-	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+	memset(&fullfilename,0,sizeof(fullfilename)); //Init!
 	strcpy(fullfilename, diskpath); //Disk path!
 	strcat(fullfilename, "/");
 	strcat(fullfilename, filename); //The full filename!

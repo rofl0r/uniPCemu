@@ -270,7 +270,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 //read the boot image
 //Process the "boot sector"=boot image
 
-	bzero(&fullfilename,sizeof(fullfilename)); //Init the filename!
+	cleardata(&fullfilename[0],sizeof(fullfilename)); //Init the filename!
 	strcpy(fullfilename,diskpath); //Disk path!
 	strcat(fullfilename,"/");
 	strcat(fullfilename,imagefile); //The full path of the image file!

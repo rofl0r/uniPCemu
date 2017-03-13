@@ -152,7 +152,7 @@ void stopHiresCounting(char *src, char *what, TicksHolder *ticksholder)
 {
 	char time[30]; //Some time holder!
 	float passed = getuspassed(ticksholder); //Get the time that has passed!
-	bzero(time,sizeof(time)); //Init holder!
+	cleardata(&time[0],sizeof(time)); //Init holder!
 	convertTime(passed,&time[0]); //Convert the time!
 	dolog(src,"Counter %s took %s",what,time); //Log it!
 }

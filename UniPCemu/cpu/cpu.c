@@ -204,8 +204,8 @@ void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichreg
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text8(theparams,whichregister1,&modrm_param1[0]);
 		modrm_text8(theparams,whichregister2,&modrm_param2[0]);
 	}
@@ -215,8 +215,8 @@ void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text16(theparams,whichregister1,&modrm_param1[0]);
 		modrm_text16(theparams,whichregister2,&modrm_param2[0]);
 	}
@@ -226,8 +226,8 @@ void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text32(theparams,whichregister1,&modrm_param1[0]);
 		modrm_text32(theparams,whichregister2,&modrm_param2[0]);
 	}
@@ -259,7 +259,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 	{
 		//Process debugger!
 		char result[256];
-		bzero(result,sizeof(result));
+		cleardata(&result[0],sizeof(result));
 		strcpy(result,instruction); //Set the instruction!
 		switch (type)
 		{
@@ -1444,7 +1444,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 
 	char debugtext[256]; //Debug text!
-	bzero(debugtext,sizeof(debugtext)); //Init debugger!	
+	cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!	
 
 	INLINEREGISTER byte OP; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?

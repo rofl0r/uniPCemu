@@ -127,7 +127,7 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	w <<= doublexres; //Apply double!
 	h <<= doubleyres; //Apply double!	
 
-	bzero(filename,sizeof(filename));
+	cleardata(&filename[0],sizeof(filename));
 	strcpy(filename,thefilename); //Copy!
 	strcat(filename,".bmp"); //Add extension!
 

@@ -62,7 +62,7 @@ void timer_thread() //Handler for timer!
 
 	if (__HW_DISABLED) return; //Abort!
 
-	bzero(name,sizeof(name)); //Init name!
+	cleardata(&name[0],sizeof(name)); //Init name!
 
 	lock(LOCK_TIMERS);
 	if (!timer_init) //Not initialised yet?

@@ -559,7 +559,7 @@ extern char capturepath[256]; //Full capture path!
 void MMU_dumpmemory(char *filename) //Dump the memory to a file!
 {
 	char filenamefull[256];
-	bzero(&filenamefull,sizeof(filenamefull)); //Clear memory!
+	cleardata(&filenamefull[0],sizeof(filenamefull)); //Clear memory!
 	sprintf(filenamefull,"%s/%s",capturepath,filename); //Capture path file!
 	domkdir(capturepath); //Make sure we exist!
 	FILE *f;

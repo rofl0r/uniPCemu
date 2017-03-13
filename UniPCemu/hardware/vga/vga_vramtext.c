@@ -90,7 +90,7 @@ uint_32 textdisplay[32 * 8 * 256 * 2]; //All possible output!
 void dumpVGATextFonts()
 {
 	char fullfilename[256];
-	bzero(&fullfilename,sizeof(fullfilename)); //Init!
+	cleardata(&fullfilename[0],sizeof(fullfilename)); //Init!
 	uint_32 displayindex;
 	byte *getcharxy_values;
 

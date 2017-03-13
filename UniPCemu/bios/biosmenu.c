@@ -1294,7 +1294,7 @@ void BIOS_InitDisksText()
 	int i;
 	for (i=0; i<12; i++)
 	{
-		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
+		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
 	strcpy(menuoptions[0],"Floppy A: ");
 	strcpy(menuoptions[1],"Floppy B: ");
@@ -1513,7 +1513,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 	int i = 0; //Counter!
 	for (i=0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
 		strcpy(itemlist[i],BOOT_ORDER_STRING[i]); //Set filename from options!
 	}
 	if (BIOS_Settings.bootorder>=numlist)
@@ -1548,7 +1548,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	numlist = 6; //Amount of CPU types!
 	for (i=0; i<6; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
 	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
@@ -1630,7 +1630,7 @@ void BIOS_InitAdvancedText()
 	int i;
 	for (i = 0; i<12; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
 
 	optioninfo[advancedoptions] = 0; //CPU menu!
@@ -1730,7 +1730,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	int i;
 	for (i=0; i<6; i++)
 	{
-		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
+		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
 	advancedoptions = 0; //No advanced options!
 	if (BIOS_Changed) //Changed?
@@ -2221,7 +2221,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	char fullfilename[256]; //Full filename container!
 	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
-	bzero(filename,sizeof(filename)); //Init!
+	memset(&filename[0],0,sizeof(filename)); //Init!
 	BIOS_Title("Generate Static HDD Image"); //Full clear!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
@@ -2275,7 +2275,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	char fullfilename[256]; //Full filename container!
 	BIOS_Title("Generate Dynamic HDD Image");
 	char filename[256]; //Filename container!
-	bzero(filename,sizeof(filename)); //Init!
+	memset(&filename[0],0,sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
@@ -2333,7 +2333,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	char fullfilename[256]; //Full filename container!
-	bzero(filename, sizeof(filename)); //Init!
+	cleardata(&filename[0], sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
 	generateFileList(diskpath,"img", 0, 0); //Generate file list for all .img files!
@@ -2518,7 +2518,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	uint_32 sectorposition = 0; //Possible position of error!
 	char filename[256]; //Filename container!
 	char fullfilename[256];
-	bzero(filename, sizeof(filename)); //Init!
+	cleardata(&filename[0], sizeof(filename)); //Init!
 	FILEPOS size = 0;
 	BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
 	generateFileList(diskpath,"sfdimg", 0, 1); //Generate file list for all .img files!
@@ -2699,7 +2699,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	char filename[256], originalfilename[256]; //Filename container!
 	char fullfilename[256], fulloriginalfilename[256]; //Full filename container!
 	sbyte srcstatus=-1,deststatus=-1; //Status on the two dynamic disk images!
-	bzero(filename, sizeof(filename)); //Init!
+	cleardata(&filename[0], sizeof(filename)); //Init!
 	FILEPOS size = 0, sectorposition;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 	generateFileList(diskpath,"sfdimg", 0, 1); //Generate file list for all .img files!
@@ -2728,7 +2728,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 			EMU_unlocktext();
-			bzero(&originalfilename, sizeof(originalfilename)); //Init!
+			cleardata(&originalfilename[0], sizeof(originalfilename)); //Init!
 			strcpy(originalfilename, filename); //The original filename!
 			strcat(filename, ".tmp.sfdimg"); //Generate destination filename!
 
@@ -2887,7 +2887,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
-							bzero(&errorlog,sizeof(errorlog)); //Clear the error log data!
+							cleardata(&errorlog[0],sizeof(errorlog)); //Clear the error log data!
 							if (error==2) //Position/status error?
 							{
 								sprintf(errorlog,"Position/status error: Source status: %i, Destination status: %i, Error source sector: %u, error destination sector: %u",srcstatus,deststatus,sectornr,destsectornr);
@@ -2978,7 +2978,7 @@ void BIOS_DebugMode()
 	numlist = 4; //Amount of Debug modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
 
 	strcpy(itemlist[DEBUGMODE_NONE],"Disabled"); //Set filename from options!
@@ -3040,7 +3040,7 @@ void BIOS_ExecutionMode()
 	numlist = 6; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
 	strcpy(itemlist[EXECUTIONMODE_NONE], "Use emulator internal BIOS"); //Set filename from options!
@@ -3109,7 +3109,7 @@ void BIOS_DebugLog()
 	numlist = 7; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
 	strcpy(itemlist[DEBUGGERLOG_NONE], "Don't log"); //Set filename from options!
@@ -3199,7 +3199,7 @@ void BIOS_DirectPlotSetting()
 	numlist = 3; //Amount of Direct modes!
 	for (i=0; i<3; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0],"Disabled"); //Set filename from options!
 	strcpy(itemlist[1],"Automatic"); //Set filename from options!
@@ -3259,7 +3259,7 @@ void BIOS_FontSetting()
 	numlist = NUMITEMS(BIOSMenu_Fonts); //Amount of Direct modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 		strcpy(itemlist[i],BIOSMenu_Fonts[i].name); //Use the name!
 	}
 	int current = 0;
@@ -3307,7 +3307,7 @@ void BIOS_AspectRatio()
 	numlist = 7; //Amount of Aspect Ratio modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	if (BIOS_Settings.aspectratio>=numlist) //Too high?
 	{
@@ -3381,7 +3381,7 @@ void BIOS_BWMonitor()
 	numlist = 4; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
 	strcpy(itemlist[BWMONITOR_NONE], "Color"); //Set filename from options!
@@ -3454,7 +3454,7 @@ void BIOS_InitInputText()
 	int i;
 	for (i = 0; i<10; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
 	strcpy(menuoptions[advancedoptions++], "Map gaming mode buttons"); //Gaming mode buttons!
@@ -3626,7 +3626,7 @@ void BIOS_InitGamingModeButtonsText()
 	int i;
 	for (i = 0; i<15; i++) //Set all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 		optioninfo[advancedoptions] = i; //The key!
 		switch (i) //What key?
 		{
@@ -3781,7 +3781,7 @@ void BIOS_InitKeyboardColorsText()
 	int i;
 	for (i = 0; i<5; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
 	strcpy(menuoptions[advancedoptions], "Text font color: "); //Gaming mode buttons!
@@ -3837,7 +3837,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	numlist = 16; //Amount of colors!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 		strcpy(itemlist[i], &colors[i][0]); //Set the color to use!
 	}
 
@@ -3915,7 +3915,7 @@ void BIOS_VGAModeSetting()
 	numlist = 9; //Amount of VGA modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i],sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0],"Pure VGA"); //Set filename from options!
 	strcpy(itemlist[1],"VGA with NMI"); //Set filename from options!
@@ -3992,7 +3992,7 @@ void BIOS_InitVideoSettingsText()
 	int i;
 	for (i=0; i<6; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i],sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0],sizeof(menuoptions[i])); //Init!
 	}
 
 	optioninfo[advancedoptions] = 0; //We're direct plot setting!
@@ -4225,7 +4225,7 @@ void BIOS_InitSoundText()
 	int i;
 	for (i = 0; i<9; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 
 	optioninfo[advancedoptions] = 0; //MPU Soundfont!
@@ -4534,7 +4534,7 @@ void BIOS_Architecture()
 	numlist = 4; //Amount of Direct modes!
 	for (i = 0; i<4; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[ARCHITECTURE_XT], "XT"); //Set filename from options!
 	strcpy(itemlist[ARCHITECTURE_AT], "AT"); //Set filename from options!
@@ -4589,7 +4589,7 @@ void BIOS_InitCPUText()
 	int i;
 	for (i = 0; i<17; i++) //Clear all possibilities!
 	{
-		bzero(menuoptions[i], sizeof(menuoptions[i])); //Init!
+		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 
 	optioninfo[advancedoptions] = 0; //Installed CPU!
@@ -5336,7 +5336,7 @@ void BIOS_DataBusSizeSetting()
 	numlist = 2; //Amount of Direct modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "16/32-bit data bus"); //Set filename from options!
 	strcpy(itemlist[1], "8-bit data bus when possible"); //Set filename from options!
@@ -5435,7 +5435,7 @@ void BIOS_GenerateFloppyDisk()
 	word size; //The size to generate, in KB!
 	byte i;
 	char filename[256]; //Filename container!
-	bzero(filename, sizeof(filename)); //Init!
+	cleardata(&filename[0], sizeof(filename)); //Init!
 	for (i=0;i<NUMFLOPPYGEOMETRIES;i++) //Process all geometries into a list!
 	{
 		memset(&itemlist[i],0,sizeof(itemlist[i])); //Reset!
@@ -5598,7 +5598,7 @@ void BIOS_VGASynchronization()
 	numlist = 3; //Amount of Synchronization modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Old synchronization depending on host"); //Set filename from options!
 	strcpy(itemlist[1], "Synchronize depending on host"); //Set filename from options!
@@ -5648,7 +5648,7 @@ extern char capturepath[256]; //Capture path!
 void BIOS_DumpVGA()
 {
 	char fullfilename[256];
-	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+	cleardata(&fullfilename[0], sizeof(fullfilename)); //Init!
 
 	FILE *f;
 	int DACIndex;
@@ -5881,7 +5881,7 @@ void BIOS_CGAModel()
 	numlist = 4; //Amount of CGA Models!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Old-style RGB"); //Old-style RGB!
 	strcpy(itemlist[1], "Old-style NTSC"); //Old-style NTSC!
@@ -5941,7 +5941,7 @@ void BIOS_gamingmodeJoystick()
 	numlist = 6; //Amount of Joysticks supported plus Gaming mode mapping!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Normal gaming mode mapped input"); //Default to mapped input!
 	strcpy(itemlist[1], "Joystick, Cross=Button 1, Circle=Button 2"); //Joystick: Cross=Button 1, Circle=Button 2!
@@ -6048,7 +6048,7 @@ void BIOS_useSoundBlaster()
 	numlist = 3; //Amount of Synchronization modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Disabled"); //Set filename from options!
 	strcpy(itemlist[1], "Version 1.5"); //Set filename from options!
@@ -6347,7 +6347,7 @@ void BIOS_CPUSpeedMode()
 	numlist = 2; //Amount of CPU Speed Modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Instructions per millisecond"); //Set filename from options!
 	strcpy(itemlist[1], "1kHz cycles per second"); //Set filename from options!
@@ -6402,7 +6402,7 @@ void BIOS_TurboCPUSpeedMode()
 	numlist = 2; //Amount of CPU Speed Modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[0], "Instructions per millisecond"); //Set filename from options!
 	strcpy(itemlist[1], "1kHz cycles per second"); //Set filename from options!
@@ -6498,7 +6498,7 @@ uint_32 hex2int(char *s)
 void BIOS_breakpoint()
 {
 	char breakpointstr[8+1+4+1+1]; //32-bits offset, colon, 16-bits segment and mode if required, final character(always zero)!
-	bzero(&breakpointstr,sizeof(breakpointstr));
+	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
 	{
@@ -6602,7 +6602,7 @@ void BIOS_ROMMode()
 	numlist = 2; //Amount of Direct modes!
 	for (i = 0; i<2; i++) //Process options!
 	{
-		bzero(itemlist[i], sizeof(itemlist[i])); //Reset!
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[BIOSROMMODE_NORMAL], "Normal BIOS ROM"); //Set filename from options!
 	strcpy(itemlist[BIOSROMMODE_DIAGNOSTICS], "Diagnostic ROM"); //Set filename from options!

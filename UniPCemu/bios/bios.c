@@ -194,20 +194,20 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.memory = oldmem; //Keep this intact!
 //Now load the defaults.
 
-	bzero(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0));
+	memset(&BIOS_Settings.floppy0[0],0,sizeof(BIOS_Settings.floppy0));
 	BIOS_Settings.floppy0_readonly = 0; //Not read-only!
-	bzero(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1));
+	memset(&BIOS_Settings.floppy1[0],0,sizeof(BIOS_Settings.floppy1));
 	BIOS_Settings.floppy1_readonly = 0; //Not read-only!
-	bzero(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0));
+	memset(&BIOS_Settings.hdd0[0],0,sizeof(BIOS_Settings.hdd0));
 	BIOS_Settings.hdd0_readonly = 0; //Not read-only!
-	bzero(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1));
+	memset(&BIOS_Settings.hdd1[0],0,sizeof(BIOS_Settings.hdd1));
 	BIOS_Settings.hdd1_readonly = 0; //Not read-only!
 
-	bzero(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0));
-	bzero(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1));
+	memset(&BIOS_Settings.cdrom0[0],0,sizeof(BIOS_Settings.cdrom0));
+	memset(&BIOS_Settings.cdrom1[0],0,sizeof(BIOS_Settings.cdrom1));
 //CD-ROM always read-only!
 
-	bzero(BIOS_Settings.SoundFont,sizeof(BIOS_Settings.SoundFont)); //Reset the currently mounted soundfont!
+	memset(&BIOS_Settings.SoundFont[0],0,sizeof(BIOS_Settings.SoundFont)); //Reset the currently mounted soundfont!
 
 	BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Default boot order!
 	BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Which CPU to be emulated?
@@ -428,7 +428,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	{
 		if (!getDSKimage(FLOPPY0)) //NOT a DSK image?
 		{
-			bzero(BIOS_Settings.floppy0, sizeof(BIOS_Settings.floppy0)); //Unmount!
+			memset(&BIOS_Settings.floppy0[0],0,sizeof(BIOS_Settings.floppy0)); //Unmount!
 			BIOS_Settings.floppy0_readonly = 0; //Reset readonly flag!
 			//dolog("BIOS","Floppy A invalidated!");
 			bioschanged = 1; //BIOS changed!
@@ -439,7 +439,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	{
 		if (!getDSKimage(FLOPPY1)) //NOT a DSK image?
 		{
-			bzero(BIOS_Settings.floppy1, sizeof(BIOS_Settings.floppy1)); //Unmount!
+			memset(&BIOS_Settings.floppy1[0],0,sizeof(BIOS_Settings.floppy1)); //Unmount!
 			BIOS_Settings.floppy1_readonly = 0; //Reset readonly flag!
 			//dolog("BIOS","Floppy B invalidated!");
 			bioschanged = 1; //BIOS changed!
@@ -449,7 +449,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	//dolog("IO","Checking First HDD (%s)...",BIOS_Settings.hdd0);
 	if ((!readdata(HDD0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd0,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0)); //Unmount!
+		memset(&BIOS_Settings.hdd0[0],0,sizeof(BIOS_Settings.hdd0)); //Unmount!
 		BIOS_Settings.hdd0_readonly = 0; //Reset readonly flag!
 		//dolog("BIOS","First HDD invalidated!");
 		bioschanged = 1; //BIOS changed!
@@ -458,7 +458,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	//dolog("IO","Checking Second HDD (%s)...",BIOS_Settings.hdd1);
 	if ((!readdata(HDD1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd1,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1)); //Unmount!
+		memset(&BIOS_Settings.hdd1[0],0,sizeof(BIOS_Settings.hdd1)); //Unmount!
 		BIOS_Settings.hdd1_readonly = 0; //Reset readonly flag!
 		//dolog("BIOS","Second HDD invalidated!");
 		bioschanged = 1; //BIOS changed!
@@ -466,7 +466,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	//dolog("IO","Checking First CD-ROM (%s)...",BIOS_Settings.cdrom0);
 	if ((!readdata(CDROM0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom0,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0)); //Unmount!
+		memset(&BIOS_Settings.cdrom0[0],0,sizeof(BIOS_Settings.cdrom0)); //Unmount!
 		bioschanged = 1; //BIOS changed!
 		//dolog("BIOS","First CD-ROM invalidated!");
 	}
@@ -474,7 +474,7 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	//dolog("IO","Checking Second CD-ROM (%s)...",BIOS_Settings.cdrom1);
 	if ((!readdata(CDROM1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom1,"")!=0)) //No disk mounted but listed?
 	{
-		bzero(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1)); //Unmount!
+		memset(&BIOS_Settings.cdrom1[0],0,sizeof(BIOS_Settings.cdrom1)); //Unmount!
 		bioschanged = 1; //BIOS changed!
 		//dolog("BIOS","Second CD-ROM invalidated!");
 	}

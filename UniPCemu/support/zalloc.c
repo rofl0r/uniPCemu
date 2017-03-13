@@ -145,7 +145,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem
 			registeredpointers[current].pointer = ptr; //The pointer!
 			registeredpointers[current].size = size; //The size!
 			registeredpointers[current].dealloc = dealloc; //The deallocation function to call, if any to use!
-			bzero(&registeredpointers[current].name,sizeof(registeredpointers[current].name)); //Initialise the name!
+			cleardata(&registeredpointers[current].name[0],sizeof(registeredpointers[current].name)); //Initialise the name!
 			strcpy(registeredpointers[current].name,name); //Set the name!
 			registeredpointers[current].ptrstart = (ptrnum)ptr; //Start of the pointer!
 			ptrend = registeredpointers[current].ptrstart;

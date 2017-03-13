@@ -12,7 +12,7 @@ extern char capturepath[256]; //Capture path!
 void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 {
 	char filename[256];
-	bzero(filename,sizeof(filename)); //Init
+	cleardata(&filename[0],sizeof(filename)); //Init
 	domkdir(capturepath); //Make sure our directory exists!
 	strcpy(filename, capturepath); //Capture path!
 	strcat(filename, "/");

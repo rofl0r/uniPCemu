@@ -472,7 +472,7 @@ char signednumbertext[256];
 
 OPTINLINE char *unsigned2signedtext8(byte c)
 {
-	bzero(signednumbertext,sizeof(signednumbertext));
+	cleardata(&signednumbertext[0],sizeof(signednumbertext));
 	char s;
 	s = unsigned2signed8(c); //Convert to signed!
 	if (s<0) //Negative?
@@ -488,7 +488,7 @@ OPTINLINE char *unsigned2signedtext8(byte c)
 
 OPTINLINE char *unsigned2signedtext16(word c)
 {
-	bzero(signednumbertext,sizeof(signednumbertext));
+	cleardata(&signednumbertext[0],sizeof(signednumbertext));
 	int s;
 	s = unsigned2signed16(c); //Convert to signed!
 	if (s<0) //Negative?
@@ -504,7 +504,7 @@ OPTINLINE char *unsigned2signedtext16(word c)
 
 OPTINLINE char *unsigned2signedtext32(uint_32 c)
 {
-	bzero(signednumbertext,sizeof(signednumbertext));
+	cleardata(&signednumbertext[0],sizeof(signednumbertext));
 	int_32 s;
 	s = unsigned2signed32(c); //Convert to signed!
 	if (s<0) //Negative?
@@ -856,7 +856,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		isregister = 0; //No register (R/M=Memory Address)!
 	}
 
-	bzero(result, sizeof(*result)); //Init!
+	memset(result,0,sizeof(*result)); //Init!
 
 	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
@@ -1353,7 +1353,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 		curreg = 1;
 	}
 
-	bzero(result, sizeof(*result)); //Init!
+	memset(result,0,sizeof(*result)); //Init!
 
 	if (params->reg_is_segmentregister && (!whichregister)) //Segment register?
 	{
@@ -1902,7 +1902,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		return;
 	}
 
-	bzero(result, sizeof(*result)); //Init!
+	memset(result,0,sizeof(*result)); //Init!
 
 	if (isregister) //Is register data?
 	{

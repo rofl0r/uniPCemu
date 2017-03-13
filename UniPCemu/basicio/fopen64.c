@@ -161,7 +161,7 @@ FILE *emufopen64(char *filename, char *mode)
 		return NULL; //Failed!
 	}
 #endif
-	bzero(&stream->filename,sizeof(stream->filename)); //Init filename buffer!
+	memset(&stream->filename,0,sizeof(stream->filename)); //Init filename buffer!
 	strcpy(&stream->filename[0],filename); //Set the filename!
 
 	//Detect file size!
@@ -219,7 +219,7 @@ int emufclose64(FILE *stream)
 	}
 	BIGFILE *b = (BIGFILE *)stream; //Convert!
 	char filename[256];
-	bzero(filename,sizeof(filename));
+	memset(&filename[0],0,sizeof(filename));
 	strcpy(filename,b->filename); //Set filename!
 #ifdef IS_PSP
 	if (sceIoClose(b->f)<0) //Error?

@@ -233,7 +233,7 @@ extern GPU_TEXTSURFACE *frameratesurface;
 void debug_threads()
 {
 	char thread_name[256];
-	bzero(thread_name,sizeof(thread_name)); //Init!
+	cleardata(&thread_name[0],sizeof(thread_name)); //Init!
 	while (1)
 	{
 		int numthreads = 0; //Number of installed threads running!
@@ -299,7 +299,7 @@ void threadCreaten(ThreadParams_p params, uint_32 threadID, char *name)
 	{
 		//dolog("threads","threadCreaten set...");
 		params->threadID = threadID; //The thread ID, just in case!
-		bzero(params->name,sizeof(params->name));
+		cleardata(&params->name[0],sizeof(params->name));
 		strcpy(params->name,name); //Save the name for usage!
 	}
 	//dolog("threads","threadCreaten: RET...");

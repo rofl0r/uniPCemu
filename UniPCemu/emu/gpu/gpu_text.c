@@ -554,7 +554,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	if (allcleared) return; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return; //Abort without surface!
 	char msg[256];
-	bzero(msg,sizeof(msg)); //Init!
+	cleardata(&msg[0],sizeof(msg)); //Init!
 
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!
@@ -598,7 +598,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 	if (allcleared) return 0; //Abort when all is cleared!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	char msg[256];
-	bzero(msg, sizeof(msg)); //Init!
+	cleardata(&msg[0], sizeof(msg)); //Init!
 
 	va_list args; //Going to contain the list!
 	va_start(args, text); //Start list!

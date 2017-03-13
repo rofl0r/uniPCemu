@@ -665,7 +665,7 @@ void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_debugger32(&params,0,1); modrm_g
 OPTINLINE void modrm_actualdebuggerSZX(char *instruction)
 {
 	char result[256];
-	bzero(result,sizeof(result));
+	cleardata(&result[0],sizeof(result));
 	strcpy(result,instruction); //Set the instruction!
 	strcat(result," %s,%s"); //2 params!
 	debugger_setcommand(result,modrm_param1,modrm_param2);
@@ -675,8 +675,8 @@ OPTINLINE void modrm_debugger16_8(char *instruction)
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text16(&params,1,&modrm_param1[0]);
 		modrm_text8(&params,0,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
@@ -687,8 +687,8 @@ OPTINLINE void modrm_debugger32_8(char *instruction)
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text32(&params,1,&modrm_param1[0]);
 		modrm_text16(&params,0,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
@@ -699,8 +699,8 @@ OPTINLINE void modrm_debugger16_16(char *instruction)
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text16(&params,1,&modrm_param1[0]);
 		modrm_text16(&params,0,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
@@ -711,8 +711,8 @@ OPTINLINE void modrm_debugger32_16(char *instruction)
 {
 	if (cpudebugger)
 	{
-		bzero(modrm_param1,sizeof(modrm_param1));
-		bzero(modrm_param2,sizeof(modrm_param2));
+		cleardata(&modrm_param1[0],sizeof(modrm_param1));
+		cleardata(&modrm_param2[0],sizeof(modrm_param2));
 		modrm_text32(&params,1,&modrm_param1[0]);
 		modrm_text16(&params,0,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
@@ -748,7 +748,7 @@ void CPU80386_OP0FBA_16() {
 			//Debugger
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTW %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -760,7 +760,7 @@ void CPU80386_OP0FBA_16() {
 		case 5: //BTS r/m16,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTSW %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -775,7 +775,7 @@ void CPU80386_OP0FBA_16() {
 		case 6: //BTR r/m16,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTRW %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -790,7 +790,7 @@ void CPU80386_OP0FBA_16() {
 		case 7: //BTC r/m16,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTCW %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -819,7 +819,7 @@ void CPU80386_OP0FBA_32() {
 			//Debugger
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text32(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTD %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -831,7 +831,7 @@ void CPU80386_OP0FBA_32() {
 		case 5: //BTS r/m32,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTSD %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -846,7 +846,7 @@ void CPU80386_OP0FBA_32() {
 		case 6: //BTR r/m32,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTRD %s,%02X",modrm_param1,immb); //Log the command!
 			}
@@ -861,7 +861,7 @@ void CPU80386_OP0FBA_32() {
 		case 7: //BTC r/m32,imm8
 			if (cpudebugger)
 			{
-				bzero(modrm_param1,sizeof(modrm_param1));
+				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTCD %s,%02X",modrm_param1,immb); //Log the command!
 			}

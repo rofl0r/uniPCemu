@@ -7,7 +7,7 @@ byte isext(char *filename, char *extension)
 	if (filename == NULL) return FALSE; //No ptr!
 	if (extension == NULL) return FALSE; //No ptr!
 	char temp[256];
-	bzero(temp, sizeof(temp));
+	cleardata(&temp[0], sizeof(temp));
 	strcat(temp, "|"); //Starting delimiter!
 	strcat(temp, extension);
 	strcat(temp, "|"); //Finishing delimiter!
@@ -17,7 +17,7 @@ byte isext(char *filename, char *extension)
 	extension = strtok(temp, "|"); //Start token!
 	for (;safe_strlen(extension,256);) //Not an empty string?
 	{
-		bzero(ext, sizeof(ext)); //Init!
+		cleardata(&ext[0], sizeof(ext)); //Init!
 		strcpy(ext, "."); //Init!
 		strcat(ext, extension); //Add extension to compare!
 		int startpos = safe_strlen(filename, 256) - safe_strlen(ext, 256); //Start position of the extension!

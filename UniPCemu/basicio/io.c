@@ -173,7 +173,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 	}
 
 	char dev[256]; //Our device!
-	bzero(dev,sizeof(dev)); //Init device string!
+	memset(&dev[0],0,sizeof(dev)); //Init device string!
 
 	FILEPOS readpos; //Read pos!
 	readpos = disks[device].start; //Base position!
@@ -268,7 +268,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	byte *readbuffer = (byte *)buffer; //Data buffer!
 	byte sectorbuffer[512]; //A full sector buffered for editing!
 	char dev[256]; //Our device!
-	bzero(dev,sizeof(dev)); //Init device string!
+	memset(&dev[0],0,sizeof(dev)); //Init device string!
 	uint_64 writepos; //Read pos!
 	uint_64 basepos; //Base pos!
 	byte readonly; //Read only?

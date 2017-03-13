@@ -69,7 +69,7 @@ void ExceptionHandler(PspDebugRegBlock * regs)
             FILE *log = fopen("exception.log", "w");
             if (log != NULL){
                 char testo[512];
-				bzero(testo,sizeof(testo)); //Init!
+				cleardata(testo,sizeof(testo)); //Init!
                 sprintf(testo, "Exception details:\n\n");
                 fwrite(testo, 1, strlen(testo), log);
                 sprintf(testo, "Exception - %s\n", codeTxt[(regs->cause >> 2) & 31]);

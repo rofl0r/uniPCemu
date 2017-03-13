@@ -89,8 +89,8 @@ byte loadVGADump(byte mode)
 	int_32 buffersizes[10]; //All buffer sizes!
 	uint_32 planaroffset;
 	byte plane;
-	bzero(filename,sizeof(filename)); //Init base filename!
-	memset(controllerfilename,0,sizeof(controllerfilename)); //Init current filename!
+	cleardata(&filename[0],sizeof(filename)); //Init base filename!
+	memset(&controllerfilename,0,sizeof(controllerfilename)); //Init current filename!
 	sprintf(filename,"VGAdump/VGADMP%02X.",mode); //Base VGA dump filename!
 	//Now load all files!
 	memset(buffers,0,sizeof(buffers)); //Clear all buffers!

@@ -37,7 +37,7 @@ void updatechar(byte attribute, byte character)
 void printmsg(byte attribute, char *text, ...) //Print a message at page #0!
 {
 	char msg[256];
-	bzero(msg,sizeof(msg)); //Init!
+	cleardata(&msg[0],sizeof(msg)); //Init!
 
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!

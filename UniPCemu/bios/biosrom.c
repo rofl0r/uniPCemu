@@ -220,7 +220,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			fclose(f); //Close the file!
 			
 			OPTROM_location[i] = location; //The option ROM location we're loaded at!
-			bzero(&OPTROM_filename[i],0); //Init filename!
+			cleardata(&OPTROM_filename[i][0],sizeof(OPTROM_filename[i])); //Init filename!
 			strcpy(OPTROM_filename[i],filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
 
 			location += OPTROM_size[i]; //Next ROM position!

@@ -25,8 +25,8 @@ void raiseError(char *source, const char *text, ...)
 {
 	char msg[256];
 	char result[256]; //Result!
-	bzero(msg,sizeof(msg)); //Init!
-	bzero(result,sizeof(result)); //Init!
+	cleardata(&msg[0],sizeof(msg)); //Init!
+	cleardata(&result[0],sizeof(result)); //Init!
 
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!

@@ -68,7 +68,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 //Now, jump to it!
 		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 		destCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
-		bzero(&errorcodestr,sizeof(errorcodestr)); //Clear the error code!
+		cleardata(&errorcodestr[0],sizeof(errorcodestr)); //Clear the error code!
 		if (errorcode==-1) //No error code?
 		{
 			strcpy(errorcodestr,"-1");

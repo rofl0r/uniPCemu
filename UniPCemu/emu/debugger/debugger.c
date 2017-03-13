@@ -168,8 +168,8 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		static VERIFICATIONDATA verify, originalverify;
 		memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
 		//Initialise debugger texts!
-		bzero(debugger_prefix,sizeof(debugger_prefix));
-		bzero(debugger_command_text,sizeof(debugger_command_text)); //Init vars!
+		cleardata(&debugger_prefix[0],sizeof(debugger_prefix));
+		cleardata(&debugger_command_text[0],sizeof(debugger_command_text)); //Init vars!
 		strcpy(debugger_prefix,""); //Initialise the prefix(es)!
 		strcpy(debugger_command_text,"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 		debugger_set = 0; //Default: the debugger isn't implemented!
@@ -500,7 +500,7 @@ OPTINLINE static void debugger_autolog()
 		}
 
 		char fullcmd[256];
-		bzero(fullcmd,sizeof(fullcmd)); //Init!
+		cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
 		int i; //A counter for opcode data dump!
 		if (!debugger_set) //No debugger set?
 		{
@@ -587,7 +587,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		uint_32 fontcolor = RGB(0xFF, 0xFF, 0xFF); //Font color!
 		uint_32 backcolor = RGB(0x00, 0x00, 0x00); //Back color!
 		char str[256];
-		bzero(str, sizeof(str)); //For clearing!
+		cleardata(&str[0], sizeof(str)); //For clearing!
 		int i;
 		GPU_textgotoxy(frameratesurface, safe_strlen(debugger_prefix, sizeof(debugger_prefix)) + safe_strlen(debugger_command_text, sizeof(debugger_command_text)), GPU_TEXT_DEBUGGERROW); //Goto start of clearing!
 		for (i = (safe_strlen(debugger_prefix, sizeof(debugger_prefix)) + safe_strlen(debugger_command_text, sizeof(debugger_command_text))); i < GPU_TEXTSURFACE_WIDTH - 6; i++) //Clear unneeded!

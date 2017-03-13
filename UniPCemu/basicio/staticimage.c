@@ -108,7 +108,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
-	bzero(&fullfilename,sizeof(fullfilename)); //Init!
+	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 	strcpy(fullfilename,diskpath); //Disk path!
 	strcat(fullfilename,"/");
 	strcat(fullfilename,filename); //The full filename!
@@ -173,7 +173,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
-	bzero(&fullfilename, sizeof(fullfilename)); //Init!
+	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 	strcpy(fullfilename, diskpath); //Disk path!
 	strcat(fullfilename, "/");
 	strcat(fullfilename, filename); //The full filename!

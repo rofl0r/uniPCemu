@@ -2261,7 +2261,7 @@ void int10_dumpscreen() //Dump screen to file!
 	writehex(f,(byte)getscreenwidth()); //Screen width!
 
 	char lb[3];
-	bzero(lb,sizeof(lb));
+	cleardata(&lb[0],sizeof(lb));
 	strcpy(lb,"\r\n"); //Line break!
 
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Write a line break first!

@@ -71,10 +71,8 @@
 #define u64 uint_64
 #define s64 int_64
 
-#ifndef bzero
-//PSP and Android already have this?
-#define bzero(v,size) memset(v,0,size)
-#endif
+//Below is a definition of an universal bzero function(UniPCemu replacement). v is a void pointer always!
+#define cleardata(v,size) memset((v),0,(size))
 
 #define EXIT_PRIORITY 0x11
 //Exit priority, higest of all!

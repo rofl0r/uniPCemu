@@ -24,7 +24,7 @@ int convertrel(int src, int fromres, int tores) //Relative int conversion!
 char concatinations_constsprintf[256];
 char *constsprintf(char *text, ...)
 {
-	bzero(concatinations_constsprintf,sizeof(concatinations_constsprintf)); //Init!
+	cleardata(&concatinations_constsprintf[0],sizeof(concatinations_constsprintf)); //Init!
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!
 	vsprintf (concatinations_constsprintf, text, args); //Compile list!

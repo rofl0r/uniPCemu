@@ -64,9 +64,9 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	WaitSem(log_Lock) //Only one instance allowed!
 
 	//First: init variables!
-	bzero(filenametmp,sizeof(filenametmp)); //Init filename!
-	bzero(logtext,sizeof(logtext)); //Init logging text!
-	bzero(timestamp,sizeof(timestamp)); //Init timestamp text!
+	cleardata(&filenametmp[0],sizeof(filenametmp)); //Init filename!
+	cleardata(&logtext[0],sizeof(logtext)); //Init logging text!
+	cleardata(&timestamp[0],sizeof(timestamp)); //Init timestamp text!
 	
 	strcpy(filenametmp,logpath); //Base directory!
 	strcat(filenametmp,"/");
