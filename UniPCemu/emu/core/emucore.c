@@ -748,6 +748,8 @@ void updateSpeedLimit()
 				break;
 			case CPU_80286: //286?
 			case CPU_80386: //386?
+			case CPU_80486: //486?
+			case CPU_PENTIUM: //586?
 				DosboxClock = 0; //We're executing using actual clocks!
 				if (is_Turbo) //Turbo speed instead?
 				{
@@ -757,7 +759,7 @@ void updateSpeedLimit()
 				{
 					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
 				}
-				if (EMULATED_CPU==CPU_80386) //80386?
+				if ((EMULATED_CPU==CPU_80386) || (is_Compaq==1)) //80386 or Compaq?
 				{
 					if (is_XT || (is_Compaq==1)) //XT 386 or Compaq Deskpro 386? 16MHz clock!
 					{
@@ -766,8 +768,6 @@ void updateSpeedLimit()
 				}
 				break;
 			default: //Unknown CPU?
-			case CPU_80486: //486?
-			case CPU_PENTIUM: //586?
 				setDosboxCycles(1,3000); //Unsupported so far! Default to 3000 Dosbox cycles!
 				break;
 		}
