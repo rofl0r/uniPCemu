@@ -263,11 +263,11 @@ OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	INLINEREGISTER byte tempcf = FLAG_CF;
+	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
 	oper2d = 1;
 	op_add32();
-	FLAGW_CF(tempcf);
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -289,11 +289,11 @@ OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
 	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	INLINEREGISTER byte tempcf = FLAG_CF;
+	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
 	oper2d = 1;
 	op_sub32();
-	FLAGW_CF(tempcf);
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -2553,7 +2553,7 @@ void op386_grp5_32() {
 	case 0: //INC Ev
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
 		oper2d = 1;
-		tempCF = FLAG_CF;
+		tempCF = FLAG_CF; //CF isn't changed!
 		op_add32();
 		FLAGW_CF(tempCF);
 		modrm_write32(&params, 1, res32);
@@ -2569,7 +2569,7 @@ void op386_grp5_32() {
 	case 1: //DEC Ev
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
 		oper2d = 1;
-		tempCF = FLAG_CF;
+		tempCF = FLAG_CF; //CF isn't changed!
 		op_sub32();
 		FLAGW_CF(tempCF);
 		modrm_write32(&params, 1, res32);

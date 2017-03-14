@@ -365,11 +365,11 @@ OPTINLINE void CPU8086_internal_INC16(word *reg)
 	if (!reg) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	INLINEREGISTER byte tempcf = FLAG_CF;
+	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
 	oper2 = 1;
 	op_add16();
-	FLAGW_CF(tempcf);
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res16;
@@ -393,11 +393,11 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 	if (!reg) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	INLINEREGISTER byte tempcf = FLAG_CF;
+	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	oper1 = reg?*reg:modrm_read16(&params,MODRM_src0);
 	oper2 = 1;
 	op_sub16();
-	FLAGW_CF(tempcf);
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res16;
@@ -422,9 +422,11 @@ OPTINLINE void CPU8086_internal_INC8(byte *reg)
 	if (!reg) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
+	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	oper1b = reg?*reg:modrm_read8(&params,MODRM_src0);
 	oper2b = 1;
 	op_add8();
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res8;
@@ -446,9 +448,11 @@ OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 	CPUPROT1
 	if (!reg) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!reg) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+	INLINEREGISTER byte tempCF = FLAG_CF;
 	oper1b = reg?*reg:modrm_read8(&params,MODRM_src0);
 	oper2b = 1;
 	op_sub8();
+	FLAGW_CF(tempCF);
 	if (reg) //Register?
 	{
 		*reg = res8;
