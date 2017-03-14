@@ -564,6 +564,12 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].registers->ECX = 0;
 	CPU[activeCPU].registers->EDX = 0;
 
+	if (EMULATED_CPU>=CPU_80386) //Need revision info in DX?
+	{
+		CPU[activeCPU].registers->DH = 0x03; //We're a 80386!
+		CPU[activeCPU].registers->DL = 0x08; //D1/D2 stepping(latest revision)
+	}
+
 	//Index registers
 	CPU[activeCPU].registers->EBP = 0; //Init offset of BP?
 	CPU[activeCPU].registers->ESI = 0; //Source index!
