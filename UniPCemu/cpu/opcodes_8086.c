@@ -357,7 +357,7 @@ uint_32 customoffset; //Offset to use!
 //Help functions:
 OPTINLINE void CPU8086_internal_INC16(word *reg)
 {
-	if (MMU_invaddr() || (reg==NULL))
+	if (MMU_invaddr())
 	{
 		return;
 	}
@@ -3055,7 +3055,7 @@ void CPU8086_OPFF() //GRP5 Ev
 			//debugger_setcommand("JMP %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //JMP to destination!
 			break;
 		case 6: //PUSH
-			modrm_generateInstructionTEXT("PUSH",16,0,PARAM_MODRM2); //PUSH!
+			modrm_generateInstructionTEXT("PUSHW",16,0,PARAM_MODRM2); //PUSH!
 			break;
 		case 7: //---
 			debugger_setcommand("<UNKNOWN Opcode: GRP5(w) /7>");
@@ -3668,44 +3668,19 @@ void op_grp3_16() {
 
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!
-	INLINEREGISTER byte tempCF;
 	word destCS;
 	switch (thereg) {
 	case 0: //INC Ev
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
 		if (modrm_check16(&params,1,0)) return; //Abort when needed!
-		oper2 = 1;
-		tempCF = FLAG_CF;
-		op_add16();
-		FLAGW_CF(tempCF);
-		modrm_write16(&params, 1, res16, 0);
-		if (MODRM_EA(params)) //Mem?
-		{
-			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
-			CPU_addWordMemoryTiming(); /*To memory?*/
-			CPU_addWordMemoryTiming(); /*To memory?*/
-		}
-		else //Reg?
-		{
-			CPU[activeCPU].cycles_OP = 2; //Reg
-		}
+		MODRM_src0 = 1; //We're taking this source!
+		CPU8086_internal_INC16(modrm_addr16(&params,1,0));
 		break;
 	case 1: //DEC Ev
+		if (modrm_check16(&params,1,1)) return; //Abort when needed!
 		if (modrm_check16(&params,1,0)) return; //Abort when needed!
-		oper2 = 1;
-		tempCF = FLAG_CF;
-		op_sub16();
-		FLAGW_CF(tempCF);
-		modrm_write16(&params, 1, res16, 0);
-		if (MODRM_EA(params)) //Mem?
-		{
-			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
-			CPU_addWordMemoryTiming(); /*To memory?*/
-			CPU_addWordMemoryTiming(); /*To memory?*/
-		}
-		else //Reg?
-		{
-			CPU[activeCPU].cycles_OP = 2; //Reg
-		}
+		MODRM_src0 = 1; //We're taking this source!
+		CPU8086_internal_DEC16(modrm_addr16(&params,1,0));
 		break;
 	case 2: //CALL Ev
 		if (checkStackAccess(1,1,0)) return; //Abort when needed!

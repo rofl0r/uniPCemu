@@ -255,7 +255,7 @@ extern uint_32 customoffset; //Offset to use!
 //Help functions:
 OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 {
-	if (MMU_invaddr() || (reg==NULL))
+	if (MMU_invaddr())
 	{
 		return;
 	}
@@ -2564,40 +2564,19 @@ void op386_grp3_32() {
 
 void op386_grp5_32() {
 	MODRM_PTR info; //To contain the info!
-	INLINEREGISTER byte tempCF;
 	word destCS;
 	switch (thereg) {
 	case 0: //INC Ev
+		if (modrm_check32(&params,1,1)) return; //Abort when needed!
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
-		oper2d = 1;
-		tempCF = FLAG_CF; //CF isn't changed!
-		op_add32();
-		FLAGW_CF(tempCF);
-		modrm_write32(&params, 1, res32);
-		if (MODRM_EA(params)) //Mem?
-		{
-			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
-		}
-		else //Reg?
-		{
-			CPU[activeCPU].cycles_OP = 2; //Reg
-		}
+		MODRM_src0 = 1; //We're taking this source!
+		CPU80386_internal_INC32(modrm_addr32(&params,1,0));
 		break;
 	case 1: //DEC Ev
+		if (modrm_check32(&params,1,1)) return; //Abort when needed!
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
-		oper2d = 1;
-		tempCF = FLAG_CF; //CF isn't changed!
-		op_sub32();
-		FLAGW_CF(tempCF);
-		modrm_write32(&params, 1, res32);
-		if (MODRM_EA(params)) //Mem?
-		{
-			CPU[activeCPU].cycles_OP = 15 + MODRM_EA(params); //Mem
-		}
-		else //Reg?
-		{
-			CPU[activeCPU].cycles_OP = 2; //Reg
-		}
+		MODRM_src0 = 1; //We're taking this source!
+		CPU80386_internal_DEC32(modrm_addr32(&params,1,0));
 		break;
 	case 2: //CALL Ev
 		if (checkStackAccess(1,1,1)) return; //Abort when needed!
