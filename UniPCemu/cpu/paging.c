@@ -20,7 +20,7 @@ byte is_paging()
 	}
 	if (CPU[activeCPU].registers) //Gotten registers?
 	{
-		return (CPU[activeCPU].registers->CR0&CR0_PG); //Are we paging!
+		return (CPU[activeCPU].registers->CR0&CR0_PG)?1:0; //Are we paging!
 	}
 	return 0; //Not paging: we don't have registers!
 }
