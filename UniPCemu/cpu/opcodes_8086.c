@@ -2996,11 +2996,8 @@ void CPU8086_OPFE() //GRP4 Eb
 		}
 		if (modrm_check8(&params,1,1)) return; //Abort when needed!
 		if (modrm_check8(&params,1,0)) return; //Abort when needed!
-		tempcf = FLAG_CF;
-		res8 = modrm_read8(&params,1)+1;
-		flag_add8(modrm_read8(&params,1),1);
-		FLAGW_CF(tempcf);
-		modrm_write8(&params,1,res8);
+		MODRM_src0 = 1; //We're taking this source!
+		CPU8086_internal_INC8(modrm_addr8(&params,1,0));
 		break;
 	case 1: //DEC
 		if (cpudebugger) //Debugger on?
@@ -3009,11 +3006,8 @@ void CPU8086_OPFE() //GRP4 Eb
 		}
 		if (modrm_check8(&params,1,1)) return; //Abort when needed!
 		if (modrm_check8(&params,1,0)) return; //Abort when needed!
-		tempcf = FLAG_CF;
-		res8 = modrm_read8(&params,1)-1;
-		flag_sub8(modrm_read8(&params,1),1);
-		FLAGW_CF(tempcf);
-		modrm_write8(&params,1,res8);
+		MODRM_src0 = 1; //We're taking this source!
+		CPU8086_internal_DEC8(modrm_addr8(&params,1,0));
 		break;
 	default: //Unknown opcode or special?
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
