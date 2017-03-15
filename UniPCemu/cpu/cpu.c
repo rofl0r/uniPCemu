@@ -1010,14 +1010,14 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				immb = CPU_readOP(); //Read 8-bit immediate!
 				if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				break;
-			case 9: //imm64?
+			case 9: //imm64(ptr16:32)?
 				if (timing->parameters & 4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
-						imm64 = CPU_readOPdw(); //Read 32-bit immediate!
+						imm64 = CPU_readOPdw(); //Read 32-bit immediate offset!
 						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-						imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+						imm64 |= ((uint_64)CPU_readOPw() << 32); //Read another 16-bit immediate!
 						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 					}
 				}
@@ -1025,7 +1025,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				{
 					imm64 = CPU_readOPdw(); //Read 32-bit immediate!
 					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-					imm64 |= ((uint_64)CPU_readOPdw() << 32); //Read another 32-bit immediate!
+					imm64 |= ((uint_64)CPU_readOPw() << 32); //Read another 16-bit immediate!
 					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
 				}
 				break;
