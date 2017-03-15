@@ -187,6 +187,15 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		memset(&TSS16, 0, sizeof(TSS16)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
+	if (isJMPorCALL==3) //IRET?
+	{
+		if ((LOADEDDESCRIPTOR->desc.AccessRights&2)==0) //Destination task is available?
+		{
+			THROWDESCGP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+			return 1; //Error out!
+		}
+	}
+
 	if (CPU[activeCPU].registers->TR) //Valid task to switch FROM?
 	{
 		if (debugger_logging()) //Are we logging?
