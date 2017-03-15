@@ -191,7 +191,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		if ((LOADEDDESCRIPTOR->desc.AccessRights&2)==0) //Destination task is available?
 		{
-			THROWDESCGP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+			CPU_TSSFault(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 			return 1; //Error out!
 		}
 	}
