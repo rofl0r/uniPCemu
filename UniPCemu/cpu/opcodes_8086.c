@@ -415,7 +415,7 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 
 OPTINLINE void CPU8086_internal_INC8(byte *reg)
 {
-	if (MMU_invaddr() || (reg==NULL))
+	if (MMU_invaddr())
 	{
 		return;
 	}
