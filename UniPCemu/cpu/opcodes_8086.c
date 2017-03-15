@@ -1247,37 +1247,42 @@ Non-logarithmic opcodes!
 
 OPTINLINE void CPU8086_internal_DAA()
 {
+	word ALVAL;
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	ALVAL = (word)REG_AL;
+	if (((ALVAL&0xF)>9) || FLAG_AF)
 	{
-		oper1 = REG_AL+6;
-		REG_AL = (oper1&0xFF);
+		oper1 = ALVAL+6;
+		ALVAL = (oper1&0xFF);
 		FLAGW_CF(((oper1&0xFF00)>0));
 		FLAGW_AF(1);
 	}
 	else FLAGW_AF(0);
-	if (((REG_AL&0xF0)>0x90) || FLAG_CF)
+	if (((ALVAL&0xF0)>0x90) || FLAG_CF)
 	{
-		REG_AL += 0x60;
+		ALVAL += 0x60;
 		FLAGW_CF(1);
 	}
 	else
 	{
 		FLAGW_CF(0);
 	}
+	REG_AL = (byte)(ALVAL&0xFF); //Write the value back to AL!
 	flag_szp8(REG_AL);
+	if (ALVAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 4; //Timings!
 }
 OPTINLINE void CPU8086_internal_DAS()
 {
 	INLINEREGISTER byte tempCF, tempAL;
-	tempAL = REG_AL;
+	INLINEREGISTER word bigAL;
+	bigAL = (word)(tempAL = REG_AL);
 	tempCF = FLAG_CF; //Save old values!
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	if (((bigAL&0xF)>9) || FLAG_AF)
 	{
-		oper1 = REG_AL-6;
+		oper1 = bigAL = REG_AL-6;
 		REG_AL = oper1&255;
 		FLAGW_CF(tempCF|((oper1&0xFF00)>0));
 		FLAGW_AF(1);
@@ -1286,7 +1291,8 @@ OPTINLINE void CPU8086_internal_DAS()
 
 	if ((tempAL>0x99) || tempCF)
 	{
-		REG_AL -= 0x60;
+		bigAL -= 0x60;
+		REG_AL = (byte)(bigAL&0xFF);
 		FLAGW_CF(1);
 	}
 	else
@@ -1294,6 +1300,7 @@ OPTINLINE void CPU8086_internal_DAS()
 		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
+	if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 4; //Timings!
 }
@@ -1313,7 +1320,8 @@ OPTINLINE void CPU8086_internal_AAA()
 		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
-	flag_szp8(REG_AL); //Basic flags!
+	//flag_szp8(REG_AL); //Basic flags!
+	//z=s=p=o=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 4; //Timings!
 }
@@ -1333,7 +1341,8 @@ OPTINLINE void CPU8086_internal_AAS()
 		FLAGW_CF(0);
 	}
 	REG_AL &= 0xF;
-	flag_szp8(REG_AL); //Basic flags!
+	//flag_szp8(REG_AL); //Basic flags!
+	//z=s=o=p=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 4; //Timings!
 }
@@ -2031,7 +2040,8 @@ OPTINLINE void CPU8086_internal_AAM(byte data)
 	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
 	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
 	flag_szp16(REG_AX);
-	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+	//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+	//C=O=A=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 83; //Timings!
 }
@@ -2041,7 +2051,8 @@ OPTINLINE void CPU8086_internal_AAD(byte data)
 	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
 	REG_AH = 0;
 	flag_szp8(REG_AL); //Update the flags!
-	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+	//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+	//C=O=A=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 60; //Timings!
 }
@@ -3118,6 +3129,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 byte op_grp2_8(byte cnt, byte varshift) {
 	//word d,
 	INLINEREGISTER word s, shift, oldCF, msb;
+	byte backup;
 	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	s = oper1b;
 	oldCF = FLAG_CF;
@@ -3160,9 +3172,12 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		break;
 
 	case 4: case 6: //SHL r/m8
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
+			backup = s; //Backup!
 			s = (s << 1) & 0xFF;
+			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (cnt) FLAGW_OF((FLAG_CF ^ (s >> 7)));
 		flag_szp8((uint8_t)(s&0xFF)); break;
@@ -3171,12 +3186,14 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		if (cnt == 1) FLAGW_OF((s & 0x80) ? 1 : 0); else FLAGW_OF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Backup!
 			s = s >> 1;
+			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
-		if (cnt) FLAGW_OF(0);
+		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x80;
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
@@ -3184,11 +3201,13 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
-		flag_szp8((uint8_t)(s & 0xFF)); break;
+		/*flag_szp8((uint8_t)(s & 0xFF));*/
+		//http://www.electronics.dit.ie/staff/tscarff/8086_instruction_set/8086_instruction_set.html#SAR says only C and O flags!
 		if (!cnt) //Nothing done?
 		{
 			FLAGW_SF(tempSF); //We don't update when nothing's done!
 		}
+		break;
 	}
 	op_grp2_cycles(cnt, varshift);
 	return(s & 0xFF);
@@ -3198,6 +3217,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
+	word backup;
 	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 	s = oper1;
 	oldCF = FLAG_CF;
@@ -3246,9 +3266,12 @@ word op_grp2_16(byte cnt, byte varshift) {
 		break;
 
 	case 4: case 6: //SHL r/m16
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+			backup = s; //Backup!
 			s = (s << 1) & 0xFFFF;
+			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp16(s); break;
@@ -3257,12 +3280,14 @@ word op_grp2_16(byte cnt, byte varshift) {
 		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Backup!
 			s = s >> 1;
+			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp16(s); break;
 
 	case 7: //SAR r/m16
-		if (cnt) FLAGW_OF(0);
+		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x8000; //Read the MSB!
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
@@ -3270,7 +3295,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
-		flag_szp16(s);
+		/*flag_szp16(s);*/
+		//http://www.electronics.dit.ie/staff/tscarff/8086_instruction_set/8086_instruction_set.html#SAR says only C and O flags!
 		if (!cnt) //Nothing done?
 		{
 			FLAGW_SF(tempSF); //We don't update when nothing's done!
