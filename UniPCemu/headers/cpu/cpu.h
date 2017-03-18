@@ -1259,5 +1259,6 @@ void CPU_resetTimings(); //Reset timings before processing the next CPU state!
 void CPU_JMPrel(int_32 reladdr);
 void CPU_JMPabs(uint_32 addr);
 uint_32 CPU_EIPmask();
+byte CPU_EIPSize();
 
 #endif

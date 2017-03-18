@@ -196,6 +196,11 @@ uint_32 CPU_EIPmask()
 	return 0xFFFFFFFF; //Full mask!
 }
 
+byte CPU_EIPSize()
+{
+	return (CPU_EIPmask()==0xFFFF)?PARAM_IMM16:PARAM_IMM32; //Full mask!
+}
+
 
 char modrm_param1[256]; //Contains param/reg1
 char modrm_param2[256]; //Contains param/reg2
