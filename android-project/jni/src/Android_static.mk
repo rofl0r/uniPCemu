@@ -22,5 +22,13 @@ LOCAL_STATIC_LIBRARIES := SDL2_static
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
+ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+LOCAL_CFLAGS := -pg -DNDK_PROFILE $(LOCAL_CFLAGS)
+LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) android-ndk-profiler
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,SDL)LOCAL_PATH := $(call my-dir)
+ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+$(call import-module,android-ndk-profiler)
+endif

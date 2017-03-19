@@ -36,6 +36,11 @@ PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
 PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation (m/zalloc)!
 #endif
 
+#ifdef NDK_PROFILE
+extern "C" void monstartup( char const * );
+extern "C" void moncleanup();
+#endif
+
 //Debug zalloc allocations?
 //#define DEBUG_ZALLOC
 
@@ -268,6 +273,12 @@ int main(int argc, char * argv[])
 	byte usesoundmode = 1;
 	uint_32 SDLsubsystemflags = 0; //Our default SDL subsystem flags of used functionality!
 	int emu_status;
+
+	#ifdef NDK_PROFILE
+	setenv( "CPUPROFILE_FREQUENCY", "500", 1 ); // interrupts per second, default 100
+	monstartup( "libmain.so" );
+	atexit(&moncleanup); //Cleanup function!
+	#endif
 
 //Basic PSP stuff!
 	SetupCallbacks();
