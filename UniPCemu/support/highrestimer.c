@@ -12,10 +12,12 @@
 #define ENABLE_PSPTIMING 1
 
 double tickresolution = 0.0f; //Our tick resolution, initialised!
-byte tickresolution_type = 0; //What kind of ticks are we using? 1=SDL, 0=Platform dependant, 2=Manual ticking
+byte tickresolution_type = 0xFF; //What kind of ticks are we using? 0=SDL, 1=gettimeofday, 2=Platform specific
 
 float msfactor, usfactor, nsfactor; //The factors!
 float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
+
+u64 lastticks=0; //Last ticks passed!
 
 #ifdef IS_WINDOWS
 //For cross-platform compatibility!
@@ -40,32 +42,78 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 //PSP and Linux already have proper gettimeofday support built into the compiler!
 
 //Normal High-resolution clock support:
+OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
+{
+	struct timeval tp;
+	struct timezone currentzone;
+	switch (tickresolution_type) //What type are we using?
+	{
+	case 0: //SDL?
+		return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
+	case 2: //System specific?
+#ifdef IS_PSP
+	{
+		u64 result = 0; //The result!
+		if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
+		{
+			return result; //Give the result!
+		}
+		return lastticks; //Invalid result!		
+	}
+#endif
+#ifdef IS_WINDOWS
+	{
+		LARGE_INTEGER temp;
+		if (QueryPerformanceCounter(&temp)==0) return lastticks; //Invalid result?
+		return temp.QuadPart; //Give the result by the performance counter of windows!
+	}
+#endif
+	case 1: //gettimeofday counter?
+		if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
+		{
+			return (tp.tv_sec*1000000)+tp.tv_usec; //Give the result!
+		}
+		return lastticks; //Invalid result!		
+		break;
+	default: //Unknown method?
+		return lastticks; //Invalid result!		
+		break;
+	}
+}
+
 void initHighresTimer()
 {
+	if (tickresolution_type!=0xFF) goto resolution_ready; //Already set? Don't detect it again!
 	//SDL timing by default?
 	tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
-	tickresolution_type = 1; //We're using SDL ticks!
+	tickresolution_type = 0; //We're using SDL ticks!
 	#ifdef IS_PSP
 		//Try PSP timing!
 		if (ENABLE_PSPTIMING)
 		{
 			tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
-			tickresolution_type = 0; //Don't use SDL!
+			tickresolution_type = 2; //Don't use SDL!
 		}
 	#endif
+
 	#ifdef IS_WINDOWS
 		//Try Windows timing!
 		LARGE_INTEGER tickresolution_win;
 		if (QueryPerformanceFrequency(&tickresolution_win) && ENABLE_WINTIMING)
 		{
 			tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
-			tickresolution_type = 0; //Don't use SDL!
+			tickresolution_type = 2; //Don't use SDL!
 		}
 	#endif
-	//Finally: gettimeofday provides 10us accuracy at least!
-		tickresolution = 1000000.0f; //Microsecond accuracy!
-		tickresolution_type = 2; //Don't use SDL: we're the gettimeofday counter!
 
+	//Finally: gettimeofday provides 10us accuracy at least!
+	if (tickresolution_type==0) //We're unchanged? Default to gettimeofday counter!
+	{
+		tickresolution = 1000000.0f; //Microsecond accuracy!
+		tickresolution_type = 1; //Don't use SDL: we're the gettimeofday counter!
+	}
+
+	resolution_ready: //Ready?
 	//Calculate needed precalculated factors!
 	usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
 	nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
@@ -73,41 +121,7 @@ void initHighresTimer()
 	usfactorrev = 1.0f/usfactor; //Reverse!
 	nsfactorrev = 1.0f/nsfactor; //Reverse!
 	msfactorrev = 1.0f/msfactor; //Reverse!
-}
-
-OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
-{
-	struct timeval tp;
-	struct timezone currentzone;
-#ifdef IS_PSP
-	u64 result = 0; //The result!
-	if (tickresolution_type==0) //Using PSP timing?
-	{
-		if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
-		{
-			return result; //Give the result!
-		}
-		return 0; //Give the result: ticks passed!
-	}
-#else
-#ifdef IS_WINDOWS
-	if (tickresolution_type==0) //Using Windows timing?
-	{
-		LARGE_INTEGER temp;
-		if (QueryPerformanceCounter(&temp)==0) return 0; //Invalid result?
-		return temp.QuadPart; //Give the result by the performance counter of windows!
-	}
-#endif
-#endif
-	if (tickresolution_type==2) //gettimeofday counter?
-	{
-		if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
-		{
-			return (tp.tv_sec*1000000)+tp.tv_usec; //Give the result!
-		}
-		return 0; //Give the result: ticks passed!		
-	}
-	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
+	lastticks = getcurrentticks(); //Initialize the last tick to be something valid!
 }
 
 void initTicksHolder(TicksHolder *ticksholder)
@@ -129,7 +143,7 @@ OPTINLINE float getrealtickspassed(TicksHolder *ticksholder)
 	    //Temp is already equal to oldticks!
 	    temp -= currentticks; //Difference between the numbers(old-new=difference)!
 		currentticks = (u64)~0; //Max to substract from instead of the current ticks!
-		if (tickresolution_type==1) //Are we SDL ticks?
+		if (tickresolution_type==0) //Are we SDL ticks?
 		{
 			currentticks &= (u64)(((uint_32)~0)); //We're limited to the uint_32 type, so wrap around it!
 		}
