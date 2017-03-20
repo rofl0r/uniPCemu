@@ -19,6 +19,24 @@ float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
 
 u64 lastticks=0; //Last ticks passed!
 
+#ifdef IS_LINUX
+void sleepthread(uint_64 ns)
+{
+	struct timespec tim;
+	if (ns) //Anything to process?
+	{
+		tim.tv_sec = (ns/1000000000); //Seconds to sleep!
+		tim.tv_nsec = (ns%1000000000); //Nanoseconds to sleep!
+	}
+	else //Shortcut?
+	{
+		tim.tv_sec = 0; //Seconds to sleep!
+		tim.tv_nsec = 0; //Nanoseconds to sleep!
+	}
+	nanosleep(&tim, NULL); //Delay the specified time!
+}
+#endif
+
 #ifdef IS_WINDOWS
 //For cross-platform compatibility!
 int gettimeofday(struct timeval * tp, struct timezone * tzp)

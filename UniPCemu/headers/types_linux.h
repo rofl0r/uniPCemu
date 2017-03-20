@@ -5,9 +5,9 @@
 
 #include <sys/stat.h> //Directory listing & file check support!
 
-#define realdelay(x) ((x)?(x):1)
+#define realdelay(x) (x*1000)
 
-#define delay(us) SDL_Delay(realdelay((uint_32)((us)/1000)))
+#define delay(us) sleepthread(realdelay((uint_32)(us)))
 #define sleep() for (;;) delay(1000000)
 
 #define domkdir(path) mkdir(path, 0755)
@@ -44,6 +44,8 @@ typedef uint_64 ptrnum;
 #else
 typedef uint_32 ptrnum;
 #endif
+
+void sleepthread(uint_64 ns);
 
 //We're Linux!
 #define IS_LINUX
