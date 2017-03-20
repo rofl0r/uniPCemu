@@ -12,6 +12,17 @@ char lockname[256]; //Full lock name!
 SDL_sem *lock; //Our lock when calculating time passed!
 } TicksHolder; //Info for checking differences between ticks!
 
+#ifdef IS_WINDOWS
+#if !defined(__MINGW64__)
+struct timezone {
+	int tz_minuteswest;     /* minutes west of Greenwich */
+	int tz_dsttime;         /* type of DST correction */
+};
+#endif
+//For cross-platform compatibility!
+int gettimeofday(struct timeval * tp, struct timezone * tzp);
+#endif
+
 #define MS_SECOND 1000
 #define US_SECOND 1000000
 #define NS_SECOND 1000000000

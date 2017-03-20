@@ -38,7 +38,7 @@ byte Inboard_writeIO(word port, byte value)
 				{
 				case 0xDD: //Disable A20 line?
 				case 0xDF: //Enable A20 line?
-					Controller8042.outputport = SETBITS(Controller8042.outputport,1,1,GETBITS(value,0,1)); //Wrap arround: disable/enable A20 line!
+					SETBITS(Controller8042.outputport,1,1,GETBITS(value,0,1)); //Wrap arround: disable/enable A20 line!
 					refresh_outputport(); //Handle the new output port!
 					return 1;
 					break;
@@ -90,7 +90,6 @@ extern MMU_type MMU;
 
 void initInboard() //Initialize the Inboard chipset, if needed for the current CPU!
 {
-	uint_32 extendedmemory;
 	MMU.maxsize = 0; //Default: no limit!
 	MoveLowMemoryHigh = 1; //Default: enable the HMA memory and enable the memory hole and BIOS ROM!
 	inboard386_speed = 0; //Default speed: slow!

@@ -5,6 +5,7 @@
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/cpu/protection.h" //Fault raising support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 

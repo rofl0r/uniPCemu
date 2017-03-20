@@ -2996,7 +2996,6 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 
 void CPU8086_OPFE() //GRP4 Eb
 {
-	INLINEREGISTER byte tempcf;
 	modrm_debugger8(&params,0,1);
 	switch (MODRM_REG(params.modrm)) //What function?
 	{

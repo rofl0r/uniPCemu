@@ -791,7 +791,6 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	byte oldCPL= getCPL();
 	byte TSSSize, isDifferentCPL;
 	word tempSS;
-	uint_32 tempesp; //For inter-level far returns
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -1036,7 +1035,7 @@ byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
 {
-	byte isconforming;
+	//byte isconforming;
 
 	if (getcpumode() == CPU_MODE_PROTECTED) //Not real mode? Check rights for zero descriptors!
 	{
@@ -1123,6 +1122,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	//Third: privilege levels & Restrict access to data!
 
+	/*
 	switch (descriptor->AccessRights) //What type?
 	{
 	case AVL_CODE_EXECUTEONLY_CONFORMING:
@@ -1135,6 +1135,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		isconforming = 0;
 		break;
 	}
+	*/
 
 	//Don't perform rights checks: This is done when loading the segment register only!
 

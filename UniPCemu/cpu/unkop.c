@@ -10,6 +10,7 @@
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/protection.h" //Fault raising support!
 
 //Shutdown the application when an unknown instruction is executed?
 #define UNKOP_SHUTDOWN

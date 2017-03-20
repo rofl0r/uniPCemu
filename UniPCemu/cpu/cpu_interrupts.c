@@ -197,7 +197,6 @@ void CPU_IRET()
 				tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
 			}
 
-			handleV86IRET:
 			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
 				tempesp = CPU_POP32(); //POP ESP!

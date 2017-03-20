@@ -403,7 +403,6 @@ byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtrace, byte finalbacktrace)
 {
 	uint_32 readposhistory, oldreadpos;
-	word dummy;
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!
@@ -501,7 +500,7 @@ byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 
 byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 backtrace, byte finalbacktrace)
 {
-	uint_32 readposhistory, oldreadpos, dummy;
+	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
 	if (buffer->buffer==0) return 0; //Error invalid: buffer!

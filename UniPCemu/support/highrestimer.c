@@ -7,35 +7,60 @@
 #include <psprtc.h> //PSP Real Time Clock atm!
 #endif
 
+//Allow windows timing to be used?
+#define ENABLE_WINTIMING 1
+#define ENABLE_PSPTIMING 1
+
 double tickresolution = 0.0f; //Our tick resolution, initialised!
-byte tickresolution_win_SDL = 0; //Force SDL rendering?
-byte tickresolution_SDL = 0; //Are we using SDL ticks?
+byte tickresolution_type = 0; //What kind of ticks are we using? 1=SDL, 0=Platform dependant, 2=Manual ticking
 
 float msfactor, usfactor, nsfactor; //The factors!
 float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
 
+#ifdef IS_WINDOWS
+//For cross-platform compatibility!
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+	// Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+	SYSTEMTIME  system_time;
+	FILETIME    file_time;
+	INLINEREGISTER uint64_t    time;
+
+	GetSystemTime(&system_time);
+	SystemTimeToFileTime(&system_time, &file_time);
+	time = (((uint64_t)file_time.dwHighDateTime) << 32)|((uint64_t)file_time.dwLowDateTime);
+
+	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+	return 0;
+}
+#endif
+//PSP and Linux already have proper gettimeofday support built into the compiler!
+
+//Normal High-resolution clock support:
 void initHighresTimer()
 {
+	//SDL timing by default?
+	tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
+	tickresolution_type = 1; //We're using SDL ticks!
 #ifdef IS_PSP
+	//Try PSP timing!
+	if (ENABLE_PSPTIMING)
+	{
 		tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
-#else
-#ifdef IS_WINDOWS
-		LARGE_INTEGER tickresolution_win;
-		if (QueryPerformanceFrequency(&tickresolution_win))
-		{
-			tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
-			tickresolution_win_SDL = 0; //Don't force SDL!
-		}
-		else //SDL fallback?
-		{
-			tickresolution = 1000.0f;
-			tickresolution_win_SDL = 1; //Force SDL!
-			tickresolution_SDL = 1; //We're using SDL method!
-		}
-#else
-		tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
-		tickresolution_SDL = 1; //We're using SDL ticks!
+		tickresolution_type = 0; //Don't use SDL!
+	}
 #endif
+#ifdef IS_WINDOWS
+	//Try Windows timing!
+	LARGE_INTEGER tickresolution_win;
+	if (QueryPerformanceFrequency(&tickresolution_win) && ENABLE_WINTIMING)
+	{
+		tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
+		tickresolution_type = 0; //Don't use SDL!
+	}
 #endif
 		//Calculate needed precalculated factors!
 		usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
@@ -50,18 +75,22 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
 #ifdef IS_PSP
 	u64 result = 0; //The result!
-	if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
+	if (tickresolution_type==0) //Using PSP timing?
 	{
-		return result; //Give the result!
+		if (!sceRtcGetCurrentTick(&result)) //Try to retrieve current ticks as old ticks until we get it!
+		{
+			return result; //Give the result!
+		}
+		return 0; //Give the result: ticks passed!
 	}
-	return 0; //Give the result: ticks passed!
 #else
 #ifdef IS_WINDOWS
-	if (tickresolution_win_SDL) goto forcewinsdl; //Forcing SDL?
-	LARGE_INTEGER temp;
-	if (QueryPerformanceCounter(&temp)==0) return 0; //Invalid result?
-	return temp.QuadPart; //Give the result by the performance counter of windows!
-	forcewinsdl: //Force SDL usage of ticks!
+	if (tickresolution_type==0) //Using Windows timing?
+	{
+		LARGE_INTEGER temp;
+		if (QueryPerformanceCounter(&temp)==0) return 0; //Invalid result?
+		return temp.QuadPart; //Give the result by the performance counter of windows!
+	}
 #endif
 #endif
 	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
@@ -86,7 +115,7 @@ OPTINLINE float getrealtickspassed(TicksHolder *ticksholder)
 	    //Temp is already equal to oldticks!
 	    temp -= currentticks; //Difference between the numbers(old-new=difference)!
 		currentticks = (u64)~0; //Max to substract from instead of the current ticks!
-		if (tickresolution_SDL) //Are we SDL ticks?
+		if (tickresolution_type==1) //Are we SDL ticks?
 		{
 			currentticks &= (u64)(((uint_32)~0)); //We're limited to the uint_32 type, so wrap around it!
 		}

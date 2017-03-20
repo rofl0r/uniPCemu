@@ -5,6 +5,7 @@
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/support/highrestimer.h" //Time support!
 
 //For time support!
 #ifdef IS_PSP
@@ -182,34 +183,6 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		RTC_AlarmInterrupt(); //Handle the alarm!
 	}
 }
-
-#ifdef IS_WINDOWS
-#if !defined(__MINGW64__)
-struct timezone {
-	int tz_minuteswest;     /* minutes west of Greenwich */
-	int tz_dsttime;         /* type of DST correction */
-};
-#endif
-//For cross-platform compatibility!
-int gettimeofday(struct timeval * tp, struct timezone * tzp)
-{
-	// Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
-	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
-
-	SYSTEMTIME  system_time;
-	FILETIME    file_time;
-	INLINEREGISTER uint64_t    time;
-
-	GetSystemTime(&system_time);
-	SystemTimeToFileTime(&system_time, &file_time);
-	time = (((uint64_t)file_time.dwHighDateTime) << 32)|((uint64_t)file_time.dwLowDateTime);
-
-	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
-	return 0;
-}
-#endif
-//PSP and Linux already have proper gettimeofday support built into the compiler!
 
 //Our accurate time support:
 

@@ -436,7 +436,6 @@ void VGA_waitforVBlank() //Wait for a VBlank to happen?
 void VGA_setupEGAPalette(VGA_Type *VGA)
 {
 	word index;
-	DACEntry entry;
 	byte r,g,b;
 	byte strengthtable[4] = {0x00,0xAA,0x55,0xFF};
 	VGA->registers->DACMaskRegister = 0x3F; //Set a DAC mask register to apply!

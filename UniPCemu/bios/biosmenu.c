@@ -57,10 +57,11 @@ extern byte diagnosticsportoutput; //Diagnostics port output!
 //BIOS width in text mode!
 #define BIOS_WIDTH GPU_TEXTSURFACE_WIDTH
 
-//Boot time in 2 seconds!
-#define BOOTTIME 2000000
-
 #define MENU_MAXITEMS 0x100
+
+//How long to press for BIOS!
+#define BIOS_TIME 10000000
+#define INPUT_INTERVAL 100000
 
 extern char diskpath[256]; //The full disk path used!
 
@@ -126,10 +127,6 @@ BIOSMENU_FONT BIOSMenu_Fonts[3] = {
 #define BIOS_ATTR_BLINKENABLE (ActiveBIOSPreset.HighestBitBlink>0)
 
 /* END OF BIOS PRESETS */
-
-//How long to press for BIOS!
-#define BIOS_TIME 10000000
-#define INPUT_INTERVAL 100000
 
 //Now for the seperate menus:
 void BIOS_MainMenu(); //Main menu!
