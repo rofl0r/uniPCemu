@@ -45,34 +45,40 @@ void initHighresTimer()
 	//SDL timing by default?
 	tickresolution = 1000.0f; //We have a resolution in ms as given by SDL!
 	tickresolution_type = 1; //We're using SDL ticks!
-#ifdef IS_PSP
-	//Try PSP timing!
-	if (ENABLE_PSPTIMING)
-	{
-		tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
-		tickresolution_type = 0; //Don't use SDL!
-	}
-#endif
-#ifdef IS_WINDOWS
-	//Try Windows timing!
-	LARGE_INTEGER tickresolution_win;
-	if (QueryPerformanceFrequency(&tickresolution_win) && ENABLE_WINTIMING)
-	{
-		tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
-		tickresolution_type = 0; //Don't use SDL!
-	}
-#endif
-		//Calculate needed precalculated factors!
-		usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
-		nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
-		msfactor = (float)(1.0f/tickresolution)*MS_SECOND; //MS factor!
-		usfactorrev = 1.0f/usfactor; //Reverse!
-		nsfactorrev = 1.0f/nsfactor; //Reverse!
-		msfactorrev = 1.0f/msfactor; //Reverse!
+	#ifdef IS_PSP
+		//Try PSP timing!
+		if (ENABLE_PSPTIMING)
+		{
+			tickresolution = sceRtcGetTickResolution(); //Get the tick resolution, as defined on the PSP!
+			tickresolution_type = 0; //Don't use SDL!
+		}
+	#endif
+	#ifdef IS_WINDOWS
+		//Try Windows timing!
+		LARGE_INTEGER tickresolution_win;
+		if (QueryPerformanceFrequency(&tickresolution_win) && ENABLE_WINTIMING)
+		{
+			tickresolution = (double)tickresolution_win.QuadPart; //Apply the tick resolution!
+			tickresolution_type = 0; //Don't use SDL!
+		}
+	#endif
+	//Finally: gettimeofday provides 10us accuracy at least!
+		tickresolution = 1000000.0f; //Microsecond accuracy!
+		tickresolution_type = 2; //Don't use SDL: we're the gettimeofday counter!
+
+	//Calculate needed precalculated factors!
+	usfactor = (float)(1.0f/tickresolution)*US_SECOND; //US factor!
+	nsfactor = (float)(1.0f/tickresolution)*NS_SECOND; //NS factor!
+	msfactor = (float)(1.0f/tickresolution)*MS_SECOND; //MS factor!
+	usfactorrev = 1.0f/usfactor; //Reverse!
+	nsfactorrev = 1.0f/nsfactor; //Reverse!
+	msfactorrev = 1.0f/msfactor; //Reverse!
 }
 
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
+	struct timeval tp;
+	struct timezone currentzone;
 #ifdef IS_PSP
 	u64 result = 0; //The result!
 	if (tickresolution_type==0) //Using PSP timing?
@@ -93,6 +99,14 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	}
 #endif
 #endif
+	if (tickresolution_type==2) //gettimeofday counter?
+	{
+		if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
+		{
+			return (tp.tv_sec*1000000)+tp.tv_usec; //Give the result!
+		}
+		return 0; //Give the result: ticks passed!		
+	}
 	return (u64)SDL_GetTicks(); //Give the ticks passed using SDL default handling!
 }
 
