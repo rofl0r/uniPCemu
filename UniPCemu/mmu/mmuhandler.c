@@ -342,11 +342,20 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 				return; //Apply the new block instead!
 			}
 		}
+		else if ((is_Compaq==1) && (memoryhole==2)) //Compaq remaps RAM from A0000-FFFFF to FA0000-FFFFFF.
+		{
+			//This should be correct, according to PCem: https://bitbucket.org/pcem_emulator/pcem/src/66eec7c1b664f2f1496b5ed3763ec2b2738a6fab/src/compaq.c?at=default
+			if ((*realaddress>=0xFA0000) && (*realaddress<=0xFFFFFF)) //Remapped RAM area addressed?
+			{
+				*nonexistant = 0; //We're to be used directly!
+				*realaddress &= 0xFFFFF; //Remap the low RAM area high!
+			}
+		}
 	}
 	else //Plain memory?
 	{
 		*nonexistant = 0; //We're to be used directly!
-		if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
+		if ((MoveLowMemoryHigh&1) && (memloc) && (is_Compaq!=1)) //Move first block lower?
 		{
 			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
 		}
