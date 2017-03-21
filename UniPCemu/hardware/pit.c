@@ -944,4 +944,8 @@ void init8253() {
 	{
 		numPITchannels = 6; //We're emulating all 6 channels instead!
 	}
+	else
+	{
+		numPITchannels = 3; //We're emulating base XT+ 3 channel PIT!
+	}
 }
