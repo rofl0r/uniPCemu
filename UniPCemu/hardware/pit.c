@@ -255,7 +255,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 
 						oldvalue = PITchannels[channel].ticker; //Save old ticker for checking for overflow!
 						if (mode) --PITchannels[channel].ticker; //Mode 1 always ticks?
-						else if ((PCSpeakerPort&1) || (channel<2)) --PITchannels[channel].ticker; //Mode 0 ticks when gate is high! The other channels are tied 1!
+						else if ((PCSpeakerPort&1) || (channel!=2)) --PITchannels[channel].ticker; //Mode 0 ticks when gate is high! The other channels are tied 1!
 						wrapPITticker(channel); //Wrap us correctly!
 						if ((!PITchannels[channel].ticker) && oldvalue) //Timeout when ticking? We're done!
 						{
@@ -295,7 +295,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 							PITchannels[channel].gatewenthigh = 0; //Not anymore!
 							goto reload2; //Reload and execute!
 						}
-						if (((PCSpeakerPort & 1) && (channel==2)) || (channel<2)) //We're high or undefined?
+						if (((PCSpeakerPort & 1) && (channel==2)) || (channel!=2)) //We're high or undefined?
 						{
 							--PITchannels[channel].ticker; //Decrement?
 							switch (PITchannels[channel].ticker) //Two to one? Go low!
@@ -345,7 +345,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 							PITchannels[channel].reload = 0; //Reloaded!
 							reloadticker(channel); //Gate going high reloads the ticker immediately!
 						}
-						if ((PCSpeakerPort&1) || (channel<2)) //To tick at all? The other channels are tied 1!
+						if ((PCSpeakerPort&1) || (channel!=2)) //To tick at all? The other channels are tied 1!
 						{
 							PITchannels[channel].ticker -= 2; //Decrement by 2 instead?
 							switch (PITchannels[channel].ticker)
@@ -396,7 +396,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						{
 							goto pit45_reload; //Reload when allowed!
 						}
-						if (((PCSpeakerPort & 1) && (channel == 2)) || (channel<2)) //We're high or undefined?
+						if (((PCSpeakerPort & 1) && (channel == 2)) || (channel!=2)) //We're high or undefined?
 						{
 							--PITchannels[channel].ticker; //Decrement?
 							wrapPITticker(channel); //Wrap us correctly!
