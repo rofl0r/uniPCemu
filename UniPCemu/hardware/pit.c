@@ -118,9 +118,11 @@ typedef struct
 	FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
 } PITCHANNEL; // speaker!
 
-PITCHANNEL PITchannels[3]; //All possible PC speakers, whether used or not!
+PITCHANNEL PITchannels[6]; //All possible PIT channels, whether used or not!
 
-byte pitdecimal[4] = {0,0,0,0}; //Are we addressed as decimal data?
+byte numPITchannels = 3; //Amount of PIT channels to emulate!
+
+byte pitdecimal[8] = {0,0,0,0,0,0,0,0}; //Are we addressed as decimal data?
 
 byte speakerCallback(void* buf, uint_32 length, byte stereo, void *userdata) {
 	static sword s = 0; //Last sample!
@@ -175,7 +177,7 @@ OPTINLINE void wrapPITticker(byte channel)
 	}
 }
 
-byte channel_reload[3] = {0,0,0}; //To reload the channel next cycle?
+byte channel_reload[6] = {0,0,0,0,0,0}; //To reload the channel next cycle?
 
 double ticklength = 0.0; //Length of PIT samples to process every output sample!
 
@@ -206,7 +208,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 
 	if (length) //Anything to tick at all?
 	{
-		for (channel=0;channel<3;channel++)
+		for (channel=0;channel<numPITchannels;channel++)
 		{
 			mode = PITchannels[channel].mode; //Current mode!
 			for (tickcounter = length;tickcounter;--tickcounter) //Tick all needed!
@@ -516,7 +518,7 @@ void initSpeakers(byte soundspeaker)
 	memset(&PITchannels, 0, sizeof(PITchannels)); //Initialise our data!
 	enablespeaker = soundspeaker; //Are we to sound the speaker?
 	byte i;
-	for (i=0;i<3;i++)
+	for (i=0;i<numPITchannels;i++)
 	{
 		PITchannels[i].rawsignal = allocfifobuffer(((uint_64)((2048.0f / SPEAKER_RATE)*TIME_RATE)) + 1, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
 		if (i==2 && enablespeaker) //Speaker?
@@ -547,7 +549,7 @@ void doneSpeakers()
 	if (__HW_DISABLED) return;
 	removechannel(&speakerCallback, &PITchannels[2], 0); //Remove the speaker!
 	byte i;
-	for (i=0;i<3;i++)
+	for (i=0;i<numPITchannels;i++)
 	{
 		free_fifobuffer(&PITchannels[i].rawsignal); //Release the FIFO buffer we use!
 		if (i==2 && enablespeaker) //Speaker?
@@ -603,8 +605,8 @@ void cleanPIT()
 	//We don't do anything: we're locked to CPU speed instead!
 }
 
-uint_32 pitcurrentlatch[4][2], pitlatch[4], pitdivisor[4]; //Latches & divisors are 32-bits large!
-byte pitcommand[4]; //PIT command is only 1 byte large!
+uint_32 pitcurrentlatch[8][2], pitlatch[8], pitdivisor[8]; //Latches & divisors are 32-bits large!
+byte pitcommand[8]; //PIT command is only 1 byte large!
 
 //PC Speaker functionality in PIT
 
@@ -615,11 +617,11 @@ void updatePITState(byte channel)
 }
 
 //Read back command support!
-byte statusbytes[3] = {0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
-byte readstatus[3] = {0,0,0};
-byte readlatch[4] = {0,0,0};
+byte statusbytes[6] = {0,0,0,0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
+byte readstatus[6] = {0,0,0,0,0,0};
+byte readlatch[8] = {0,0,0,0,0,0,0,0};
 
-byte lastpit = 0;
+byte lastpit[2] = {0,0};
 
 word decodeBCD16(word bcd) //Converts from digits to decimal!
 {
@@ -652,17 +654,26 @@ word encodeBCD16(word value) //Converts from decimal to digits!
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
+byte TimerBase[2] = {0,3}; //The timer base to use!
+
 byte in8254(word portnum, byte *result)
 {
+	byte whichtimer=0;
 	byte pit;
 	if (__HW_DISABLED) return 0; //Abort!
 	switch (portnum)
 	{
+		case 0x48:
+		case 0x49:
+		case 0x4A: //Second timer on Compaq?
+			if (numPITchannels!=6) return 0; //Disabled?
+			whichtimer = 1; //Second timer to use!
 		case 0x40:
 		case 0x41:
-		case 0x42:
+		case 0x42: //First PIT?
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //PIT!
+			pit += TimerBase[whichtimer]; //Convert to the correct timer (0-5)!
 			if (readstatus[pit]) //Status is to be read now?
 			{
 				*result = statusbytes[pit]; //Read the current status!
@@ -731,8 +742,11 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 			break;
+		case 0x4B: //Second timer command?
+			if (numPITchannels!=6) return 0; //Disabled?
+			whichtimer = 1; //Second timer to use!
 		case 0x43:
-			*result = pitcommand[lastpit]; //Give the last command byte!
+			*result = pitcommand[lastpit[whichtimer]]; //Give the last command byte!
 			PIT_LOG("Read from command port 0x%02X=%02X", portnum, *result);
 			return 1;
 		case 0x61: //PC speaker? From original timer!
@@ -758,16 +772,24 @@ byte in8254(word portnum, byte *result)
 
 byte out8254(word portnum, byte value)
 {
+	byte whichtimer=0;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte pit;
 	byte currentstatus; //For read back command!
 	switch (portnum)
 	{
+		case 0x48:
+		case 0x49:
+		case 0x4A: //Second timer on Compaq?
+			if (numPITchannels!=6) return 0; //Disabled?
+			whichtimer = 1; //Second timer to use!
+			--portnum; //Make the port number compatible with the PIT!
 		case 0x40: //pit 0 data port
 		case 0x41: //pit 1 data port
 		case 0x42: //speaker data port
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //Low 2 bits only!
+			pit += TimerBase[whichtimer]; //Convert to the correct timer (0-5)!
 			PIT_LOG("Write to data port 0x%02X=%02X",portnum,value);
 			switch (pitcommand[pit]&0x30) //What input mode currently?
 			{
@@ -827,6 +849,9 @@ byte out8254(word portnum, byte value)
 				break;
 			}
 			return 1;
+		case 0x4B: //Second timer command?
+			if (numPITchannels!=6) return 0; //Disabled?			
+			whichtimer = 1; //Second timer to use!
 		case 0x43: //pit command port
 			PIT_LOG("Write to command port 0x%02X=%02X", portnum, value);
 			if ((value & 0xC0) == 0xC0) //Read-back command?
@@ -838,11 +863,11 @@ byte out8254(word portnum, byte value)
 						if (value&(2<<pit)) //To use?
 						{
 							//Build status flag
-							currentstatus = (pitcommand[pit]&0x3F); //Init current status to data that's ready!
-							currentstatus |= ((PITchannels[pit].channel_status&1)<<7); //The current output!
-							currentstatus |= ((PITchannels[pit].nullcount&1)<<6); //Are we not loaded into the timer yet?
-							readstatus[pit] = 1; //Enable read of the status!
-							statusbytes[pit] = currentstatus; //Store the status byte!
+							currentstatus = (pitcommand[pit+TimerBase[whichtimer]]&0x3F); //Init current status to data that's ready!
+							currentstatus |= ((PITchannels[pit+TimerBase[whichtimer]].channel_status&1)<<7); //The current output!
+							currentstatus |= ((PITchannels[pit+TimerBase[whichtimer]].nullcount&1)<<6); //Are we not loaded into the timer yet?
+							readstatus[pit+TimerBase[whichtimer]] = 1; //Enable read of the status!
+							statusbytes[pit+TimerBase[whichtimer]] = currentstatus; //Store the status byte!
 						}
 					}
 				}
@@ -853,9 +878,9 @@ byte out8254(word portnum, byte value)
 						if (value&(2 << pit)) //To use?
 						{
 							//Build status flag
-							updatePITState(pit); //Update the latch!
-							readlatch[pit] = 1; //Latch us, just once!
-							pitcurrentlatch[pit][0] = pitcurrentlatch[pit][1] = 0; //Reset the latches always!
+							updatePITState(pit+TimerBase[whichtimer]); //Update the latch!
+							readlatch[pit+TimerBase[whichtimer]] = 1; //Latch us, just once!
+							pitcurrentlatch[pit+TimerBase[whichtimer]][0] = pitcurrentlatch[pit+TimerBase[whichtimer]][1] = 0; //Reset the latches always!
 						}
 					}
 				}
@@ -865,6 +890,7 @@ byte out8254(word portnum, byte value)
 				byte channel;
 				channel = (value >> 6);
 				channel &= 3; //The channel!
+				channel += TimerBase[whichtimer]; //Secondary channel support!
 				if (value&0x30) //Not latching?
 				{
 					pitcommand[channel] = value; //Set the command for the port!
@@ -877,7 +903,7 @@ byte out8254(word portnum, byte value)
 					updatePITState(channel); //Update the latch!
 					readlatch[channel] = 1; //Latch us, just once!
 				}
-				lastpit = channel; //The last channel effected!
+				lastpit[whichtimer] = channel; //The last channel effected!
 				pitcurrentlatch[channel][0] = pitcurrentlatch[channel][1] = 0; //Reset the latches always!
 			}
 			return 1;
@@ -903,6 +929,8 @@ void PIT0Acnowledge(byte IRQ)
 	}
 }
 
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
+
 void init8253() {
 	if (__HW_DISABLED) return; //Abort!
 	register_PORTOUT(&out8254);
@@ -912,4 +940,8 @@ void init8253() {
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 	PCSpeakerPort = 0; //Init PC speaker port!
+	if (is_Compaq==1) //Emulating Compaq architecture?
+	{
+		numPITchannels = 6; //We're emulating all 6 channels instead!
+	}
 }
