@@ -20,6 +20,7 @@ uint_32 breakpoint_timeout = 1; //Timeout for the breakpoint to become active, i
 extern byte NMI; //NMI control on XT support!
 
 extern byte is_XT; //Are we using XT architecture?
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 byte readPPI62()
 {
@@ -149,8 +150,11 @@ byte PPI_writeIO(word port, byte value)
 	case 0x60: //IBM XT Diagnostics!
 		if (is_XT) goto outputdiagnostics; //Output diagnostics!
 		break;
+	case 0x84: //Compaq Deskpro Diagnostics!
+		if (is_Compaq==1) goto outputdiagnostics; //Output diagnostics!
+		break;
 	case 0x80: //IBM AT Diagnostics!
-		if (is_XT) break; //Don't handle this for XT systems!
+		if (is_XT || (is_Compaq==1)) break; //Don't handle this for XT&Compaq systems!
 		outputdiagnostics: //Diagnostics port output!
 		if (((sword)value!=breakpoint_comparison) && (diagnosticsportoutput_breakpoint == (sword)value)) //Have we reached a breakpoint?
 		{
