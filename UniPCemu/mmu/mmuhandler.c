@@ -230,8 +230,11 @@ resetmmu:
 		raiseError("MMU", "No memory available to use!");
 	}
 	MMUBuffer = allocfifobuffer(100 * 6, 0); //Alloc the write buffer with 100 entries (100 bytes)
+	//Defaults first!
 	BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Default low memory behaviour!
 	memoryprotect_FE0000 = 1; //Enable memory protection on FE0000+ by default!
+	//Reset the register!
+	memory_directwb(0x80C00000,0xFF); //Init to all bits set!
 }
 
 void doneMMU()
@@ -325,11 +328,6 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		}
 	}
 
-	if (memoryprotect_FE0000 && (*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF) && iswrite) //Memory protected?
-	{
-		*nonexistant = 1; //We're non-existant!
-		return; //Abort!
-	}
 	if (memoryhole) //Memory hole?
 	{
 		*nonexistant = 1; //We're non-existant!
@@ -338,17 +336,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 			if ((*realaddress>=0xE0000) && (*realaddress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
 			{
 				memloc = 2; //We're the second block instead!
-				*realaddress += MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)-0xE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
-				return; //Apply the new block instead!
-			}
-		}
-		else if ((is_Compaq==1) && (memoryhole==2)) //Compaq remaps RAM from A0000-FFFFF to FA0000-FFFFFF.
-		{
-			//This should be correct, according to PCem: https://bitbucket.org/pcem_emulator/pcem/src/66eec7c1b664f2f1496b5ed3763ec2b2738a6fab/src/compaq.c?at=default
-			if ((*realaddress>=0xFA0000) && (*realaddress<=0xFFFFFF)) //Remapped RAM area addressed?
-			{
-				*nonexistant = 0; //We're to be used directly!
-				*realaddress &= 0xFFFFF; //Remap the low RAM area high!
+				*realaddress |= 0xF00000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
 			}
 		}
 	}
@@ -370,6 +358,28 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		if ((*realaddress >= MMU.size) || ((*realaddress>=MMU.maxsize) && MMU.maxsize)) //Reserved memory?
 		{
 			*nonexistant = 2; //Reserved for reading only!
+		}
+	}
+	if ((*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF)) //Special area addressed?
+	{
+		if (memoryprotect_FE0000 && iswrite) //Memory protected?
+		{
+			*nonexistant = 1; //We're non-existant!
+			return; //Abort!
+		}
+		//Reading or not protected?
+		if (is_Compaq!=1) //Special XT 386 handling?
+		{
+			*realaddress -= MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)-0xE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+		}
+	}
+	if (is_Compaq==1) //Compaq remaps RAM from A0000-FFFFF to FA0000-FFFFFF.
+	{
+		//This should be correct, according to PCem: https://bitbucket.org/pcem_emulator/pcem/src/66eec7c1b664f2f1496b5ed3763ec2b2738a6fab/src/compaq.c?at=default
+		if ((*realaddress>=0xFA0000) && (*realaddress<=0xFFFFFF)) //Remapped RAM area addressed?
+		{
+			*nonexistant = 0; //We're to be used directly!
+			*realaddress &= 0xFFFFF; //Remap the low RAM area high!
 		}
 	}
 }
@@ -424,10 +434,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	byte nonexistant = 0;
 	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
-		if (value&1) //Write-protect 128KB RAM at 0xFE0000?
-		{
-			memoryprotect_FE0000 = (value&1); //Protect the memory?
-		}
+		memoryprotect_FE0000 = (value&1); //Write-protect 128KB RAM at 0xFE0000?
 		if (value&2) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
 		{
 			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
