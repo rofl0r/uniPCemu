@@ -23,12 +23,11 @@ LOCAL_SHARED_LIBRARIES := SDL2
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
 ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+ifeq ($(profile),)
+$(error Please specify the NDK directory containing all NDK files, by specifying profile=YOURPATHHERE . Replace YOURPATHHERE with the ndk directory path. This is usually the sources path. )
+endif
 LOCAL_CFLAGS := -pg -DNDK_PROFILE $(LOCAL_CFLAGS)
 LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) android-ndk-profiler
-endif
-
-ifeq (profile,)
-$(error Please specify the NDK directory containing all NDK files, by specifying profile=YOURPATHHERE . Replace YOURPATHHERE with the ndk directory path. This is usually the sources path. )
 endif
 
 include $(BUILD_SHARED_LIBRARY)
