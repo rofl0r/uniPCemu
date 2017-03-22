@@ -42,7 +42,7 @@ void raiseError(char *source, const char *text, ...)
 	dolog("error","Stopping audio processing...");
 	doneAudio(); //Stop audio processing!
 	dolog("error","Terminating SDL...");
-	//if (!THREADTEST) SDL_Quit(); //Stop SDL processing!
+	//if (!THREADTEST) exit(0); //Stop SDL processing!
 	dolog("error","Displaying message...");
 
 	GPU_text_locksurface(frameratesurface);

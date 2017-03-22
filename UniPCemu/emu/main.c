@@ -119,7 +119,7 @@ int exit_callback(int arg1, int arg2, void *common)
 	
 	if (SDL_WasInit(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)) //Video and/or audio and joystick loaded?
 	{
-		SDL_Quit(); //Quit SDL, releasing everything still left!
+		exit(); //Quit SDL, releasing everything still left!
 	}
 	quitemu(0); //The emu has shut down!
 	return 0; //Never arriving here!
@@ -142,7 +142,7 @@ int CallbackThread(SceSize args, void *argp)
 /* Sets up the callback thread and returns its thread id */
 int SetupCallbacks()
 {
-	atexit(SDL_Quit); //Basic SDL safety!
+	atexit(&SDL_Quit); //Basic SDL safety!
 #ifdef IS_PSP
 	int thid = 0;
 
@@ -277,11 +277,16 @@ int main(int argc, char * argv[])
 	#ifdef NDK_PROFILE
 	setenv( "CPUPROFILE_FREQUENCY", "500", 1 ); // interrupts per second, default 100
 	monstartup( "libmain.so" );
-	atexit(&moncleanup); //Cleanup function!
 	#endif
 
-//Basic PSP stuff!
+	//Basic PSP stuff and base I/O callback(lowest priority) for terminating the application using SDL!
 	SetupCallbacks();
+
+	#ifdef NDK_PROFILE
+	atexit(&moncleanup); //Cleanup function! We have lower priority than the callbacks(which includes SDL_Quit to terminate the application, which would prevent us from cleaning up properly.
+	#endif
+
+
 	#ifdef IS_PSP
 		scePowerSetClockFrequency(333, 333, 166); //Start high-speed CPU!
 	#endif
@@ -296,7 +301,6 @@ int main(int argc, char * argv[])
 
 	if (SDL_Init(0) < 0) //Error initialising SDL defaults?
 	{
-		SDL_Quit(); //Nothing to be done!
 		exit(1); //Just to be sure
 	}
 
