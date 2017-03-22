@@ -27,8 +27,14 @@ LOCAL_CFLAGS := -pg -DNDK_PROFILE $(LOCAL_CFLAGS)
 LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) android-ndk-profiler
 endif
 
+ifeq (profile,)
+$(error Please specify the NDK directory containing all NDK files, by specifying profile=YOURPATHHERE . Replace YOURPATHHERE with the ndk directory path. This is usually the sources path. )
+endif
+
 include $(BUILD_SHARED_LIBRARY)
-$(call import-module,SDL)LOCAL_PATH := $(call my-dir)
+$(call import-module,SDL)
+LOCAL_PATH := $(call my-dir)
 ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+$(call import-add-path,$(profile))
 $(call import-module,android-ndk-profiler)
 endif
