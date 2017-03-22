@@ -57,6 +57,7 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 }
 
 extern byte is_XT; //Are we an XT?
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 //Address translation routine.
 OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
@@ -85,7 +86,20 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	}
 	realaddress += CPU_MMU_start(segdesc, segment);
 
-	realaddress &= MMU.wraparround; //Apply A20!
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if ((MMU.wraparround&0x100000)==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= 0xFFFFF; //Wrap to below 1MB!
+			}
+		}
+	}
 
 	if (is_XT && (EMULATED_CPU<CPU_80286)) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT without newer CPU!
 	else if (EMULATED_CPU==CPU_80286) realaddress &= 0xFFFFFF; //Only 24-bits is available on a AT!
