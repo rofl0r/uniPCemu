@@ -3753,6 +3753,14 @@ void updateInput(SDL_Event *event) //Update all input!
 
 	//Misc system events
 	case SDL_QUIT: //Quit?
+	#ifdef SDL2
+	#ifdef ANDROID
+	case SDL_APP_TERMINATING: //Terminating the application by the OS?
+		#ifdef NDK_PROFILE
+			monpendingcleanup(); //Process any pending cleanup when needed!
+		#endif
+	#endif
+	#endif
 		quitting:
 		lock(LOCK_INPUT);
 		if (joystick) //Gotten a joystick connected?

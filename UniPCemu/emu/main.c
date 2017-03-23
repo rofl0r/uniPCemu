@@ -263,6 +263,20 @@ extern char logpath[256]; //Log path!
 extern char capturepath[256]; //Capture path!
 extern byte RDP;
 
+#ifdef NDK_PROFILE
+byte is_monpendingcleanup = 0; //Are we still pending cleanup?
+void monpendingcleanup()
+{
+	lock(LOCK_PERFMON); //Lock us!
+	if (is_monpendingcleanup) //Pending cleanup?
+	{
+		is_monpendingcleanup = 0; //Not pending anymore!
+		moncleanup();
+	}
+	unlock(LOCK_PERFMON); //Release us! We're finished!
+}
+#endif
+
 int main(int argc, char * argv[])
 {
 	int argn;
@@ -277,13 +291,14 @@ int main(int argc, char * argv[])
 	#ifdef NDK_PROFILE
 	setenv( "CPUPROFILE_FREQUENCY", "500", 1 ); // interrupts per second, default 100
 	monstartup( "libmain.so" );
+	is_monpendingcleanup = 1; //We're running to allow pending cleanup!
 	#endif
 
 	//Basic PSP stuff and base I/O callback(lowest priority) for terminating the application using SDL!
 	SetupCallbacks();
 
 	#ifdef NDK_PROFILE
-	atexit(&moncleanup); //Cleanup function! We have lower priority than the callbacks(which includes SDL_Quit to terminate the application, which would prevent us from cleaning up properly.
+	atexit(&monpendingcleanup); //Cleanup function! We have lower priority than the callbacks(which includes SDL_Quit to terminate the application, which would prevent us from cleaning up properly.
 	#endif
 
 
@@ -382,6 +397,7 @@ int main(int argc, char * argv[])
 	getLock(LOCK_SHUTDOWN);
 	getLock(LOCK_FRAMERATE);
 	getLock(LOCK_MAINTHREAD);
+	getLock(LOCK_PERFMON);
 	
 	BIOS_DetectStorage(); //Detect all storage devices and BIOS Settings file needed to run!
 

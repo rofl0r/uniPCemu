@@ -215,4 +215,7 @@ void updateInputMain(); //Update input before an instruction (main thread only!)
 #define STATICSCREEN
 #endif
 
+#ifdef NDK_PROFILE
+void monpendingcleanup(); //Cleanup function for the performance monitor on Android!
+#endif
 #endif
