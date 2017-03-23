@@ -117,7 +117,7 @@ typedef struct
 	double modulationratiosamples[CHORUSSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[CHORUSSIZE], lowpass_modulationratiosamples[CHORUSSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup; //A backtrace of the sample speedup through time for each sample played in the main stream!
-	FIFOBUFFER *effect_backtrace_chorus[CHORUSSIZE][2]; //Chorus backtrace for reverb purpose, stereo!
+	FIFOBUFFER *effect_backtrace_chorus[CHORUSSIZE]; //Chorus backtrace for reverb purpose, stereo!
 	uint_32 chorusdelay[CHORUSSIZE]; //Total delay for the chorus/reverb channel!
 	uint_32 reverbdelay[REVERBSIZE]; //Total delay for the chorus/reverb channel!
 	float chorusvol[CHORUSSIZE]; //Chorus/reverb volume!

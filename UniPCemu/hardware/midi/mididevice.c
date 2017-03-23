@@ -93,7 +93,7 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	//First, our variables!
 	byte channel,chorusreverbdepth;
 	word notes;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE][2];
+	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
@@ -103,14 +103,12 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		temp = activevoices[channel].effect_backtrace_samplespeedup; //Back-up the effect backtrace!
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
-			chorus_backtrace[chorusreverbdepth][0] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth][0]; //Back-up!
-			chorus_backtrace[chorusreverbdepth][1] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth][1]; //Back-up!
+			chorus_backtrace[chorusreverbdepth] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
 		}
 		memset(&activevoices[channel],0,sizeof(activevoices[channel])); //Clear the entire channel!
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
-			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth][0] = chorus_backtrace[chorusreverbdepth][0]; //Restore!
-			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth][1] = chorus_backtrace[chorusreverbdepth][1]; //Restore!
+			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 		}
 		activevoices[channel].effect_backtrace_samplespeedup = temp; //Restore our buffer!
 		fifobuffer_clear(temp); //Clear our buffer!
@@ -339,8 +337,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldel
 		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
 		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
 
-		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][0],lchannel); //Left channel output!
-		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][1],rchannel); //Right channel output!
+		writefifobufferflt_2(voice->effect_backtrace_chorus[filterindex],lchannel,rchannel); //Left/right channel output!
 
 		*lchannelres += (int_32)lchannel; //Apply the immediate left channel!
 		*rchannelres += (int_32)rchannel; //Apply the immedaite right channel!
@@ -348,8 +345,7 @@ OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldel
 	else
 	{
 		finishedsample: //loopflags set?
-		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][0],0.0f); //Left channel output!
-		writefifobufferflt(voice->effect_backtrace_chorus[filterindex][1],0.0f); //Right channel output!
+		writefifobufferflt_2(voice->effect_backtrace_chorus[filterindex],0.0f,0.0f); //Left/right channel output!
 	}
 }
 
@@ -486,8 +482,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			totaldelay = voice->reverbdelay[reverb]; //Load the total delay!
 			currentactivefinalchannel = (voice->isfinalchannel_reverb[reverb]) && activechannel; //Active&final channel?
 
-			if (readfifobufferflt_backtrace(voice->effect_backtrace_chorus[chorus][0],&channelsamplel,totaldelay,currentactivefinalchannel)
-				& readfifobufferflt_backtrace(voice->effect_backtrace_chorus[chorus][1],&channelsampler,totaldelay,currentactivefinalchannel)) //Are we successfully read back?
+			if (readfifobufferflt_backtrace_2(voice->effect_backtrace_chorus[chorus],&channelsamplel,&channelsampler,totaldelay,currentactivefinalchannel)) //Are we successfully read back?
 			{
 				VolumeEnvelope = voice->reverbvol[reverb]; //Load the envelope to apply!
 				lchannel += (int_32)(channelsamplel*VolumeEnvelope); //Sound the left channel at reverb level!
@@ -545,7 +540,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE][2];
+	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
@@ -568,21 +563,18 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 	{
-		chorus_backtrace[chorusreverbdepth][0] = voice->effect_backtrace_chorus[chorusreverbdepth][0]; //Back-up!
-		chorus_backtrace[chorusreverbdepth][1] = voice->effect_backtrace_chorus[chorusreverbdepth][1]; //Back-up!
+		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
 	}
 	memset(voice,0,sizeof(*voice)); //Clear the entire channel!
 	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 	{
-		voice->effect_backtrace_chorus[chorusreverbdepth][0] = chorus_backtrace[chorusreverbdepth][0]; //Restore!
-		voice->effect_backtrace_chorus[chorusreverbdepth][1] = chorus_backtrace[chorusreverbdepth][1]; //Restore!
+		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 	}
 	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth) //Initialize all chorus histories!
 	{
-		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth][0]); //Clear our history buffer!
-		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth][1]); //Clear our history buffer!
+		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth]); //Clear our history buffer!
 	}
 	
 	//Now, determine the actual note to be turned on!
@@ -1521,8 +1513,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 		}
 		for (j=0;j<CHORUSSIZE;++j)
 		{
-			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j][0]); //Release the FIFO buffer containing the entire history!
-			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j][1]); //Release the FIFO buffer containing the entire history!
+			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j]); //Release the FIFO buffer containing the entire history!
 		}
 	}
 	MIDIDEVICE_ActiveSenseFinished(); //Finish our Active Sense: we're not needed anymore!
@@ -1597,8 +1588,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<1,0); //Not locked FIFO buffer containing the entire history!
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
-				activevoices[i].effect_backtrace_chorus[j][0] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!				
-				activevoices[i].effect_backtrace_chorus[j][1] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!				
+				activevoices[i].effect_backtrace_chorus[j] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!				
 			}
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
