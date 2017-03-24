@@ -2,6 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+APP_OPTIM := release
+
 LOCAL_MODULE := main
 
 SDL_PATH := ../SDL2
