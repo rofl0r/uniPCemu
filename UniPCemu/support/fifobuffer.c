@@ -352,15 +352,23 @@ OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *resu
 	INLINEREGISTER uint_32 resultd;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	resultd = (buffer->buffer[readpos++]<<8); //Read and update high!
-	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	resultd |= buffer->buffer[readpos++]; //Read and update low!
-	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	resultd <<= 8;
-	resultd |= buffer->buffer[readpos++]; //Read and update low!
-	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	resultd <<= 8;
-	resultd |= buffer->buffer[readpos++]; //Read and update low!
+	if (((size|readpos)&3)==0) //Aligned access in aligned buffer?
+	{
+		resultd = *((uint_32 *)&buffer[readpos]); //Read 32-bit aligned!
+		readpos += 4;
+	}
+	else //Unaligned read?
+	{
+		resultd = (buffer->buffer[readpos++]<<8); //Read and update high!
+		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		resultd |= buffer->buffer[readpos++]; //Read and update low!
+		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		resultd <<= 8;
+		resultd |= buffer->buffer[readpos++]; //Read and update low!
+		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		resultd <<= 8;
+		resultd |= buffer->buffer[readpos++]; //Read and update low!
+	}
 	resultd = LE32(resultd); //Convert to native ordering if needed!
 	*result = resultd; //Save the result retrieved, in LE format!
 	if (updateposition)
