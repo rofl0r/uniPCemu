@@ -335,6 +335,11 @@
   <ItemGroup>
     <Image Include="UniPCemu.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\android-project\jni\src\Android.mk" />
+    <None Include="..\android-project\jni\src\Android_static.mk" />
+    <None Include="Makefile.files" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{51F8A783-928C-482C-B51C-91C141C6302C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

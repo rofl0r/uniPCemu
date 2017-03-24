@@ -103,6 +103,9 @@
     <Filter Include="Header Files\support">
       <UniqueIdentifier>{b76638ad-55ff-4686-890d-6c969b818b0a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Makefiles">
+      <UniqueIdentifier>{d2cf3af9-c025-467f-8d7f-d9f66f143d66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basicio\dskimage.c">
@@ -966,5 +969,16 @@
     <ResourceCompile Include="UniPCemuVS.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\android-project\jni\src\Android.mk">
+      <Filter>Makefiles</Filter>
+    </None>
+    <None Include="..\android-project\jni\src\Android_static.mk">
+      <Filter>Makefiles</Filter>
+    </None>
+    <None Include="Makefile.files">
+      <Filter>Makefiles</Filter>
+    </None>
   </ItemGroup>
 </Project>
