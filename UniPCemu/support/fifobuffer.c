@@ -329,15 +329,33 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 
 OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result, byte updateposition)
 {
+	#include "headers/packed.h"
+	union PACKED
+	{
+		uint_32 resultw;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	INLINEREGISTER uint_32 readpos,size;
-	INLINEREGISTER word resultw;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
-	resultw = (buffer->buffer[readpos++]<<8); //Read and update high!
-	if (readpos >= size) readpos = 0; //Wrap arround when needed!
-	resultw |= buffer->buffer[readpos++]; //Read and update low!
-	resultw = LE16(resultw); //Convert to native ordering, if needed!
-	*result = resultw; //Save the result retrieved, from LE format!
+	if (((size|readpos)&1)==0) //Aligned access in aligned buffer?
+	{
+		temp.resultw = *((word *)&buffer->buffer[readpos]); //Read 16-bit aligned!
+		readpos += 2;
+	}
+	else //Unaligned read?
+	{
+		temp.byte1 = (buffer->buffer[readpos++]); //Read and update high!
+		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
+	}
+	temp.resultw = LE16(temp.resultw); //Convert to native ordering, if needed!
+	*result = temp.resultw; //Save the result retrieved, from LE format!
 	if (updateposition)
 	{
 		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
@@ -348,29 +366,39 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result,
 
 OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *result, byte updateposition)
 {
+	#include "headers/packed.h"
+	union PACKED
+	{
+		uint_32 resultd;
+		struct
+		{
+			byte byte1; //Low byte
+			byte byte2; //High byte
+			byte byte3; //Low byte - High
+			byte byte4; //High byte - High
+		};
+	} temp;
+	#include "headers/endpacked.h"
 	INLINEREGISTER uint_32 readpos,size;
-	INLINEREGISTER uint_32 resultd;
 	size = buffer->size; //Size of the buffer to wrap around!
 	readpos = buffer->readpos; //Load the old read position!
 	if (((size|readpos)&3)==0) //Aligned access in aligned buffer?
 	{
-		resultd = *((uint_32 *)&buffer[readpos]); //Read 32-bit aligned!
+		temp.resultd = *((uint_32 *)&buffer->buffer[readpos]); //Read 32-bit aligned!
 		readpos += 4;
 	}
 	else //Unaligned read?
 	{
-		resultd = (buffer->buffer[readpos++]<<8); //Read and update high!
+		temp.byte1 = (buffer->buffer[readpos++]); //Read and update high!
 		if (readpos >= size) readpos = 0; //Wrap arround when needed!
-		resultd |= buffer->buffer[readpos++]; //Read and update low!
+		temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
 		if (readpos >= size) readpos = 0; //Wrap arround when needed!
-		resultd <<= 8;
-		resultd |= buffer->buffer[readpos++]; //Read and update low!
+		temp.byte3 = buffer->buffer[readpos++]; //Read and update low!
 		if (readpos >= size) readpos = 0; //Wrap arround when needed!
-		resultd <<= 8;
-		resultd |= buffer->buffer[readpos++]; //Read and update low!
+		temp.byte4 = buffer->buffer[readpos++]; //Read and update low!
 	}
-	resultd = LE32(resultd); //Convert to native ordering if needed!
-	*result = resultd; //Save the result retrieved, in LE format!
+	temp.resultd = LE32(temp.resultd); //Convert to native ordering if needed!
+	*result = temp.resultd; //Save the result retrieved, in LE format!
 	if (updateposition)
 	{
 		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
@@ -696,9 +724,17 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
 	temp.resultw = LE16(data); //Load the data to store, in LE format!
-	buffer->buffer[writepos++] = temp.byte2; //Write high and update!
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = temp.byte1; //Write low and update!
+	if (((size|writepos)&1)==0) //Aligned access in aligned buffer?
+	{
+		*((word *)&buffer->buffer[writepos]) = temp.resultw; //Write 16-bit aligned!
+		writepos += 2;
+	}
+	else //Unaligned read?
+	{
+		buffer->buffer[writepos++] = temp.byte1; //Write high and update!
+		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		buffer->buffer[writepos++] = temp.byte2; //Write high and update!
+	}
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
@@ -723,13 +759,21 @@ OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data
 	size = buffer->size; //Load the size!
 	writepos = buffer->writepos; //Load the write position!
 	temp.resultd = LE32(data); //Convert us to LE format!
-	buffer->buffer[writepos++] = temp.byte4; //Write high and update!
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = temp.byte3; //Write high and update!
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = temp.byte2; //Write high and update!
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
-	buffer->buffer[writepos++] = temp.byte1; //Write low and update!
+	if (((size|writepos)&3)==0) //Aligned access in aligned buffer?
+	{
+		*((uint_32 *)&buffer->buffer[writepos]) = temp.resultd; //Write 32-bit aligned!
+		writepos += 4;
+	}
+	else //Unaligned read?
+	{
+		buffer->buffer[writepos++] = temp.byte1; //Write high and update!
+		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		buffer->buffer[writepos++] = temp.byte2; //Write high and update!
+		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		buffer->buffer[writepos++] = temp.byte3; //Write high and update!
+		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		buffer->buffer[writepos++] = temp.byte4; //Write low and update!
+	}
 	if (writepos >= size) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
