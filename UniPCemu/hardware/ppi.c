@@ -62,15 +62,8 @@ byte PPI_readIO(word port, byte *result)
 {
 	switch (port) //Special register: System control port B!
 	{
-	case 0x61: //System control port B?
-		if (is_XT) //Keyboard controller port B?
-		{
-			*result = 0x00; //Nothing here!
-		}
-		else //AT? System Control Port B directly!
-		{
-			*result = SystemControlPortB; //Read the value!
-		}
+	case 0x61: //System control port B(ISA,EISA)?
+		*result = (SystemControlPortB&0xCC); //Read the value! Bits 0,1,4,5 are by the PIT! The rest is by the System Control Port B!
 		return 1;
 		break;
 	case 0x62: //PPI62?
@@ -116,7 +109,7 @@ byte PPI_writeIO(word port, byte value)
 	case 0x61: //System control port B?
 		if (is_XT) //IBM XT?
 		{
-			SystemControlPortB = (value&0x3C); //Set the port, only the middle 4 bits(highest 2 bits is the keyboard controller) are used: bit 5=I/O check enable, bit 4=RAM parity check enable, bit 3=Read low switches, bit2=Turbo Switch is ours!
+			SystemControlPortB = (value&0x3C)|(SystemControlPortB&0xC3); //Set the port, only the middle 4 bits(highest 2 bits is the keyboard controller) are used: bit 5=I/O check enable, bit 4=RAM parity check enable, bit 3=Read low switches, bit2=Turbo Switch is ours!
 			PPI62 &= ~(((((SystemControlPortB & 0x10) << 1)) | ((SystemControlPortB & 0x20) >> 1)) << 2); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
 		}
 		else //Full set?
