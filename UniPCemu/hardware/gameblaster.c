@@ -708,7 +708,7 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
 			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
-			for (dutycyclei = render_ticks;dutycyclei;)
+			for (dutycyclei = render_ticks;dutycyclei;--dutycyclei)
 			{
 				if (!readfifobuffer32_2(GAMEBLASTER.rawsignal, &currentsamplel, &currentsampler)) break; //Failed to read the sample? Stop counting!
 				//We're applying the low pass filter for the output!

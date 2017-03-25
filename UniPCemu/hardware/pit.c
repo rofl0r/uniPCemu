@@ -484,7 +484,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
 			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
-			for (dutycyclei = render_ticks;dutycyclei;)
+			for (dutycyclei = render_ticks;dutycyclei;--dutycyclei)
 			{
 				if (!readfifobuffer(PITchannels[2].rawsignal, &currentsample)) break; //Failed to read the sample? Stop counting!
 				speaker_currentsample = currentsample?(SHRT_MAX*SPEAKER_LOWPASSVOLUME):(SHRT_MIN*SPEAKER_LOWPASSVOLUME); //Convert the current result to the 16-bit data, signed instead of unsigned!
