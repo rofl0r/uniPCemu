@@ -528,7 +528,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	}
 	return PWM->result; //Give the proper output as a 16-bit sample!
 	#else
-	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
+	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
 }
 
@@ -631,10 +631,19 @@ double gameblaster_ticklength = 0.0; //Length of PIT samples to process every ou
 
 void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 {
+	//Output rendering information:
+	INLINEREGISTER uint_32 length; //Amount of samples to generate!
+	INLINEREGISTER uint_32 i;
+	uint_32 dutycyclei; //Input samples to process!
+	INLINEREGISTER uint_32 tickcounter;
+	word oldvalue; //Old value before decrement!
+	double tempf;
+	uint_32 render_ticks; //A one shot tick!
+	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
+	float filtersamplel, filtersampler;
+
+	//Game Blaster signal information:
 	int_32 leftsample[2], rightsample[2]; //Two stereo samples!
-	#ifdef FILTER_SIGNAL
-	static float leftsamplef[2]={0.0f,0.0f}, rightsamplef[2]={0.0f,0.0f}; //Two stereo samples, floating point format!
-	#endif
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Game Blaster sound output
 	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
@@ -674,20 +683,7 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 
 			writefifobuffer32_2(GAMEBLASTER.rawsignal,leftsample[0]+leftsample[1],rightsample[0]+rightsample[1]); //Save the raw signal for post-processing!
 		}
-		//Now, apply all seperate channel limits!
-		leftsamplef[0] *= AMPLIFIER; //Left channel output!
-		rightsamplef[0] *= AMPLIFIER; //Right channel output!
 	}
-
-	INLINEREGISTER uint_32 length; //Amount of samples to generate!
-	INLINEREGISTER uint_32 i;
-	uint_32 dutycyclei; //Input samples to process!
-	INLINEREGISTER uint_32 tickcounter;
-	word oldvalue; //Old value before decrement!
-	double tempf;
-	uint_32 render_ticks; //A one shot tick!
-	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
-	float filtersamplel, filtersampler;
 
 	//PC speaker output!
 	gameblaster_output_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
@@ -714,28 +710,20 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 				//We're applying the low pass filter for the output!
 				filtersamplel = (float)currentsamplel; //Convert to filter format!
 				filtersampler = (float)currentsampler; //Convert to filter format!
+				#ifdef FILTER_SIGNAL
+				//Enable filtering when defined!
 				applySoundFilter(&GAMEBLASTER.filter[0], &filtersamplel);
 				applySoundFilter(&GAMEBLASTER.filter[1], &filtersampler);
+				#endif
 			}
 
 			//Add the result to our buffer!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer,(signed2unsigned16((sword)LIMITRANGE(filtersamplel, SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(filtersampler, SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer,(signed2unsigned16((sword)LIMITRANGE(filtersampler, SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(filtersamplel, SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
 			++i; //Add time!
 			if (i == length) //Fully rendered?
 			{
 				return; //Next item!
 			}
-		}
-	}
-
-	gameblaster_rendertiming += MHZ14passed; //Tick the base by our passed time!
-	if (gameblaster_rendertiming>=MHZ14_RENDERTICK) //To render a sample or more samples?
-	{
-		for (;gameblaster_rendertiming>=MHZ14_RENDERTICK;)
-		{
-			//Now push the samples to the output!
-			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer,(signed2unsigned16((sword)LIMITRANGE(rightsamplef[0], SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(leftsamplef[0], SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
-			gameblaster_rendertiming -= MHZ14_RENDERTICK; //Tick the renderer by our passed time!
 		}
 	}
 }
