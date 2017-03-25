@@ -997,7 +997,7 @@ OPTINLINE byte coreHandler()
 		updateFloppy(instructiontime); //Update the floppy!
 		updateMPUTimer(instructiontime); //Update the MPU timing!
 		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
-		if (useGameBlaster) updateGameBlaster(MHZ14passed); //Tick the Game Blaster timer if needed!
+		if (useGameBlaster) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed!
 		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!
 		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!

@@ -7,6 +7,6 @@ void doneGameBlaster();
 void GameBlaster_setVolume(float volume);
 void setGameBlaster_SoundBlaster(byte useSoundBlasterIO); //Sound Blaster compatible I/O?
 
-void updateGameBlaster(uint_32 MHZ14passed);
+void updateGameBlaster(double timepassed, uint_32 MHZ14passed);
 
 #endif

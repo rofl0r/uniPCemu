@@ -128,6 +128,8 @@ struct
 	SAA1099 chips[2]; //The two chips for generating output!
 	HIGHLOWPASSFILTER filter[2]; //Filter for left and right channels, low-pass type!
 	uint_32 baseclock; //Base clock to render at(up to bus rate of 14.31818MHz)!
+	FIFOBUFFER *rawsignal; //Raw output signal we're generating!
+	double samplesleft; //Samples left to process!
 } GAMEBLASTER; //Our game blaster information!
 
 //Safety check of above defines to make sure we don't generate wrong samples(PWM without filter creates an invalid output when resampled)!
@@ -622,7 +624,12 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, int_32 *leftsample, int_32 *
 uint_32 gameblaster_soundtiming=0;
 uint_32 gameblaster_rendertiming=0;
 
-void updateGameBlaster(uint_32 MHZ14passed)
+double gameblaster_output_ticktiming; //Both current clocks!
+double gameblaster_output_tick = 0.0; //Time of a tick in the PC speaker sample!
+
+double gameblaster_ticklength = 0.0; //Length of PIT samples to process every output sample!
+
+void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 {
 	int_32 leftsample[2], rightsample[2]; //Two stereo samples!
 	#ifdef FILTER_SIGNAL
@@ -665,21 +672,60 @@ void updateGameBlaster(uint_32 MHZ14passed)
 			}
 			#endif
 
-			//Convert to floating point to apply filters&output each time!
-			leftsamplef[0] = (float)leftsample[0];
-			rightsamplef[0] = (float)rightsample[0];
-			leftsamplef[0] += (float)leftsample[1]; //Add left channel outputs together!
-			rightsamplef[0] += (float)rightsample[1]; //Add right channel outputs together!
-
-			#ifdef FILTER_SIGNAL
-			//Low-pass filters, when enabled!
-			applySoundLowPassFilterObj(GAMEBLASTER.filter[0],leftsamplef[0]); //Filter low-pass left!
-			applySoundLowPassFilterObj(GAMEBLASTER.filter[1],rightsamplef[0]); //Filter low-pass right!
-			#endif
+			writefifobuffer32_2(GAMEBLASTER.rawsignal,leftsample[0]+leftsample[1],rightsample[0]+rightsample[1]); //Save the raw signal for post-processing!
 		}
 		//Now, apply all seperate channel limits!
 		leftsamplef[0] *= AMPLIFIER; //Left channel output!
 		rightsamplef[0] *= AMPLIFIER; //Right channel output!
+	}
+
+	INLINEREGISTER uint_32 length; //Amount of samples to generate!
+	INLINEREGISTER uint_32 i;
+	uint_32 dutycyclei; //Input samples to process!
+	INLINEREGISTER uint_32 tickcounter;
+	word oldvalue; //Old value before decrement!
+	double tempf;
+	uint_32 render_ticks; //A one shot tick!
+	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
+	float filtersamplel, filtersampler;
+
+	//PC speaker output!
+	gameblaster_output_ticktiming += timepassed; //Get the amount of time passed for the PC speaker (current emulated time passed according to set speed)!
+	if ((gameblaster_output_ticktiming >= gameblaster_output_tick)) //Enough time passed to render the physical PC speaker and enabled?
+	{
+		length = (uint_32)floor(SAFEDIV(gameblaster_output_ticktiming, gameblaster_output_tick)); //How many ticks to tick?
+		gameblaster_output_ticktiming -= (length*gameblaster_output_tick); //Rest the amount of ticks!
+
+		//Ticks the speaker when needed!
+		i = 0; //Init counter!
+		//Generate the samples from the output signal!
+		for (;;) //Generate samples!
+		{
+			//Average our input ticks!
+			GAMEBLASTER.samplesleft += gameblaster_ticklength; //Add our time to the sample time processed!
+			tempf = floor(GAMEBLASTER.samplesleft); //Take the rounded number of samples to process!
+			GAMEBLASTER.samplesleft -= tempf; //Take off the samples we've processed!
+			render_ticks = (uint_32)tempf; //The ticks to render!
+
+			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
+			for (dutycyclei = render_ticks;dutycyclei;)
+			{
+				if (!readfifobuffer32_2(GAMEBLASTER.rawsignal, &currentsamplel, &currentsampler)) break; //Failed to read the sample? Stop counting!
+				//We're applying the low pass filter for the output!
+				filtersamplel = (float)currentsamplel; //Convert to filter format!
+				filtersampler = (float)currentsampler; //Convert to filter format!
+				applySoundFilter(&GAMEBLASTER.filter[0], &filtersamplel);
+				applySoundFilter(&GAMEBLASTER.filter[1], &filtersampler);
+			}
+
+			//Add the result to our buffer!
+			writeDoubleBufferedSound32(&GAMEBLASTER.soundbuffer,(signed2unsigned16((sword)LIMITRANGE(filtersamplel, SHRT_MIN, SHRT_MAX))<<16)|signed2unsigned16((sword)LIMITRANGE(filtersampler, SHRT_MIN, SHRT_MAX))); //Output the sample to the renderer!
+			++i; //Add time!
+			if (i == length) //Fully rendered?
+			{
+				return; //Next item!
+			}
+		}
 	}
 
 	gameblaster_rendertiming += MHZ14passed; //Tick the base by our passed time!
@@ -838,6 +884,8 @@ void initGameBlaster(word baseaddr)
 	GAMEBLASTER.baseaddr = baseaddr; //Base address of the Game Blaster!
 	setGameBlaster_SoundBlaster(0); //Default to Game Blaster I/O!
 
+	GAMEBLASTER.rawsignal = allocfifobuffer((((uint_64)((2048.0f / __GAMEBLASTER_SAMPLERATE)*__GAMEBLASTER_BASERATE)) + 1)<<3, 0); //Nonlockable FIFO with 2048 word-sized samples with lock (TICK_RATE)!
+
 	if (allocDoubleBufferedSound32(__GAMEBLASTER_SAMPLEBUFFERSIZE,&GAMEBLASTER.soundbuffer,0,__GAMEBLASTER_SAMPLERATE)) //Valid buffer?
 	{
 		if (!addchannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer,"GameBlaster",(float)__GAMEBLASTER_SAMPLERATE,__GAMEBLASTER_SAMPLEBUFFERSIZE,1,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
@@ -860,6 +908,9 @@ void initGameBlaster(word baseaddr)
 	register_PORTOUT(&outGameBlaster); //Output ports!
 
 	GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
+
+	gameblaster_output_tick = (1000000000.0 / (double)__GAMEBLASTER_SAMPLERATE); //Speaker tick!
+	gameblaster_ticklength = (1.0f / __GAMEBLASTER_SAMPLERATE)*__GAMEBLASTER_BASERATE; //Time to speaker sample ratio!
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
@@ -938,4 +989,5 @@ void doneGameBlaster()
 	if (GAMEBLASTER_LOG) closeWAV(&GAMEBLASTER_LOG); //Close our log, if logging!
 	removechannel(&GameBlaster_soundGenerator,&GAMEBLASTER.soundbuffer,0); //Stop the sound emulation?
 	freeDoubleBufferedSound(&GAMEBLASTER.soundbuffer);
+	free_fifobuffer(&GAMEBLASTER.rawsignal); //Release the FIFO buffer we use!
 }
