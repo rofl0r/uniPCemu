@@ -539,7 +539,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		//Load the new PWM timeout and PWM settings from the channel!
 		output &= (AMPENV_RESULT_SILENCE|AMPENV_RESULT_POSITIVE); //Only bits that we need!
 		PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
-		PWM->flipflopoutput = (output&AMPENV_RESULT_POSITIVE)?1:0; //Start output, if any! We're starting high!
+		PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
 		PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
 		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
 		counter = 0; //Reset the counter again: we're restored!
