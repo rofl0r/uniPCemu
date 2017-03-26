@@ -785,8 +785,10 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			//Load and mix the sample to render!
 			i = leftsample[0]; //Load left sample!
 			i += leftsample[1]; //Mix left sample!
+			i = (int_32)((float)(i)*AMPLIFIER); //Amplify!
 			length = rightsample[0]; //Load right sample!
 			length += rightsample[1]; //Mix right sample!
+			length = (int_32)((float)(length)*AMPLIFIER); //Amplify!
 
 			writefifobuffer32_2(GAMEBLASTER.rawsignal,i,length); //Save the raw signal for post-processing!
 		}
