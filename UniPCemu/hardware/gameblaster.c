@@ -597,8 +597,9 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	counter = (counter!=PWM->Amplitude); //Are we not to expire?
-	counter |= PWM->output; //Are we not to expire(already expired)?
+	counter = (counter>=PWM->Amplitude); //Are we not to expire?
+	counter &= (PWM->output==0); //Are we not to expire(already expired)?
+	counter = !counter; //We don't want to follow by default!
 	if (counter) //To give a result?
 	{
 		result = PWM->result; //Get the result!
