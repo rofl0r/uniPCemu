@@ -389,7 +389,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 #endif
 				++renderpixel; //We've rendered a pixel!
 				//Else, We're transparent, do don't plot!
-				if (++x==GPU_TEXTPIXELSX) //End of row reached?
+				if (++x!=GPU_TEXTPIXELSX) //End of row not reached?
+				{
+					if ((x&0x1F)==0) //To reload the foreground mask?
+					{
+						notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
+					}
+					else
+					{
+						notbackground >>= 1; //Take the next pixel from the background mask!
+					}
+				}
+				else
 				{
 					x = sx = 0; //Reset horizontal coordinate!
 #ifdef ADAPTIVETEXT
@@ -407,17 +418,6 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					}
 					renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
 					notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
-				}
-				else
-				{
-					if ((x&0x1F)==0) //To reload the foreground mask?
-					{
-						notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
-					}
-					else
-					{
-						notbackground >>= 1; //Take the next pixel from the background mask!
-					}
 				}
 				if ((isnottransparent = (notbackground&1))) //To render us?
 				{
