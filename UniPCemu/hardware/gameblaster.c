@@ -524,41 +524,92 @@ int_32 PWM_outputs[5] = {-SHRT_MAX,SHRT_MAX,0,0,0}; //Output, if any! Four posit
 int_32 PWM_outputs[5] = {-1,1,0,0,0}; //Output, if any!
 #endif
 
-OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
+//All loading PWM states!
+void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0, 0x10!
 {
-	byte counter;
-	PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
-	counter = PWM->PWMCounter++; //Apply the current counter!
-	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
-	switch (counter|((output<<4)&0x10)) //What special cases to apply?
-	{
-	case 0: //Counter is zero(left channel)?
-	case 0x10: //Counter is zero(right channel)?
-		//Timeout? Load new information and start the next PWM sample!
-		counter = (output&1); //Save the output channel for reference in the entire PWM output! Also save bit 1 for usage!
-		//Load the new PWM timeout and PWM settings from the channel!
-		output &= (AMPENV_RESULT_SILENCE|AMPENV_RESULT_POSITIVE); //Only bits that we need!
-		PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
-		PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
-		PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
-		PWM->Amplitude = chip->channels[channel].PWMAmplitude[counter]; //Update the amplitude to use!
-		counter = 0; //Reset the counter again: we're restored!
-		break;
-	case 0x1F: //Start a new PWM pulse next sample(right channel)!
+	//Timeout? Load new information and start the next PWM sample!
+	//Load the new PWM timeout and PWM settings from the channel!
+	PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
+	PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
+	PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
+	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)]; //Update the amplitude to use!
+}
+
+void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x1F
+{
 		chip->channels[channel].toneonnoiseonflipflop ^= AMPENV_INPUT_PWMPERIOD; //Trigger the flipflop at PWM samplerate only once(entire channel)!
 		//Passthrough to apply PWM resetting the counter always!
-	case 0xF: //Start a new PWM pulse next sample(left channel)!
 		PWM->PWMCounter = 0; //Reset the counter to count the active time!
-	default: //Normal case?
-		break;
+}
+
+void SAA1099PWM_FinalCounterLeft(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x0F
+{
+	PWM->PWMCounter = 0; //Reset the counter to count the active time!
+}
+
+typedef void (*SAA1099PWM_Counter)(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM); //State 0x0F
+
+SAA1099PWM_Counter SAA1099PWMCounters[0x20] = {
+	//Left counter
+	SAA1099PWM_NewCounter, //00
+	SAA1099PWM_NewCounter, //01
+	NULL, //02
+	NULL, //03
+	NULL, //04
+	NULL, //05
+	NULL, //06
+	NULL, //07
+	NULL, //08
+	NULL, //09
+	NULL, //0A
+	NULL, //0B
+	NULL, //0C
+	NULL, //0D
+	NULL, //0E
+	NULL, //0F
+	NULL, //10
+	NULL, //11
+	NULL, //12
+	NULL, //13
+	NULL, //14
+	NULL, //15
+	NULL, //16
+	NULL, //17
+	NULL, //18
+	NULL, //19
+	NULL, //1A
+	NULL, //1B
+	NULL, //1C
+	NULL, //1D
+	SAA1099PWM_FinalCounterLeft, //1E
+	SAA1099PWM_FinalCounterRight //1F
+};
+
+OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
+{
+	int_32 result; //The result to give!
+	INLINEREGISTER byte counter;
+	INLINEREGISTER PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
+	counter = PWM->PWMCounter++; //Apply the current counter!
+	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
+	if ((counter==0) || (counter==0xF)) //First or last sample of the pulse? We're to handle something!
+	{
+		SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	if ((PWM->output==0) && (counter==PWM->Amplitude)) //Not zeroed always(bit2 isn't set)? We're zeroed when the PWM period is finished during timing!
+	counter = (counter!=PWM->Amplitude); //Are we not to expire?
+	counter |= PWM->output; //Are we not to expire(already expired)?
+	if (counter) //To give a result?
 	{
-		PWM->output = AMPENV_RESULT_SILENCE; //We're finished! Return to 0V always for the rest of the period!
-		PWM->result = 0; //No output anymore!
+		result = PWM->result; //Get the result!
 	}
-	return PWM->result; //Give the proper output as a 16-bit sample!
+	else //Are we to expire?
+	{
+		//Finished PWM sample!
+		PWM->output = AMPENV_RESULT_SILENCE; //We're finished! Return to 0V always for the rest of the period!
+		result = PWM->result = 0; //No output anymore!
+	}
+	return result; //Give the proper output as a 16-bit sample!
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
@@ -660,6 +711,8 @@ double gameblaster_output_tick = 0.0; //Time of a tick in the PC speaker sample!
 
 double gameblaster_ticklength = 0.0; //Length of PIT samples to process every output sample!
 
+int_32 leftsample[2], rightsample[2]; //Two stereo samples!
+
 void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 {
 	//Output rendering information:
@@ -673,8 +726,6 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
 	float filtersamplel, filtersampler;
 
-	//Game Blaster signal information:
-	int_32 leftsample[2], rightsample[2]; //Two stereo samples!
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Game Blaster sound output
 	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
@@ -712,7 +763,13 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			}
 			#endif
 
-			writefifobuffer32_2(GAMEBLASTER.rawsignal,leftsample[0]+leftsample[1],rightsample[0]+rightsample[1]); //Save the raw signal for post-processing!
+			//Load and mix the sample to render!
+			i = leftsample[0]; //Load left sample!
+			i += leftsample[1]; //Mix left sample!
+			length = rightsample[0]; //Load right sample!
+			length += rightsample[1]; //Mix right sample!
+
+			writefifobuffer32_2(GAMEBLASTER.rawsignal,i,length); //Save the raw signal for post-processing!
 		}
 	}
 
