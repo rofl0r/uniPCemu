@@ -1039,9 +1039,9 @@ void initGameBlaster(word baseaddr)
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
-	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/256.0);
-	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/512.0);
-	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/1024.0);
+	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/(512.0)); //~13982.xxxHz
+	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/(1024.0));
+	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/(2048.0));
 
 	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
