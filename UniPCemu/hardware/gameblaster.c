@@ -231,7 +231,7 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	//bit2=noise output
 	//bit3=PWM period
 	//Generate all 16 state precalcs!
-	memcpy(&chip->channels[channel].ampenv[0],&AmpEnvPrecalcs[(chip->channels[channel].frequency_enable?AMPENV_INPUT_FREQUENCYENABLE:AMPENV_INPUT_FREQUENCYDISABLE)|(chip->channels[channel].noise_enable?AMPENV_INPUT_NOISEENABLE:AMPENV_INPUT_NOISEDISABLE)],(sizeof(AmpEnvPrecalcs[0])<<4)); //Copy the output information over!
+	memcpy(&chip->channels[channel].ampenv[0],&AmpEnvPrecalcs[(chip->channels[channel].frequency_enable?AMPENV_INPUT_FREQUENCYENABLE:AMPENV_INPUT_FREQUENCYDISABLE)|(chip->channels[channel].noise_enable?AMPENV_INPUT_NOISEENABLE:AMPENV_INPUT_NOISEDISABLE)],sizeof(chip->channels[channel].ampenv)); //Copy the output information over!
 }
 
 OPTINLINE void calcAmpEnvPrecalcs()
@@ -573,8 +573,7 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 {
 	//Timeout? Load new information and start the next PWM sample!
 	//Load the new PWM timeout and PWM settings from the channel!
-	chip->channels[channel].toneonnoiseonflipflop = 0; //Initialize the flipflop to start off!
-	PWM->originaloutput = output; //Save the original output for reference!
+	output = PWM->originaloutput = (output|chip->channels[channel].toneonnoiseonflipflop); //Save the original output with flipflop information for reference!
 	output = chip->channels[channel].ampenv[output]; //Output with flip-flop!
 	PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
 	PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
