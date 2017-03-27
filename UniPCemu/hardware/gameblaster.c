@@ -520,10 +520,29 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 }
 
 #ifdef PWM_OUTPUT
-int_32 PWM_outputs[5] = {-SHRT_MAX,SHRT_MAX,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 1 0V entry!
+int_32 PWM_outputs[8] = {-SHRT_MAX,SHRT_MAX,0,0,0,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 4 0V entries!
 #else
-int_32 PWM_outputs[5] = {-1,1,0,0,0}; //Output, if any!
+int_32 PWM_outputs[8] = {-1,1,0,0,0,0,0,0}; //Output, if any!
 #endif
+
+byte PDM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
+	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 0
+	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 1
+	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 2
+	{1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 3
+	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 4
+	{1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0} //Volume 5
+	{1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0} //Volume 6
+	{1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0} //Volume 7
+	{1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0} //Volume 8
+	{1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0} //Volume 9
+	{1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0} //Volume A
+	{1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0} //Volume B
+	{1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0} //Volume C
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0} //Volume D
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0} //Volume E
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F
+};
 
 //All loading PWM states!
 void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0, 0x10!
@@ -541,12 +560,14 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 
 void SAA1099PWM_RunningCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 1-0xE,0x11-0x1E!
 {
+/*
 	if (PWM->output==0) //Still outputting a signal?
 	{
 		output = chip->channels[channel].ampenv[PWM->originaloutput|chip->channels[channel].toneonnoiseonflipflop]; //Output with flip-flop!
 		PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
 		PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
 	}
+*/
 }
 
 void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x1F
@@ -554,6 +575,7 @@ void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMO
 	SAA1099PWM_RunningCounter(chip,channel,output,PWM); //Apply running counter normally!
 	//Passthrough to apply PWM resetting the counter always!
 	PWM->PWMCounter = 0; //Reset the counter to count the active time!
+	chip->channels[channel].toneonnoiseonflipflop ^= AMPENV_INPUT_PWMPERIOD; //Trigger the flipflop at PWM samplerate only once(entire channel)!
 }
 
 void SAA1099PWM_FinalCounterLeft(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x0F
@@ -609,25 +631,8 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	counter = PWM->PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
-	if (output&AMPENV_RESULT_RIGHTCHANNEL) //Only toggle noise after the right(final) channel!
-	{
-		chip->channels[channel].toneonnoiseonflipflop ^= AMPENV_INPUT_PWMPERIOD; //Trigger the flipflop at PWM samplerate only once(entire channel)!
-	}
 	#ifdef PWM_OUTPUT
-	counter = (counter>=PWM->Amplitude); //Are we not to expire?
-	counter &= (PWM->output==0); //Are we not to expire(already expired)?
-	counter = !counter; //We don't want to follow by default!
-	if (counter) //To give a result?
-	{
-		result = PWM->result; //Get the result!
-	}
-	else //Are we to expire?
-	{
-		//Finished PWM sample!
-		PWM->output = AMPENV_RESULT_SILENCE; //We're finished! Return to 0V always for the rest of the period!
-		result = PWM->result = 0; //No output anymore!
-	}
-	return result; //Give the proper output as a 16-bit sample!
+	return PWM_outputs[((PDM_OUTPUT[PWM->Amplitude][counter]<<1)|PWM->flipflopoutput)]; //Give the proper output as a 16-bit sample!
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
