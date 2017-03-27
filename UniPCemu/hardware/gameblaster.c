@@ -16,16 +16,16 @@
 //#define TESTWAVE
 
 //To filter the output signal before resampling(Only required here when not using PWM, always required to be used with PWM)?
-//#define FILTER_SIGNAL
+#define FILTER_SIGNAL
 
 //Log the rendered Game Blaster raw output stream?
 //#define LOG_GAMEBLASTER
 
 //Enable generation of PWM signal instead of direct signal to generate samples?
-//#define PWM_OUTPUT
+#define PWM_OUTPUT
 
 //Enable PDM-style output like a a real Game Blaster instead of PWM
-//#define PDM_OUTPUT
+#define PDM_OUTPUT
 
 //Set up a test wave, with special signal, when enabled?
 //#define DEBUG_OUTPUT 440.0f
@@ -576,22 +576,22 @@ byte WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
 	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F
 	#else
 	//PDM output?
-	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 0 Same as PWM
-	{0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0}, //Volume 1 TODO(+2)
-	{0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0}, //Volume 2 TODO(+3)
-	{0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0}, //Volume 3 TODO(+5)
-	{0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0}, //Volume 4 TODO(+6)
-	{0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1}, //Volume 5 TODO(+7)
-	{0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 6 TODO(+8)
-	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 7 1H 3L 4H 4L 4H confirmed(+9)
-	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 8 4H 4L 4H 4L confirmed(+8)
-	{1,1,1,1,0,1,0,0,1,1,1,1,0,0,0,0}, //Volume 9 4H 4L 4H 4L(+9)
-	{1,1,1,1,0,1,0,0,1,1,1,1,0,1,0,0}, //Volume A TODO(+10)
-	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,0,0}, //Volume B TODO(+11)
-	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,0}, //Volume C TODO(+12)
-	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1}, //Volume D TODO(+13)
-	{1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1}, //Volume E TODO(+15)
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F Same as PWM
+	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 0 Same as PWM?
+	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 1
+	{1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 2
+	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 3
+	{1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 4
+	{1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 5
+	{1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 6
+	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 7
+	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 8
+	{1,1,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 9
+	{1,0,1,1,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume A
+	{1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume B
+	{1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume C
+	{1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume D
+	{1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume E
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1} //Volume F
 	#endif
 };
 
