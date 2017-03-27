@@ -24,6 +24,9 @@
 //Enable generation of PWM signal instead of direct signal to generate samples?
 #define PWM_OUTPUT
 
+//Enable PDM-style output like a a real Game Blaster instead of PWM
+//#define PDM_OUTPUT
+
 //Set up a test wave, with special signal, when enabled?
 //#define DEBUG_OUTPUT 550.0f
 
@@ -525,23 +528,44 @@ int_32 PWM_outputs[8] = {-SHRT_MAX,SHRT_MAX,0,0,0,0,0,0}; //Output, if any! Four
 int_32 PWM_outputs[8] = {-1,1,0,0,0,0,0,0}; //Output, if any!
 #endif
 
-byte PDM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
-	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 0
-	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 1
-	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 2
-	{1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 3
-	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0} //Volume 4
-	{1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0} //Volume 5
-	{1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0} //Volume 6
-	{1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0} //Volume 7
-	{1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0} //Volume 8
-	{1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0} //Volume 9
-	{1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0} //Volume A
-	{1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0} //Volume B
-	{1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0} //Volume C
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0} //Volume D
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0} //Volume E
+byte WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
+	#ifndef PDM_OUTPUT
+	//PWM output?
+	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 0
+	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 1
+	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 2
+	{1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 3
+	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 4
+	{1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0}, //Volume 5
+	{1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0}, //Volume 6
+	{1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0}, //Volume 7
+	{1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0}, //Volume 8
+	{1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0}, //Volume 9
+	{1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0}, //Volume A
+	{1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0}, //Volume B
+	{1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0}, //Volume C
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0}, //Volume D
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0}, //Volume E
 	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F
+	#else
+	//PDM output?
+	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 0 Same as PWM
+	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 1 TODO
+	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 2 TODO
+	{1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 3 TODO
+	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 4 TODO
+	{1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0}, //Volume 5 TODO
+	{1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0}, //Volume 6 TODO
+	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 7
+	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 8
+	{1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0}, //Volume 9 TODO
+	{1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0}, //Volume A TODO
+	{1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0}, //Volume B TODO
+	{1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0}, //Volume C TODO
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0}, //Volume D TODO
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0}, //Volume E TODO
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F Same as PWM
+	#endif
 };
 
 //All loading PWM states!
@@ -632,7 +656,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[((PDM_OUTPUT[PWM->Amplitude][counter]<<1)|PWM->flipflopoutput)]; //Give the proper output as a 16-bit sample!
+	return PWM_outputs[((WAVEFORM_OUTPUT[PWM->Amplitude][counter]<<1)|PWM->flipflopoutput)]; //Give the proper output as a 16-bit sample!
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
