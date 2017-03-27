@@ -16,19 +16,19 @@
 //#define TESTWAVE
 
 //To filter the output signal before resampling(Only required here when not using PWM, always required to be used with PWM)?
-#define FILTER_SIGNAL
+//#define FILTER_SIGNAL
 
 //Log the rendered Game Blaster raw output stream?
 //#define LOG_GAMEBLASTER
 
 //Enable generation of PWM signal instead of direct signal to generate samples?
-#define PWM_OUTPUT
+//#define PWM_OUTPUT
 
 //Enable PDM-style output like a a real Game Blaster instead of PWM
-#define PDM_OUTPUT
+//#define PDM_OUTPUT
 
 //Set up a test wave, with special signal, when enabled?
-//#define DEBUG_OUTPUT 550.0f
+//#define DEBUG_OUTPUT 440.0f
 
 /* Required defines to function correctly and compile: */
 
@@ -224,22 +224,8 @@ int_32 amplitudes[0x10]; //All possible amplitudes!
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	if (chip->channels[channel].envelope[0]!=0x10) //Valid envelope?
-	{
-		chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
-	}
-	else //Invalid envelope?
-	{
-		chip->channels[channel].PWMAmplitude[0] = 0; //Nothing to sound!
-	}
-	if (chip->channels[channel].envelope[1]!=0x10) //Valid envelope?
-	{
-		chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
-	}
-	else
-	{
-		chip->channels[channel].PWMAmplitude[1] = 0; //Nothing to sound!
-	}
+	chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
+	chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
@@ -365,8 +351,28 @@ OPTINLINE void updateSAA1099RNGfrequency(SAA1099 *chip, byte channel)
 	}
 }
 
+float noise_frequencies[3] = {31250.0f,15625.0f,7812.0f}; //Normal frequencies!
+
+OPTINLINE void updateSAA1099noisesettings(SAA1099 *chip, byte channel)
+{
+	switch (chip->noise_params[channel]) //What frequency to use?
+	{
+	default:
+	case 0:
+	case 1:
+	case 2: //Normal frequencies!
+		chip->noise[channel].freq = noise_frequencies[chip->noise_params[channel]]; //Normal lookup!
+		break;
+	case 3:
+		chip->noise[channel].freq = chip->channels[(channel*3)].freq; //Channel 3 frequency instead!
+		break;
+	}
+	updateSAA1099RNGfrequency(chip,channel);
+}
+
 OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/frequency change!
 {
+	byte noisechannels[8] = {0,2,2,1,2,2,2,2}; //Noise channels to use!
 	channel &= 7; //Safety on channel!
 	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
 	if (chip->channels[channel].freq!=chip->squarewave[channel].freq) //Frequency changed?
@@ -374,6 +380,10 @@ OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/f
 		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->channels[channel].freq)); //New timeout!
 		chip->squarewave[channel].timepoint = 0; //Reset!
 		chip->squarewave[channel].freq = chip->channels[channel].freq; //We're updated!
+	}
+	if (noisechannels[channel]!=2) //Noise channel might be affected too?
+	{
+		updateSAA1099noisesettings(chip,noisechannels[channel]); //Update the noise channel frequency if needed as well!
 	}
 }
 
@@ -489,7 +499,10 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			break;
 		case 0x16: //Noise generators parameters?
 			chip->noise_params[0] = (value&3);
+			updateSAA1099noisesettings(chip,0);
+
 			chip->noise_params[1] = ((value>>4)&3);
+			updateSAA1099noisesettings(chip,0);
 			break;
 		case 0x18:
 		case 0x19: //Envelope generators parameters?
@@ -714,39 +727,9 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	chip->noise[channel].laststatus = noise_flipflop; //Save the last status!
 }
 
-float noise_frequencies[3] = {31250.0f,15625.0f,7812.0f}; //Normal frequencies!
-
 OPTINLINE void generateSAA1099sample(SAA1099 *chip, int_32 *leftsample, int_32 *rightsample) //Generate a sample on the requested chip!
 {
 	int_32 output_l, output_r;
-
-	switch (chip->noise_params[0]) //What frequency to use?
-	{
-	default:
-	case 0:
-	case 1:
-	case 2: //Normal frequencies!
-		chip->noise[0].freq = noise_frequencies[chip->noise_params[0]]; //Normal lookup!
-		break;
-	case 3:
-		chip->noise[0].freq = chip->channels[0].freq; //Channel 0 frequency instead!
-		break;
-	}
-	updateSAA1099RNGfrequency(chip,0);
-
-	switch (chip->noise_params[1]) //What frequency to use?
-	{
-	default:
-	case 0:
-	case 1:
-	case 2: //Normal frequencies!
-		chip->noise[1].freq = noise_frequencies[chip->noise_params[1]]; //Normal lookup!
-		break;
-	case 3:
-		chip->noise[1].freq = chip->channels[3].freq; //Channel 3 frequency instead!
-		break;
-	}
-	updateSAA1099RNGfrequency(chip,1);
 
 	output_l = output_r = 0; //Reset the output!
 	generateSAA1099channelsample(chip,0,&output_l,&output_r); //Channel 0 sample!
@@ -1053,9 +1036,9 @@ void initGameBlaster(word baseaddr)
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
-	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/(512.0)); //~13982.xxxHz
-	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/(1024.0));
-	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/(2048.0));
+	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/(256.0)); //~13982.xxxHz
+	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/(512.0));
+	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/(1024.0));
 
 	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
@@ -1111,7 +1094,10 @@ void initGameBlaster(word baseaddr)
 	//manually set a test frequency!
 	GAMEBLASTER.chips[0].squarewave[0].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
 	GAMEBLASTER.chips[0].squarewave[0].timepoint = 0; //Reset!
-	GAMEBLASTER.chips[0].squarewave[0].freq = DEBUG_OUTPUT; //We're updated!
+	GAMEBLASTER.chips[0].channels[0].freq = GAMEBLASTER.chips[0].squarewave[0].freq = DEBUG_OUTPUT; //We're updated!
+	GAMEBLASTER.chips[0].squarewave[8].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[8].timepoint = 0; //Reset!
+	GAMEBLASTER.chips[0].squarewave[8].freq = DEBUG_OUTPUT; //We're updated!
 	outGameBlaster(GAMEBLASTER.baseaddr+1,0x00); //Channel 0 amplitude!
 	outGameBlaster(GAMEBLASTER.baseaddr,0xFF); //Maximum amplitude!
 	outGameBlaster(GAMEBLASTER.baseaddr+1,0x18); //Channel 0-3 settings!
@@ -1120,6 +1106,10 @@ void initGameBlaster(word baseaddr)
 	outGameBlaster(GAMEBLASTER.baseaddr,0x01); //Enable all outputs!
 	outGameBlaster(GAMEBLASTER.baseaddr+1,0x14); //Channel n frequency!
 	outGameBlaster(GAMEBLASTER.baseaddr,0x01); //Enable frequency output!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x15); //Channel n frequency!
+	outGameBlaster(GAMEBLASTER.baseaddr,0x01); //Enable noise output!
+	outGameBlaster(GAMEBLASTER.baseaddr+1,0x16); //Channel n frequency!
+	outGameBlaster(GAMEBLASTER.baseaddr,0x03); //Set noise output mode!
 	#endif
 }
 
