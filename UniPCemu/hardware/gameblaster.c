@@ -655,7 +655,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
 	SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[((WAVEFORM_OUTPUT[PWM->Amplitude][counter]<<1)|PWM->flipflopoutput)]; //Give the proper output as a 16-bit sample!
+	return PWM_outputs[(PWM->flipflopoutput|(((WAVEFORM_OUTPUT[PWM->Amplitude][counter]^1)<<1)))]; //Give the proper output as a 16-bit sample!
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
