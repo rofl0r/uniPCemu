@@ -25,7 +25,7 @@
 #define PWM_OUTPUT
 
 //Enable PDM-style output like a a real Game Blaster instead of PWM
-//#define PDM_OUTPUT
+#define PDM_OUTPUT
 
 //Set up a test wave, with special signal, when enabled?
 //#define DEBUG_OUTPUT 550.0f
@@ -550,20 +550,20 @@ byte WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
 	#else
 	//PDM output?
 	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 0 Same as PWM
-	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 1 TODO
-	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 2 TODO
-	{1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 3 TODO
-	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume 4 TODO
-	{1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0}, //Volume 5 TODO
-	{1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0}, //Volume 6 TODO
-	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 7
-	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 8
-	{1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0}, //Volume 9 TODO
-	{1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0}, //Volume A TODO
-	{1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0}, //Volume B TODO
-	{1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0}, //Volume C TODO
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0}, //Volume D TODO
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0}, //Volume E TODO
+	{0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0}, //Volume 1 TODO(+2)
+	{0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0}, //Volume 2 TODO(+3)
+	{0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0}, //Volume 3 TODO(+5)
+	{0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0}, //Volume 4 TODO(+6)
+	{0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1}, //Volume 5 TODO(+7)
+	{0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 6 TODO(+8)
+	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 7 1H 3L 4H 4L 4H confirmed(+9)
+	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 8 4H 4L 4H 4L confirmed(+8)
+	{1,1,1,1,0,1,0,0,1,1,1,1,0,0,0,0}, //Volume 9 4H 4L 4H 4L(+9)
+	{1,1,1,1,0,1,0,0,1,1,1,1,0,1,0,0}, //Volume A TODO(+10)
+	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,0,0}, //Volume B TODO(+11)
+	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,0}, //Volume C TODO(+12)
+	{1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1}, //Volume D TODO(+13)
+	{1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1}, //Volume E TODO(+15)
 	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0} //Volume F Same as PWM
 	#endif
 };
