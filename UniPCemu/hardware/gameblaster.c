@@ -224,8 +224,22 @@ int_32 amplitudes[0x10]; //All possible amplitudes!
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
-	chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
-	chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
+	if (chip->channels[channel].envelope[0]!=0x10) //Valid envelope?
+	{
+		chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
+	}
+	else //Invalid envelope?
+	{
+		chip->channels[channel].PWMAmplitude[0] = 0; //Nothing to sound!
+	}
+	if (chip->channels[channel].envelope[1]!=0x10) //Valid envelope?
+	{
+		chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
+	}
+	else
+	{
+		chip->channels[channel].PWMAmplitude[1] = 0; //Nothing to sound!
+	}
 	//bit0=right channel
 	//bit1=square wave output
 	//bit2=noise output
@@ -578,7 +592,7 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 	PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
 	PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
 	PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
-	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)]; //Update the amplitude to use!
+	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)?1:0]; //Update the amplitude to use!
 }
 
 void SAA1099PWM_RunningCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 1-0xE,0x11-0x1E!
