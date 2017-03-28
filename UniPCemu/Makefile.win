@@ -3,7 +3,13 @@
 BUILD_DIR = ../../projects_build/$(BUILD_NAME)
 
 #Name of the destination application!
-TARGET = $(BUILD_NAME).exe
+ifneq (,$(findstring x64,$(MAKECMDGOALS)))
+#64-bit version
+TARGET = $(BUILD_NAME)_x64.exe
+else
+#32-bit version
+TARGET = $(BUILD_NAME)_x86.exe
+endif
 
 TARGET_PROFILE_TXT = profiler.txt
 TARGET_PROFILE_CMP_TXT = profiler2.txt
