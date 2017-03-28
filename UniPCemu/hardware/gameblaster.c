@@ -672,7 +672,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		PWMCounter(chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[(PWM->flipflopoutput^WAVEFORM_OUTPUT[PWM->Amplitude][counter])]; //Give the proper output as a 16-bit sample! Toggle positive/negative on the waveform!
+	return PWM_outputs[(PWM->flipflopoutput|(WAVEFORM_OUTPUT[PWM->Amplitude][counter]<<1))]; //Give the proper output as a 16-bit sample! Toggle positive/negative and 0V on the waveform! Toggling opposite will result in partially inverted waveforms(volumes 0-~7), so toggle to 0V (collector) instead.
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
