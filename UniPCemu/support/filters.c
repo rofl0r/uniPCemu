@@ -32,7 +32,7 @@ void applySoundFilter(HIGHLOWPASSFILTER *filter, float *currentsample)
 {
 	INLINEREGISTER float last_result;
 	last_result = filter->sound_last_result; //Load the last result to process!
-	if (filter->isHighPass) //High-pass filter?
+	if (unlikely(filter->isHighPass)) //High-pass filter? Low-pass filters are more commonly used!
 	{
 		last_result = filter->alpha * (last_result + *currentsample - filter->sound_last_sample);
 		filter->sound_last_sample = *currentsample; //The last sample that was processed!
