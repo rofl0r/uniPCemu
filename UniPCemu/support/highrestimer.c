@@ -12,7 +12,7 @@
 #define ENABLE_PSPTIMING 1
 
 double tickresolution = 0.0f; //Our tick resolution, initialised!
-byte tickresolution_type = 0xFF; //What kind of ticks are we using? 0=SDL, 1=gettimeofday, 2=Platform specific
+byte tickresolution_type = 0xFF; //What kind of ticks are we using? 0=SDL, 1=getUniversalTimeOfDay, 2=Platform specific
 
 float msfactor, usfactor, nsfactor; //The factors!
 float msfactorrev, usfactorrev, nsfactorrev; //The factors reversed!
@@ -37,10 +37,10 @@ void sleepthread(uint_64 ns)
 }
 #endif
 
-#ifdef IS_WINDOWS
 //For cross-platform compatibility!
-int gettimeofday(struct timeval * tp, struct timezone * tzp)
+int getUniversalTimeOfDay(UniversalTimeOfDay *result)
 {
+#ifdef IS_WINDOWS
 	// Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
 	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
 
@@ -52,18 +52,28 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 	SystemTimeToFileTime(&system_time, &file_time);
 	time = (((uint64_t)file_time.dwHighDateTime) << 32)|((uint64_t)file_time.dwLowDateTime);
 
-	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
-	return 0;
-}
+	result->tv_sec = (long)((time - EPOCH) / 10000000L);
+	result->tv_usec = (long)(system_time.wMilliseconds * 1000);
+	return 0; //Always OK!
+#else
+	//PSP and Linux already have proper gettimeofday support built into the compiler!
+	struct timeval tp;
+	struct timezone tzp;
+	int temp;
+	temp = gettimeofday(&tp,NULL); //Get the time of the day!
+	if (temp==0) //Success?
+	{
+		result->tv_sec = tp.tv_sec; //Seconds
+		result->tv_usec = tp.tv_usec; //Microseconds
+	}
+	return temp; //Give the result!
 #endif
-//PSP and Linux already have proper gettimeofday support built into the compiler!
+}
 
 //Normal High-resolution clock support:
 OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 {
-	struct timeval tp;
-	struct timezone currentzone;
+	UniversalTimeOfDay tp;
 	switch (tickresolution_type) //What type are we using?
 	{
 	case 0: //SDL?
@@ -87,7 +97,7 @@ OPTINLINE u64 getcurrentticks() //Retrieve the current ticks!
 	}
 #endif
 	case 1: //gettimeofday counter?
-		if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
+		if (getUniversalTimeOfDay(&tp)==0) //Time gotten?
 		{
 			return (tp.tv_sec*1000000)+tp.tv_usec; //Give the result!
 		}
@@ -124,11 +134,11 @@ void initHighresTimer()
 		}
 	#endif
 
-	//Finally: gettimeofday provides 10us accuracy at least!
-	if (tickresolution_type==0) //We're unchanged? Default to gettimeofday counter!
+	//Finally: getUniversalTimeOfDay provides 10us accuracy at least!
+	if (tickresolution_type==0) //We're unchanged? Default to getUniversalTimeOfDay counter!
 	{
 		tickresolution = 1000000.0f; //Microsecond accuracy!
-		tickresolution_type = 1; //Don't use SDL: we're the gettimeofday counter!
+		tickresolution_type = 1; //Don't use SDL: we're the getUniversalTimeOfDay counter!
 	}
 
 	resolution_ready: //Ready?

@@ -217,7 +217,7 @@ byte _ytab[2][12] = { //Days within months!
 	{ 31,29,31,30,31,30,31,31,30,31,30,31 } //Leap year
 };
 
-OPTINLINE byte epochtoaccuratetime(struct timeval *curtime, accuratetime *datetime)
+OPTINLINE byte epochtoaccuratetime(UniversalTimeOfDay *curtime, accuratetime *datetime)
 {
 	//More accurate timing than default!
 	datetime->us = curtime->tv_usec;
@@ -259,7 +259,7 @@ OPTINLINE byte epochtoaccuratetime(struct timeval *curtime, accuratetime *dateti
 #define HOURSIZE 3600
 #define DAYSIZE (3600*24)
 
-OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, struct timeval *datetime)
+OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, UniversalTimeOfDay *datetime)
 {
 	uint_64 seconds=0;
 	if ((curtime->us-(curtime->us%100))!=(((curtime->s100)*10000)+(curtime->s10000*100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
@@ -364,7 +364,7 @@ OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the cur
 //Divergeance support!
 OPTINLINE byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 *divergeance_sec, int_64 *divergeance_usec) //Calculates the difference of time1 compared to time2(reference time)!
 {
-	struct timeval time1val, time2val; //Our time values!
+	UniversalTimeOfDay time1val, time2val; //Our time values!
 	if (accuratetimetoepoch(time1, &time1val)) //Converted to universal value?
 	{
 		if (accuratetimetoepoch(time2, &time2val)) //Converted to universal value?
@@ -381,7 +381,7 @@ OPTINLINE byte calcDivergeance(accuratetime *time1, accuratetime *time2, int_64 
 
 OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, int_64 divergeance_usec) //Apply divergeance to accurate time!
 {
-	struct timeval timeval; //The accurate time value!
+	UniversalTimeOfDay timeval; //The accurate time value!
 	BIGGESTSINT applyingtime; //Biggest integer value we have!
 	if (accuratetimetoepoch(curtime, &timeval)) //Converted to epoch?
 	{
@@ -403,11 +403,10 @@ OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, i
 //Calculating relative time from the CMOS!
 OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time difference changes)! This is called when software changes the time/date!
 {
-	struct timeval tp;
-	struct timezone currentzone;
+	UniversalTimeOfDay tp;
 	accuratetime savedtime,currenttime;
 	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
-	if (gettimeofday(&tp,&currentzone)==0) //Time gotten?
+	if (getUniversalTimeOfDay(&tp)==0) //Time gotten?
 	{
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
@@ -421,8 +420,7 @@ OPTINLINE void RTC_updateDateTime()
 {
 	//Update the time itself at the highest frequency of 64kHz!
 	//Get time!
-	struct timeval tp;
-	struct timezone currentzone;
+	UniversalTimeOfDay tp;
 	accuratetime currenttime;
 	byte lastsecond = CMOS.DATA.DATA80.info.RTC_Seconds; //Previous second value for alarm!
 	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
@@ -430,7 +428,7 @@ OPTINLINE void RTC_updateDateTime()
 	{
 		if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 		{
-			if (gettimeofday(&tp, &currentzone) == 0) //Time gotten?
+			if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
 			{
 				if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
 				{
