@@ -168,11 +168,11 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result); //Is there data to be read?
 byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result);
-byte readfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2);
+byte readfifobuffer32_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2);
 byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 backtrace, byte finalbacktrace);
-byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2, uint_32 backtrace, byte finalbacktrace);
+byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2, uint_32 backtrace, byte finalbacktrace);
 byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data);
-byte writefifobuffer32_2(FIFOBUFFER *buffer, uint_32 data, uint_32 data2);
+byte writefifobuffer32_2(FIFOBUFFER *buffer, int_32 data, int_32 data2);
 void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold);
 
 //Floating-point simple storage support!

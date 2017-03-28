@@ -534,7 +534,7 @@ byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 	return 0; //Nothing to read!
 }
 
-byte readfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2)
+byte readfifobuffer32_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
@@ -546,8 +546,8 @@ byte readfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2)
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-7)) //Filled?
 		{
-			readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
-			readfifobuffer32unlocked(buffer,result2,1); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
 			PostSem(buffer->lock)
 			return 1; //Read!
 		}
@@ -557,8 +557,8 @@ byte readfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2)
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)<(buffer->size-7)) //Filled?
 		{
-			readfifobuffer32unlocked(buffer, result,1); //Read the FIFO buffer without lock!
-			readfifobuffer32unlocked(buffer, result2,1); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer, (uint_32 *)result,1); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer, (uint_32 *)result2,1); //Read the FIFO buffer without lock!
 			return 1; //Read!
 		}
 	}
@@ -634,7 +634,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	return 0; //Nothing to read!
 }
 
-byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2, uint_32 backtrace, byte finalbacktrace)
+byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2, uint_32 backtrace, byte finalbacktrace)
 {
 	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
@@ -649,8 +649,8 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *
 		{
 			if (finalbacktrace) //No history? Just pop final input!
 			{
-				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
-				readfifobuffer32unlocked(buffer,result2,1); //Read the FIFO buffer without lock!
+				readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
+				readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
 				PostSem(buffer->lock)
 				return 1; //Read!
 			}
@@ -667,8 +667,8 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
-			readfifobuffer32unlocked(buffer,result2,0); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result,0); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result2,0); //Read the FIFO buffer without lock!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			PostSem(buffer->lock)
 			return 1; //Read!
@@ -681,8 +681,8 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *
 		{
 			if (finalbacktrace) //No history? Just pop final input!
 			{
-				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
-				readfifobuffer32unlocked(buffer,result2,1); //Read the FIFO buffer without lock!
+				readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
+				readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
 				return 1; //Read!
 			}
 			//Normal tap?
@@ -698,8 +698,8 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *
 			readposhistory = SAFEMOD(readposhistory,buffer->size); //Make sure we don't get past the end of the buffer!
 			oldreadpos = buffer->readpos; //Save the read position!
 			buffer->readpos = readposhistory; //Patch the read position to the required state!
-			readfifobuffer32unlocked(buffer,result,0); //Read the FIFO buffer without lock!
-			readfifobuffer32unlocked(buffer,result2,0); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result,0); //Read the FIFO buffer without lock!
+			readfifobuffer32unlocked(buffer,(uint_32 *)result2,0); //Read the FIFO buffer without lock!
 			buffer->readpos = oldreadpos; //Restore the old read position to it's original state!
 			return 1; //Read!
 		}
@@ -841,7 +841,7 @@ byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data)
 	return 1; //Written!
 }
 
-byte writefifobuffer32_2(FIFOBUFFER *buffer, uint_32 data, uint_32 data2)
+byte writefifobuffer32_2(FIFOBUFFER *buffer, int_32 data, int_32 data2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (buffer==0) return 0; //Error: invalid buffer!
@@ -875,13 +875,13 @@ byte writefifobuffer32_2(FIFOBUFFER *buffer, uint_32 data, uint_32 data2)
 }
 
 //Wrapper support for floating point as storage!
-OPTINLINE uint_32 flt2uint_32(float data)
+OPTINLINE int_32 flt2int_32(float data)
 {
 	#include "headers/packed.h"
 	union PACKED
 	{
 		float fltval;
-		uint_32 val32;
+		int_32 val32;
 	} converter;
 	#include "headers/endpacked.h" //Finish packed!
 
@@ -889,13 +889,13 @@ OPTINLINE uint_32 flt2uint_32(float data)
 	return converter.val32; //Apply 32-bit value conversion!
 }
 
-OPTINLINE float uint_322flt(uint_32 data)
+OPTINLINE float int_322flt(uint_32 data)
 {
 	#include "headers/packed.h"
 	union PACKED
 	{
 		float fltval;
-		uint_32 val32;
+		int_32 val32;
 	} converter;
 	#include "headers/endpacked.h" //Finish packed!
 
@@ -905,12 +905,12 @@ OPTINLINE float uint_322flt(uint_32 data)
 
 byte writefifobufferflt(FIFOBUFFER *buffer, float data)
 {
-	return writefifobuffer32(buffer,flt2uint_32(data)); //Write as 32-bit value!
+	return writefifobuffer32(buffer,flt2int_32(data)); //Write as 32-bit value!
 }
 
 byte writefifobufferflt_2(FIFOBUFFER *buffer, float data, float data2)
 {
-	return writefifobuffer32_2(buffer,flt2uint_32(data),flt2uint_32(data2)); //Write as 32-bit values!
+	return writefifobuffer32_2(buffer,flt2int_32(data),flt2int_32(data2)); //Write as 32-bit values!
 }
 
 byte readfifobufferflt(FIFOBUFFER *buffer, float *result)
@@ -920,7 +920,7 @@ byte readfifobufferflt(FIFOBUFFER *buffer, float *result)
 	tempresult = readfifobuffer32(buffer,&temp); //Read into buffer!
 	if (tempresult) //Valid to convert and store?
 	{
-		*result = uint_322flt(temp); //Convert back to floating point!
+		*result = int_322flt(temp); //Convert back to floating point!
 	}
 	return tempresult;
 }
@@ -928,12 +928,12 @@ byte readfifobufferflt(FIFOBUFFER *buffer, float *result)
 byte readfifobufferflt_2(FIFOBUFFER *buffer, float *result, float *result2)
 {
 	byte tempresult;
-	uint_32 temp,temp2;
+	int_32 temp,temp2;
 	tempresult = readfifobuffer32_2(buffer,&temp,&temp2); //Read into buffer!
 	if (tempresult) //Valid to convert and store?
 	{
-		*result = uint_322flt(temp); //Convert back to floating point!
-		*result2 = uint_322flt(temp2); //Convert back to floating point!
+		*result = int_322flt(temp); //Convert back to floating point!
+		*result2 = int_322flt(temp2); //Convert back to floating point!
 	}
 	return tempresult;
 }
@@ -941,11 +941,11 @@ byte readfifobufferflt_2(FIFOBUFFER *buffer, float *result, float *result2)
 byte readfifobufferflt_backtrace(FIFOBUFFER *buffer, float *result, uint_32 backtrace, byte finalbacktrace)
 {
 	byte tempresult;
-	uint_32 temp;
-	tempresult = readfifobuffer32_backtrace(buffer,&temp,backtrace,finalbacktrace); //Read into buffer!
+	int_32 temp;
+	tempresult = readfifobuffer32_backtrace(buffer,(uint_32 *)&temp,backtrace,finalbacktrace); //Read into buffer!
 	if (tempresult) //Valid to convert and store?
 	{
-		*result = uint_322flt(temp); //Convert back to floating point!
+		*result = int_322flt(temp); //Convert back to floating point!
 	}
 	return tempresult;	
 }
@@ -953,12 +953,12 @@ byte readfifobufferflt_backtrace(FIFOBUFFER *buffer, float *result, uint_32 back
 byte readfifobufferflt_backtrace_2(FIFOBUFFER *buffer, float *result, float *result2, uint_32 backtrace, byte finalbacktrace)
 {
 	byte tempresult;
-	uint_32 temp,temp2;
+	int_32 temp,temp2;
 	tempresult = readfifobuffer32_backtrace_2(buffer,&temp,&temp2,backtrace,finalbacktrace); //Read into buffer!
 	if (tempresult) //Valid to convert and store?
 	{
-		*result = uint_322flt(temp); //Convert back to floating point!
-		*result2 = uint_322flt(temp2); //Convert back to floating point!
+		*result = int_322flt(temp); //Convert back to floating point!
+		*result2 = int_322flt(temp2); //Convert back to floating point!
 	}
 	return tempresult;	
 }
