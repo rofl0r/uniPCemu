@@ -28,6 +28,7 @@ void EMU_startInput();
 int DoEmulator(); //Run the emulator execution itself!
 
 void EMU_drawBusy(byte disk); //Draw busy on-screen!
+void EMU_drawRecording(byte location); //Draw recording identifier on the screen!
 
 void updateSpeedLimit(); //Prototype!
 

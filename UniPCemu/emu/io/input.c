@@ -3016,7 +3016,9 @@ void updateInput(SDL_Event *event) //Update all input!
 			case SDLK_F6: //F6? Use F6 for simple compatiblity with Dosbox users. Start/stop sound recording!
 				if (RALT) //ALT-F6?
 				{
+					unlock(LOCK_MAINTHREAD); //We're not doing anything right now!
 					BIOS_SoundStartStopRecording(); //Start/stop recording!
+					lock(LOCK_MAINTHREAD); //Relock us!
 				}
 				break;
 			case SDLK_F9: //F9? Used to kill Dosbox. Since we use F4 for that, do special actions for debugging errors!

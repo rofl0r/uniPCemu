@@ -175,10 +175,25 @@ void EMU_drawBusy(byte disk) //Draw busy on-screen!
 	text[0] += disk; //Increasing disk letter!
 	uint_32 busycolor;
 	busycolor = (currentbusy[disk] == 1) ? RGB(0x00, 0xFF, 0x00) : RGB(0xFF, 0x66, 0x00); //Busy color Read/Write!
-	GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 6 + disk, 1); //Goto second row column!
+	GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7 + disk, 1); //Goto second row column!
 	if (currentbusy[disk]) //Busy?
 	{
 		GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), text);
+	}
+	else
+	{
+		GPU_textprintf(frameratesurface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), " ");
+	}
+}
+
+void EMU_drawRecording(byte location)
+{
+	uint_32 busycolor;
+	busycolor = RGB(0xFF, 0x00, 0x00); //Busy color Read/Write!
+	GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7 + 6, 1); //Goto second row column!
+	if (sound_isRecording()) //Busy recording?
+	{
+		GPU_textprintf(frameratesurface, busycolor, RGB(0x00, 0x00, 0x00), "R");
 	}
 	else
 	{

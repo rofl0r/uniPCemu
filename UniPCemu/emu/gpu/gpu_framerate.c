@@ -173,21 +173,22 @@ void renderFramerate()
 					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0x22, 0x22, 0x22), "%04X", MMU_directrw(0x410)); //Show the BIOS equipment word!
 				}
 			#endif
-				if (BIOS_Settings.ShowCPUSpeed) //Are we to show the CPU speed?
+			if (BIOS_Settings.ShowCPUSpeed) //Are we to show the CPU speed?
+			{
+				if (framerateupdated) //We're updated!
 				{
-					if (framerateupdated) //We're updated!
-					{
-						framerateupdated = 0; //Not anymore!
-						CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
-					}
-					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
-					#ifdef SHOWCYCLESSPEED
-					if (CPU_speed_cycle)
-					{
-						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed/CPU_speed_cycle)); //Current CPU speed in cycles/S!
-					}
-					#endif
+					framerateupdated = 0; //Not anymore!
+					CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
+				#ifdef SHOWCYCLESSPEED
+				if (CPU_speed_cycle)
+				{
+					GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), ", %u cycles/S                    ", (uint_64)(current_emutimepassed/CPU_speed_cycle)); //Current CPU speed in cycles/S!
+				}
+				#endif
+			}
+			EMU_drawRecording(6); //Draw the recording flag!
 		}
 		else //Don't debug framerate, but still render?
 		{
@@ -213,7 +214,7 @@ void renderFramerate()
 				GPU_textclearrow(frameratesurface, 0); //Clear the rows we use!
 			}
 			int i;
-			for (i = 0;i < (GPU_TEXTSURFACE_WIDTH - 6);i++)
+			for (i = 0;i < (GPU_TEXTSURFACE_WIDTH - 7);i++)
 			{
 				GPU_textsetxy(frameratesurface,i,1,0,0,0); //Clear a bit until the busy indicators!
 			}
@@ -224,6 +225,9 @@ void renderFramerate()
 			EMU_drawBusy(3); //Draw busy flag disk D!
 			EMU_drawBusy(4); //Draw busy flag disk E!
 			EMU_drawBusy(5); //Draw busy flag disk F!
+			EMU_drawRecording(6); //Draw the recording flag!
+			//Don't lock the main thread: we're running from it!
+			EMU_drawRecording(6); //Draw recording flag!
 			GPU_textclearcurrentrownext(frameratesurface); //Clear the rest of the current row!
 		}
 		GPU_text_releasesurface(frameratesurface); //Unlock!
