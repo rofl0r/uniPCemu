@@ -380,10 +380,12 @@ void initEMU(int full) //Init!
 
 	//Check if we're allowed to use full Sound Blaster emulation!
 	useSoundBlaster = BIOS_Settings.useSoundBlaster; //Sound blaster used?
+	/*
 	if ((useMPU==0) && useSoundBlaster) //Sound Blaster without soundfont?
 	{
 		useSoundBlaster = 0; //No sound blaster to emulate! We can't run without a soundfont!
 	}
+	*/ //Seperate the Sound Blaster from the MPU: we're allowed to be used without MPU as well!
 
 	if (useSoundBlaster) //Sound Blaster used?
 	{

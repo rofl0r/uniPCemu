@@ -765,10 +765,12 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 		break;
 	case 0x38: //MIDI write poll
 		SOUNDBLASTER.command = 0; //Finished!
+		/*
 		if (MPU_ready) //Is the MPU installed?
 		{
 			MIDI_OUT(data); //Write the data to the MIDI device directly (UART mode forced)!
 		}
+		*/
 		break;
 	case 0x48: //Set DMA Block size(DSP 2.01+)
 		if (isDMA) return; //Not for DMA transfers!
