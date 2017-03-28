@@ -60,7 +60,6 @@ typedef struct
 	byte originaloutput; //The original output, kept in the same state for the entire PWM sample!
 	byte output; //Output signal that's saved!
 	byte flipflopoutput; //Output signal of the PWM!
-	int_32 result; //The resulting output of the PWM signal!
 } PWMOUTPUT; //Channel PWM output signal for left or right channel!
 
 typedef struct
@@ -551,9 +550,9 @@ OPTINLINE byte getSAA1099SquareWave(SAA1099 *chip, byte channel)
 }
 
 #ifdef PWM_OUTPUT
-int_32 PWM_outputs[8] = {-SHRT_MAX,SHRT_MAX,0,0,0,0,0,0}; //Output, if any! Four positive/negative channel input entries plus 4 0V entries!
+int_32 PWM_outputs[4] = {-SHRT_MAX,SHRT_MAX,0,0}; //Output, if any! Four positive/negative channel input entries plus 4 0V entries!
 #else
-int_32 PWM_outputs[8] = {-1,1,0,0,0,0,0,0}; //Output, if any!
+int_32 PWM_outputs[4] = {-1,1,0,0}; //Output, if any!
 #endif
 
 //PDM waveforms on the SAA1099P are reversed of the normal output(0=+/-5V, 1=0V)
@@ -606,7 +605,6 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 	output = chip->channels[channel].ampenv[output]; //Output with flip-flop!
 	PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
 	PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
-	PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
 	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)?1:0]>>((output&AMPENV_RESULT_HALFVOLUME)?1:0); //Update the amplitude to use!
 }
 
@@ -674,7 +672,7 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 		PWMCounter(chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[(PWM->flipflopoutput|(((WAVEFORM_OUTPUT[PWM->Amplitude][counter])<<1)))]; //Give the proper output as a 16-bit sample!
+	return PWM_outputs[(PWM->flipflopoutput^WAVEFORM_OUTPUT[PWM->Amplitude][counter])]; //Give the proper output as a 16-bit sample! Toggle positive/negative on the waveform!
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
@@ -760,7 +758,7 @@ double gameblaster_output_tick = 0.0; //Time of a tick in the PC speaker sample!
 
 double gameblaster_ticklength = 0.0; //Length of PIT samples to process every output sample!
 
-int_32 leftsample[2], rightsample[2]; //Two stereo samples!
+int_32 gb_leftsample[2], gb_rightsample[2]; //Two stereo samples!
 
 void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 {
@@ -784,20 +782,20 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 
 			if (GAMEBLASTER.chips[0].all_ch_enable) //Sound generation of first chip?
 			{
-				generateSAA1099sample(&GAMEBLASTER.chips[0],&leftsample[0],&rightsample[0]); //Generate a stereo sample on this chip!
+				generateSAA1099sample(&GAMEBLASTER.chips[0],&gb_leftsample[0],&gb_rightsample[0]); //Generate a stereo sample on this chip!
 			}
 			else
 			{
-				leftsample[0] = rightsample[0] = 0; //No sample!
+				gb_leftsample[0] = gb_rightsample[0] = 0; //No sample!
 			}
 
 			if (GAMEBLASTER.chips[1].all_ch_enable) //Sound generation of first chip?
 			{
-				generateSAA1099sample(&GAMEBLASTER.chips[1], &leftsample[1], &rightsample[1]); //Generate a stereo sample on this chip!
+				generateSAA1099sample(&GAMEBLASTER.chips[1], &gb_leftsample[1], &gb_rightsample[1]); //Generate a stereo sample on this chip!
 			}
 			else
 			{
-				leftsample[1] = rightsample[1] = 0; //No sample!
+				gb_leftsample[1] = gb_rightsample[1] = 0; //No sample!
 			}
 
 			gameblaster_soundtiming -= MHZ14_BASETICK; //Decrease timer to get time left!
@@ -805,16 +803,16 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			#ifdef LOG_GAMEBLASTER
 			if (GAMEBLASTER_LOG) //Logging output?
 			{
-				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(leftsample[0]*AMPLIFIER)),signed2unsigned16((sword)(rightsample[0]*AMPLIFIER)));
-				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(leftsample[1]*AMPLIFIER)),signed2unsigned16((sword)(rightsample[1]*AMPLIFIER)));
+				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(gb_leftsample[0]*AMPLIFIER)),signed2unsigned16((sword)(gb_rightsample[0]*AMPLIFIER)));
+				writeWAVStereoSample(GAMEBLASTER_LOG,signed2unsigned16((sword)(gb_leftsample[1]*AMPLIFIER)),signed2unsigned16((sword)(gb_rightsample[1]*AMPLIFIER)));
 			}
 			#endif
 
 			//Load and mix the sample to render!
-			i = leftsample[0]; //Load left sample!
-			i += leftsample[1]; //Mix left sample!
-			length = rightsample[0]; //Load right sample!
-			length += rightsample[1]; //Mix right sample!
+			i = gb_leftsample[0]; //Load left sample!
+			i += gb_leftsample[1]; //Mix left sample!
+			length = gb_rightsample[0]; //Load right sample!
+			length += gb_rightsample[1]; //Mix right sample!
 
 			writefifobuffer32_2(GAMEBLASTER.rawsignal,i,length); //Save the raw signal for post-processing!
 		}
@@ -1077,7 +1075,7 @@ void initGameBlaster(word baseaddr)
 	{
 		updateSAA1099frequency(&GAMEBLASTER.chips[0],channel); //Init frequency!
 		updateSAA1099frequency(&GAMEBLASTER.chips[1],channel); //Init frequency!
-		GAMEBLASTER.chips[0].channels[channel].noisechannel = (channel/3); //Our noise channel linked to this channel!
+		GAMEBLASTER.chips[0].channels[channel].noisechannel = GAMEBLASTER.chips[1].channels[channel].noisechannel = (channel/3); //Our noise channel linked to this channel!
 	}
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],0); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
