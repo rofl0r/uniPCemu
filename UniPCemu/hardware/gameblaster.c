@@ -88,8 +88,8 @@ typedef struct
 	//Data required for simulating noise generators!
 	float freq; //Frequency!
 	byte laststatus; //The last outputted status for detecting cycles!
-	uint_32 level; //The level!
-	byte levelbit; //Current bit from the current level!
+	uint_32 lfsr; //The shift register!
+	byte level; //1-bit current level!
 } SAA1099_NOISE;
 
 typedef struct
@@ -167,8 +167,9 @@ struct
 //bit1=Sign. 0=Negative, 1=Positive
 #define AMPENV_RESULT_POSITIVE 0x02
 #define AMPENV_RESULT_NEGATIVE 0x00
+#define AMPENV_RESULT_HALFVOLUME 0x04
 //bit2=Ignore sign. We're silence(0V)!
-#define AMPENV_RESULT_SILENCE 0x04
+#define AMPENV_RESULT_SILENCE 0x08
 
 
 
@@ -277,7 +278,7 @@ OPTINLINE void calcAmpEnvPrecalcs()
 				}
 				else //Tone low? Then noise(output) is high only every other PWM period!
 				{
-					AmpEnvPrecalcs[i] = ((input&AMPENV_INPUT_RIGHTCHANNEL)?AMPENV_RESULT_RIGHTCHANNEL:AMPENV_RESULT_LEFTCHANNEL)|((input&AMPENV_INPUT_PWMPERIOD)?AMPENV_RESULT_POSITIVE:AMPENV_RESULT_NEGATIVE); //Noise at half volume!
+					AmpEnvPrecalcs[i] = ((input&AMPENV_INPUT_RIGHTCHANNEL)?AMPENV_RESULT_RIGHTCHANNEL:AMPENV_RESULT_LEFTCHANNEL)|(((input&AMPENV_INPUT_PWMPERIOD)?(AMPENV_RESULT_POSITIVE):(AMPENV_RESULT_NEGATIVE))|AMPENV_RESULT_HALFVOLUME); //Noise at half volume!
 				}
 				break;
 		}
@@ -606,24 +607,11 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 	PWM->output = (output&AMPENV_RESULT_SILENCE); //Bit 2 determines whether we're 0V to render entirely!
 	PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
 	PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
-	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)?1:0]; //Update the amplitude to use!
-}
-
-void SAA1099PWM_RunningCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 1-0xE,0x11-0x1E!
-{
-/*
-	if (PWM->output==0) //Still outputting a signal?
-	{
-		output = chip->channels[channel].ampenv[PWM->originaloutput|chip->channels[channel].toneonnoiseonflipflop]; //Output with flip-flop!
-		PWM->flipflopoutput = ((output&AMPENV_RESULT_POSITIVE)?1:0)|((output&AMPENV_RESULT_SILENCE)?2:0); //Start output, if any! We're starting high!
-		PWM->result = PWM_outputs[PWM->flipflopoutput]; //Initial output signal for PWM, precalculated!
-	}
-*/
+	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)?1:0]>>((output&AMPENV_RESULT_HALFVOLUME)?1:0); //Update the amplitude to use!
 }
 
 void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x1F
 {
-	SAA1099PWM_RunningCounter(chip,channel,output,PWM); //Apply running counter normally!
 	//Passthrough to apply PWM resetting the counter always!
 	PWM->PWMCounter = 0; //Reset the counter to count the active time!
 	chip->channels[channel].toneonnoiseonflipflop ^= AMPENV_INPUT_PWMPERIOD; //Trigger the flipflop at PWM samplerate only once(entire channel)!
@@ -631,7 +619,6 @@ void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMO
 
 void SAA1099PWM_FinalCounterLeft(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x0F
 {
-	SAA1099PWM_RunningCounter(chip,channel,output,PWM); //Apply running counter normally!
 	//Passthrough to apply PWM resetting the counter always!
 	PWM->PWMCounter = 0; //Reset the counter to count the active time!
 }
@@ -642,46 +629,50 @@ SAA1099PWM_Counter SAA1099PWMCounters[0x20] = {
 	//Left counter
 	SAA1099PWM_NewCounter, //00
 	SAA1099PWM_NewCounter, //01
-	SAA1099PWM_RunningCounter, //02
-	SAA1099PWM_RunningCounter, //03
-	SAA1099PWM_RunningCounter, //04
-	SAA1099PWM_RunningCounter, //05
-	SAA1099PWM_RunningCounter, //06
-	SAA1099PWM_RunningCounter, //07
-	SAA1099PWM_RunningCounter, //08
-	SAA1099PWM_RunningCounter, //09
-	SAA1099PWM_RunningCounter, //0A
-	SAA1099PWM_RunningCounter, //0B
-	SAA1099PWM_RunningCounter, //0C
-	SAA1099PWM_RunningCounter, //0D
-	SAA1099PWM_RunningCounter, //0E
-	SAA1099PWM_RunningCounter, //0F
-	SAA1099PWM_RunningCounter, //10
-	SAA1099PWM_RunningCounter, //11
-	SAA1099PWM_RunningCounter, //12
-	SAA1099PWM_RunningCounter, //13
-	SAA1099PWM_RunningCounter, //14
-	SAA1099PWM_RunningCounter, //15
-	SAA1099PWM_RunningCounter, //16
-	SAA1099PWM_RunningCounter, //17
-	SAA1099PWM_RunningCounter, //18
-	SAA1099PWM_RunningCounter, //19
-	SAA1099PWM_RunningCounter, //1A
-	SAA1099PWM_RunningCounter, //1B
-	SAA1099PWM_RunningCounter, //1C
-	SAA1099PWM_RunningCounter, //1D
+	NULL, //02
+	NULL, //03
+	NULL, //04
+	NULL, //05
+	NULL, //06
+	NULL, //07
+	NULL, //08
+	NULL, //09
+	NULL, //0A
+	NULL, //0B
+	NULL, //0C
+	NULL, //0D
+	NULL, //0E
+	NULL, //0F
+	NULL, //10
+	NULL, //11
+	NULL, //12
+	NULL, //13
+	NULL, //14
+	NULL, //15
+	NULL, //16
+	NULL, //17
+	NULL, //18
+	NULL, //19
+	NULL, //1A
+	NULL, //1B
+	NULL, //1C
+	NULL, //1D
 	SAA1099PWM_FinalCounterLeft, //1E
 	SAA1099PWM_FinalCounterRight //1F
 };
 
 OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
 {
-	int_32 result; //The result to give!
 	INLINEREGISTER byte counter;
 	INLINEREGISTER PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
+	INLINEREGISTER SAA1099PWM_Counter PWMCounter;
 	counter = PWM->PWMCounter++; //Apply the current counter!
 	counter &= 0xF; //Reset every 16 pulses to generate a 16-level PWM!
-	SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
+	PWMCounter = SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)]; //Load the counter we might use!
+	if (unlikely(PWMCounter!=NULL)) //Counter is used?
+	{
+		PWMCounter(chip,channel,output,PWM); //Handle special pulse states for the counter!
+	}
 	#ifdef PWM_OUTPUT
 	return PWM_outputs[(PWM->flipflopoutput|(((WAVEFORM_OUTPUT[PWM->Amplitude][counter])<<1)))]; //Give the proper output as a 16-bit sample!
 	#else
@@ -696,14 +687,14 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	chip->channels[channel].level = getSAA1099SquareWave(chip,channel); //Current flipflop output of the square wave generator!
 
 	//Tick the envelopes when needed(after taking the last sample from the set of channels that use it)!
-	if ((channel==2) && (chip->env_clock[0]==0))
+	if ((channel==1) && (chip->env_clock[0]==0))
 		tickSAAEnvelope(chip,0);
-	if ((channel==5) && (chip->env_clock[1]==0))
+	if ((channel==4) && (chip->env_clock[1]==0))
 		tickSAAEnvelope(chip,1);
 
-	output = chip->noise[chip->channels[channel].noisechannel].levelbit; //Noise output?
+	output = chip->noise[chip->channels[channel].noisechannel].level; //Noise output?
 	output |= chip->channels[channel].level; //Level is always 1-bit!
-	//Check and apply for noise! Substract to avoid overflows, half amplitude only
+	//Retrieve the PWM sample to render!
 	*output_l += getSAA1099PWM(chip,channel,output); //Output left!
 	*output_r += getSAA1099PWM(chip,channel,output|AMPENV_INPUT_RIGHTCHANNEL); //Output right!
 }
@@ -719,11 +710,24 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 	noise_flipflop = getSAA1099SquareWave(chip,channel|8); //Current flipflop output of the noise timer!
 	if ((noise_flipflop ^ chip->noise[channel].laststatus) && (noise_flipflop==0)) //Half-wave switched state? We're to update the noise output!
 	{
-		if (((chip->noise[channel].level & 0x20000) == 0) == ((chip->noise[channel].level & 0x0400) == 0))
-			chip->noise[channel].level = (chip->noise[channel].level << 1) | 1;
+		/*
+			SAA1099P noise generator as documented by Jepael
+			18-bit Galois LFSR
+			Feedback polynomial = x^18 + x^11 + x^1
+			Period = 2^18-1 = 262143 bits
+			Verified to match recorded noise from my SAA1099P
+		*/
+
+		if (chip->noise[channel].lfsr&1)
+		{
+			chip->noise[channel].lfsr = (chip->noise[channel].lfsr>>1)^0x20400;
+			chip->noise[channel].level = AMPENV_INPUT_NOISEOUTPUT; //Level 1! Current level bit has been updated, preshifted to bit 2 of the output!
+		}
 		else
-			chip->noise[channel].level <<= 1;
-		chip->noise[channel].levelbit = (chip->noise[channel].level&1)?AMPENV_INPUT_NOISEOUTPUT:0; //Current level bit has been updated, preshifted to bit 2 of the output!
+		{
+			chip->noise[channel].lfsr = (chip->noise[channel].lfsr>>1);
+			chip->noise[channel].level = 0; //Level 0!
+		}
 	}
 	chip->noise[channel].laststatus = noise_flipflop; //Save the last status!
 }
@@ -764,8 +768,6 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 	INLINEREGISTER uint_32 length; //Amount of samples to generate!
 	INLINEREGISTER uint_32 i;
 	uint_32 dutycyclei; //Input samples to process!
-	INLINEREGISTER uint_32 tickcounter;
-	word oldvalue; //Old value before decrement!
 	double tempf;
 	uint_32 render_ticks; //A one shot tick!
 	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
@@ -1081,6 +1083,9 @@ void initGameBlaster(word baseaddr)
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],1); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],1); //Init frequency!
+
+	GAMEBLASTER.chips[0].noise[0].lfsr = GAMEBLASTER.chips[0].noise[1].lfsr = 1; //Make sure the LFSR is properly initialized!
+	GAMEBLASTER.chips[1].noise[0].lfsr = GAMEBLASTER.chips[1].noise[1].lfsr = 1; //Make sure the LFSR is properly initialized!
 
 	calcAmpEnvPrecalcs(); //Calculate the AmpEnv precalcs!
 
