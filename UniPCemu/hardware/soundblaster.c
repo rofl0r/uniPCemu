@@ -84,7 +84,7 @@ double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
 
 double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
-byte leftsample=0x80, rightsample=0x80; //Two stereo samples, silence by default!
+byte sb_leftsample=0x80, sb_rightsample=0x80; //Two stereo samples, silence by default!
 
 OPTINLINE void SoundBlaster_IRQ8()
 {
@@ -138,7 +138,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 			{
 				if (SOUNDBLASTER.silencesamples) //Silence requested?
 				{
-					leftsample = rightsample = 0x80; //Silent sample!
+					sb_leftsample = sb_rightsample = 0x80; //Silent sample!
 					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 					{
 						SoundBlaster_IRQ8(); //Fire the IRQ!
@@ -147,9 +147,9 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 				}
 				else //Audio playing?
 				{
-					if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &leftsample)) //Mono sample read?
+					if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &sb_leftsample)) //Mono sample read?
 					{
-						rightsample = leftsample; //Render the new mono sample!
+						sb_rightsample = sb_leftsample; //Render the new mono sample!
 					}
 
 					if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
@@ -168,7 +168,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 
 	if (SOUNDBLASTER.singen) //Diagnostic Sine wave generator enabled?
 	{
-		leftsample = rightsample = 0x80+(byte)(sin(2 *PI*2000.0f*SOUNDBLASTER.singentime) * (float)0x7F); //Give a full wave at the requested speed!
+		sb_leftsample = sb_rightsample = 0x80+(byte)(sin(2 *PI*2000.0f*SOUNDBLASTER.singentime) * (float)0x7F); //Give a full wave at the requested speed!
 		SOUNDBLASTER.singentime += timepassed; //Tick the samples processed!
 		temp = SOUNDBLASTER.singentime*2000.0f; //Calculate for overflow!
 		if (temp >= 1.0) { //Overflow?
@@ -182,8 +182,8 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	}
 	else
 	{
-		activeleft = leftsample; //Render the current left sample!
-		activeright = rightsample; //Render the current right sample!
+		activeleft = sb_leftsample; //Render the current left sample!
+		activeright = sb_rightsample; //Render the current right sample!
 	}
 
 	//Finally, render any rendered Sound Blaster output to the renderer at the correct rate!
@@ -606,7 +606,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 	{
 	case 0: return; //Unknown command!
 	case 0x10: //Direct DAC output?
-		leftsample = rightsample = data; //Set the direct DAC output!
+		sb_leftsample = sb_rightsample = data; //Set the direct DAC output!
 		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
 		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		SOUNDBLASTER.command = 0; //No command anymore!
@@ -865,7 +865,7 @@ void DSP_HWreset()
 	SOUNDBLASTER.DirectADC = 0; //Disable the special Direct ADC status!
 	fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
 	fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
-	leftsample = rightsample = 0x80; //Silence output!
+	sb_leftsample = sb_rightsample = 0x80; //Silence output!
 }
 
 void DSP_reset(byte data)
@@ -1016,7 +1016,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //Last input!
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Default state!
 	lastresult = 0xAA; //Last result was 0xAA!
-	leftsample = rightsample = 0x80; //Default to silence!
+	sb_leftsample = sb_rightsample = 0x80; //Default to silence!
 
 	switch (version) //What version to emulate?
 	{
