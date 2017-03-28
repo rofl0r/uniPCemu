@@ -47,6 +47,18 @@
 #define sleep() for (;;) delay(1000000)
 
 #ifdef VISUALC
+//Visual C++ version of unlikely/likely!
+#ifdef unlikely
+#undef unlikely
+#endif
+#define unlikely(x) (x)
+#ifdef likely
+#undef likely
+#endif
+#define likely(x) (x)
+#endif
+
+#ifdef VISUALC
 //Visual C++ needs the result!
 #define domkdir(dir) int ok = _mkdir(dir)
 #else
