@@ -58,7 +58,8 @@ typedef struct
 	byte Amplitude; //Amplitude: 0-16, to wrap around!
 	byte PWMCounter; //Counter 0-16 that's counting!
 	byte flipflopoutput; //Output signal of the PWM!
-	byte *waveform; //Current waveform step to process!
+	int_32 *waveform; //Current waveform step to process!
+	int_32 waveforminput; //Flipflop result on the input to toggle between and 0V!
 } PWMOUTPUT; //Channel PWM output signal for left or right channel!
 
 typedef struct
@@ -75,6 +76,7 @@ typedef struct
 	float freq; //Frequency!
 	byte level; //The level!
 	byte ampenv[16]; //All envelope outputs! Index Bit0=Right channel, Bit1=Channel output index, Bit 2=Noise output! Output: 0=Negative, 1=Positive. bit3=PWM period.
+	byte activeampenv; //Currently loaded ampenv!
 	byte toneonnoiseonflipflop; //Flipflop used for mode 3 rendering!
 	byte noisechannel; //Linked noise channel!
 	byte PWMAmplitude[2]; //PWM amplitude for left and right channel to use!
@@ -222,6 +224,7 @@ int_32 amplitudes[0x10]; //All possible amplitudes!
 byte AmpEnvPrecalcs[0x40]; //AmpEnv precalcs of all possible states!
 OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 {
+	INLINEREGISTER byte newampenv; //What active amplitude envelope precalcs?
 	chip->channels[channel].PWMAmplitude[0] = (((int_32)(chip->channels[channel].amplitude[0])*(int_32)chip->channels[channel].envelope[0]) >> 4)&0xF; //Left envelope PWM time!
 	chip->channels[channel].PWMAmplitude[1] = (((int_32)(chip->channels[channel].amplitude[1])*(int_32)chip->channels[channel].envelope[1]) >> 4)&0xF; //Right envelope PWM time!
 	//bit0=right channel
@@ -229,7 +232,14 @@ OPTINLINE void updateAmpEnv(SAA1099 *chip, byte channel)
 	//bit2=noise output
 	//bit3=PWM period
 	//Generate all 16 state precalcs!
-	memcpy(&chip->channels[channel].ampenv[0],&AmpEnvPrecalcs[(((chip->channels[channel].frequency_enable<<1)|chip->channels[channel].noise_enable)<<4)],sizeof(chip->channels[channel].ampenv)); //Copy the output information over!
+	newampenv = (chip->channels[channel].frequency_enable<<1); //Load and preshift the frequency enable bit into the precalcs base index!
+	newampenv |= chip->channels[channel].noise_enable; //Add the noise enable bit into the precalcs base index!
+	newampenv <<= 4; //What amplitude envelope to use(index into the precalcs)? We're specifying the upper 2 bits!
+	if (unlikely(newampenv!=chip->channels[channel].activeampenv)) //Changed amplitude type to render?
+	{
+		chip->channels[channel].activeampenv = newampenv; //Modifying the amplitude envelope we're loading now!
+		memcpy(&chip->channels[channel].ampenv[0],&AmpEnvPrecalcs[newampenv],sizeof(chip->channels[channel].ampenv)); //Copy the output information over!
+	}
 }
 
 OPTINLINE void calcAmpEnvPrecalcs()
@@ -555,9 +565,10 @@ int_32 PWM_outputs[4] = {-1,1,0,0}; //Output, if any!
 
 //PDM waveforms on the SAA1099P are reversed of the normal output(0=+/-5V, 1=0V)
 //Fast(shorthand) versions of the waveform outputs to prevent needing to shift! WV_1 makes it mute output!
-#define WV_1 2
-#define WV_0 0
-byte WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
+//Use a bitmask instead: 0xFFFF: -MAX or +MAX(positive), 0: 0V.
+#define WV_1 0
+#define WV_0 ~0
+int_32 WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
 	#ifndef PDM_OUTPUT
 	//PWM output?
 	{WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 0
@@ -607,6 +618,11 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 	PWM->flipflopoutput = ((output&(AMPENV_RESULT_POSITIVE|AMPENV_RESULT_SILENCE))>>1); //Start output, if any! We're starting high! Shift positive to bit 0 and silence to bit 1!
 	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)]; //Update the amplitude to use!
 	PWM->waveform = &WAVEFORM_OUTPUT[PWM->Amplitude][0]; //Start the new waveform!
+	#ifdef PWM_OUTPUT
+	PWM->waveforminput = PWM_outputs[PWM->flipflopoutput]; //Waveform input(positive/negative/0V)!
+	#else
+	PWM->waveforminput = PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample instead!
+	#endif
 }
 
 void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x1F
@@ -676,9 +692,9 @@ OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output, PWMOUTP
 		SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[(PWM->flipflopoutput|*PWM->waveform++)]; //Give the proper output as a 16-bit sample! Toggle positive/negative and 0V on the waveform! Toggling opposite will result in partially inverted waveforms(volumes 0-~7), so toggle to 0V (collector) instead.
+	return PWM->waveforminput&*PWM->waveform++; //Give the proper output as a 16-bit sample! Toggle positive/negative and 0V on the waveform! Toggling opposite will result in partially inverted waveforms(volumes 0-~7), so toggle to 0V (collector) instead.
 	#else
-	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
+	return PWM->waveforminput; //Give the proper output as a simple pre-defined 16-bit sample! No actual waveform is used for non-PWM output!
 	#endif
 }
 
@@ -746,12 +762,13 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, int_32 *leftsample, int_32 *
 	generateSAA1099channelsample(chip,4,&output_l,&output_r); //Channel 4 sample!
 	generateSAA1099channelsample(chip,5,&output_l,&output_r); //Channel 5 sample!
 
+	//Give the result, before doing other things!
+	*leftsample = output_l; //Left sample result!
+	*rightsample = output_r; //Right sample result!
+
 	//Finally, write the resultant samples to the result!
 	tickSAA1099noise(chip,0); //Tick first noise channel!
 	tickSAA1099noise(chip,1); //Tick second noise channel!
-
-	*leftsample = output_l; //Left sample result!
-	*rightsample = output_r; //Right sample result!
 }
 
 uint_32 gameblaster_soundtiming=0;
@@ -1074,6 +1091,7 @@ void initGameBlaster(word baseaddr)
 		updateSAA1099frequency(&GAMEBLASTER.chips[0],channel); //Init frequency!
 		updateSAA1099frequency(&GAMEBLASTER.chips[1],channel); //Init frequency!
 		GAMEBLASTER.chips[0].channels[channel].noisechannel = GAMEBLASTER.chips[1].channels[channel].noisechannel = (channel/3); //Our noise channel linked to this channel!
+		GAMEBLASTER.chips[0].channels[channel].activeampenv = GAMEBLASTER.chips[1].channels[channel].activeampenv = 0xFF; //Default to need to be updating the amplitude envelope!
 	}
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[0],0); //Init frequency!
 	updateSAA1099RNGfrequency(&GAMEBLASTER.chips[1],0); //Init frequency!
@@ -1090,6 +1108,14 @@ void initGameBlaster(word baseaddr)
 	for (i=0;i<0x10;++i)
 	{
 		amplitudes[i] = calcAmplitude(i); //Possible amplitudes, for easy lookup!
+	}
+
+	for (channel=0;channel<8;++channel)
+	{
+		for (i=0;i<2;++i)
+		{
+			GAMEBLASTER.chips[0].channels[channel].PWMOutput[i].waveform = GAMEBLASTER.chips[1].channels[channel].PWMOutput[i].waveform = &WAVEFORM_OUTPUT[0][0]; //Load the first waveform by default!
+		}
 	}
 
 	for (i=0;i<(8*0x40);++i) //8 waveforms, 64 positions, rounded to 256 positions!
