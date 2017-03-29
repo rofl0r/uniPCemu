@@ -13,7 +13,7 @@ extern MMU_type MMU; //MMU for direct access!
 #define __HW_DISABLED 0
 
 //Log invalid memory accesses?
-#define LOG_INVALID_MEMORY
+//#define LOG_INVALID_MEMORY
 
 //Now the core memory support!
 
