@@ -58,6 +58,7 @@ typedef struct
 	byte Amplitude; //Amplitude: 0-16, to wrap around!
 	byte PWMCounter; //Counter 0-16 that's counting!
 	byte flipflopoutput; //Output signal of the PWM!
+	byte *waveform; //Current waveform step to process!
 } PWMOUTPUT; //Channel PWM output signal for left or right channel!
 
 typedef struct
@@ -170,6 +171,8 @@ struct
 float AMPLIFIER = 0.0; //The amplifier, amplifying samples to the full range!
 
 WAVEFILE *GAMEBLASTER_LOG = NULL; //Logging the Game Blaster output?
+
+byte precalcSAAenvelopes[8*0x40]; //All possible volume envelope waveforms, precalculated!
 
 OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 {
@@ -299,14 +302,14 @@ OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 		mask &= ~chip->env_bits[channel]; //Apply the bit resolution we use to mask bits off when needed!
 		
 		//Now, apply the current envelope!
-		chip->channels[basechannel].envelope[0] = chip->channels[basechannel+1].envelope[0] = chip->channels[basechannel+2].envelope[0] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
+		chip->channels[basechannel].envelope[0] = chip->channels[basechannel+1].envelope[0] = chip->channels[basechannel+2].envelope[0] = (precalcSAAenvelopes[(mode<<6)|step]&mask); //Apply the normal envelope!
 		if (chip->env_reverse_right[channel]) //Reverse right envelope?
 		{
-			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = ((0xF-SAAEnvelope(mode,step))&mask); //Apply the reversed envelope!
+			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = ((0xF-precalcSAAenvelopes[(mode<<6)|step])&mask); //Apply the reversed envelope!
 		}
 		else //Normal right envelope?
 		{
-			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = (SAAEnvelope(mode,step)&mask); //Apply the normal envelope!
+			chip->channels[basechannel].envelope[1] = chip->channels[basechannel+1].envelope[1] = chip->channels[basechannel+2].envelope[1] = (precalcSAAenvelopes[(mode<<6)|step]&mask); //Apply the normal envelope!
 		}
 	}
 	else //Envelope mode off, set all envelope factors to 16!
@@ -315,9 +318,9 @@ OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 			chip->channels[basechannel+1].envelope[0] = chip->channels[basechannel+1].envelope[1] =
 			chip->channels[basechannel+2].envelope[0] = chip->channels[basechannel+2].envelope[1] = 0x10; //We're off!
 	}
+	updateAmpEnv(chip,basechannel++); //Update the amplitude/envelope!
+	updateAmpEnv(chip,basechannel++); //Update the amplitude/envelope!
 	updateAmpEnv(chip,basechannel); //Update the amplitude/envelope!
-	updateAmpEnv(chip,basechannel+1); //Update the amplitude/envelope!
-	updateAmpEnv(chip,basechannel+2); //Update the amplitude/envelope!
 }
 
 OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
@@ -551,43 +554,46 @@ int_32 PWM_outputs[4] = {-1,1,0,0}; //Output, if any!
 #endif
 
 //PDM waveforms on the SAA1099P are reversed of the normal output(0=+/-5V, 1=0V)
+//Fast(shorthand) versions of the waveform outputs to prevent needing to shift! WV_1 makes it mute output!
+#define WV_1 2
+#define WV_0 0
 byte WAVEFORM_OUTPUT[16][16] = { //PDM Waveforms for a selected output!
 	#ifndef PDM_OUTPUT
 	//PWM output?
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 0
-	{0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 1
-	{0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 2
-	{0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 3
-	{0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 4
-	{0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1}, //Volume 5
-	{0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1}, //Volume 6
-	{0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1}, //Volume 7
-	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1}, //Volume 8
-	{0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1}, //Volume 9
-	{0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1}, //Volume A
-	{0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1}, //Volume B
-	{0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1}, //Volume C
-	{0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1}, //Volume D
-	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1}, //Volume E
-	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, //Volume F
+	{WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 0
+	{WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 1
+	{WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 2
+	{WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 3
+	{WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 4
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 5
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 6
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 7
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 8
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 9
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume A
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume B
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1}, //Volume C
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1}, //Volume D
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1}, //Volume E
+	{WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1}, //Volume F
 	#else
 	//PDM output?
-	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 0
-	{1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 1
-	{1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 2
-	{1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1}, //Volume 3
-	{1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 4
-	{1,0,1,1,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 5
-	{1,1,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 6
-	{1,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1}, //Volume 7
-	{1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 8
-	{1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume 9
-	{1,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume A
-	{1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0}, //Volume B
-	{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume C
-	{1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume D
-	{1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, //Volume E
-	{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} //Volume F
+	{WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 0
+	{WV_1,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 1
+	{WV_1,WV_1,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 2
+	{WV_1,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1}, //Volume 3
+	{WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1}, //Volume 4
+	{WV_1,WV_0,WV_1,WV_1,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1}, //Volume 5
+	{WV_1,WV_1,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1}, //Volume 6
+	{WV_1,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1}, //Volume 7
+	{WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0}, //Volume 8
+	{WV_1,WV_0,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0}, //Volume 9
+	{WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0}, //Volume A
+	{WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0}, //Volume B
+	{WV_1,WV_1,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0}, //Volume C
+	{WV_1,WV_0,WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0}, //Volume D
+	{WV_1,WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0}, //Volume E
+	{WV_1,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0,WV_0} //Volume F
 	#endif
 };
 
@@ -600,6 +606,7 @@ void SAA1099PWM_NewCounter(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *
 	output = chip->channels[channel].ampenv[output]; //Output with flip-flop!
 	PWM->flipflopoutput = ((output&(AMPENV_RESULT_POSITIVE|AMPENV_RESULT_SILENCE))>>1); //Start output, if any! We're starting high! Shift positive to bit 0 and silence to bit 1!
 	PWM->Amplitude = chip->channels[channel].PWMAmplitude[(output&AMPENV_RESULT_RIGHTCHANNEL)]; //Update the amplitude to use!
+	PWM->waveform = &WAVEFORM_OUTPUT[PWM->Amplitude][0]; //Start the new waveform!
 }
 
 void SAA1099PWM_FinalCounterRight(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM) //State 0x1F
@@ -658,17 +665,18 @@ SAA1099PWM_Counter SAA1099PWMCounters[0x20] = {
 	SAA1099PWM_FinalCounterRight //1F
 };
 
-OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output)
+OPTINLINE int_32 getSAA1099PWM(SAA1099 *chip, byte channel, byte output, PWMOUTPUT *PWM)
 {
-	INLINEREGISTER byte counter;
-	INLINEREGISTER PWMOUTPUT *PWM=&chip->channels[channel].PWMOutput[output&1]; //Our PWM channel to use!
-	counter = (PWM->PWMCounter++&0xF); //Apply the current counter! Reset every 16 pulses to generate a 16-level PWM!
-	if (unlikely((counter==0x0) || (counter==0xF))) //Are we to take action?
+	INLINEREGISTER byte counter,check;
+	check = counter = (PWM->PWMCounter++&0xF); //Apply the current counter! Reset every 16 pulses to generate a 16-level PWM!
+	++check; //Increase check!
+	check &= 0xF; //Only 15 positions to check!
+	if (unlikely(check<=1)) //Are we to take action?
 	{
 		SAA1099PWMCounters[(counter<<1)|(output&AMPENV_RESULT_RIGHTCHANNEL)](chip,channel,output,PWM); //Handle special pulse states for the counter!
 	}
 	#ifdef PWM_OUTPUT
-	return PWM_outputs[(PWM->flipflopoutput|(WAVEFORM_OUTPUT[PWM->Amplitude][counter]<<1))]; //Give the proper output as a 16-bit sample! Toggle positive/negative and 0V on the waveform! Toggling opposite will result in partially inverted waveforms(volumes 0-~7), so toggle to 0V (collector) instead.
+	return PWM_outputs[(PWM->flipflopoutput|*PWM->waveform++)]; //Give the proper output as a 16-bit sample! Toggle positive/negative and 0V on the waveform! Toggling opposite will result in partially inverted waveforms(volumes 0-~7), so toggle to 0V (collector) instead.
 	#else
 	return PWM_outputs[PWM->flipflopoutput]*(sword)amplitudes[PWM->Amplitude]; //Give the proper output as a simple pre-defined 16-bit sample!
 	#endif
@@ -689,8 +697,8 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	output = chip->noise[chip->channels[channel].noisechannel].level; //Noise output?
 	output |= chip->channels[channel].level; //Level is always 1-bit!
 	//Retrieve the PWM sample to render!
-	*output_l += getSAA1099PWM(chip,channel,output); //Output left!
-	*output_r += getSAA1099PWM(chip,channel,output|AMPENV_INPUT_RIGHTCHANNEL); //Output right!
+	*output_l += getSAA1099PWM(chip,channel,output,&chip->channels[channel].PWMOutput[0]); //Output left!
+	*output_r += getSAA1099PWM(chip,channel,output|AMPENV_INPUT_RIGHTCHANNEL,&chip->channels[channel].PWMOutput[1]); //Output right!
 }
 
 OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
@@ -776,22 +784,16 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 		{
 			//Generate the sample!
 
+			gb_leftsample[0] = gb_rightsample[0] = 0; //No sample by default!
 			if (likely(GAMEBLASTER.chips[0].all_ch_enable)) //Sound generation of first chip?
 			{
 				generateSAA1099sample(&GAMEBLASTER.chips[0],&gb_leftsample[0],&gb_rightsample[0]); //Generate a stereo sample on this chip!
 			}
-			else
-			{
-				gb_leftsample[0] = gb_rightsample[0] = 0; //No sample!
-			}
 
+			gb_leftsample[1] = gb_rightsample[1] = 0; //No sample by default!
 			if (likely(GAMEBLASTER.chips[1].all_ch_enable)) //Sound generation of first chip?
 			{
 				generateSAA1099sample(&GAMEBLASTER.chips[1], &gb_leftsample[1], &gb_rightsample[1]); //Generate a stereo sample on this chip!
-			}
-			else
-			{
-				gb_leftsample[1] = gb_rightsample[1] = 0; //No sample!
 			}
 
 			gameblaster_soundtiming -= MHZ14_BASETICK; //Decrease timer to get time left!
@@ -835,7 +837,7 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
 			for (dutycyclei = render_ticks;dutycyclei;--dutycyclei)
 			{
-				if (unlikely(!readfifobuffer32_2(GAMEBLASTER.rawsignal, &currentsamplel, &currentsampler))) break; //Failed to read the sample? Stop counting!
+				if (unlikely(readfifobuffer32_2(GAMEBLASTER.rawsignal, &currentsamplel, &currentsampler)==0)) break; //Failed to read the sample? Stop counting!
 				//We're applying the low pass filter for the output!
 				filtersamplel = (float)currentsamplel; //Convert to filter format!
 				filtersampler = (float)currentsampler; //Convert to filter format!
@@ -1088,6 +1090,11 @@ void initGameBlaster(word baseaddr)
 	for (i=0;i<0x10;++i)
 	{
 		amplitudes[i] = calcAmplitude(i); //Possible amplitudes, for easy lookup!
+	}
+
+	for (i=0;i<(8*0x40);++i) //8 waveforms, 64 positions, rounded to 256 positions!
+	{
+		precalcSAAenvelopes[i] = SAAEnvelope((i>>6),(i&0x3F)); //Precalculate the entire waveforms!
 	}
 
 	#ifdef DEBUG_OUTPUT
