@@ -92,7 +92,7 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	byte xmin, xmax; //Top/bottom maximum reached?
 	byte backpixel; //Are we a background pixel?
 	//Undirty!
-	if (GPU_textget_pixel(surface,fx,fy)) //Font?
+	if (unlikely(GPU_textget_pixel(surface,fx,fy))) //Font?
 	{
 		surface->notdirty[(fy<<9)|fx] = GPU_textgetcolor(surface,fx,fy,0); //Font!
 	}
@@ -113,11 +113,11 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 
 		--fx2;
 		--fy2; //-1,-1
-		if (fy==0) goto skipfirst; //Vertical first row available?
+		if (unlikely(fy==0)) goto skipfirst; //Vertical first row available?
 		{
-			if (xmin) goto skipmin1;
+			if (unlikely(xmin)) goto skipmin1;
 			{
-				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 				{
 					backpixel = 1;
 					goto finishtextrendering; //We're finished!
@@ -127,16 +127,16 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 			skipmin1:
 			//Middle column is always valid!
 			++fx2; //0,-1
-			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 			{
 				backpixel = 1;
 				goto finishtextrendering; //We're finished!
 			}
 
-			if (xmax) goto skipmax1;
+			if (unlikely(xmax)) goto skipmax1;
 			{
 				++fx2; //1,-1
-				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 				{
 					backpixel = 1;
 					goto finishtextrendering; //We're finished!
@@ -150,9 +150,9 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 		skipfirst:
 		//Middle row? It's always valid!
 		++fy2;
-		if (xmin) goto skipmin2;
+		if (unlikely(xmin)) goto skipmin2;
 		{
-			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 			{
 				backpixel = 1;
 				goto finishtextrendering; //We're finished!
@@ -160,11 +160,11 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 		}
 
 		skipmin2:
-		if (xmax) goto skipmax2;
+		if (unlikely(xmax)) goto skipmax2;
 		{
 			++fx2;
 			++fx2; //1,0
-			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 			{
 				backpixel = 1;
 				goto finishtextrendering; //We're finished!
@@ -174,12 +174,12 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 		}
 		
 		skipmax2:
-		if (fy==(GPU_TEXTPIXELSY-1)) goto finishtextrendering; //Vertical bottom row available?
+		if (unlikely(fy==(GPU_TEXTPIXELSY-1))) goto finishtextrendering; //Vertical bottom row available?
 		{
 			++fy2;
-			if (xmin) goto skipmin3;
+			if (unlikely(xmin)) goto skipmin3;
 			{
-				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 				{
 					backpixel = 1;
 					goto finishtextrendering; //We're finished!
@@ -188,16 +188,16 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 			skipmin3:
 			//Middle column is always valid!
 			++fx2; //0,1
-			if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+			if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 			{
 				backpixel = 1;
 				goto finishtextrendering; //We're finished!
 			}
 
-			if (xmax) goto finishtextrendering;
+			if (unlikely(xmax)) goto finishtextrendering;
 			{
 				++fx2; //1,1
-				if (GPU_textget_pixel(surface, fx2, fy2)) //Border?
+				if (unlikely(GPU_textget_pixel(surface, fx2, fy2))) //Border?
 				{
 					backpixel = 1;
 				}
@@ -271,7 +271,7 @@ OPTINLINE void GPU_text_updateres(word xres, word yres) //Update resultion of th
 
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
-	if (allcleared) return 0; //Abort when all is cleared!
+	if (unlikely(allcleared)) return 0; //Abort when all is cleared!
 	uint_32 *renderpixel;
 	byte *xfont, *xchar;
 	if (__HW_DISABLED) return 0; //Disabled!
@@ -288,7 +288,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 #endif
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 
-	if (tsurface->flags&TEXTSURFACE_FLAG_DIRTY) //Redraw when dirty only?
+	if (unlikely(tsurface->flags&TEXTSURFACE_FLAG_DIRTY)) //Redraw when dirty only?
 	{
 		WaitSem(tsurface->lock);
 
@@ -318,21 +318,21 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			*xfont++ = (curchar & 1); //Current pixel!
 			//Move to the next horizontal character!
 			++xchar; //Next character!
-			if (++x == GPU_TEXTSURFACE_WIDTH) //End of row reached?
+			if (unlikely(++x == GPU_TEXTSURFACE_WIDTH)) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
 				++y; //Goto Next row!
 				xfont = GPU_textget_pixelrowptr(tsurface,y); //Next row loaded!
 				xchar = &tsurface->text[y>>3][0]; //Next row loaded!
 			}
-		} while (y != GPU_TEXTPIXELSY); //Stop searching now!	
+		} while (likely(y != GPU_TEXTPIXELSY)); //Stop searching now!	
 
 		//Second phase: update dirty pixels with their correct font/border/transparent color!
 		x = y = 0; //Init coordinates!
 		do //Process all rows!
 		{
 			updateDirty(tsurface,x,y); //Update dirty if needed!
-			if (tsurface->notdirty[(y<<9)|x]!=TRANSPARENTPIXEL) //Used pixel to render?
+			if (unlikely(tsurface->notdirty[(y<<9)|x]!=TRANSPARENTPIXEL)) //Used pixel to render?
 			{
 				tsurface->notbackground[(y<<4)|(x>>5)] |= (1<<(x&0x1F)); //We're set!
 			}
@@ -340,12 +340,12 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			{
 				tsurface->notbackground[(y<<4)|(x>>5)] &= ~(1<<(x&0x1F)); //We're not set: we're transparent!
 			}
-			if (++x==GPU_TEXTPIXELSX) //End of row reached?
+			if (unlikely(++x==GPU_TEXTPIXELSX)) //End of row reached?
 			{
 				x = 0; //Reset horizontal coordinate!
 				++y; //Goto Next row!
 			}
-		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!	
+		} while (likely(y!=GPU_TEXTPIXELSY)); //Stop searching now!	
 		tsurface->flags &= ~TEXTSURFACE_FLAG_DIRTY; //Clear dirty flag!
 		PostSem(tsurface->lock); //We're finished with the surface!
 	}
@@ -354,18 +354,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 #ifdef ADAPTIVETEXT
 	relx = rely = 0.0f; //Init screen coordinate plotter!
 #endif
-	if (check_surface(rendersurface)) //Valid to render to?
+	if (unlikely(check_surface(rendersurface))) //Valid to render to?
 	{
 		renderpixel = &tsurface->notdirty[0]; //Start with the first pixel in our buffer!
 		notbackground = tsurface->notbackground[0]; //Are we not the background?
 		isnottransparent = (notbackground&1); //Are we a transparent pixel?
-		if (isnottransparent) //Color needed?
+		if (unlikely(isnottransparent)) //Color needed?
 		{
 			color = *renderpixel; //Init color to draw!
 		}
 		do //Process all rows!
 		{
-			if (isnottransparent) //The pixel to plot, if any! Ignore transparent pixels!
+			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
 				fx = sx; //x converted to destination factor!
 				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
@@ -389,7 +389,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 #endif
 				++renderpixel; //We've rendered a pixel!
 				//Else, We're transparent, do don't plot!
-				if (++x!=GPU_TEXTPIXELSX) //End of row not reached?
+				if (likely(++x!=GPU_TEXTPIXELSX)) //End of row not reached?
 				{
 					if ((x&0x1F)==0) //To reload the foreground mask?
 					{
@@ -419,12 +419,12 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
 					notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
 				}
-				if ((isnottransparent = (notbackground&1))) //To render us?
+				if (unlikely(isnottransparent = (notbackground&1))) //To render us?
 				{
 					color = *renderpixel; //Apply the new pixel to render!
 				}
 			}
-		} while (y!=GPU_TEXTPIXELSY); //Stop searching now!
+		} while (likely(y!=GPU_TEXTPIXELSY)); //Stop searching now!
 	}
 
 	return 0; //Ignore processing time!
