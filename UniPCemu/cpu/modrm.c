@@ -328,10 +328,6 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		if (result) //Gotten?
 		{
 			*result = value; //Write the data to the result!
-			if (result==&CPU[activeCPU].registers->CR0) //CR0 has been updated? Update the CPU mode, if needed!
-			{
-				updateCPUmode(); //Try to update the CPU mode, if needed!
-			}
 		}
 		else if (LOG_INVALID_REGISTERS)
 		{

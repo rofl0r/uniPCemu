@@ -390,7 +390,6 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
 		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
-		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
 		CPUPROT2
 		break;
 	case 5: //--- Unknown Opcode!

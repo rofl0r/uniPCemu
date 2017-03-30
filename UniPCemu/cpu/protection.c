@@ -792,6 +792,10 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	byte TSSSize, isDifferentCPL;
 	word tempSS;
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
+	if (segment==CPU_SEGMENT_CS) //Loading CS updates the CPU mode?
+	{
+		updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CS!
+	}
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
 		isDifferentCPL = 0; //Default: same CPL!
