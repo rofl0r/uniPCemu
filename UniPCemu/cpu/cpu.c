@@ -1002,6 +1002,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		}
 		MODRM_src0 = timing->modrm_src0; //First source!
 		MODRM_src1 = timing->modrm_src1; //Second source!
+		CPU[activeCPU].instructionfetch.CPU_fetchingRM = 0; //We're done fetching the R/M parameters!
 	}
 
 	if (timing->parameters) //Gotten parameters?
