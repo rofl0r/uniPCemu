@@ -747,6 +747,7 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 			{
 				MMU_addOP(result); //Add to the opcode cache!
 			}
+			CPU[activeCPU].cycles_OP += 1; //Fetching from prefetch takes 1 cycle!
 			return result; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
