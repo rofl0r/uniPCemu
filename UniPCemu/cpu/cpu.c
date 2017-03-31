@@ -1113,7 +1113,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 			case 0xA: //imm16/32, depending on the address size?
 				if (CPU_Address_size[activeCPU]) //32-bit address?
 				{
-					if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+					if (CPU_readOPdw(&immaddr32)) return 1; //Read 32-bit immediate offset!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				else //16-bit address?
