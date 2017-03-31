@@ -2689,8 +2689,8 @@ void op386_grp5_32() {
 
 void CPU386_OP60()
 {
-	if (checkStackAccess(8,1,1)) return; //Abort on fault!
 	debugger_setcommand("PUSHA");
+	if (checkStackAccess(8,1,1)) return; //Abort on fault!
 	uint_32 oldESP = REG_ESP;    //PUSHA
 	CPU_PUSH32(&REG_EAX);
 	CPUPROT1
@@ -2718,8 +2718,8 @@ void CPU386_OP60()
 
 void CPU386_OP61()
 {
-	if (checkStackAccess(8,0,1)) return; //Abort on fault!
 	debugger_setcommand("POPA");
+	if (checkStackAccess(8,0,1)) return; //Abort on fault!
 	REG_EDI = CPU_POP32();
 	CPUPROT1
 	REG_ESI = CPU_POP32();
@@ -2791,16 +2791,6 @@ extern MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL ins
 
 void CPU386_OP69()
 {
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
-	{
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
-	}
-	else
-	{
-		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
-	}
-	temp2.val64 = (uint_64)imm32; //Immediate word is second/third parameter!
 	modrm_decode32(&params,&info,0); //Reg!
 	modrm_decode32(&params,&info2,1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -2811,6 +2801,16 @@ void CPU386_OP69()
 	{
 		debugger_setcommand("IMULD %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check32(&params,1,1)) return; //Abort on fault!
+		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
+	}
+	temp2.val64 = (uint_64)imm32; //Immediate word is second/third parameter!
 	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
 	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
 	temp3.val64s = temp1.val32s; //Load and...
@@ -2826,16 +2826,6 @@ void CPU386_OP69()
 
 void CPU386_OP6B()
 {
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
-	{
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
-	}
-	else
-	{
-		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
-	}
-	temp2.val64 = (uint_64)immb; //Read unsigned parameter!
 	modrm_decode32(&params,&info,0); //Store the address!
 	modrm_decode32(&params,&info2,1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -2846,6 +2836,16 @@ void CPU386_OP6B()
 	{
 		debugger_setcommand("IMULD %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check32(&params,1,1)) return; //Abort on fault!
+		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
+	}
+	temp2.val64 = (uint_64)immb; //Read unsigned parameter!
 
 	if (temp1.val64&0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;//Sign extend to 32 bits!
 	if (temp2.val64&0x80ULL) temp2.val64 |= 0xFFFFFFFFFFFFFF00ULL; //Sign extend to 32 bits!
@@ -3026,9 +3026,6 @@ uint_32 op_grp2_32(byte cnt, byte varshift) { //TODO!
 
 void CPU386_OPC1()
 {
-	if (modrm_check32(&params,1,1)) return; //Abort on error!
-	if (modrm_check32(&params,1,0)) return; //Abort on error!
-	oper1d = modrm_read32(&params,1);
 	oper2d = (word)immb;
 	thereg = MODRM_REG(params.modrm);
 
@@ -3063,6 +3060,10 @@ void CPU386_OPC1()
 			break;
 	}
 	
+	if (modrm_check32(&params,1,1)) return; //Abort on error!
+	if (modrm_check32(&params,1,0)) return; //Abort on error!
+	oper1d = modrm_read32(&params,1);
+
 	modrm_write32(&params,1,op_grp2_32((byte)oper2d,2));
 } //GRP2 Ev,Ib
 

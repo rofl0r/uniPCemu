@@ -91,8 +91,8 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 
 void CPU186_OP60()
 {
-	if (checkStackAccess(8,1,0)) return; //Abort on fault!
 	debugger_setcommand("PUSHA");
+	if (checkStackAccess(8,1,0)) return; //Abort on fault!
 	word oldSP = REG_SP;    //PUSHA
 	CPU_PUSH16(&REG_AX);
 	CPUPROT1
@@ -120,8 +120,8 @@ void CPU186_OP60()
 
 void CPU186_OP61()
 {
-	if (checkStackAccess(8,0,0)) return; //Abort on fault!
 	debugger_setcommand("POPA");
+	if (checkStackAccess(8,0,0)) return; //Abort on fault!
 	REG_DI = CPU_POP16();
 	CPUPROT1
 	REG_SI = CPU_POP16();
@@ -191,16 +191,6 @@ void CPU186_OP68()
 
 void CPU186_OP69()
 {
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
-	{
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
-	}
-	else
-	{
-		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
-	}
-	temp2.val32 = immw; //Immediate word is second/third parameter!
 	modrm_decode16(&params,&info,0); //Reg!
 	modrm_decode16(&params,&info2,1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -211,6 +201,16 @@ void CPU186_OP69()
 	{
 		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
+	}
+	temp2.val32 = immw; //Immediate word is second/third parameter!
 	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
 	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
 	temp3.val32s = temp1.val32s; //Load and...
@@ -226,24 +226,14 @@ void CPU186_OP69()
 
 void CPU186_OP6A()
 {
-	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	byte val = immb; //Read the value!
 	debugger_setcommand("PUSHB %02X",val); //PUSH this!
+	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	CPU_PUSH8(val);    //PUSH Ib
 }
 
 void CPU186_OP6B()
 {
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
-	{
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
-	}
-	else
-	{
-		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
-	}
-	temp2.val32 = (uint_32)immb; //Read unsigned parameter!
 	modrm_decode16(&params,&info,0); //Store the address!
 	modrm_decode16(&params,&info2,1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
@@ -254,6 +244,17 @@ void CPU186_OP6B()
 	{
 		debugger_setcommand("IMULW %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
+
+	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	{
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		temp1.val32 = (uint_32)modrm_read16(&params,1); //Read R/M!
+	}
+	else
+	{
+		temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
+	}
+	temp2.val32 = (uint_32)immb; //Read unsigned parameter!
 
 	if (temp1.val32&0x8000) temp1.val32 |= 0xFFFF0000;//Sign extend to 32 bits!
 	if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
@@ -414,14 +415,10 @@ void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[
 
 void CPU186_OPC0()
 {
-	if (modrm_check8(&params,1,1)) return; //Abort on error!
-	if (modrm_check8(&params,1,0)) return; //Abort on error!
-
-	oper1b = modrm_read8(&params,1);
 	oper2b = immb;
-	thereg = MODRM_REG(params.modrm);
 
 	modrm_decode16(&params,&info,1); //Store the address for debugging!
+	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
@@ -451,50 +448,55 @@ void CPU186_OPC0()
 		default:
 			break;
 	}
-		
+
+	if (modrm_check8(&params,1,1)) return; //Abort on error!
+	if (modrm_check8(&params,1,0)) return; //Abort on error!		
 	
+	oper1b = modrm_read8(&params,1);
+
 	modrm_write8(&params,1,op_grp2_8(oper2b,2));
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
 {
-	if (modrm_check16(&params,1,1)) return; //Abort on error!
-	if (modrm_check16(&params,1,0)) return; //Abort on error!
-	oper1 = modrm_read16(&params,1);
+	modrm_decode16(&params,&info,1); //Store the address for debugging!
 	oper2 = (word)immb;
 	thereg = MODRM_REG(params.modrm);
-
-	modrm_decode16(&params,&info,1); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLW %s,%02X",info.text,oper2b);
+			debugger_setcommand("ROLW %s,%02X",info.text,oper2);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORW %s,%02X",info.text,oper2b);
+			debugger_setcommand("RORW %s,%02X",info.text,oper2);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLW %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCLW %s,%02X",info.text,oper2);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRW %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCRW %s,%02X",info.text,oper2);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLW %s,%02X",info.text,oper2);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRW %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHRW %s,%02X",info.text,oper2);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHLW %s,%02X",info.text,oper2);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARW %s,%02X",info.text,oper2b);
+			debugger_setcommand("SARW %s,%02X",info.text,oper2);
 			break;
 		default:
 			break;
 	}
 	
+	if (modrm_check16(&params,1,1)) return; //Abort on error!
+	if (modrm_check16(&params,1,0)) return; //Abort on error!
+
+	oper1 = modrm_read16(&params,1);
+
 	modrm_write16(&params,1,op_grp2_16((byte)oper2,2),0);
 } //GRP2 Ev,Ib
 
