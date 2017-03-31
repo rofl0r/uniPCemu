@@ -2247,38 +2247,69 @@ specialflags:
 
 */
 
-void modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags)
+byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags)
 {
 //Special data we already know:
-	memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
-	param->reg_is_segmentregister = 0; //REG2 is NORMAL!
-
-	param->specialflags = specialflags; //Is this a /r modr/m?
-
-	if (specialflags==2) //reg1 is segment register?
+	if (param->instructionfetch.MODRM_instructionfetch==0) //To reset?
 	{
-		param->reg_is_segmentregister = 1; //REG2 is segment register!
+		//Reset and initialize all our parameters!
+		memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
+		param->reg_is_segmentregister = 0; //REG2 is NORMAL!
+
+		param->specialflags = specialflags; //Is this a /r modr/m?
+
+		if (specialflags==2) //reg1 is segment register?
+		{
+			param->reg_is_segmentregister = 1; //REG2 is segment register!
+		}
+
+		param->error = 0; //Default: no errors detected during decoding!
 	}
 
-	param->error = 0; //Default: no errors detected during decoding!
-
-	param->modrm = CPU_readOP(); /* modrm byte first */
-	param->SIB = modrm_useSIB(param,size)?CPU_readOP():0; //Read SIB byte or 0!
-	param->displacement.dword = 0; //Reset DWORD (biggest) value (reset value to 0)!
-
-	switch (modrm_useDisplacement(param,size)) //Displacement?
+	//Start fetching the parameters from the opcode parser!
+	if (param->instructionfetch.MODRM_instructionfetch==0) //Fetching ModR/M byte?
 	{
-	case 1: //DISP8?
-		param->displacement.low16_low = CPU_readOP(); //Use 8-bit!
-		break;
-	case 2: //DISP16?
-		param->displacement.low16 = CPU_readOPw(); //Use 16-bit!
-		break;
-	case 3: //DISP32?
-		param->displacement.dword = CPU_readOPdw(); //Use 32-bit!
-		break;
-	default: //Unknown/no displacement?
-		break; //No displacement!
+		if (CPU_readOP(&param->modrm)) return 1; /* modrm byte first */
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		param->instructionfetch.MODRM_instructionfetch = 1; //SIB checking now!
+	}
+
+	if (param->instructionfetch.MODRM_instructionfetch==1) //Fetching SIB byte if needed?
+	{
+		if (modrm_useSIB(param,size)) //Using SIB byte?
+		{
+			if (CPU_readOP(&param->SIB)) return 1; //Read SIB byte or 0!
+			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		}
+		else
+		{
+			param->SIB = 0; //No SIB byte!
+		}
+		param->instructionfetch.MODRM_instructionfetch = 2; //Fetching immediate data!
+		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position for new parameters!
+		param->displacement.dword = 0; //Reset DWORD (biggest) value (reset value to 0)!
+	}
+
+	if (param->instructionfetch.MODRM_instructionfetch==2) //Fetching displacement byte(s) if needed?
+	{
+		switch (modrm_useDisplacement(param,size)) //Displacement?
+		{
+		case 1: //DISP8?
+			if (CPU_readOP(&param->displacement.low16_low)) return 1; //Use 8-bit!
+			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+			break;
+		case 2: //DISP16?
+			if (CPU_readOPw(&param->displacement.low16)) return 1; //Use 16-bit!
+			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+			break;
+		case 3: //DISP32?
+			if (CPU_readOPdw(&param->displacement.dword)) return 1; //Use 32-bit!
+			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+			break;
+		default: //Unknown/no displacement?
+			break; //No displacement!
+		}
+		param->instructionfetch.MODRM_instructionfetch = 3; //Finished with all stages of the modR/M data!
 	}
 
 	param->EA_cycles = 0; //No EA cycles for register accesses by default!
@@ -2315,4 +2346,5 @@ void modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags)
 	{
 		param->error = 1; //We've detected an error!
 	}
+	return 0; //We're finished fetching!
 }

@@ -979,9 +979,11 @@ OPTINLINE byte coreHandler()
 			CPU_exec(); //Run CPU!
 
 			//Increase the instruction counter every instruction/HLT time!
-			debugger_step(); //Step debugger if needed!
-
-			CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
+			if (CPU[activeCPU].executed) //Are we executed?
+			{
+				debugger_step(); //Step debugger if needed!
+				CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
+			}
 		}
 
 		//Update current timing with calculated cycles we've executed!

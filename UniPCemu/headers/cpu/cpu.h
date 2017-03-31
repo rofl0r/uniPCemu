@@ -830,6 +830,17 @@ typedef struct PACKED //The registers!
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
 {
+	byte CPU_isFetching; //1=Fetching/decoding new instruction to execute(CPU_readOP_prefix), 0=Executing instruction(decoded)
+	byte CPU_fetchphase; //Fetching phase: 1=Reading new opcode, 2=Reading prefixes or opcode, 3=Reading 0F instruction, 0=Main Opcode fetched
+	byte CPU_fetchingRM; //1=Fetching modR/M parameters, 0=ModR/M loaded when used.
+	byte CPU_fetchparameters; //1+=Fetching parameter #X, 0=Parameters fetched.
+	byte CPU_fetchparameterPos; //Parameter position we're fetching. 0=First byte, 1=Second byte etc.
+} CPU_InstructionFetchingStatus;
+#include "headers/endpacked.h" //End of packed type!
+
+#include "headers/packed.h" //Packed type!
+typedef struct PACKED
+{
 	CPU_registers *registers; //The registers of the CPU!
 
 	//Everything containing and buffering segment registers!
@@ -895,6 +906,8 @@ typedef struct PACKED
 	byte have_oldEFLAGS;
 	uint_32 oldEFLAGS;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
+	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
+	byte executed; //Has the current instruction finished executing?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
@@ -1143,9 +1156,6 @@ extern byte CPU_Address_size[2]; //Address size for this opcode!
 void initCPU(); //Initialize CPU for full system reset into known state!
 void resetCPU(); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
-byte CPU_readOP(); //Reads the operation (byte) at CS:EIP
-word CPU_readOPw(); //Reads the operation (word) at CS:EIP
-uint_32 CPU_readOPdw(); //Reads the operation (32-bit unsigned integer) at CS:EIP
 void CPU_resetMode(); //Reset the mode to the default mode! (see above)
 byte CPU_getprefix(byte prefix); //Prefix set? (might be used by OPcodes!)
 byte getcpumode(); //Get current CPU mode (see CPU modes above!)

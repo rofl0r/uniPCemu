@@ -720,6 +720,8 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
 	CPU[activeCPU].is_reset = 1; //We're reset!
 	CPU[activeCPU].CPL = 0; //We're real mode, so CPL=0!
+	memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Reset the instruction fetching system!
+	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase =  1; //We're starting to fetch!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -730,25 +732,24 @@ void initCPU() //Initialize CPU for full system reset into known state!
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
-byte CPU_readOP() //Reads the operation (byte) at CS:EIP
+byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 {
-	byte result; //Buffer from the PIQ and actual memory data!
 	uint_32 instructionEIP = CPU[activeCPU].registers->EIP++; //Our current instruction position is increased always!
 	if (CPU[activeCPU].PIQ) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
-		if (readfifobuffer(CPU[activeCPU].PIQ,&result)) //Read from PIQ?
+		if (readfifobuffer(CPU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
 			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
 			{
-				return 0xFF; //Abort on fault!
+				return 1; //Abort on fault!
 			}
 			if (cpudebugger) //We're an OPcode retrieval and debugging?
 			{
-				MMU_addOP(result); //Add to the opcode cache!
+				MMU_addOP(*result); //Add to the opcode cache!
 			}
 			CPU[activeCPU].cycles_OP += 1; //Fetching from prefetch takes 1 cycle!
-			return result; //Give the prefetched data!
+			return 0; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
@@ -756,32 +757,50 @@ byte CPU_readOP() //Reads the operation (byte) at CS:EIP
 	}
 	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
 	{
-		return 0xFF; //Abort on fault!
+		return 1; //Abort on fault!
 	}
-	result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
+	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
 	if (cpudebugger) //We're an OPcode retrieval and debugging?
 	{
-		MMU_addOP(result); //Add to the opcode cache!
+		MMU_addOP(*result); //Add to the opcode cache!
 	}
-	return result; //Give the result!
+	return 0; //Give the result!
 }
 
-word CPU_readOPw() //Reads the operation (word) at CS:EIP
+byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
 {
-	INLINEREGISTER byte temp, temp2;
-	temp = CPU_readOP(); //Read OPcode!
-	if (CPU[activeCPU].faultraised) return 0xFFFF; //Abort on fault!
-	temp2 = CPU_readOP(); //Read OPcode!
-	return LE_16BITS(temp|(temp2<<8)); //Give result!
+	static byte temp, temp2;
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
+	{
+		if (CPU_readOP(&temp)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+	}
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
+	{
+		if (CPU_readOP(&temp2)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
+	}
+	return 0; //We're fetched!
 }
 
-uint_32 CPU_readOPdw() //Reads the operation (32-bit unsigned integer) at CS:EIP
+byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
-	INLINEREGISTER uint_32 result;
-	result = CPU_readOPw(); //Read OPcode!
-	if (CPU[activeCPU].faultraised) return 0xFFFFFFFF; //Abort on fault!
-	result |= CPU_readOPw()<<16; //Read OPcode!
-	return LE_32BITS(result); //Give result!
+	static word resultw1, resultw2;
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
+	{
+		if (CPU_readOPw(&resultw1)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+	}
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
+	{
+		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		*result = LE_32BITS(((uint_32)resultw2<<16)|(uint_32)resultw1); //Give result!
+	}
+	return 0; //We're fetched!
 }
 
 /*
@@ -881,42 +900,67 @@ uint_32 CPU_InterruptReturn = 0;
 
 CPU_Timings *timing = NULL; //The timing used for the current instruction!
 
-OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
+OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 {
-	INLINEREGISTER byte OP; //The current opcode!
-	INLINEREGISTER uint_32 last_eip;
-	INLINEREGISTER byte ismultiprefix = 0; //Are we multi-prefix?
-	byte result = 0;
-	CPU_resetPrefixes(); //Reset all prefixes for this opcode!
-	reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
-
-	CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
-	OP = CPU_readOP(); //Read opcode or prefix?
+	static uint_32 last_eip;
+	static byte ismultiprefix = 0; //Are we multi-prefix?
 	CPU[activeCPU].cycles_Prefix = 0; //No cycles for the prefix by default!
-	for (;CPU_isPrefix(OP);) //We're a prefix?
-	{
-		CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
-		if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
-		{
-			CPU_InterruptReturn = last_eip; //Return to the last prefix only!
-		}
-		CPU_setprefix(OP); //Set the prefix ON!
-		last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
-		ismultiprefix = 1; //We're multi-prefix now when triggered again!
-		OP = CPU_readOP(); //Next opcode/prefix!
-		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-	}
-	//Now we have the opcode and prefixes set or reset!
 
-	if ((OP == 0x0F) && (EMULATED_CPU >= CPU_80286)) //0F instruction extensions used?
+	if (CPU[activeCPU].instructionfetch.CPU_fetchphase) //Reading opcodes?
 	{
-		OP = CPU_readOP(); //Read the actual opcode to use!
-		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-		CPU[activeCPU].is0Fopcode = 1; //We're a 0F opcode!
-	}
-	else //Normal instruction?
-	{
-		CPU[activeCPU].is0Fopcode = 0; //We're a normal opcode!
+		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) //Reading new opcode?
+		{
+			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
+			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
+			CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
+			CPU[activeCPU].instructionfetch.CPU_fetchphase = 2; //Reading prefixes or opcode!
+			ismultiprefix = 0; //Default to not being multi prefix!
+		}
+		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==2) //Reading prefixes or opcode?
+		{
+			nextprefix: //Try next prefix/opcode?
+			if (CPU_readOP(OP)) return 1; //Read opcode or prefix?
+			if (CPU_isPrefix(*OP)) //We're a prefix?
+			{
+				CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
+				if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
+				{
+					CPU_InterruptReturn = last_eip; //Return to the last prefix only!
+				}
+				CPU_setprefix(*OP); //Set the prefix ON!
+				last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
+				ismultiprefix = 1; //We're multi-prefix now when triggered again!
+				if (CPU_readOP(OP)) return 1; //Next opcode/prefix!
+				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+				goto nextprefix; //Try the next prefix!
+			}
+			else //No prefix? We've read the actual opcode!
+			{
+				CPU[activeCPU].instructionfetch.CPU_fetchphase = 3; //Advance to stage 3: Fetching 0F instruction!
+			}
+		}
+		//Now we have the opcode and prefixes set or reset!
+		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==3) //Check and fetch 0F opcode?
+		{
+			if ((*OP == 0x0F) && (EMULATED_CPU >= CPU_80286)) //0F instruction extensions used?
+			{
+				if (CPU_readOP(OP)) return 1; //Read the actual opcode to use!
+				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+				CPU[activeCPU].is0Fopcode = 1; //We're a 0F opcode!
+				CPU[activeCPU].instructionfetch.CPU_fetchphase = 0; //We're fetched completely! Ready for first decode!
+				CPU[activeCPU].instructionfetch.CPU_fetchingRM = 1; //Fetching R/M, if any!
+				CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
+				memset(&params.instructionfetch,0,sizeof(params.instructionfetch)); //Init instruction fetch status!
+			}
+			else //Normal instruction?
+			{
+				CPU[activeCPU].is0Fopcode = 0; //We're a normal opcode!
+				CPU[activeCPU].instructionfetch.CPU_fetchphase = 0; //We're fetched completely! Ready for first decode!
+				CPU[activeCPU].instructionfetch.CPU_fetchingRM = 1; //Fetching R/M, if any!
+				CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
+				memset(&params.instructionfetch,0,sizeof(params.instructionfetch)); //Init instruction fetch status!
+			}
+		}
 	}
 
 //Determine the stack&attribute sizes(286+)!
@@ -943,19 +987,18 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 	}
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
-	result = OP; //Save the OPcode for later result!
-
-	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
+	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
 	if (timing->used==0) goto skiptimings; //Are we not used?
-	if (timing->has_modrm) //Do we have ModR/M data?
+	if (timing->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
 	{
-		modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags); //Read the params!
-		if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+		if (modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags)) return 1; //Read the params!
+		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position again for new parameters!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?
 		{
 			CPU_unkOP(); //Execute the unknown opcode handler!
-			return 0xFF; //Abort!
+			return 1; //Abort!
 		}
 		MODRM_src0 = timing->modrm_src0; //First source!
 		MODRM_src1 = timing->modrm_src1; //Second source!
@@ -970,14 +1013,14 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
 					{
-						immb = CPU_readOP(); //Read 8-bit immediate!
-						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+						if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm8?
 				{
-					immb = CPU_readOP(); //Read 8-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 2: //imm16?
@@ -985,14 +1028,14 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
-						immw = CPU_readOPw(); //Read 16-bit immediate!
-						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+						if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm16?
 				{
-					immw = CPU_readOPw(); //Read 16-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 3: //imm32?
@@ -1000,51 +1043,84 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
-						imm32 = CPU_readOPdw(); //Read 32-bit immediate!
-						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+						if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm32?
 				{
-					imm32 = CPU_readOPdw(); //Read 32-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 8: //imm16 + imm8
-				immw = CPU_readOPw(); //Read 16-bit immediate!
-				if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-				immb = CPU_readOP(); //Read 8-bit immediate!
-				if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
+				{
+					if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Start fetching the second parameter!
+					CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
+				}
+				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
+				{
+					if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're fetching the second(finished) parameter! This way, we're done fetching!
+				}
 				break;
 			case 9: //imm64(ptr16:32)?
 				if (timing->parameters & 4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
-						imm64 = CPU_readOPdw(); //Read 32-bit immediate offset!
-						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-						imm64 |= ((uint_64)CPU_readOPw() << 32); //Read another 16-bit immediate!
-						if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
+						{
+							if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+							imm64 = (uint_64)imm32; //Convert to 64-bit!
+							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
+							CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
+						}
+						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
+						{
+							if (CPU_readOPw(&immw)) return 1; //Read another 16-bit immediate!
+							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+							imm64 |= ((uint_64)immw << 32);
+							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're finished!
+						}
 					}
 				}
 				else //Normal imm32?
 				{
-					imm64 = CPU_readOPdw(); //Read 32-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
-					imm64 |= ((uint_64)CPU_readOPw() << 32); //Read another 16-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
+					{
+						if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+						imm64 = (uint_64)imm32; //Convert to 64-bit!
+						CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
+						CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
+					}
+					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
+					{
+						if (CPU_readOPw(&immw)) return 1; //Read another 16-bit immediate!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+						imm64 |= ((uint_64)immw << 32);
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+						CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're finished!
+					}
 				}
 				break;
 			case 0xA: //imm16/32, depending on the address size?
 				if (CPU_Address_size[activeCPU]) //32-bit address?
 				{
-					immaddr32 = CPU_readOPdw(); //Read 32-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				else //16-bit address?
 				{
-					immaddr32 = (uint_32)CPU_readOPw(); //Read 32-bit immediate!
-					if (CPU[activeCPU].faultraised) return 0xFF; //Abort on fault!
+					if (CPU_readOPw(&immw)) return 1; //Read 32-bit immediate offset!
+					immaddr32 = (uint_32)immw; //Convert to 32-bit immediate!
+					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 			default: //Unknown?
 				//Ignore the parameters!
@@ -1054,7 +1130,7 @@ OPTINLINE byte CPU_readOP_prefix() //Reads OPCode with prefix(es)!
 
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
-	return result; //Give the OPCode to execute!
+	return 0; //We're done fetching the instruction!
 }
 
 void doneCPU() //Finish the CPU!
@@ -1395,7 +1471,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 	bufferMMU(); //Buffer the MMU writes for us!
 	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
-	debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 	MMU_resetaddr(); //Reset invalid address for our usage!
 	CPU_8086REPPending(); //Process pending REP!
 
@@ -1458,7 +1533,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	char debugtext[256]; //Debug text!
 	cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!	
 
-	INLINEREGISTER byte OP; //The opcode!
+	byte OP; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
 		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!
@@ -1466,7 +1541,16 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	else //Not a repeating instruction?
 	{
-		OP = CPU_readOP_prefix(); //Process prefix(es) and read OPCode!
+		if (CPU[activeCPU].instructionfetch.CPU_isFetching) //Are we fetching?
+		{
+			if (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) //First fetch of a new opcode?
+			{
+				debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
+			}
+			CPU[activeCPU].executed = 0; //Not executed yet!
+			if (CPU_readOP_prefix(&OP)) goto fetchinginstruction; //Process prefix(es) and read OPCode!
+			memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Finished fetching!
+		}
 		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
 		newREP = 1; //We're a new repeating instruction!
 	}
@@ -1618,7 +1702,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
+	CPU[activeCPU].executed = 1; //Executed by default!
 	CPU_OP(OP); //Now go execute the OPcode once!
+	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 	{
@@ -1647,6 +1733,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	}
 	blockREP = 0; //Don't block REP anymore!
+	fetchinginstruction: //We're still fetching the instruction in some way?
 	if (DosboxClock)
 	{
 		CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!

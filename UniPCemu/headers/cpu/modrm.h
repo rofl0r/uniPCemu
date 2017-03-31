@@ -151,6 +151,11 @@ typedef struct
 
 typedef struct
 {
+	byte MODRM_instructionfetch; //What state are we in to fetch? 0=ModR/M byte, 1=SIB byte, 2=Immediate data
+} MODRM_instructionfetch;
+
+typedef struct
+{
 	byte modrm; //MODR/M!
 	SIBType SIB; //SIB Byte if applied.
 	dwordsplitterb displacement; //byte/word/dword!
@@ -160,6 +165,7 @@ typedef struct
 	byte EA_cycles; //The effective address cycles we're using!
 	byte havethreevariables; //3-variable memory addition?
 	byte error; //An error was detected decoding the modr/m?
+	MODRM_instructionfetch instructionfetch;
 } MODRM_PARAMS;
 
 #define MODRM_MOD(modrm) ((modrm & 0xC0) >> 6)
@@ -235,7 +241,7 @@ Slashr:
 7: Reg=>TRn(/r implied), R/M is General Purpose register!
 
 */
-void modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags); //Read params for modr/m processing from CS:(E)IP
+byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags); //Read params for modr/m processing from CS:(E)IP
 
 //For fixing segment loads through MOV instructions.
 void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check for updated segment registers!
