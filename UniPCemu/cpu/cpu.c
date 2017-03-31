@@ -920,6 +920,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			nextprefix: //Try next prefix/opcode?
 			if (CPU_readOP(OP)) return 1; //Read opcode or prefix?
+			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 			if (CPU_isPrefix(*OP)) //We're a prefix?
 			{
 				CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
@@ -930,8 +931,6 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				CPU_setprefix(*OP); //Set the prefix ON!
 				last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
 				ismultiprefix = 1; //We're multi-prefix now when triggered again!
-				if (CPU_readOP(OP)) return 1; //Next opcode/prefix!
-				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				goto nextprefix; //Try the next prefix!
 			}
 			else //No prefix? We've read the actual opcode!
