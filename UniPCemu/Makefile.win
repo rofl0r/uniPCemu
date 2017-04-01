@@ -5,9 +5,11 @@ BUILD_DIR = ../../projects_build/$(BUILD_NAME)
 #Name of the destination application!
 ifneq (,$(findstring x64,$(MAKECMDGOALS)))
 #64-bit version
+$(info Using 64-bit executable)
 TARGET = $(BUILD_NAME)_x64.exe
 else
 #32-bit version
+$(info Using 32-bit executable)
 TARGET = $(BUILD_NAME)_x86.exe
 endif
 
@@ -19,9 +21,6 @@ RESOURCES = $(BUILD_NAME).res
 
 #GProf switches!
 GPROF_SWITCHES =
-
-# Special flags that aren't targets, just targets used for creating compiler&linker flags!
-.PHONY: SDL2 SDL2static win x64
 
 # ###################################################
 
@@ -61,7 +60,7 @@ endif
 
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
-INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL -I(prefix)/lib
+INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL -I$(prefix)/lib
 endif
 endif
 
@@ -152,10 +151,12 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 #Build,debug and analyze(profile subcommand) command support!
 
 analyze: profile
-	gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_TXT)
+	$(info Creating $(TARGET_PROFILE_TXT)...)
+	@gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_TXT)
 
 analyze2: profile
-	gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_CMP_TXT)
+	$(info Creating $(TARGET_PROFILE_CMP_TXT)...)
+	@gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_CMP_TXT)
 
 build: $(BUILD_RELEASE)
 profile: $(BUILD_PROFILE)
@@ -163,31 +164,48 @@ reprofile: clean profile
 
 #Run debugger now on the executable!
 debug: $(BUILD_DEBUG)
-	gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_DEBUG)"
+	$(info Starting gdb...)
+	@gdb -w --cd="$(BUILD_DIR)" --se="$(TARGET_DEBUG)"
 
 redebug: clean debug
 
+#Dependancy support!
+-include $(OBJS:.o=.d)
+
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
-	${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+	$(info Creating debug executable...)
+	@${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 $(BUILD_PROFILE): ${OBJS}
-	${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+	$(info Creating profiling executable...)
+	@${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
-$(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES)
-	${CC} -o "$@" ${OBJS} $(BUILD_RESOURCES) $(STRIP) ${LDFLAGS}
+$(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES) 
+	$(info Creating release executable $@...)
+	@${CC} -o "$@" ${OBJS} $(BUILD_RESOURCES) $(STRIP) ${LDFLAGS}
 
 #Normal compilation of seperate modules!
 $(BUILD_DIR)/%.res:%.rc
-	${WINDRES} $< -O coff -o $@
+	$(info Creating resources...)
+	@${WINDRES} $< -O coff -o $@
 
+#Patch for dependancy output using incorrect .o file paths is right below the CC lines!
 $(BUILD_DIR)/%.o:%.c
-	${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
+	$(info Compiling $<)
+	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
+	@${CC} $(CFLAGS) $(INCLUDE_DIRS) -c $< -MM -MF $(patsubst %.o,%.d,$@)
+	@sed -i 's|$(notdir $@):|$@:|' $(patsubst %.o,%.d,$@)
 
 clean:
-	-$(RM) $(OBJS)
-	-$(RM) $(BUILD_RESOURCES)
-	-$(RM) $(BUILD_RELEASE)
-	-$(RM) $(BUILD_PROFILE)
-	-$(RM) $(BUILD_DEBUG)
+	$(info Cleaning up...)
+	@-$(RM) $(OBJS)
+	@-$(RM) $(BUILD_RESOURCES)
+	@-$(RM) $(BUILD_RELEASE)
+	@-$(RM) $(BUILD_PROFILE)
+	@-$(RM) $(BUILD_DEBUG)
+	@-$(RM) $(patsubst %.o,%.d,$(OBJS))
+
+# Special flags that aren't targets, just targets used for creating compiler&linker flags!
+.PHONY: SDL2 SDL2static win x64
