@@ -734,7 +734,7 @@ void initCPU() //Initialize CPU for full system reset into known state!
 
 byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 {
-	uint_32 instructionEIP = CPU[activeCPU].registers->EIP++; //Our current instruction position is increased always!
+	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
 	if (CPU[activeCPU].PIQ) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
@@ -748,11 +748,12 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 			{
 				MMU_addOP(*result); //Add to the opcode cache!
 			}
+			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
 			CPU[activeCPU].cycles_OP += 1; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
-		return 1; //Wait for the PIQ to have new data!
+		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
 	}
@@ -765,6 +766,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 	{
 		MMU_addOP(*result); //Add to the opcode cache!
 	}
+	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
 	return 0; //Give the result!
 }
 
