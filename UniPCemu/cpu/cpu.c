@@ -1477,6 +1477,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 		bufferMMU(); //Buffer the MMU writes for us!
 		MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
+		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
 
@@ -1549,10 +1550,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching) //Are we fetching?
 		{
-			if (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) //First fetch of a new opcode?
-			{
-				debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
-			}
 			CPU[activeCPU].executed = 0; //Not executed yet!
 			if (CPU_readOP_prefix(&OP))
 			{
