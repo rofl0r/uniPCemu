@@ -554,6 +554,7 @@ OPTINLINE static void debugger_autolog()
 			}
 		}
 
+		/*
 		dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
 			CPU[activeCPU].cycles,
 			CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
@@ -565,6 +566,7 @@ OPTINLINE static void debugger_autolog()
 			CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
 			CPU[activeCPU].cycles_Prefetch_BIU //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 			);
+		*/
 
 		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
