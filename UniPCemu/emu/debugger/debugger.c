@@ -40,7 +40,7 @@ char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
 uint_32 debugger_index = 0; //Current debugger index!
 
-byte debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
+byte debugger_logtimings = 0; //Are we to log the full timings of hardware and CPU as well?
 
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!

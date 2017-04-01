@@ -11,7 +11,7 @@
 
 TicksHolder logticksholder; //Log ticks holder!
 SDL_sem *log_Lock = NULL;
-byte log_timestamp = 1; //Are we to log the timestamp?
+byte log_timestamp = 0; //Are we to log the timestamp?
 char lastfile[256] = ""; //Last file we've been logging to!
 FILE *logfile = NULL; //The log file to use!
 
