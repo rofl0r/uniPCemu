@@ -205,7 +205,6 @@
     <ClInclude Include="headers\cpu\cpu_OP80586.h" />
     <ClInclude Include="headers\cpu\cpu_OP8086.h" />
     <ClInclude Include="headers\cpu\cpu_OPNECV30.h" />
-    <ClInclude Include="headers\cpu\cpu_ops.h" />
     <ClInclude Include="headers\cpu\cpu_pmtimings.h" />
     <ClInclude Include="headers\cpu\easyregs.h" />
     <ClInclude Include="headers\cpu\flags.h" />

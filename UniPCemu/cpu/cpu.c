@@ -42,7 +42,7 @@
 //16-bits compatibility for reading parameters!
 #define LE_16BITS(x) SDL_SwapLE16(x)
 //32-bits compatibility for reading parameters!
-#define LE_32BITS(x) SDL_SwapLE32((LE_16BITS(x&0xFFFF))|((LE_16BITS((x>>16)&0xFFFF))<<16))
+#define LE_32BITS(x) SDL_SwapLE32((LE_16BITS((x)&0xFFFF))|(uint_32)((LE_16BITS(((x)>>16)&0xFFFF))<<16))
 
 byte activeCPU = 0; //What CPU is currently active?
 
@@ -799,7 +799,7 @@ byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned intege
 	{
 		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		*result = LE_32BITS(((uint_32)resultw2<<16)|(uint_32)resultw1); //Give result!
+		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
 	}
 	return 0; //We're fetched!
 }
@@ -901,10 +901,10 @@ uint_32 CPU_InterruptReturn = 0;
 
 CPU_Timings *timing = NULL; //The timing used for the current instruction!
 
+uint_32 last_eip;
+byte ismultiprefix = 0; //Are we multi-prefix?
 OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 {
-	static uint_32 last_eip;
-	static byte ismultiprefix = 0; //Are we multi-prefix?
 	CPU[activeCPU].cycles_Prefix = 0; //No cycles for the prefix by default!
 
 	if (CPU[activeCPU].instructionfetch.CPU_fetchphase) //Reading opcodes?

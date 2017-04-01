@@ -614,9 +614,6 @@
     <ClInclude Include="headers\cpu\cpu_OPNECV30.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\cpu\cpu_ops.h">
-      <Filter>Header Files\cpu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\cpu\easyregs.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>

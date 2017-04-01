@@ -1099,8 +1099,6 @@ extern byte CPU_Operand_size[2]; //Operand size for this opcode!
 extern byte CPU_Address_size[2]; //Address size for this opcode!
 #endif
 
-#include "headers/cpu/cpu_ops.h"
-
 //Overrides:
 
 //Lock prefix
@@ -1272,4 +1270,8 @@ void CPU_JMPabs(uint_32 addr);
 uint_32 CPU_EIPmask();
 byte CPU_EIPSize();
 
+//Opcode read support for ModR/M!
+byte CPU_readOP(byte *result); //Reads the operation (byte) at CS:EIP
+byte CPU_readOPw(word *result); //Reads the operation (word) at CS:EIP
+byte CPU_readOPdw(uint_32 *result); //Reads the operation (32-bit unsigned integer) at CS:EIP
 #endif
