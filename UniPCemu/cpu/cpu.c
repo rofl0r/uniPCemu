@@ -1466,73 +1466,76 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
 	MemoryTimingInfo *currenttimingcheck; //Current timing check!
 	uint_32 previousCSstart;
+	static char debugtext[256]; //Debug text!
 	//byte cycles_counted = 0; //Cycles have been counted?
-	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
-	CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
-	CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
-	bufferMMU(); //Buffer the MMU writes for us!
-	MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
-	MMU_resetaddr(); //Reset invalid address for our usage!
-	CPU_8086REPPending(); //Process pending REP!
-
-	previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
-
-	if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
+	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
 	{
-		CPU[activeCPU].cycles = 4; //Small cycle dummy! Must be greater than zero!
-		return; //Don't run the CPU: we're in a permanent reset state!
-	}
+		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
+		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
+		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
+		bufferMMU(); //Buffer the MMU writes for us!
+		MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
+		MMU_resetaddr(); //Reset invalid address for our usage!
+		CPU_8086REPPending(); //Process pending REP!
 
-	CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
-	CPU[activeCPU].have_oldSS = 0; //Default: no SS to return to during exceptions!
-	CPU[activeCPU].have_oldSegments = 0; //Default: no Segments to return during exceptions!
-	CPU[activeCPU].have_oldEFLAGS = 0; //Default: no EFLAGS to return during exceptions!
+		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
 
-	//Initialize stuff needed for local CPU timing!
-	didJump = 0; //Default: we didn't jump!
-	ENTER_L = 0; //Default to no L depth!
-	hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
-	CPU_interruptraised = 0; //Default: no interrupt raised!
-
-	//Now, starting the instruction preprocessing!
-	CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
-	CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
-	if (!CPU[activeCPU].repeating) //Not repeating instructions?
-	{
-		#ifdef CPU_SAVELAST
-		//Save the last coordinates!
-		CPU_exec_lastCS = CPU_exec_CS;
-		CPU_exec_lastEIP = CPU_exec_lastEIP;
-		#endif
-		CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
-		CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
-	}
-	
-	//Save the starting point when debugging!
-	CPU_debugger_CS = CPU_exec_CS;
-	CPU_debugger_EIP = CPU_exec_EIP;
-
-	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
-	{
-		if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
+		if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 		{
-			return; //Protected mode debugger activated! Don't fetch or execute!
+			CPU[activeCPU].cycles = 4; //Small cycle dummy! Must be greater than zero!
+			return; //Don't run the CPU: we're in a permanent reset state!
 		}
-		if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) && CPU[activeCPU].registers->TR) //Active task?
+
+		CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
+		CPU[activeCPU].have_oldSS = 0; //Default: no SS to return to during exceptions!
+		CPU[activeCPU].have_oldSegments = 0; //Default: no Segments to return during exceptions!
+		CPU[activeCPU].have_oldEFLAGS = 0; //Default: no EFLAGS to return during exceptions!
+
+		//Initialize stuff needed for local CPU timing!
+		didJump = 0; //Default: we didn't jump!
+		ENTER_L = 0; //Default to no L depth!
+		hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
+		CPU_interruptraised = 0; //Default: no interrupt raised!
+
+		//Now, starting the instruction preprocessing!
+		CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
+		if (!CPU[activeCPU].repeating) //Not repeating instructions?
 		{
-			if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
+			#ifdef CPU_SAVELAST
+			//Save the last coordinates!
+			CPU_exec_lastCS = CPU_exec_CS;
+			CPU_exec_lastEIP = CPU_exec_lastEIP;
+			#endif
+			CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
+			CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
+		}
+	
+		//Save the starting point when debugging!
+		CPU_debugger_CS = CPU_exec_CS;
+		CPU_debugger_EIP = CPU_exec_EIP;
+
+		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+		{
+			if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
 			{
-				SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-				CPU_INT(1,-1); //Call the interrupt, no error code!
+				return; //Protected mode debugger activated! Don't fetch or execute!
+			}
+			if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) && CPU[activeCPU].registers->TR) //Active task?
+			{
+				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
+				{
+					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
+					CPU_INT(1,-1); //Call the interrupt, no error code!
+				}
 			}
 		}
+
+		CPU[activeCPU].faultraised = 0; //Default fault raised!
+		CPU[activeCPU].faultlevel = 0; //Default to no fault level!
+
+		cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!
 	}
-
-	CPU[activeCPU].faultraised = 0; //Default fault raised!
-	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
-
-	char debugtext[256]; //Debug text!
-	cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!	
 
 	static byte OP = 0xCC; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?
@@ -2132,7 +2135,7 @@ void CPU_tickPrefetch()
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<CPU_80286) //Old CPU?
 	{
-		if (((CPU[activeCPU].prefetchclock&3)==3) && (cycles==CPU[activeCPU].cycles)) //Are we the T3(rough equivalent) and no memory accesses?
+		if (((CPU[activeCPU].prefetchclock&3)==3) && (cycles==CPU[activeCPU].cycles) && fifobuffer_freesize(CPU[activeCPU].PIQ)) //Are we the T3(rough equivalent) and no memory accesses?
 		{
 			CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
 			goto doprefetch8086; //Prefetch by 1 cycle clock!
@@ -2148,7 +2151,7 @@ void CPU_tickPrefetch()
 	}
 	else //286+
 	{
-		if (((CPU[activeCPU].prefetchclock&1)==1) && (cycles==CPU[activeCPU].cycles)) //Are we the T3(rough equivalent) and no memory accesses?
+		if (((CPU[activeCPU].prefetchclock&1)==1) && (cycles==CPU[activeCPU].cycles) && fifobuffer_freesize(CPU[activeCPU].PIQ)) //Are we the T3(rough equivalent) and no memory accesses?
 		{
 			CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
 			goto doprefetch80286; //Prefetch by 1 cycle clock!
