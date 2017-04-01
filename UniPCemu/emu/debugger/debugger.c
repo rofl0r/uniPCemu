@@ -40,6 +40,8 @@ char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
 uint_32 debugger_index = 0; //Current debugger index!
 
+byte debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
+
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 
@@ -441,7 +443,7 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 		sprintf(buffer,"%s%i",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
 	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
-	if (getActiveVGA()) //Gotten an active VGA?
+	if (getActiveVGA() && debugger_logtimings) //Gotten an active VGA?
 	{
 		dolog(filename,"VGA@%i,%i(CRT:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
 		dolog(filename,"Display=%i,%i",GPU.xres,GPU.yres);
@@ -554,19 +556,20 @@ OPTINLINE static void debugger_autolog()
 			}
 		}
 
-		/*
-		dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
-			CPU[activeCPU].cycles,
-			CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
-			CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
-			CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
-			CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-			CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-			CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
-			CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-			CPU[activeCPU].cycles_Prefetch_BIU //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-			);
-		*/
+		if (debugger_logtimings) //Logging the timings?
+		{
+			dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
+				CPU[activeCPU].cycles,
+				CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+				CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+				CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+				CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+				CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+				CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+				CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+				CPU[activeCPU].cycles_Prefetch_BIU //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+				);
+		}
 
 		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
