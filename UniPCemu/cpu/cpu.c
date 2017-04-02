@@ -1894,10 +1894,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
 	CPU_tickPrefetch(); //Tick the prefetch as required!
-	if (CPU[activeCPU].executed) //Are we finished executing?
-	{
-		flushMMU(); //Flush MMU writes!
-	}
+	flushMMU(); //Flush MMU writes!
 }
 
 byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)
