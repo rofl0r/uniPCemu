@@ -2125,43 +2125,42 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 void CPU_tickPrefetch()
 {
 	if (!CPU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	byte cycles;
+	byte cycles, iocycles;
 	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
-	cycles -= CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
-	cycles -= CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
-	cycles -= CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
-	cycles -= CPU[activeCPU].cycles_Prefetch; //Don't count memory access cycles by prefetching required data!
+	iocycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
+	iocycles += CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
+	iocycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<CPU_80286) //Old CPU?
 	{
-		if (((CPU[activeCPU].prefetchclock&3)==3) && (cycles==CPU[activeCPU].cycles) && fifobuffer_freesize(CPU[activeCPU].PIQ)) //Are we the T3(rough equivalent) and no memory accesses?
+		for (;cycles;--cycles;) //Cycles to spend!
 		{
-			CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
-			goto doprefetch8086; //Prefetch by 1 cycle clock!
-		}
-		CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
-		for (;(cycles >= 4) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
-		{
-			doprefetch8086:
-			CPU_fillPIQ(); //Add a byte to the prefetch!
-			if (cycles>=4) cycles -= 4; //This takes four cycles to transfer! Protect against undeflow as well!
-			CPU[activeCPU].cycles_Prefetch_BIU += 4; //Cycles spent on prefetching on BIU idle time!
+			for (;((CPU[activeCPU.prefetchclock++&3)==3);) //T4?
+			{
+				if (iocycles) iocycles -= 4; //Skip I/O cycle!
+				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(CPU_databuswidth?1:2)) //Prefetch cycle? Else, NOP cycle!
+				{
+					CPU_fillPIQ(); //Add a byte to the prefetch!
+					if (CPU_databuswidth==0) CPU_fillPIQ(); //8086? Fetch words!
+					CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
+				}
+			}
 		}
 	}
 	else //286+
 	{
-		if (((CPU[activeCPU].prefetchclock&1)==1) && (cycles==CPU[activeCPU].cycles) && fifobuffer_freesize(CPU[activeCPU].PIQ)) //Are we the T3(rough equivalent) and no memory accesses?
+		for (;cycles;--cycles;) //Cycles to spend!
 		{
-			CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
-			goto doprefetch80286; //Prefetch by 1 cycle clock!
-		}
-		CPU[activeCPU].prefetchclock += CPU[activeCPU].cycles; //Clock us!
-		for (;(cycles >= (2+CPU286_WAITSTATE_DELAY)) && fifobuffer_freesize(CPU[activeCPU].PIQ);) //Prefetch left to fill?
-		{
-			doprefetch80286:
-			CPU_fillPIQ(); //Add a byte to the prefetch!
-			if (cycles>=(2+CPU286_WAITSTATE_DELAY)) cycles -= (2+CPU286_WAITSTATE_DELAY); //This takes four cycles to transfer! Protect against underflow as well!
-			CPU[activeCPU].cycles_Prefetch_BIU += (2+CPU286_WAITSTATE_DELAY); //Cycles spent on prefetching on BIU idle time!
+			for (;((CPU[activeCPU.prefetchclock++&1)==1);) //T2?
+			{
+				if (iocycles) iocycles -= 2; //Skip I/O cycle!
+				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
+				{
+					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+					if (cycles>=(2+CPU286_WAITSTATE_DELAY)) cycles -= (2+CPU286_WAITSTATE_DELAY); //This takes four cycles to transfer! Protect against underflow as well!
+					CPU[activeCPU].cycles_Prefetch_BIU += (2+CPU286_WAITSTATE_DELAY); //Cycles spent on prefetching on BIU idle time!
+				}
+			}
 		}
 	}
 }
