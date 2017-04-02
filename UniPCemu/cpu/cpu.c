@@ -2129,14 +2129,17 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!
 }
 
+extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
+
 void CPU_tickPrefetch()
 {
 	if (!CPU[activeCPU].PIQ) return; //Disable invalid PIQ!
 	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending;
-	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
+	cycles = CPU[activeCPU].cycles+((DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30)))); //How many cycles have been spent on the instruction?
 	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
+	iorcycles += (DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30))); //Don't count DRAM refresh cycles!
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
 		if (((CPU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
@@ -2144,7 +2147,6 @@ void CPU_tickPrefetch()
 			iowcyclespending -= (2<<(EMULATED_CPU<=CPU_NECV30)); //Remainder of spent cycles!
 			if (iowcyclespending==0) break; //Starting this cycle?
 		}
-
 	}
 
 	//Now we have the amount of cycles we're idling.
@@ -2154,7 +2156,8 @@ void CPU_tickPrefetch()
 		{
 			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
 			{
-				if (iorcycles) iorcycles -= 4; //Skip read cycle!
+				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; } //Handling a DRAM refresh?
+				else if (iorcycles) iorcycles -= 4; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
 				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
 				{
@@ -2171,7 +2174,8 @@ void CPU_tickPrefetch()
 		{
 			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
 			{
-				if (iorcycles) iorcycles -= 2; //Skip read cycle!
+				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; } //Handling a DRAM refresh?
+				else if (iorcycles) iorcycles -= 2; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
 				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
 				{

@@ -17,6 +17,8 @@ DMA Controller (8237A)
 
 SDL_sem *DMA_Lock = NULL;
 
+extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
+
 typedef union
 {
 	byte data; //Mode register byte representation for easy reading/writing!
@@ -527,6 +529,7 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
 								{
+									++DRAM_Refresh; //1 memory cycle!
 									memory_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
 								}
 							}
@@ -534,6 +537,7 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
 								{
+									++DRAM_Refresh; //1 memory cycle!
 									memory_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
 								}
 							}
@@ -543,6 +547,7 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
 								{
+									++DRAM_Refresh; //1 memory cycle!
 									DMAController[controller].DMAChannel[channel].WriteWHandler(memory_directrw(address)); //Read using handler!
 								}
 							}
@@ -550,6 +555,7 @@ void DMA_tick()
 							{
 								if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
 								{
+									++DRAM_Refresh; //1 memory cycle!
 									DMAController[controller].DMAChannel[channel].WriteBHandler(memory_directrb(address)); //Read using handler!
 								}
 							}
