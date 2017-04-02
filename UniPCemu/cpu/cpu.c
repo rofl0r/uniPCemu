@@ -738,7 +738,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 	if (CPU[activeCPU].PIQ) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
-		if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
+		if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		if (readfifobuffer(CPU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
 			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
@@ -1468,7 +1468,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	word *currentinstructiontiming; //Current timing we're processing!
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
 	MemoryTimingInfo *currenttimingcheck; //Current timing check!
-	uint_32 previousCSstart;
+	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	//byte cycles_counted = 0; //Cycles have been counted?
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
@@ -1712,35 +1712,38 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU[activeCPU].executed = 1; //Executed by default!
 	CPU_OP(OP); //Now go execute the OPcode once!
-	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 	skipexecutionOPfault: //Instruction fetch fault?
-	if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
+	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
-		if (CPU_getprefix(0xF2)) //REPNZ?
+		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
+		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
 		{
-			if (REPZ) //Check for zero flag?
+			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
-				gotREP &= (FLAG_ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
+				if (REPZ) //Check for zero flag?
+				{
+					gotREP &= (FLAG_ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
+				}
 			}
-		}
-		else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
-		{
-			gotREP &= FLAG_ZF; //To reset the opcode (ZF needs to be set to loop)?
-		}
-		if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
-		{
-			REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
+			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
+			{
+				gotREP &= FLAG_ZF; //To reset the opcode (ZF needs to be set to loop)?
+			}
+			if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
+			{
+				REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
+			}
+			else
+			{
+				CPU[activeCPU].repeating = 0; //Not repeating anymore!
+			}
 		}
 		else
 		{
-			CPU[activeCPU].repeating = 0; //Not repeating anymore!
+			REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 		}
+		blockREP = 0; //Don't block REP anymore!
 	}
-	else
-	{
-		REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
-	}
-	blockREP = 0; //Don't block REP anymore!
 	fetchinginstruction: //We're still fetching the instruction in some way?
 	if (DosboxClock)
 	{
@@ -1883,12 +1886,18 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		}
 	}
-	CPU_afterexec(); //After executing OPCode stuff!
+	if (CPU[activeCPU].executed) //Are we finished executing?
+	{
+		CPU_afterexec(); //After executing OPCode stuff!
+		CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
+		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
+		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
+	}
 	CPU_tickPrefetch(); //Tick the prefetch as required!
-	flushMMU(); //Flush MMU writes!
-	CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
-	CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
-	CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
+	if (CPU[activeCPU].executed) //Are we finished executing?
+	{
+		flushMMU(); //Flush MMU writes!
+	}
 }
 
 byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)
@@ -2129,11 +2138,11 @@ void CPU_tickPrefetch()
 	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending;
 	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
-	iowcycles += CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
+	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
-		if (((CPU[activeCPU.prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1)==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
+		if (((CPU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
 		{
 			iowcyclespending -= (2<<(EMULATED_CPU<=CPU_NECV30)); //Remainder of spent cycles!
 			if (iowcyclespending==0) break; //Starting this cycle?
@@ -2144,16 +2153,16 @@ void CPU_tickPrefetch()
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
 	{
-		for (;cycles;--cycles;) //Cycles to spend!
+		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((CPU[activeCPU.prefetchclock++&3)==3)) //T4?
+			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
 			{
 				if (iorcycles) iorcycles -= 4; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart) iowcycles -= 4; //Skip write cycle!
-				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databuswidth)) //Prefetch cycle? Else, NOP cycle!
+				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
+				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
 				{
 					CPU_fillPIQ(); //Add a byte to the prefetch!
-					if (CPU_databuswidth==0) CPU_fillPIQ(); //8086? Fetch words!
+					if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
 					CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
 				}
 			}
@@ -2161,12 +2170,12 @@ void CPU_tickPrefetch()
 	}
 	else //286+
 	{
-		for (;cycles;--cycles;) //Cycles to spend!
+		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((CPU[activeCPU.prefetchclock++&1)==1)) //T2?
+			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
 			{
 				if (iorcycles) iorcycles -= 2; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart) iowcycles -= 2; //Skip write cycle!
+				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
 				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
 				{
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
