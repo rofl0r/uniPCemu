@@ -40,7 +40,7 @@ char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
 uint_32 debugger_index = 0; //Current debugger index!
 
-byte debugger_logtimings = 0; //Are we to log the full timings of hardware and CPU as well?
+byte debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
 
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
@@ -459,106 +459,112 @@ extern word OPlength; //The length of the OPbuffer!
 
 OPTINLINE static void debugger_autolog()
 {
-	if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat) && (!debuggerHLT))
+	if (CPU[activeCPU].executed) //Are we executed?
 	{
-		return; //Are we the same address as the executing command and no fault or HLT state has been raised? We're a repeat operation!
+		if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat) && (!debuggerHLT))
+		{
+			return; //Are we the same address as the executing command and no fault or HLT state has been raised? We're a repeat operation!
+		}
+		forcerepeat = 0; //Don't force repeats anymore if forcing!
 	}
-	forcerepeat = 0; //Don't force repeats anymore if forcing!
 
 	if (debugger_logging()) //To log?
 	{
-		//Now generate debugger information!
-		if (last_modrm)
+		if (CPU[activeCPU].executed)
 		{
-			if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
+			//Now generate debugger information!
+			if (last_modrm)
 			{
-				dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+				if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
+				{
+					dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+				}
+				else //386+? Unknown addresses, so just take it as given!
+				{
+					dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
+				}
 			}
-			else //386+? Unknown addresses, so just take it as given!
+			if (MMU_invaddr()) //We've detected an invalid address?
 			{
-				dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
+				switch (MMU_invaddr()) //What error?
+				{
+				case 0: //OK!
+					break;
+				case 1: //Memory not found!
+					dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
+					break;
+				case 2: //Paging or protection fault!
+					dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
+					break;
+				default:
+					dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
+					break;
+				}
 			}
-		}
-		if (MMU_invaddr()) //We've detected an invalid address?
-		{
-			switch (MMU_invaddr()) //What error?
+			if (CPU[activeCPU].faultraised) //Fault has been raised?
 			{
-			case 0: //OK!
-				break;
-			case 1: //Memory not found!
-				dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
-				break;
-			case 2: //Paging or protection fault!
-				dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
-				break;
-			default:
-				dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
-				break;
+				dolog("debugger", "The CPU has raised an exception.");
 			}
-		}
-		if (CPU[activeCPU].faultraised) //Fault has been raised?
-		{
-			dolog("debugger", "The CPU has raised an exception.");
-		}
 
-		char fullcmd[256];
-		cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
-		int i; //A counter for opcode data dump!
-		if (!debugger_set) //No debugger set?
-		{
-			strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
-			for (i = 0; i < (int)OPlength; i++) //List the full command!
+			char fullcmd[256];
+			cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
+			int i; //A counter for opcode data dump!
+			if (!debugger_set) //No debugger set?
 			{
-				sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+				strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
+				for (i = 0; i < (int)OPlength; i++) //List the full command!
+				{
+					sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+				}
+				strcat(fullcmd, ">"); //End of #UNKOP!
 			}
-			strcat(fullcmd, ">"); //End of #UNKOP!
-		}
-		else
-		{
-			strcpy(fullcmd, "(");
-			for (i = 0; i < (int)OPlength; i++) //List the full command!
+			else
 			{
-				sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
+				strcpy(fullcmd, "(");
+				for (i = 0; i < (int)OPlength; i++) //List the full command!
+				{
+					sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
+				}
+				strcat(fullcmd, ")"); //Our opcode before disassembly!
+				strcat(fullcmd, debugger_prefix); //The prefix(es)!
+				strcat(fullcmd, debugger_command_text); //Command itself!
 			}
-			strcat(fullcmd, ")"); //Our opcode before disassembly!
-			strcat(fullcmd, debugger_prefix); //The prefix(es)!
-			strcat(fullcmd, debugger_command_text); //Command itself!
-		}
 
-		if (HWINT_saved) //Saved HW interrupt?
-		{
-			switch (HWINT_saved)
+			if (HWINT_saved) //Saved HW interrupt?
 			{
-			case 1: //Trap/SW Interrupt?
-				dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
-				break;
-			case 2: //PIC Interrupt toggle?
-				dolog("debugger", "HW interrupt: %04X", HWINT_nr);
-				break;
-			default: //Unknown?
-				break;
+				switch (HWINT_saved)
+				{
+				case 1: //Trap/SW Interrupt?
+					dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
+					break;
+				case 2: //PIC Interrupt toggle?
+					dolog("debugger", "HW interrupt: %04X", HWINT_nr);
+					break;
+				default: //Unknown?
+					break;
+				}
 			}
-		}
 
-		if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
-		{
-			dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
-		}
-		else //286+? Use EIP!
-		{
-			if (EMULATED_CPU>CPU_80286) //Newer? Use 32-bits addressing!
+			if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
 			{
-				dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+				dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 			}
-			else //16-bits offset?
+			else //286+? Use EIP!
 			{
-				dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+				if (EMULATED_CPU>CPU_80286) //Newer? Use 32-bits addressing!
+				{
+					dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+				}
+				else //16-bits offset?
+				{
+					dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+				}
 			}
 		}
 
 		if (debugger_logtimings) //Logging the timings?
 		{
-			dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles: %i",
+			dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 				CPU[activeCPU].cycles,
 				CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 				CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
@@ -567,16 +573,20 @@ OPTINLINE static void debugger_autolog()
 				CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
 				CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
 				CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-				CPU[activeCPU].cycles_Prefetch_BIU //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+				CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+				CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 				);
 		}
 
-		debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
+		if (CPU[activeCPU].executed)
+		{
+			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
-		debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
+			debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
 
-		dolog("debugger",""); //Empty line between comands!
-		debuggerINT = 0; //Don't continue after an INT has been used!
+			dolog("debugger",""); //Empty line between comands!
+			debuggerINT = 0; //Don't continue after an INT has been used!
+		}
 	} //Allow logging?
 }
 
@@ -899,32 +909,35 @@ void debugger_step() //Processes the debugging step!
 	}
 	debugger_thread = NULL; //Not a running thread!
 	debugger_autolog(); //Log when enabled!
-	if (debugging()) //Debugging step or single step enforced?
+	if (CPU[activeCPU].executed) //Are we executed?
 	{
-		if (shuttingdown()) return; //Don't when shutting down!
-		if (skipstep) //Finished?
+		if (debugging()) //Debugging step or single step enforced?
 		{
-			if (!CPU[activeCPU].repeating && (skipstep==1)) //Finished repeating?
+			if (shuttingdown()) return; //Don't when shutting down!
+			if (skipstep) //Finished?
 			{
-				skipstep = 0; //Disable skip step!
+				if (!CPU[activeCPU].repeating && (skipstep==1)) //Finished repeating?
+				{
+					skipstep = 0; //Disable skip step!
+				}
+				else if (debuggerregisters.EIP == skipopcodes_destEIP) //We've reached the destination address?
+				{
+					skipstep = 0; //We're finished!
+				}
 			}
-			else if (debuggerregisters.EIP == skipopcodes_destEIP) //We've reached the destination address?
+			if (skipopcodes) //Skipping?
 			{
-				skipstep = 0; //We're finished!
+				--skipopcodes; //Skipped one opcode!
 			}
-		}
-		if (skipopcodes) //Skipping?
+			if (!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) //To debug when not skipping repeating or skipping opcodes?
+			{
+				debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
+			}
+		} //Step mode?
+		if (singlestep>1) //Start single-stepping from the next instruction?
 		{
-			--skipopcodes; //Skipped one opcode!
+			--singlestep; //Start single-stepping the next X instruction!
 		}
-		if (!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) //To debug when not skipping repeating or skipping opcodes?
-		{
-			debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
-		}
-	} //Step mode?
-	if (singlestep>1) //Start single-stepping from the next instruction?
-	{
-		--singlestep; //Start single-stepping the next X instruction!
 	}
 	#ifdef DEBUG_PROTECTEDMODE
 	harddebugging = (getcpumode()!=CPU_MODE_REAL); //Protected/V86 mode forced debugging log to start/stop? Don't include the real mode this way(as it's already disabled after execution), do include the final instruction, leaving protected mode this way(as it's already handled).

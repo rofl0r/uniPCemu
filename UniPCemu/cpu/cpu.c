@@ -1459,6 +1459,7 @@ void CPU_resetTimings()
 	CPU[activeCPU].cycles_IO = 0; //Reset cycles spent on the BIU I/O execution!
 	CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
+	CPU[activeCPU].cycles_Prefetch_DMA = 0; //Reset cycles spent on DMA by the BIU!
 }
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
@@ -2156,7 +2157,7 @@ void CPU_tickPrefetch()
 		{
 			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
 			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; } //Handling a DRAM refresh?
+				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh?
 				else if (iorcycles) iorcycles -= 4; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
 				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
@@ -2174,13 +2175,13 @@ void CPU_tickPrefetch()
 		{
 			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
 			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; } //Handling a DRAM refresh?
+				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; CPU[activeCPU].cycles_Prefetch_DMA += 2; } //Handling a DRAM refresh?
 				else if (iorcycles) iorcycles -= 2; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
 				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
 				{
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					CPU[activeCPU].cycles_Prefetch_BIU += (2); //Cycles spent on prefetching on BIU idle time!
+					CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
 				}
 			}
 		}

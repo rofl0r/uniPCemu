@@ -905,6 +905,7 @@ OPTINLINE byte coreHandler()
 					debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
 					debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
 				}
+				//Increase the instruction counter every cycle/HLT time!
 				debugger_step(); //Step debugger if needed, even during HLT state!
 			}
 		}
@@ -983,10 +984,10 @@ OPTINLINE byte coreHandler()
 
 			CPU_exec(); //Run CPU!
 
-			//Increase the instruction counter every instruction/HLT time!
+			//Increase the instruction counter every cycle/HLT time!
+			debugger_step(); //Step debugger if needed!
 			if (CPU[activeCPU].executed) //Are we executed?
 			{
-				debugger_step(); //Step debugger if needed!
 				CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 			}
 		}
