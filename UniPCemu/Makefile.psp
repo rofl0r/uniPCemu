@@ -37,5 +37,8 @@ CFLAGS += $(shell $(PSPBIN)/bin/sdl-config --cflags)
 
 PSP_EBOOT_TITLE = $(BUILD_NAME)
 
+#Make sure the objects to compile are sorted!
+OBJS := $(sort $(OBJS))
+
 #PSP build path and compile script!
 include ../../tools/build.mak

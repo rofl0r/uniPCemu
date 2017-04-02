@@ -89,6 +89,9 @@ BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
 BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_TXT)
 BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
 
+#Make sure the objects to compile are sorted!
+OBJS := $(sort $(OBJS))
+
 OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 #Rules themselves!
