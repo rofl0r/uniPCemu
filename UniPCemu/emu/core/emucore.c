@@ -1010,7 +1010,7 @@ OPTINLINE byte coreHandler()
 		}
 
 		MMU_logging = 0; //Are we logging hardware memory accesses(DMA etc)?
-		tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync!
+		if ((CPU[activeCPU].halt&0x10)==0) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
@@ -1022,12 +1022,12 @@ OPTINLINE byte coreHandler()
 		updateFloppy(instructiontime); //Update the floppy!
 		updateMPUTimer(instructiontime); //Update the MPU timing!
 		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
-		if (useGameBlaster) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed!
-		if (useSoundBlaster) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed!
+		if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed and running!
+		if (useSoundBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed and running!
 		updateATA(instructiontime); //Update the ATA timer!
 		tickParallel(instructiontime); //Update the Parallel timer!
 		updateUART(instructiontime); //Update the UART timer!
-		if (useLPTDAC) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
+		if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		if ((CPU[activeCPU].halt&0x10)==0) updateVGA(instructiontime); //Update the VGA timer when running!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
