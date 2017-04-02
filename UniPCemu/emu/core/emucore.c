@@ -909,72 +909,75 @@ OPTINLINE byte coreHandler()
 		else //We're not halted? Execute the CPU routines!
 		{
 			resumeFromHLT:
-			if (CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep) //Single step enabled and allowed?
+			if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //We're starting a new instruction?
 			{
-				if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+				if (CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep) //Single step enabled and allowed?
 				{
-					switch (getcpumode()) //What CPU mode are we to debug?
+					if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
 					{
-					case CPU_MODE_REAL: //Real mode?
-						singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
-						break;
-					case CPU_MODE_PROTECTED: //Protected mode?
-					case CPU_MODE_8086: //Virtual 8086 mode?
-						singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
-						break;
-					default: //Invalid mode?
-						break;
+						switch (getcpumode()) //What CPU mode are we to debug?
+						{
+						case CPU_MODE_REAL: //Real mode?
+							singlestep |= ((CPU[activeCPU].registers->CS == (singlestepaddress >> 16)) && (CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))); //Single step enabled?
+							break;
+						case CPU_MODE_PROTECTED: //Protected mode?
+						case CPU_MODE_8086: //Virtual 8086 mode?
+							singlestep |= ((CPU[activeCPU].registers->CS == singlestepaddress >> 32) && (CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))); //Single step enabled?
+							break;
+						default: //Invalid mode?
+							break;
+						}
 					}
 				}
-			}
 
-			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-			MMU_logging = debugger_logging(); //Are we logging?
+				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+				MMU_logging = debugger_logging(); //Are we logging?
 
-			HWINT_saved = 0; //No HW interrupt by default!
-			CPU_beforeexec(); //Everything before the execution!
-			if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
-			{
-				if (FLAG_IF) //Interrupts available?
+				HWINT_saved = 0; //No HW interrupt by default!
+				CPU_beforeexec(); //Everything before the execution!
+				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (PICInterrupt()) //We have a hardware interrupt ready?
+					if (FLAG_IF) //Interrupts available?
 					{
-						HWINT_nr = nextintr(); //Get the HW interrupt nr!
-						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-						if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+						if (PICInterrupt()) //We have a hardware interrupt ready?
 						{
-							CPU_8086REPPending(); //Process pending REPs normally as documented!
+							HWINT_nr = nextintr(); //Get the HW interrupt nr!
+							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+							if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+							{
+								CPU_8086REPPending(); //Process pending REPs normally as documented!
+							}
+							else //Execute the CPU bug!
+							{
+								CPU_8086REPPending(); //Process pending REPs normally as documented!
+								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+							}
+							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}
-						else //Execute the CPU bug!
-						{
-							CPU_8086REPPending(); //Process pending REPs normally as documented!
-							CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
-						}
-						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 					}
 				}
-			}
 
-			#ifdef LOG_BOGUS
-			uint_32 addr_start, addr_left, curaddr; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
-			addr_left=2*LOG_BOGUS;
-			curaddr = 0;
-			addr_start = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Base of the currently executing block!
-			addr_start += REG_EIP; //Add the address for the address we're executing!
+				#ifdef LOG_BOGUS
+				uint_32 addr_start, addr_left, curaddr; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
+				addr_left=2*LOG_BOGUS;
+				curaddr = 0;
+				addr_start = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Base of the currently executing block!
+				addr_start += REG_EIP; //Add the address for the address we're executing!
 			
-			for (;addr_left;++curaddr) //Test all addresses!
-			{
-				if (MMU_directrb_realaddr(addr_start+curaddr,3)) //Try to read the opcode! Anything found(not 0000h instruction)?
+				for (;addr_left;++curaddr) //Test all addresses!
 				{
-					break; //Stop searching!
+					if (MMU_directrb_realaddr(addr_start+curaddr,3)) //Try to read the opcode! Anything found(not 0000h instruction)?
+					{
+						break; //Stop searching!
+					}
+					--addr_left; //Tick one address checked!
 				}
-				--addr_left; //Tick one address checked!
+				if (addr_left==0) //Bogus memory detected?
+				{
+					dolog("bogus","Bogus exection memory detected(%i 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%i)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
+				}
+				#endif
 			}
-			if (addr_left==0) //Bogus memory detected?
-			{
-				dolog("bogus","Bogus exection memory detected(%i 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%i)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
-			}
-			#endif
 
 			CPU_exec(); //Run CPU!
 
