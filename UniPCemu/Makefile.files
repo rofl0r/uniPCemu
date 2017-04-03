@@ -140,7 +140,7 @@ OBJS += cpu/protecteddebugging.o
 #Multitasking module of the CPU (286+).
 OBJS += cpu/multitasking.o
 #finally CPU module itself and flag support (global)
-OBJS += cpu/flags.o cpu/cpu.o
+OBJS += cpu/flags.o cpu/cpu.o cpu/biu.o
 #CPU MMU part
 OBJS += cpu/mmu.o cpu/paging.o
 #Debugger

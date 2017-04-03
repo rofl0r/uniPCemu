@@ -12,6 +12,7 @@
 #include "headers/cpu/modrm.h" //MODR/M (type) support!
 #include "headers/emu/debugger/debugger.h" //debugging() functionality!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Log invalid registers?
 #define LOG_INVALID_REGISTERS 0

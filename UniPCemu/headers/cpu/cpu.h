@@ -877,10 +877,6 @@ typedef struct PACKED
 	byte faultraised_lasttype; //Last type of fault raised!
 	byte trapped; //Have we been trapped? Don't execute hardware interrupts!
 
-	//PIQ support!
-	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
-	uint_32 PIQ_EIP; //EIP of the current PIQ data!
-
 	//REP support (ignore re-reading instruction bytes from memory)
 	byte repeating; //We're executing a REP* instruction?
 
@@ -1237,9 +1233,6 @@ void CPU_8086REPPending(); //Execute this before CPU_exec!
 
 byte execNMI(byte causeisMemory); //Execute an NMI!
 
-void CPU_flushPIQ(); //Flush the PIQ!
-void CPU_fillPIQ(); //Fill the PIQ until it's full!
-void CPU_tickPrefetch(); //Ticks the prefetch cycles!
 void CPU_unkOP(); //General unknown OPcode handler!
 
 
@@ -1270,9 +1263,4 @@ void CPU_JMPrel(int_32 reladdr);
 void CPU_JMPabs(uint_32 addr);
 uint_32 CPU_EIPmask();
 byte CPU_EIPSize();
-
-//Opcode read support for ModR/M!
-byte CPU_readOP(byte *result); //Reads the operation (byte) at CS:EIP
-byte CPU_readOPw(word *result); //Reads the operation (word) at CS:EIP
-byte CPU_readOPdw(uint_32 *result); //Reads the operation (32-bit unsigned integer) at CS:EIP
 #endif

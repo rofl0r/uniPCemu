@@ -43,6 +43,7 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/bios/bios.h" //Keyboard setup support!
 #include "headers/emu/emu_vga_bios.h" //VGA BIOS support!
+#include "headers/cpu/biu.h" //BIU support!
 
 
 extern byte reset; //To fully reset emu?
@@ -551,7 +552,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				CPU[activeCPU].registers->CS = CPU[activeCPU].registers->DS = CPU[activeCPU].registers->ES = 0;
 				CPU[activeCPU].registers->IP = 0; //Run ROM!
-				CPU_flushPIQ(); //We're jumping to another address!
+				CPU_flushPIQ(-1); //We're jumping to another address!
 				CPU[activeCPU].registers->SS = 0;
 				CPU[activeCPU].registers->SP = 0x100; //For ROM specific!
 				fclose(f); //Close boot rom!
@@ -633,7 +634,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), 0x0000, 0x0472, 0,1); //Clear reboot flag!
 		REG_CS = 0xF000; //Go back to our bootstrap, by using a simulated jump to ROM!
 		REG_IP = 0xFFFF;
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		lock(LOCK_CPU);
 		CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!

@@ -15,6 +15,7 @@
 #include "headers/mmu/mmuhandler.h" //hasmemory support!
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/cpu/easyregs.h" //Flag support!
+#include "headers/cpu/biu.h" //BIU support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
@@ -117,7 +118,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	lock(LOCK_CPU);
 	CPU[activeCPU].registers->CS = 0xF000;
 	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
-	CPU_flushPIQ(); //Clear the PIQ from any unused instructions!
+	CPU_flushPIQ(-1); //Clear the PIQ from any unused instructions!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
 		if (debugger_thread)

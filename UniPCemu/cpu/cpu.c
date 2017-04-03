@@ -19,6 +19,7 @@
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/memory_adressing.h" //CPU_MMU_start support!
 #include "headers/cpu/protecteddebugging.h" //Protected debugging support!
+#include "headers/cpu/biu.h" //BIU support!
 
 //ALL INTERRUPTS
 
@@ -38,11 +39,6 @@
 
 //Save the last instruction address and opcode in a backup?
 #define CPU_SAVELAST
-
-//16-bits compatibility for reading parameters!
-#define LE_16BITS(x) SDL_SwapLE16(x)
-//32-bits compatibility for reading parameters!
-#define LE_32BITS(x) SDL_SwapLE32((LE_16BITS((x)&0xFFFF))|(uint_32)((LE_16BITS(((x)>>16)&0xFFFF))<<16))
 
 byte activeCPU = 0; //What CPU is currently active?
 
@@ -74,10 +70,6 @@ byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
-
-uint_32 makeupticks; //From PIC?
-
-extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 
 #ifdef CPU_USECYCLES
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
@@ -517,7 +509,7 @@ void copyint(byte src, byte dest) //Copy interrupt handler pointer to different 
 	MMU_ww(-1,0x0000,(dest<<2)|2,MMU_rw(-1,0x0000,((src<<2)|2),0,0),0); //Copy offset!
 }
 
-byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
+extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
 
 OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
 {
@@ -596,7 +588,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 	}
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 					//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!
 	CPU[activeCPU].registers->ES = 0; //Extra segment!
@@ -707,10 +699,6 @@ void resetCPU() //Initialises the currently selected CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_timings_tbl(); //Generate the timings tables for all CPU's!
 	CPU_initLookupTables(); //Initialize our timing lookup tables!
-	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
-	{
-		CPU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
-	}
 	CPU[activeCPU].CallGateStack = allocfifobuffer(32<<2,0); //Non-lockable 32-bit 32 arguments FIFO buffer for call gate stack parameter copy!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
@@ -722,6 +710,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].CPL = 0; //We're real mode, so CPL=0!
 	memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Reset the instruction fetching system!
 	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase =  1; //We're starting to fetch!
+	CPU_initBIU(); //Initialize the BIU for use!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -731,83 +720,6 @@ void initCPU() //Initialize CPU for full system reset into known state!
 }
 
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
-
-byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
-{
-	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
-	if (CPU[activeCPU].PIQ) //PIQ present?
-	{
-		PIQ_retry: //Retry after refilling PIQ!
-		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
-		//Execution can start on any cycle!
-		if (readfifobuffer(CPU[activeCPU].PIQ,result)) //Read from PIQ?
-		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (cpudebugger) //We're an OPcode retrieval and debugging?
-			{
-				MMU_addOP(*result); //Add to the opcode cache!
-			}
-			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
-			++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
-			return 0; //Give the prefetched data!
-		}
-		//Not enough data in the PIQ? Refill for the next data!
-		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
-		CPU_fillPIQ(); //Fill instruction cache with next data!
-		goto PIQ_retry; //Read again!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
-	{
-		return 1; //Abort on fault!
-	}
-	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
-	if (cpudebugger) //We're an OPcode retrieval and debugging?
-	{
-		MMU_addOP(*result); //Add to the opcode cache!
-	}
-	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
-	++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
-	return 0; //Give the result!
-}
-
-byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
-{
-	static byte temp, temp2;
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
-	{
-		if (CPU_readOP(&temp)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
-	}
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
-	{
-		if (CPU_readOP(&temp2)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
-		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
-	}
-	return 0; //We're fetched!
-}
-
-byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned integer) at CS:EIP
-{
-	static word resultw1, resultw2;
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
-	{
-		if (CPU_readOPw(&resultw1)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-	}
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
-	{
-		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
-	}
-	return 0; //We're fetched!
-}
 
 /*
 0xF3 Used with string REP, REPE/REPZ
@@ -1134,7 +1046,6 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		}
 	}
 
-
 skiptimings: //Skip all timings and parameters(invalid instruction)!
 	return 0; //We're done fetching the instruction!
 }
@@ -1142,7 +1053,7 @@ skiptimings: //Skip all timings and parameters(invalid instruction)!
 void doneCPU() //Finish the CPU!
 {
 	free_CPUregisters(); //Finish the allocated registers!
-	free_fifobuffer(&CPU[activeCPU].PIQ); //Release our PIQ!
+	CPU_doneBIU(); //Finish the BIU!
 	free_fifobuffer(&CPU[activeCPU].CallGateStack); //Release our Call Gate Stack space!
 }
 
@@ -1751,13 +1662,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	if (DosboxClock)
 	{
 		CPU[activeCPU].cycles = 1; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!
-		if (CPU[activeCPU].PIQ) //Prefetching?
-		{
-			for (;fifobuffer_freesize(CPU[activeCPU].PIQ);)
-			{
-				CPU_fillPIQ(); //Keep the FIFO fully filled!
-			}
-		}
+		BIU_dosboxTick(); //Tick, Dosbox-style!
 	}
 	else //Use normal cycles dependent on the CPU (Cycle accuracy w/ documented speed)?
 	{
@@ -1896,7 +1801,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
-	CPU_tickPrefetch(); //Tick the prefetch as required!
+	CPU_tickBIU(); //Tick the prefetch as required!
 	flushMMU(); //Flush MMU writes!
 }
 
@@ -2043,8 +1948,7 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 {
 	CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
 	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
-	CPU_flushPIQ(); //Flush the PIQ!
-	CPU[activeCPU].PIQ_EIP = CPU_exec_EIP; //Destination address of the PIQ is reset too!
+	CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
 }
 
 //Exceptions!
@@ -2111,93 +2015,6 @@ void CPU_COOP_notavailable() //COProcessor not available!
 	}
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
-}
-
-void CPU_flushPIQ()
-{
-	if (CPU[activeCPU].PIQ) fifobuffer_clear(CPU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	CPU[activeCPU].PIQ_EIP = CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
-	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
-}
-
-void CPU_fillPIQ() //Fill the PIQ until it's full!
-{
-	if (CPU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	byte oldMMUCycles;
-	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
-	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
-	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
-	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!
-}
-
-extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
-
-void CPU_tickPrefetch()
-{
-	if (!CPU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles;
-	cycles = CPU[activeCPU].cycles+((DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30)))); //How many cycles have been spent on the instruction?
-	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
-	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
-	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
-	iorcycles += (DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30))); //Don't count DRAM refresh cycles!
-	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
-	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
-	{
-		if (((CPU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
-		{
-			iowcyclespending -= (2<<(EMULATED_CPU<=CPU_NECV30)); //Remainder of spent cycles!
-			if (iowcyclespending==0) break; //Starting this cycle?
-		}
-	}
-
-	//Now we have the amount of cycles we're idling.
-	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
-	{
-		for (;cycles;--cycles) //Cycles to spend!
-		{
-			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
-			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh?
-				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch808X;}
-				else if (iorcycles) iorcycles -= 4; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
-				else
-				{
-					tryprefetch808X:
-					if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
-					{
-						CPU_fillPIQ(); //Add a byte to the prefetch!
-						if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
-						CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
-					}
-				}
-			}
-		}
-	}
-	else //286+
-	{
-		for (;cycles;--cycles) //Cycles to spend!
-		{
-			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
-			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; CPU[activeCPU].cycles_Prefetch_DMA += 2; } //Handling a DRAM refresh?
-				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch80286;}
-				else if (iorcycles) iorcycles -= 2; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
-				else
-				{
-					tryprefetch80286:
-					if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
-					{
-						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-						CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
-					}
-				}
-			}
-		}
-	}
 }
 
 void CPU_unkOP() //General unknown OPcode handler!

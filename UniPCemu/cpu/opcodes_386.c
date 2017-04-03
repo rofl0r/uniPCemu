@@ -16,6 +16,7 @@
 #include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 #include "headers/cpu/cpu_OPNECV30.h" //80186+ support!
 #include "headers/cpu/cpu_OP80286.h" //80286+ support!
+#include "headers/cpu/biu.h" //BIU support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -1420,7 +1421,7 @@ OPTINLINE void CPU80386_internal_RET(word popbytes, byte isimm)
 	INLINEREGISTER uint_32 val = CPU_POP32();    //Near return
 	CPUPROT1
 	CPU_JMPabs(val);
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 	REG_SP += popbytes;
 	CPUPROT2
 	if (isimm)
@@ -1441,7 +1442,7 @@ OPTINLINE void CPU80386_internal_RETF(word popbytes, byte isimm)
 	CPUPROT1
 	destEIP = val; //Load IP!
 	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed, we're a RETF instruction!
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 	CPUPROT1
 	REG_SP += popbytes; //Process SP!
 	if (isimm)
@@ -1671,7 +1672,7 @@ void CPU80386_CALLF(word segment, uint_32 offset)
 {
 	destEIP = offset;
 	segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed, call version!*/
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 }
 
 /*
@@ -1866,16 +1867,16 @@ void CPU80386_OPD4() {INLINEREGISTER byte theimm = immb; modrm_generateInstructi
 void CPU80386_OPD5() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAD",0,theimm,PARAM_IMM8);/*AAD*/ CPU80386_internal_AAD(theimm);/*AAD*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; CPU[activeCPU].cycles_OP = 2;} //Special case on the 80386: SALC!
 void CPU80386_OPD7(){CPU80386_internal_XLAT();} //We depend on the address size instead!
-void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if ((--REG_ECX) && (!FLAG_ZF)){CPU_JMPrel(rel8); CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
-void CPU80386_OPE1(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize());if ((--REG_ECX) && (FLAG_ZF)){CPU_JMPrel(rel8);CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
-void CPU80386_OPE2(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize());if (--REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
-void CPU80386_OPE3(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if (!REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */}else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
+void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if ((--REG_ECX) && (!FLAG_ZF)){CPU_JMPrel(rel8); CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
+void CPU80386_OPE1(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize());if ((--REG_ECX) && (FLAG_ZF)){CPU_JMPrel(rel8);CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
+void CPU80386_OPE2(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOP", 0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize());if (--REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 17; didJump = 1; /* Branch taken */} else { CPU[activeCPU].cycles_OP = 5; /* Branch not taken */}}
+void CPU80386_OPE3(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JCXZ",0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if (!REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(-1); /*We're jumping to another address*/CPU[activeCPU].cycles_OP = 18; didJump = 1; /* Branch taken */}else { CPU[activeCPU].cycles_OP = 6; /* Branch not taken */}}
 void CPU80386_OPE5(){INLINEREGISTER byte theimm = immb;modrm_generateInstructionTEXT("IN EAX,",0,theimm,PARAM_IMM8); CPU_PORT_IN_D(theimm,&REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ }
 void CPU80386_OPE7(){INLINEREGISTER byte theimm = immb; debugger_setcommand("OUT %02X,EAX",theimm); CPU_PORT_OUT_D(theimm,REG_EAX); CPU[activeCPU].cycles_OP = 10; /*Timings!*/ }
-void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EIP); CPU_JMPrel(reloffset);CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
-void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
-void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); destEIP = (segmentoffset&CPU_EIPmask()); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
-void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
+void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EIP); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 19; /* Intrasegment direct */}
+void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct */}
+void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); destEIP = (segmentoffset&CPU_EIPmask()); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(-1); CPU[activeCPU].cycles_OP = 15; /* Intersegment direct */}
+void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ CPU[activeCPU].cycles_OP = 15; /* Intrasegment direct short */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); CPU_PORT_IN_D(REG_DX,&REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
 void CPU80386_OPEF(){modrm_generateInstructionTEXT("OUT DX,EAX",0,0,PARAM_NONE); CPU_PORT_OUT_D(REG_DX,REG_EAX); CPU[activeCPU].cycles_OP = 8; /*Timings!*/ }
 void CPU80386_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
@@ -2590,7 +2591,7 @@ void op386_grp5_32() {
 		{
 			CPU[activeCPU].cycles_OP = 16; /* Intrasegment indirect through register */
 		}
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
 		modrm_decode32(&params, &info, 1); //Get data!
@@ -2623,7 +2624,7 @@ void op386_grp5_32() {
 		break;
 	case 4: //JMP Ev
 		CPU_JMPabs(oper1d);
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 18 + MODRM_EA(params); /* Intrasegment indirect through memory */
@@ -2647,7 +2648,7 @@ void op386_grp5_32() {
 		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0,!CPU_Address_size[activeCPU]);
 		CPUPROT1
 		segmentWritten(CPU_SEGMENT_CS, destCS, 1);
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		CPUPROT1
 		if (MODRM_EA(params)) //Memory?
 		{

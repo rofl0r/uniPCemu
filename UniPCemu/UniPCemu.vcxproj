@@ -55,6 +55,7 @@
     <ClCompile Include="bios\biosrom.c" />
     <ClCompile Include="bios\boot.c" />
     <ClCompile Include="bios\initmem.c" />
+    <ClCompile Include="cpu\biu.c" />
     <ClCompile Include="cpu\cb_manager.c" />
     <ClCompile Include="cpu\cpu.c" />
     <ClCompile Include="cpu\cpu_interrupts.c" />
@@ -197,6 +198,7 @@
     <ClInclude Include="headers\bios\boot.h" />
     <ClInclude Include="headers\bios\initmem.h" />
     <ClInclude Include="headers\cpu\8086_grpOPs.h" />
+    <ClInclude Include="headers\cpu\biu.h" />
     <ClInclude Include="headers\cpu\cb_manager.h" />
     <ClInclude Include="headers\cpu\cpu.h" />
     <ClInclude Include="headers\cpu\cpu_OP80286.h" />

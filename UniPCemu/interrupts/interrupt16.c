@@ -7,6 +7,7 @@
 #include "headers/header_dosbox.h" //Basic DOSBox compatibility.
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/cpu/biu.h" //BIU support!
 //Keyboard interrupt!
 
 void Dosbox_RealSetVec(byte interrupt, uint_32 realaddr)
@@ -311,7 +312,7 @@ void IRQ1_Handler() {
 				IO_Write(0x20,0x20);
 				while (mem_readb(BIOS_KEYBOARD_FLAGS2)&8) CALLBACK_Idle();	// pause loop
 				REG_IP+=5;	// skip out 20,20
-				CPU_flushPIQ(); //Flush the PIQ!
+				CPU_flushPIQ(-1); //Flush the PIQ!
 				return;
 			}
 		} else {
@@ -484,7 +485,7 @@ void INT16_Handler() {
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
 			REG_IP+=1;
-			CPU_flushPIQ(); //Flush the PIQ!
+			CPU_flushPIQ(-1); //Flush the PIQ!
 		}
 		break;
 	case 0x10: /* GET KEYSTROKE (enhanced keyboards only) */
@@ -497,7 +498,7 @@ void INT16_Handler() {
 		} else {
 			/* enter small idle loop to allow for irqs to happen */
 			REG_IP+=1;
-			CPU_flushPIQ(); //Flush the PIQ!
+			CPU_flushPIQ(-1); //Flush the PIQ!
 		}
 		break;
 	case 0x01: /* CHECK FOR KEYSTROKE */

@@ -8,6 +8,7 @@
 #include "headers/cpu/cpu_pmtimings.h" //286+ timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/biu.h" //BIU support!
 
 /*
 
@@ -963,7 +964,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			else if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
-				CPU_flushPIQ(); //We're jumping to another address!
+				CPU_flushPIQ(-1); //We're jumping to another address!
 			}
 		}
 	}
@@ -995,7 +996,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x9D; //Load default access rights!
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
-			CPU_flushPIQ(); //We're jumping to another address!
+			CPU_flushPIQ(-1); //We're jumping to another address!
 		}
 	}
 	//Real mode doesn't use the descriptors?
@@ -1608,7 +1609,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 
 			CPU[activeCPU].registers->EIP = (idtentry.offsetlow | (idtentry.offsethigh << 16)); //The current OPCode: just jump to the address specified by the descriptor OR command!
-			CPU_flushPIQ(); //We're jumping to another address!
+			CPU_flushPIQ(-1); //We're jumping to another address!
 
 			FLAGW_TF(0);
 			FLAGW_NT(0);

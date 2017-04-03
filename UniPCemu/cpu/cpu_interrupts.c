@@ -8,6 +8,7 @@
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support! 
 #include "headers/support/log.h" //Logging support for debugging!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -82,7 +83,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		#endif
 		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
 	}
@@ -112,7 +113,7 @@ void CPU_IRET()
 	{
 		destEIP = CPU_POP16(); //POP IP!
 		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
-		CPU_flushPIQ(); //We're jumping to another address!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		if (CPU[activeCPU].faultraised==0) //No fault raised?
 		{
 			REG_FLAGS = CPU_POP16(); //Pop flags!
@@ -220,7 +221,7 @@ void CPU_IRET()
 			{
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
-				CPU_flushPIQ(); //We're jumping to another address!
+				CPU_flushPIQ(-1); //We're jumping to another address!
 				if (oldCPL!=getCPL()) //Stack needs to be restored?
 				{
 					tempSS = CPU_POP16();

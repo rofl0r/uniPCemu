@@ -6,6 +6,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/debugger/debugger.h" //Debugging support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
@@ -524,7 +525,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	{
 		segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0); //Load CS!
 	}
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 	if (CPU[activeCPU].faultraised) return 0; //Abort on fault raised!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{

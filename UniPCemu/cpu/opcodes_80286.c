@@ -13,6 +13,7 @@
 #include "headers/cpu/cpu_OP80286.h" //80286 instruction support!
 #include "headers/cpu/cpu_OPNECV30.h" //186+ #UD support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support for LOADALL!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Reading of the 16-bit entries within descriptors!
 #define DESC_16BITS(x) SDL_SwapLE16(x)
@@ -654,7 +655,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->CX = DESC_16BITS(LOADALLDATA.fields.DX); //DX
 	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
-	CPU_flushPIQ(); //We're jumping to another address!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
 	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|DESC_16BITS(LOADALLDATA.fields.GDTR.baselow); //Base!
@@ -706,10 +707,10 @@ void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
 void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
 
 
-void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; uint_32 oldEIP = REG_EIP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; uint_32 oldEIP = REG_EIP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
-void FPU80287_OPDD(){word oldCS; uint_32 oldEIP; oldCS = REG_CS; oldEIP = REG_EIP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2}
-void FPU80287_OPD9(){word oldCS; uint_32 oldEIP; oldCS = REG_CS; oldEIP = REG_EIP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(); FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } byte subOP = immb; CPUPROT1 word oldCS = REG_CS; uint_32 oldEIP = REG_EIP; if (subOP==0xE3){FPU80287_OPDBE3();} else{REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(-1); FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = immb; CPUPROT1 word oldCS = REG_CS; uint_32 oldEIP = REG_EIP; if (subOP==0xE0){FPU80287_OPDFE0();} else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(-1); FPU80287_noCOOP();} CPUPROT2 CPUPROT2 }
+void FPU80287_OPDD(){word oldCS; uint_32 oldEIP; oldCS = REG_CS; oldEIP = REG_EIP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(-1); FPU80287_noCOOP();} CPUPROT2}
+void FPU80287_OPD9(){word oldCS; uint_32 oldEIP; oldCS = REG_CS; oldEIP = REG_EIP; if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {REG_CS = oldCS; REG_EIP = oldEIP; CPU_flushPIQ(-1); FPU80287_noCOOP();} CPUPROT2}
 
 void FPU80287_noCOOP() {
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");
