@@ -738,7 +738,8 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 	if (CPU[activeCPU].PIQ) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
-		if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
+		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
+		//Execution can start on any cycle!
 		if (readfifobuffer(CPU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
 			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT())) //Error accessing memory?
