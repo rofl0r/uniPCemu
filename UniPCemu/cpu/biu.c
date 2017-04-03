@@ -462,6 +462,7 @@ void CPU_tickBIU()
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	iorcycles += (DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30))); //Don't count DRAM refresh cycles!
 	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
+	prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
 		if (((BIU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?

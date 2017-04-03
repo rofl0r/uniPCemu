@@ -852,6 +852,7 @@ typedef struct PACKED
 	byte cycles_OP; //Total number of cycles for an operation!
 	byte cycles_HWOP; //Total number of cycles for an hardware interrupt!
 	byte cycles_Prefix; //Total number of cycles for the prefix!
+	byte cycles_EA; //ModR/M decode cycles!
 	byte cycles_Exception; //Total number of cycles for an exception!
 	byte cycles_MMUR, cycles_MMUW; //Total number of cycles for memory access!
 	byte cycles_IO; //Total number of cycles for I/O access!
