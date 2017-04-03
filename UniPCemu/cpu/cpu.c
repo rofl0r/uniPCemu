@@ -1047,6 +1047,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	}
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
+	CPU[activeCPU].instructionstep = 0; //Start the instruction-specific stage!
 	return 0; //We're done fetching the instruction!
 }
 

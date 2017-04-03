@@ -464,7 +464,7 @@ void CPU_tickBIU()
 	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
-		if (((CPU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
+		if (((BIU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
 		{
 			iowcyclespending -= (2<<(EMULATED_CPU<=CPU_NECV30)); //Remainder of spent cycles!
 			if (iowcyclespending==0) break; //Starting this cycle?
@@ -476,7 +476,7 @@ void CPU_tickBIU()
 	{
 		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
+			if (((BIU[activeCPU].prefetchclock++&3)==3)) //T4?
 			{
 				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh?
 				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch808X;}
@@ -499,7 +499,7 @@ void CPU_tickBIU()
 	{
 		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
+			if (((BIU[activeCPU].prefetchclock++&1)==1)) //T2?
 			{
 				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; CPU[activeCPU].cycles_Prefetch_DMA += 2; } //Handling a DRAM refresh?
 				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch80286;}

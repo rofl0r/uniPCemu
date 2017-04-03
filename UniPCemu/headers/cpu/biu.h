@@ -17,6 +17,7 @@ typedef struct
 	uint_64 currentpayload; //Current payload!
 	uint_32 currentresult; //Current result!
 	uint_32 currentaddress; //Current address!
+	byte prefetchclock; //For clocking the BIU to fetch data to/from memory!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
