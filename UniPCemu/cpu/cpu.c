@@ -750,7 +750,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 				MMU_addOP(*result); //Add to the opcode cache!
 			}
 			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
-			CPU[activeCPU].cycles_OP += 1; //Fetching from prefetch takes 1 cycle!
+			++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
@@ -768,6 +768,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 		MMU_addOP(*result); //Add to the opcode cache!
 	}
 	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
+	++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 	return 0; //Give the result!
 }
 
@@ -2125,7 +2126,6 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
 	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
 	writefifobuffer(CPU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].PIQ_EIP++, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
-	CPU[activeCPU].cycles_Prefetch += CPU[activeCPU].cycles_MMUR; //Apply the memory cycles to prefetching!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!
 }
@@ -2135,12 +2135,13 @@ extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occur
 void CPU_tickPrefetch()
 {
 	if (!CPU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending;
+	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles;
 	cycles = CPU[activeCPU].cycles+((DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30)))); //How many cycles have been spent on the instruction?
 	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	iorcycles += (DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30))); //Don't count DRAM refresh cycles!
+	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
 		if (((CPU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
@@ -2158,13 +2159,18 @@ void CPU_tickPrefetch()
 			if (((CPU[activeCPU].prefetchclock++&3)==3)) //T4?
 			{
 				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh?
+				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch808X;}
 				else if (iorcycles) iorcycles -= 4; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
-				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
+				else
 				{
-					CPU_fillPIQ(); //Add a byte to the prefetch!
-					if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
-					CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
+					tryprefetch808X:
+					if (fifobuffer_freesize(CPU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle? Else, NOP cycle!
+					{
+						CPU_fillPIQ(); //Add a byte to the prefetch!
+						if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
+						CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
+					}
 				}
 			}
 		}
@@ -2176,12 +2182,17 @@ void CPU_tickPrefetch()
 			if (((CPU[activeCPU].prefetchclock++&1)==1)) //T2?
 			{
 				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; CPU[activeCPU].cycles_Prefetch_DMA += 2; } //Handling a DRAM refresh?
+				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch80286;}
 				else if (iorcycles) iorcycles -= 2; //Skip read cycle!
 				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
-				else if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
+				else
 				{
-					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
+					tryprefetch80286:
+					if (fifobuffer_freesize(CPU[activeCPU].PIQ)>1) //Prefetch cycle(2 free spaces only)? Else, NOP cycle!
+					{
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+						CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
+					}
 				}
 			}
 		}
