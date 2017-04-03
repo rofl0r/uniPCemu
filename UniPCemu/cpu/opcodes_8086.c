@@ -2703,12 +2703,21 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //POP
+		//Cycle-accurate emulation of the instruction!
 		if (cpudebugger) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("POPW",16,0,PARAM_MODRM2); //POPW Ew
 		}
 		if (checkStackAccess(1,0,0)) return; //Abort when needed!
 		if (modrm_check16(&params,1,0)) return; //Abort when needed!
+		if (CPU[activeCPU].instructionstep==0) //First step? Delay!
+		{
+			CPU[activeCPU].cycles_OP += 8; //Delay 8 cycles to decode!
+			CPU[activeCPU].executed = 0; //Not executed yet!
+			++CPU[activeCPU].instructionstep; //Next step!
+			return;
+		}
+		//Execution step!
 		modrm_write16(&params,1,CPU_POP16(),0); //POP r/m16
 		if (params.info[1].reg16 == &CPU[activeCPU].registers->SS) //Popping into SS?
 		{
