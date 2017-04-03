@@ -26,7 +26,8 @@
 #define REQUEST_32BIT 0x10
 
 //Extra extension for 16/32-bit accesses(bitflag) to identify high value to be accessed!
-#define REQUEST_SUB 0x60
+#define REQUEST_SUBMASK 0x60
+#define REQUEST_SUBSHIFT 5
 #define REQUEST_SUB0 0x00
 #define REQUEST_SUB1 0x20
 #define REQUEST_SUB2 0x40
@@ -266,16 +267,19 @@ byte BIU_request_BUSww(uint_32 addr, word value)
 	return BIU_request(REQUEST_IOWRITE|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
 }
 
+byte BIU_access_writeshift[4] = {32,40,48,56}; //Shift to get the result byte to write to memory!
+byte BIU_access_readshift[4] = {0,8,16,24}; //Shift to put the result byte in the result!
+
 OPTINLINE byte BIU_processRequests()
 {
-	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling?
+	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		switch (BIU[activeCPU].currentrequest&REQUEST_TYPEMASK) //What kind of request?
 		{
 			//Memory operations!
 			case REQUEST_MMUREAD:
-				BIU[activeCPU].currentresult = Paging_directrb(-1,(BIU[activeCPU].currentaddress&0xFFFFFFFF),0,0,0); //Read first byte!
-				if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
+				BIU[activeCPU].currentresult |= (Paging_directrb(-1,(BIU[activeCPU].currentaddress&0xFFFFFFFF),0,0,0)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 					{
@@ -290,8 +294,8 @@ OPTINLINE byte BIU_processRequests()
 				return 1; //Handled!
 				break;
 			case REQUEST_MMUWRITE:
-				Paging_directwb(-1,(BIU[activeCPU].currentpayload&0xFFFFFFFF),(BIU[activeCPU].currentpayload&0xFFFFFFFF),0,1,0); //Write to memory now!									
-				if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
+				Paging_directwb(-1,(BIU[activeCPU].currentpayload&0xFFFFFFFF),(BIU[activeCPU].currentpayload>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),0,1,0); //Write to memory now!									
+				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
 					{
@@ -307,7 +311,7 @@ OPTINLINE byte BIU_processRequests()
 				break;
 			//I/O operations!
 			case REQUEST_IOREAD:
-				if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
+				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 					{
@@ -322,7 +326,7 @@ OPTINLINE byte BIU_processRequests()
 				return 1; //Handled!
 				break;
 			case REQUEST_IOWRITE:
-				if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
+				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
 					{
@@ -356,7 +360,7 @@ OPTINLINE byte BIU_processRequests()
 						BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload&0xFFFFFFFF); //Address to use!
 					}
 					BIU[activeCPU].currentresult = Paging_directrb(-1,BIU[activeCPU].currentaddress,0,0,0); //Read first byte!
-					if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==REQUEST_SUB0) //Finished the request?
+					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 						{
@@ -371,7 +375,7 @@ OPTINLINE byte BIU_processRequests()
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
 						BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload&0xFFFFFFFF); //Address to use!
 					}
-					if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==REQUEST_SUB0) //Finished the request?
+					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
@@ -400,7 +404,7 @@ OPTINLINE byte BIU_processRequests()
 					{
 						BIU[activeCPU].currentresult = PORT_IN_B(BIU[activeCPU].currentpayload&0xFFFF); //Read byte!
 					}
-					if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==REQUEST_SUB0) //Finished the request?
+					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 						{
@@ -429,7 +433,7 @@ OPTINLINE byte BIU_processRequests()
 					{
 						PORT_OUT_B((BIU[activeCPU].currentpayload&0xFFFF),((BIU[activeCPU].currentpayload>>32)&0xFFFFFFFF)); //Write to memory now!									
 					}
-					if ((BIU[activeCPU].currentrequest&REQUEST_SUB)==REQUEST_SUB0) //Finished the request?
+					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
