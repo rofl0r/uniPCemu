@@ -188,7 +188,7 @@ OPTINLINE byte BIU_readRequest(uint_32 *requesttype, uint_64 *payload) //BIU: Re
 	return 0; //Invalid request!
 }
 
-byte BIU_request(uint_32 requesttype, uint_64 payload) //CPU: Request something from the BIU by the CPU!
+OPTINLINE byte BIU_request(uint_32 requesttype, uint_64 payload) //CPU: Request something from the BIU by the CPU!
 {
 	byte result;
 	uint_32 request1, request2;
@@ -214,7 +214,7 @@ OPTINLINE byte BIU_response(uint_64 response) //BIU: Response given from the BIU
 	return (writefifobuffer32_2u(BIU[activeCPU].requests,response1,response2)); //Response!
 }
 
-byte BIU_readResponse(uint_64 *response) //CPU: Read a response from the BIU!
+OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from the BIU!
 {
 	uint_32 response1, response2;
 	if (readfifobuffer32_2u(BIU[activeCPU].requests,&response1,&response2)) //Do we have a request and enough size for a response?
@@ -237,6 +237,11 @@ byte BIU_request_MMUrw(uint_32 addr)
 	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,addr); //Request a read!
 }
 
+byte BIU_request_MMUrdw(uint_32 addr)
+{
+	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,addr); //Request a read!
+}
+
 byte BIU_request_MMUwb(uint_32 addr, byte value)
 {
 	return BIU_request(REQUEST_MMUWRITE,(uint_64)addr|((uint_64)value<<32)); //Request a read!
@@ -246,13 +251,24 @@ byte BIU_request_MMUww(uint_32 addr, word value)
 {
 	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
 }
-//BUS(I/O address space) accesses
+
+byte BIU_request_MMUwdw(uint_32 addr, uint_32 value)
+{
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
+}
+
+//BUS(I/O address space) accesses for the Execution Unit to make, and their results!
 byte BIU_request_BUSrb(uint_32 addr)
 {
 	return BIU_request(REQUEST_IOREAD,addr); //Request a read!
 }
 
 byte BIU_request_BUSrw(uint_32 addr)
+{
+	return BIU_request(REQUEST_IOREAD|REQUEST_16BIT,addr); //Request a read!
+}
+
+byte BIU_request_BUSrdw(uint_32 addr)
 {
 	return BIU_request(REQUEST_IOREAD|REQUEST_16BIT,addr); //Request a read!
 }
@@ -265,6 +281,50 @@ byte BIU_request_BUSwb(uint_32 addr, byte value)
 byte BIU_request_BUSww(uint_32 addr, word value)
 {
 	return BIU_request(REQUEST_IOWRITE|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
+}
+
+byte BIU_request_BUSwdw(uint_32 addr, uint_32 value)
+{
+	return BIU_request(REQUEST_IOWRITE|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
+}
+
+byte BIU_readResultb(byte *result) //Read the result data of a BUS request!
+{
+	byte status;
+	uint_64 response;
+	status = BIU_readResponse(&response); //Read the response for the user!
+	if (status) //Read?
+	{
+		*result = (byte)response; //Give the response!
+		return 1; //Read!
+	}
+	return 0; //Not read!
+}
+
+byte BIU_readResultw(word *result) //Read the result data of a BUS request!
+{
+	byte status;
+	uint_64 response;
+	status = BIU_readResponse(&response); //Read the response for the user!
+	if (status) //Read?
+	{
+		*result = (word)response; //Give the response!
+		return 1; //Read!
+	}
+	return 0; //Not read!
+}
+
+byte BIU_readResultdw(uint_32 *result) //Read the result data of a BUS request!
+{
+	byte status;
+	uint_64 response;
+	status = BIU_readResponse(&response); //Read the response for the user!
+	if (status) //Read?
+	{
+		*result = (uint_32)response; //Give the response!
+		return 1; //Read!
+	}
+	return 0; //Not read!
 }
 
 byte BIU_access_writeshift[4] = {32,40,48,56}; //Shift to get the result byte to write to memory!

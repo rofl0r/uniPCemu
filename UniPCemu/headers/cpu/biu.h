@@ -32,4 +32,24 @@ byte CPU_readOPdw(uint_32 *result); //Reads the operation (32-bit unsigned integ
 
 void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 
+//BIU request/responses!
+//Requests for memory accesses!
+byte BIU_request_MMUrb(uint_32 addr);
+byte BIU_request_MMUrw(uint_32 addr);
+byte BIU_request_MMUrdw(uint_32 addr);
+byte BIU_request_MMUwb(uint_32 addr, byte value);
+byte BIU_request_MMUww(uint_32 addr, word value);
+byte BIU_request_MMUwdw(uint_32 addr, uint_32 value);
+//Requests for BUS(I/O address space) accesses!
+byte BIU_request_BUSrb(uint_32 addr);
+byte BIU_request_BUSrw(uint_32 addr);
+byte BIU_request_BUSrdw(uint_32 addr);
+byte BIU_request_BUSwb(uint_32 addr, byte value);
+byte BIU_request_BUSww(uint_32 addr, word value);
+byte BIU_request_BUSwdw(uint_32 addr, uint_32 value);
+//Result reading support for all accesses!
+byte BIU_readResultb(byte *result); //Read the result data of a BUS request!
+byte BIU_readResultw(word *result); //Read the result data of a BUS request!
+byte BIU_readResultdw(uint_32 *result); //Read the result data of a BUS request!
+
 #endif
