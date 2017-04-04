@@ -12,9 +12,6 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 0
 
-//DMA Ticks(bytes)/second!
-#define MHZ14_RATE 10
-
 SDL_sem *DMA_Lock = NULL;
 
 extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
@@ -61,6 +58,10 @@ typedef struct
 	byte extrastorage[4]; //Extra storage used by the 286 BIOS!
 } DMAControllerTYPE; //Contains a DMA Controller's registers!
 
+byte DMA_S=0; //DMA state of transfer(clocks S0-S3), when active!
+byte activeDMA=0; //Active DMA!
+byte DMA_currenttick=0;
+
 DMAControllerTYPE DMAController[2]; //We have 2 DMA Controllers!
 
 void freeDMA(void)
@@ -77,6 +78,7 @@ void initDMAControllers() //Init function for BIOS!
 	}
 	memset(&DMAController[0],0,sizeof(DMAController[0])); //Init DMA Controller channels 0-3 (0 unused: for DRAM Refresh)
 	memset(&DMAController[1],0,sizeof(DMAController[1])); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
+	DMA_S = DMA_currenttick = 0; //Init channel state!
 }
 
 void DMA_SetDREQ(byte channel, byte DREQ) //Set DREQ from hardware!
@@ -382,6 +384,8 @@ void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
 
 byte lastcycle = 0; //Current channel in total (0-7)
 
+extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 2=DMA
+
 /* Main DMA Controller processing ticks */
 void DMA_tick()
 {
@@ -390,6 +394,25 @@ void DMA_tick()
 	INLINEREGISTER byte channelindex, MCMReversed;
 	byte transferred = 0; //Transferred data this time?
 	INLINEREGISTER byte startcurrent = current; //Current backup for checking for finished!
+	if (BUSactive) //BUS is active?
+	{
+		if (BUSactive==2) //DMA is active?
+		{
+			if ((DMA_S++&3)==3) //S4?
+			{
+				BUSactive = 0; //Release the BUS: we're finished transferring a byte/word!
+			}
+			else //Transfer busy?
+			{
+				return; //Busy transferring this clock!
+			}
+		}
+		else //Non-DMA is active? Idle!
+		{
+			return; //Don't tick: we're idle!
+		}
+	}
+	//BUS is inactive? Allow us to run!
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!
 	byte controllerdisabled2[2];
 	controllerdisabled2[0] = (DMAController[0].CommandRegister & 4);
@@ -466,8 +489,10 @@ void DMA_tick()
 						processchannel = 1; //Process: software request!
 					}
 			
-					if (processchannel) //Channel not masked off and requested?
+					if (processchannel && (BUSactive==0)) //Channel not masked off and requested? We can't be transferring, so transfer now!
 					{
+						BUSactive = 2; //We're claiming the BUS for a transfer!
+
 						transferred = 1; //We've transferred a byte of data!
 						byte processed = 0; //Default: nothing going on!
 						/*
@@ -643,13 +668,13 @@ void updateDMA(uint_32 MHZ14passed)
 	INLINEREGISTER uint_32 timing;
 	timing = DMA_timing; //Load current timing!
 	timing += MHZ14passed; //How many ticks have passed?
-	if (timing >= MHZ14_RATE) //To tick?
+	if (timing>=4) //To tick?
 	{
 		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
-			timing -= MHZ14_RATE; //Tick the DMA!
-		} while (timing >= MHZ14_RATE); //Continue ticking?
+			timing -= 4; //Tick the DMA at 4.77MHz!
+		} while (timing>=4); //Continue ticking?
 	}
 	DMA_timing = timing; //Save the new timing to use!
 }

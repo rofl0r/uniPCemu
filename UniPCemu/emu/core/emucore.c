@@ -68,6 +68,8 @@ byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0; //The segment:offset address!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 
+byte BUSactive = 0; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
+
 //Log when running bogus(empty) memory?
 //#define LOG_BOGUS 2
 
@@ -307,6 +309,8 @@ void initEMU(int full) //Init!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
+
+	BUSactive = 0; //Nobody's controlling the BUS!
 
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 

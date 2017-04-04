@@ -33,8 +33,6 @@
 #define REQUEST_SUB2 0x40
 #define REQUEST_SUB3 0x60
 
-extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
-
 BIU_type BIU[NUMCPUS]; //All possible BIUs!
 
 extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
@@ -330,10 +328,13 @@ byte BIU_readResultdw(uint_32 *result) //Read the result data of a BUS request!
 byte BIU_access_writeshift[4] = {32,40,48,56}; //Shift to get the result byte to write to memory!
 byte BIU_access_readshift[4] = {0,8,16,24}; //Shift to put the result byte in the result!
 
+extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 2=DMA
+
 OPTINLINE byte BIU_processRequests()
 {
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
+		BUSactive = BUSactive?BUSactive:1; //Start memory or BUS cycles!
 		switch (BIU[activeCPU].currentrequest&REQUEST_TYPEMASK) //What kind of request?
 		{
 			//Memory operations!
@@ -414,6 +415,7 @@ OPTINLINE byte BIU_processRequests()
 			{
 				//Memory operations!
 				case REQUEST_MMUREAD:
+					BUSactive = BUSactive?BUSactive:1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
@@ -430,6 +432,7 @@ OPTINLINE byte BIU_processRequests()
 					return 1; //Handled!
 					break;
 				case REQUEST_MMUWRITE:
+					BUSactive = BUSactive?BUSactive:1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
@@ -447,6 +450,7 @@ OPTINLINE byte BIU_processRequests()
 					break;
 				//I/O operations!
 				case REQUEST_IOREAD:
+					BUSactive = BUSactive?BUSactive:1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
@@ -474,6 +478,7 @@ OPTINLINE byte BIU_processRequests()
 					return 1; //Handled!
 					break;
 				case REQUEST_IOWRITE:
+					BUSactive = BUSactive?BUSactive:1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
@@ -512,17 +517,19 @@ OPTINLINE byte BIU_processRequests()
 	return 0; //No requests left!
 }
 
+extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
+
 void CPU_tickBIU()
 {
 	if (!BIU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles;
-	cycles = CPU[activeCPU].cycles+((DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30)))); //How many cycles have been spent on the instruction?
+	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles,curcycle,DMAcycles;
+	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
-	iorcycles += (DRAM_Refresh<<(1<<(EMULATED_CPU<=CPU_NECV30))); //Don't count DRAM refresh cycles!
 	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 	prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
+	DMAcycles = 1; //Count 
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
 		if (((BIU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
@@ -537,22 +544,28 @@ void CPU_tickBIU()
 	{
 		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((BIU[activeCPU].prefetchclock++&3)==3)) //T4?
+			curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
+			if (curcycle==3) //T4?
 			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 4; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh?
+				if ((BUSactive==2) && DRAM_Refresh) {--DRAM_Refresh; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh? We're idling!
 				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch808X;}
-				else if (iorcycles) iorcycles -= 4; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 4; //Skip write cycle!
+				else if (iorcycles) { iorcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
+				else if (iowcycles && (cycles<=iowcyclestart)) { iowcycles -= 4; BUSactive = 1; } //Skip write cycle!
 				else
 				{
 					tryprefetch808X:
 					if ((BIU_processRequests()==0) && fifobuffer_freesize(BIU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
 					{
+						BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
 						CPU_fillPIQ(); //Add a byte to the prefetch!
 						if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
 						CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
 					}
 				}
+			}
+			else if ((BUSactive==1) && (curcycle==0)) //Finished transfer?
+			{
+				BUSactive = 0; //Inactive BUS!
 			}
 		}
 	}
@@ -560,21 +573,27 @@ void CPU_tickBIU()
 	{
 		for (;cycles;--cycles) //Cycles to spend!
 		{
-			if (((BIU[activeCPU].prefetchclock++&1)==1)) //T2?
+			curcycle = (BIU[activeCPU].prefetchclock++&1); //Current cycle!
+			if (curcycle==1) //T2?
 			{
-				if (DRAM_Refresh) { --DRAM_Refresh; iorcycles -= 2; CPU[activeCPU].cycles_Prefetch_DMA += 2; } //Handling a DRAM refresh?
+				if ((BUSactive==2) && DRAM_Refresh) {--DRAM_Refresh; CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh? We're idling!
 				else if (prefetchcycles) {--prefetchcycles; goto tryprefetch80286;}
-				else if (iorcycles) iorcycles -= 2; //Skip read cycle!
-				else if (iowcycles && (cycles<=iowcyclestart)) iowcycles -= 2; //Skip write cycle!
+				else if (iorcycles) { iorcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
+				else if (iowcycles && (cycles<=iowcyclestart)) { iowcycles -= 2; BUSactive = 1; } //Skip write cycle!
 				else
 				{
 					tryprefetch80286:
 					if ((BIU_processRequests()==0) && fifobuffer_freesize(BIU[activeCPU].PIQ)>1) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 					{
+						BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
 						CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
 					}
 				}
+			}
+			else if ((BUSactive==1) && (curcycle==0)) //Finished transfer?
+			{
+				BUSactive = 0; //Inactive BUS!
 			}
 		}
 	}
