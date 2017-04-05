@@ -10,6 +10,7 @@
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
 #include "headers/mmu/mmuhandler.h" //MMU direct handler support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
+#include "headers/cpu/biu.h" //BIU support!
 
 extern MMU_type MMU; //MMU itself!
 
@@ -194,6 +195,9 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
+byte MMU_BIURequest = 0; //Are we to request from the BIU instead of directly give the result?
+uint_32 MMU_BIUAddr; //BIU address we're using!
+
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
 	byte result;
@@ -234,6 +238,9 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		}
 	}
 
+	if (MMU_BIURequest) return 0; //Abort when BIU request!
+
+	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
 
 	return result; //Give the result!
@@ -278,7 +285,29 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		}
 	}
 
+	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+}
+
+void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
+	if (MMU.memory==NULL) //No mem?
+	{
+		//dolog("MMU","R:No memory present!");
+		MMU.invaddr = 1; //Invalid adress!
+		return; //Out of bounds!
+	}
+
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+
+	if (is_paging()) //Are we paging?
+	{
+		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+	}
+	MMU_BIUAddr = realaddress; //Store the address to use for the BIU!
+	writeword = writewordbackup; //Restore the word address backup!
 }
 
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
@@ -300,19 +329,38 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	return result; //Give the result!
 }
 
+OPTINLINE byte MMU_BIU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	INLINEREGISTER byte result; //The result!
+	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
+	if (MMU.memory==NULL) //No mem?
+	{
+		//dolog("MMU","R:No memory present!");
+		MMU.invaddr = 1; //Invalid adress!
+		return 0xFF; //Out of bounds!
+	}
+
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+
+	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
+	processBUS(realaddress, index, result); //Process us on the BUS!
+	return result; //Give the result!
+}
+
 OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
 {
 	INLINEREGISTER word result;
-	result = MMU_INTERNAL_rb(segdesc, segment, offset, opcode,index,is_offset16);
-	result |= (MMU_INTERNAL_rb(segdesc, segment, offset + 1, opcode,index|1,is_offset16) << 8); //Get adress word!
+	result = MMU_INTERNAL_rb(segdesc, segment, offset, opcode,index|0x40,is_offset16); //We're accessing a word!
+	result |= (MMU_INTERNAL_rb(segdesc, segment, offset + 1, opcode,index|1|0x40,is_offset16) << 8); //Get adress word!
 	return result; //Give the result!
 }
 
 OPTINLINE uint_32 MMU_INTERNAL_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
 {
 	INLINEREGISTER uint_32 result;
-	result = MMU_INTERNAL_rw(segdesc, segment, offset, opcode,index,is_offset16);
-	result |= (MMU_INTERNAL_rw(segdesc, segment, offset + 2, opcode,index|2,is_offset16) << 16); //Get adress dword!
+	result = MMU_INTERNAL_rw(segdesc, segment, offset, opcode,index|0x80,is_offset16);
+	result |= (MMU_INTERNAL_rw(segdesc, segment, offset + 2, opcode,(index|2|0x80),is_offset16) << 16); //Get adress dword!
 	return result; //Give the result!
 }
 
@@ -349,19 +397,19 @@ OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word
 {
 	INLINEREGISTER word w;
 	w = val;
-	MMU_INTERNAL_wb(segdesc,segment,offset,w&0xFF,index,is_offset16); //Low first!
+	MMU_INTERNAL_wb(segdesc,segment,offset,w&0xFF,(index|0x40),is_offset16); //Low first!
 	writeword = 1; //We're writing a 2nd byte word, for emulating the NEC V20/V30 0x10000 overflow bug.
 	w >>= 8; //Shift low!
-	MMU_INTERNAL_wb(segdesc,segment,offset+1,(byte)w,index|1,is_offset16); //High last!
+	MMU_INTERNAL_wb(segdesc,segment,offset+1,(byte)w,(index|1|0x40),is_offset16); //High last!
 }
 
 OPTINLINE void MMU_INTERNAL_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte index, byte is_offset16) //Set adress (dword)!
 {
 	INLINEREGISTER uint_32 d;
 	d = val;
-	MMU_INTERNAL_ww(segdesc,segment,offset,d&0xFFFF,index,is_offset16); //Low first!
+	MMU_INTERNAL_ww(segdesc,segment,offset,d&0xFFFF,(index|0x80),is_offset16); //Low first!
 	d >>= 16; //Shift low!
-	MMU_INTERNAL_ww(segdesc,segment,offset+2,d,index|2,is_offset16); //High last!
+	MMU_INTERNAL_ww(segdesc,segment,offset+2,d,(index|2|0x80),is_offset16); //High last!
 }
 
 //Routines used by CPU!

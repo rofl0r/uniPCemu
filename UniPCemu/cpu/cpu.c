@@ -1135,9 +1135,20 @@ void CPU_PUSH8(byte val) //Push Byte!
 	CPU_PUSH16(&v); //Push 16!
 }
 
+byte CPU_PUSH8_BIU(byte val) //Push Byte!
+{
+	word v=val; //Convert!
+	return CPU_PUSH16_BIU(&v); //Push 16!
+}
+
 byte CPU_POP8()
 {
 	return (CPU_POP16()&0xFF); //Give the result!
+}
+
+byte CPU_POP8_BIU() //Request an 8-bit POP from the BIU!
+{
+	return (CPU_POP16_BIU()); //Give the result: we're requesting from the BIU to POP one entry!
 }
 
 //Changes in stack during PUSH and POP operations!
@@ -1198,6 +1209,50 @@ void CPU_PUSH16(word *val) //Push Word!
 	}
 }
 
+byte CPU_PUSH16_BIU(word *val) //Push Word!
+{
+	if (EMULATED_CPU<=CPU_NECV30) //186- we push the decremented value of SP to the stack instead of the original value?
+	{
+		if (CPU[activeCPU].pushbusy==0)
+		{
+			stack_push(0); //We're pushing a 16-bit value!
+			CPU[activeCPU].pushbusy = 1; //We're pending!
+		}
+		if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+		{
+			CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+			return 1;
+		}
+	}
+	else //286+?
+	{
+		static word oldval;
+		if (CPU[activeCPU].pushbusy==0)
+		{
+			oldval = *val; //Original value, saved before decrementing (E)SP!
+			stack_push(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're pushing a 16-bit or 32-bit value!
+			CPU[activeCPU].pushbusy = 1; //We're pending!
+		}
+		if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+		{
+			if (BIU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			{
+				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+				return 1;
+			}
+		}
+		else
+		{
+			if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			{
+				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+			}
+			//MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
+		}
+	}
+	return 0; //Not ready yet!
+}
+
 word CPU_POP16() //Pop Word!
 {
 	word result;
@@ -1211,6 +1266,69 @@ word CPU_POP16() //Pop Word!
 	}
 	stack_pop(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're popping a 16-bit value!
 	return result; //Give the result!
+}
+
+byte CPU_POP16_BIU() //Pop Word!
+{
+	byte result;
+	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+	{
+		result = BIU_request_MMUrdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+	}
+	else //16-bit?
+	{
+		 result = BIU_request_MMUrw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+	}
+	if (result) //Requested?
+	{
+		stack_pop(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're popping a 16-bit value!
+	}
+	return result; //Give the result!
+}
+
+byte CPU_PUSH32_BIU(uint_32 *val) //Push DWord!
+{
+	if (EMULATED_CPU<CPU_80386) //286-?
+	{
+		if (CPU[activeCPU].pushbusy==0)
+		{
+			stack_push(0); //We're pushing a 16-bit value!
+			CPU[activeCPU].pushbusy = 1; //We're pending!
+		}
+		if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+		{
+			CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+			return 1;
+		}
+	}
+	else //386+?
+	{
+		static uint_32 oldval;
+		if (CPU[activeCPU].pushbusy==0)
+		{
+			oldval = *val; //Original value, saved before decrementing (E)SP!
+			stack_push(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're pushing a 16-bit or 32-bit value!
+			CPU[activeCPU].pushbusy = 1; //We're pending!
+		}
+		if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+		{
+			if (BIU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			{
+				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+				return 1;
+			}
+		}
+		else
+		{
+			if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),(word)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			{
+				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+				return 1;
+			}
+			//MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
+		}
+	}
+	return 0; //Not ready!
 }
 
 void CPU_PUSH32(uint_32 *val) //Push DWord!
@@ -1247,6 +1365,24 @@ uint_32 CPU_POP32() //Full stack used!
 		result = (uint_32)MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 	}
 	stack_pop(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're popping a 32-bit value!
+	return result; //Give the result!
+}
+
+byte CPU_POP32_BIU() //Full stack used!
+{
+	byte result;
+	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+	{
+		result = BIU_request_MMUrdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+	}
+	else //16-bit?
+	{
+		result = BIU_request_MMUrw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+	}
+	if (result) //Requested?
+	{
+		stack_pop(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //We're popping a 32-bit value!
+	}
 	return result; //Give the result!
 }
 

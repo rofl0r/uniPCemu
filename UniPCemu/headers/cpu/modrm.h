@@ -193,12 +193,18 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading);
 //Read/write things on MODR/M:
 
 byte modrm_read8(MODRM_PARAMS *params, int whichregister);
+byte modrm_read8_BIU(MODRM_PARAMS *params, int whichregister, byte *result); //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 word modrm_read16(MODRM_PARAMS *params, int whichregister);
+byte modrm_read16_BIU(MODRM_PARAMS *params, int whichregister, word *result); //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister);
+byte modrm_read32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 *result); //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value);
+byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value);
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL);
+byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL);
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value);
+byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value);
 
 //Just the adressing:
 word modrm_lea16(MODRM_PARAMS *params, int whichregister); //For LEA instructions!
@@ -257,4 +263,5 @@ void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichreg
 void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //16-bit handler!
 void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //32-bit handler!
 void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type); //In the CPU module, generates debugger modR/M info!
+
 #endif

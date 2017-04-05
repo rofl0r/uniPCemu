@@ -204,6 +204,43 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 	}
 }
 
+byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value)
+{
+	byte *result; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		result = (byte *)/*memprotect(*/params->info[whichregister].reg8/*,1,"CPU_REGISTERS")*/; //Give register!
+		if (result) //Gotten?
+		{
+			*result = value; //Write the data to the result!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Write to 8-bit register failed: not registered!");
+		}
+		return 1; //Ready!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Get the base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return BIU_request_MMUwb(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask,value,(params->info[whichregister].memorymask==0xFFFF)); //Write the data to memory using byte depth!
+		break;
+		//return result; //Give memory!
+	default:
+		halt_modrm("MODRM: Unknown MODR/M8!");
+		break;
+	}
+	return 0; //Not ready!
+}
+
 extern uint_32 destEIP; //For control transfers!
 
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
@@ -218,7 +255,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		{
 			*result = value; //Write the data to the result!
 			destEIP = REG_EIP; //Our instruction pointer!
-			modrm_updatedsegment(result,value,0); //Plain update of the segment register, if needed!
+			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
 		}
 		else if (LOG_INVALID_REGISTERS)
 		{
@@ -240,6 +277,44 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		halt_modrm("MODRM: Unknown MODR/M16!");
 		break;
 	}	
+}
+
+byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
+{
+	word *result; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		result = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
+		if (result) //Gotten?
+		{
+			*result = value; //Write the data to the result!
+			destEIP = REG_EIP; //Our instruction pointer!
+			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Write to 16-bit register failed: not registered!");
+		}
+		return 1; //Ready!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset;
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return BIU_request_MMUww(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask, value,(params->info[whichregister].memorymask==0xFFFF)); //Write the data to memory using byte depth!
+		break;
+	default:
+		halt_modrm("MODRM: Unknown MODR/M16!");
+		break;
+	}
+	return 0; //Not ready!
 }
 
 byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
@@ -352,6 +427,42 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 	}
 }
 
+byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
+{
+	uint_32 *result; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
+		if (result) //Gotten?
+		{
+			*result = value; //Write the data to the result!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Write to 32-bit register failed: not registered!");
+		}
+		return 1; //Ready!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Load the base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return BIU_request_MMUwdw(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask,value,(params->info[whichregister].memorymask==0xFFFF)); //Write the data to memory using byte depth!
+		break;
+	default:
+		halt_modrm("MODRM: Unknown MODR/M32!");
+		break;
+	}
+	return 0; //Not ready!
+}
+
 byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 {
 	byte *result; //The result holder if needed!
@@ -379,6 +490,41 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
 		return MMU_rb(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask, 0,(params->info[whichregister].memorymask==0xFFFF)); //Read the value from memory!
+	default:
+		halt_modrm("MODRM: Unknown MODR/M8!");
+		return 0; //Unknown!
+	}	
+	return 0; //Default: unknown value!!
+}
+
+byte modrm_read8_BIU(MODRM_PARAMS *params, int whichregister, byte *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
+{
+	byte *resultsrc; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		resultsrc = (byte *)/*memprotect(*/params->info[whichregister].reg8/*,1,"CPU_REGISTERS")*/; //Give register!
+		if (resultsrc) //Valid?
+		{
+			*result = *resultsrc; //Read register!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Read from 8-bit register failed: not registered!");
+		}
+		return 2; //We're a register!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Load the base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return BIU_request_MMUrb(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask,(params->info[whichregister].memorymask==0xFFFF)); //Read the value from memory!
 	default:
 		halt_modrm("MODRM: Unknown MODR/M8!");
 		return 0; //Unknown!
@@ -422,6 +568,43 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 	return 0; //Default: not reached!
 }
 
+byte modrm_read16_BIU(MODRM_PARAMS *params, int whichregister, word *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
+{
+	word *resultsrc; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		resultsrc = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
+		if (resultsrc && result) //Valid?
+		{
+			*result = *resultsrc; //Read register!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Read from 16-bit register failed: not registered!");
+		}
+		return 2; //We're a register!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Load base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add to get the destination offset!
+		return BIU_request_MMUrw(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask, (params->info[whichregister].memorymask==0xFFFF)); //Read the value from memory!
+		
+	default:
+		halt_modrm("MODRM: Unknown MODR/M16!");
+		return 0; //Unknown!
+	}
+	
+	return 0; //Default: not reached!
+}
+
 uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 {
 	uint_32 *result; //The result holder if needed!
@@ -449,6 +632,43 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 		}
 		offset += modrm_addoffset; //Add the destination offset!
 		return MMU_rdw(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment,offset&params->info[whichregister].memorymask, 0,(params->info[whichregister].memorymask==0xFFFF)); //Read the value from memory!
+		
+	default:
+		halt_modrm("MODRM: Unknown MODR/M32!");
+		return 0; //Unknown!
+	}	
+	
+	return 0; //Default: not reached!
+}
+
+byte modrm_read32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
+{
+	uint_32 *resultsrc; //The result holder if needed!
+	uint_32 offset;
+	switch (params->info[whichregister].isreg) //What type?
+	{
+	case 1: //Register?
+		resultsrc = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
+		if (resultsrc) //Valid?
+		{
+			*result = *resultsrc; //Read register!
+		}
+		else if (LOG_INVALID_REGISTERS)
+		{
+			dolog("debugger","Read from 32-bit register failed: not registered!");
+		}
+		return 2; //We're a register!
+		break;
+	case 2: //Memory?
+		last_modrm = 1; //ModR/M!
+		offset = params->info[whichregister].mem_offset; //Load base offset!
+		if (!modrm_addoffset) //We're the offset itself?
+		{
+			modrm_lastsegment = params->info[whichregister].mem_segment;
+			modrm_lastoffset = offset;
+		}
+		offset += modrm_addoffset; //Add the destination offset!
+		return BIU_request_MMUrdw(params->info[whichregister].segmentregister_index, offset&params->info[whichregister].memorymask, (params->info[whichregister].memorymask==0xFFFF)); //Read the value from memory!
 		
 	default:
 		halt_modrm("MODRM: Unknown MODR/M32!");

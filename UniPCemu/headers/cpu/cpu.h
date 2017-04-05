@@ -907,6 +907,7 @@ typedef struct PACKED
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?
 	byte instructionstep; //Step we're at, executing the instruction that's fetched and loaded to execute.
+	byte pushbusy; //Is a push operation busy?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
@@ -1177,16 +1178,22 @@ void CPU_exec(); //Run one CPU OPCode!
 word CPU_segment(byte defaultsegment); //Plain segment to use (Plain and overrides)!
 char *CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
 
-//PUSH and POP for CPU STACK!
+//PUSH and POP for CPU STACK! The _BIU suffixes place a request for the BIU to handle it (and requires a response to be read, which is either the result of the operation or 1 for writes).
 
 void CPU_PUSH8(byte val); //Push Byte!
+byte CPU_PUSH8_BIU(byte val); //Push Byte!
 byte CPU_POP8();
+byte CPU_POP8_BIU(); //Request an 8-bit POP from the BIU!
 
 void CPU_PUSH16(word *val); //Push Word!
+byte CPU_PUSH16_BIU(word *val); //Push Word!
 word CPU_POP16();
+byte CPU_POP16_BIU(); //Pop Word!
 
 void CPU_PUSH32(uint_32 *val); //Push DWord!
+byte CPU_PUSH32_BIU(uint_32 *val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
+byte CPU_POP32_BIU(); //Full stack used!
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!

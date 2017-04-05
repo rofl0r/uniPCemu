@@ -225,34 +225,43 @@ OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from t
 
 //Actual requesting something from the BIU, for the CPU module to call!
 //MMU accesses
-byte BIU_request_MMUrb(uint_32 addr)
+
+extern uint_32 MMU_BIUAddr; //BIU address we're using!
+
+byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD,addr); //Request a read!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUREAD,MMU_BIUAddr); //Request a read!
 }
 
-byte BIU_request_MMUrw(uint_32 addr)
+byte BIU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,addr); //Request a read!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,MMU_BIUAddr); //Request a read!
 }
 
-byte BIU_request_MMUrdw(uint_32 addr)
+byte BIU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,addr); //Request a read!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,MMU_BIUAddr); //Request a read!
 }
 
-byte BIU_request_MMUwb(uint_32 addr, byte value)
+byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUWRITE,(uint_64)addr|((uint_64)value<<32)); //Request a read!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUWRITE,(uint_64)MMU_BIUAddr|((uint_64)val<<32)); //Request a read!
 }
 
-byte BIU_request_MMUww(uint_32 addr, word value)
+byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)MMU_BIUAddr|((uint_64)val<<32))); //Request a write!
 }
 
-byte BIU_request_MMUwdw(uint_32 addr, uint_32 value)
+byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32))); //Request a write!
+	MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)MMU_BIUAddr|((uint_64)val<<32))); //Request a write!
 }
 
 //BUS(I/O address space) accesses for the Execution Unit to make, and their results!

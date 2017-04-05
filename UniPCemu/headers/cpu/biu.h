@@ -34,12 +34,12 @@ void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 
 //BIU request/responses!
 //Requests for memory accesses!
-byte BIU_request_MMUrb(uint_32 addr);
-byte BIU_request_MMUrw(uint_32 addr);
-byte BIU_request_MMUrdw(uint_32 addr);
-byte BIU_request_MMUwb(uint_32 addr, byte value);
-byte BIU_request_MMUww(uint_32 addr, word value);
-byte BIU_request_MMUwdw(uint_32 addr, uint_32 value);
+byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16);
+byte BIU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16);
+byte BIU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16);
+byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16);
+byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16);
+byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16);
 //Requests for BUS(I/O address space) accesses!
 byte BIU_request_BUSrb(uint_32 addr);
 byte BIU_request_BUSrw(uint_32 addr);
