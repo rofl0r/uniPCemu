@@ -14,7 +14,7 @@ typedef struct
 	uint_32 PIQ_EIP; //EIP of the current PIQ data!
 
 	uint_32 currentrequest; //Current request!
-	uint_64 currentpayload; //Current payload!
+	uint_64 currentpayload[2]; //Current payload!
 	uint_32 currentresult; //Current result!
 	uint_32 currentaddress; //Current address!
 	byte prefetchclock; //For clocking the BIU to fetch data to/from memory!
