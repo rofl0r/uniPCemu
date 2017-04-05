@@ -115,8 +115,8 @@ uint_32 BUSdatalatch=0;
 void processBUS(uint_32 address, byte index, byte data)
 {
 	uint_32 masks[4] = {0xFF,0xFF00,0xFF0000,0xFF000000};
-	BUSdatalatch &= ~masks[index]; //Clear the bits!
-	BUSdatalatch |= (data<<(index<<3)); //Set the bits on the BUS!
+	BUSdatalatch &= ~masks[index&3]; //Clear the bits!
+	BUSdatalatch |= (data<<((index&3)<<3)); //Set the bits on the BUS!
 	latchBUS(address,BUSdatalatch); //This address is to be latched!
 }
 

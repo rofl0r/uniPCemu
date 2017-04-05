@@ -531,14 +531,13 @@ extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occur
 void CPU_tickBIU()
 {
 	if (!BIU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles,curcycle,DMAcycles;
+	byte cycles, iorcycles, iowcycles, iowcyclestart, iowcyclespending, prefetchcycles,curcycle;
 	cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 	iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 	iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 	iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 	prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 	prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
-	DMAcycles = 1; //Count 
 	for (iowcyclespending=iowcycles, iowcyclestart=0;iowcyclestart && iowcyclespending;++iowcyclestart)
 	{
 		if (((BIU[activeCPU].prefetchclock+cycles-iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
