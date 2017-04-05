@@ -1604,12 +1604,19 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching) //Are we fetching?
 		{
 			CPU[activeCPU].executed = 0; //Not executed yet!
-			if (CPU_readOP_prefix(&OP))
+			if (CPU_readOP_prefix(&OP)) //Finished 
 			{
 				if (!CPU[activeCPU].cycles_OP) CPU[activeCPU].cycles_OP = 1; //Take 1 cycle by default!
 				goto fetchinginstruction; //Process prefix(es) and read OPCode!
 			}
-			memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Finished fetching!
+			if (CPU[activeCPU].cycles_EA==0)
+			{
+				memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Finished fetching!
+			}
+			else //EA cycles still set? We're pending EA!
+			{
+				goto fetchinginstruction; //EA cycles are timing!
+			}
 		}
 		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
 		newREP = 1; //We're a new repeating instruction!
