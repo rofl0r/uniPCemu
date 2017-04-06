@@ -220,7 +220,7 @@ byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value)
 		{
 			dolog("debugger","Write to 8-bit register failed: not registered!");
 		}
-		return 1; //Ready!
+		return 2; //Ready!
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
@@ -297,7 +297,7 @@ byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte
 		{
 			dolog("debugger","Write to 16-bit register failed: not registered!");
 		}
-		return 1; //Ready!
+		return 2; //Ready!
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
@@ -451,7 +451,7 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		{
 			dolog("debugger","Write to 32-bit register failed: not registered!");
 		}
-		return 1; //Ready!
+		return 2; //Ready!
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
