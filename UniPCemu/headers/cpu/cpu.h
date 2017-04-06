@@ -906,7 +906,7 @@ typedef struct PACKED
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?
-	byte instructionstep, internalinstructionstep; //Step we're at, executing the instruction that's fetched and loaded to execute.
+	byte instructionstep, internalinstructionstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
 	byte pushbusy; //Is a push operation busy?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
