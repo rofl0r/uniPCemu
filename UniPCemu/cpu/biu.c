@@ -255,12 +255,12 @@ byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16
 
 byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
 }
 
 byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
 }
 
 //BUS(I/O address space) accesses for the Execution Unit to make, and their results!
@@ -276,7 +276,7 @@ byte BIU_request_BUSrw(uint_32 addr)
 
 byte BIU_request_BUSrdw(uint_32 addr)
 {
-	return BIU_request(REQUEST_IOREAD|REQUEST_16BIT,addr,0); //Request a read!
+	return BIU_request(REQUEST_IOREAD|REQUEST_32BIT,addr,0); //Request a read!
 }
 
 byte BIU_request_BUSwb(uint_32 addr, byte value)
@@ -291,7 +291,7 @@ byte BIU_request_BUSww(uint_32 addr, word value)
 
 byte BIU_request_BUSwdw(uint_32 addr, uint_32 value)
 {
-	return BIU_request(REQUEST_IOWRITE|REQUEST_16BIT,((uint_64)addr|((uint_64)value<<32)),0); //Request a write!
+	return BIU_request(REQUEST_IOWRITE|REQUEST_32BIT,((uint_64)addr|((uint_64)value<<32)),0); //Request a write!
 }
 
 byte BIU_readResultb(byte *result) //Read the result data of a BUS request!
