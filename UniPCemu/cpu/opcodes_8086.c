@@ -3187,7 +3187,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		static word value;
 		//Execution step!
 		if (CPU8086_POPw(0,&value)) return; //POP first!
-		if (CPU8086_instructionstepwritemodrmw(2,1,value,0)) return; //POP r/m16
+		if (CPU8086_instructionstepwritemodrmw(2,value,1,0)) return; //POP r/m16
 		if (params.info[1].reg16 == &CPU[activeCPU].registers->SS) //Popping into SS?
 		{
 			CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
