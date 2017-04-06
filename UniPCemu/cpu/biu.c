@@ -48,7 +48,7 @@ void CPU_initBIU()
 	{
 		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
-	BIU[activeCPU].requests = allocfifobuffer(sizeof(uint_64)<<1,0); //Our request buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
 	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_64)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 }
 
@@ -197,7 +197,7 @@ OPTINLINE byte BIU_request(uint_32 requesttype, uint_64 payload1, uint_64 payloa
 	uint_32 request1, request2;
 	request1 = (payload1&0xFFFFFFFF); //Low!
 	request2 = (payload1>>32); //High!
-	if (fifobuffer_freesize(BIU[activeCPU].requests)>=12) //Enough to accept?
+	if (fifobuffer_freesize(BIU[activeCPU].requests)>=20) //Enough to accept?
 	{
 		result = writefifobuffer32(BIU[activeCPU].requests,requesttype); //Request type!
 		result &= writefifobuffer32_2u(BIU[activeCPU].requests,request1,request2); //Payload!
@@ -214,13 +214,13 @@ OPTINLINE byte BIU_response(uint_64 response) //BIU: Response given from the BIU
 	uint_32 response1, response2;
 	response1 = (response&0xFFFFFFFF); //Low!
 	response2 = (response>>32); //High!
-	return (writefifobuffer32_2u(BIU[activeCPU].requests,response1,response2)); //Response!
+	return (writefifobuffer32_2u(BIU[activeCPU].responses,response1,response2)); //Response!
 }
 
 OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from the BIU!
 {
 	uint_32 response1, response2;
-	if (readfifobuffer32_2u(BIU[activeCPU].requests,&response1,&response2)) //Do we have a request and enough size for a response?
+	if (readfifobuffer32_2u(BIU[activeCPU].responses,&response1,&response2)) //Do we have a request and enough size for a response?
 	{
 		*response = (((uint_64)response2<<32)|(uint_64)response1); //Give the request!
 		return 1; //OK!
@@ -442,13 +442,21 @@ OPTINLINE byte BIU_processRequests()
 					segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 					segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
 					is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-					BIU[activeCPU].currentresult = MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16); //Read first byte!
+					BIU[activeCPU].currentresult = ((MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16))<<BIU_access_readshift[0]); //Read first byte!
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 						{
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
+						else //Response failed?
+						{
+							BIU[activeCPU].currentrequest &= ~REQUEST_SUB1; //Request low 8-bit half again(low byte)!
+						}
+					}
+					else
+					{
+						++BIU[activeCPU].currentaddress; //Next address!
 					}
 					return 1; //Handled!
 					break;
@@ -466,13 +474,18 @@ OPTINLINE byte BIU_processRequests()
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
-							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF),is_offset16); //Write to memory now!									
+							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!									
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
+						}
+						else //Response failed? Try again!
+						{
+							BIU[activeCPU].currentrequest &= ~REQUEST_SUB1; //Request 8-bit half again(low byte)!
 						}
 					}
 					else //Busy request?
 					{
-						MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF),is_offset16); //Write to memory now!
+						MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
+						++BIU[activeCPU].currentaddress; //Next address!
 					}
 					return 1; //Handled!
 					break;
@@ -482,19 +495,19 @@ OPTINLINE byte BIU_processRequests()
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
-						BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					}
+					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					if (BIU[activeCPU].currentrequest&REQUEST_32BIT) //32-bit?
 					{
-						BIU[activeCPU].currentresult = PORT_IN_D(BIU[activeCPU].currentpayload[0]&0xFFFF); //Read byte!
+						BIU[activeCPU].currentresult = PORT_IN_D(BIU[activeCPU].currentaddress&0xFFFF); //Read byte!
 					}
 					else if (BIU[activeCPU].currentrequest&REQUEST_16BIT) //16-bit?
 					{
-						BIU[activeCPU].currentresult = PORT_IN_W(BIU[activeCPU].currentpayload[0]&0xFFFF); //Read byte!
+						BIU[activeCPU].currentresult = PORT_IN_W(BIU[activeCPU].currentaddress&0xFFFF); //Read byte!
 					}
 					else //8-bit?
 					{
-						BIU[activeCPU].currentresult = PORT_IN_B(BIU[activeCPU].currentpayload[0]&0xFFFF); //Read byte!
+						BIU[activeCPU].currentresult = PORT_IN_B(BIU[activeCPU].currentaddress&0xFFFF); //Read byte!
 					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
@@ -502,6 +515,14 @@ OPTINLINE byte BIU_processRequests()
 						{
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
+						else //Response failed?
+						{
+							BIU[activeCPU].currentrequest &= ~REQUEST_SUB1; //Request low 8-bit half again(low byte)!
+						}
+					}
+					else
+					{
+						++BIU[activeCPU].currentaddress; //Next address!
 					}
 					return 1; //Handled!
 					break;
@@ -532,6 +553,14 @@ OPTINLINE byte BIU_processRequests()
 						{
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
+						else //Response failed?
+						{
+							BIU[activeCPU].currentrequest &= ~REQUEST_SUB1; //Request low 8-bit half again(low byte)!
+						}
+					}
+					else
+					{
+						++BIU[activeCPU].currentaddress; //Next address!
 					}
 					return 1; //Handled!
 					break;
