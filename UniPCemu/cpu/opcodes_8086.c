@@ -4659,9 +4659,11 @@ void op_grp5() {
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+3,1,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 
-		destEIP = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0,!CPU_Address_size[activeCPU]);
+		if (CPU8086_internal_stepreadmodrmw(0,&destIP,1)) return; //Get destination IP!
 		CPUPROT1
-		destCS = MMU_rw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset + 2, 0,!CPU_Address_size[activeCPU]);
+		destEIP = (word)destIP; //Convert to EIP!
+		modrm_addoffset = 2; //Then destination CS!
+		if (CPU8086_internal_stepreadmodrmw(2,&destCS,1)) return; //Get destination CS!
 		CPUPROT1
 		segmentWritten(CPU_SEGMENT_CS, destCS, 1);
 		CPU_flushPIQ(-1); //We're jumping to another address!
