@@ -1660,8 +1660,11 @@ OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
 //TEST : same as AND, but discarding the result!
 OPTINLINE void CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 {
-	byte tmpdest = dest;
-	CPU8086_internal_AND8(&tmpdest,src,0);
+	CPUPROT1
+	oper1b = dest;
+	oper2b = src;
+	op_and8();
+	//We don't write anything back for TEST, so only execution step is used!
 	//Adjust timing for TEST!
 	switch (flags) //What type of operation?
 	{
@@ -1702,11 +1705,16 @@ OPTINLINE void CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 		}
 		break;
 	}
+	CPUPROT2
 }
+
 OPTINLINE void CPU8086_internal_TEST16(word dest, word src, byte flags)
 {
-	word tmpdest = dest;
-	CPU8086_internal_AND16(&tmpdest,src,0);
+	CPUPROT1
+	oper1 = dest;
+	oper2 = src;
+	op_and16();
+	//We don't write anything back for TEST, so only execution step is used!
 	//Adjust timing for TEST!
 	switch (flags) //What type of operation?
 	{
@@ -1747,6 +1755,7 @@ OPTINLINE void CPU8086_internal_TEST16(word dest, word src, byte flags)
 		}
 		break;
 	}
+	CPUPROT2
 }
 
 //MOV
