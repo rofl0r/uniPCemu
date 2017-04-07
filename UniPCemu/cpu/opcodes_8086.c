@@ -1637,7 +1637,7 @@ OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
 	{
 		oper1 = dest?*dest:oper1;
 		oper2 = src;
-		op_or16();
+		op_xor16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	}
