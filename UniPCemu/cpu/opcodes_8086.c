@@ -956,8 +956,6 @@ OPTINLINE void CPU8086_internal_INC8(byte *reg)
 		{
 			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
 		}
-		CPU_addWordMemoryTiming();
-		CPU_addWordMemoryTiming();
 	}
 	CPUPROT2
 }
@@ -1002,8 +1000,6 @@ OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 		{
 			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
 		}
-		CPU_addWordMemoryTiming();
-		CPU_addWordMemoryTiming();
 	}
 	CPUPROT2
 }
@@ -1116,18 +1112,33 @@ OPTINLINE void CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = addition;
-	op_add8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = addition;
+		op_add8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_ADD16(word *dest, word addition, byte flags)
@@ -1139,18 +1150,35 @@ OPTINLINE void CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = addition;
-	op_add16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = addition;
+		op_add16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1164,18 +1192,33 @@ OPTINLINE void CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = addition;
-	op_adc8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = addition;
+		op_adc8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_ADC16(word *dest, word addition, byte flags)
@@ -1187,18 +1230,35 @@ OPTINLINE void CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = addition;
-	op_adc16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = addition;
+		op_adc16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1213,18 +1273,33 @@ OPTINLINE void CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = src;
-	op_or8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = src;
+		op_or8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_OR16(word *dest, word src, byte flags)
@@ -1236,18 +1311,35 @@ OPTINLINE void CPU8086_internal_OR16(word *dest, word src, byte flags)
 	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = src;
-	op_or16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = src;
+		op_or16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1257,18 +1349,33 @@ OPTINLINE void CPU8086_internal_AND8(byte *dest, byte src, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = src;
-	op_and8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = src;
+		op_and8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_AND16(word *dest, word src, byte flags)
@@ -1276,18 +1383,35 @@ OPTINLINE void CPU8086_internal_AND16(word *dest, word src, byte flags)
 	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault on write only!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = src;
-	op_and16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = src;
+		op_and16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1302,18 +1426,33 @@ OPTINLINE void CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 	if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault on write only!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = addition;
-	op_sub8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = addition;
+		op_sub8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_SUB16(word *dest, word addition, byte flags)
@@ -1325,18 +1464,35 @@ OPTINLINE void CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault on write only!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = addition;
-	op_sub16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = addition;
+		op_sub16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1350,18 +1506,33 @@ OPTINLINE void CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = addition;
-	op_sbb8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = addition;
+		op_sbb8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_SBB16(word *dest, word addition, byte flags)
@@ -1373,18 +1544,35 @@ OPTINLINE void CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = addition;
-	op_sbb16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = addition;
+		op_sbb16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
@@ -1399,18 +1587,33 @@ OPTINLINE void CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 	if (!dest) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1b = dest?*dest:modrm_read8(&params,MODRM_src0);
-	oper2b = src;
-	op_xor8();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1b = dest?*dest:oper1b;
+		oper2b = src;
+		op_xor8();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res8;
 	}
 	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,res8); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB8(dest, flags);
 	CPUPROT2
 }
 OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
@@ -1422,18 +1625,35 @@ OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
 	if (!dest) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 	if (!dest) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 	CPUPROT1
-	oper1 = dest?*dest:modrm_read16(&params,MODRM_src0);
-	oper2 = src;
-	op_xor16();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1 = dest?*dest:oper1;
+		oper2 = src;
+		op_or16();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+	}
 	if (dest) //Register?
 	{
 		*dest = res16;
 	}
 	else //Memory?
 	{
-		modrm_write16(&params,MODRM_src0,res16,0); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+		}
+		CPU_addWordMemoryTiming();
+		CPU_addWordMemoryTiming();
 	}
-	timing_AND_OR_XOR_ADD_SUB16(dest, flags);
 	CPUPROT2
 }
 
