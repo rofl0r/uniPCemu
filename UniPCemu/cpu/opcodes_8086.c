@@ -702,6 +702,60 @@ byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr) //Bas
 	return 0; //Ready to process further! We're loaded!
 }
 
+byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16)
+{
+	byte dummy;
+	byte BIUtype;
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if ((BIUtype = BIU_request_MMUwb(segment,offset,val,is_offset16))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultb(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16)
+{
+	word dummy;
+	byte BIUtype;
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if ((BIUtype = BIU_request_MMUww(segment,offset,val,is_offset16))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
 byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL)
 {
 	word dummy;
@@ -1766,78 +1820,22 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 		return;
 	}
 	CPUPROT1
-	if (dest) //Register?
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
-		*dest = val;
-		switch (flags) //What type are we?
+		if (dest) //Register?
 		{
-		case 0: //Reg+Reg?
-			break; //Unused!
-		case 1: //Accumulator from immediate memory address?
-			CPU[activeCPU].cycles_OP += 10; //[imm16]->Accumulator!
-			break;
-		case 2: //ModR/M Memory->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP += 8; //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
-			}
-			break;
-		case 3: //ModR/M Memory immediate->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP += 10; //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
-			}
-			break;
-		case 4: //Register immediate->Reg?
-			CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
-			break;
-		case 8: //SegReg->Reg?
-			if (MODRM_src0 || (MODRM_EA(params)==0)) //From register?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
-			}
-			else //From memory?
-			{
-				CPU[activeCPU].cycles_OP += 8; //Mem->SegReg!
-			}
-			break;
-		}
-	}
-	else //Memory?
-	{
-		if (custommem)
-		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			MMU_wb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU]); //Write to memory directly!
-			CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
-			CPU_addWordMemoryTiming(); //Second access for writeback!
-		}
-		else //ModR/M?
-		{
-			if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-			modrm_write8(&params,MODRM_src0,val); //Write the result to memory!
+			*dest = val;
 			switch (flags) //What type are we?
 			{
 			case 0: //Reg+Reg?
 				break; //Unused!
 			case 1: //Accumulator from immediate memory address?
-				CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+				CPU[activeCPU].cycles_OP += 10; //[imm16]->Accumulator!
 				break;
 			case 2: //ModR/M Memory->Reg?
 				if (MODRM_EA(params)) //Memory?
 				{
-					CPU[activeCPU].cycles_OP += 9; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 8; //Mem->Reg!
 				}
 				else //Reg->Reg?
 				{
@@ -1851,24 +1849,95 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 				}
 				else //Reg->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 				}
 				break;
-			case 4: //Register immediate->Reg (Non-existant!!!)?
+			case 4: //Register immediate->Reg?
 				CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
 				break;
-			case 8: //Reg->SegReg?
-				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+			case 8: //SegReg->Reg?
+				if (MODRM_src0 || (MODRM_EA(params)==0)) //From register?
 				{
-					CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
 				}
 				else //From memory?
 				{
-					CPU[activeCPU].cycles_OP += 9; //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 8; //Mem->SegReg!
 				}
 				break;
 			}
+			++CPU[activeCPU].internalinstructionstep; //Skip the writeback step!
 		}
+		else //Memory destination?
+		{
+			if (custommem)
+			{
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
+				{
+					return; //Abort on fault!
+				}
+				CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+				CPU_addWordMemoryTiming(); //Second access for writeback!
+			}
+			else //ModR/M?
+			{
+				if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 9; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 10; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg (Non-existant!!!)?
+					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					break;
+				case 8: //Reg->SegReg?
+					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP += 9; //SegReg->Mem!
+					}
+					break;
+				}
+			}
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		if (custommem)
+		{
+			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return; //Write to memory directly!
+		}
+		else //ModR/M?
+		{
+			if (CPU8086_internal_stepwritemodrmb(0,val,MODRM_src0)) return; //Write the result to memory!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	CPUPROT2
 }
@@ -1879,91 +1948,26 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 		return;
 	}
 	CPUPROT1
-	if (dest) //Register?
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
-		destEIP = REG_EIP; //Store (E)IP for safety!
-		modrm_updatedsegment(dest,val,0); //Check for an updated segment!
-		CPUPROT1
-		*dest = val;
-		switch (flags) //What type are we?
+		if (dest) //Register?
 		{
-		case 0: //Reg+Reg?
-			break; //Unused!
-		case 1: //Accumulator from immediate memory address?
-			CPU[activeCPU].cycles_OP += 10; //[imm16]->Accumulator!
-			CPU_addWordMemoryTiming(); //To memory?
-			break;
-		case 2: //ModR/M Memory->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP += 8; //Mem->Reg!
-				if (!dest) CPU_addWordMemoryTiming(); //To memory?
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
-			}
-			break;
-		case 3: //ModR/M Memory immediate->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP += 10; //Mem->Reg!
-				CPU_addWordMemoryTiming();
-				if (!dest) CPU_addWordMemoryTiming(); //To memory?
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
-			}
-			break;
-		case 4: //Register immediate->Reg?
-			CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
-			break;
-		case 8: //SegReg->Reg?
-			if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-			{
-				CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
-			}
-			else //From memory?
-			{
-				CPU[activeCPU].cycles_OP += 8; //Mem->SegReg!
-				if (!dest) CPU_addWordMemoryTiming(); //To memory?
-			}
-			break;
-		}
-		CPUPROT2
-	}
-	else //Memory?
-	{
-		if (custommem)
-		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU]); //Write to memory directly!
-			CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
-			CPU_addWordMemoryTiming();
-		}
-		else //ModR/M?
-		{
-			if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
-			modrm_write16(&params,MODRM_src0,val,0); //Write the result to memory!
+			destEIP = REG_EIP; //Store (E)IP for safety!
+			modrm_updatedsegment(dest,val,0); //Check for an updated segment!
+			CPUPROT1
+			*dest = val;
 			switch (flags) //What type are we?
 			{
 			case 0: //Reg+Reg?
 				break; //Unused!
 			case 1: //Accumulator from immediate memory address?
-				CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+				CPU[activeCPU].cycles_OP += 10; //[imm16]->Accumulator!
+				CPU_addWordMemoryTiming(); //To memory?
 				break;
 			case 2: //ModR/M Memory->Reg?
 				if (MODRM_EA(params)) //Memory?
 				{
-					CPU[activeCPU].cycles_OP += 9; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 8; //Mem->Reg!
 					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				else //Reg->Reg?
@@ -1975,29 +1979,109 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 				if (MODRM_EA(params)) //Memory?
 				{
 					CPU[activeCPU].cycles_OP += 10; //Mem->Reg!
+					CPU_addWordMemoryTiming();
 					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				else //Reg->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 				}
 				break;
-			case 4: //Register immediate->Reg (Non-existant!!!)?
+			case 4: //Register immediate->Reg?
 				CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
 				break;
-			case 8: //Reg->SegReg?
+			case 8: //SegReg->Reg?
 				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
 				{
-					CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
 				}
 				else //From memory?
 				{
-					CPU[activeCPU].cycles_OP += 9; //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 8; //Mem->SegReg!
 					if (!dest) CPU_addWordMemoryTiming(); //To memory?
 				}
 				break;
 			}
+			CPUPROT2
+			++CPU[activeCPU].internalinstructionstep; //Skip the memory step!
 		}
+		else //Memory?
+		{
+			if (custommem)
+			{
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
+				{
+					return; //Abort on fault!
+				}
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU])) //Error accessing memory?
+				{
+					return; //Abort on fault!
+				}
+				CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+				CPU_addWordMemoryTiming();
+			}
+			else //ModR/M?
+			{
+				if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP += 10; //Accumulator->[imm16]!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 9; //Mem->Reg!
+						if (!dest) CPU_addWordMemoryTiming(); //To memory?
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 10; //Mem->Reg!
+						if (!dest) CPU_addWordMemoryTiming(); //To memory?
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg (Non-existant!!!)?
+					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					break;
+				case 8: //Reg->SegReg?
+					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP += 9; //SegReg->Mem!
+						if (!dest) CPU_addWordMemoryTiming(); //To memory?
+					}
+					break;
+				}
+			}
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		if (custommem)
+		{
+			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return; //Write to memory directly!
+		}
+		else //ModR/M?
+		{
+			if (CPU8086_internal_stepwritemodrmw(0,val,MODRM_src0,0)) return; //Write the result to memory!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	CPUPROT2
 }
