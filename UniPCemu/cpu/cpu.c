@@ -1245,6 +1245,7 @@ byte CPU_PUSH16_BIU(word *val) //Push Word!
 			if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
+				return 1;
 			}
 			//MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
 		}
@@ -1808,109 +1809,117 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 	default: //All newer CPUs using the instruction timing table!
 	case CPU_80286: //Special 286 case for easy 8086-compatibility!
-		//80286 uses other timings than the other chips!
-		ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
-		if (ismemory)
+		if (CPU[activeCPU].executed) //Are we executed?
 		{
-			modrm_threevariablesused = MODRM_threevariables(params); //Three variables used?
-		}
-		else
-		{
-			modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
-		}
-
-		if (CPU_interruptraised) //Any fault is raised?
-		{
-			currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
-		}
-		else
-		{
-			currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
-		}
-		//Try to use the lookup table!
-		for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
-		{
-			if (*currentinstructiontiming) //Valid timing?
+			//80286 uses other timings than the other chips!
+			ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
+			if (ismemory)
 			{
-				if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU])].ismemory[ismemory].basetiming) //Do we have valid timing to use?
+				modrm_threevariablesused = MODRM_threevariables(params); //Three variables used?
+			}
+			else
+			{
+				modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
+			}
+
+			if (CPU_interruptraised) //Any fault is raised?
+			{
+				currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
+			}
+			else
+			{
+				currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+			}
+			//Try to use the lookup table!
+			for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
+			{
+				if (*currentinstructiontiming) //Valid timing?
 				{
-					currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU]<<1)].ismemory[ismemory]; //Our current info to check!
-					if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
+					if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU])].ismemory[ismemory].basetiming) //Do we have valid timing to use?
 					{
-						if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
+						currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU]<<1)].ismemory[ismemory]; //Our current info to check!
+						if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
 						{
-							if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+							if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
 							{
-								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-								CPU[activeCPU].cycles += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
-								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
-								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
-								goto apply286cycles; //Apply the cycles!									
+								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+								{
+									CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!
+									CPU[activeCPU].cycles_OP += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
+									CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
+									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
+									goto apply286cycles; //Apply the cycles!									
+								}
 							}
 						}
-					}
-					else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
-					{
-						if ((ENTER_L&1)==ENTER_L) //Fits in 1 bit?
+						else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
 						{
-							if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+							if ((ENTER_L&1)==ENTER_L) //Fits in 1 bit?
 							{
-								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
-								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
-								goto apply286cycles; //Apply the cycles!									
+								if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
+								{
+									CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!
+									CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
+									CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
+									if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
+									goto apply286cycles; //Apply the cycles!									
+								}
 							}
 						}
-					}
-					else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
-					{
-						if (didJump) //Did we jump?
+						else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
 						{
-							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
+							if (didJump) //Did we jump?
+							{
+								CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!								
+								CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
+								goto apply286cycles; //Apply the cycles!
+							}
+						}
+						else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
+						{
+							if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
+							{
+								CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!								
+								CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
+								goto apply286cycles; //Apply the cycles!								
+							}
+						}
+						else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
+						{
+							if (didRepeating) //Are we executing a repeat?
+							{
+								if (didNewREP) //Including the REP, first instruction?
+								{
+									CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!
+								}
+								else //Already repeating instruction continued?
+								{
+									CPU[activeCPU].cycles_OP = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
+								}
+								CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
+								CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
+								if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
+								goto apply286cycles; //Apply the cycles!
+							}
+						}
+						else //Normal/default behaviour? Always matches!
+						{
+							CPU[activeCPU].cycles_OP = currenttimingcheck->basetiming; //Use base timing specified only!
+							CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP;
 							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
 							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
 							goto apply286cycles; //Apply the cycles!
 						}
-					}
-					else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
-					{
-						if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
-						{
-							CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!								
-							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
-							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
-							goto apply286cycles; //Apply the cycles!								
-						}
-					}
-					else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
-					{
-						if (didRepeating) //Are we executing a repeat?
-						{
-							if (didNewREP) //Including the REP, first instruction?
-							{
-								CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-							}
-							else //Already repeating instruction continued?
-							{
-								CPU[activeCPU].cycles = currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
-							}
-							CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
-							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
-							goto apply286cycles; //Apply the cycles!
-						}
-					}
-					else //Normal/default behaviour? Always matches!
-					{
-						CPU[activeCPU].cycles = currenttimingcheck->basetiming; //Use base timing specified only!
-						CPU[activeCPU].cycles += CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Apply memory and prefetch cycles too!
-						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles; //One cycle to add with added clock!
-						goto apply286cycles; //Apply the cycles!
 					}
 				}
 			}
-		}
+		} //Are we executed?
 		//Fall back to the default handler on 80(1)86 systems!
-	CPU[activeCPU].cycles_OP = 4; //Default to NOP timings!
 	case CPU_8086: //8086/8088?
 	case CPU_NECV30: //NEC V20/V30/80188?
 		//Placeholder until 8086/8088 cycles are fully implemented. Originally 8. 9 works better with 8088 MPH(better sound). 10 works worse than 9(sound disappears into the background)?
