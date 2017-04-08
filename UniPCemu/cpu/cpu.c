@@ -341,7 +341,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 }
 
 //PORT IN/OUT instructions!
-void CPU_PORT_OUT_B(word port, byte data)
+byte CPU_PORT_OUT_B(word port, byte data)
 {
 	//Check rights!
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
@@ -355,9 +355,10 @@ void CPU_PORT_OUT_B(word port, byte data)
 	//Execute it!
 	PORT_OUT_B(port,data); //Port out!
 	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
+	return 0; //TODO!
 }
 
-void CPU_PORT_OUT_W(word port, word data)
+byte CPU_PORT_OUT_W(word port, word data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -377,9 +378,10 @@ void CPU_PORT_OUT_W(word port, word data)
 	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
 	++port; //Check the high port as well!
 	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
+	return 0; //TODO!
 }
 
-void CPU_PORT_OUT_D(word port, uint_32 data)
+byte CPU_PORT_OUT_D(word port, uint_32 data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -406,9 +408,10 @@ void CPU_PORT_OUT_D(word port, uint_32 data)
 	}
 	//Execute it!
 	PORT_OUT_D(port, data); //Port out!
+	return 0; //TODO
 }
 
-void CPU_PORT_IN_B(word port, byte *result)
+byte CPU_PORT_IN_B(word port, byte *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -421,9 +424,10 @@ void CPU_PORT_IN_B(word port, byte *result)
 	//Execute it!
 	*result = PORT_IN_B(port); //Port in!
 	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
+	return 0; //TODO!
 }
 
-void CPU_PORT_IN_W(word port, word *result)
+byte CPU_PORT_IN_W(word port, word *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -443,9 +447,10 @@ void CPU_PORT_IN_W(word port, word *result)
 	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
 	++port; //Check the high port as well!
 	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
+	return 0; //TODO!
 }
 
-void CPU_PORT_IN_D(word port, uint_32 *result)
+byte CPU_PORT_IN_D(word port, uint_32 *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -472,6 +477,7 @@ void CPU_PORT_IN_D(word port, uint_32 *result)
 	}
 	//Execute it!
 	*result = PORT_IN_D(port); //Port in!
+	return 0; //TODO!
 }
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode)
