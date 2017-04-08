@@ -349,13 +349,32 @@ byte CPU_PORT_OUT_B(word port, byte data)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	PORT_OUT_B(port,data); //Port out!
-	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
-	return 0; //TODO!
+	byte dummy;
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSwb(port,data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultb(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte CPU_PORT_OUT_W(word port, word data)
@@ -365,20 +384,37 @@ byte CPU_PORT_OUT_W(word port, word data)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port+1)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	PORT_OUT_W(port, data); //Port out!
-	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
-	++port; //Check the high port as well!
-	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
-	return 0; //TODO!
+	word dummy;
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSww(port,data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte CPU_PORT_OUT_D(word port, uint_32 data)
@@ -388,27 +424,47 @@ byte CPU_PORT_OUT_D(word port, uint_32 data)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	PORT_OUT_D(port, data); //Port out!
-	return 0; //TODO
+	uint_32 dummy;
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSwdw(port,data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultdw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte CPU_PORT_IN_B(word port, byte *result)
@@ -418,13 +474,31 @@ byte CPU_PORT_IN_B(word port, byte *result)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	*result = PORT_IN_B(port); //Port in!
-	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit)!
-	return 0; //TODO!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSrb(port)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultb(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte CPU_PORT_IN_W(word port, word *result)
@@ -434,20 +508,36 @@ byte CPU_PORT_IN_W(word port, word *result)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	*result = PORT_IN_W(port); //Port in!
-	CPU8086_addWordIOMemoryTiming(port&1,0); //Low I/O access of I/O only(8-bit when needed)!
-	++port; //Check the high port as well!
-	CPU8086_addWordIOMemoryTiming(port&1,1); //High I/O access of I/O only(8-bit when needed)!
-	return 0; //TODO!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSrw(port)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte CPU_PORT_IN_D(word port, uint_32 *result)
@@ -457,27 +547,46 @@ byte CPU_PORT_IN_D(word port, uint_32 *result)
 		if (checkPortRights(port)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
-			return; //Abort!
+			return 1; //Abort!
 		}
 	}
 	//Execute it!
-	*result = PORT_IN_D(port); //Port in!
-	return 0; //TODO!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	{
+		if (BIU_request_BUSrdw(port)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1)
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
 }
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode)
