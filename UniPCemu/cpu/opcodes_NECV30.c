@@ -274,7 +274,7 @@ void CPU186_OP6C()
 	if (blockREP) return; //Disabled REP!
 	byte data;
 	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
-	CPU_PORT_IN_B(REG_DX,&data); //Read the port!
+	if (CPU_PORT_IN_B(REG_DX,&data)) return; //Read the port!
 	CPUPROT1
 	MMU_wb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU]);    //INSB
 	CPUPROT1
@@ -310,7 +310,7 @@ void CPU186_OP6D()
 	word data;
 	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
-	CPU_PORT_IN_W(REG_DX, &data); //Read the port!
+	if (CPU_PORT_IN_W(REG_DX, &data)) return; //Read the port!
 	CPUPROT1
 	MMU_ww(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU]);    //INSW
 	CPUPROT1
@@ -348,7 +348,7 @@ void CPU186_OP6E()
 	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 	data = MMU_rb(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]);
 	CPUPROT1
-	CPU_PORT_OUT_B(REG_DX,data); //OUTS DX,Xb
+	if (CPU_PORT_OUT_B(REG_DX,data)) return; //OUTS DX,Xb
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -384,7 +384,7 @@ void CPU186_OP6F()
 	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 	data = MMU_rw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]);
 	CPUPROT1
-	CPU_PORT_OUT_W(REG_DX,data);    //OUTS DX,Xz
+	if (CPU_PORT_OUT_W(REG_DX,data)) return;    //OUTS DX,Xz
 	CPUPROT1
 	if (FLAG_DF)
 	{
