@@ -20,6 +20,11 @@ MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 
+//How many cycles to substract from the documented instruction timings for the raw EU cycles for each BIU access?
+#define EU_CYCLES_SUBSTRACT_ACCESS 0
+//How many cycles to substract from all memory instructions(prefetch cycles to discard from the EU cycles)!
+#define EU_CYCLES_SUBSTRACT_PREFETCH 0
+
 //When using http://www.mlsite.net/8086/: G=Modr/m mod&r/m adress, E=Reg field in modr/m
 
 //INFO: http://www.mlsite.net/8086/
@@ -90,6 +95,7 @@ uint_32 wordaddress; //Word address used during memory access!
 //highaccess=0 for the first access, 1 for the second access
 void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess)
 {
+	return; //Don't modify the word I/O timing!
 	if (EMULATED_CPU==CPU_8086) //808(6/8)?
 	{
 		if (CPU_databussize) //8088?
@@ -108,6 +114,7 @@ void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess)
 
 OPTINLINE void CPU_addWordMemoryTiming()
 {
+	return; //Don't modify the memory timing!
 	if (EMULATED_CPU==CPU_8086) //808(6/8)?
 	{
 		if (CPU_databussize) //8088?
