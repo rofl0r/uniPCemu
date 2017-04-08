@@ -3072,16 +3072,24 @@ OPTINLINE void CPU8086_internal_AAD(byte data)
 
 OPTINLINE void CPU8086_internal_XLAT()
 {
+	static byte value;    //XLAT
 	if (cpudebugger) //Debugger on?
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
-	CPUPROT1
-	INLINEREGISTER byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,0,!CPU_Address_size[activeCPU]);    //XLAT
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
+	{
+		//Needs a read from memory?
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,&value,!CPU_Address_size[activeCPU])) return; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
 	REG_AL = value;
-	CPUPROT2
 	CPUPROT2
 	CPU[activeCPU].cycles_OP += 11; //XLAT timing!
 }
