@@ -3098,57 +3098,69 @@ void CPU8086_external_XLAT() {CPU8086_internal_XLAT();} //External variant!
 
 OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
-	if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
+	static byte secondparambase=0, writebackbase=0;
+	if (CPU[activeCPU].internalinstructionstep==0)
+	{
+		if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
+		if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
+		secondparambase = (data1||data2)?0:2; //Second param base
+		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
+		if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
+		if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
-	oper1b = data1?*data1:modrm_read8(&params,MODRM_src0);
-	CPUPROT1
-	oper2b = data2?*data2:modrm_read8(&params,MODRM_src1);
-	CPUPROT1
-	INLINEREGISTER byte temp = oper1b; //Copy!
-	oper1b = oper2b; //We're ...
-	oper2b = temp; //Swapping this!
-	if (data1)
+	if (CPU[activeCPU].internalinstructionstep==1) //First step?
+	{
+		if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		if (CPU8086_internal_stepreadmodrmb(secondparambase,&oper2b,MODRM_src1)) return;
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
+	{
+		oper1b = data1?*data1:oper1b;
+		oper2b = data2?*data2:oper2b;
+		INLINEREGISTER byte temp = oper1b; //Copy!
+		oper1b = oper2b; //We're ...
+		oper2b = temp; //Swapping this!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		switch (flags)
+		{
+		case 0: //Unknown?
+			break;
+		case 1: //Acc<->Reg?
+			CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
+			break;
+		case 2: //Mem<->Reg?
+			if (MODRM_EA(params)) //Reg<->Mem?
+			{
+				CPU[activeCPU].cycles_OP += 17; //SegReg->Mem!
+			}
+			else //Reg<->Reg?
+			{
+				CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
+			}
+			break;
+		}
+	}
+	if (data1) //Register?
 	{
 		*data1 = oper1b;
 	}
-	else
+	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,oper1b);
+		if (CPU8086_internal_stepwritemodrmb(writebackbase,oper1b,MODRM_src0)) return;
 	}
-	CPUPROT1
+	
 	if (data2)
 	{
 		*data2 = oper2b;
 	}
 	else
 	{
-		modrm_write8(&params,MODRM_src1,oper2b);
+		if (CPU8086_internal_stepwritemodrmb(writebackbase+secondparambase,oper2b,MODRM_src1)) return;
 	}
 	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	switch (flags)
-	{
-	case 0: //Unknown?
-		break;
-	case 1: //Acc<->Reg?
-		CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
-		break;
-	case 2: //Mem<->Reg?
-		if (MODRM_EA(params)) //Reg<->Mem?
-		{
-			CPU[activeCPU].cycles_OP += 17; //SegReg->Mem!
-		}
-		else //Reg<->Reg?
-		{
-			CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
-		}
-		break;
-	}
 }
 
 OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
