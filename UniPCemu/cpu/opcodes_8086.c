@@ -3245,25 +3245,33 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
 void CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
-	modrm_addoffset = 0; //Add this to the offset to use!
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	modrm_addoffset = 2; //Add this to the offset to use!
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	if (modrm_check16(&params,0,0)) return; //Abort on fault for the used segment itself!
+	static word segment, offset;
 
+	if (CPU[activeCPU].internalinstructionstep==0)
+	{
+		modrm_addoffset = 0; //Add this to the offset to use!
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		modrm_addoffset = 2; //Add this to the offset to use!
+		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		if (modrm_check16(&params,0,0)) return; //Abort on fault for the used segment itself!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
-	modrm_addoffset = 0; //Add this to the offset to use!
-	word offset = modrm_read16(&params,1);
+	if (CPU[activeCPU].internalinstructionstep==1) //First step?
+	{
+		modrm_addoffset = 0; //Add this to the offset to use!
+		if (CPU8086_internal_stepreadmodrmw(0,&offset,1)) return;
+		modrm_addoffset = 2; //Add this to the offset to use!
+		if (CPU8086_internal_stepreadmodrmw(2,&segment,1)) return;
+		modrm_addoffset = 0; //Reset again!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	//Execution phase!
 	CPUPROT1
-	modrm_addoffset = 2; //Add this to the offset to use!
-	word segment = modrm_read16(&params,1);
-	modrm_addoffset = 0; //Reset again!
+	destEIP = REG_EIP; //Save EIP for transfers!
+	segmentWritten(segmentregister, segment,0); //Load the new segment!
 	CPUPROT1
-		destEIP = REG_EIP; //Save EIP for transfers!
-		segmentWritten(segmentregister, segment,0); //Load the new segment!
-	CPUPROT1
-		modrm_write16(&params, 0, offset, 0); //Try to load the new register with the offset!
-	CPUPROT2
+	modrm_write16(&params, 0, offset, 0); //Try to load the new register with the offset!
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
