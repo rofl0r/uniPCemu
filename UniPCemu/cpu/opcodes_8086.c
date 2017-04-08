@@ -3112,8 +3112,8 @@ OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==1) //First step?
 	{
-		if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
-		if (CPU8086_internal_stepreadmodrmb(secondparambase,&oper2b,MODRM_src1)) return;
+		if (data1==NULL) if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+		if (data2==NULL) if (CPU8086_internal_stepreadmodrmb(secondparambase,&oper2b,MODRM_src1)) return;
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
