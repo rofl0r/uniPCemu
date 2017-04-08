@@ -273,7 +273,6 @@ OPTINLINE void op_sbb16() {
 byte CPU8086_PUSHw(byte base, word *data)
 {
 	word temp;
-	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (CPU_PUSH16_BIU(data)==0) //Not ready?
@@ -300,7 +299,6 @@ byte CPU8086_PUSHw(byte base, word *data)
 byte CPU8086_internal_PUSHw(byte base, word *data)
 {
 	word temp;
-	byte BIUtype;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (CPU_PUSH16_BIU(data)==0) //Not ready?
@@ -327,7 +325,6 @@ byte CPU8086_internal_PUSHw(byte base, word *data)
 byte CPU8086_PUSHb(byte base, byte *data)
 {
 	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (CPU_PUSH8_BIU(*data)==0) //Not ready?
@@ -354,7 +351,6 @@ byte CPU8086_PUSHb(byte base, byte *data)
 byte CPU8086_internal_PUSHb(byte base, byte *data)
 {
 	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (CPU_PUSH8_BIU(*data)==0) //Not ready?
@@ -380,8 +376,6 @@ byte CPU8086_internal_PUSHb(byte base, byte *data)
 
 byte CPU8086_POPw(byte base, word *result)
 {
-	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (CPU_POP16_BIU()==0) //Not ready?
@@ -407,8 +401,6 @@ byte CPU8086_POPw(byte base, word *result)
 
 byte CPU8086_internal_POPw(byte base, word *result)
 {
-	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (CPU_POP16_BIU()==0) //Not ready?
@@ -434,8 +426,6 @@ byte CPU8086_internal_POPw(byte base, word *result)
 
 byte CPU8086_POPSP(byte base)
 {
-	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (BIU_request_MMUrw(CPU_SEGMENT_SS,REG_SP,1)==0) //Not ready?
@@ -461,8 +451,6 @@ byte CPU8086_POPSP(byte base)
 
 byte CPU8086_POPb(byte base, byte *result)
 {
-	byte temp;
-	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (CPU_POP8_BIU()==0) //Not ready?
@@ -705,10 +693,9 @@ byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr) //Bas
 byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16)
 {
 	byte dummy;
-	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = BIU_request_MMUwb(segment,offset,val,is_offset16))==0) //Not ready?
+		if (BIU_request_MMUwb(segment,offset,val,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -732,10 +719,9 @@ byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, ui
 byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16)
 {
 	word dummy;
-	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = BIU_request_MMUww(segment,offset,val,is_offset16))==0) //Not ready?
+		if (BIU_request_MMUww(segment,offset,val,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -758,11 +744,9 @@ byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, ui
 
 byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16)
 {
-	byte dummy;
-	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = BIU_request_MMUrb(segment,offset,is_offset16))==0) //Not ready?
+		if (BIU_request_MMUrb(segment,offset,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -785,11 +769,9 @@ byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uin
 
 byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
 {
-	word dummy;
-	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = BIU_request_MMUrw(segment,offset,is_offset16))==0) //Not ready?
+		if (BIU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
