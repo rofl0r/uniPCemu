@@ -960,7 +960,7 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return;
+			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return 1;
 		}
 		CPU_addWordMemoryTiming();
 		CPU_addWordMemoryTiming();
@@ -972,7 +972,7 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
 	if (!reg) if (modrm_check16(&params,MODRM_src0,1)) return 1; //Abort on fault!
 	if (!reg) if (modrm_check16(&params,MODRM_src0,0)) return 1; //Abort on fault!
@@ -1059,7 +1059,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return;
+			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1898,7 +1898,7 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 }
 
 //MOV
-OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
+OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 {
 	if (MMU_invaddr())
 	{

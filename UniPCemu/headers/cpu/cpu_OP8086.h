@@ -301,8 +301,8 @@ void CPU8086_internal_SAR16(word *dest, word rotation);
 */
 
 //For GRP Opcodes!
-void CPU8086_internal_INC16(word *reg);
-void CPU8086_internal_DEC16(word *reg);
+byte CPU8086_internal_INC16(word *reg);
+byte CPU8086_internal_DEC16(word *reg);
 
 void unkOP_8086(); //Unknown opcode on 8086?
 
@@ -314,6 +314,6 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much d
 
 void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);
 
-void CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
+byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 
 #endif
