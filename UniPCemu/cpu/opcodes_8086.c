@@ -947,6 +947,8 @@ OPTINLINE void CPU8086_internal_INC16(word *reg)
 		if (reg==NULL) //Destination to write?
 		{
 			CPU[activeCPU].cycles_OP += 15; //Mem
+			CPU[activeCPU].executed = 0;
+			return; //Wait for execution phase to finish!
 		}
 	}
 	if (reg) //Register?
@@ -993,6 +995,8 @@ OPTINLINE void CPU8086_internal_DEC16(word *reg)
 		if (reg==NULL) //Destination to write?
 		{
 			CPU[activeCPU].cycles_OP += 15; //Mem
+			CPU[activeCPU].executed = 0;
+			return; //Wait for execution phase to finish!
 		}
 	}
 	if (reg) //Register?
@@ -1040,6 +1044,8 @@ OPTINLINE void CPU8086_internal_INC8(byte *reg)
 		if (reg==NULL) //Destination to write?
 		{
 			CPU[activeCPU].cycles_OP += 15; //Mem
+			CPU[activeCPU].executed = 0;
+			return; //Wait for execution phase to finish!
 		}
 	}
 	if (reg) //Register?
@@ -1084,6 +1090,8 @@ OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 		if (reg==NULL) //Destination to write?
 		{
 			CPU[activeCPU].cycles_OP += 15; //Mem
+			CPU[activeCPU.excuted = 0;
+			return; //Wait for execution phase to finish!
 		}
 	}
 	if (reg) //Register?
@@ -1224,6 +1232,7 @@ OPTINLINE void CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 		op_add8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1262,6 +1271,7 @@ OPTINLINE void CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 		op_add16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1304,6 +1314,7 @@ OPTINLINE void CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 		op_adc8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1342,6 +1353,7 @@ OPTINLINE void CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 		op_adc16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1385,6 +1397,7 @@ OPTINLINE void CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 		op_or8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1423,6 +1436,7 @@ OPTINLINE void CPU8086_internal_OR16(word *dest, word src, byte flags)
 		op_or16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1461,6 +1475,7 @@ OPTINLINE void CPU8086_internal_AND8(byte *dest, byte src, byte flags)
 		op_and8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1495,6 +1510,7 @@ OPTINLINE void CPU8086_internal_AND16(word *dest, word src, byte flags)
 		op_and16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1538,6 +1554,7 @@ OPTINLINE void CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 		op_sub8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1576,6 +1593,7 @@ OPTINLINE void CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 		op_sub16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1618,6 +1636,7 @@ OPTINLINE void CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 		op_sbb8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1656,6 +1675,7 @@ OPTINLINE void CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 		op_sbb16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1699,6 +1719,7 @@ OPTINLINE void CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 		op_xor8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1737,6 +1758,7 @@ OPTINLINE void CPU8086_internal_XOR16(word *dest, word src, byte flags)
 		op_xor16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
+		if (dest==NULL) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1967,6 +1989,8 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 					break;
 				}
 			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+			CPU[activeCPU.executed = 0; return; //Wait for execution phase to finish!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
 	}
@@ -1984,6 +2008,7 @@ OPTINLINE void CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 	}
 	CPUPROT2
 }
+
 OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 {
 	if (MMU_invaddr())
@@ -2111,6 +2136,8 @@ OPTINLINE void CPU8086_internal_MOV16(word *dest, word val, byte flags)
 					break;
 				}
 			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+			CPU[activeCPU.executed = 0; return; //Wait for execution phase to finish!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
 	}
@@ -2318,6 +2345,7 @@ OPTINLINE void CPU8086_internal_MOVSB()
 			CPU[activeCPU].cycles_OP += 18; //Clock cycles!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		CPU[activeCPU.executed = 0; return; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
 	if (CPU8086_internal_stepwritedirectb(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return;
@@ -2401,6 +2429,7 @@ OPTINLINE void CPU8086_internal_MOVSW()
 			CPU[activeCPU].cycles_OP += 18; //Clock cycles!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		CPU[activeCPU.executed = 0; return; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
 	if (CPU8086_internal_stepwritedirectw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return;
@@ -3131,6 +3160,7 @@ OPTINLINE void CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 			}
 			break;
 		}
+		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 	if (data1) //Register?
 	{
@@ -3208,6 +3238,7 @@ OPTINLINE void CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 			}
 			break;
 		}
+		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU.executed = 0; return; } //Wait for execution phase to finish!
 	}
 
 	if (data1) //Register?
