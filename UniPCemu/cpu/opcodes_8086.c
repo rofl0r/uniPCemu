@@ -1090,7 +1090,7 @@ OPTINLINE void CPU8086_internal_DEC8(byte *reg)
 		if (reg==NULL) //Destination to write?
 		{
 			CPU[activeCPU].cycles_OP += 15; //Mem
-			CPU[activeCPU.excuted = 0;
+			CPU[activeCPU].executed = 0;
 			return; //Wait for execution phase to finish!
 		}
 	}
