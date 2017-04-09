@@ -4408,6 +4408,14 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 	if ((valdiv / (word)divisor) > 0xFF) { CPU_exDIV0(); return; }
 	REG_AH = valdiv % (word)divisor;
 	REG_AL = valdiv / (word)divisor;
+	if (MODRM_EA(params)) //Memory?
+	{
+		CPU[activeCPU].cycles_OP += 96 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
+	}
+	else //Register?
+	{
+		CPU[activeCPU].cycles_OP += 90; //Reg!
+	}
 }
 
 OPTINLINE void op_idiv8(word valdiv, byte divisor) {
@@ -4478,6 +4486,14 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 							  //if ((v1/v2) > 255) { CPU8086_int(0); return; }
 							  //regs.byteregs[regal] = (v1/v2) & 255;
 							  //regs.byteregs[regah] = (v1 % v2) & 255;
+	if (MODRM_EA(params)) //Memory?
+	{
+		CPU[activeCPU].cycles_OP += 118 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
+	}
+	else //Register?
+	{
+		CPU[activeCPU].cycles_OP += 112; //Reg!
+	}
 }
 
 byte tmps,tmpp; //Sign/parity backup!
@@ -4543,7 +4559,7 @@ void op_grp3_8() {
 		}
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 76 - (EU_CYCLES_SUBSTRACT_ACCESS*2); //Mem max!
+			CPU[activeCPU].cycles_OP += 76 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
 		}
 		else //Register?
 		{
@@ -4582,7 +4598,7 @@ void op_grp3_8() {
 		}
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 86 - (EU_CYCLES_SUBSTRACT_ACCESS*2); //Mem max!
+			CPU[activeCPU].cycles_OP += 86 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
 		}
 		else //Register?
 		{
@@ -4614,6 +4630,15 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 	if ((valdiv / (uint32_t)divisor) > 0xFFFF) { CPU_exDIV0(); return; }
 	REG_DX = valdiv % (uint32_t)divisor;
 	REG_AX = valdiv / (uint32_t)divisor;
+	if (MODRM_EA(params)) //Memory?
+	{
+		CPU[activeCPU].cycles_OP += 168 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
+		CPU_addWordMemoryTiming(); /*To memory?*/
+	}
+	else //Register?
+	{
+		CPU[activeCPU].cycles_OP += 162; //Reg!
+	}
 }
 
 OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
@@ -4684,6 +4709,15 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 							  //regs.wordregs[regax] = temp3;
 							  //temp3 = (v1%v2) & 65535;
 							  //regs.wordregs[regdx] = temp3;
+
+	if (MODRM_EA(params)) //Memory?
+	{
+		CPU[activeCPU].cycles_OP += 190 - EU_CYCLES_SUBSTRACT_ACCESS; //Mem max!
+	}
+	else //Register?
+	{
+		CPU[activeCPU].cycles_OP += 184; //Reg!
+	}
 }
 
 void op_grp3_16() {
@@ -4779,7 +4813,6 @@ void op_grp3_16() {
 		break;
 	case 6: //DIV
 		op_div16(((uint32_t)REG_DX << 16) | REG_AX, oper1);
-		if (MODRM_EA(params)) CPU_addWordMemoryTiming(); /*To memory?*/
 		break;
 	case 7: //IDIV
 		op_idiv16(((uint32_t)REG_DX << 16) | REG_AX, oper1); break;
