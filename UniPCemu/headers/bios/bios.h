@@ -9,7 +9,7 @@
 #define BIOS_INPUTDELAY 250000
 
 //BIOS Version!
-#define BIOS_VERSION 8
+#define BIOS_VERSION 9
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
@@ -70,8 +70,6 @@ typedef struct PACKED
 	byte useTurboSpeed; //Are we to use Turbo CPU speed?
 	sword diagnosticsportoutput_breakpoint; //Use a diagnostics port breakpoint?
 	uint_32 diagnosticsportoutput_timeout; //Breakpoint timeout used!
-	byte CPUSpeedMode; //CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
-	byte TurboCPUSpeedMode; //Turbo CPU Speed mode. 0=Instructions per millisecond, 1=1kHz cycles per second.
 	byte useDirectMIDI; //Use Direct MIDI synthesis by using a passthrough to the OS?
 	uint_64 breakpoint; //The used breakpoint segment:offset and mode!
 	byte BIOSROMmode; //BIOS ROM mode.

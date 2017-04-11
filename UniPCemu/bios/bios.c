@@ -192,7 +192,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	}
 	
 	BIOS_Settings.memory = oldmem; //Keep this intact!
-//Now load the defaults.
+	//Now load the defaults.
 
 	memset(&BIOS_Settings.floppy0[0],0,sizeof(BIOS_Settings.floppy0));
 	BIOS_Settings.floppy0_readonly = 0; //Not read-only!

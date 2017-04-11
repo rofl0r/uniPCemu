@@ -24,9 +24,9 @@ POINTERENTRY registeredpointers[1024]; //All registered pointers!
 byte pointersinitialised = 0; //Are the pointers already initialised?
 
 //Our maximum memory that's supported: 100MB blocks! We give the greatest power of 10 to use! So 1GB blocks max.
-#define MEM_MAX_10 1000000
+#define MEM_MAX_10 1000000000
 //Limit each block allocated to this number when defined! Limit us to ~500MB for memory!
-#define MEM_BLOCK_LIMIT 10000000
+#define MEM_BLOCK_LIMIT 500000000
 
 //Debug undefined deallocations?
 #define DEBUG_WRONGDEALLOCATION

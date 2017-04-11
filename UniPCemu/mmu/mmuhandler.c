@@ -207,7 +207,7 @@ resetmmu:
 	MMU.memory = (byte *)zalloc((MMU.size+MMU_RESERVEDMEMORY), "MMU_Memory", NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
 	user_memory_used = 0; //Default: no memory used yet!
-	if (MMU.memory != NULL && !force_memoryredetect) //Allocated and not forcing redetect?
+	if (MMU.memory != NULL && (!force_memoryredetect) && MMU.size) //Allocated and not forcing redetect?
 	{
 		MMU_setA20(0, 0); //Default: Disabled A20 like 80(1)86!
 		MMU_setA20(1, 0); //Default: Disabled A20 like 80(1)86!

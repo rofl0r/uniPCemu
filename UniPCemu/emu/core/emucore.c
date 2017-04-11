@@ -689,7 +689,6 @@ extern byte Direct_Input; //Are we in direct input mode?
 double last_timing = 0.0, timeemulated = 0.0; //Last timing!
 
 double CPU_speed_cycle = 0.0; //808X signal cycles by default!
-byte DosboxClock = 1; //We're executing using the Dosbox clock cycles?
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -729,17 +728,10 @@ void BIOSMenuExecution()
 
 extern byte TurboMode; //Are we in Turbo mode?
 
-void setDosboxCycles(byte useDosboxClock, uint_32 cycles)
+void setCPUCycles(uint_32 cycles)
 {
-	DosboxClock = useDosboxClock; //Use Dosbox-clock style?
-	if (DosboxClock) //Dosbox clock cycles?
-	{
-		CPU_speed_cycle = 1000000.0 / (float)cycles; //Cycles per ms is used!
-	}
-	else //Actual clock cycles?
-	{
-		CPU_speed_cycle = 1000000000.0 / (float)(cycles*1000); //Apply the cycles in kHz!	
-	}
+	//Actual clock cycles?
+	CPU_speed_cycle = 1000000000.0 / (float)(cycles*1000); //Apply the cycles in kHz!	
 }
 
 void updateSpeedLimit()
@@ -759,7 +751,6 @@ void updateSpeedLimit()
 		{
 			case CPU_8086:
 			case CPU_NECV30: //First generation? Use 808X speed!
-				DosboxClock = 0; //We're executing using actual clocks!
 				if (is_Turbo) //Turbo speed instead?
 				{
 					CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
@@ -773,7 +764,6 @@ void updateSpeedLimit()
 			case CPU_80386: //386?
 			case CPU_80486: //486?
 			case CPU_PENTIUM: //586?
-				DosboxClock = 0; //We're executing using actual clocks!
 				if (is_Turbo) //Turbo speed instead?
 				{
 					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
@@ -791,13 +781,13 @@ void updateSpeedLimit()
 				}
 				break;
 			default: //Unknown CPU?
-				setDosboxCycles(1,3000); //Unsupported so far! Default to 3000 Dosbox cycles!
+				setCPUCycles(8000); //Unsupported so far! Default to 8MHz cycles!
 				break;
 		}
 	}
 	else //Cycles specified?
 	{
-		setDosboxCycles(BIOS_Settings.CPUSpeedMode?0:1,CPUSpeed); //Use either Dosbox clock(Instructions per millisecond) or actual clocks when supported!
+		setCPUCycles(CPUSpeed); //Use either Dosbox clock(Instructions per millisecond) or actual clocks when supported!
 	}
 }
 
@@ -891,14 +881,8 @@ OPTINLINE byte coreHandler()
 			else
 			{
 				skipHaltRestart:
-				if (DosboxClock) //Execute using Dosbox clocks?
-				{
-					CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now!
-				}
-				else //Execute using actual CPU clocks!
-				{
-					CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
-				}
+				//Execute using actual CPU clocks!
+				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
 			if (CPU[activeCPU].halt==1) //Normal halt?
 			{

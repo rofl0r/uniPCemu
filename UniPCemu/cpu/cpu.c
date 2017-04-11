@@ -1601,8 +1601,6 @@ byte CPU_segmentOverridden(byte TheActiveCPU)
 	return (CPU[TheActiveCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
-extern byte DosboxClock; //Dosbox clocking?
-
 byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
 //Stuff for CPU 286+ timing processing!
@@ -2065,10 +2063,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	CPU_tickBIU(); //Tick the prefetch as required!
 	flushMMU(); //Flush MMU writes!
-	if (DosboxClock) //Dosbox-style clock emulation(wrapping the CPU, the CPU itself runs in normal cycles mode)
-	{
-		CPU[activeCPU].cycles = CPU[activeCPU].executed; //Instead of actually using cycles per second(CPS) , we use instructions per second for this setting(IPS)!
-	}
 }
 
 byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)

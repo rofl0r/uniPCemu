@@ -190,8 +190,6 @@ void BIOS_TurboCPUSpeed(); //CPU speed selection!
 void BIOS_useTurboCPUSpeed(); //CPU speed toggle!
 void BIOS_diagnosticsPortBreakpoint(); //Diagnostics Port Breakpoint setting!
 void BIOS_diagnosticsPortBreakpointTimeout(); //Timeout to be used for breakpoints?
-void BIOS_CPUSpeedMode();
-void BIOS_TurboCPUSpeedMode();
 void BIOS_useDirectMIDIPassthrough();
 void BIOS_breakpoint();
 void BIOS_syncTime(); //Reset the kept time in UniPCemu!
@@ -259,12 +257,10 @@ Handler BIOS_Menus[] =
 	,BIOS_useTurboCPUSpeed //CPU speed toggle is #56!
 	,BIOS_diagnosticsPortBreakpoint //Diagnostics port breakpoint is #57!
 	,BIOS_diagnosticsPortBreakpointTimeout //Timeout to be used for breakpoints is #58!
-	,BIOS_CPUSpeedMode //CPU Speed Mode is #59!
-	,BIOS_TurboCPUSpeedMode //Turbo CPU Speed Mode is #60!
-	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #61!
-	,BIOS_breakpoint //Breakpoint is #62!
-	,BIOS_syncTime //Reset timekeeping is #63!
-	,BIOS_ROMMode //BIOS ROM mode is #64!
+	,BIOS_useDirectMIDIPassthrough //Use Direct MIDI Passthrough is #59!
+	,BIOS_breakpoint //Breakpoint is #60!
+	,BIOS_syncTime //Reset timekeeping is #61!
+	,BIOS_ROMMode //BIOS ROM mode is #62!
 };
 
 //Not implemented?
@@ -1707,7 +1703,7 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			BIOS_Menu = 16; //BIOS Font setting!
 			break;
 		case 7: //Synchronize timekeeping?
-			BIOS_Menu = 63; //Reset timekeeping!
+			BIOS_Menu = 61; //Reset timekeeping!
 			break;
 		}
 		break;
@@ -4361,7 +4357,7 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 			if (!EMU_RUNNING) BIOS_Menu = 32; //Soundfont setting!
 			break;
 		case 1: //Direct MIDI Passthrough?
-			if (!EMU_RUNNING) BIOS_Menu = 61; //Game Blaster setting!
+			if (!EMU_RUNNING) BIOS_Menu = 59; //Game Blaster setting!
 			break;
 		case 2: //PC Speaker?
 			if (!EMU_RUNNING) BIOS_Menu = 44; //PC Speaker setting!
@@ -4659,30 +4655,6 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 14; //Change Turbo CPU speed!
-	strcpy(menuoptions[advancedoptions], "CPU Speed Mode: ");
-	switch (BIOS_Settings.CPUSpeedMode) //What Turbo CPU speed limit?
-	{
-	case 0: //Default mode (Instructions per millisecond)?
-		strcat(menuoptions[advancedoptions++], "Instructions per millisecond"); //Default!
-		break;
-	default: //Limited cycles?
-		strcat(menuoptions[advancedoptions++], "1kHz cycles per second"); //Cycle limit!
-		break;
-	}
-
-	optioninfo[advancedoptions] = 15; //Change Turbo CPU speed!
-	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed Mode: ");
-	switch (BIOS_Settings.TurboCPUSpeedMode) //What Turbo CPU speed limit?
-	{
-	case 0: //Default mode (Instructions per millisecond)?
-		strcat(menuoptions[advancedoptions++], "Instructions per millisecond"); //Default!
-		break;
-	default: //Limited cycles?
-		strcat(menuoptions[advancedoptions++], "1kHz cycles per second"); //Cycle limit!
-		break;
-	}
-
 	fixTurboCPUToggle:
 	optioninfo[advancedoptions] = 4; //Change Turbo CPU option!
 	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed Mode: ");
@@ -4872,7 +4844,7 @@ setArchitecture: //For fixing it!
 	}
 
 setBIOSROMmode: //For fixing it!
-	optioninfo[advancedoptions] = 16; //BIOS ROM mode!
+	optioninfo[advancedoptions] = 14; //BIOS ROM mode!
 	strcpy(menuoptions[advancedoptions], "BIOS ROM mode: ");
 	switch (BIOS_Settings.BIOSROMmode) //What architecture?
 	{
@@ -4915,9 +4887,7 @@ void BIOS_CPU() //CPU menu!
 	case 11:
 	case 12:
 	case 13:
-	case 14:
-	case 15:
-	case 16: //Valid option?
+	case 14: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5003,7 +4973,7 @@ void BIOS_CPU() //CPU menu!
 		case 12: //Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
-				BIOS_Menu = 62; //Timeout to be used for breakpoints?
+				BIOS_Menu = 60; //Timeout to be used for breakpoints?
 			}
 			else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //SQUARE=Set current address&mode as the breakpoint!
 			{
@@ -5037,20 +5007,8 @@ void BIOS_CPU() //CPU menu!
 		case 13: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
-		case 14: //CPU Speed Mode?
-			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
-			{
-				BIOS_Menu = 59; //Turbo CPU speed selection!
-			}
-			break;
-		case 15: //Turbo CPU Speed Mode?
-			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
-			{
-				BIOS_Menu = 60; //Turbo CPU speed selection!
-			}
-			break;
-		case 16: //BIOS ROM mode
-			if (!EMU_RUNNING) BIOS_Menu = 64; //Architecture option!
+		case 14: //BIOS ROM mode
+			if (!EMU_RUNNING) BIOS_Menu = 62; //Architecture option!
 			break;
 		}
 		break;
@@ -6326,116 +6284,6 @@ void BIOS_diagnosticsPortBreakpointTimeout()
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)file; //Select Diagnostics Port Breakpoint setting!
-		}
-		break;
-	}
-	BIOS_Menu = 35; //Goto CPU menu!
-}
-
-void BIOS_CPUSpeedMode()
-{
-	BIOS_Title("CPU Speed Mode");
-	EMU_locktext();
-	EMU_gotoxy(0, 4); //Goto 4th row!
-	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "CPU Speed Mode: "); //Show selection init!
-	EMU_unlocktext();
-	int i = 0; //Counter!
-	numlist = 2; //Amount of CPU Speed Modes!
-	for (i = 0; i<numlist; i++) //Process options!
-	{
-		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
-	}
-	strcpy(itemlist[0], "Instructions per millisecond"); //Set filename from options!
-	strcpy(itemlist[1], "1kHz cycles per second"); //Set filename from options!
-	int current = 0;
-	switch (BIOS_Settings.CPUSpeedMode) //What setting?
-	{
-	case 0: //Valid
-	case 1: //Valid
-		current = BIOS_Settings.CPUSpeedMode; //Valid: use!
-		break;
-	default: //Invalid
-		current = 0; //Default: none!
-		break;
-	}
-	if (BIOS_Settings.CPUSpeedMode != current) //Invalid?
-	{
-		BIOS_Settings.CPUSpeedMode = current; //Safety!
-		BIOS_Changed = 1; //Changed!
-	}
-	int file = ExecuteList(16, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
-	switch (file) //Which file?
-	{
-	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Disabled!
-
-	case 0:
-	case 1:
-	case 2:
-	default: //Changed?
-		if (file != current) //Not current?
-		{
-			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.CPUSpeedMode = file; //Select Sound Blaster setting!
-		}
-		break;
-	}
-	BIOS_Menu = 35; //Goto CPU menu!
-}
-
-void BIOS_TurboCPUSpeedMode()
-{
-	BIOS_Title("Turbo CPU Speed Mode");
-	EMU_locktext();
-	EMU_gotoxy(0, 4); //Goto 4th row!
-	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
-	GPU_EMU_printscreen(0, 4, "Turbo CPU Speed Mode: "); //Show selection init!
-	EMU_unlocktext();
-	int i = 0; //Counter!
-	numlist = 2; //Amount of CPU Speed Modes!
-	for (i = 0; i<numlist; i++) //Process options!
-	{
-		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
-	}
-	strcpy(itemlist[0], "Instructions per millisecond"); //Set filename from options!
-	strcpy(itemlist[1], "1kHz cycles per second"); //Set filename from options!
-	int current = 0;
-	switch (BIOS_Settings.TurboCPUSpeedMode) //What setting?
-	{
-	case 0: //Valid
-	case 1: //Valid
-		current = BIOS_Settings.TurboCPUSpeedMode; //Valid: use!
-		break;
-	default: //Invalid
-		current = 0; //Default: none!
-		break;
-	}
-	if (BIOS_Settings.TurboCPUSpeedMode != current) //Invalid?
-	{
-		BIOS_Settings.TurboCPUSpeedMode = current; //Safety!
-		BIOS_Changed = 1; //Changed!
-	}
-	int file = ExecuteList(22, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
-	switch (file) //Which file?
-	{
-	case FILELIST_CANCEL: //Cancelled?
-		//We do nothing with the selected disk!
-		break; //Just calmly return!
-	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Disabled!
-
-	case 0:
-	case 1:
-	case 2:
-	default: //Changed?
-		if (file != current) //Not current?
-		{
-			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.TurboCPUSpeedMode = file; //Select Sound Blaster setting!
 		}
 		break;
 	}
