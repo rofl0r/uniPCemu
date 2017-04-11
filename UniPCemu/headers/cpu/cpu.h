@@ -1271,4 +1271,6 @@ void CPU_JMPrel(int_32 reladdr);
 void CPU_JMPabs(uint_32 addr);
 uint_32 CPU_EIPmask();
 byte CPU_EIPSize();
+
+byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
 #endif
