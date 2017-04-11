@@ -163,7 +163,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	}
 	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
-		raiseError("Settings","Ran out of enough memory to use! Free memory: ",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
+		raiseError("Settings","Ran out of enough memory to use! Free memory: %i bytes",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
 		sleep(); //Wait forever!
 	}
 	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
