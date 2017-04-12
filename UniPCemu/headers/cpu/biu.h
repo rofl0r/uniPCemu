@@ -18,6 +18,7 @@ typedef struct
 	uint_32 currentresult; //Current result!
 	uint_32 currentaddress; //Current address!
 	byte prefetchclock; //For clocking the BIU to fetch data to/from memory!
+	byte waitstateRAMremaining; //Amount of RAM waitstate cycles remaining!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
