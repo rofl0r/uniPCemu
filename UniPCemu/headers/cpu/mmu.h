@@ -53,6 +53,4 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL); //Chec
 void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup);
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index);
 
-void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16); //Get adress, opcode=1 when opcode reading, else 0! Address is placed in MMU_BIUAddr!
-
 #endif

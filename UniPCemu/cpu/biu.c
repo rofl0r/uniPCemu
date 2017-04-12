@@ -5,6 +5,7 @@
 #include "headers/cpu/mmu.h" //MMU support!
 #include "headers/hardware/ports.h" //Hardware port support!
 #include "headers/support/signedness.h" //Unsigned and signed support!
+#include "headers/cpu/paging.h" //Paging support for paging access!
 
 //16-bits compatibility for reading parameters!
 #define LE_16BITS(x) SDL_SwapLE16(x)
@@ -233,8 +234,6 @@ OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from t
 //Actual requesting something from the BIU, for the CPU module to call!
 //MMU accesses
 
-extern uint_32 MMU_BIUAddr; //BIU address we're using!
-
 byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 {
 	return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<17))); //Request a read!
@@ -356,7 +355,18 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
 				is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-				BIU[activeCPU].currentresult |= (MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				if (segdesc==-1) //Direct access?
+				{
+					BIU[activeCPU].currentresult |= (memory_directrb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				}
+				else if (segdesc==-2) //Paging access?
+				{
+					BIU[activeCPU].currentresult |= (Paging_directrb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,0,0)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				}
+				else //Normal access?
+				{
+					BIU[activeCPU].currentresult |= (MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				}
 				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
@@ -376,7 +386,18 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
 				is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-				MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),is_offset16); //Write to memory now!									
+				if (segdesc==-1) //Direct access?
+				{
+					memory_directwb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF)); //Write directly to memory now!
+				}
+				else if (segdesc==-2) //Paging access?
+				{
+					Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),0,0,0); //Write to memory now!
+				}
+				else //Normal access?
+				{
+					MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),is_offset16); //Write to memory now!
+				}
 				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
@@ -446,7 +467,18 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 					segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
 					is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-					BIU[activeCPU].currentresult = ((MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16))<<BIU_access_readshift[0]); //Read first byte!
+					if (segdesc==-1) //Direct access?
+					{
+						BIU[activeCPU].currentresult = ((memory_directrb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF))))<<BIU_access_readshift[0]); //Read first byte!
+					}
+					else if (segdesc==-2) //Paging access?
+					{
+						BIU[activeCPU].currentresult = ((Paging_directrb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,0,0))<<BIU_access_readshift[0]); //Read first byte!
+					}
+					else //Normal access?
+					{
+						BIU[activeCPU].currentresult = ((MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16))<<BIU_access_readshift[0]); //Read first byte!
+					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -478,7 +510,18 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
-							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!									
+							if (segdesc==-1) //Direct access?
+							{
+								memory_directwb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
+							}
+							else if (segdesc==-2) //Paging access?
+							{
+								Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0,0,0); //Write to memory now!
+							}
+							else //Normal access?
+							{
+								MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
+							}
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed? Try again!
@@ -488,7 +531,18 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else //Busy request?
 					{
-						MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
+						if (segdesc==-1) //Direct access?
+						{
+							memory_directwb(-1,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
+						}
+						else if (segdesc==-2) //Paging access?
+						{
+							Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0,0,0); //Write to memory now!
+						}
+						else //Normal access?
+						{
+							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
+						}
 						++BIU[activeCPU].currentaddress; //Next address!
 					}
 					return 1; //Handled!

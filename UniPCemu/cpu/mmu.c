@@ -195,9 +195,6 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
-byte MMU_BIURequest = 0; //Are we to request from the BIU instead of directly give the result?
-uint_32 MMU_BIUAddr; //BIU address we're using!
-
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
 	byte result;
@@ -237,8 +234,6 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 			}
 		}
 	}
-
-	if (MMU_BIURequest) return 0; //Abort when BIU request!
 
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
@@ -306,7 +301,6 @@ void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcod
 	{
 		realaddress = mappage(realaddress); //Map it using the paging mechanism!
 	}
-	MMU_BIUAddr = realaddress; //Store the address to use for the BIU!
 	writeword = writewordbackup; //Restore the word address backup!
 }
 
