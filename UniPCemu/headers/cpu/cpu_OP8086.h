@@ -316,4 +316,26 @@ void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);
 
 byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 
+//I/O and memory support!
+byte CPU8086_PUSHw(byte base, word *data);
+byte CPU8086_internal_PUSHw(byte base, word *data);
+byte CPU8086_PUSHb(byte base, byte *data);
+byte CPU8086_internal_PUSHb(byte base, byte *data);
+byte CPU8086_POPw(byte base, word *result);
+byte CPU8086_internal_POPw(byte base, word *result);
+byte CPU8086_POPSP(byte base);
+byte CPU8086_POPb(byte base, byte *result);
+byte CPU8086_instructionstepreadmodrmb(byte base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepreadmodrmw(byte base, word *result, byte paramnr);
+byte CPU8086_instructionstepwritemodrmb(byte base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
+byte CPU8086_internal_stepreadmodrmb(byte base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepreadmodrmw(byte base, word *result, byte paramnr);
+byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16);
+byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16);
+byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16);
+byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
+byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
+
 #endif
