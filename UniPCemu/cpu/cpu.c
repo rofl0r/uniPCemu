@@ -1740,6 +1740,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	//byte cycles_counted = 0; //Cycles have been counted?
+	if (BIU_Ready()==0) //BIU not ready to continue? We're handling seperate cycles still!
+	{
+		goto BIUWaiting; //Are we ready to step the Execution Unit?
+	}
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
 	{
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
@@ -2045,6 +2049,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
+	BIUWaiting: //The BIU is waiting!
 	CPU_tickBIU(); //Tick the prefetch as required!
 	flushMMU(); //Flush MMU writes!
 }

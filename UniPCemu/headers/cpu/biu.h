@@ -6,6 +6,16 @@
 
 typedef struct
 {
+	byte cycles; //Cycles left pending! 0=Ready to process next step!
+	byte iorcycles; //Read cycles left!
+	byte iowcycles; //Write cycles left!
+	byte iowcyclestart; //Write cycle start!
+	byte prefetchcycles; //Prefetch cycles done
+	byte curcycle; //Current cycle to process?
+} CPU_CycleTimingInfo;
+
+typedef struct
+{
 	FIFOBUFFER *requests; //Request FIFO!
 	FIFOBUFFER *responses; //Response FIFO!
 
@@ -19,12 +29,15 @@ typedef struct
 	uint_32 currentaddress; //Current address!
 	byte prefetchclock; //For clocking the BIU to fetch data to/from memory!
 	byte waitstateRAMremaining; //Amount of RAM waitstate cycles remaining!
+	CPU_CycleTimingInfo cycleinfo; //Current cycle state!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
 void CPU_doneBIU(); //Finish the BIU!
 void CPU_tickBIU(); //Tick the BIU!
 void BIU_dosboxTick(); //Tick the BIU, dosbox style!
+
+byte BIU_Ready(); //Are we ready to continue execution?
 
 //Opcode read support for ModR/M!
 byte CPU_readOP(byte *result); //Reads the operation (byte) at CS:EIP
