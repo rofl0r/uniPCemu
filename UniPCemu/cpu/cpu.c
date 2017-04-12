@@ -1742,6 +1742,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	//byte cycles_counted = 0; //Cycles have been counted?
 	if (BIU_Ready()==0) //BIU not ready to continue? We're handling seperate cycles still!
 	{
+		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
 	}
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
