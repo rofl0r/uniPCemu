@@ -69,19 +69,19 @@ void CPU286_OP63() //ARPL r/m16,r16
 		unkOP_186(); //Execute our unk opcode handler!
 		return; //Abort!
 	}
-	word destRPL, srcRPL;
+	static word destRPL, srcRPL;
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!
 	if (modrm_check16(&params,0,1)) return; //Abort on fault!
-	destRPL = modrm_read16(&params,1); //Read destination RPL!
+	if (CPU8086_instructionstepreadmodrmw(0,&destRPL,1)) return; //Read destination RPL!
 	CPUPROT1
-	srcRPL = modrm_read16(&params,0); //Read source RPL!
+	if (CPU8086_instructionstepreadmodrmw(2,&srcRPL,0)) return; //Read source RPL!
 	CPUPROT1
 		if (getRPL(destRPL) < getRPL(srcRPL))
 		{
 			FLAGW_ZF(1); //Set ZF!
 			setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
 			if (modrm_check16(&params,1,0)) return; //Abort on fault!
-			modrm_write16(&params,1,destRPL,0); //Set the result!
+			if (CPU8086_instructionstepwritemodrmw(4,destRPL,1,0)) return; //Set the result!
 		}
 		else
 		{
@@ -94,9 +94,9 @@ void CPU286_OP63() //ARPL r/m16,r16
 
 void CPU286_OP9D() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	word tempflags;
+	static word tempflags;
 	if (checkStackAccess(1,0,0)) return;
-	tempflags = CPU_POP16();
+	if (CPU8086_POPw(0,&tempflags)) return;
 	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
 	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;
@@ -133,7 +133,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("SLDT %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
-		modrm_write16(&params,1,CPU[activeCPU].registers->LDTR,0); //Try and write it to the address specified!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->LDTR,1,0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
@@ -144,7 +144,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("STR %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
-		modrm_write16(&params,1, CPU[activeCPU].registers->TR, 0); //Try and write it to the address specified!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->TR,1,0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 2: //LLDT
@@ -160,7 +160,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return; //Abort!
 		}
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		oper1 = modrm_read16(&params,1); //Read the descriptor!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
 		CPUPROT2
@@ -179,7 +179,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return; //Abort!
 		}
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		oper1 = modrm_read16(&params, 1); //Read the descriptor!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
@@ -193,7 +193,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("VERR %s", info.text);
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		oper1 = modrm_read16(&params,1); //Read the descriptor!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -222,7 +222,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("VERW %s", info.text);
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
-		oper1 = modrm_read16(&params, 1); //Read the descriptor!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
@@ -252,6 +252,8 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	}
 }
 
+word Rdata1, Rdata2; //3 words of data to access!
+
 void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
 	thereg = MODRM_REG(params.modrm);
@@ -274,13 +276,13 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		modrm_write16(&params, 1, CPU[activeCPU].registers->GDTR.limit, 0); //Store the limit first!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->GDTR.limit,1,0)) return; //Try and write it to the address specified!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write16(&params, 1, (CPU[activeCPU].registers->GDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			if (CPU8086_instructionstepwritemodrmw(2,(CPU[activeCPU].registers->GDTR.base & 0xFFFF),1,0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				modrm_write16(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFFFF),0); //Write rest value!
+				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFFFF),1,0)) return; //Write rest value!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
@@ -302,13 +304,13 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->IDTR.limit,1,0)) return; //Try and write it to the address specified!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write16(&params, 1, (CPU[activeCPU].registers->IDTR.base & 0xFFFF),0); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			if (CPU8086_instructionstepwritemodrmw(2,(CPU[activeCPU].registers->IDTR.base & 0xFFFF),1,0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				modrm_write16(&params, 1, ((CPU[activeCPU].registers->IDTR.base>>16) & 0xFFFF),0); //Write rest value!
+				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->IDTR.base >> 16) & 0xFFFF),1,0)) return; //Write rest value!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
@@ -335,13 +337,15 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		oper1 = modrm_read16(&params, 1); //Read the limit first!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
+			if (CPU8086_instructionstepreadmodrmw(2,&Rdata1,1)) return; //Read the limit first!
+			oper1d = ((uint_32)Rdata1); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)(modrm_read16(&params,1)&0xFF))<<16); //Higher part of the limit!
+				if (CPU8086_instructionstepreadmodrmw(4,&Rdata2,1)) return; //Read the limit first!
+				oper1d |= (((uint_32)(Rdata2&0xFF))<<16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
@@ -372,13 +376,15 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (modrm_check16(&params,1,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		oper1 = modrm_read16(&params, 1); //Read the limit first!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read16(&params, 1)); //Lower part of the limit!
+			if (CPU8086_instructionstepreadmodrmw(2,&Rdata1,1)) return; //Read the limit first!
+			oper1d = ((uint_32)Rdata1); //Lower part of the limit!
 			CPUPROT1
 				modrm_addoffset = 4; //Last byte!
-				oper1d |= (((uint_32)modrm_read16(&params, 1)&0xFF) << 16); //Higher part of the limit!
+				if (CPU8086_instructionstepreadmodrmw(4,&Rdata2,1)) return; //Read the limit first!
+				oper1d |= (((uint_32)(Rdata2&0xFF))<<16); //Higher part of the limit!
 				CPUPROT1
 					CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
@@ -391,7 +397,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
-		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
+		if (CPU8086_instructionstepwritemodrmw(0,(word)(CPU[activeCPU].registers->CR0&0xFFFF),1,0)) return; //Store the MSW into the specified location!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 6: //LMSW
@@ -403,7 +409,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			return; //Abort!
 		}
 		CPU[activeCPU].cycles_OP = 4*16; //Make sure we last long enough for the required JMP to be fully buffered!
-		oper1 = modrm_read16(&params,1); //Read the new register!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the new register!
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
 		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
@@ -431,7 +437,7 @@ void CPU286_OP0F02() //LAR /r
 	}
 	modrm_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	oper1 = modrm_read16(&params,1); //Read the segment to check!
+	if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
@@ -463,7 +469,7 @@ void CPU286_OP0F02() //LAR /r
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
-					modrm_write16(&params,0,(word)(verdescriptor.desc.AccessRights<<8),0); //Write our result!
+					if (CPU8086_instructionstepwritemodrmw(2,(word)(verdescriptor.desc.AccessRights<<8),0,0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
@@ -495,7 +501,7 @@ void CPU286_OP0F03() //LSL /r
 	}
 	modrm_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
 	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	oper1 = modrm_read16(&params, 1); //Read the segment to check!
+	if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return; //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
@@ -534,7 +540,7 @@ void CPU286_OP0F03() //LSL /r
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
 					if (modrm_check16(&params,1,0)) return; //Abort on fault!
-					modrm_write16(&params, 0, (word)(limit&0xFFFF), 0); //Write our result!
+					if (CPU8086_instructionstepwritemodrmw(2,(word)(limit&0xFFFF),0,0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
@@ -597,7 +603,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 {
 	word address;
 #include "headers/packed.h" //Packed!
-	union PACKED
+	static union PACKED
 	{
 		struct
 		{
@@ -641,18 +647,26 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	}
 
 	//TODO: Load the data from the location specified!
-	memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
+	{	
+		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+	}
 
 	//Load the data from the used location!
 
+	word readindex; //Our read index for all reads that are required!
+	readindex = 0; //Init read index to read all data in time through the BIU!
+
 	for (address=0;address<27;++address) //Load all registers in the correct format!
 	{
-		LOADALLDATA.dataw[address] = memory_directrw(0x800|(address<<1)); //Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_internal_stepreaddirectw(readindex,-1,0,(0x800|(address<<1)),&LOADALLDATA.dataw[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		readindex += 2; //Next read index!
 	}
 
 	for (address=54;address<sizeof(LOADALLDATA.data);++address) //Load all remaining data in default byte order!
 	{
-		LOADALLDATA.data[address] = memory_directrb(0x800|address); //Read the data to load from memory!
+		if (CPU8086_internal_stepreaddirectb(readindex,-1,0,(0x800|address),&LOADALLDATA.data[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		readindex += 2; //Next read index!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
