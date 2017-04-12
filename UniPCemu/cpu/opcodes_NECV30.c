@@ -71,6 +71,7 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 			modrm_updatedsegment(dest, val, 0); //Check for an updated segment!
 			CPUPROT1
 			*dest = val; //Write directly, if not errored out!
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		}
 		else //Memory?
@@ -80,10 +81,12 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset,0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU])) return; //Abort on fault!
 				MMU_ww(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val,!CPU_Address_size[activeCPU]); //Write to memory directly!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			}
 			else //ModR/M?
 			{
 				modrm_write16(&params, MODRM_src0, val, 0); //Write the result to memory!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			}
 		}
 	CPUPROT2
@@ -116,6 +119,7 @@ void CPU186_OP60()
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU186_OP61()
@@ -144,6 +148,7 @@ void CPU186_OP61()
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
@@ -179,6 +184,10 @@ void CPU186_OP62()
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!
 	}
+	else //No exception?
+	{
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+	}
 }
 
 void CPU186_OP68()
@@ -187,6 +196,7 @@ void CPU186_OP68()
 	debugger_setcommand("PUSH %04X",val);
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	CPU_PUSH16(&val);
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU186_OP69()
@@ -222,6 +232,7 @@ void CPU186_OP69()
 	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
 	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU186_OP6A()
@@ -230,6 +241,7 @@ void CPU186_OP6A()
 	debugger_setcommand("PUSHB %02X",val); //PUSH this!
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	CPU_PUSH8(val);    //PUSH Ib
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU186_OP6B()
@@ -266,6 +278,7 @@ void CPU186_OP6B()
 	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
 	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU186_OP6C()
@@ -299,7 +312,9 @@ void CPU186_OP6C()
 		{
 			++REG_DI;
 		}
-	}	CPUPROT2
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPUPROT2
 	CPUPROT2
 }
 
@@ -336,6 +351,7 @@ void CPU186_OP6D()
 			REG_DI += 2;
 		}
 	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 	CPUPROT2
 }
@@ -371,7 +387,9 @@ void CPU186_OP6E()
 		{
 			++REG_SI;
 		}
-	}	CPUPROT2
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPUPROT2
 	CPUPROT2
 }
 
@@ -407,7 +425,9 @@ void CPU186_OP6F()
 		{
 			REG_SI += 2;
 		}
-	}	CPUPROT2
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPUPROT2
 	CPUPROT2
 }
 
@@ -550,6 +570,7 @@ void CPU186_OPC8()
 	
 	REG_BP = frametemp;
 	REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 void CPU186_OPC9()
 {
@@ -557,6 +578,7 @@ void CPU186_OPC9()
 	if (checkStackAccess(1,0,0)) return; //Abort on fault!
 	REG_SP = REG_BP;    //LEAVE
 	REG_BP = CPU_POP16();
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 //Fully checked, and the same as fake86.

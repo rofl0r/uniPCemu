@@ -87,6 +87,7 @@ void CPU286_OP63() //ARPL r/m16,r16
 		{
 			FLAGW_ZF(0); //Clear ZF!
 		}
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 	CPUPROT2
 }
@@ -100,13 +101,17 @@ void CPU286_OP9D() {
 	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	CPU[activeCPU].cycles_OP = 8; /*POPF timing!*/
+	if (CPU_apply286cycles()==0) //Don't apply 80286+ cycles?
+	{
+		CPU[activeCPU].cycles_OP += 8; /*POPF timing!*/
+	}
 }
 
 void CPU286_OPD6() //286+ SALC
 {
 	debugger_setcommand("SALC");
 	REG_AL = FLAG_CF?0xFF:0x00; //Set AL if Carry flag!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 //0F opcodes for 286+ processors!
@@ -129,6 +134,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		debugger_setcommand("SLDT %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1,CPU[activeCPU].registers->LDTR,0); //Try and write it to the address specified!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
 		if (getcpumode() == CPU_MODE_REAL)
@@ -139,6 +145,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		debugger_setcommand("STR %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1, CPU[activeCPU].registers->TR, 0); //Try and write it to the address specified!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 2: //LLDT
 		if (getcpumode() == CPU_MODE_REAL)
@@ -157,6 +164,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
 		CPUPROT2
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 3: //LTR
 		if (getcpumode() == CPU_MODE_REAL)
@@ -174,6 +182,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		oper1 = modrm_read16(&params, 1); //Read the descriptor!
 		CPUPROT1
 			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		CPUPROT2
 		break;
 	case 4: //VERR
@@ -202,6 +211,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			{
 				FLAGW_ZF(0); //We're invalid!
 			}
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		CPUPROT2
 		break;
 	case 5: //VERW
@@ -230,6 +240,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			{
 				FLAGW_ZF(0); //We're invalid!
 			}
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		CPUPROT2
 		break;
 	case 6: //--- Unknown Opcode! ---
@@ -270,6 +281,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
 				modrm_write16(&params, 1, ((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFFFF),0); //Write rest value!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -297,6 +309,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
 				modrm_write16(&params, 1, ((CPU[activeCPU].registers->IDTR.base>>16) & 0xFFFF),0); //Write rest value!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -332,6 +345,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 				CPUPROT1
 					CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
+					CPU_apply286cycles(); //Apply the 80286+ cycles!
 				CPUPROT2
 			CPUPROT2
 		CPUPROT2
@@ -368,6 +382,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 				CPUPROT1
 					CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
 					CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
+					CPU_apply286cycles(); //Apply the 80286+ cycles!
 				CPUPROT2
 			CPUPROT2
 		CPUPROT2
@@ -377,6 +392,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		debugger_setcommand("SMSW %s", info.text);
 		if (modrm_check16(&params,1,0)) return; //Abort on fault!
 		modrm_write16(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF),0); //Store the MSW into the specified location!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 6: //LMSW
 		debugger_setcommand("LMSW %s", info.text);
@@ -391,6 +407,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
 		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
 		CPUPROT2
 		break;
@@ -462,6 +479,7 @@ void CPU286_OP0F02() //LAR /r
 		{
 			FLAGW_ZF(0); //Default: not loaded!
 		}
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 }
 
@@ -532,6 +550,7 @@ void CPU286_OP0F03() //LSL /r
 		{
 			FLAGW_ZF(0); //Default: not loaded!
 		}
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 }
 
@@ -655,6 +674,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->DX = DESC_16BITS(LOADALLDATA.fields.CX); //CX
 	CPU[activeCPU].registers->CX = DESC_16BITS(LOADALLDATA.fields.DX); //DX
 	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 
@@ -682,16 +702,19 @@ void CPU286_OP0F06() //CLTS
 		return; //Abort!
 	}
 	CPU[activeCPU].registers->CR0 &= ~CR0_TS; //Clear the Task Switched flag!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU286_OP0F0B() //#UD instruction
 {
 	unkOP0F_286(); //Deliberately #UD!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU286_OP0FB9() //#UD instruction
 {
 	unkOP0F_286(); //Deliberately #UD!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
@@ -720,5 +743,8 @@ void FPU80287_noCOOP() {
 		CPU_resetOP();
 		CPU_COOP_notavailable(); //Only on 286+!
 	}
-	CPU[activeCPU].cycles_OP = MODRM_EA(params) ? 8 + MODRM_EA(params) : 2; //No hardware interrupt to use anymore!
+	if (CPU_apply286cycles()==0) //No 286+? Apply the 80286+ cycles!
+	{
+		CPU[activeCPU].cycles_OP = MODRM_EA(params) ? 8 + MODRM_EA(params) : 2; //No hardware interrupt to use anymore!
+	}
 }
