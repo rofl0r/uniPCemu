@@ -683,7 +683,7 @@ void CPU_tickBIU()
 			cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
 			if (cycleinfo->curcycle==3) //T4?
 			{
-				if (BUSactive==2) {CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh? We're idling!
+				if (BUSactive==2) {++CPU[activeCPU].cycles_Prefetch_DMA; } //Handling a DRAM refresh? We're idling!
 				else if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch808X;}
 				else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
 				else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 4; BUSactive = 1; } //Skip write cycle!
@@ -695,7 +695,7 @@ void CPU_tickBIU()
 						BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
 						CPU_fillPIQ(); //Add a byte to the prefetch!
 						if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
-						CPU[activeCPU].cycles_Prefetch_BIU += 1; //Cycles spent on prefetching on BIU idle time!
+						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					}
 				}
@@ -719,7 +719,7 @@ void CPU_tickBIU()
 			cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&1); //Current cycle!
 			if (cycleinfo->curcycle==1) //T2?
 			{
-				if (BUSactive==2) {CPU[activeCPU].cycles_Prefetch_DMA += 4; } //Handling a DRAM refresh? We're idling!
+				if (BUSactive==2) {++CPU[activeCPU].cycles_Prefetch_DMA; } //Handling a DRAM refresh? We're idling!
 				else if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch80286;}
 				else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
 				else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 2; BUSactive = 1; } //Skip write cycle!
@@ -730,7 +730,7 @@ void CPU_tickBIU()
 					{
 						BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-						CPU[activeCPU].cycles_Prefetch_BIU += 2; //Cycles spent on prefetching on BIU idle time!
+						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					}
 				}
