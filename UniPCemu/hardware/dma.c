@@ -393,17 +393,21 @@ void DMA_tick()
 	INLINEREGISTER byte controller,current=lastcycle; //Current controller!
 	INLINEREGISTER byte channelindex, MCMReversed;
 	byte transferred = 0; //Transferred data this time?
+	byte released = 0;
 	INLINEREGISTER byte startcurrent = current; //Current backup for checking for finished!
 	if (BUSactive) //BUS is active?
 	{
 		if (BUSactive==2) //DMA is active?
 		{
-			if ((DMA_S++&3)==3) //S4?
+			if ((DMA_S&3)==3) //S4?
 			{
+				++DMA_S; //Increase the state!
 				BUSactive = 0; //Release the BUS: we're finished transferring a byte/word!
+				released = 1; //We're released now!
 			}
 			else //Transfer busy?
 			{
+				++DMA_S; //Increase the state!
 				return; //Busy transferring this clock!
 			}
 		}
@@ -412,6 +416,7 @@ void DMA_tick()
 			return; //Don't tick: we're idle!
 		}
 	}
+	++DMA_S; //Increase the state!
 	//BUS is inactive? Allow us to run!
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!
 	byte controllerdisabled2[2];
@@ -489,7 +494,7 @@ void DMA_tick()
 						processchannel = 1; //Process: software request!
 					}
 			
-					if (processchannel && (BUSactive==0)) //Channel not masked off and requested? We can't be transferring, so transfer now!
+					if (processchannel && (BUSactive==0) && (released==0)) //Channel not masked off and requested? We can't be transferring, so transfer now!
 					{
 						BUSactive = 2; //We're claiming the BUS for a transfer!
 
