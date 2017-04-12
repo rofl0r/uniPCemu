@@ -30,6 +30,7 @@ typedef struct
 	byte prefetchclock; //For clocking the BIU to fetch data to/from memory!
 	byte waitstateRAMremaining; //Amount of RAM waitstate cycles remaining!
 	CPU_CycleTimingInfo cycleinfo; //Current cycle state!
+	byte requestready; //Request not ready to retrieve?
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
