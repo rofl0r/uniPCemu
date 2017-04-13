@@ -133,8 +133,6 @@ extern GPU_TEXTSURFACE *frameratesurface;
 
 byte currentbusy[6] = {0,0,0,0,0,0}; //Current busy status; default none!
 
-byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
-
 void updateEMUSingleStep() //Update our single-step address!
 {
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
