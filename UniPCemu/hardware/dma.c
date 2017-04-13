@@ -14,8 +14,6 @@ DMA Controller (8237A)
 
 SDL_sem *DMA_Lock = NULL;
 
-extern byte DRAM_Refresh; //Holding the amount of DRAM refreshes that have occurred!
-
 typedef union
 {
 	byte data; //Mode register byte representation for easy reading/writing!
@@ -386,38 +384,21 @@ byte lastcycle = 0; //Current channel in total (0-7)
 
 extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 2=DMA
 
-/* Main DMA Controller processing ticks */
-void DMA_tick()
+/*
+	DMA states:
+	SI: Sample DRQ lines. Set HRQ if DRQn=1.
+	S0: Sample DLDA. Resolve DRQn priorities.
+	S1: Present and latch upper address. Present lower address.
+	S2: Activate read command or advanced write command. Activate DACKn.
+	S3: Activate write command. Activate Mark and TC if apprioriate.
+	S3: _Ready_ _Verify_: SW sample ready line keeps us into S3. Else, proceed into S4.
+	S4: Reset enable for channel n if TC stop and TC are active. Deactivate commands. Deactivate DACKn, Mark and T0. Sample DRQn and HLDA. Resolve DRQn priorities. Reset HRQ if HLDA=0 or DRQ=0(Goto SI), else Goto S1.
+*/
+
+void DMA_SampleDREQ() //Sample all DREQ lines for both controllers!
 {
-	if (__HW_DISABLED) return; //Abort!
-	INLINEREGISTER byte controller,current=lastcycle; //Current controller!
-	INLINEREGISTER byte channelindex, MCMReversed;
-	byte transferred = 0; //Transferred data this time?
-	byte released = 0;
-	INLINEREGISTER byte startcurrent = current; //Current backup for checking for finished!
-	if (BUSactive) //BUS is active?
-	{
-		if (BUSactive==2) //DMA is active?
-		{
-			if ((DMA_S&3)==3) //S4?
-			{
-				++DMA_S; //Increase the state!
-				BUSactive = 0; //Release the BUS: we're finished transferring a byte/word!
-				released = 1; //We're released now!
-			}
-			else //Transfer busy?
-			{
-				++DMA_S; //Increase the state!
-				return; //Busy transferring this clock!
-			}
-		}
-		else //Non-DMA is active? Idle!
-		{
-			return; //Don't tick: we're idle!
-		}
-	}
-	++DMA_S; //Increase the state!
-	//BUS is inactive? Allow us to run!
+	INLINEREGISTER byte startcurrent = 0; //Current backup for checking for finished!
+	INLINEREGISTER byte controller,current=0; //Current controller!
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!
 	byte controllerdisabled2[2];
 	controllerdisabled2[0] = (DMAController[0].CommandRegister & 4);
@@ -447,177 +428,6 @@ void DMA_tick()
 					{
 						DMAController[controller].DMAChannel[channel].DREQHandler(); //Execute the tick handler!
 					}
-
-					channelindex = 1; //Load index!
-					channelindex <<= channel; //Assign the channel index to use!
-
-					MCMReversed = DMAController[controller].MultiChannelMaskRegister; //Load MCM!
-					MCMReversed = ~MCMReversed; //NOT!
-					MCMReversed &= channelindex; //For our current channel only!
-
-					if (DMAController[controller].DREQ&MCMReversed) //Requested and not masking?
-					{
-						if (DMAController[controller].DMAChannel[channel].DACKHandler) //Gotten a DACK handler?
-						{
-							DMAController[controller].DMAChannel[channel].DACKHandler(); //Send a DACK to the hardware!
-						}
-						switch (((moderegister.data>>6)&3))
-						{
-							case 0: //Single transfer!
-							case 1: //Block transfer!
-								DMAController[controller].DACK |= channelindex; //Acnowledged!
-								break;
-							case 2: //Demand transfer?
-								//Nothing happens: DREQ affects transfers directly!
-								break;
-						}
-					}
-			
-					byte processchannel = 0; //To process the channel?
-					switch (((moderegister.data>>6)&3)) //What mode?
-					{
-						case 0: //Demand mode?
-							//DREQ determines the transfer!
-							processchannel = DMAController[controller].DREQ;
-							processchannel &= channelindex; //Demand sets if we're to run!
-							break;
-						case 1: //Single: DACK determines running time!
-						case 2: //Block: TC and DREQ masked determines running time!
-							//DACK isn't used in this case!
-							processchannel = DMAController[controller].DACK;
-							processchannel &= MCMReversed; //We're affected directly by the DACK!
-							break;
-					}
-			
-					if (DMAController[controller].RequestRegister&channelindex) //Requested?
-					{
-						processchannel = 1; //Process: software request!
-					}
-			
-					if (processchannel && (BUSactive==0) && (released==0)) //Channel not masked off and requested? We can't be transferring, so transfer now!
-					{
-						BUSactive = 2; //We're claiming the BUS for a transfer!
-
-						transferred = 1; //We've transferred a byte of data!
-						byte processed = 0; //Default: nothing going on!
-						/*
-						processed bits:
-						bit 0: TC (Terminal Count) occurred.
-						*/
-				
-						//Calculate the address...
-						uint_32 address; //The address to use!
-						if (controller) //16-bits transfer has a special addressing scheme?
-						{
-							address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Load the start address!
-							address <<= 1; //Shift left by 1 to obtain a multiple of 2!
-							address &= 0xFFFF; //Clear the overflowing bit, if any!
-						}
-						else //8-bit has normal addressing!
-						{
-							address = DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Normal addressing!
-						}
-						address |= (DMAController[controller].DMAChannel[channel].PageAddressRegister<<16); //Apply page address to get the full address!
-				
-						//Process the address counter step: we've been processed and ready to move on!
-						if (moderegister.data&0x20) //Decrease address?
-						{
-							--DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
-						}
-						else //Increase counter?
-						{
-							++DMAController[controller].DMAChannel[channel].CurrentAddressRegister; //Decrease counter!
-						}
-				
-						//Terminal count!
-						--DMAController[controller].DMAChannel[channel].CurrentCountRegister; //Next step calculated!
-						if (DMAController[controller].DMAChannel[channel].CurrentCountRegister==0xFFFF) //Finished when overflows below 0!
-						{
-							processed |= FLAG_TC; //Set flag: terminal count occurred!
-						}
-						//Process all flags that has occurred!
-				
-						if (processed&FLAG_TC) //TC resets request register bit?
-						{
-							DMAController[controller].RequestRegister &= ~channelindex; //Clear the request register!
-						}
-
-						if (processed&FLAG_TC) //Complete on Terminal count?
-						{
-							if (DMAController[controller].DMAChannel[channel].TCHandler) //Gotten a TC handler?
-							{
-								DMAController[controller].DMAChannel[channel].TCHandler(); //Send hardware TC!
-							}
-							DMAController[controller].StatusRegister |= channelindex; //Transfer complete!
-						}
-
-						//Transfer data!
-						switch (moderegister.data&0xC)
-						{
-						case 4: //Writing to memory? (Reading from device)
-							if (controller) //16-bits?
-							{
-								if (DMAController[controller].DMAChannel[channel].ReadWHandler) //Valid handler?
-								{
-									++DRAM_Refresh; //1 memory cycle!
-									memory_directww(address, DMAController[controller].DMAChannel[channel].ReadWHandler()); //Read using handler!
-								}
-							}
-							else //8-bits?
-							{
-								if (DMAController[controller].DMAChannel[channel].ReadBHandler) //Valid handler?
-								{
-									++DRAM_Refresh; //1 memory cycle!
-									memory_directwb(address, DMAController[controller].DMAChannel[channel].ReadBHandler()); //Read using handler!
-								}
-							}
-							break;
-						case 8: //Reading from memory? (Writing to device)
-							if (controller) //16-bits?
-							{
-								if (DMAController[controller].DMAChannel[channel].WriteWHandler) //Valid handler?
-								{
-									++DRAM_Refresh; //1 memory cycle!
-									DMAController[controller].DMAChannel[channel].WriteWHandler(memory_directrw(address)); //Read using handler!
-								}
-							}
-							else //8-bits?
-							{
-								if (DMAController[controller].DMAChannel[channel].WriteBHandler) //Valid handler?
-								{
-									++DRAM_Refresh; //1 memory cycle!
-									DMAController[controller].DMAChannel[channel].WriteBHandler(memory_directrb(address)); //Read using handler!
-								}
-							}
-							break;
-						case 0: //Verify? Never used on a PC?
-						case 0xC: //Invalid?
-						default: //Invalid?
-							break;
-						}
-
-						switch ((moderegister.data>>6)&3) //What mode are we processing in?
-						{
-						case 0: //Demand Transfer Mode
-							if (processed&FLAG_TC) //TC?
-							{
-								DMAController[controller].DACK &= ~channelindex; //Finished!
-							}
-							break;
-						case 1: //Single Transfer Mode
-							DMAController[controller].DACK &= ~channelindex; //Finished, wait for the next time we're requested!
-						case 2: //Block Transfer Mode
-							if (processed&FLAG_TC) //Complete on Terminal count?
-							{
-								DMAController[controller].DACK &= ~channelindex; //Finished!
-								if ((moderegister.data&0x10)) //Auto?
-								{
-									DMA_autoinit(controller,channel); //Perform autoinit!
-								}
-							}
-							break;
-						}
-					}
 				}
 			}
 		} //Controller not already disabled?
@@ -633,12 +443,306 @@ void DMA_tick()
 			lastcycle = current; //Save the current item we've left off!
 			return; //Back to our original cycle? We don't have anything to transfer!
 		}
-		if (transferred) //Transferred data? We're done(This transfers data at the clock rate specified)!
-		{
-			lastcycle = current; //Save the current item we've left off!
-			return; //Back to our original cycle? We don't have anything to transfer!
-		}
 		goto nextcycle; //Next cycle!!
+}
+
+byte activeDMAchannel; //Active DMA channel through states S1+!
+byte DMAcontroller; //The DMA controller of the current request!
+byte DMAchannel; //The DMA channel of the current request!
+byte DMAchannelindex; //The channel index of the current request!
+byte DMAprocessed; //Are we processed?
+DMAModeRegister DMAmoderegister; //The mode register of the current request!
+
+void DMA_StateHandler_SI()
+{
+	//SI: Sample DRQ lines. Set HRQ if DRQn=1.
+	DMA_SampleDREQ(); //Sample DREQ!
+	INLINEREGISTER byte channelindex, MCMReversed;
+	INLINEREGISTER byte channel;
+	for (channel=0;channel<8;++channel) //Check all channels for both controllers! Apply simple linear priority for now!
+	{
+		channelindex = 1; //Load index!
+		channelindex <<= (channel&3); //Assign the channel index to use!
+
+		MCMReversed = DMAController[(channel>>2)].MultiChannelMaskRegister; //Load MCM!
+		MCMReversed = ~MCMReversed; //NOT!
+		MCMReversed &= channelindex; //For our current channel only!
+
+		if ((DMAController[(channel>>2)].DREQ&MCMReversed) || (DMAController[DMAcontroller].RequestRegister&channelindex)) //Requested and not masking or requested manually?
+		{
+			DMAcontroller = (channel>>2); //The controller!
+
+			byte processchannel = 0; //To process the channel?
+			DMAmoderegister.data = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister.data; //The mode register we're using from now on(or any other being overwritten for transfers)!
+			switch (((DMAmoderegister.data>>6)&3)) //What mode?
+			{
+				case 0: //Demand mode?
+					//DREQ determines the transfer!
+					processchannel = DMAController[DMAcontroller].DREQ;
+					processchannel &= channelindex; //Demand sets if we're to run!
+					break;
+				case 1: //Single: DACK determines running time!
+				case 2: //Block: TC and DREQ masked determines running time!
+					//DACK isn't used in this case!
+					processchannel = DMAController[DMAcontroller].DACK|DMAController[DMAcontroller].DREQ; //DREQ/DACK are requesting?
+					processchannel &= MCMReversed; //We're affected directly by the DACK!
+					break;
+			}
+			
+			if (DMAController[DMAcontroller].RequestRegister&channelindex) //Requested?
+			{
+				processchannel = 1; //Process: software request!
+			}
+			if (processchannel) //Processing this channel?
+			{
+				++DMA_S; //Proceed into the next DMA state: S0!
+			}
+		}
+	}
+}
+
+void DMA_StateHandler_S0()
+{
+	//S0: Sample DLDA. Resolve DRQn priorities.
+	if (BUSactive!=2) //Bus isn't assigned to ours yet?
+	{
+		if (BUSactive==0) //Are we to take the BUS now?
+		{
+			BUSactive = 2; //Take control of the BUS(DLDA is now high).
+		}
+		else //BUS is taken?
+		{
+			return; //NOP state!
+		}
+	}
+	//We now have control of the BUS! DLDA=1. Resolve DRQn priorities!
+	INLINEREGISTER byte channelindex, MCMReversed;
+	INLINEREGISTER byte channel,controller;
+	for (channel=0;channel<8;++channel) //Check all channels for both controllers! Apply simple linear priority for now!
+	{
+		channelindex = 1; //Load index!
+		channelindex <<= (channel&3); //Assign the channel index to use!
+
+		MCMReversed = DMAController[(channel>>2)].MultiChannelMaskRegister; //Load MCM!
+		MCMReversed = ~MCMReversed; //NOT!
+		MCMReversed &= channelindex; //For our current channel only!
+
+		controller = (channel>>2); //The controller!
+
+		if (DMAController[(channel>>2)].DREQ&MCMReversed) //Requested and not masking?
+		{
+			byte processchannel = 0; //To process the channel?
+			DMAmoderegister.data = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister.data; //The mode register we're using from now on(or any other being overwritten for transfers)!
+			switch (((DMAmoderegister.data>>6)&3)) //What mode?
+			{
+				case 0: //Demand mode?
+					//DREQ determines the transfer!
+					processchannel = DMAController[controller].DREQ;
+					processchannel &= channelindex; //Demand sets if we're to run!
+					break;
+				case 1: //Single: DACK determines running time!
+				case 2: //Block: TC and DREQ masked determines running time!
+					//DACK isn't used in this case!
+					processchannel = DMAController[controller].DACK|DMAController[controller].DREQ; //DREQ/DACK are requesting?
+					processchannel &= MCMReversed; //We're affected directly by the DACK!
+					break;
+			}
+			
+			if (DMAController[controller].RequestRegister&channelindex) //Requested?
+			{
+				processchannel = 1; //Process: software request!
+			}
+			if (processchannel) //Processing this channel?
+			{
+				activeDMAchannel = channel; //This is the DMA channel that's currently being processed!
+				DMAcontroller = (channel>>2); //The controller to use!
+				DMAchannel = (channel&3); //The channel to use!
+				DMAchannelindex = channelindex; //The channel index to use!
+				++DMA_S; //Proceed into the next DMA state: S1!
+				return; //Stop searching any more requests!
+			}
+		}
+	}
+	BUSactive = 0; //Release the BUS: we've got nothing to do after all!
+}
+
+void DMA_StateHandler_S1()
+{
+	//S1: Present and latch upper address. Present lower address.
+	++DMA_S; //Proceed into the next DMA state: S2!
+}
+
+void DMA_StateHandler_S2()
+{
+	//S2: Activate read command or advanced write command. Activate DACKn.
+	if (DMAController[DMAcontroller].DMAChannel[DMAchannel].DACKHandler) //Gotten a DACK handler?
+	{
+		DMAController[DMAcontroller].DMAChannel[DMAchannel].DACKHandler(); //Send a DACK to the hardware!
+	}
+	switch (((DMAmoderegister.data>>6)&3))
+	{
+		case 0: //Single transfer!
+		case 1: //Block transfer!
+			DMAController[DMAcontroller].DACK |= DMAchannelindex; //Acnowledged!
+			break;
+		case 2: //Demand transfer?
+			//Nothing happens: DREQ affects transfers directly!
+			break;
+	}
+	++DMA_S; //Proceed into the next DMA state: S3!
+}
+
+void DMA_StateHandler_S3()
+{
+	//S3: Activate write command. Activate Mark and TC if apprioriate.
+	//S3: _Ready_ _Verify_: SW sample ready line keeps us into S3. Else, proceed into S4.
+	byte transferred;
+	byte controller;
+	byte channelindex;
+	//Channel not masked off and requested? We can't be transferring, so transfer now!
+	transferred = 1; //We've transferred a byte of data!
+	controller = DMAcontroller; //The controller to use!
+	channelindex = DMAchannelindex; //The channel index to check!
+	DMAprocessed = 0; //Default: nothing going on!
+	/*
+	processed bits:
+	bit 0: TC (Terminal Count) occurred.
+	*/
+	
+	//Calculate the address...
+	uint_32 address; //The address to use!
+	if (controller) //16-bits transfer has a special addressing scheme?
+	{
+		address = DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Load the start address!
+		address <<= 1; //Shift left by 1 to obtain a multiple of 2!
+		address &= 0xFFFF; //Clear the overflowing bit, if any!
+	}
+	else //8-bit has normal addressing!
+	{
+		address = DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Normal addressing!
+	}
+	address |= (DMAController[controller].DMAChannel[DMAchannel].PageAddressRegister<<16); //Apply page address to get the full address!
+				
+	//Process the address counter step: we've been processed and ready to move on!
+	if (DMAmoderegister.data&0x20) //Decrease address?
+	{
+		--DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Decrease counter!
+	}
+	else //Increase counter?
+	{
+		++DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Decrease counter!
+	}
+				
+	//Terminal count!
+	--DMAController[controller].DMAChannel[DMAchannel].CurrentCountRegister; //Next step calculated!
+	if (DMAController[controller].DMAChannel[DMAchannel].CurrentCountRegister==0xFFFF) //Finished when overflows below 0!
+	{
+		DMAprocessed |= FLAG_TC; //Set flag: terminal count occurred!
+	}
+	//Process all flags that has occurred!
+				
+	if (DMAprocessed&FLAG_TC) //TC resets request register bit?
+	{
+		DMAController[controller].RequestRegister &= ~channelindex; //Clear the request register!
+	}
+
+	if (DMAprocessed&FLAG_TC) //Complete on Terminal count?
+	{
+		if (DMAController[controller].DMAChannel[DMAchannel].TCHandler) //Gotten a TC handler?
+		{
+			DMAController[controller].DMAChannel[DMAchannel].TCHandler(); //Send hardware TC!
+		}
+		DMAController[controller].StatusRegister |= channelindex; //Transfer complete!
+	}
+
+	//Transfer data!
+	switch (DMAmoderegister.data&0xC)
+	{
+	case 4: //Writing to memory? (Reading from device)
+		if (controller) //16-bits?
+		{
+			if (DMAController[controller].DMAChannel[DMAchannel].ReadWHandler) //Valid handler?
+			{
+				memory_directww(address, DMAController[controller].DMAChannel[DMAchannel].ReadWHandler()); //Read using handler!
+			}
+		}
+		else //8-bits?
+		{
+			if (DMAController[controller].DMAChannel[DMAchannel].ReadBHandler) //Valid handler?
+			{
+				memory_directwb(address, DMAController[controller].DMAChannel[DMAchannel].ReadBHandler()); //Read using handler!
+			}
+		}
+		break;
+	case 8: //Reading from memory? (Writing to device)
+		if (controller) //16-bits?
+		{
+			if (DMAController[controller].DMAChannel[DMAchannel].WriteWHandler) //Valid handler?
+			{
+				DMAController[controller].DMAChannel[DMAchannel].WriteWHandler(memory_directrw(address)); //Read using handler!
+			}
+		}
+		else //8-bits?
+		{
+			if (DMAController[controller].DMAChannel[DMAchannel].WriteBHandler) //Valid handler?
+			{
+				DMAController[controller].DMAChannel[DMAchannel].WriteBHandler(memory_directrb(address)); //Read using handler!
+			}
+		}
+		break;
+	case 0: //Verify? Never used on a PC?
+	case 0xC: //Invalid?
+	default: //Invalid?
+		break;
+	}
+	++DMA_S; //Proceed into the next DMA state: S4!
+}
+
+void DMA_StateHandler_S4()
+{
+	//S4: Reset enable for channel n if TC stop and TC are active. Deactivate commands. Deactivate DACKn, Mark and T0. Sample DRQn and HLDA. Resolve DRQn priorities. Reset HRQ if HLDA=0 or DRQ=0(Goto SI), else Goto S1.
+	switch ((DMAmoderegister.data>>6)&3) //What mode are we processing in?
+	{
+	case 0: //Demand Transfer Mode
+		if (DMAprocessed&FLAG_TC) //TC?
+		{
+			DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished!
+		}
+		break;
+	case 1: //Single Transfer Mode
+		DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished, wait for the next time we're requested!
+	case 2: //Block Transfer Mode
+		if (DMAprocessed&FLAG_TC) //Complete on Terminal count?
+		{
+			DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished!
+			if ((DMAmoderegister.data&0x10)) //Auto?
+			{
+				DMA_autoinit(DMAcontroller,DMAchannel); //Perform autoinit!
+			}
+		}
+		break;
+	}
+	BUSactive = (BUSactive==2)?0:BUSactive; //Release the BUS, when allowed!
+	DMA_S = 0; //Default to SI state!
+	if (((BUSactive==2) || (BUSactive==0))) //BUS available? Sample DREQ and perform steps to get directly into S1!
+	{
+		DMA_StateHandler_SI(); //Perform first state to sample DRQn!
+		if (DMA_S==1) //State increased? We're ready to process more right away!
+		{
+			DMA_StateHandler_S0(); //Proceed into S0 directly: Activate the new channel and then let it proceed to S1!
+		}
+	}
+}
+
+Handler DMA_States[6] = {DMA_StateHandler_SI,DMA_StateHandler_S0,DMA_StateHandler_S1,DMA_StateHandler_S2,DMA_StateHandler_S3,DMA_StateHandler_S4}; //All possible DMA cycle states!
+
+/* Main DMA Controller processing ticks */
+void DMA_tick()
+{
+	if (__HW_DISABLED) return; //Abort!
+
+	//Tick using the current DMA cycle!
+	DMA_States[DMA_S](); //Execute the current DMA state!
 }
 
 uint_32 DMA_timing = 0; //How much time has passed!
@@ -673,13 +777,13 @@ void updateDMA(uint_32 MHZ14passed)
 	INLINEREGISTER uint_32 timing;
 	timing = DMA_timing; //Load current timing!
 	timing += MHZ14passed; //How many ticks have passed?
-	if (timing>=4) //To tick?
+	if (timing>=3) //To tick?
 	{
 		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
-			timing -= 4; //Tick the DMA at 4.77MHz!
-		} while (timing>=4); //Continue ticking?
+			timing -= 3; //Tick the DMA at 4.77MHz!
+		} while (timing>=3); //Continue ticking?
 	}
 	DMA_timing = timing; //Save the new timing to use!
 }
