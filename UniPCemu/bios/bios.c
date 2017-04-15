@@ -64,15 +64,81 @@ void BIOS_updateDirectories()
 #endif
 }
 
+int storage_strpos(char *str, char ch)
+{
+	int pos=0;
+	for (;(*str && (*str!=ch));++str,++pos); //Not found yet?
+	if (*str==ch) return pos; //Found position!
+	return -1; //Not found!
+}
+
+byte is_writablepath(char *path)
+{
+	char fullpath[256];
+	FILE *f;
+	memset(&fullpath,0,sizeof(fullpath)); //init!
+	strcpy(fullpath,path); //Set the path!
+	strcat(fullpath,"/"); //Add directory seperator!
+	strcat(fullpath,"writable.txt"); //test file!
+	f = fopen(fullpath,"wb");
+	if (f)
+	{
+		fclose(f); //Close the file!
+		delete_file(path,"writable.txt"); //Delete the file!
+		return 1; //We're writable!
+	}
+	return 0; //We're not writable!
+}
+
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
 	#ifdef ANDROID
+		//Try external media first!
+		char *environment;
+		int multipathseperator; //Multi path seperator position in the current string! When set, it's changed into a NULL character to read out the current path in the list!
+
+		#ifdef PELYAS_SDL
+		if (environment = getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
+		#else
+		if (environment = SDL_getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
+		#endif
+		{
+			scanNextSecondaryPath:
+			if (environment=='\0') goto scanAndroiddefaultpath; //Start scanning the default path, nothing found!
+			if ((multipathseperator = storage_strpos(environment,':'))!=-1) //Multiple environments left to check?
+			{
+				environment[multipathseperator] = '\0'; //Convert the seperator into an EOS for reading the current value out!
+			}
+			//Check the currently loaded path for writability!
+			if (is_writablepath(environment)) //Writable?
+			{
+				strcpy(UniPCEmu_root_dir,environment); //Root path of the disk!
+				if (multipathseperator!=-1) //To revert multiple path seperator?
+				{
+					environment[multipathseperator] = ':'; //Restore the path seperator from the EOS!
+				}
+				//Root directory loaded!
+				strcat(UniPCEmu_root_dir,"/UniPCemu"); //Our storage path!
+				domkdir(UniPCEmu_root_dir); //Make sure to create our parent directory, if needed!
+				strcat(UniPCEmu_root_dir,"/files"); //Subdirectory to store the files!
+				goto finishpathsetting;
+			}
+			//To check the next path?
+			if (multipathseperator!=-1) //To revert multiple path seperator?
+			{
+				environment[multipathseperator] = ':'; //Restore the path seperator from the EOS!
+				environment += (multipathseperator+1); //Skip past the multiple path seperator!
+			}
+			else goto scanAndroiddefaultpath; //Finished scanning without multiple paths left!
+			goto scanNextSecondaryPath; //Scan the next path in the list!
+		}
+
+		scanAndroiddefaultpath:
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
 			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
 			strcat(UniPCEmu_root_dir, "/Android/data/superfury.unipcemu.sdl/files");
 		#else
-			char *environment;
 			if (environment = SDL_getenv("SDCARD")) //Autodetected?
 			{
 				strcpy(UniPCEmu_root_dir, environment); //path!
@@ -98,6 +164,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			}
 		#endif
 
+		finishpathsetting:
 		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
 		strcat(BIOS_Settings_file,"/"); //Inside the directory!
 		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!

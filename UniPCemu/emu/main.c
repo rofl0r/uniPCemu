@@ -399,12 +399,12 @@ int main(int argc, char * argv[])
 	getLock(LOCK_MAINTHREAD);
 	getLock(LOCK_PERFMON);
 	
-	BIOS_DetectStorage(); //Detect all storage devices and BIOS Settings file needed to run!
-
 	initHighresTimer(); //Global init of the high resoltion timer!
 	initTicksHolder(&CPUUpdate); //Initialise the Video Update timer!
 
 	initlog(); //Initialise the logging system!
+
+	BIOS_DetectStorage(); //Detect all storage devices and BIOS Settings file needed to run!
 
 	//Normal operations!
 	resetTimers(); //Make sure all timers are ready!
