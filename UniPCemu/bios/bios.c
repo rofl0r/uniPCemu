@@ -35,6 +35,9 @@ char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
 char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
 byte UniPCEmu_root_dir_setting = 0; //The current root setting to be viewed!
 
+//Android memory limit, in MB.
+#define ANDROID_MEMORY_LIMIT 64
+
 //All seperate paths used by the emulator!
 extern char diskpath[256];
 extern char soundfontpath[256];
@@ -234,6 +237,11 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		sleep(); //Wait forever!
 	}
 	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
+#ifdef ANDROID
+	if ((BIOS_Settings.memory>>10)>ANDROID_MEMORY_LIMIT) //Limit broken?
+	{
+		BIOS_Settings.memory = (ANDROID_MEMORY_LIMIT<<10); //Limit the memory as specified!
+	}
 
 	if (tosave)
 	{
