@@ -237,11 +237,12 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		sleep(); //Wait forever!
 	}
 	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
-#ifdef ANDROID
+	#ifdef ANDROID
 	if ((BIOS_Settings.memory>>10)>ANDROID_MEMORY_LIMIT) //Limit broken?
 	{
 		BIOS_Settings.memory = (ANDROID_MEMORY_LIMIT<<10); //Limit the memory as specified!
 	}
+	#endif
 
 	if (tosave)
 	{
