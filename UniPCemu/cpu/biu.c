@@ -6,6 +6,7 @@
 #include "headers/hardware/ports.h" //Hardware port support!
 #include "headers/support/signedness.h" //Unsigned and signed support!
 #include "headers/cpu/paging.h" //Paging support for paging access!
+#include "headers/mmu/mmuhandler.h" //MMU direct access support!
 
 //16-bits compatibility for reading parameters!
 #define LE_16BITS(x) SDL_SwapLE16(x)
@@ -65,7 +66,7 @@ void CPU_doneBIU()
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	BIU[activeCPU].PIQ_EIP = (destaddr!=-1)?destaddr:CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
+	BIU[activeCPU].PIQ_EIP = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 }
 
@@ -536,7 +537,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (segdesc==-1) //Direct access?
 						{
-							memory_directwb(-1,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
+							memory_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
 						}
 						else if (segdesc==-2) //Paging access?
 						{
@@ -544,7 +545,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 						}
 						else //Normal access?
 						{
-							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
+							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
 						}
 						++BIU[activeCPU].currentaddress; //Next address!
 					}
@@ -597,16 +598,16 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					if (BIU[activeCPU].currentrequest&REQUEST_32BIT) //32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
-						PORT_OUT_D((BIU[activeCPU].currentpayload[0]&0xFFFF),((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
+						PORT_OUT_D((word)(BIU[activeCPU].currentpayload[0]&0xFFFF),(uint_32)((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
 					}
 					else if (BIU[activeCPU].currentrequest&REQUEST_16BIT) //16-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
-						PORT_OUT_W((BIU[activeCPU].currentpayload[0]&0xFFFF),((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
+						PORT_OUT_W((word)(BIU[activeCPU].currentpayload[0]&0xFFFF),(word)((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
 					}
 					else //8-bit?
 					{
-						PORT_OUT_B((BIU[activeCPU].currentpayload[0]&0xFFFF),((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
+						PORT_OUT_B((word)(BIU[activeCPU].currentpayload[0]&0xFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
 					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
@@ -699,7 +700,7 @@ void CPU_tickBIU()
 						{
 							BIU[activeCPU].requestready = 0; //We're starting a request!					
 						}
-						else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>=(2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
+						else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
 						{
 							BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
 							CPU_fillPIQ(); //Add a byte to the prefetch!

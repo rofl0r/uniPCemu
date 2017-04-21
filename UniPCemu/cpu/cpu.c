@@ -160,7 +160,7 @@ void CPU_JMPrel(int_32 reladdr)
 	{
 		REG_EIP &= 0xFFFF; //Only 16-bits!
 	}
-	if (REG_EIP>=(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
+	if (REG_EIP>=(uint_32)(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	} 
@@ -173,7 +173,7 @@ void CPU_JMPabs(uint_32 addr)
 	{
 		REG_EIP &= 0xFFFF; //Only 16-bits!
 	}
-	if (REG_EIP>=(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
+	if (REG_EIP>=(uint_32)(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	} 

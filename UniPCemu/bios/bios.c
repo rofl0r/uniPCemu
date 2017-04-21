@@ -243,7 +243,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 
 	if (((uint_64)freememory)>=maximummemory) //Limit broken?
 	{
-		freememory = maximummemory; //Limit the memory as specified!
+		freememory = (uint_32)maximummemory; //Limit the memory as specified!
 	}
 
 	//Reserved memory and architecture limits are placed on the detected memmory, which is truncated by the set memory limit!

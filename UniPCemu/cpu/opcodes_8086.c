@@ -4416,7 +4416,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 byte op_grp2_8(byte cnt, byte varshift) {
 	//word d,
 	INLINEREGISTER word s, shift, oldCF, msb;
-	byte backup;
+	word backup;
 	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	s = oper1b;
 	oldCF = FLAG_CF;

@@ -540,7 +540,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 		if (OPT_ROMS[i] && (ROMsize>basepos)) //Before the end location and valid rom?
 		{
 			currentpos &= 0xFFFFFFFF; //The location of the ROM itself!
-			ROMsize -= currentpos; //Convert ROMsize to the actual ROM size to use!
+			ROMsize -= (uint_32)currentpos; //Convert ROMsize to the actual ROM size to use!
 			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
 			{
 				temppos = basepos-currentpos; //Calculate the offset within the ROM!

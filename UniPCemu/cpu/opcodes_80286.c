@@ -659,13 +659,13 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	for (address=0;address<27;++address) //Load all registers in the correct format!
 	{
-		if (CPU8086_internal_stepreaddirectw(readindex,-1,0,(0x800|(address<<1)),&LOADALLDATA.dataw[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_internal_stepreaddirectw((byte)readindex,-1,0,(0x800|(address<<1)),&LOADALLDATA.dataw[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 		readindex += 2; //Next read index!
 	}
 
 	for (address=54;address<sizeof(LOADALLDATA.data);++address) //Load all remaining data in default byte order!
 	{
-		if (CPU8086_internal_stepreaddirectb(readindex,-1,0,(0x800|address),&LOADALLDATA.data[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_internal_stepreaddirectb((byte)readindex,-1,0,(0x800|address),&LOADALLDATA.data[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 		readindex += 2; //Next read index!
 	}
 
