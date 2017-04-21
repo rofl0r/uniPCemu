@@ -206,21 +206,82 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	
 	uint_32 freememory = freemem(); //The free memory available!
 	int_32 memoryblocks;
+	uint_64 maximummemory;
+	byte AThighblocks; //Are we using AT high blocks instead of low blocks?
 	
-	freememory -= MMU_RESERVEDMEMORY; //Apply reserved memory as well, to prevent the MMU from allocating too much(that's not available)!
+	#ifdef ANDROID
+	maximummemory = ANDROID_MEMORY_LIMIT; //Default limit in MB!
+	#else
+	maximummemory = SHRT_MAX; //Default: maximum memory limit!
+	#endif
+	if (file_exists("memorylimit.txt")) //Limit specified?
+	{
+		int memorylimitMB;
+		FILE *f;
+		f = fopen("memorylimit.txt","rb");
+		if (f) //Valid file?
+		{
+			if (fscanf(f,"%d",&memorylimitMB)==1) //Read up to 4 bytes to the buffer!
+			{
+				if (feof(f)) //Read until EOF? We're valid!
+				{
+					maximummemory = (uint_32)memorylimitMB; //Set the memory limit, in MB!
+				}
+			}
+			fclose(f); //Close the file!
+		}
+	}
+	maximummemory <<= 20; //Convert to MB of memory limit!
+
+	if (!maximummemory) //Nothing? use bare minumum!
+	{
+		maximummemory = 0x10000; //Bare minumum: 64KB + reserved memory!
+	}
+
+	maximummemory += MMU_RESERVEDMEMORY; //Apply reserved memory to the limit as well!
+	maximummemory += FREEMEMALLOC; //Required free memory is always to be applied as a limit!
+
+	if (((uint_64)freememory)>=maximummemory) //Limit broken?
+	{
+		freememory = maximummemory; //Limit the memory as specified!
+	}
+
+	//Reserved memory and architecture limits are placed on the detected memmory, which is truncated by the set memory limit!
+	if (freememory>=MMU_RESERVEDMEMORY) //Can we substract?
+	{
+		freememory -= MMU_RESERVEDMEMORY; //Apply reserved memory as well, to prevent the MMU from allocating too much(that's not available)!
+	}
+	else
+	{
+		freememory = 0; //Nothing to substract: ran out of memory!
+	}
+
+	if (freememory>=FREEMEMALLOC) //Can we substract?
+	{
+		freememory -= FREEMEMALLOC; //What to leave!
+	}
+	else
+	{
+		freememory = 0; //Nothing to substract: ran out of memory!
+	}
 
 	autoDetectArchitecture(); //Detect the architecture to use!
 	if (is_XT) //XT?
 	{
-		memoryblocks = SAFEDIV((freememory-FREEMEMALLOC),MEMORY_BLOCKSIZE_XT); //Calculate # of free memory size and prepare for block size!
+		memoryblocks = SAFEDIV((freememory),MEMORY_BLOCKSIZE_XT); //Calculate # of free memory size and prepare for block size!
 	}
 	else //AT?
 	{
-		memoryblocks = SAFEDIV((freememory - FREEMEMALLOC), MEMORY_BLOCKSIZE_AT_LOW); //Calculate # of free memory size and prepare for block size!
+		memoryblocks = SAFEDIV((freememory), MEMORY_BLOCKSIZE_AT_LOW); //Calculate # of free memory size and prepare for block size!
 	}
-	if ((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW)>=MEMORY_BLOCKSIZE_AT_HIGH) //Able to divide in big blocks?
+	AThighblocks = 0; //Default: we're using low blocks!
+	if (is_XT==0) //AT+?
 	{
-		memoryblocks = SAFEDIV((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW),MEMORY_BLOCKSIZE_AT_HIGH); //Convert to high memory blocks!
+		if ((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW)>=MEMORY_BLOCKSIZE_AT_HIGH) //Able to divide in big blocks?
+		{
+			memoryblocks = SAFEDIV((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW),MEMORY_BLOCKSIZE_AT_HIGH); //Convert to high memory blocks!
+			AThighblocks = 1; //Weré using high blocks instead!
+		}
 	}
 	if (memoryblocks<0) memoryblocks = 0; //No memory left?
 	if (is_XT) //XT?
@@ -229,7 +290,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	}
 	else
 	{
-		BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE_AT_LOW; //Whole blocks of memory only!
+		BIOS_Settings.memory = memoryblocks * (AThighblocks?MEMORY_BLOCKSIZE_AT_HIGH:MEMORY_BLOCKSIZE_AT_LOW); //Whole blocks of memory only, either low memory or high memory blocks!
 	}
 	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
@@ -237,12 +298,11 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		sleep(); //Wait forever!
 	}
 	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
-	#ifdef ANDROID
-	if ((BIOS_Settings.memory>>10)>ANDROID_MEMORY_LIMIT) //Limit broken?
+
+	if ((uint_64)BIOS_Settings.memory>=((uint_64)4096<<20)) //Past 4G?
 	{
-		BIOS_Settings.memory = (ANDROID_MEMORY_LIMIT<<10); //Limit the memory as specified!
+		BIOS_Settings.memory = (uint_32)((((uint_64)4096)<<20)-MEMORY_BLOCKSIZE_AT_HIGH); //Limit to the max, just below 4G!
 	}
-	#endif
 
 	if (tosave)
 	{
@@ -292,7 +352,6 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
 	BIOS_Settings.debugger_log = DEFAULT_DEBUGGERLOG; //Default debugger logging!
 
-	keyboard_loadDefaults(); //Load the defaults for the keyboard font etc.!
 	BIOS_Settings.VGA_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default: automatic 1:1 mapping!
 	BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Don't keep aspect ratio by default!
 	BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default B/W monitor setting!

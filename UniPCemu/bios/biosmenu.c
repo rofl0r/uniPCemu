@@ -36,6 +36,7 @@
 #include "headers/hardware/ide.h" //Disk change allowed detection!
 #include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
 #include "headers/hardware/midi/mididevice.h" //For Direct MIDI support!
+#include "headers/mmu/mmuhandler.h" //MMU memory support!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -558,7 +559,7 @@ void clearrow(int row)
 	}
 }
 
-
+extern MMU_type MMU; //Memory unit to detect memory!
 void BIOSClearScreen() //Resets the BIOS's screen!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -590,7 +591,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	EMU_unlocktext();
 	printcenter(BIOSText,0); //Show the BIOS's text!
 	EMU_locktext();
-	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:12MB",256),0,"MEM:%02iMB",(BIOS_Settings.memory/MBMEMORY)); //Show amount of memory to be able to use!
+	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:1234MB",256),0,"MEM:%04iMB",((MMU.size+MMU_RESERVEDMEMORY)/MBMEMORY)); //Show amount of memory to be able to use!
 	EMU_textcolor(BIOS_ATTR_TEXT); //Std: display text!
 	EMU_unlocktext();
 }
@@ -3167,7 +3168,7 @@ void BIOS_MemReAlloc() //Reallocates BIOS memory!
 	BIOS_Settings.memory = 0; //Reset the memory flag!
 	BIOS_Changed = 1; //We're changed!
 	reboot_needed |= 2; //We need to reboot!
-	return; //Disable due to the fact that memory allocations aren't 100% OK atm.
+	return; //Disable due to the fact that memory allocations aren't 100% OK atm. Redetect the memory after rebooting!
 
 	force_memoryredetect = 1; //We're forcing memory redetect!
 	doneEMU(); //Finish the old EMU memory!

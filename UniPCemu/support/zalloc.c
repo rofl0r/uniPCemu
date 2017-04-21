@@ -23,10 +23,10 @@ SDL_sem *lock; //The lock applied to this pointer: if it's to be freed and this 
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
 byte pointersinitialised = 0; //Are the pointers already initialised?
 
-//Our maximum memory that's supported: 100MB blocks! We give the greatest power of 10 to use! So 1GB blocks max.
-#define MEM_MAX_10 1000000000
-//Limit each block allocated to this number when defined! Limit us to ~500MB for memory!
-#define MEM_BLOCK_LIMIT 500000000
+//Our maximum memory that's supported: 100MB blocks! We give the greatest power of 10 to use! So 10GB blocks max.
+#define MEM_MAX_10 10000000000
+//Limit each block allocated to this number when defined! Limit us to 4G for memory!
+#define MEM_BLOCK_LIMIT 0xFFFFFFFF
 
 //Debug undefined deallocations?
 #define DEBUG_WRONGDEALLOCATION
