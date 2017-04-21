@@ -23,8 +23,6 @@ SDL_sem *lock; //The lock applied to this pointer: if it's to be freed and this 
 POINTERENTRY registeredpointers[1024]; //All registered pointers!
 byte pointersinitialised = 0; //Are the pointers already initialised?
 
-//Our maximum memory that's supported: 100MB blocks! We give the greatest power of 10 to use! So 10GB blocks max.
-#define MEM_MAX_10 10000000000
 //Limit each block allocated to this number when defined! Limit us to 4G for memory!
 #define MEM_BLOCK_LIMIT 0xFFFFFFFF
 
@@ -328,54 +326,37 @@ void *memprotect(void *ptr, uint_32 size, char *name) //Checks address of pointe
 }
 
 //Detect free memory.
-uint_32 freemem() //Free memory left! We work!
+uint_32 freemem() //Largest Free memory block left to allocate!
 {
-	uint_32 curalloc; //Current allocated memory!
-	char *buffer;
-	uint_32 multiplier; //The multiplier!
-	byte times = 9; //Times!
-	uint_32 lastzalloc = 0;
-	byte allocated = 0; //Allocated?
-	curalloc = 0; //Reset at 1 bytes!
-	multiplier = MEM_MAX_10; //Start at max multiplier (~100MB)!
-	times = 9; //Times 9 to start with!
+	uint_32 curalloc; //Current allocated memory! This is the result to give!
+	char *buffer=NULL;
+	uint_64 multiplier; //The multiplier!
+	uint_64 lastzalloc = 0;
 
-	allow_zallocfaillog = 0; //Don't allow!
-	while (1) //While not done...
+	curalloc = 0; //Reset at 1 bytes!
+	multiplier = (1ULL<<((sizeof(curalloc)*8)-1)); //Start at max multiplier bit!
+
+	for (;;) //While not done...
 	{
-		lastzalloc = (curalloc+(multiplier*times)); //Last zalloc!
-		allocated = 0; //Default: not allocated!
-		buffer = (char *)zalloc(lastzalloc,"freememdetect",NULL); //Try allocating, don't have to be cleared!
-		if (buffer) //Allocated?
+		lastzalloc = (curalloc|multiplier); //Last zalloc!
+		if (lastzalloc<=0xFFFFFFFF) //Within memory range?
 		{
-			freez((void **)&buffer,lastzalloc,"freememdetect"); //Release memory for next try!
-			curalloc = lastzalloc; //Set detected memory!
-			//dolog("zalloc","Free memory step: %i",curalloc); //Show our step! WE WORK!
-			allocated = 1; //We're allocated!
+			buffer = (char *)malloc((size_t)lastzalloc); //Try allocating, don't have to be cleared!
+			if (buffer) //Allocated?
+			{
+				free(buffer); //Release memory for next try!
+				curalloc = (uint_32)lastzalloc; //Set detected memory!
+				//dolog("zalloc","Free memory step: %i",curalloc); //Show our step! WE WORK!
+			}
 		}
-		if (!times || allocated) //Either nothing left or allocated?
-		{
-			multiplier /= 10; //Next digit!
-			times = 9; //Reset times for next try!
-		}
-		else //Calculate next digit!
-		{
-			--times; //Next digit!
-		}
-		if (!multiplier) //Gotten an allocation and/or done?
+		multiplier >>= 1; //Shift to the next bit position to check!
+		if (multiplier==0) //Gotten an allocation and/or done?
 		{
 			break; //Stop searching: we're done!
 		}
 		//We're to continue!
 	} //We have success!
 	
-	
-	if (buffer) //Still allocated?
-	{
-		freez((void **)&buffer,lastzalloc,"Freemem@FinalCleanup"); //Still allocated=>release?
-	}
-
-	allow_zallocfaillog = 1; //Allow again!
 	#ifdef MEM_BLOCK_LIMIT
 		if (curalloc > MEM_BLOCK_LIMIT) //More than the limit?
 		{
