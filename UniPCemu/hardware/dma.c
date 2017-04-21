@@ -596,11 +596,9 @@ void DMA_StateHandler_S3()
 {
 	//S3: Activate write command. Activate Mark and TC if apprioriate.
 	//S3: _Ready_ _Verify_: SW sample ready line keeps us into S3. Else, proceed into S4.
-	byte transferred;
 	byte controller;
 	byte channelindex;
 	//Channel not masked off and requested? We can't be transferring, so transfer now!
-	transferred = 1; //We've transferred a byte of data!
 	controller = DMAcontroller; //The controller to use!
 	channelindex = DMAchannelindex; //The channel index to check!
 	DMAprocessed = 0; //Default: nothing going on!

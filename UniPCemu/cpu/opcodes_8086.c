@@ -2405,9 +2405,9 @@ OPTINLINE byte CPU8086_internal_CWD()
 
 extern byte newREP; //Are we a new repeating instruction (REP issued for a new instruction, not repeating?)
 
+byte MOVSB_data;
 OPTINLINE byte CPU8086_internal_MOVSB()
 {
-	static byte data;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2424,7 +2424,7 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSB_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
@@ -2451,7 +2451,7 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
-	if (CPU8086_internal_stepwritedirectb(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return 1;
+	if (CPU8086_internal_stepwritedirectb(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSB_data,!CPU_Address_size[activeCPU])) return 1;
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -2485,9 +2485,9 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 	return 0;
 }
 
+word MOVSW_data;
 OPTINLINE byte CPU8086_internal_MOVSW()
 {
-	static word data;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2512,7 +2512,7 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSW_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
@@ -2539,7 +2539,7 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
-	if (CPU8086_internal_stepwritedirectw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return 1;
+	if (CPU8086_internal_stepwritedirectw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSW_data,!CPU_Address_size[activeCPU])) return 1;
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -2573,9 +2573,9 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 	return 0;
 }
 
+byte CMPSB_data1,CMPSB_data2;
 OPTINLINE byte CPU8086_internal_CMPSB()
 {
-	static byte data1,data2;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2592,12 +2592,12 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		if (CPU8086_internal_stepreaddirectb(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSB_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSB_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	CMP_b(data1,data2,4);
+	CMP_b(CMPSB_data1,CMPSB_data2,4);
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -2645,9 +2645,10 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	return 0;
 }
+
+word CMPSW_data1,CMPSW_data2;
 OPTINLINE byte CPU8086_internal_CMPSW()
 {
-	static word data1,data2;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2672,12 +2673,12 @@ OPTINLINE byte CPU8086_internal_CMPSW()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		if (CPU8086_internal_stepreaddirectw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSW_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSW_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	CMP_w(data1,data2,4);
+	CMP_w(CMPSW_data1,CMPSW_data2,4);
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -2857,9 +2858,9 @@ OPTINLINE byte CPU8086_internal_STOSW()
 	return 0;
 }
 //OK so far!
+byte LODSB_value;
 OPTINLINE byte CPU8086_internal_LODSB()
 {
-	static byte value;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2872,11 +2873,11 @@ OPTINLINE byte CPU8086_internal_LODSB()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSB_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
-	REG_AL = value;
+	REG_AL = LODSB_value;
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -2921,9 +2922,10 @@ OPTINLINE byte CPU8086_internal_LODSB()
 	}
 	return 0;
 }
+
+word LODSW_value;
 OPTINLINE byte CPU8086_internal_LODSW()
 {
-	static word value;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2940,11 +2942,11 @@ OPTINLINE byte CPU8086_internal_LODSW()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSW_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
-	REG_AX = value;
+	REG_AX = LODSW_value;
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -2989,9 +2991,10 @@ OPTINLINE byte CPU8086_internal_LODSW()
 	}
 	return 0;
 }
+
+byte SCASB_cmp1;
 OPTINLINE byte CPU8086_internal_SCASB()
 {
-	static byte cmp1;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -3004,13 +3007,13 @@ OPTINLINE byte CPU8086_internal_SCASB()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASB_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 
 	//Old function
 	CPUPROT1
-	CMP_b(REG_AL,cmp1,4);
+	CMP_b(REG_AL,SCASB_cmp1,4);
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -3054,9 +3057,10 @@ OPTINLINE byte CPU8086_internal_SCASB()
 	}
 	return 0;
 }
+
+word SCASW_cmp1;
 OPTINLINE byte CPU8086_internal_SCASW()
 {
-	static word cmp1;
 	if (blockREP) return 1; //Disabled REP!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -3073,12 +3077,12 @@ OPTINLINE byte CPU8086_internal_SCASW()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASW_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 
 	CPUPROT1
-	CMP_w(REG_AX,cmp1,4);
+	CMP_w(REG_AX,SCASW_cmp1,4);
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
@@ -3124,14 +3128,14 @@ OPTINLINE byte CPU8086_internal_SCASW()
 	return 0;
 }
 
+word RET_val;
 OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 {
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
-	static word val;
-	if (CPU8086_internal_POPw(0,&val)) return 1;
+	if (CPU8086_internal_POPw(0,&RET_val)) return 1;
     //Near return
 	CPUPROT1
-	CPU_JMPabs(val);
+	CPU_JMPabs(RET_val);
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	REG_SP += popbytes;
 	CPUPROT2
@@ -3145,17 +3149,19 @@ OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 	}
 	return 0;
 }
+
+word RETF_destCS;
+word RETF_val; //Far return
+
 OPTINLINE byte CPU8086_internal_RETF(word popbytes, byte isimm)
 {
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(2,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
-	static word val; //Far return
-	static word destCS;
-	if (CPU8086_internal_POPw(0,&val)) return 1;
+	if (CPU8086_internal_POPw(0,&RETF_val)) return 1;
 	CPUPROT1
-	if (CPU8086_internal_POPw(2,&destCS)) return 1;
+	if (CPU8086_internal_POPw(2,&RETF_destCS)) return 1;
 	CPUPROT1
-	destEIP = val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed, we're a RETF instruction!
+	destEIP = RETF_val; //Load IP!
+	segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4); //CS changed, we're a RETF instruction!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	CPUPROT1
 	REG_SP += popbytes; //Process SP!
@@ -3255,9 +3261,10 @@ OPTINLINE byte CPU8086_internal_AAD(byte data)
 	return 0;
 }
 
+byte XLAT_value;    //XLAT
+
 OPTINLINE byte CPU8086_internal_XLAT()
 {
-	static byte value;    //XLAT
 	if (cpudebugger) //Debugger on?
 	{
 		debugger_setcommand("XLAT");    //XLAT
@@ -3270,11 +3277,11 @@ OPTINLINE byte CPU8086_internal_XLAT()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,&value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),REG_BX+REG_AL,&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
-	REG_AL = value;
+	REG_AL = XLAT_value;
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
@@ -3285,9 +3292,9 @@ OPTINLINE byte CPU8086_internal_XLAT()
 
 void CPU8086_external_XLAT() {CPU8086_internal_XLAT();} //External variant!
 
+byte secondparambase=0, writebackbase=0;
 OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
-	static byte secondparambase=0, writebackbase=0;
 	if (CPU[activeCPU].internalinstructionstep==0)
 	{
 		if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return 1; //Abort on fault!
@@ -3359,7 +3366,6 @@ OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 
 OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 {
-	static byte secondparambase=0, writebackbase=0;
 	if (CPU[activeCPU].internalinstructionstep==0)
 	{
 		if (!data1) if (modrm_check16(&params,MODRM_src0,1)) return 1; //Abort on fault!
