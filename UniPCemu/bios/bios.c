@@ -292,6 +292,14 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	{
 		BIOS_Settings.memory = memoryblocks * (AThighblocks?MEMORY_BLOCKSIZE_AT_HIGH:MEMORY_BLOCKSIZE_AT_LOW); //Whole blocks of memory only, either low memory or high memory blocks!
 	}
+	if (EMULATED_CPU<=CPU_NECV30) //80286-? We don't need more than 1MB memory(unusable memory)!
+	{
+		if (BIOS_Settings.memory>=0x100000) BIOS_Settings.memory = 0x100000; //1MB memory max!
+	}
+	else if (EMULATED_CPU<=CPU_80286) //80286-? We don't need more than 16MB memory(unusable memory)!
+	{
+		if (BIOS_Settings.memory>=0xF00000) BIOS_Settings.memory = 0x1000000; //16MB memory max!
+	}
 	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
 		raiseError("Settings","Ran out of enough memory to use! Free memory: %i bytes",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
