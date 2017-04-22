@@ -506,14 +506,12 @@ void DMA_StateHandler_S0()
 	//S0: Sample DLDA. Resolve DRQn priorities.
 	if (BUSactive!=2) //Bus isn't assigned to ours yet?
 	{
-		if (BUSactive==0) //Are we to take the BUS now?
+		if (BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
 		{
-			BUSactive = 2; //Take control of the BUS(DLDA is now high).
+			BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 		}
-		else //BUS is taken?
-		{
-			return; //NOP state!
-		}
+		//BUS is taken or waiting the cycle?
+		return; //NOP state!
 	}
 	//We now have control of the BUS! DLDA=1. Resolve DRQn priorities!
 	INLINEREGISTER byte channelindex, MCMReversed;

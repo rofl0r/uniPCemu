@@ -14,14 +14,14 @@ void DRAM_DMADREQ() //For checking any new DREQ signals of DRAM!
 void DRAM_DACK()
 {
 	//We're to acnowledge the DACK!
-	DRAM_Pending = 0; //Lower the DREQ signal now!
+	DRAM_Pending = 0; //Lower the DREQ signal now (-DACK0BRD goes low, which lowers DRQ0)!
 }
 
 void DRAM_setDREQ(byte output)
 {
 	if ((output!=DRAM_DREQ) && output) //DREQ raised?
 	{
-		DRAM_Pending = 1; //Start pending!
+		DRAM_Pending = 1; //Start pending (DRQ0 goes high when output goes high only)!
 	}
 	DRAM_DREQ = output; //PIT1 is connected to the DREQ signal!
 }
