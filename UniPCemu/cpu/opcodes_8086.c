@@ -170,7 +170,7 @@ OPTINLINE void CPU8086_IRET()
 /*
 
 List of hardware interrupts:
-0: Division by 0: Attempting to execute DIV/IDIV with divisor==0: IMPLEMENTED
+0: Division by 0: Attempting to execute AAM/DIV/IDIV with divisor==0: IMPLEMENTED
 1: Debug/Single step: Breakpoint hit, also after instruction when TRAP flag is set.
 3: Breakpoint: INT 3 call: IMPLEMENTED
 4: Overflow: When performing arithmetic instructions with signed operands. Called with INTO.
@@ -1933,6 +1933,113 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 	return 0;
 }
 
+//Universal DIV instruction for x86 DIV instructions!
+/*
+
+Parameters:
+	val: The value to divide
+	divisor: The value to divide by
+	result: Result container
+	modulo: The modulo container
+	error: 1 on error(DIV0), 0 when valid.
+	resultbits: The amount of bits the result contains(16 or 8 on 8086).
+	SHLcycle: The amount of cycles for each SHL.
+	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
+
+*/
+void CPU8086_internal_DIV(uint_32 val, word divisor, word *result, word *modulo, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles)
+{
+	uint_32 temp, temp2, currentresult; //Remaining value and current divisor!
+	byte shift; //The shift to apply! No match on 0 shift is done!
+	temp = val; //Load the value to divide!
+	*applycycles = 1; //Default: apply the cycles normally!
+	if (divisor==0) //Not able to divide?
+	{
+		*result = 0;
+		*modulo = temp; //Unable to comply!
+		*error = 1; //Divide by 0 error!
+		return; //Abort: division by 0!
+	}
+
+	if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
+	{
+		SHLcycle = ADDSUBcycle = 0; //Don't apply the cycle counts for this instruction!
+		*applycycles = 0; //Don't apply the cycles anymore!
+	}
+
+	temp = val; //Load the remainder to use!
+	*result = 0; //Default: 
+	nextstep:
+	//First step: calculate shift so that (divisor<<shift)<=remainder and ((divisor<<(shift+1))>remainder)
+	temp2 = divisor; //Load the default divisor for x1!
+	if (temp2>temp) //Not enough to divide? We're done!
+	{
+		goto gotresult; //We've gotten a result!
+	}
+	currentresult = 1; //We're starting with x1 factor!
+	for (shift=0;shift<(resultbits+1);++shift) //Check for the biggest factor to apply(we're going from bit 0 to maxbit)!
+	{
+		if ((temp2<=temp) && ((temp2<<1)>temp)) //Found our value to divide?
+		{
+			CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 more SHL cycle for this!
+			break; //We've found our shift!
+		}
+		temp2 <<= 1; //Shift to the next position!
+		currentresult <<= 1; //Shift to the next result!
+		CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 SHL cycle for this! Assuming parallel shifting!
+	}
+	if (shift==(resultbits+1)) //We've overflown? We're too large to divide!
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!
+	}
+	//Second step: substract divisor<<n from remainder and increase result with 1<<n.
+	temp -= temp2; //Substract divisor<<n from remainder!
+	*result += currentresult; //Increase result(divided value) with the found power of 2 (1<<n).
+	CPU[activeCPU].cycles_OP += ADDSUBcycle; //We're taking 1 substract and 1 addition cycle for this(ADD/SUB register take 3 cycles)!
+	goto nextstep; //Start the next step!
+	//Finished when remainder<divisor or remainder==0.
+	gotresult: //We've gotten a result!
+	if (temp>((1<<resultbits)-1)) //Modulo overflow?
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!		
+	}
+	*modulo = temp; //Give the modulo! The result is already calculated!
+	*error = 0; //We're having a valid result!
+}
+
+void CPU8086_internal_IDIV(uint_32 val, word divisor, word *result, word *modulo, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles)
+{
+	byte resultnegative, remaindernegative; //To toggle the result and apply sign after and before?
+	resultnegative = remaindernegative = 0; //Default: don't toggle the result not remainder!
+	if (((val>>31)!=(divisor>>15))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
+	{
+		resultnegative = 1; //We're to toggle the result sign if not zero!
+	}
+	if (val&0x80000000) //Negative value to divide?
+	{
+		val = ((~val)+1); //Convert the negative value to be positive!
+		remaindernegative = 1; //We're to toggle the remainder is any, because the value to divide is negative!
+	}
+	if (divisor&0x8000) //Negative divisor? Convert to a positive divisor!
+	{
+		divisor = ((~divisor)+1); //Convert the divisor to be positive!
+	}
+	CPU8086_internal_DIV(val,divisor,result,modulo,error,resultbits-1,SHLcycle,ADDSUBcycle,applycycles); //Execute the division as an unsigned division!
+	if (*error==0) //No error has occurred? Do post-processing of the results!
+	{
+		if (resultnegative) //The result is negative?
+		{
+			*result = (~*result)+1; //Apply the new sign to the result!
+		}
+		if (remaindernegative) //The remainder is negative?
+		{
+			*modulo = (~*modulo)+1; //Apply the new sign to the remainder!
+		}
+	}
+}
+
 //MOV
 OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 {
@@ -3220,29 +3327,28 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 	CPUPROT1
 	if ((!data) && (CPU[activeCPU].instructionstep==0)) //First step?
 	{
-		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-		{
-			CPU[activeCPU].cycles_OP += 83; //Timings always!
-		}
+		CPU[activeCPU].cycles_OP += 1; //Timings always!
 		++CPU[activeCPU].instructionstep; //Next step after we're done!
 		CPU[activeCPU].executed = 0; //Not executed yet!
 		return 1;
 	}
-	if (!data)
+	word result, remainder;
+	byte error, applycycles;
+	CPU8086_internal_DIV(REG_AL,data,&result,&remainder,&error,8,2,3,&applycycles);
+	if (error) //Error occurred?
 	{
-		CPU_exDIV0();    //AAM
+		CPU_exDIV0(); //Raise error that's requested!
 		return 1;
 	}
-	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
-	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
-	flag_szp16(REG_AX);
-	//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
-	//C=O=A=?
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	else //Valid result?
 	{
-		CPU[activeCPU].cycles_OP += 83; //Timings!
+		REG_AH = (((byte)result)&0xFF);
+		REG_AL = (remainder&0xFF);
+		flag_szp16(REG_AX);
+		//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+		//C=O=A=?
 	}
+	CPUPROT2
 	return 0;
 }
 OPTINLINE byte CPU8086_internal_AAD(byte data)
@@ -4609,19 +4715,24 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 		CPU[activeCPU].executed = 0; //Not executed yet!
 		return;
 	}
-	if (!divisor) { CPU_exDIV0(); return; }
-	if ((valdiv / (word)divisor) > 0xFF) { CPU_exDIV0(); return; }
-	REG_AH = valdiv % (word)divisor;
-	REG_AL = valdiv / (word)divisor;
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	word result, modulo; //Result and modulo!
+	byte error, applycycles; //Error/apply cycles!
+	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,8,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	if (error==0) //No error?
+	{
+		REG_AL = (result&0xFF); //Quotient!
+		REG_AH = (modulo&0xFF); //Remainder!
+	}
+	else //Error?
+	{
+		CPU_exDIV0(); //Exception!
+		return; //Exception executed!
+	}
+	if (applycycles) /* No 80286+ cycles instead? */
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 96 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
-		}
-		else //Register?
-		{
-			CPU[activeCPU].cycles_OP += 90; //Reg!
+			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
 }
@@ -4636,64 +4747,32 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 		CPU[activeCPU].executed = 0; //Not executed yet!
 		return;
 	}
-	if (divisor == 0) { CPU_exDIV0(); return; }
-	/*
-	word s1, s2, d1, d2;
-	int sign;
-	s1 = valdiv;
-	s2 = divisor;
-	sign = (((s1 ^ s2) & 0x8000) != 0);
-	s1 = (s1 < 0x8000) ? s1 : ((~s1 + 1) & 0xffff);
-	s2 = (s2 < 0x8000) ? s2 : ((~s2 + 1) & 0xffff);
-	d1 = s1 / s2;
-	d2 = s1 % s2;
-	if (d1 & 0xFF00) { CPU_exDIV0(); return; }
-	if (sign) {
-	d1 = (~d1 + 1) & 0xff;
-	d2 = (~d2 + 1) & 0xff;
+	word result, modulo; //Result and modulo!
+	byte error, applycycles; //Error/apply cycles!
+	uint_32 valdivd;
+	word divisorw;
+	valdivd = valdiv;
+	divisorw = divisor;
+	if (valdiv&0x8000) valdivd |= 0xFFFF0000; //Sign extend to 32-bits!
+	if (divisor&0x80) divisorw |= 0xFF00; //Sign extend to 16-bits!
+	CPU8086_internal_IDIV(valdivd,divisorw,&result,&modulo,&error,8,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	if (error==0) //No error?
+	{
+		REG_AL = (result&0xFF); //Quotient!
+		REG_AH = (modulo&0xFF); //Remainder!
 	}
-	REG_AH = d2;
-	REG_AL = d1;
-	*/
-
-	//Same, but with normal instructions!
-	union
+	else //Error?
 	{
-		word valdivw;
-		sword valdivs;
-	} dataw1, //For loading the signed value of the registers!
-		dataw2; //For performing calculations!
-
-	union
+		CPU_exDIV0(); //Exception!
+		return; //Exception executed!
+	}
+	if (applycycles) /* No 80286+ cycles instead? */
 	{
-		byte divisorb;
-		sbyte divisors;
-	} datab1, //For loading the data
-		datab2; //For loading the result and test it against overflow!
-				//For converting the data to signed values!
-
-	dataw1.valdivw = valdiv; //Load word!
-	datab1.divisorb = divisor; //Load divisor!
-
-	dataw2.valdivs = dataw1.valdivs; //Set and...
-	dataw2.valdivs /= datab1.divisors; //... Divide!
-
-	datab2.divisors = (sbyte)dataw2.valdivs; //Try to load the signed result!
-	if (datab2.divisors != dataw2.valdivs) { CPU_exDIV0(); return; } //Overflow (data loss)!
-
-	REG_AL = datab2.divisors; //Divided!
-	dataw2.valdivs = dataw1.valdivs; //Reload and...
-	dataw2.valdivs %= datab1.divisors; //... Modulo!
-	datab1.divisors = (sbyte)dataw2.valdivs; //Convert to 8-bit!
-	REG_AH = datab1.divisorb; //Move rest into result!
-
-							  //if (valdiv > 32767) v1 = valdiv - 65536; else v1 = valdiv;
-							  //if (divisor > 127) v2 = divisor - 256; else v2 = divisor;
-							  //v1 = valdiv;
-							  //v2 = signext(divisor);
-							  //if ((v1/v2) > 255) { CPU8086_int(0); return; }
-							  //regs.byteregs[regal] = (v1/v2) & 255;
-							  //regs.byteregs[regah] = (v1 % v2) & 255;
+		if (MODRM_EA(params)) //Memory?
+		{
+			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
+		}
+	}
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
 		if (MODRM_EA(params)) //Memory?
@@ -4849,20 +4928,24 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 		CPU[activeCPU].executed = 0; //Not executed yet!
 		return;
 	}
-	if (!divisor) { CPU_exDIV0(); return; }
-	if ((valdiv / (uint32_t)divisor) > 0xFFFF) { CPU_exDIV0(); return; }
-	REG_DX = valdiv % (uint32_t)divisor;
-	REG_AX = valdiv / (uint32_t)divisor;
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	word result, modulo; //Result and modulo!
+	byte error, applycycles; //Error/apply cycles!
+	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,16,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	if (error==0) //No error?
+	{
+		REG_AX = result; //Quotient!
+		REG_DX = modulo; //Remainder!
+	}
+	else //Error?
+	{
+		CPU_exDIV0(); //Exception!
+		return; //Exception executed!
+	}
+	if (applycycles) /* No 80286+ cycles instead? */
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 168 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
-			CPU_addWordMemoryTiming(); /*To memory?*/
-		}
-		else //Register?
-		{
-			CPU[activeCPU].cycles_OP += 162; //Reg!
+			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
 }
@@ -4878,73 +4961,24 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 		return;
 	}
 
-	if (!divisor) { CPU_exDIV0(); return; }
-	/*
-	uint_32 d1, d2, s1, s2;
-	int sign;
-	s1 = valdiv;
-	s2 = divisor;
-	s2 = (s2 & 0x8000) ? (s2 | 0xffff0000) : s2;
-	sign = (((s1 ^ s2) & 0x80000000) != 0);
-	s1 = (s1 < 0x80000000) ? s1 : ((~s1 + 1) & 0xffffffff);
-	s2 = (s2 < 0x80000000) ? s2 : ((~s2 + 1) & 0xffffffff);
-	d1 = s1 / s2;
-	d2 = s1 % s2;
-	if (d1 & 0xFFFF0000) { CPU_exDIV0(); return; }
-	if (sign) {
-	d1 = (~d1 + 1) & 0xffff;
-	d2 = (~d2 + 1) & 0xffff;
+	word result, modulo; //Result and modulo!
+	byte error, applycycles; //Error/apply cycles!
+	CPU8086_internal_IDIV(valdiv,divisor,&result,&modulo,&error,16,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	if (error==0) //No error?
+	{
+		REG_AX = result; //Quotient!
+		REG_DX = modulo; //Remainder!
 	}
-	REG_AX = d1;
-	REG_DX = d2;
-	*/
-
-	//Same, but with normal instructions!
-	union
+	else //Error?
 	{
-		uint_32 valdivw;
-		int_32 valdivs;
-	} dataw1, //For loading the signed value of the registers!
-		dataw2; //For performing calculations!
-
-	union
-	{
-		word divisorb;
-		sword divisors;
-	} datab1, datab2; //For converting the data to signed values!
-
-	dataw1.valdivw = valdiv; //Load word!
-	datab1.divisorb = divisor; //Load divisor!
-
-	dataw2.valdivs = dataw1.valdivs; //Set and...
-	dataw2.valdivs /= datab1.divisors; //... Divide!
-
-	datab2.divisors = (sword)dataw2.valdivs; //Try to load the signed result!
-	if ((int_32)dataw2.valdivw != (int_32)datab2.divisors) { CPU_exDIV0(); return; } //Overflow (data loss)!
-
-	REG_AX = datab2.divisorb; //Divided!
-	dataw2.valdivs = dataw1.valdivs; //Reload and...
-	dataw2.valdivs %= datab1.divisors; //... Modulo!
-	datab1.divisors = (sword)dataw2.valdivs; //Convert to 8-bit!
-	REG_DX = datab1.divisorb; //Move rest into result!
-
-							  //if (valdiv > 0x7FFFFFFF) v1 = valdiv - 0xFFFFFFFF - 1; else v1 = valdiv;
-							  //if (divisor > 32767) v2 = divisor - 65536; else v2 = divisor;
-							  //if ((v1/v2) > 65535) { CPU8086_int(0); return; }
-							  //temp3 = (v1/v2) & 65535;
-							  //regs.wordregs[regax] = temp3;
-							  //temp3 = (v1%v2) & 65535;
-							  //regs.wordregs[regdx] = temp3;
-
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		CPU_exDIV0(); //Exception!
+		return; //Exception executed!
+	}
+	if (applycycles) /* No 80286+ cycles instead? */
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 190 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
-		}
-		else //Register?
-		{
-			CPU[activeCPU].cycles_OP += 184; //Reg!
+			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
 }
