@@ -3334,7 +3334,7 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 	}
 	word result, remainder;
 	byte error, applycycles;
-	CPU8086_internal_DIV(REG_AL,data,&result,&remainder,&error,8,2,3,&applycycles);
+	CPU8086_internal_DIV(REG_AL,data,&result,&remainder,&error,8,2,6,&applycycles);
 	if (error) //Error occurred?
 	{
 		CPU_exDIV0(); //Raise error that's requested!
@@ -4717,7 +4717,7 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 	}
 	word result, modulo; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,8,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,8,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AL = (result&0xFF); //Quotient!
@@ -4755,7 +4755,7 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 	divisorw = divisor;
 	if (valdiv&0x8000) valdivd |= 0xFFFF0000; //Sign extend to 32-bits!
 	if (divisor&0x80) divisorw |= 0xFF00; //Sign extend to 16-bits!
-	CPU8086_internal_IDIV(valdivd,divisorw,&result,&modulo,&error,8,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_IDIV(valdivd,divisorw,&result,&modulo,&error,8,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AL = (result&0xFF); //Quotient!
@@ -4930,7 +4930,7 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 	}
 	word result, modulo; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,16,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_DIV(valdiv,divisor,&result,&modulo,&error,16,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AX = result; //Quotient!
@@ -4963,7 +4963,7 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 
 	word result, modulo; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_IDIV(valdiv,divisor,&result,&modulo,&error,16,2,3,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_IDIV(valdiv,divisor,&result,&modulo,&error,16,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AX = result; //Quotient!
