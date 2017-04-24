@@ -1939,10 +1939,10 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 Parameters:
 	val: The value to divide
 	divisor: The value to divide by
-	result: Result container
-	modulo: The modulo container
+	quotient: Quotient result container
+	remainder: Remainder result container
 	error: 1 on error(DIV0), 0 when valid.
-	resultbits: The amount of bits the result contains(16 or 8 on 8086).
+	resultbits: The amount of bits the result contains(16 or 8 on 8086) of quotient and remainder.
 	SHLcycle: The amount of cycles for each SHL.
 	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
 
