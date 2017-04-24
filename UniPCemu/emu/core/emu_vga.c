@@ -456,7 +456,7 @@ void updateVGA(double timepassed)
 		#endif
 		do
 		{
-			if (renderings<5) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
+			if (likely(renderings<5)) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
 			else //x+ optimization?
 			{
 				VGA_Renderer(Sequencer); //Tick the VGA once!
