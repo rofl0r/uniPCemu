@@ -199,6 +199,22 @@ void autoDetectArchitecture()
 	}
 }
 
+//Custom feof, because Windows feof seems to fail in some strange cases?
+byte is_EOF(FILE *fp)
+{
+	byte res;
+	long currentOffset = ftell(fp);
+
+	fseek(fp, 0, SEEK_END);
+
+	if(currentOffset >= ftell(fp))
+		res = 1; //EOF!
+    else
+		res = 0; //Not EOF!
+	fseek(fp, currentOffset, SEEK_SET);
+	return res;
+}
+
 void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)
 {
 	if (__HW_DISABLED) return; //Ignore updates to memory!
@@ -208,30 +224,93 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	int_32 memoryblocks;
 	uint_64 maximummemory;
 	byte AThighblocks; //Are we using AT high blocks instead of low blocks?
+	byte memorylimitshift;
+	memorylimitshift = 20; //Default to MB (2^20) chunks!
 	
 	#ifdef ANDROID
 	maximummemory = ANDROID_MEMORY_LIMIT; //Default limit in MB!
 	#else
 	maximummemory = SHRT_MAX; //Default: maximum memory limit!
 	#endif
-	if (file_exists("memorylimit.txt")) //Limit specified?
+	char limitfilename[256];
+	memset(&limitfilename,0,sizeof(limitfilename)); //Init!
+	strcpy(limitfilename,UniPCEmu_root_dir); //Root directory!
+	strcat(limitfilename,"/memorylimit.txt"); //Limit file path!
+
+	if (file_exists(limitfilename)) //Limit specified?
 	{
 		int memorylimitMB;
+		char memorylimitsize='?';
+		byte limitread;
 		FILE *f;
-		f = fopen("memorylimit.txt","rb");
+		f = fopen(limitfilename,"rb");
+		limitread = 0; //Default: not read!
 		if (f) //Valid file?
 		{
-			if (fscanf(f,"%d",&memorylimitMB)==1) //Read up to 4 bytes to the buffer!
+			if (fscanf(f,"%d",&memorylimitMB)) //Read up to 4 bytes to the buffer!
 			{
-				if (feof(f)) //Read until EOF? We're valid!
+				if (is_EOF(f)) //Read until EOF? We're valid!
 				{
-					maximummemory = (uint_32)memorylimitMB; //Set the memory limit, in MB!
+					limitread = 1; //We're read!
+				}
+				else //Might have more?
+				{
+					if (fscanf(f,"%c",&memorylimitsize)) //Read size?
+					{
+						if (is_EOF(f)) //Read until EOF? We're valid!
+						{
+							limitread = 2; //We're read!
+							switch (memorylimitsize) //What size?
+							{
+								case 'b':
+								case 'B': //KB?
+									memorylimitsize = 'B'; //Default to Bytes!
+									break;
+								case 'k':
+								case 'K': //KB?
+									memorylimitsize = 'K'; //Default to KB!
+									break;
+								case 'm':
+								case 'M': //MB?
+									memorylimitsize = 'M'; //Default to MB!
+									break;
+								case 'g':
+								case 'G': //GB?
+									memorylimitsize = 'G'; //Default to GB!
+									break;
+								default: //Unknown size?
+									memorylimitsize = 'M'; //Default to MB!
+									break;
+							}
+						}
+					}
 				}
 			}
 			fclose(f); //Close the file!
 		}
+		if (limitread) //Are we read?
+		{
+			maximummemory = (uint_32)memorylimitMB; //Set the memory limit, in MB!
+			switch (memorylimitsize) //What shift to apply?
+			{
+				case 'B':
+					memorylimitshift = 0; //No shift: we're in bytes!
+					break;
+				case 'K':
+					memorylimitshift = 10; //Shift: we're in KB!
+					break;
+				case 'G':
+					memorylimitshift = 30; //Shift: we're in GB!
+					break;
+				default:
+				case 'M':
+				case '?': //Unknown?
+					memorylimitshift = 20; //Shift: we're in MB!
+					break;			
+			}
+		}
 	}
-	maximummemory <<= 20; //Convert to MB of memory limit!
+	maximummemory <<= memorylimitshift; //Convert to MB of memory limit!
 
 	if (!maximummemory) //Nothing? use bare minumum!
 	{
