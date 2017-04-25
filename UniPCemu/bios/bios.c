@@ -312,7 +312,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	}
 	maximummemory <<= memorylimitshift; //Convert to MB of memory limit!
 
-	if (!maximummemory) //Nothing? use bare minumum!
+	if (maximummemory<0x10000) //Nothing? use bare minumum!
 	{
 		maximummemory = 0x10000; //Bare minumum: 64KB + reserved memory!
 	}
