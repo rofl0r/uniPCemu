@@ -800,11 +800,19 @@ int ExecuteMenu(int numitems, int startrow, int allowspecs, word *stat)
 
 //Amount of files in the list MAX
 char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
+char dirlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
 int numlist = 0; //Number of files!
+int numdirlist = 0; //Number of files!
 
 void clearList()
 {
 	memset(itemlist,0,sizeof(itemlist)); //Init!
+	numlist = 0; //Nothin in there yet!
+}
+
+void clearDirList()
+{
+	memset(dirlist,0,sizeof(dirlist)); //Init!
 	numlist = 0; //Nothin in there yet!
 }
 
@@ -816,9 +824,40 @@ void addList(char *text)
 	}
 }
 
+void addDirList(char *text)
+{
+	if (numdirlist<ITEMLIST_MAXITEMS) //Maximum not reached yet?
+	{
+		strcpy(dirlist[numdirlist++],text); //Add the item and increase!
+	}
+}
+
+void sortDirList() //Sort the directory list!
+{
+	int_32 curlistx, curlisty;
+	char temp[256]; //Temporary storage!
+	memset(&temp,0,sizeof(temp)); //Init!
+	for (curlistx=0;curlistx<numdirlist;++curlistx)
+	{
+		for (curlisty=0;curlisty<numdirlist;++curlisty)
+		{
+			if (curlisty<(numdirlist-1)) //Within range to test forward?
+			{
+				if (strcmp(dirlist[curlisty],dirlist[curlisty+1])>0) //Different? We're past the string? We're to move the item up!
+				{
+					strcpy(&temp[0],&dirlist[curlisty+1][0]); //Load next item to swap in!
+					strcpy(&dirlist[curlisty+1][0],&dirlist[curlisty][0]); //Move the current item up!
+					strcpy(&dirlist[curlisty][0],&temp[0]); //Move the next item to the current item!
+				}
+			}
+		}
+	}
+}
+
 //Generate file list based on extension!
 void generateFileList(char *path, char *extensions, int allowms0, int allowdynamic)
 {
+	uint_32 curdirlist; //Current directory list item!
 	numlist = 0; //Reset amount of files!
 	clearList(); //Clear the list!
 	if (allowms0) //Allow Memory Stick option?
@@ -843,12 +882,17 @@ void generateFileList(char *path, char *extensions, int allowms0, int allowdynam
 					allowed = ((allowdynamic && is_dynamicimage(direntry)) || (!is_dynamicimage(direntry))); //Allowed when not dynamic or dynamic is allowed!
 					if (allowed) //Allowed?
 					{
-						addList(direntry); //Set filename!
+						addDirList(direntry); //Set filename!
 					}
 				}
 			}
 		}
 		while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
+		sortDirList(); //Sort the directory list!
+		for (curdirlist=0;curdirlist<numdirlist;++curdirlist) //Add all to our final list!
+		{
+			addList(&dirlist[curdirlist][0]); //Add directory items!
+		}
 		closedirlist(&dir);
 	}
 }
@@ -928,6 +972,8 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 
 int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information informationhandler) //Runs the file list!
 {
+	char currentstart;
+	int resultcopy;
 	int key = 0;
 	//First, no file check!
 	if (!numlist) //No files?
@@ -986,6 +1032,30 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			else //At the bottom?
 			{
 				result = 0; //Top of the list!
+			}
+			result &= 0xFF; //Only 255 entries max!
+			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
+		}
+		else if ((key&BUTTON_LEFT)>0) //LEFT?
+		{
+			currentstart = itemlist[result][0]; //The character to check against!
+			resultcopy = result; //What item to go to!
+			for (;((resultcopy>0) && (currentstart==itemlist[resultcopy][0]));--resultcopy); //While still the same? Scroll up until we don't or reach the first item!
+			if (itemlist[resultcopy][0]!=currentstart) //Valid result?
+			{
+				result = resultcopy; //Go to the item that's found!
+			}
+			result &= 0xFF; //Only 255 entries max!
+			printCurrent(x,y,itemlist[result],maxlen,informationhandler); //Create our current entry!
+		}
+		else if ((key&BUTTON_RIGHT)>0) //RIGHT?
+		{
+			currentstart = itemlist[result][0]; //The character to check against!
+			resultcopy = result; //What item to go to!
+			for (;((resultcopy<(numlist-1)) && (currentstart==itemlist[resultcopy][0]));++resultcopy); //While still the same? Scroll up until we don't or reach the first item!
+			if (itemlist[resultcopy][0]!=currentstart) //Valid result?
+			{
+				result = resultcopy; //Go to the item that's found!
 			}
 			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
