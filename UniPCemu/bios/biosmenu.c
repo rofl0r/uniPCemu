@@ -806,14 +806,14 @@ int numdirlist = 0; //Number of files!
 
 void clearList()
 {
-	memset(itemlist,0,sizeof(itemlist)); //Init!
+	memset(&itemlist,0,sizeof(itemlist)); //Init!
 	numlist = 0; //Nothin in there yet!
 }
 
 void clearDirList()
 {
-	memset(dirlist,0,sizeof(dirlist)); //Init!
-	numlist = 0; //Nothin in there yet!
+	memset(&dirlist,0,sizeof(dirlist)); //Init!
+	numdirlist = 0; //Nothin in there yet!
 }
 
 void addList(char *text)
@@ -859,7 +859,7 @@ void generateFileList(char *path, char *extensions, int allowms0, int allowdynam
 {
 	uint_32 curdirlist; //Current directory list item!
 	numlist = 0; //Reset amount of files!
-	clearList(); //Clear the list!
+	clearDirList(); //Clear the list!
 	if (allowms0) //Allow Memory Stick option?
 	{
         #ifdef IS_PSP
@@ -888,6 +888,7 @@ void generateFileList(char *path, char *extensions, int allowms0, int allowdynam
 			}
 		}
 		while (readdirlist(&dir,&direntry[0],&isfile)); //Files left to check?)
+		clearList(); //Clear the list!
 		sortDirList(); //Sort the directory list!
 		for (curdirlist=0;curdirlist<numdirlist;++curdirlist) //Add all to our final list!
 		{
