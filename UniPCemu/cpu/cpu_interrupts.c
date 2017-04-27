@@ -90,7 +90,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			{
 				if (EMULATED_CPU==CPU_8086) //Known timings in between?
 				{
-					CPU[activeCPU].cycles_OP += 20; //We take 20 cycles to execute on a 8086/8088 EU!
+					CPU[activeCPU].cycles_OP += 36; //We take 20 cycles to execute on a 8086/8088 EU!
 					++CPU[activeCPU].internalinterruptstep; //Next step to be taken!
 					CPU[activeCPU].executed = 0; //We haven't executed!
 					return 0; //Waiting to complete!
