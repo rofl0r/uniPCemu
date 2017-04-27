@@ -2207,22 +2207,26 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 
 byte tempcycles;
 
+uint_32 exception_busy; //Exception is busy?
 void CPU_exDIV0() //Division by 0!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (CPU_faultraised(EXCEPTION_DIVIDEERROR))
+	if (exception_busy&1) goto busyEX0;
+	exception_busy |= 1; //We're busy!
+	if (CPU_faultraised(EXCEPTION_DIVIDEERROR)==0)
 	{
-		if (EMULATED_CPU == CPU_8086) //We point to the instruction following the division?
-		{
-			//Points to next opcode!
-			call_soft_inthandler(EXCEPTION_DIVIDEERROR,-1); //Execute INT0 normally using current CS:(E)IP!
-		}
-		else
-		{
-			//Points to next opcode!
-			CPU_customint(EXCEPTION_DIVIDEERROR,CPU_exec_CS,CPU_exec_EIP,-1); //Return to opcode!
-		}
+		exception_busy &= ~1; //Not busy anymore!
+		return; //Abort handling when needed!
 	}
+	busyEX0:
+	if (EMULATED_CPU > CPU_8086) //We don't point to the instruction following the division?
+	{
+		CPU_resetOP(); //Return to the instruction instead!
+	}
+	//Else: Points to next opcode!
+
+	if (CPU086_int(EXCEPTION_DIVIDEERROR)==0) return; //Execute INT0 normally using current CS:(E)IP!
+	exception_busy &= ~1; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -2231,26 +2235,40 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	if (exception_busy&2) goto busyEX1;
+	exception_busy |= 2; //We're busy!
+	if (CPU_faultraised(EXCEPTION_DEBUG)==0)
+	{
+		exception_busy &= ~2; //Not busy anymore!
+		return; //Abort handling when needed!
+	}
+	busyEX1:
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	if (CPU_faultraised(EXCEPTION_DEBUG))
-	{
-		call_soft_inthandler(EXCEPTION_DEBUG,-1); //Execute INT1 normally using current CS:(E)IP!
-	}
-	CPU[activeCPU].cycles_Exception += 50; //Our cycles!
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	if (CPU086_int(EXCEPTION_DEBUG)) return; //Execute INT1 normally using current CS:(E)IP!
+	exception_busy &= ~2; //Not busy anymore!
+	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
 
 void CPU_BoundException() //Bound exception!
 {
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK))
+	if (exception_busy&4) goto busyEX2;
+	exception_busy |= 4; //We're busy!
+	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)==0)
 	{
-		CPU_customint(EXCEPTION_BOUNDSCHECK,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+		exception_busy &= ~4; //Not busy anymore!
+		return; //Abort handling when needed!
 	}
+	busyEX2:
+	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)) return;
+	CPU_resetOP(); //Reset instruction to start of instruction!
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	if (CPU086_int(EXCEPTION_BOUNDSCHECK)) return; //Return to opcode!
+	exception_busy &= ~4; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }
@@ -2259,10 +2277,18 @@ void CPU_COOP_notavailable() //COProcessor not available!
 {
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE))
+	if (exception_busy&4) goto busyEX2;
+	exception_busy |= 8; //We're busy!
+	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE)==0)
 	{
-		CPU_customint(EXCEPTION_COPROCESSORNOTAVAILABLE,CPU_exec_CS,CPU_exec_EIP,0); //Return to opcode!
+		exception_busy &= ~8; //Not busy anymore!
+		return; //Abort handling when needed!
 	}
+	busyEX2:
+	CPU_resetOP(); //Reset instruction to start of instruction!
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	if (CPU086_int(EXCEPTION_COPROCESSORNOTAVAILABLE)) return; //Return to opcode!
+	exception_busy &= ~8; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 }

@@ -136,26 +136,30 @@ OPTINLINE void CPU8086_software_int(byte interrupt, int_64 errorcode) //See int,
 	call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
 }
 
-OPTINLINE void CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
+OPTINLINE byte CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
 {
 	CPUPROT1
-		CPU8086_software_int(interrupt,-1);
+		if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
+		{
+			CPU8086_software_int(interrupt,-1);
+			if (type3) //Type-3 interrupt?
+				CPU[activeCPU].cycles_OP += 52; /* Type-3 interrupt */
+			else //Normal interrupt?
+				CPU[activeCPU].cycles_OP += 51; /* Normal interrupt */
+		}
+		else //Unsupported CPU? Use plain general interrupt handling instead!
+		{
+			CPU8086_software_int(interrupt,-1);
+			if (CPU_apply286cycles()) return 1; //80286+ cycles instead?
+		}
+		return 1; //Finished!
 	CPUPROT2
-	if (CPU_apply286cycles()) return; //80286+ cycles instead?
-	if (type3) //Type-3 interrupt?
-		CPU[activeCPU].cycles_OP += 52; /* Type-3 interrupt */
-	else //Normal interrupt?
-		CPU[activeCPU].cycles_OP += 51; /* Normal interrupt */
-	CPU_addWordMemoryTiming(); /*To memory?*/
-	CPU_addWordMemoryTiming(); /*To memory?*/
-	CPU_addWordMemoryTiming(); /*To memory?*/
-	CPU_addWordMemoryTiming(); /*To memory?*/
-	CPU_addWordMemoryTiming(); /*To memory?*/
+	return 1; //Finished!
 }
 
-void CPU086_int(byte interrupt) //Software interrupt (external call)!
+byte CPU086_int(byte interrupt) //Software interrupt (external call)!
 {
-	CPU8086_int(interrupt,0); //Direct call!
+	return CPU8086_int(interrupt,0); //Direct call!
 }
 
 OPTINLINE void CPU8086_IRET()
