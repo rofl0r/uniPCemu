@@ -800,6 +800,8 @@ extern byte Settings_request; //Settings requested to be executed?
 extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
+extern byte CPUhardinthandling;
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
@@ -924,6 +926,7 @@ OPTINLINE byte coreHandler()
 
 				HWINT_saved = 0; //No HW interrupt by default!
 				CPU_beforeexec(); //Everything before the execution!
+				if (CPUhardinthandling) goto hardwareinterrupthandler;
 				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
 					if (FLAG_IF) //Interrupts available?
@@ -941,7 +944,15 @@ OPTINLINE byte coreHandler()
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
-							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
+							hardwareinterrupthandler: //Hardware interrupt busy!
+							if ((call_hard_inthandler(HWINT_nr)==0) && (!(EMULATED_CPU>=CPU_80286))) //get next interrupt from the i8259, if any!
+							{
+								CPUhardinthandling = 1; //We're handling hardware interrupts still!
+							}
+							else
+							{
+								CPUhardinthandling = 0; //We're not handling hardware interrupts anymore!
+							}
 						}
 					}
 				}

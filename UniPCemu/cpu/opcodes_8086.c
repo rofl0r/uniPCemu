@@ -131,9 +131,9 @@ OPTINLINE void CPU_addWordMemoryTiming()
 	}
 }
 
-OPTINLINE void CPU8086_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE byte CPU8086_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
+	return call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
 }
 
 OPTINLINE byte CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
@@ -331,6 +331,32 @@ byte CPU8086_internal_PUSHw(byte base, word *data)
 			return 1; //Keep running!
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU8086_internal_interruptPUSHw(byte base, word *data)
+{
+	word temp;
+	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
+	{
+		if (CPU_PUSH16_BIU(data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinterruptstep==(base+1))
+	{
+		if (BIU_readResultw(&temp)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
@@ -801,6 +827,31 @@ byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uin
 			return 1; //Keep running!
 		}
 		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
+{
+	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
+	{
+		if (BIU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinterruptstep==(base+1))
+	{
+		if (BIU_readResultw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }

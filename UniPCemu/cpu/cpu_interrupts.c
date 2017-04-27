@@ -9,6 +9,7 @@
 #include "headers/mmu/mmuhandler.h" //Direct memory access support! 
 #include "headers/support/log.h" //Logging support for debugging!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_OP8086.h" //8086 support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -37,6 +38,7 @@ extern byte CPU_interruptraised; //Interrupt raised flag?
 
 word oldCS, oldIP, waitingforiret=0;
 
+word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
 	char errorcodestr[256];
@@ -60,15 +62,46 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			oldCS = retsegment; //Backup the return position!
 		}
 		#endif
-		CPU_PUSH16(&REG_FLAGS); //Push flags!
-		CPU_PUSH16(&retsegment); //Push segment!
-		word retoffset16 = (retoffset&0xFFFF);
-		CPU_PUSH16(&retoffset16);
+		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
+		{
+			CPU_PUSH16(&REG_FLAGS); //Push flags!
+			CPU_PUSH16(&retsegment); //Push segment!
+			word retoffset16 = (retoffset&0xFFFF);
+			CPU_PUSH16(&retoffset16);
+		}
+		else //Cycle-accurate way?
+		{
+			if (CPU8086_internal_interruptPUSHw(0,&REG_FLAGS)) return 0; //Busy pushing flags!
+			if (CPU8086_internal_interruptPUSHw(2,&retsegment)) return 0; //Busy pushing return segment!
+			word retoffset16 = (retoffset&0xFFFF);
+			if (CPU8086_internal_interruptPUSHw(4,&retoffset16)) return 0; //Busy pushing return offset!
+		}
 		FLAGW_IF(0); //We're calling the interrupt!
 		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
-//Now, jump to it!
-		destEIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
-		destCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
+		//Now, jump to it!
+		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
+		{
+			destEIP = (uint_32)(destINTIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base)); //JUMP to position CS:EIP/CS:IP in table.
+			destINTCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
+		}
+		else //Cycle-accurate way?
+		{
+			if (CPU[activeCPU].internalinterruptstep==6) //Handle specific EU timings here?
+			{
+				if (EMULATED_CPU==CPU_8086) //Known timings in between?
+				{
+					CPU[activeCPU].cycles_OP += 20; //We take 20 cycles to execute on a 8086/8088 EU!
+					++CPU[activeCPU].internalinterruptstep; //Next step to be taken!
+					CPU[activeCPU].executed = 0; //We haven't executed!
+					return 0; //Waiting to complete!
+				}
+				else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
+			}
+			if (CPU8086_internal_stepreadinterruptw(7,-2,0,(intnr << 2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
+			if (CPU8086_internal_stepreadinterruptw(9,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
+			destCS = destINTCS;
+			destEIP = (uint_32)destINTIP;
+		}
 		cleardata(&errorcodestr[0],sizeof(errorcodestr)); //Clear the error code!
 		if (errorcode==-1) //No error code?
 		{
@@ -81,7 +114,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		#ifdef LOG_INTS
 		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		#endif
-		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		//No error codes are pushed in (un)real mode! Only in protected mode!

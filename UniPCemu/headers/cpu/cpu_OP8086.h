@@ -320,6 +320,7 @@ byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 byte CPU8086_PUSHw(byte base, word *data);
 byte CPU8086_internal_PUSHw(byte base, word *data);
 byte CPU8086_PUSHb(byte base, byte *data);
+byte CPU8086_internal_interruptPUSHw(byte base, word *data);
 byte CPU8086_internal_PUSHb(byte base, byte *data);
 byte CPU8086_POPw(byte base, word *result);
 byte CPU8086_internal_POPw(byte base, word *result);
@@ -336,6 +337,7 @@ byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, ui
 byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16);
 byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16);
 byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
+byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
 byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
 
 #endif

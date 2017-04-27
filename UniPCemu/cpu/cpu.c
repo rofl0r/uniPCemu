@@ -592,17 +592,17 @@ byte CPU_PORT_IN_D(word port, uint_32 *result)
 byte call_soft_inthandler(byte intnr, int_64 errorcode)
 {
 	//Now call handler!
-	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
+	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
 	return CPU_INT(intnr,errorcode); //Call interrupt!
 }
 
-void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
+byte call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
-	CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
+	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_INT(intnr,-1); //Call interrupt!
+	return CPU_INT(intnr,-1); //Call interrupt!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -1162,7 +1162,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	}
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
-	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 	return 0; //We're done fetching the instruction!
 }
 
@@ -1804,7 +1804,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-					CPU_INT(1,-1); //Call the interrupt, no error code!
+					if (CPU_INT(1,-1)) return; //Call the interrupt, no error code!
 				}
 			}
 		}
@@ -2247,7 +2247,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (CPU086_int(EXCEPTION_DEBUG)) return; //Execute INT1 normally using current CS:(E)IP!
+	if ((CPU086_int(EXCEPTION_DEBUG)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Execute INT1 normally using current CS:(E)IP!
 	exception_busy &= ~2; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
@@ -2267,7 +2267,7 @@ void CPU_BoundException() //Bound exception!
 	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)) return;
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (CPU086_int(EXCEPTION_BOUNDSCHECK)) return; //Return to opcode!
+	if ((CPU086_int(EXCEPTION_BOUNDSCHECK)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
 	exception_busy &= ~4; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
@@ -2287,7 +2287,7 @@ void CPU_COOP_notavailable() //COProcessor not available!
 	busyEX2:
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (CPU086_int(EXCEPTION_COPROCESSORNOTAVAILABLE)) return; //Return to opcode!
+	if ((CPU086_int(EXCEPTION_COPROCESSORNOTAVAILABLE)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
 	exception_busy &= ~8; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!

@@ -46,6 +46,8 @@ byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/801
 
 extern byte cpudebugger; //To debug the CPU?
 
+byte CPUhardinthandling;
+
 void CPU_initBIU()
 {
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
@@ -240,32 +242,74 @@ OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from t
 
 byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<17))); //Request a read!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<17))); //Request a read!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(0<<17))); //Request a read!
+	}
 }
 
 byte BIU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
 }
 
 byte BIU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
 }
 
 byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUWRITE,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUWRITE,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUWRITE,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
+	}
 }
 
 byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	}
 }
 
 byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16)
 {
-	return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	if (segdesc>=0)
+	{
+		return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	}
+	else
+	{
+		return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
+	}
 }
 
 //BUS(I/O address space) accesses for the Execution Unit to make, and their results!
@@ -769,5 +813,5 @@ void CPU_tickBIU()
 
 byte BIU_Ready() //Are we ready to continue execution?
 {
-	return (BIU[activeCPU].cycleinfo.cycles==0); //We're ready to execute the next instruction (or instruction step) when all cycles are handled!
+	return ((BIU[activeCPU].cycleinfo.cycles==0) && (CPUhardinthandling==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
 }

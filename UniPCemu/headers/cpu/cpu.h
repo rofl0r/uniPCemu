@@ -1196,7 +1196,7 @@ uint_32 CPU_POP32(); //Full stack used!
 byte CPU_POP32_BIU(); //Full stack used!
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
-void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
+byte call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
 
 
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!
