@@ -11,6 +11,7 @@ typedef struct
 	byte iowcycles; //Write cycles left!
 	byte iowcyclestart; //Write cycle start!
 	byte prefetchcycles; //Prefetch cycles done
+	byte cycles_stallBIU; //How many cycles to stall the BIU when running the BIU?
 	byte curcycle; //Current cycle to process?
 } CPU_CycleTimingInfo;
 

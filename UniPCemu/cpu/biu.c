@@ -703,12 +703,14 @@ void CPU_tickBIU()
 	if (cycleinfo->cycles==0) //Are we ready to continue into the next phase?
 	{
 		cycleinfo->cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
+		if (cycleinfo->cycles==0) cycleinfo->cycles = 1; //Take 1 cycle at least!
 		cycleinfo->iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
 		cycleinfo->iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
 		cycleinfo->iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 
 		cycleinfo->prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 		cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
+		cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
 		for (iowcyclespending=cycleinfo->iowcycles, cycleinfo->iowcyclestart=0;cycleinfo->iowcyclestart && iowcyclespending;++cycleinfo->iowcyclestart)
 		{
 			if (((BIU[activeCPU].prefetchclock+cycleinfo->cycles-cycleinfo->iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
@@ -732,7 +734,11 @@ void CPU_tickBIU()
 			else //Active CPU cycle?
 			{
 				cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
-				if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
+				if (cycleinfo->cycles_stallBIU) //To stall?
+				{
+					--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
+				}
+				else if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 				{
 					if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch808X;}
 					else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
