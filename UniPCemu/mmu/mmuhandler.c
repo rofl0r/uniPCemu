@@ -498,9 +498,9 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
-	if (MMU_logging && (!opcode)) //To log?
+	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Read from memory: %08X=%02X (%c)", realaddress, data, stringsafe(data)); //Log it!
+		dolog("debugger", "Reading from memory: %08X=%02X (%c)", realaddress, data, stringsafe(data)); //Log it!
 	}
 	return data;
 }
