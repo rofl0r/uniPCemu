@@ -195,6 +195,13 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
+extern byte MMU_logging; //Are we logging?
+
+OPTINLINE char stringsafeMMU(byte x)
+{
+	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
+}
+
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
 	byte result;
@@ -238,6 +245,11 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
 
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Reading from paged memory: %08X=%02X (%c)", realaddress, result, stringsafeMMU(result)); //Log it!
+	}
+
 	return result; //Give the result!
 }
 
@@ -280,6 +292,11 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		}
 	}
 
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Writing to paged memory: %08X=%02X (%c)", realaddress, val, stringsafeMMU(val)); //Log it!
+	}
+
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
@@ -320,6 +337,12 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
 	processBUS(realaddress, index, result); //Process us on the BUS!
+
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Reading from normal memory: %08X=%02X (%c)", realaddress, result, stringsafeMMU(result)); //Log it!
+	}
+
 	return result; //Give the result!
 }
 
@@ -382,6 +405,11 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 	}*/
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+
+	if (MMU_logging) //To log?
+	{
+		dolog("debugger", "Writing to normal memory: %08X=%02X (%c)", realaddress, val, stringsafeMMU(val)); //Log it!
+	}
 
 	processBUS(realaddress, index, val); //Process us on the BUS!
 	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup); //Write through the paging unit and hardware layer!
