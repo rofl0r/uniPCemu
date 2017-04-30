@@ -81,7 +81,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		//Now, jump to it!
 		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
 		{
-			destEIP = (uint_32)(destINTIP = memory_directrw((intnr << 2)+CPU[activeCPU].registers->IDTR.base)); //JUMP to position CS:EIP/CS:IP in table.
+			destINTIP = memory_directrw((intnr<<2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
 			destINTCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
 		}
 		else //Cycle-accurate way?
@@ -97,11 +97,12 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 				}
 				else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
 			}
-			if (CPU8086_internal_stepreadinterruptw(7,-2,0,(intnr << 2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
+			if (CPU8086_internal_stepreadinterruptw(7,-2,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
 			if (CPU8086_internal_stepreadinterruptw(9,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
-			destCS = destINTCS;
-			destEIP = (uint_32)destINTIP;
 		}
+		//Load EIP and CS destination to use from the original 16-bit data!
+		destEIP = (uint_32)destINTIP;
+		destCS = destINTCS;
 		cleardata(&errorcodestr[0],sizeof(errorcodestr)); //Clear the error code!
 		if (errorcode==-1) //No error code?
 		{
@@ -120,10 +121,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
 	}
-	else //Use Protected mode IVT?
-	{
-		return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode); //Execute the protected mode interrupt!
-	}
+	//Use Protected mode IVT?
+	return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode); //Execute the protected mode interrupt!
 }
 
 
