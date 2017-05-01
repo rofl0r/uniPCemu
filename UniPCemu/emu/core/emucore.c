@@ -900,6 +900,9 @@ OPTINLINE byte coreHandler()
 		else //We're not halted? Execute the CPU routines!
 		{
 			resumeFromHLT:
+			cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+			MMU_logging = debugger_logging(); //Are we logging?
+
 			if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //We're starting a new instruction?
 			{
 				if (CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep) //Single step enabled and allowed?
@@ -920,9 +923,6 @@ OPTINLINE byte coreHandler()
 						}
 					}
 				}
-
-				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-				MMU_logging = debugger_logging(); //Are we logging?
 
 				HWINT_saved = 0; //No HW interrupt by default!
 				CPU_beforeexec(); //Everything before the execution!
