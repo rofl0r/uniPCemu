@@ -700,7 +700,7 @@ void CPU_tickBIU()
 
 	//Now, normal processing!
 	if (!BIU[activeCPU].PIQ) return; //Disable invalid PIQ!
-	if (cycleinfo->cycles==0) //Are we ready to continue into the next phase?
+	if ((cycleinfo->cycles==0) && (cycleinfo->cycles_stallBUS==0)) //Are we ready to continue into the next phase?
 	{
 		cycleinfo->cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 		if (cycleinfo->cycles==0) cycleinfo->cycles = 1; //Take 1 cycle at least!
@@ -711,6 +711,7 @@ void CPU_tickBIU()
 		cycleinfo->prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 		cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
 		cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
+		cycleinfo->cycles_stallBUS = CPU[activeCPU].cycles_stallBUS; //BUS stall cycles!
 		for (iowcyclespending=cycleinfo->iowcycles, cycleinfo->iowcyclestart=0;cycleinfo->iowcyclestart && iowcyclespending;++cycleinfo->iowcyclestart)
 		{
 			if (((BIU[activeCPU].prefetchclock+cycleinfo->cycles-cycleinfo->iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
@@ -724,106 +725,124 @@ void CPU_tickBIU()
 	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
 	{
 		BIU[activeCPU].TState = (BIU[activeCPU].prefetchclock&3); //Currently emulated T-state!
-		if (((BIU[activeCPU].prefetchclock&3)==3) && (BIU[activeCPU].waitstateRAMremaining)) //T4? Check for waitstate RAM first!
+		if (cycleinfo->cycles_stallBUS) //Stall the BUS?
 		{
-			//WaitState RAM busy?
-			--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
-			BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
+			--cycleinfo->cycles_stallBUS; //Stall!
+			BIU[activeCPU].stallingBUS = 1; //Stalling!
 		}
-		else //No waitstates to apply?
+		else
 		{
-			if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
+			BIU[activeCPU].stallingBUS = 0; //Not stalling BUS!
+			if (((BIU[activeCPU].prefetchclock&3)==3) && (BIU[activeCPU].waitstateRAMremaining)) //T4? Check for waitstate RAM first!
 			{
-				++CPU[activeCPU].cycles_Prefetch_DMA;
-				BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+				//WaitState RAM busy?
+				--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
+				BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
 			}
-			else //Active CPU cycle?
+			else //No waitstates to apply?
 			{
-				cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
-				if (cycleinfo->cycles_stallBIU) //To stall?
+				if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
 				{
-					--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
+					++CPU[activeCPU].cycles_Prefetch_DMA;
+					BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
 				}
-				else if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
+				else //Active CPU cycle?
 				{
-					if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch808X;}
-					else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
-					else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip write cycle!
-					else
+					cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
+					if (cycleinfo->cycles_stallBIU) //To stall?
 					{
-						tryprefetch808X:
-						if (BIU_processRequests(memory_waitstates)) //Processing a request?
+						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
+					}
+					else if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
+					{
+						if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch808X;}
+						else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
+						else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 4; BUSactive = BUSactive?BUSactive:1; } //Skip write cycle!
+						else
 						{
-							BIU[activeCPU].requestready = 0; //We're starting a request!					
-						}
-						else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
-						{
-							BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
-							CPU_fillPIQ(); //Add a byte to the prefetch!
-							if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
-							++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-							BIU[activeCPU].requestready = 0; //We're pending a request!
+							tryprefetch808X:
+							if (BIU_processRequests(memory_waitstates)) //Processing a request?
+							{
+								BIU[activeCPU].requestready = 0; //We're starting a request!					
+							}
+							else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
+							{
+								BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
+								CPU_fillPIQ(); //Add a byte to the prefetch!
+								if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
+								++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+								BIU[activeCPU].requestready = 0; //We're pending a request!
+							}
 						}
 					}
+					else if ((BUSactive==1) && (cycleinfo->curcycle==3)) //Finishing transfer on T4?
+					{
+						BUSactive = 0; //Inactive BUS!
+						BIU[activeCPU].requestready = 1; //The request is ready to be served!
+					}
+					--cycleinfo->cycles; //Decrease the amount of cycles that's left!
 				}
-				else if ((BUSactive==1) && (cycleinfo->curcycle==3)) //Finishing transfer on T4?
-				{
-					BUSactive = 0; //Inactive BUS!
-					BIU[activeCPU].requestready = 1; //The request is ready to be served!
-				}
-				--cycleinfo->cycles; //Decrease the amount of cycles that's left!
 			}
 		}
 	}
 	else //286+
 	{
 		BIU[activeCPU].TState = (BIU[activeCPU].prefetchclock&1); //Currently emulated T-state!
-		if (((BIU[activeCPU].prefetchclock&1)==1) && (BIU[activeCPU].waitstateRAMremaining)) //T2? Check for waitstate RAM first!
+		if (cycleinfo->cycles_stallBUS) //Stall the BUS?
 		{
-			//WaitState RAM busy?
-			--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
-			BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
+			--cycleinfo->cycles_stallBUS; //Stall!
+			BIU[activeCPU].stallingBUS = 1; //Stalling!
 		}
-		else //No waitstates to apply?
+		else
 		{
-			if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
+			BIU[activeCPU].stallingBUS = 0; //Not stalling BUS!
+			if (((BIU[activeCPU].prefetchclock&1)==1) && (BIU[activeCPU].waitstateRAMremaining)) //T2? Check for waitstate RAM first!
 			{
-				++CPU[activeCPU].cycles_Prefetch_DMA;
-				BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+				//WaitState RAM busy?
+				--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
+				BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
 			}
-			else //Active CPU cycle?
+			else //No waitstates to apply?
 			{
-				cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&1); //Current cycle!
-				if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
+				if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
 				{
-					if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch80286;}
-					else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
-					else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip write cycle!
-					else
+					++CPU[activeCPU].cycles_Prefetch_DMA;
+					BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+				}
+				else //Active CPU cycle?
+				{
+					cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&1); //Current cycle!
+					if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 					{
-						tryprefetch80286:
-						if (BIU_processRequests(memory_waitstates)) //Processing a request?
+						if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch80286;}
+						else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip read cycle!
+						else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 2; BUSactive = BUSactive?BUSactive:1; } //Skip write cycle!
+						else
 						{
-							BIU[activeCPU].requestready = 0; //We're starting a request!					
-						}
-						else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>1) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
-						{
-							BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
-							CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-							++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-							BIU[activeCPU].requestready = 0; //We're starting a request!					
+							tryprefetch80286:
+							if (BIU_processRequests(memory_waitstates)) //Processing a request?
+							{
+								BIU[activeCPU].requestready = 0; //We're starting a request!					
+							}
+							else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>1) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
+							{
+								BUSactive = BUSactive?BUSactive:1; //Start memory cycles!
+								CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+								++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+								BIU[activeCPU].requestready = 0; //We're starting a request!					
+							}
 						}
 					}
+					else if ((BUSactive==1) && (cycleinfo->curcycle==1)) //Finishing transfer on T1?
+					{
+						BUSactive = 0; //Inactive BUS!
+						BIU[activeCPU].requestready = 1; //The request is ready to be served!
+					}
 				}
-				else if ((BUSactive==1) && (cycleinfo->curcycle==1)) //Finishing transfer on T1?
-				{
-					BUSactive = 0; //Inactive BUS!
-					BIU[activeCPU].requestready = 1; //The request is ready to be served!
-				}
+				--cycleinfo->cycles; //Decrease the amount of cycles that's left!
 			}
-			--cycleinfo->cycles; //Decrease the amount of cycles that's left!
 		}
 	}
 	CPU[activeCPU].cycles = 1; //Only take 1 cycle: we're cycle-accurate emulation of the BIU(and EU by extension, since we handle that part indirectly as well in our timings, resulting in the full CPU timings)!
@@ -831,5 +850,5 @@ void CPU_tickBIU()
 
 byte BIU_Ready() //Are we ready to continue execution?
 {
-	return ((BIU[activeCPU].cycleinfo.cycles==0) && (CPUhardinthandling==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
+	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0) && (CPUhardinthandling==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
 }

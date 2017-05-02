@@ -858,6 +858,7 @@ typedef struct PACKED
 	byte cycles_IO; //Total number of cycles for I/O access!
 	byte cycles_Prefetch; //Total number of cycles for prefetching from memory!
 	byte cycles_stallBIU; //How many cycles to stall the BIU this step?
+	byte cycles_stallBUS; //How many cycles to stall the BUS(all CPU hardware) this step?
 	byte cycles_Prefetch_BIU; //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 	byte cycles_Prefetch_DMA; //DMA cycles actually spent on prefetching during the remaining idle BUS time!
 

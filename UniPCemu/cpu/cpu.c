@@ -1624,6 +1624,7 @@ void CPU_resetTimings()
 	CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	CPU[activeCPU].cycles_stallBIU = 0; //Reset cycles to stall (used by BIU to check for stalling during any jump (see below))!
+	CPU[activeCPU].cycles_stallBUS = 0; //Reset cycles to stall the BUS!
 	CPU[activeCPU].cycles_Prefetch_DMA = 0; //Reset cycles spent on DMA by the BIU!
 	CPU[activeCPU].cycles_EA = 0; //Reset EA cycles!
 }

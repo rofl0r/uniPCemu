@@ -800,7 +800,11 @@ OPTINLINE static void debugger_autolog()
 		if (debugger_logtimings) //Logging the timings?
 		{
 			strcpy(statelog,""); //Default to empty!
-			if (BIU[activeCPU].TState<0xFE) //Not a special state?
+			if (BIU[activeCPU].stallingBUS) //Stalling the BUS?
+			{
+				strcpy(statelog,"BIU: ---"); //Stalling the BIU!
+			}
+			else if (BIU[activeCPU].TState<0xFE) //Not a special state?
 			{
 				sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 					(BIU[activeCPU].TState+1), //Current T-state!

@@ -13,6 +13,7 @@ typedef struct
 	byte prefetchcycles; //Prefetch cycles done
 	byte cycles_stallBIU; //How many cycles to stall the BIU when running the BIU?
 	byte curcycle; //Current cycle to process?
+	byte cycles_stallBUS; //How many cycles to stall the BUS, BIU and EU!
 } CPU_CycleTimingInfo;
 
 typedef struct
@@ -33,6 +34,7 @@ typedef struct
 	CPU_CycleTimingInfo cycleinfo; //Current cycle state!
 	byte requestready; //Request not ready to retrieve?
 	byte TState; //What T-state is the BIU running at?
+	byte stallingBUS; //Are we stalling the BUS!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
