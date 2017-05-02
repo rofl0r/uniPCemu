@@ -1163,6 +1163,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].POPtimeout = (EMULATED_CPU<=CPU_NECV30)?2:0; //Delay 2 cycles for POPs to start!
 	return 0; //We're done fetching the instruction!
 }
 
