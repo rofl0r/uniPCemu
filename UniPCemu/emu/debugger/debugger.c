@@ -165,6 +165,59 @@ byte needdebugger() //Do we need to generate debugging information?
 	return result; //Do we need debugger information?
 }
 
+OPTINLINE char stringsafeDebugger(byte x)
+{
+	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
+}
+
+void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type)
+{
+	if (iswrite)
+	{
+		switch (type)
+		{
+			case LOGMEMORYACCESS_NORMAL:
+				dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_PAGED:
+				dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_DIRECT:
+				dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			default:
+			case LOGMEMORYACCESS_RAM:
+				dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_RAM_LOGMMUALL:
+				dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+		}
+	}
+	else
+	{
+		switch (type)
+		{
+			case LOGMEMORYACCESS_NORMAL:
+				dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_PAGED:
+				dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_DIRECT:
+				dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			default:
+			case LOGMEMORYACCESS_RAM:
+				dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+			case LOGMEMORYACCESS_RAM_LOGMMUALL:
+				dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				break;
+		}
+	}
+}
+
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	if (needdebugger()) //To apply the debugger generator?

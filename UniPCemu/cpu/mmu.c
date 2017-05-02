@@ -197,11 +197,6 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 
 extern byte MMU_logging; //Are we logging?
 
-OPTINLINE char stringsafeMMU(byte x)
-{
-	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
-}
-
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
 	byte result;
@@ -247,7 +242,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Reading from paged memory: %08X=%02X (%c)", realaddress, result, stringsafeMMU(result)); //Log it!
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
 	return result; //Give the result!
@@ -294,7 +289,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to paged memory: %08X=%02X (%c)", realaddress, val, stringsafeMMU(val)); //Log it!
+		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
 	//Normal memory access!
@@ -340,7 +335,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Reading from normal memory: %08X=%02X (%c)", realaddress, result, stringsafeMMU(result)); //Log it!
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
 	return result; //Give the result!
@@ -408,7 +403,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to normal memory: %08X=%02X (%c)", realaddress, val, stringsafeMMU(val)); //Log it!
+		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
 	processBUS(realaddress, index, val); //Process us on the BUS!

@@ -44,4 +44,12 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 byte isDebuggingPOSTCodes(); //Debug POST codes?
 
 void initDebugger(); //Initialize the debugger if needed!
+void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type);
+
+#define LOGMEMORYACCESS_NORMAL 0
+#define LOGMEMORYACCESS_PAGED 1
+#define LOGMEMORYACCESS_DIRECT 2
+#define LOGMEMORYACCESS_RAM 3
+#define LOGMEMORYACCESS_RAM_LOGMMUALL 4
+
 #endif

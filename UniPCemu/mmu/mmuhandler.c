@@ -6,6 +6,7 @@
 #include "headers/hardware/dram.h" //DRAM support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/fifobuffer.h" //Write buffer support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
@@ -278,11 +279,6 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 	*/
 }
 
-OPTINLINE char stringsafe(byte x)
-{
-	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
-}
-
 //Memory hole start/end locations!
 #define LOW_MEMORYHOLE_START 0xA0000
 #define LOW_MEMORYHOLE_END 0x100000
@@ -418,7 +414,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Reading from RAM: %08X=%02X (%c)", realaddress, result, stringsafe(result)); //Log it!
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_RAM); //Log it!
 	}
 	return result; //Give existant memory!
 }
@@ -428,7 +424,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	uint_32 originaladdress = realaddress; //Original address!
 	if (LOG_MMU_WRITES) //Data debugging?
 	{
-		dolog("debugger", "MMU: Writing to real %08X=%02X (%c)", realaddress, value, stringsafe(value));
+		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL);
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
@@ -457,7 +453,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to RAM: %08X=%02X (%c)", realaddress, value, stringsafe(value)); //Log it!
+		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
@@ -500,7 +496,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Reading from memory: %08X=%02X (%c)", realaddress, data, stringsafe(data)); //Log it!
+		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
 	return data;
 }
@@ -531,7 +527,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 	}
 	if (MMU_logging) //To log?
 	{
-		dolog("debugger", "Writing to memory: %08X=%02X (%c)", realaddress, val, stringsafe(val)); //Log it!
+		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
 	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
