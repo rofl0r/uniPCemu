@@ -132,6 +132,7 @@ byte debugger_logging()
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
+	case DEBUGGERLOG_DEBUGGING_SINGLELINE:
 		enablelog = debugging(); //Enable log when debugging!
 		break;
 	case DEBUGGERLOG_INT: //Interrupts only?
@@ -180,7 +181,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -199,7 +200,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -218,7 +219,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -238,7 +239,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -257,7 +258,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -282,7 +283,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -301,7 +302,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -320,7 +321,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -340,7 +341,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -359,7 +360,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
 				{
 					dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -580,7 +581,7 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
-	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE)) return; //Don't log the register state?
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE)) return; //Don't log the register state?
 	if (!registers || !filename) //Invalid?
 	{
 		dolog(filename,"Log registers called with invalid argument!");
@@ -650,7 +651,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
-	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE)) return; //Don't log us: don't log register state!
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE)) return; //Don't log us: don't log register state!
 	int i;
 	//Full interrupt status!
 	char buffer[0x11] = ""; //Empty buffer to fill!
@@ -700,7 +701,7 @@ OPTINLINE static void debugger_autolog()
 		if (CPU[activeCPU].executed)
 		{
 			//Now generate debugger information!
-			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not single-line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not single-line?
 			{
 				if (last_modrm)
 				{
@@ -759,7 +760,7 @@ OPTINLINE static void debugger_autolog()
 				strcat(fullcmd, debugger_command_text); //Command itself!
 			}
 
-			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE)) //Saved HW interrupt?
+			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Saved HW interrupt?
 			{
 				switch (HWINT_saved)
 				{
@@ -790,7 +791,7 @@ OPTINLINE static void debugger_autolog()
 					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 			}
-			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not single line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not single line?
 			{
 				dolog("debugger",executedinstruction); //The executed instruction!
 			}
@@ -851,7 +852,7 @@ OPTINLINE static void debugger_autolog()
 							break;
 				}
 			}
-			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not logging single lines?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not logging single lines?
 			{
 				dolog("debugger",statelog); //Log the state log only!
 			}
@@ -878,7 +879,7 @@ OPTINLINE static void debugger_autolog()
 			strcpy(debugger_memoryaccess_text,""); //Clear the text to apply: we're done!
 		}
 
-		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE)) //Multiple lines and finished executing?
+		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Multiple lines and finished executing?
 		{
 			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		

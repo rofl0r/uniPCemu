@@ -103,6 +103,8 @@ typedef struct PACKED
 #define DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP 6
 //Always, Single line
 #define DEBUGGERLOG_ALWAYS_SINGLELINE 7
+//Debugging only, Single line
+#define DEBUGGERLOG_DEBUGGING_SINGLELINE 8
 
 //Execution modes:
 //None:
