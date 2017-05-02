@@ -128,6 +128,7 @@ byte debugger_logging()
 	case DEBUGGERLOG_ALWAYS:
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Same, but no register state logging?
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, but also when skipping?
+	case DEBUGGERLOG_ALWAYS_SINGLELINE: //Always log, even during skipping, single line format
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
@@ -271,7 +272,6 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 char flags[256]; //Flags as a text!
 static char *debugger_generateFlags(CPU_registers *registers)
 {
-	memset(&flags,0,sizeof(flags)); //Clear/init flags!
 	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
 	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
 	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
@@ -364,7 +364,7 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
-	if (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) return; //Don't log the register state?
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE)) return; //Don't log the register state?
 	if (!registers || !filename) //Invalid?
 	{
 		dolog(filename,"Log registers called with invalid argument!");
@@ -434,7 +434,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
-	if (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) return; //Don't log us: don't log register state!
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE)) return; //Don't log us: don't log register state!
 	int i;
 	//Full interrupt status!
 	char buffer[0x11] = ""; //Empty buffer to fill!
@@ -464,6 +464,9 @@ extern byte DMA_S; //DMA state of transfer(clocks S0-S3), when active!
 
 extern char DMA_States_text[6][256]; //DMA states!
 
+char executedinstruction[256];
+char statelog[256];
+
 OPTINLINE static void debugger_autolog()
 {
 	if (CPU[activeCPU].executed) //Are we executed?
@@ -480,39 +483,41 @@ OPTINLINE static void debugger_autolog()
 		if (CPU[activeCPU].executed)
 		{
 			//Now generate debugger information!
-			if (last_modrm)
+			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not single-line?
 			{
-				if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
+				if (last_modrm)
 				{
-					dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+					if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
+					{
+						dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+					}
+					else //386+? Unknown addresses, so just take it as given!
+					{
+						dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
+					}
 				}
-				else //386+? Unknown addresses, so just take it as given!
+				if (MMU_invaddr()) //We've detected an invalid address?
 				{
-					dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
+					switch (MMU_invaddr()) //What error?
+					{
+					case 0: //OK!
+						break;
+					case 1: //Memory not found!
+						dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
+						break;
+					case 2: //Paging or protection fault!
+						dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
+						break;
+					default:
+						dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
+						break;
+					}
+				}
+				if (CPU[activeCPU].faultraised) //Fault has been raised?
+				{
+					dolog("debugger", "The CPU has raised an exception.");
 				}
 			}
-			if (MMU_invaddr()) //We've detected an invalid address?
-			{
-				switch (MMU_invaddr()) //What error?
-				{
-				case 0: //OK!
-					break;
-				case 1: //Memory not found!
-					dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
-					break;
-				case 2: //Paging or protection fault!
-					dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
-					break;
-				default:
-					dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
-					break;
-				}
-			}
-			if (CPU[activeCPU].faultraised) //Fault has been raised?
-			{
-				dolog("debugger", "The CPU has raised an exception.");
-			}
-
 			char fullcmd[256];
 			cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
 			int i; //A counter for opcode data dump!
@@ -537,7 +542,7 @@ OPTINLINE static void debugger_autolog()
 				strcat(fullcmd, debugger_command_text); //Command itself!
 			}
 
-			if (HWINT_saved) //Saved HW interrupt?
+			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE)) //Saved HW interrupt?
 			{
 				switch (HWINT_saved)
 				{
@@ -552,28 +557,34 @@ OPTINLINE static void debugger_autolog()
 				}
 			}
 
+			strcpy(executedinstruction,""); //Clear instruction!
 			if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
 			{
-				dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+				sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 			}
 			else //286+? Use EIP!
 			{
 				if (EMULATED_CPU>CPU_80286) //Newer? Use 32-bits addressing!
 				{
-					dolog("debugger","%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+					sprintf(executedinstruction,"%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 				else //16-bits offset?
 				{
-					dolog("debugger","%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
+			}
+			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not single line?
+			{
+				dolog("debugger",executedinstruction); //The executed instruction!
 			}
 		}
 
 		if (debugger_logtimings) //Logging the timings?
 		{
+			strcpy(statelog,""); //Default to empty!
 			if (BIU[activeCPU].TState<0xFE) //Not a special state?
 			{
-				dolog("debugger","BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+				sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 					(BIU[activeCPU].TState+1), //Current T-state!
 					CPU[activeCPU].cycles, //Cycles executed by the BIU!
 					CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
@@ -593,7 +604,7 @@ OPTINLINE static void debugger_autolog()
 				{
 					default: //Unknown?
 					case 0xFE: //DMA cycle?
-						dolog("debugger","DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+						sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 							DMA_States_text[DMA_S], //Current S-state!
 							CPU[activeCPU].cycles, //Cycles executed by the BIU!
 							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
@@ -608,7 +619,7 @@ OPTINLINE static void debugger_autolog()
 							);
 							break;
 					case 0xFF: //Waitstate RAM!
-						dolog("debugger","BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+						sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 							CPU[activeCPU].cycles, //Cycles executed by the BIU!
 							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 							CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
@@ -623,9 +634,24 @@ OPTINLINE static void debugger_autolog()
 							break;
 				}
 			}
+			if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not logging single lines?
+			{
+				dolog("debugger",statelog); //Log the state log only!
+			}
+			else //Logging single line?
+			{
+				if (strlen(executedinstruction)) //Executed instruction?
+				{
+					dolog("debugger","%s %s",statelog,executedinstruction);
+				}
+				else //State only?
+				{
+					dolog("debugger","%s",statelog);
+				}
+			}
 		}
 
-		if (CPU[activeCPU].executed)
+		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE)) //Multiple lines and finished executing?
 		{
 			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
@@ -1025,4 +1051,7 @@ void debugger_setprefix(char *text)
 void initDebugger() //Initialize the debugger if needed!
 {
 	verifyfile = file_exists("debuggerverify16.dat"); //To perform verification checks at all?
+	memset(&flags,0,sizeof(flags)); //Clear/init flags!
+	memset(&executedinstruction,0,sizeof(executedinstruction)); //Init instruction!
+	memset(&statelog,0,sizeof(statelog));
 }

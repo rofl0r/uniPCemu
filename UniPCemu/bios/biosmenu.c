@@ -3184,6 +3184,7 @@ void BIOS_DebugLog()
 	strcpy(itemlist[DEBUGGERLOG_DIAGNOSTICCODES], "BIOS Diagnostic codes only");
 	strcpy(itemlist[DEBUGGERLOG_ALWAYS_NOREGISTERS],"Always log, no register state");
 	strcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP],"Always log, even during skipping");
+	strcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE],"Always log, even during skipping, single line format");
 	int current = 0;
 	switch (BIOS_Settings.debugger_log) //What debugger log mode?
 	{
@@ -3194,6 +3195,7 @@ void BIOS_DebugLog()
 	case DEBUGGERLOG_DIAGNOSTICCODES: //Diagnostic codes only
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Always, no register state!
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, even during skipping
+	case DEBUGGERLOG_ALWAYS_SINGLELINE: //Always log, even during skipping, single line format
 		current = BIOS_Settings.debugger_log; //Valid: use!
 		break;
 	default: //Invalid
@@ -3221,6 +3223,7 @@ void BIOS_DebugLog()
 	case DEBUGGERLOG_DIAGNOSTICCODES: //Diagnostic codes only
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Always log, no register state!
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, even during skipping
+	case DEBUGGERLOG_ALWAYS_SINGLELINE: //Always log, even during skipping, single line format
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -4839,6 +4842,9 @@ setShowCPUSpeed:
 		break;
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP:
 		strcat(menuoptions[advancedoptions++], "Always log, even during skipping");
+		break;
+	case DEBUGGERLOG_ALWAYS_SINGLELINE:
+		strcat(menuoptions[advancedoptions++], "Always log, even during skipping, single line format");
 		break;
 	default:
 		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
