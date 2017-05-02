@@ -2032,9 +2032,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	//Apply the ticks to our real-time timer and BIU!
 	//Fall back to the default handler on 80(1)86 systems!
 	#ifdef CPU_USECYCLES
-	if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_EA|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
+	if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_stallBIU|CPU[activeCPU].cycles_EA|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 	{
-		CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_EA+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Use the cycles as specified by the instruction!
+		CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_stallBIU+CPU[activeCPU].cycles_EA+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Use the cycles as specified by the instruction!
 	}
 	else //Automatic cycles placeholder?
 	{
