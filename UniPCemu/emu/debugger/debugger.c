@@ -18,6 +18,7 @@
 #include "headers/hardware/vga/vga_renderer.h" //Renderer support!
 #include "headers/bios/biosmenu.h" //Support for running the BIOS from the debugger!
 #include "headers/mmu/mmuhandler.h" //MMU_invaddr and MMU_dumpmemory support!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Log flags only?
 //#define LOGFLAGSONLY
@@ -457,6 +458,12 @@ extern byte last_modrm; //Is the last opcode a modr/m read?
 extern byte OPbuffer[256];
 extern word OPlength; //The length of the OPbuffer!
 
+extern BIU_type BIU[MAXCPUS]; //The BIU we're emulating!
+
+extern byte DMA_S; //DMA state of transfer(clocks S0-S3), when active!
+
+extern char DMA_States_text[6][256]; //DMA states!
+
 OPTINLINE static void debugger_autolog()
 {
 	if (CPU[activeCPU].executed) //Are we executed?
@@ -564,18 +571,58 @@ OPTINLINE static void debugger_autolog()
 
 		if (debugger_logtimings) //Logging the timings?
 		{
-			dolog("debugger","EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
-				CPU[activeCPU].cycles,
-				CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
-				CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
-				CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
-				CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-				CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-				CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
-				CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-				CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-				CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-				);
+			if (BIU[activeCPU].TState<0xFE) //Not a special state?
+			{
+				dolog("debugger","BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+					(BIU[activeCPU].TState+1), //Current T-state!
+					CPU[activeCPU].cycles, //Cycles executed by the BIU!
+					CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+					CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+					CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+					CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+					CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+					CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+					CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+					CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+					CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+					);
+			}
+			else
+			{
+				switch (BIU[activeCPU].TState) //What state?
+				{
+					default: //Unknown?
+					case 0xFE: //DMA cycle?
+						dolog("debugger","DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+							DMA_States_text[DMA_S], //Current S-state!
+							CPU[activeCPU].cycles, //Cycles executed by the BIU!
+							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+							CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+							CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+							CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+							CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+							CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+							CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+							CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+							CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+							);
+							break;
+					case 0xFF: //Waitstate RAM!
+						dolog("debugger","BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+							CPU[activeCPU].cycles, //Cycles executed by the BIU!
+							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+							CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+							CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+							CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+							CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+							CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+							CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+							CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+							CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+							);
+							break;
+				}
+			}
 		}
 
 		if (CPU[activeCPU].executed)

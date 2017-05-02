@@ -731,6 +731,7 @@ void DMA_StateHandler_S4()
 }
 
 Handler DMA_States[6] = {DMA_StateHandler_SI,DMA_StateHandler_S0,DMA_StateHandler_S1,DMA_StateHandler_S2,DMA_StateHandler_S3,DMA_StateHandler_S4}; //All possible DMA cycle states!
+char DMA_States_text[6][256] = {"SI","S0","S1","S2","S3","S4"}; //DMA states!
 
 /* Main DMA Controller processing ticks */
 void DMA_tick()

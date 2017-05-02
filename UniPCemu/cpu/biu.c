@@ -38,7 +38,7 @@
 
 #define CPU286_WAITSTATE_DELAY 1
 
-BIU_type BIU[NUMCPUS]; //All possible BIUs!
+BIU_type BIU[MAXCPUS]; //All possible BIUs!
 
 extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 
@@ -723,14 +723,20 @@ void CPU_tickBIU()
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
 	{
+		BIU[activeCPU].TState = (BIU[activeCPU].prefetchclock&3); //Currently emulated T-state!
 		if (((BIU[activeCPU].prefetchclock&3)==3) && (BIU[activeCPU].waitstateRAMremaining)) //T4? Check for waitstate RAM first!
 		{
 			//WaitState RAM busy?
 			--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
+			BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
 		}
 		else //No waitstates to apply?
 		{
-			if (BUSactive==2) {++CPU[activeCPU].cycles_Prefetch_DMA; } //Handling a DRAM refresh? We're idling on DMA!
+			if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
+			{
+				++CPU[activeCPU].cycles_Prefetch_DMA;
+				BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+			}
 			else //Active CPU cycle?
 			{
 				cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&3); //Current cycle!
@@ -772,14 +778,20 @@ void CPU_tickBIU()
 	}
 	else //286+
 	{
+		BIU[activeCPU].TState = (BIU[activeCPU].prefetchclock&1); //Currently emulated T-state!
 		if (((BIU[activeCPU].prefetchclock&1)==1) && (BIU[activeCPU].waitstateRAMremaining)) //T2? Check for waitstate RAM first!
 		{
 			//WaitState RAM busy?
 			--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
+			BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
 		}
 		else //No waitstates to apply?
 		{
-			if (BUSactive==2) {++CPU[activeCPU].cycles_Prefetch_DMA; } //Handling a DRAM refresh? We're idling on DMA!
+			if (BUSactive==2) //Handling a DRAM refresh? We're idling on DMA!
+			{
+				++CPU[activeCPU].cycles_Prefetch_DMA;
+				BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+			}
 			else //Active CPU cycle?
 			{
 				cycleinfo->curcycle = (BIU[activeCPU].prefetchclock++&1); //Current cycle!

@@ -32,6 +32,7 @@ typedef struct
 	byte waitstateRAMremaining; //Amount of RAM waitstate cycles remaining!
 	CPU_CycleTimingInfo cycleinfo; //Current cycle state!
 	byte requestready; //Request not ready to retrieve?
+	byte TState; //What T-state is the BIU running at?
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
