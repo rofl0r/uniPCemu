@@ -31,12 +31,21 @@ void donelog(void)
 	SDL_DestroySemaphore(log_Lock);
 }
 
+char log_filenametmp[256];
+char log_logtext[8196], log_logtext2[8196]; //Original and prepared text!
+char log_thetimestamp[256];
+
+
 void initlog()
 {
 	initTicksHolder(&logticksholder); //Initialize our time!
 	startHiresCounting(&logticksholder); //Init our timer to the starting point!
 	log_Lock = SDL_CreateSemaphore(1); //Create our sephamore!
 	atexit(&donelog); //Our cleanup function!
+	cleardata(&log_filenametmp[0],sizeof(log_filenametmp)); //Init filename!
+	cleardata(&log_logtext[0],sizeof(log_logtext)); //Init logging text!
+	cleardata(&log_logtext2[0],sizeof(log_logtext2)); //Init logging text!
+	cleardata(&log_thetimestamp[0],sizeof(log_thetimestamp)); //Init timestamp text!
 }
 
 OPTINLINE void addnewline(char *s)
@@ -60,9 +69,6 @@ void log_logtimestamp(byte logtimestamp)
 
 void dolog(char *filename, const char *format, ...) //Logging functionality!
 {
-	static char filenametmp[256];
-	static char logtext[256], logtext2[512]; //Original and prepared text!
-	static char timestamp[256];
 	word i;
 	uint_32 logtextlen = 0;
 	char c, newline=0;
@@ -73,46 +79,46 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	WaitSem(log_Lock) //Only one instance allowed!
 
 	//First: init variables!
-	cleardata(&filenametmp[0],sizeof(filenametmp)); //Init filename!
-	cleardata(&logtext[0],sizeof(logtext)); //Init logging text!
-	cleardata(&timestamp[0],sizeof(timestamp)); //Init timestamp text!
+	strcpy(&log_filenametmp[0],""); //Init filename!
+	strcpy(&log_logtext[0],""); //Init logging text!
+	strcpy(log_thetimestamp,""); //Init timestamp text!
 	
-	strcpy(filenametmp,logpath); //Base directory!
-	strcat(filenametmp,"/");
-	strcat(filenametmp,filename); //Add the filename to the directory!
+	strcpy(log_filenametmp,logpath); //Base directory!
+	strcat(log_filenametmp,"/");
+	strcat(log_filenametmp,filename); //Add the filename to the directory!
 	if (!*filename) //Empty filename?
 	{
-		strcpy(filenametmp,"unknown"); //Empty filename = unknown.log!
+		strcpy(log_filenametmp,"unknown"); //Empty filename = unknown.log!
 	}
 	#ifdef ANDROID
-	strcat(filenametmp,".txt"); //Do log here!
+	strcat(log_filenametmp,".txt"); //Do log here!
 	#else
-	strcat(filenametmp,".log"); //Do log here!
+	strcat(log_filenametmp,".log"); //Do log here!
 	#endif
 
 	va_start (args, format); //Start list!
-	vsprintf (logtext, format, args); //Compile list!
+	vsprintf (log_logtext, format, args); //Compile list!
 	va_end (args); //Destroy list!
 
-	memset(&logtext2,0,sizeof(logtext2)); //Clear the data to dump!
+	strcpy(log_logtext2,""); //Clear the data to dump!
 
-	logtextlen = safe_strlen(logtext, 256); //Get our length to log!
+	logtextlen = safe_strlen(log_logtext, sizeof(log_logtext)); //Get our length to log!
 	for (i=0;i<logtextlen;) //Process the log text!
 	{
-		c = logtext[i++]; //Read the character to process!
+		c = log_logtext[i++]; //Read the character to process!
 		if ((c == '\n') || (c == '\r')) //Newline character?
 		{
 			//we count \n, \r, \n\r and \r\n as the same: newline!
 			if (!newline) //First newline character?
 			{
-				addnewline(&logtext2[0]); //Flush!
+				addnewline(&log_logtext2[0]); //Flush!
 				newline = c; //Detect for further newlines!
 			}
 			else //Second newline+?
 			{
 				if (newline == c) //Same newline as before?
 				{
-					addnewline(&logtext2[0]); //Flush!
+					addnewline(&log_logtext2[0]); //Flush!
 					//Continue counting newlines!
 				}
 				else //No newline, clear the newline flag!
@@ -124,33 +130,33 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		else //Normal character?
 		{
 			newline = 0; //Not a newline character anymore!
-			sprintf(logtext2, "%s%c", logtext2, c); //Add to the debugged data!
+			sprintf(log_logtext2, "%s%c", log_logtext2, c); //Add to the debugged data!
 		}
 	}
 
-	if (safe_strlen(logtext2,sizeof(logtext2)) && log_timestamp) //Got length and logging timestamp?
+	if (safe_strlen(log_logtext2,sizeof(log_logtext2)) && log_timestamp) //Got length and logging timestamp?
 	{
 		//Lock
 		time = getuspassed_k(&logticksholder); //Get the current time!
-		convertTime(time,&timestamp[0]); //Convert the time!
-		strcat(timestamp,": "); //Suffix!
+		convertTime(time,&log_thetimestamp[0]); //Convert the time!
+		strcat(log_thetimestamp,": "); //Suffix!
 	}
 
-	if ((!logfile) || (strcmp(lastfile,filenametmp)!=0)) //Other file or new file?
+	if ((!logfile) || (strcmp(lastfile,log_filenametmp)!=0)) //Other file or new file?
 	{
 		if (logfile) fclose(logfile); //Close the old log if needed!
 		domkdir(logpath); //Create a logs directory if needed!
-		logfile = fopen(filenametmp, "rb"); //Open for testing!
+		logfile = fopen(log_filenametmp, "rb"); //Open for testing!
 		if (logfile) //Existing?
 		{
 			fclose(logfile); //Close it!
-			logfile = fopen(filenametmp, "ab"); //Reopen for appending!
+			logfile = fopen(log_filenametmp, "ab"); //Reopen for appending!
 		}
 		else
 		{
-			logfile = fopen(filenametmp, "wb"); //Reopen for writing new!
+			logfile = fopen(log_filenametmp, "wb"); //Reopen for writing new!
 		}
-		strcpy(lastfile, filenametmp); //Set the last file we've opened!
+		strcpy(lastfile, log_filenametmp); //Set the last file we've opened!
 #ifdef __LOGBUFFER
 		if (logfile) //We're opened?
 		{
@@ -162,10 +168,10 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 	//Now log!
 	if (logfile) //Opened?
 	{
-		if (safe_strlen(logtext2,sizeof(logtext2))) //Got length?
+		if (safe_strlen(log_logtext2,sizeof(log_logtext2))) //Got length?
 		{
-			fwrite(&timestamp,1,safe_strlen(timestamp,sizeof(timestamp)),logfile); //Write the timestamp!
-			fwrite(&logtext2,1,safe_strlen(logtext2,sizeof(logtext2)),logfile); //Write string to file!
+			fwrite(&log_thetimestamp,1,safe_strlen(log_thetimestamp,sizeof(log_thetimestamp)),logfile); //Write the timestamp!
+			fwrite(&log_logtext2,1,safe_strlen(log_logtext2,sizeof(log_logtext2)),logfile); //Write string to file!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
 #if defined(IS_PSP) || defined(ANDROID)

@@ -3171,7 +3171,7 @@ void BIOS_DebugLog()
 	GPU_EMU_printscreen(0, 4, "Debugger log: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 7; //Amount of Execution modes!
+	numlist = 8; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
