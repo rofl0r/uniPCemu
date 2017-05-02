@@ -170,6 +170,9 @@ OPTINLINE char stringsafeDebugger(byte x)
 	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
 }
 
+char debugger_memoryaccess_text[1024]; //Memory access text!
+char debugger_memoryaccess_line[256];
+
 void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type)
 {
 	if (iswrite)
@@ -177,20 +180,100 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Normal(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Normal(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Paged(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Paged(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Physical(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Physical(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"RAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"RAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"RealRAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"RealRAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 		}
 	}
@@ -199,20 +282,100 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Normal(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Normal(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Paged(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Paged(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"Physical(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"Physical(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"RAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"RAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				if (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) //Not using a single line?
+				{
+					dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+				}
+				else
+				{
+					if (strcmp(debugger_memoryaccess_text,"")==0) //Nothing logged yet?
+					{
+						sprintf(debugger_memoryaccess_text,"RealRAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+					}
+					else
+					{
+						sprintf(debugger_memoryaccess_line,"RealRAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
+						strcat(debugger_memoryaccess_text,"; ");
+						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+					}
+				}
 				break;
 		}
 	}
@@ -519,6 +682,7 @@ extern char DMA_States_text[6][256]; //DMA states!
 
 char executedinstruction[256];
 char statelog[256];
+char executedinstructionstatelog[2048];
 
 OPTINLINE static void debugger_autolog()
 {
@@ -693,15 +857,25 @@ OPTINLINE static void debugger_autolog()
 			}
 			else //Logging single line?
 			{
-				if (strlen(executedinstruction)) //Executed instruction?
+				strcpy(executedinstructionstatelog,""); //Init!
+				if (strlen(executedinstruction) && CPU[activeCPU].executed) //Executed instruction?
 				{
-					dolog("debugger","%s %s",statelog,executedinstruction);
+					sprintf(executedinstructionstatelog,"%s %s",statelog,executedinstruction);
 				}
 				else //State only?
 				{
-					dolog("debugger","%s",statelog);
+					sprintf(executedinstructionstatelog,"%s",statelog);
+				}
+				if (strlen(debugger_memoryaccess_text)) //memory access?
+				{
+					dolog("debugger","%s %s",executedinstructionstatelog,debugger_memoryaccess_text);
+				}
+				else //(Instruction+)State only?
+				{
+					dolog("debugger","%s",executedinstructionstatelog); //Instruction/State only!
 				}
 			}
+			strcpy(debugger_memoryaccess_text,""); //Clear the text to apply: we're done!
 		}
 
 		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE)) //Multiple lines and finished executing?
@@ -1107,4 +1281,7 @@ void initDebugger() //Initialize the debugger if needed!
 	memset(&flags,0,sizeof(flags)); //Clear/init flags!
 	memset(&executedinstruction,0,sizeof(executedinstruction)); //Init instruction!
 	memset(&statelog,0,sizeof(statelog));
+	memset(&debugger_memoryaccess_text,0,sizeof(debugger_memoryaccess_text));
+	memset(&debugger_memoryaccess_line,0,sizeof(debugger_memoryaccess_line));
+	memset(&executedinstructionstatelog,0,sizeof(executedinstructionstatelog));
 }
