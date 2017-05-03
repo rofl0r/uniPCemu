@@ -751,6 +751,16 @@ void CPU_tickBIU()
 					{
 						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
 						BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
+						if (CPU[activeCPU].BUSactive==1) //We're active?
+						{
+							if ((BIU[activeCPU].prefetchclock&3)!=0) //Not T1 yet?
+							{
+								if ((++BIU[activeCPU].prefetchclock&3)==0) //From T4 to T1?
+								{
+									CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+								}
+							}
+						}
 					}
 					else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 					{
@@ -827,6 +837,16 @@ void CPU_tickBIU()
 					{
 						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
 						BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
+						if (CPU[activeCPU].BUSactive==1) //We're active?
+						{
+							if ((BIU[activeCPU].prefetchclock&3)!=0) //Not T1 yet?
+							{
+								if ((++BIU[activeCPU].prefetchclock&3)==0) //From T4 to T1?
+								{
+									CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+								}
+							}
+						}
 					}
 					else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 					{

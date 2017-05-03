@@ -804,7 +804,7 @@ OPTINLINE static void debugger_autolog()
 		if (debugger_logtimings) //Logging the timings?
 		{
 			strcpy(statelog,""); //Default to empty!
-			if (BIU[activeCPU].stallingBUS) //Stalling the BUS?
+			if (BIU[activeCPU].stallingBUS && ((BIU[activeCPU].stallingBUS!=3) || ((BIU[activeCPU].stallingBUS==3) && (CPU[activeCPU].BUSactive==0)))) //Stalling the BUS?
 			{
 				strcpy(statelog,"BIU --"); //Stalling the BIU!
 			}
