@@ -821,7 +821,12 @@ void CPU_tickBIU()
 				else //Active CPU cycle?
 				{
 					cycleinfo->curcycle = (BIU[activeCPU].prefetchclock&1); //Current cycle!
-					if ((cycleinfo->curcycle)==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
+					if (cycleinfo->cycles_stallBIU) //To stall?
+					{
+						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
+						++BIU[activeCPU].prefetchclock; //Tick!
+					}
+					else if ((cycleinfo->curcycle==0) && (BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 					{
 						if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch80286;}
 						else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 2; BUSactive = BUSactive?BUSactive:1; ++BIU[activeCPU].prefetchclock; /*Tick!*/ } //Skip read cycle!
@@ -841,7 +846,7 @@ void CPU_tickBIU()
 								++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 								BIU[activeCPU].requestready = 0; //We're starting a request!
-				++BIU[activeCPU].prefetchclock; //Tick!					
+								++BIU[activeCPU].prefetchclock; //Tick!					
 							}
 						}
 					}
@@ -849,7 +854,7 @@ void CPU_tickBIU()
 					{
 						BUSactive = 0; //Inactive BUS!
 						BIU[activeCPU].requestready = 1; //The request is ready to be served!
-					++BIU[activeCPU].prefetchclock; //Tick!
+						++BIU[activeCPU].prefetchclock; //Tick!
 					}
 				}
 				--cycleinfo->cycles; //Decrease the amount of cycles that's left!
