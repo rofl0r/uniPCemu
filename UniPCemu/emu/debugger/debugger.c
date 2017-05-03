@@ -806,7 +806,7 @@ OPTINLINE static void debugger_autolog()
 			strcpy(statelog,""); //Default to empty!
 			if (BIU[activeCPU].stallingBUS) //Stalling the BUS?
 			{
-				strcpy(statelog,"BIU: ---"); //Stalling the BIU!
+				strcpy(statelog,"BIU --"); //Stalling the BIU!
 			}
 			else if (BIU[activeCPU].TState<0xFE) //Not a special state?
 			{
