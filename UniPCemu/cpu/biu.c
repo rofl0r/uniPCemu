@@ -750,7 +750,6 @@ void CPU_tickBIU()
 					if (cycleinfo->cycles_stallBIU) //To stall?
 					{
 						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
-						++BIU[activeCPU].prefetchclock; //Tick!
 						BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
 					}
 					else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
@@ -827,7 +826,6 @@ void CPU_tickBIU()
 					if (cycleinfo->cycles_stallBIU) //To stall?
 					{
 						--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
-						++BIU[activeCPU].prefetchclock; //Tick!
 						BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
 					}
 					else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
