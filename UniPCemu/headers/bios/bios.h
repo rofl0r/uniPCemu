@@ -105,6 +105,10 @@ typedef struct PACKED
 #define DEBUGGERLOG_ALWAYS_SINGLELINE 7
 //Debugging only, Single line
 #define DEBUGGERLOG_DEBUGGING_SINGLELINE 8
+//Always, Single line, simplified
+#define DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED 9
+//Debugging only, Single line, simplified
+#define DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED 10
 
 //Execution modes:
 //None:

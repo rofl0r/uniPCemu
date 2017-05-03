@@ -59,6 +59,8 @@ extern PIC i8259;
 
 extern GPU_type GPU; //GPU itself!
 
+byte debugger_simplifiedlog = 0; //Are we to produce a simplified log?
+
 byte verifyfile = 0; //Check for verification file?
 
 #include "headers/packed.h" //Packed!
@@ -129,10 +131,12 @@ byte debugger_logging()
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Same, but no register state logging?
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, but also when skipping?
 	case DEBUGGERLOG_ALWAYS_SINGLELINE: //Always log, even during skipping, single line format
+	case DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED: //Always log, even during skipping, single line format, simplfied
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE:
+	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED:
 		enablelog = debugging(); //Enable log when debugging!
 		break;
 	case DEBUGGERLOG_INT: //Interrupts only?
@@ -181,7 +185,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -200,7 +204,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -219,7 +223,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -239,7 +243,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -258,7 +262,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -283,7 +287,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		switch (type)
 		{
 			case LOGMEMORYACCESS_NORMAL:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -302,7 +306,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_PAGED:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -321,7 +325,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_DIRECT:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -341,7 +345,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				break;
 			default:
 			case LOGMEMORYACCESS_RAM:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -360,7 +364,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 				}
 				break;
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
-				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not using a single line?
+				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
 					dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
 				}
@@ -581,7 +585,7 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
-	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE)) return; //Don't log the register state?
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log the register state?
 	if (!registers || !filename) //Invalid?
 	{
 		dolog(filename,"Log registers called with invalid argument!");
@@ -651,7 +655,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
-	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE)) return; //Don't log us: don't log register state!
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log us: don't log register state!
 	int i;
 	//Full interrupt status!
 	char buffer[0x11] = ""; //Empty buffer to fill!
@@ -701,7 +705,7 @@ OPTINLINE static void debugger_autolog()
 		if (CPU[activeCPU].executed)
 		{
 			//Now generate debugger information!
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not single-line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not single-line?
 			{
 				if (last_modrm)
 				{
@@ -760,7 +764,7 @@ OPTINLINE static void debugger_autolog()
 				strcat(fullcmd, debugger_command_text); //Command itself!
 			}
 
-			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Saved HW interrupt?
+			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Saved HW interrupt?
 			{
 				switch (HWINT_saved)
 				{
@@ -791,7 +795,7 @@ OPTINLINE static void debugger_autolog()
 					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 			}
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not single line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not single line?
 			{
 				dolog("debugger",executedinstruction); //The executed instruction!
 			}
@@ -806,19 +810,28 @@ OPTINLINE static void debugger_autolog()
 			}
 			else if (BIU[activeCPU].TState<0xFE) //Not a special state?
 			{
-				sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
-					(BIU[activeCPU].TState+1), //Current T-state!
-					CPU[activeCPU].cycles, //Cycles executed by the BIU!
-					CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
-					CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
-					CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
-					CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-					CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-					CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
-					CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-					CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-					CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-					);
+				if (debugger_simplifiedlog) //Simplified log?
+				{
+					sprintf(statelog,"BIU T%i",
+						(BIU[activeCPU].TState+1) //Current T-state!
+						);
+				}
+				else //Normal full log?
+				{
+					sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+						(BIU[activeCPU].TState+1), //Current T-state!
+						CPU[activeCPU].cycles, //Cycles executed by the BIU!
+						CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+						CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+						CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+						CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+						CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+						CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+						CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+						CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+						CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+						);
+				}
 			}
 			else
 			{
@@ -826,37 +839,54 @@ OPTINLINE static void debugger_autolog()
 				{
 					default: //Unknown?
 					case 0xFE: //DMA cycle?
-						sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
-							DMA_States_text[DMA_S], //Current S-state!
-							CPU[activeCPU].cycles, //Cycles executed by the BIU!
-							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
-							CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
-							CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
-							CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-							CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-							CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
-							CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-							CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-							CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-							);
-							break;
+						if (debugger_simplifiedlog) //Simplified log?
+						{
+							sprintf(statelog,"DMA %s",
+								DMA_States_text[DMA_S] //Current S-state!
+								);
+						}
+						else //Normal full log?
+						{
+							sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+								DMA_States_text[DMA_S], //Current S-state!
+								CPU[activeCPU].cycles, //Cycles executed by the BIU!
+								CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+								CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+								CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+								CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+								CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+								CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+								CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+								CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+								CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+								);
+						}
+						break;
 					case 0xFF: //Waitstate RAM!
-						sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
-							CPU[activeCPU].cycles, //Cycles executed by the BIU!
-							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
-							CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
-							CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
-							CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-							CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-							CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
-							CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
-							CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-							CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
-							);
-							break;
+						if (debugger_simplifiedlog) //Simplified log?
+						{
+							sprintf(statelog,"BIU W"
+								);
+						}
+						else //Normal full log?
+						{
+							sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+								CPU[activeCPU].cycles, //Cycles executed by the BIU!
+								CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
+								CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
+								CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
+								CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
+								CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
+								CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
+								CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
+								CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+								CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
+								);
+						}
+						break;
 				}
 			}
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Not logging single lines?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not logging single lines?
 			{
 				dolog("debugger",statelog); //Log the state log only!
 			}
@@ -883,7 +913,7 @@ OPTINLINE static void debugger_autolog()
 			strcpy(debugger_memoryaccess_text,""); //Clear the text to apply: we're done!
 		}
 
-		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE)) //Multiple lines and finished executing?
+		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Multiple lines and finished executing?
 		{
 			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
@@ -1212,6 +1242,7 @@ void debugger_step() //Processes the debugging step!
 			return; //We're still running, so start nothing!
 		}
 	}
+	debugger_simplifiedlog = ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)); //Simplified log?
 	debugger_thread = NULL; //Not a running thread!
 	debugger_autolog(); //Log when enabled!
 	if (CPU[activeCPU].executed) //Are we executed?
