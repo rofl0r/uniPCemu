@@ -8,6 +8,7 @@ DMA Controller (8237A)
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmuhandler.h" //Direct Memory support!
 #include "headers/hardware/8237A.h" //Our own header!
+#include "headers/cpu/cpu.h" //CPU support for BUS sharing!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -504,11 +505,11 @@ void DMA_StateHandler_SI()
 void DMA_StateHandler_S0()
 {
 	//S0: Sample DLDA. Resolve DRQn priorities.
-	if (BUSactive!=2) //Bus isn't assigned to ours yet?
+	if (CPU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
 	{
-		if (BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
+		if (CPU[activeCPU].BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
 		{
-			BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+			CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 		}
 		//BUS is taken or waiting the cycle?
 		return; //NOP state!
@@ -561,7 +562,7 @@ void DMA_StateHandler_S0()
 			}
 		}
 	}
-	BUSactive = 0; //Release the BUS: we've got nothing to do after all!
+	CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
 }
 
 void DMA_StateHandler_S1()
@@ -718,9 +719,9 @@ void DMA_StateHandler_S4()
 		}
 		break;
 	}
-	BUSactive = (BUSactive==2)?0:BUSactive; //Release the BUS, when allowed!
+	CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS, when allowed!
 	DMA_S = 0; //Default to SI state!
-	if (((BUSactive==2) || (BUSactive==0))) //BUS available? Sample DREQ and perform steps to get directly into S1!
+	if (((CPU[activeCPU].BUSactive==2) || (CPU[activeCPU].BUSactive==0))) //BUS available? Sample DREQ and perform steps to get directly into S1!
 	{
 		DMA_StateHandler_SI(); //Perform first state to sample DRQn!
 		if (DMA_S==1) //State increased? We're ready to process more right away!
