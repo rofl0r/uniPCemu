@@ -895,19 +895,19 @@ OPTINLINE static void debugger_autolog()
 				strcpy(executedinstructionstatelog,""); //Init!
 				if (strlen(executedinstruction) && CPU[activeCPU].executed) //Executed instruction?
 				{
-					sprintf(executedinstructionstatelog,"%s %s",statelog,executedinstruction);
+					sprintf(executedinstructionstatelog,"%s\t%s",statelog,executedinstruction);
 				}
 				else //State only?
 				{
-					sprintf(executedinstructionstatelog,"%s",statelog);
+					sprintf(executedinstructionstatelog,"%s\t",statelog);
 				}
 				if (strlen(debugger_memoryaccess_text)) //memory access?
 				{
-					dolog("debugger","%s %s",executedinstructionstatelog,debugger_memoryaccess_text);
+					dolog("debugger","%s\t%s",executedinstructionstatelog,debugger_memoryaccess_text);
 				}
 				else //(Instruction+)State only?
 				{
-					dolog("debugger","%s",executedinstructionstatelog); //Instruction/State only!
+					dolog("debugger","%s\t",executedinstructionstatelog); //Instruction/State only!
 				}
 			}
 			strcpy(debugger_memoryaccess_text,""); //Clear the text to apply: we're done!
