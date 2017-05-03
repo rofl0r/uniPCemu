@@ -775,6 +775,10 @@ void CPU_tickBIU()
 								BIU[activeCPU].requestready = 0; //We're pending a request!
 								++BIU[activeCPU].prefetchclock; //Tick!
 							}
+							else //Nothing to do?
+							{
+								BIU[activeCPU].stallingBUS = 2; //Stalling!
+							}
 						}
 					}
 					else if (cycleinfo->curcycle) //Busy transfer?
@@ -845,6 +849,10 @@ void CPU_tickBIU()
 								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 								BIU[activeCPU].requestready = 0; //We're starting a request!
 								++BIU[activeCPU].prefetchclock; //Tick!					
+							}
+							else //Nothing to do?
+							{
+								BIU[activeCPU].stallingBUS = 2; //Stalling!
 							}
 						}
 					}
