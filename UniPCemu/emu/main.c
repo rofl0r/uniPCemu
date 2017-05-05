@@ -547,6 +547,14 @@ int main(int argc, char * argv[])
 		goto skipcpu; //Reset!
 	}
 
+	#ifdef NDK_PROFILE
+	char gmonoutpath[256]; //GMON.OUT path!
+	memset(&gmonoutpath,0,sizeof(gmonoutpath)); //Init!
+	strcpy(gmonoutpath,UniPCEmu_root_dir); //Init to root dir!
+	strcat(gmonoutpath,"/gmon.out"); //Our output filename in our application directory!
+	setenv("CPUPROFILE",gmonoutpath,1); //Set the correct filename to output!
+	#endif
+
 	//New SDL way!
 	/* Check for events */
 	getnspassed(&CPUUpdate);
