@@ -37,8 +37,8 @@ PSP_HEAP_SIZE_MAX(); //Free maximum for us: need this for the memory allocation 
 #endif
 
 #ifdef NDK_PROFILE
-extern "C" void monstartup( char const * );
-extern "C" void moncleanup();
+extern void monstartup(char const *);
+extern void moncleanup();
 #endif
 
 //Debug zalloc allocations?
@@ -275,6 +275,7 @@ void monpendingcleanup()
 	}
 	unlock(LOCK_PERFMON); //Release us! We're finished!
 }
+extern char UniPCEmu_root_dir[256]; //Our root directory to use!
 #endif
 
 int main(int argc, char * argv[])
@@ -290,7 +291,7 @@ int main(int argc, char * argv[])
 
 	#ifdef NDK_PROFILE
 	setenv( "CPUPROFILE_FREQUENCY", "500", 1 ); // interrupts per second, default 100
-	monstartup( "libmain.so" );
+	monstartup("libmain.so");
 	is_monpendingcleanup = 1; //We're running to allow pending cleanup!
 	#endif
 

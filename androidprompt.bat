@@ -5,7 +5,7 @@ rem Add Java path as well to support keytool.
 set path=%path%;c:\Program Files\Java\jre1.8.0_91\bin
 set JAVA_HOME=C:\Program Files\Java\jdk1.8.0_102
 set ANDROID_HOME=C:/androiddevdir/android-sdk-windows
-set NDK_MODULE_PATH=%ANDROIDNDK%/sources/android-ndk-profiler
+set NDK_MODULE_PATH=%ANDROIDNDK%/sources
 rem Set us up in the used project folder and start a command line session to work in!
 cd android-project
 if "%1"=="profile" ndk-build profile=%ANDROIDNDK% NDK_MODULE_PATH=%NDK_MODULE_PATH%

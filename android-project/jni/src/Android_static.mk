@@ -27,13 +27,12 @@ LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 #Check for empty profile target!
 ifneq (,$(findstring profile,$(MAKECMDGOALS)))
 ifeq ($(profile),)
-$(error Please specify the NDK directory containing all NDK files, by specifying "profile=YOURPATHHERE"(without quotes). Replace YOURPATHHERE with the ndk directory path. This is usually the sources path. )
+$(error Please specify the directory containing the android-ndk-profiler directory, which contains the profiler's Android.mk file, by specifying "profile=YOURPATHHERE"(without quotes). Replace YOURPATHHERE with the ndk profiler Android.mk directory path. This is usually the sources path(where android-ndk-profiler/Android.mk is located after relocation of the jni folder content). )
 endif
 endif
 
 #Apply profile support!
 ifneq (,$(profile))
-$(info Profile build selected.)
 LOCAL_CFLAGS := -pg -DNDK_PROFILE $(LOCAL_CFLAGS)
 LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) android-ndk-profiler
 endif
@@ -41,8 +40,10 @@ endif
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,SDL)
 LOCAL_PATH := $(call my-dir)
+
 #Apply profile support!
 ifneq (,$(profile))
+#Below commented our searched NDK_MODULE_PATH for the folder name specified and includes it's Android.mk file for us. We do this manually as specified by our variable!
 $(call import-add-path,$(profile))
 $(call import-module,android-ndk-profiler)
 endif
