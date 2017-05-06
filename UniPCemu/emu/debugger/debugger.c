@@ -493,6 +493,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 char flags[256]; //Flags as a text!
 static char *debugger_generateFlags(CPU_registers *registers)
 {
+	strcpy(flags,""); //Clear the flags!
 	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
 	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
 	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
@@ -1073,7 +1074,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 
 		//Finally, flags seperated!
 		char *theflags = debugger_generateFlags(&debuggerregisters); //Generate the flags as text!
-		GPU_textgotoxy(frameratesurface, (GPU_TEXTSURFACE_WIDTH - strlen(flags)) - 1, debuggerrow++); //Second flags row! Reserve one for our special HLT flag!
+		GPU_textgotoxy(frameratesurface, (GPU_TEXTSURFACE_WIDTH - strlen(theflags)) - 1, debuggerrow++); //Second flags row! Reserve one for our special HLT flag!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", theflags, decodeHLTreset(debuggerHLT,debuggerReset)); //All flags, seperated!
 
 		//Full interrupt status!
