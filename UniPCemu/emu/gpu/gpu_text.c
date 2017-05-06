@@ -549,6 +549,19 @@ void GPU_textclearscreen(GPU_TEXTSURFACE *surface)
 	}
 }
 
+OPTINLINE void GPU_textclipXY(int *curx, int *cury)
+{
+	while (*curx >= GPU_TEXTSURFACE_WIDTH) //Overflow?
+	{
+		++*cury; //Next row!
+		*curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
+	}
+	while (*cury >= GPU_TEXTSURFACE_WIDTH) //Overflow?
+	{
+		*cury -= GPU_TEXTSURFACE_HEIGHT; //Decrease columns for every row size!
+	}
+}
+
 void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char *text, ...)
 {
 	if (allcleared) return; //Abort when all is cleared!
@@ -566,14 +579,11 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 	int i;
 	for (i=0; i<(int)strlen(msg); i++) //Process text!
 	{
-		while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
-		{
-			++cury; //Next row!
-			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
-		}
+		GPU_textclipXY(&curx,&cury); //Clip!
 		if (msg[i]=='\t') //Jump back to horizontal start position?
 		{
 			curx = startx; //Jump back to the horizontal start position!
+			GPU_textclipXY(&curx,&cury); //Clip!
 		}
 		else if ((msg[i]=='\r' && !USESLASHN) || (msg[i]=='\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
 		{
@@ -582,6 +592,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 		if (msg[i]=='\n') //CR?
 		{
 			++cury; //Next Y!
+			GPU_textclipXY(&curx,&cury); //Clip!
 		}
 		else if ((msg[i] != '\r') && (msg[i] != '\t')) //Never display \r or \t!
 		{
@@ -589,6 +600,7 @@ void GPU_textprintf(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 border, char
 			++curx; //Next character!
 		}
 	}
+	GPU_textclipXY(&curx,&cury); //Clip!
 	surface->x = curx; //Update x!
 	surface->y = cury; //Update y!
 }
@@ -612,14 +624,11 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 	byte setstatus; //Status when setting!
 	for (i = 0; i<(int)strlen(msg); i++) //Process text!
 	{
-		while (curx >= GPU_TEXTSURFACE_WIDTH) //Overflow?
-		{
-			++cury; //Next row!
-			curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
-		}
+		GPU_textclipXY(&curx,&cury); //Clip!
 		if (msg[i]=='\t') //Jump back to horizontal start position?
 		{
 			curx = startx; //Jump back to the horizontal start position!
+			GPU_textclipXY(&curx,&cury); //Clip!
 		}
 		else if ((msg[i] == '\r' && !USESLASHN) || (msg[i] == '\n' && USESLASHN)) //LF? If use \n, \n uses linefeed too, else just newline.
 		{
@@ -628,6 +637,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 		if (msg[i] == '\n') //CR?
 		{
 			++cury; //Next Y!
+			GPU_textclipXY(&curx,&cury); //Clip!
 		}
 		else if ((msg[i] != '\r') && (msg[i]!='\t')) //Never display \r or \t!
 		{
@@ -644,6 +654,7 @@ byte GPU_textprintfclickable(GPU_TEXTSURFACE *surface, uint_32 font, uint_32 bor
 			++curx; //Next character!
 		}
 	}
+	GPU_textclipXY(&curx,&cury); //Clip!
 	surface->x = curx; //Update x!
 	surface->y = cury; //Update y!
 	return result; //Give the result!
@@ -655,11 +666,7 @@ void GPU_textgotoxy(GPU_TEXTSURFACE *surface,int x, int y) //Goto coordinates!
 	if (!memprotect(surface, sizeof(GPU_TEXTSURFACE), NULL)) return; //Abort without surface!
 	int curx = x;
 	int cury = y;
-	while (curx>=GPU_TEXTSURFACE_WIDTH) //Overflow?
-	{
-		++cury; //Next row!
-		curx -= GPU_TEXTSURFACE_WIDTH; //Decrease columns for every row size!
-	}
+	GPU_textclipXY(&curx,&cury); //Clip!
 	surface->x = curx; //Real x!
 	surface->y = cury; //Real y!
 }
