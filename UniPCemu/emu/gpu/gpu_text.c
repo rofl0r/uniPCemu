@@ -210,6 +210,28 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	}
 }
 
+//Basic Container/wrapper support
+void freeTextSurfacePtr(void **ptr, uint_32 size, SDL_sem *lock) //Free a pointer (used internally only) allocated with nzalloc/zalloc and our internal functions!
+{
+	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)*ptr; //Take the surface out of the pointer!
+	if (tsurface->horizontalprecalcs) //Gotten horizontal precalcs?
+	{
+		freez((void **)&tsurface->horizontalprecalcs,tsurface->horizontalprecalcssize,"TEXTSURFACE_HORIZONTALPRECALCS"); //Horizontal precalcs release!
+	}
+
+	if (tsurface->verticalprecalcs) //Gotten horizontal precalcs?
+	{
+		freez((void **)&tsurface->verticalprecalcs,tsurface->verticalprecalcssize,"TEXTSURFACE_VERTICALPRECALCS"); //Horizontal precalcs release!
+	}
+	if (tsurface->lock) //Valid lock?
+	{
+		SDL_DestroySemaphore(tsurface->lock); //Release the semaphore!
+	}
+	changedealloc(tsurface, sizeof(*tsurface), getdefaultdealloc()); //Change the deallocation function back to it's default!
+	//We're always allowed to release the container.
+	freez((void **)ptr, sizeof(GPU_TEXTSURFACE), "GPU_TEXTSURFACE");
+}
+
 GPU_TEXTSURFACE *alloc_GPUtext()
 {
 	GPU_TEXTSURFACE *surface = (GPU_TEXTSURFACE *)zalloc(sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE",NULL); //Create an empty initialised surface!
@@ -229,6 +251,16 @@ GPU_TEXTSURFACE *alloc_GPUtext()
 		{
 			int10_font_08_reversed[b] = reverse8(int10_font_08[b]); //Reverse it into our own ROM for fast rendering!
 		}
+	}
+
+	if (!changedealloc(surface, sizeof(*surface), &freeTextSurfacePtr)) //We're changing the default dealloc function for our override!
+	{
+		if (surface->lock) //Lockable?
+		{
+			SDL_DestroySemaphore(surface->lock); //Release the semaphore!
+		}
+		freez((void **)&surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE"); //Release us again!
+		return NULL; //Can't change registry for 'releasing the surface container' handler!
 	}
 
 	return surface; //Give the allocated surface!
@@ -269,6 +301,130 @@ OPTINLINE void GPU_text_updateres(word xres, word yres) //Update resultion of th
 #endif
 }
 
+void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be precalculated for text surfaces!
+{
+	if (unlikely(allcleared)) return; //Abort when all is cleared!
+	if (__HW_DISABLED) return; //Disabled!
+	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return; //Abort without surface!
+	if (!rendersurface) return; //No rendering surface used yet?
+	INLINEREGISTER word x,y;
+	int fx=0, fy=0, sx=0, sy=0; //Used when rendering on the screen!
+#ifdef ADAPTIVETEXT
+	float relx=0.0, rely=0.0; //Relative X/Y position to use for updating the current pixel!
+#endif
+	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
+	uint_32 horizontalprecalcssize, verticalprecalcssize;
+
+	horizontalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSX+1)*render_xfactorreverse),(rendersurface->sdllayer->w+1))<<2); //Horizontal size!
+	verticalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSY+1)*render_yfactorreverse),(rendersurface->sdllayer->h+1))<<2); //Vertical size!
+
+	if (((((tsurface->xdelta?TEXT_xdelta:0)==tsurface->curXDELTA)) || ((tsurface->ydelta?TEXT_ydelta:0)==tsurface->curYDELTA)) //Delta OK?
+		#ifdef ADAPTIVETEXT
+		&& ((tsurface->cur_render_xfactor==(float)render_xfactor) && (tsurface->cur_render_yfactor==(float)render_yfactor)) //X/Y factor to apply OK?
+		#endif
+		&& (tsurface->horizontalprecalcssize==horizontalprecalcssize) //Enough horizontal timings?
+		&& (tsurface->verticalprecalcssize==verticalprecalcssize) //Enough vertical timings?
+		&& tsurface->precalcsready //Precalcs ready?
+		) //Already up-to-date precalcs?
+	{
+		return; //Up-to-date: don't recalculate the precalcs!
+	}
+
+	//Update delta values!
+	tsurface->curXDELTA = tsurface->xdelta?TEXT_xdelta:0;
+	tsurface->curYDELTA = tsurface->ydelta?TEXT_ydelta:0;
+
+	#ifdef ADAPTIVETEXT
+	//Update factors used when rendering!
+	tsurface->cur_render_xfactor = (float)render_xfactor;
+	tsurface->cur_render_yfactor = (float)render_yfactor; //X/Y factor to apply OK?
+	#endif
+
+	if (tsurface->horizontalprecalcs) //Gotten horizontal precalcs?
+	{
+		freez((void **)&tsurface->horizontalprecalcs,tsurface->horizontalprecalcssize,"TEXTSURFACE_HORIZONTALPRECALCS"); //Horizontal precalcs release!
+	}
+
+	if (tsurface->verticalprecalcs) //Gotten vertical precalcs?
+	{
+		freez((void **)&tsurface->verticalprecalcs,tsurface->verticalprecalcssize,"TEXTSURFACE_VERTICALPRECALCS"); //Horizontal precalcs release!
+	}
+
+	tsurface->horizontalprecalcssize = horizontalprecalcssize; //Horizontal size!
+	tsurface->verticalprecalcssize = verticalprecalcssize; //Vertical size!
+
+	tsurface->horizontalprecalcs = zalloc(tsurface->horizontalprecalcssize,"TEXTSURFACE_HORIZONTALPRECALCS",NULL); //Lockless precalcs!
+	tsurface->verticalprecalcs = zalloc(tsurface->verticalprecalcssize,"TEXTSURFACE_VERTICALPRECALCS",NULL); //Lockless precalcs!
+
+	memset(tsurface->horizontalprecalcs,0xFF,tsurface->horizontalprecalcssize); //Init to invalid location!
+	memset(tsurface->verticalprecalcs,0xFF,tsurface->verticalprecalcssize); //Init to invalid location!
+
+	//Now, precalculate all required data for the surface to render it's locations!
+	x = y = sx = sy = 0; //Init coordinates!
+#ifdef ADAPTIVETEXT
+	relx = rely = 0.0f; //Init screen coordinate plotter!
+#endif
+	if (unlikely(check_surface(rendersurface))) //Valid to render to?
+	{
+		for (;;) //Process all x coordinates!
+		{
+			fx = sx; //x converted to destination factor!
+			if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
+			if ((fx>=0) && (fx<(tsurface->horizontalprecalcssize>>2)) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
+			{
+				tsurface->horizontalprecalcs[fx] = x; //Save the outgoing pixel location mapping on the screen!
+			}
+
+			#ifdef ADAPTIVETEXT
+			relx += render_xfactor; //We've rendered a pixel!
+			#endif
+			++sx; //Screen pixel rendered!
+			#ifdef ADAPTIVETEXT
+			for (;relx>=1.0f;) //Expired?
+			#endif
+			{
+			#ifdef ADAPTIVETEXT
+				relx -= 1.0f; //Rest!
+			#endif
+				//Else, We're transparent, do don't plot!
+				if (unlikely(++x==GPU_TEXTPIXELSX)) //End of row reached?
+				{
+					goto startprocessy; //Stop processing horizontal coordinates!
+				}
+			}
+		}
+
+		startprocessy:
+		for (;;) //Process all y coordinates!
+		{
+			fy = sy; //y converterd to destination factor!
+			if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
+			if ((fy>=0) && (fy<(tsurface->verticalprecalcssize>>2)) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
+			{
+				tsurface->verticalprecalcs[fy] = y; //Save the outgoing pixel location mapping on the screen!
+			}
+			#ifdef ADAPTIVETEXT
+			rely += render_yfactor; //We've rendered a row!
+			#endif
+			++sy; //Screen row rendered!
+			#ifdef ADAPTIVETEXT
+			for (;rely>=1.0;) //Expired?
+			#endif
+			{
+			#ifdef ADAPTIVETEXT
+				rely -= 1.0f; //Rest!
+			#endif
+				if (unlikely(++y==GPU_TEXTPIXELSY)) //End of lines reached?
+				{
+					goto finishprocess; //Stop processing horizontal coordinates!
+				}
+			}
+		}
+		finishprocess:
+		tsurface->precalcsready = 1; //We're ready after this!
+	}
+}
+
 uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurface!
 {
 	if (unlikely(allcleared)) return 0; //Abort when all is cleared!
@@ -278,15 +434,14 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
 	uint_32 color;
-	INLINEREGISTER word x,y;
+	INLINEREGISTER int x,y;
 	INLINEREGISTER uint_32 notbackground; //We're a pixel to render, 32-bits for each 32 pixels!
 	INLINEREGISTER byte isnottransparent=0; //Are we not a transparent pixel(drawable)?
 	byte curchar=0; //The current character loaded font row!
-	int fx=0, fy=0, sx=0, sy=0; //Used when rendering on the screen!
-#ifdef ADAPTIVETEXT
-	float relx=0.0, rely=0.0; //Relative X/Y position to use for updating the current pixel!
-#endif
+	int sx=0, sy=0; //Used when rendering on the screen!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
+
+	GPU_precalctextrenderer(surface); //Update our precalcs, when needed only!
 
 	if (unlikely(tsurface->flags&TEXTSURFACE_FLAG_DIRTY)) //Redraw when dirty only?
 	{
@@ -351,80 +506,93 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	}
 
 	x = y = sx = sy = 0; //Init coordinates!
-#ifdef ADAPTIVETEXT
-	relx = rely = 0.0f; //Init screen coordinate plotter!
-#endif
-	if (unlikely(check_surface(rendersurface))) //Valid to render to?
+	if (unlikely(check_surface(rendersurface)) && tsurface->precalcsready) //Valid to render to?
 	{
 		renderpixel = &tsurface->notdirty[0]; //Start with the first pixel in our buffer!
 		notbackground = tsurface->notbackground[0]; //Are we not the background?
-		isnottransparent = (notbackground&1); //Are we a transparent pixel?
+		if (tsurface->horizontalprecalcs[0]!=~0) //Valid first part?
+		{
+			isnottransparent = (notbackground&1); //Are we a transparent pixel?
+		}
+		else
+		{
+			isnottransparent = notbackground = 0; //Init to transparant!
+		}
 		if (unlikely(isnottransparent)) //Color needed?
 		{
 			color = *renderpixel; //Init color to draw!
 		}
-		do //Process all rows!
+		for (;;) //Process all rows!
 		{
 			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
-				fx = sx; //x converted to destination factor!
-				if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
-
-				fy = sy; //y converterd to destination factor!
-				if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
-
-				put_pixel(rendersurface, fx, fy, color); //Plot the pixel!
+				put_pixel(rendersurface, sx, sy, color); //Plot the pixel!
 			}
 
-#ifdef ADAPTIVETEXT
-			relx += render_xfactor; //We've rendered a pixel!
-#endif
 			++sx; //Screen pixel rendered!
-#ifdef ADAPTIVETEXT
-			for (;relx>=1.0f;) //Expired?
-#endif
+			if (unlikely(sx>=(tsurface->horizontalprecalcssize>>2))) //End of row block reached?
 			{
-#ifdef ADAPTIVETEXT
-				relx -= 1.0f; //Rest!
-#endif
-				++renderpixel; //We've rendered a pixel!
-				//Else, We're transparent, do don't plot!
-				if (likely(++x!=GPU_TEXTPIXELSX)) //End of row not reached?
+				goto loadnextrow;
+			}
+			if (tsurface->horizontalprecalcs[sx-1]!=tsurface->horizontalprecalcs[sx]) //Coordinate changed?
+			{
+				if ((tsurface->horizontalprecalcs[sx-1]!=~0) && (tsurface->horizontalprecalcs[sx]==~0)) //Finished a row(end of specified area)?
 				{
-					if ((x&0x1F)==0) //To reload the foreground mask?
+					goto loadnextrow; //Load the next row!
+				}
+				if (likely(sx<(tsurface->horizontalprecalcssize>>2))) //End of row not reached?
+				{
+					if (tsurface->horizontalprecalcs[sx]!=~0) //Valid?
 					{
-						notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
+						++renderpixel; //We've rendered a pixel!
+						x = tsurface->horizontalprecalcs[sx]; //Load the new y coordinate to use!
+						if ((x&0x1F)==0) //To reload the foreground mask?
+						{
+							notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
+						}
+						else
+						{
+							notbackground >>= 1; //Take the next pixel from the background mask!
+						}
 					}
-					else
+					else //Invalid horizontal location?
 					{
-						notbackground >>= 1; //Take the next pixel from the background mask!
+						notbackground = 0; //We're background only!
 					}
 				}
-				else
+				else //Forced next row?
 				{
-					x = sx = 0; //Reset horizontal coordinate!
-#ifdef ADAPTIVETEXT
-					rely += render_yfactor; //We've rendered a row!
-#endif
+					loadnextrow: //Load the next row to render!
+					notbackground = 0; //Default to background always!
+					sx = 0; //Reset horizontal coordinate!
+					x = tsurface->horizontalprecalcs[sx]; //Load the new x coordinate to use!
 					++sy; //Screen row rendered!
-#ifdef ADAPTIVETEXT
-					for (;rely>=1.0;) //Expired?
-#endif
+					if (unlikely(sy>=(tsurface->verticalprecalcssize>>2))) break; //Finished!
+					if ((tsurface->verticalprecalcs[sy-1]!=~0) && (tsurface->verticalprecalcs[sy]==~0)) //Finished a row(end of specified area)?
 					{
-#ifdef ADAPTIVETEXT
-						rely -= 1.0f; //Rest!
-#endif
-						++y; //Next row to draw!
+						break; //Finished the specified area!
 					}
-					renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
-					notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
+					if (tsurface->verticalprecalcs[sy]!=~0) //Valid?
+					{
+						y = tsurface->verticalprecalcs[sy]; //Load the new y coordinate to use!
+						renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
+						notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
+						if (tsurface->horizontalprecalcs[0]==~0) //Starting out invalid?
+						{
+							notbackground = 0; //We're background to start with!
+						}
+					}
+					else //Invalid vertical location?
+					{
+						notbackground = 0; //We're background!
+					}
 				}
 				if (unlikely(isnottransparent = (notbackground&1))) //To render us?
 				{
 					color = *renderpixel; //Apply the new pixel to render!
 				}
 			}
-		} while (likely(y!=GPU_TEXTPIXELSY)); //Stop searching now!
+		} //Stop searching now!
 	}
 
 	return 0; //Ignore processing time!
