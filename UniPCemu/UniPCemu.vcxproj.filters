@@ -225,9 +225,6 @@
     <ClCompile Include="emu\core\emu_misc.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
-    <ClCompile Include="emu\core\emu_vga.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
     <ClCompile Include="emu\debugger\debug_sound.c">
       <Filter>Source Files\emu\debugger</Filter>
     </ClCompile>

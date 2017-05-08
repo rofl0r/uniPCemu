@@ -82,7 +82,6 @@
     <ClCompile Include="emu\core\emu_bios_sound.c" />
     <ClCompile Include="emu\core\emu_main.c" />
     <ClCompile Include="emu\core\emu_misc.c" />
-    <ClCompile Include="emu\core\emu_vga.c" />
     <ClCompile Include="emu\core\emu_vga_bios.c" />
     <ClCompile Include="emu\core\errors.c" />
     <ClCompile Include="emu\core\number_optimizations.c" />

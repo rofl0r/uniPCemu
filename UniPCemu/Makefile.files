@@ -202,7 +202,7 @@ OBJS += emu/core/emucore.o
 OBJS += emu/core/emu_bios_post.o
 
 #Main subcores.
-OBJS += emu/core/emu_main.o emu/core/emu_misc.o emu/core/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_vga.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
+OBJS += emu/core/emu_main.o emu/core/emu_misc.o emu/core/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
 
 #Directory listing support!
 OBJS += emu/io/directorylist.o
