@@ -77,6 +77,8 @@ byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncomment
 
 byte inboard386_WaitStates = 0; //How many clocks to idle each instruction!
 
+word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
+
 uint_32 getstackaddrsizelimiter()
 {
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT()? 0xFFFFFFFF : 0xFFFF; //Stack address size!
@@ -1651,11 +1653,11 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 
 	if (CPU_interruptraised) //Any fault is raised?
 	{
-		currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
+		currentinstructiontiming = &timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
 	}
 	else
 	{
-		currentinstructiontiming = &CPU[activeCPU].timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+		currentinstructiontiming = &timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
 	}
 	//Try to use the lookup table!
 	for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
@@ -2068,6 +2070,8 @@ byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word 
 	return 0; //We're equal priority or having higher priority! Don't swap!
 }
 
+int lookupTablesCPU = -1; //What lookup table is loaded?
+
 void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 {
 	word index; //The index into the main table!
@@ -2084,9 +2088,12 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 	byte currentCPU; //The CPU we're emulating, relative to the 80286!
 	byte current32; //32-bit opcode?
 	byte notfound = 0; //Not found CPU timings?
+	if (lookupTablesCPU==(int)EMULATED_CPU) return; //Already loaded? Don't reload when already ready to use!
+	lookupTablesCPU = (int)EMULATED_CPU; //We're loading the specified CPU to be active!
+
 	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
 
-	memset(&CPU[activeCPU].timing286lookup,0,sizeof(CPU[activeCPU].timing286lookup)); //Clear the entire list!
+	memset(&timing286lookup,0,sizeof(timing286lookup)); //Clear the entire list!
 
 	for (CPUmode=0;CPUmode<4;++CPUmode) //All CPU modes! Real vs Protected is bit 0, 16-bit vs 32-bit is bit 1!
 	{
@@ -2131,7 +2138,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 								notfound = 1; //Default to not found!
 								goto try16bit; //Try the 16-bit variant instead!
 							}
-							memset(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
+							memset(&timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
 						}
 						else //Valid CPU found for this instruction?
 						{
@@ -2165,7 +2172,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 							}
 
 							//Now, the sublist is filled with items needed for the entry!
-							memcpy(&CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],&sublist,MIN(sizeof(sublist),sizeof(CPU[activeCPU].timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register]))); //Copy the sublist to the active items!
+							memcpy(&timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],&sublist,MIN(sizeof(sublist),sizeof(timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register]))); //Copy the sublist to the active items!
 						}
 					}
 				}
