@@ -26,36 +26,36 @@ LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
 
 #Profiler support block
-ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+ifneq (,$(findstring NDK_PROFILE,$(MAKECMDGOALS)))
 IS_PROFILE = 1
 endif
 
-ifneq (,$(findstring line-profile,$(MAKECMDGOALS)))
+ifneq (,$(findstring NDK_LINEPROFILE,$(MAKECMDGOALS)))
 #Profiling detected
 IS_PROFILE = 1
 endif
 
-ifeq (,$(profile))
+ifeq (,$(NDK_PROFILE))
 #Make us equal for easy double support!
-profile = $(line-profile)
+NDK_PROFILE = $(NDK_LINEPROFILE)
 endif
 
 #Check for empty profile target!
 ifeq ($(IS_PROFILE),1)
-ifeq ($(profile),)
-$(error Please specify the directory containing the android-ndk-profiler directory, which contains the profiler's Android.mk file, by specifying "profile=YOURPATHHERE"(without quotes). Replace YOURPATHHERE with the ndk profiler Android.mk directory path. This is usually the sources path(where android-ndk-profiler/Android.mk is located after relocation of the jni folder content). Use line-profile instead to specify line-by-line profiling. )
+ifeq ($(NDK_PROFILE),)
+$(error Please specify the directory containing the android-ndk-profiler directory, which contains the profiler's Android.mk file, by specifying "NDK_PROFILE=YOURPATHHERE"(without quotes). Replace YOURPATHHERE with the ndk profiler Android.mk directory path. This is usually the sources path(where android-ndk-profiler/Android.mk is located after relocation of the jni folder content). Use NDK_LINEPROFILE instead to specify line-by-line profiling. )
 endif
 endif
 
 #Apply profile support!
 PROFILE_CFLAGS = -pg
-ifneq (,$(line-profile))
+ifneq (,$(NDK_LINEPROFILE))
 #Enable line profiling!
 PROFILE_CFLAGS := $(PROFILE_CFLAGS) -l
 endif
 
 #To apply the profiler data itself!
-ifneq (,$(profile))
+ifneq (,$(NDK_PROFILE))
 LOCAL_CFLAGS := $(PROFILE_CFLAGS) -DNDK_PROFILE $(LOCAL_CFLAGS)
 LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) android-ndk-profiler
 endif
@@ -66,8 +66,8 @@ $(call import-module,SDL)
 LOCAL_PATH := $(call my-dir)
 
 #Apply profile support!
-ifneq (,$(profile))
+ifneq (,$(NDK_PROFILE))
 #Below commented our searched NDK_MODULE_PATH for the folder name specified and includes it's Android.mk file for us. We do this manually as specified by our variable!
-$(call import-add-path,$(profile))
+$(call import-add-path,$(NDK_PROFILE))
 $(call import-module,android-ndk-profiler)
 endif

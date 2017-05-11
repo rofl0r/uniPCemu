@@ -3,12 +3,12 @@
 # See CPLUSPLUS-SUPPORT.html in the NDK documentation for more information
 APP_STL := stlport_static 
 
-ifeq (,$(profile))
+ifeq (,$(NDK_PROFILE))
 #Make us equal for easy double support!
-profile = $(line-profile)
+NDK_PROFILE = $(NDK_LINEPROFILE)
 endif
 
-ifneq (,$(profile))
+ifneq (,$(NDK_PROFILE))
 #Support specific platforms only for this profiler!
 APP_ABI := armeabi armeabi-v7a
 else
