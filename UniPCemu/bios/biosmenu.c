@@ -4701,10 +4701,10 @@ setDataBusSize: //For fixing it!
 	switch (BIOS_Settings.DataBusSize) //Data bus size?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "16/32-bit data bus");
+		strcat(menuoptions[advancedoptions++], "Full sized data bus of 16/32-bits");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "8-bit data bus when possible");
+		strcat(menuoptions[advancedoptions++], "8-bit data bus when possible, 16-bit bus otherwise");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.DataBusSize = 0; //Reset/Fix!
@@ -5389,8 +5389,8 @@ void BIOS_DataBusSizeSetting()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "16/32-bit data bus"); //Set filename from options!
-	strcpy(itemlist[1], "8-bit data bus when possible"); //Set filename from options!
+	strcpy(itemlist[0], "Full sized data bus of 16/32-bits"); //Set filename from options!
+	strcpy(itemlist[1], "8-bit data bus when possible, 16-bit bus otherwise"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.DataBusSize) //What setting?
 	{

@@ -385,11 +385,33 @@ byte BIU_readResultdw(uint_32 *result) //Read the result data of a BUS request!
 byte BIU_access_writeshift[4] = {32,40,48,56}; //Shift to get the result byte to write to memory!
 byte BIU_access_readshift[4] = {0,8,16,24}; //Shift to put the result byte in the result!
 
+OPTINLINE byte BIU_isfulltransfer()
+{
+	INLINEREGISTER byte result;
+	result = 0; //Default: byte transfer!
+	if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) && ((BIU[activeCPU].currentaddress&1)==0)) //Aligned 16-bit access?
+	{
+		if ((EMULATED_CPU>=CPU_80386) || ((EMULATED_CPU<=CPU_80286) && (CPU_databussize==0))) //16-bit+ bus available?
+		{
+			result = 1; //Start a full transfer this very clock!
+		}
+	}
+	else if ((BIU[activeCPU].currentrequest&REQUEST_32BIT) && ((BIU[activeCPU].currentaddress&3)==0)) //Aligned 32-bit access?
+	{
+		if ((EMULATED_CPU>=CPU_80386) && (CPU_databussize==0)) //32-bit processor with 32-bit bus?
+		{
+			result = 1; //Start a full transfer this very clock!
+		}
+	}
+	return result; //Give the result!
+}
+
 OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 {
 	sword segdesc;
 	word segdescval;
 	byte is_offset16;
+	byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
@@ -397,6 +419,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 		{
 			//Memory operations!
 			case REQUEST_MMUREAD:
+				fulltransferMMUread:
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
 				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
@@ -425,10 +448,12 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if (fulltransfer) goto fulltransferMMUread;
 				}
 				return 1; //Handled!
 				break;
 			case REQUEST_MMUWRITE:
+				fulltransferMMUwrite:
 				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
 				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
 				is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
@@ -456,11 +481,13 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if (fulltransfer) goto fulltransferMMUwrite;
 				}
 				return 1; //Handled!
 				break;
 			//I/O operations!
 			case REQUEST_IOREAD:
+				fulltransferIOread:
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -472,10 +499,12 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if (fulltransfer) goto fulltransferIOread;
 				}
 				return 1; //Handled!
 				break;
 			case REQUEST_IOWRITE:
+				fulltransferIOwrite:
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
@@ -487,6 +516,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if (fulltransfer) goto fulltransferIOwrite;
 				}
 				return 1; //Handled!
 				break;
@@ -538,7 +568,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
+						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
+						if (fulltransfer) goto fulltransferMMUread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -589,7 +621,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 						{
 							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
 						}
+						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
+						if (fulltransfer) goto fulltransferMMUwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -626,7 +660,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
+						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
+						if (fulltransfer) goto fulltransferIOread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -664,7 +700,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
+						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
+						if (fulltransfer) goto fulltransferIOwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
