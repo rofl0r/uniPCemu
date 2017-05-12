@@ -292,9 +292,24 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 	}
 }
 
+byte hadresized = 0; //Did we have a resized before?
 OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 {
-	return (resized ? ((resized->flags&SDL_FLAG_DIRTY)>0) : 0); //Are we dirty?
+	if (resized) //Able to check?
+	{
+		hadresized = 1; //We had a resized!
+		return ((resized->flags&SDL_FLAG_DIRTY)>0); //Are we dirty?
+	}
+	else //No resized anymore?
+	{
+		if (unlikely(hadresized)) //Resized -> no resized?
+		{
+			hadresized = 0; //No resized anymore!
+			return 1; //We need to update: resized has disappeared! Don't update any more after that!
+		}
+		//We have and had no resized!
+	}
+	return 0; //Default: no resized and not dirty!
 }
 
 OPTINLINE void renderFrames() //Render all frames to the screen!
