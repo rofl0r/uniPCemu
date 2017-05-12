@@ -247,7 +247,7 @@ OPTINLINE word getlayerheight(GPU_SDL_Surface *img)
 	return img->sdllayer->h; //The height!
 }
 
-OPTINLINE word getlayervirtualwidth(GPU_SDL_Surface *surface)
+OPTINLINE uint_32 getlayervirtualwidth(GPU_SDL_Surface *surface)
 {
 	return surface->pixelpitch; //Give the pixel pitch, in pixels!
 }
@@ -517,7 +517,7 @@ byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 
 //Pixels between rows.
 uint_32 get_pixelrow_pitch(GPU_SDL_Surface *surface) //Get the difference between two rows!
 {
-	if (surface==0)
+	if (unlikely(surface==0))
 	{
 		dolog("GPP","Pitch: invalid NULL-surface!");
 		return 0; //No surface = no pitch!
@@ -548,15 +548,15 @@ byte check_surface(GPU_SDL_Surface *surface)
 
 //Draw a pixel
 void put_pixel(GPU_SDL_Surface *surface, const int x, const int y, const Uint32 pixel ){
-	if (y >= getlayerheight(surface)) return; //Invalid row!
-	if (x >= getlayerwidth(surface)) return; //Invalid column!
+	if (unlikely(y >= getlayerheight(surface))) return; //Invalid row!
+	if (unlikely(x >= getlayerwidth(surface))) return; //Invalid column!
 	Uint32 *pixels = (Uint32 *)*getlayerpixels(surface);
 	Uint32 *pixelpos = &pixels[ ( y * get_pixelrow_pitch(surface) ) + x ]; //The pixel!
-	if (*pixelpos!=pixel) //Different?
+	if (unlikely(*pixelpos!=pixel)) //Different?
 	{
 		surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+		*pixelpos = pixel;
 	}
-	*pixelpos = pixel;
 }
 
 //Retrieve a pixel/row(pixel=0).
