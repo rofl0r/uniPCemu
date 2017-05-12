@@ -629,7 +629,7 @@ byte GPU_textsetxyclickable(GPU_TEXTSURFACE *surface, int x, int y, byte charact
 	if (x >= GPU_TEXTSURFACE_WIDTH) return 0; //Out of bounds?
 	byte oldtext = surface->text[y][x];
 	uint_32 oldfont = surface->font[y][x];
-	uint_32 oldborder = surface->font[y][x];
+	uint_32 oldborder = surface->border[y][x];
 	surface->text[y][x] = character;
 	surface->font[y][x] = font;
 	surface->border[y][x] = border;
