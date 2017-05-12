@@ -526,11 +526,18 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		{
 			color = *renderpixel; //Init color to draw!
 		}
+if (unlikely(x >= getlayerwidth(surface))) return; //Invalid column!
+		Uint32 *renderpixels = (Uint32 *)*getlayerpixels(rendersurface);
+		Uint32 *currentrow = &renderpixels[ ( y * get_pixelrow_pitch(rendersurface) )]; //The pixel row!
 		for (;;) //Process all rows!
 		{
 			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
-				put_pixel(rendersurface, sx, sy, color); //Plot the pixel!
+				if (unlikely(currentrow[sx]!=color)) //Different?
+				{
+					surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+					currentrow[sx] = color;
+				}
 			}
 
 			prevs = tsurface->horizontalprecalcs[sx++]; //Previous SX result! Increase, because a pixel has been rendered!
@@ -573,6 +580,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					x = tsurface->horizontalprecalcs[sx]; //Load the new x coordinate to use!
 					prevs = tsurface->verticalprecalcs[sy]; //Previous SY result!
 					++sy; //Screen row rendered!
+					currentrow = &renderpixels[ ( sy * get_pixelrow_pitch(rendersurface) )]; //The new pixel row!
 					if (unlikely(sy>=tsurface->verticalprecalcsentries)) break; //Finished!
 					curs = tsurface->verticalprecalcs[sy]; //Current SY result!
 					if (unlikely((prevs!=~0) && (curs==~0))) //Finished a screen(end of specified area)?
