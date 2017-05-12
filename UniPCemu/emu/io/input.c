@@ -1699,18 +1699,6 @@ void keyboard_renderer() //Render the keyboard on-screen!
 		if (last_rendered) //We're rendered?
 		{
 			last_rendered = 0; //We're not rendered now!
-			GPU_text_locksurface(keyboardsurface);
-			for (x=xbase;x<GPU_TEXTSURFACE_WIDTH;++x) //Clear the rendered surface: there's nothing to show!
-			{
-				for (y=ybase;y<GPU_TEXTSURFACE_HEIGHT;++y)
-				{
-					if (keyboard_special[y - ybase][x - xbase]==0) //No special action set?
-					{
-						GPU_textsetxy(keyboardsurface,x,y,0,0,0); //Clear our character!
-					}
-				}
-			}
-			GPU_text_releasesurface(keyboardsurface);
 		}
 	}
 
