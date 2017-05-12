@@ -22,10 +22,10 @@ extern byte allcleared;
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
-#ifdef ANDROID
+//#ifdef ANDROID
 //We're using adaptive text surfaces for supported devices!
 #define ADAPTIVETEXT
-#endif
+//#endif
 
 float render_xfactor=1.0f, render_yfactor=1.0f; //X and Y factor during rendering!
 float render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
@@ -305,7 +305,8 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 {
 	if (unlikely(allcleared)) return; //Abort when all is cleared!
 	if (__HW_DISABLED) return; //Disabled!
-	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return; //Abort without surface!
+	//Don't check the surface: this is already done by the renderer itself!
+	//if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return; //Abort without surface!
 	if (!rendersurface) return; //No rendering surface used yet?
 	INLINEREGISTER word x,y;
 	int fx=0, fy=0, sx=0, sy=0; //Used when rendering on the screen!
@@ -351,7 +352,9 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 	}
 
 	tsurface->horizontalprecalcssize = horizontalprecalcssize; //Horizontal size!
+	tsurface->horizontalprecalcsentries = (horizontalprecalcssize>>2); //Horizontal size, in entries!
 	tsurface->verticalprecalcssize = verticalprecalcssize; //Vertical size!
+	tsurface->verticalprecalcsentries = (verticalprecalcssize>>2); //Vertical size, in entries!
 
 	tsurface->horizontalprecalcs = zalloc(tsurface->horizontalprecalcssize,"TEXTSURFACE_HORIZONTALPRECALCS",NULL); //Lockless precalcs!
 	tsurface->verticalprecalcs = zalloc(tsurface->verticalprecalcssize,"TEXTSURFACE_VERTICALPRECALCS",NULL); //Lockless precalcs!
@@ -370,7 +373,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		{
 			fx = sx; //x converted to destination factor!
 			if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
-			if ((fx>=0) && (fx<(tsurface->horizontalprecalcssize>>2)) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
+			if ((fx>=0) && (fx<tsurface->horizontalprecalcsentries) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
 			{
 				tsurface->horizontalprecalcs[fx] = x; //Save the outgoing pixel location mapping on the screen!
 			}
@@ -399,7 +402,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		{
 			fy = sy; //y converterd to destination factor!
 			if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
-			if ((fy>=0) && (fy<(tsurface->verticalprecalcssize>>2)) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
+			if ((fy>=0) && (fy<tsurface->verticalprecalcsentries) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
 			{
 				tsurface->verticalprecalcs[fy] = y; //Save the outgoing pixel location mapping on the screen!
 			}
@@ -440,6 +443,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	byte curchar=0; //The current character loaded font row!
 	int sx=0, sy=0; //Used when rendering on the screen!
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
+	INLINEREGISTER uint_32 prevs, curs; //Current and previous pixel to compare!
 
 	GPU_precalctextrenderer(surface); //Update our precalcs, when needed only!
 
@@ -529,26 +533,27 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				put_pixel(rendersurface, sx, sy, color); //Plot the pixel!
 			}
 
-			++sx; //Screen pixel rendered!
-			if (unlikely(sx>=(tsurface->horizontalprecalcssize>>2))) //End of row block reached?
+			prevs = tsurface->horizontalprecalcs[sx++]; //Previous SX result! Increase, because a pixel has been rendered!
+			if (unlikely(sx>=tsurface->horizontalprecalcsentries)) //End of row block reached? Prevent invalid rows by immediately starting the next when it's occurring!
 			{
 				goto loadnextrow;
 			}
-			if (tsurface->horizontalprecalcs[sx-1]!=tsurface->horizontalprecalcs[sx]) //Coordinate changed?
+			curs = tsurface->horizontalprecalcs[sx]; //Current SX result!
+			if (prevs!=curs) //Coordinate changed?
 			{
-				if ((tsurface->horizontalprecalcs[sx-1]!=~0) && (tsurface->horizontalprecalcs[sx]==~0)) //Finished a row(end of specified area)?
+				if (unlikely((prevs!=~0) && (curs==~0))) //Finished a row(end of specified area)?
 				{
 					goto loadnextrow; //Load the next row!
 				}
-				if (likely(sx<(tsurface->horizontalprecalcssize>>2))) //End of row not reached?
+				if (likely(sx<tsurface->horizontalprecalcsentries)) //End of row not reached?
 				{
-					if (tsurface->horizontalprecalcs[sx]!=~0) //Valid?
+					if (likely(curs!=~0)) //Valid?
 					{
 						++renderpixel; //We've rendered a pixel!
-						x = tsurface->horizontalprecalcs[sx]; //Load the new y coordinate to use!
-						if ((x&0x1F)==0) //To reload the foreground mask?
+						x = curs; //Load the new y coordinate to use!
+						if (unlikely((curs&0x1F)==0)) //To reload the foreground mask?
 						{
-							notbackground = tsurface->notbackground[(y<<4)|(x>>5)]; //Load the next background mask!
+							notbackground = tsurface->notbackground[(y<<4)|(curs>>5)]; //Load the next background mask!
 						}
 						else
 						{
@@ -566,18 +571,20 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					notbackground = 0; //Default to background always!
 					sx = 0; //Reset horizontal coordinate!
 					x = tsurface->horizontalprecalcs[sx]; //Load the new x coordinate to use!
+					prevs = tsurface->verticalprecalcs[sy]; //Previous SY result!
 					++sy; //Screen row rendered!
-					if (unlikely(sy>=(tsurface->verticalprecalcssize>>2))) break; //Finished!
-					if ((tsurface->verticalprecalcs[sy-1]!=~0) && (tsurface->verticalprecalcs[sy]==~0)) //Finished a row(end of specified area)?
+					if (unlikely(sy>=tsurface->verticalprecalcsentries)) break; //Finished!
+					curs = tsurface->verticalprecalcs[sy]; //Current SY result!
+					if (unlikely((prevs!=~0) && (curs==~0))) //Finished a screen(end of specified area)?
 					{
 						break; //Finished the specified area!
 					}
-					if (tsurface->verticalprecalcs[sy]!=~0) //Valid?
+					if (likely(curs!=~0)) //Valid?
 					{
-						y = tsurface->verticalprecalcs[sy]; //Load the new y coordinate to use!
+						y = curs; //Load the new y coordinate to use!
 						renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
 						notbackground = tsurface->notbackground[y<<4]; //Load the new row's first foreground mask!
-						if (tsurface->horizontalprecalcs[0]==~0) //Starting out invalid?
+						if (unlikely(x==~0)) //Starting out invalid?
 						{
 							notbackground = 0; //We're background to start with!
 						}

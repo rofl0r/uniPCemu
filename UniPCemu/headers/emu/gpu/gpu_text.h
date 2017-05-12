@@ -54,6 +54,7 @@ word curXDELTA, curYDELTA; //X/Y delta values of the precalcs!
 float cur_render_xfactor, cur_render_yfactor; //Render xfactor/yfactor used(implying reverse as well)!
 uint_32 *horizontalprecalcs, *verticalprecalcs; //Our precalcs used when rendering!
 uint_32 horizontalprecalcssize, verticalprecalcssize; //Our precalcs sizes!
+uint_32 horizontalprecalcsentries, verticalprecalcsentries; //Precalcssize in entries!
 byte precalcsready; //Precalcs loaded at least once?
 } GPU_TEXTSURFACE;
 
