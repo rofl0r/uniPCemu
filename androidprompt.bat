@@ -14,4 +14,3 @@ rem Set us up in the used project folder and start a command line session to wor
 cd android-project
 if "%1"=="profile" ndk-build profile=%ANDROIDNDK% NDK_MODULE_PATH=%NDK_MODULE_PATH%
 cmd
-pause
