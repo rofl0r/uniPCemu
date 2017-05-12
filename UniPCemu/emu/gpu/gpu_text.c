@@ -526,19 +526,21 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		{
 			color = *renderpixel; //Init color to draw!
 		}
-if (unlikely(x >= getlayerwidth(surface))) return; //Invalid column!
+		if (unlikely(sx >= getlayerwidth(surface))) return; //Invalid column!
 		Uint32 *renderpixels = (Uint32 *)*getlayerpixels(rendersurface);
 		Uint32 *currentrow = &renderpixels[ ( y * get_pixelrow_pitch(rendersurface) )]; //The pixel row!
 		for (;;) //Process all rows!
 		{
 			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
+				if (unlikely(sx >= getlayerwidth(surface))) goto nextpixel; //Invalid column!
 				if (unlikely(currentrow[sx]!=color)) //Different?
 				{
 					surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 					currentrow[sx] = color;
 				}
 			}
+			nextpixel:
 
 			prevs = tsurface->horizontalprecalcs[sx++]; //Previous SX result! Increase, because a pixel has been rendered!
 			if (unlikely(sx>=tsurface->horizontalprecalcsentries)) //End of row block reached? Prevent invalid rows by immediately starting the next when it's occurring!
