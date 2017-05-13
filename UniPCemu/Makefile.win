@@ -98,7 +98,12 @@ BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
 
 ifneq (,$(findstring profile,$(MAKECMDGOALS)))
-BUILD_CFLAGS = -g -pg -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
+BUILD_CFLAGS = -g -pg
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
+#Enable line-profiling instead!
+BUILD_CFLAGS := $(BUILD_CFLAGS) -l
+endif
+BUILD_CFLAGS := $(BUILD_CFLAGS) -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
 endif
 
 #Different kinds of flags for x86 and x64!
