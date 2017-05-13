@@ -480,8 +480,6 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		BIOS_int10(); //Show!
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		delay(5000000); //Wait 5 seconds!
-	doshutdown:
-		return; //We're finished!
 	}
 
 	//Text modes work!
@@ -491,34 +489,45 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//Graphics should be OK!
 	//4-color modes: TODO!
 	DoDebugVGAGraphics(0x04,320,200,0x04,0,0x3,1,0); //Debug 320x200x4!
+	if (shuttingdown()) goto doshutdown;
 	DoDebugVGAGraphics(0x05,320,200,0x04,0,0x0,1,0); //Debug 320x200x4(B/W)! 
+	if (shuttingdown()) goto doshutdown;
 	//B/W mode!
 	
 	//TODO:
 	DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)!
+	if (shuttingdown()) goto doshutdown;
 	
 	DoDebugVGAGraphics(0x0F,640,350,0x02,0,0x1,1,0); //Debug 640x350x2(Monochrome)!
+	if (shuttingdown()) goto doshutdown;
 	//16 color mode!
 	DoDebugVGAGraphics(0x0D,320,200,0x10,0,0xF,0,0); //Debug 320x200x16!
+	if (shuttingdown()) goto doshutdown;
 
 	DoDebugVGAGraphics(0x0E,640,200,0x10,0,0xF,1,0); //Debug 640x200x16!
+	if (shuttingdown()) goto doshutdown;
 	DoDebugVGAGraphics(0x10,640,350,0x10,0,0xF,1,0); //Debug 640x350x16!
+	if (shuttingdown()) goto doshutdown;
 	//16 color b/w mode!
 	DoDebugVGAGraphics(0x11,640,480,0x10,0,0x1,1,0); //Debug 640x480x16(B/W)! 
+	if (shuttingdown()) goto doshutdown;
 	//16 color maxres mode!
 	DoDebugVGAGraphics(0x12,640,480,0x10,0,0xF,1,0); //Debug 640x480x16! VGA+!
+	if (shuttingdown()) goto doshutdown;
 	//VGA_DUMPDAC(); //Dump the DAC!
 	#ifdef DEBUG256
 	specialdebugging:
 	#endif
 	//256 color mode!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,1); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
+	if (shuttingdown()) goto doshutdown;
 
 	lock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 	if (getActiveVGA()->enable_SVGA) //SVGA debugging too?
 	{
 		unlock(LOCK_MAINTHREAD); //Finished with it!
 		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,1); //Debug 640x480x256! ET3000/ET4000!
+		if (shuttingdown()) goto doshutdown;
 	}
 	else unlock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 
@@ -528,8 +537,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//quitemu(); //Stop!
 	if (waitforever) //Waiting forever?
 	{
-		sleep(); //Wait forever till user Quits the game!
+		if (shuttingdown()) goto doshutdown;
+		sleep(); //Wait forever till user Quits the application!
 	}
+	doshutdown:
+	return; //We're finished!
 }
 
 /*
