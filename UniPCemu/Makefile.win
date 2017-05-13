@@ -169,12 +169,28 @@ OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
 
 analyze: profile
 	$(info Creating $(TARGET_PROFILE_TXT)...)
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
+ifeq (,$(gcov_files))
+$(error Please specify gcov_files=FILESHERE (replacing FILESHERE with the file to check) to analyze. Add lineprofile_branches to look for branch probabilities. )
+endif
+ifneq (,$(findstring lineprofile_branches,$(MAKECMDGOALS)))
+	gcov -b $(gcov_files)
+endif
+ifeq (,$(findstring lineprofile_branches,$(MAKECMDGOALS)))
+	gcov $(gcov_files)
+endif
+endif
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
 	@gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_TXT)
+endif
 
 analyze2: profile
 	$(info Creating $(TARGET_PROFILE_CMP_TXT)...)
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
+endif
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
 	@gprof $(GPROF_SWITCHES) $(BUILD_PROFILE) $(BUILD_PROFILE_GMON) > $(BUILD_PROFILE_GMON_CMP_TXT)
-
+endif
 build: $(BUILD_RELEASE)
 profile: $(BUILD_PROFILE)
 reprofile: clean profile
