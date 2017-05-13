@@ -191,11 +191,11 @@ redebug: clean debug
 
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
-	$(info Creating debug executable...)
+	$(info Creating debug executable $@...)
 	@${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 $(BUILD_PROFILE): ${OBJS}
-	$(info Creating profiling executable...)
+	$(info Creating profiling executable $@...)
 	@${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
