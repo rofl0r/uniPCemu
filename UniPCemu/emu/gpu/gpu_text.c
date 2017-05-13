@@ -526,17 +526,17 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 		{
 			color = *renderpixel; //Init color to draw!
 		}
-		if (unlikely(sx >= getlayerwidth(surface))) return; //Invalid column!
-		Uint32 *renderpixels = (Uint32 *)*getlayerpixels(rendersurface);
-		Uint32 *currentrow = &renderpixels[ ( sy * get_pixelrow_pitch(rendersurface) )]; //The pixel row!
+		if (unlikely(sx >= rendersurface->sdllayer->w)) return 0; //Invalid column!
+		uint_32 *renderpixels = (uint_32 *)rendersurface->sdllayer->pixels; //The pixels to draw to!
+		uint_32 *currentrow = &renderpixels[ ( sy * get_pixelrow_pitch(rendersurface) )]; //The pixel row!
 		for (;;) //Process all rows!
 		{
 			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
-				if (unlikely(sx >= getlayerwidth(rendersurface))) goto nextpixel; //Invalid column!
+				if (unlikely(sx >= rendersurface->sdllayer->w)) goto nextpixel; //Invalid column!
 				if (unlikely(currentrow[sx]!=color)) //Different?
 				{
-					surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
+					rendersurface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
 					currentrow[sx] = color;
 				}
 			}
