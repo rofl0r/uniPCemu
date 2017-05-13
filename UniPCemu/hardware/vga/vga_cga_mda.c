@@ -1290,7 +1290,7 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 	//External registers: Fully set!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1,(getActiveVGA()->registers->specialCGAflags&1)?1:0); //CGA/MDA address!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,1); //CGA!
-	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1,0); //CGA!
+	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1,1); //CGA!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,6,1,0); //CGA has positive polarity!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,7,1,0); //CGA has positive polarity!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER,0,1,0); //CGA!

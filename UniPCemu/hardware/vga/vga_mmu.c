@@ -271,12 +271,12 @@ void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *rea
 	calcplanes &= 1; //Take 1 bit to determine the odd/even plane (odd/even)!
 	if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,1,1)) //Replace A0 with high order bit?
 	{
-		realoffsettmp &= 0xFFFE; //Clear bit 0 for our result!
-		realoffsettmp |= (offset>>16)&1; //Replace bit 0 with high order bit!
+		realoffsettmp &= ~1; //Clear bit 0 for our result!
+		realoffsettmp |= (offset>>16)&1; //Replace bit 0 with the high order bit(A16), the most-significant bit!
 	}
-	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1) && (offset & 0x10000)) //High page on High RAM?
+	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1)==0) //High page on High RAM?
 	{
-		realoffsettmp |= 2; //Apply high page!
+		calcplanes |= 2; //Apply high page!
 		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 	}
 	else
