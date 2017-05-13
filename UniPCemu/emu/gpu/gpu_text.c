@@ -548,12 +548,11 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				goto loadnextrow;
 			}
 			curs = tsurface->horizontalprecalcs[sx]; //Current SX result!
-			if (prevs!=curs) //Coordinate changed?
+			if (unlikely(prevs!=curs)) //Coordinate changed?
 			{
-				if (unlikely((prevs!=~0) && (curs==~0))) //Finished a row(end of specified area)?
-				{
-					goto loadnextrow; //Load the next row!
-				}
+				if (unlikely(prevs!=~0)) //We were active?
+					if (unlikely(curs==~0)) //Finished a row(end of specified area) now?
+						goto loadnextrow; //Load the next row!
 				if (likely(sx<tsurface->horizontalprecalcsentries)) //End of row not reached?
 				{
 					if (likely(curs!=~0)) //Valid?
