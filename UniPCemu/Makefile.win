@@ -19,8 +19,10 @@ TARGET_PROFILE_CMP_TXT = profiler2.txt
 #Currently, our resource is only one: The project rc file!
 RESOURCES = $(BUILD_NAME).res
 
-#GProf switches!
+#GProf switches, if not specified!
+ifeq ($(GPROF_SWITCHES),)
 GPROF_SWITCHES =
+endif
 
 # ###################################################
 
@@ -97,13 +99,20 @@ ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 BUILD_CFLAGS = -ggdb -ffunction-sections
 endif
 
-ifneq (,$(findstring profile,$(MAKECMDGOALS)))
-BUILD_CFLAGS = -g -pg
 ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
 #Enable line-profiling instead!
-BUILD_CFLAGS := $(BUILD_CFLAGS) -l
+GPROF_SWITCHES := $(GPROF_SWITCHES) -l
 endif
-BUILD_CFLAGS := $(BUILD_CFLAGS) -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
+
+ifneq (,$(findstring profile,$(MAKECMDGOALS)))
+ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
+#Enable line-profiling instead!
+BUILD_CFLAGS_PROFSWITCHES = -fprofile-arcs -ftest-coverage
+else
+#Default switches!
+BUILD_CFLAGS_PROFSWITCHES =
+endif
+BUILD_CFLAGS = -g -pg $(BUILD_CFLAGS_PROFSWITCHES) -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
 endif
 
 #Different kinds of flags for x86 and x64!
