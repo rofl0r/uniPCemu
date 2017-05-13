@@ -101,18 +101,18 @@ endif
 
 ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
 #Enable line-profiling instead!
-GPROF_SWITCHES := $(GPROF_SWITCHES) -l
+GPROF_SWITCHES := $(GPROF_SWITCHES)
 endif
+
+#Default switches!
+BUILD_LDFLAGS_PROFSWITCHES =
 
 ifneq (,$(findstring profile,$(MAKECMDGOALS)))
 ifneq (,$(findstring lineprofile,$(MAKECMDGOALS)))
 #Enable line-profiling instead!
-BUILD_CFLAGS_PROFSWITCHES = -fprofile-arcs -ftest-coverage
-else
-#Default switches!
-BUILD_CFLAGS_PROFSWITCHES =
+BUILD_LDFLAGS_PROFSWITCHES = -fprofile-arcs -ftest-coverage -fprofile-generate
 endif
-BUILD_CFLAGS = -g -pg $(BUILD_CFLAGS_PROFSWITCHES) -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
+BUILD_CFLAGS = -g -pg -ffunction-sections -enable-core-inline -static-libgcc -static-libstdc++
 endif
 
 #Different kinds of flags for x86 and x64!
@@ -196,7 +196,7 @@ $(BUILD_DEBUG): ${OBJS}
 
 $(BUILD_PROFILE): ${OBJS}
 	$(info Creating profiling executable $@...)
-	@${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
+	@${CC} -g -pg $(BUILD_LDFLAGS_PROFSWITCHES) -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
 $(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES) 
