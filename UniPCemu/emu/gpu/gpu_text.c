@@ -534,6 +534,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			if (unlikely(isnottransparent)) //The pixel to plot, if any! Ignore transparent pixels!
 			{
 				if (unlikely(sx >= rendersurface->sdllayer->w)) goto nextpixel; //Invalid column!
+				if (unlikely(sy >= rendersurface->sdllayer->h)) goto nextpixel; //Invalid row!
 				if (unlikely(currentrow[sx]!=color)) //Different?
 				{
 					rendersurface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
