@@ -22,10 +22,10 @@ extern byte allcleared;
 word TEXT_xdelta = 0;
 word TEXT_ydelta = 0; //Delta x,y!
 
-//#ifdef ANDROID
+#ifdef ANDROID
 //We're using adaptive text surfaces for supported devices!
 #define ADAPTIVETEXT
-//#endif
+#endif
 
 float render_xfactor=1.0f, render_yfactor=1.0f; //X and Y factor during rendering!
 float render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
