@@ -854,7 +854,7 @@ OPTINLINE byte coreHandler()
 
 		CPU_resetTimings(); //Reset all required CPU timings required!
 
-		if (CPU[activeCPU].halt) //Halted?
+		if (CPU[activeCPU].halt&3) //Halted normally? Don't count CGA wait states!
 		{
 			if (romsize) //Debug HLT?
 			{
@@ -862,16 +862,7 @@ OPTINLINE byte coreHandler()
 				return 0; //Stop execution!
 			}
 
-			if (CPU[activeCPU].halt & 0xC) //CGA wait state is active?
-			{
-				if ((CPU[activeCPU].halt&0xC) == 8) //Are we to resume execution now?
-				{
-					CPU[activeCPU].halt &= ~0xC; //We're resuming execution!
-					goto resumeFromHLT; //We're resuming from HLT state!
-				}
-				goto skipHaltRestart; //Count cycles normally!
-			}
-			else if (FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
+			if (FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
