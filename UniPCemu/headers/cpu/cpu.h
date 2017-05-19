@@ -854,8 +854,6 @@ typedef struct PACKED
 	byte cycles_Prefix; //Total number of cycles for the prefix!
 	byte cycles_EA; //ModR/M decode cycles!
 	byte cycles_Exception; //Total number of cycles for an exception!
-	byte cycles_MMUR, cycles_MMUW; //Total number of cycles for memory access!
-	byte cycles_IO; //Total number of cycles for I/O access!
 	byte cycles_Prefetch; //Total number of cycles for prefetching from memory!
 	byte cycles_stallBIU; //How many cycles to stall the BIU this step?
 	byte cycles_stallBUS; //How many cycles to stall the BUS(all CPU hardware) this step?

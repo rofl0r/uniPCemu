@@ -210,30 +210,6 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		if (writewordbackup==0) //First data of the (d)word access?
 		{
 			wordaddress = realaddress; //Word address used during memory access!
-			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
-			{
-				CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!
-				CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-			{
-				CPU[activeCPU].cycles_MMUR += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-		}
-		else //Second data of a word access?
-		{
-			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
-			{
-				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
-				{
-					CPU[activeCPU].cycles_MMUR += 2; //Add memory cycles used!				
-					CPU[activeCPU].cycles_MMUR += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-				{
-					CPU[activeCPU].cycles_MMUR += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-			}
 		}
 	}
 
@@ -260,30 +236,6 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		if (writewordbackup==0) //First data of the word access?
 		{
 			wordaddress = realaddress; //Word address used during memory access!
-			if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
-			{
-				CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!
-				CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-			else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-			{
-				CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-			}
-		}
-		else //Second data of a word access?
-		{
-			if ((realaddress&~1)!=(wordaddress&~1)) //Unaligned word access? We're the second byte on a different word boundary!
-			{
-				if (EMULATED_CPU==CPU_80286) //Process additional cycles!
-				{
-					CPU[activeCPU].cycles_MMUW += 2; //Add memory cycles used!				
-					CPU[activeCPU].cycles_MMUW += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-				else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-				{
-					CPU[activeCPU].cycles_MMUW += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-				}
-			}
 		}
 	}
 
@@ -442,12 +394,10 @@ void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Read without segment
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val, byte is_offset16) //Set adress!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += (EMULATED_CPU==CPU_80286)?0:4; //CPU writes are counted!
 	MMU_INTERNAL_wb(segdesc,segment,offset,val,0,is_offset16);
 }
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val, byte is_offset16) //Set adress!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUW += (EMULATED_CPU==CPU_80286)?0:(CPU_databussize?8:4); //CPU writes are counted!
 	MMU_INTERNAL_ww(segdesc,segment,offset,val,0,is_offset16);
 }
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte is_offset16) //Set adress!
@@ -456,12 +406,10 @@ void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte is_o
 }
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += EMULATED_CPU==CPU_80286?0:4; //CPU writes are counted!
 	return MMU_INTERNAL_rb(segdesc,segment,offset,opcode,0,is_offset16);
 }
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
 {
-	if (segdesc!=-1) CPU[activeCPU].cycles_MMUR += (EMULATED_CPU==CPU_80286)?0:(CPU_databussize?8:4); //CPU writes are counted!
 	return MMU_INTERNAL_rw(segdesc,segment,offset,opcode,0,is_offset16);
 }
 uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!

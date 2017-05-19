@@ -819,15 +819,13 @@ OPTINLINE static void debugger_autolog()
 				}
 				else //Normal full log?
 				{
-					sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+					sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 						(BIU[activeCPU].TState+1), //Current T-state!
 						CPU[activeCPU].cycles, //Cycles executed by the BIU!
 						CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 						CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
 						CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
 						CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-						CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-						CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
 						CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
 						CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 						CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
@@ -848,15 +846,13 @@ OPTINLINE static void debugger_autolog()
 						}
 						else //Normal full log?
 						{
-							sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+							sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 								DMA_States_text[DMA_S], //Current S-state!
 								CPU[activeCPU].cycles, //Cycles executed by the BIU!
 								CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 								CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
 								CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
 								CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-								CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-								CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
 								CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
 								CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 								CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!
@@ -871,14 +867,12 @@ OPTINLINE static void debugger_autolog()
 						}
 						else //Normal full log?
 						{
-							sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, MMU read cycles: %i, MMU write cycles: %i, I/O bus cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+							sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
 								CPU[activeCPU].cycles, //Cycles executed by the BIU!
 								CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 								CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
 								CPU[activeCPU].cycles_Prefix, //Total number of cycles for the prefix!
 								CPU[activeCPU].cycles_Exception, //Total number of cycles for an exception!
-								CPU[activeCPU].cycles_MMUR, CPU[activeCPU].cycles_MMUW, //Total number of cycles for memory access!
-								CPU[activeCPU].cycles_IO, //Total number of cycles for I/O access!
 								CPU[activeCPU].cycles_Prefetch, //Total number of cycles for prefetching from memory!
 								CPU[activeCPU].cycles_Prefetch_BIU, //BIU cycles actually spent on prefetching during the remaining idle BUS time!
 								CPU[activeCPU].cycles_Prefetch_DMA //BIU cycles actually spent on prefetching during the remaining idle BUS time!

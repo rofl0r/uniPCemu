@@ -1620,8 +1620,6 @@ void CPU_resetTimings()
 	CPU[activeCPU].cycles_Prefetch_BIU = 0; //Reset cycles spent on BIU!
 	CPU[activeCPU].cycles_Prefix = 0; //No cycles prefix to use anymore!
 	CPU[activeCPU].cycles_Exception = 0; //No cycles Exception to use anymore!
-	CPU[activeCPU].cycles_MMUR = CPU[activeCPU].cycles_MMUW = 0; //No cycles MMU to use anymore!
-	CPU[activeCPU].cycles_IO = 0; //Reset cycles spent on the BIU I/O execution!
 	CPU[activeCPU].cycles_Prefetch = 0; //No cycles prefetch to use anymore!
 	CPU[activeCPU].cycles_OP = 0; //Reset cycles (used by CPU to check for presets (see below))!
 	CPU[activeCPU].cycles_stallBIU = 0; //Reset cycles to stall (used by BIU to check for stalling during any jump (see below))!
@@ -2035,7 +2033,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	#ifdef CPU_USECYCLES
 	if ((CPU[activeCPU].cycles_OP|CPU[activeCPU].cycles_stallBIU|CPU[activeCPU].cycles_stallBUS|CPU[activeCPU].cycles_EA|CPU[activeCPU].cycles_HWOP|CPU[activeCPU].cycles_Exception) && CPU_useCycles) //cycles entered by the instruction?
 	{
-		CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_EA+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch + CPU[activeCPU].cycles_MMUR + CPU[activeCPU].cycles_MMUW + CPU[activeCPU].cycles_IO; //Use the cycles as specified by the instruction!
+		CPU[activeCPU].cycles = CPU[activeCPU].cycles_OP+CPU[activeCPU].cycles_EA+CPU[activeCPU].cycles_HWOP+CPU[activeCPU].cycles_Prefix + CPU[activeCPU].cycles_Exception + CPU[activeCPU].cycles_Prefetch; //Use the cycles as specified by the instruction!
 	}
 	else //Automatic cycles placeholder?
 	{

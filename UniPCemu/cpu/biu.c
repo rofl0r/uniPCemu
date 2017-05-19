@@ -75,12 +75,8 @@ void CPU_flushPIQ(int_64 destaddr)
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	byte oldMMUCycles;
-	oldMMUCycles = CPU[activeCPU].cycles_MMUR; //Save the MMU cycles!
-	CPU[activeCPU].cycles_MMUR = 0; //Counting raw time spent retrieving memory!
 	writefifobuffer(BIU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, BIU[activeCPU].PIQ_EIP++, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT())); //Add the next byte from memory into the buffer!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-	CPU[activeCPU].cycles_MMUR = oldMMUCycles; //Restore the MMU cycles!
 }
 
 void BIU_dosboxTick()
@@ -720,7 +716,6 @@ extern byte CPU386_WAITSTATE_DELAY; //386+ Waitstate, which is software-programm
 
 void CPU_tickBIU()
 {
-	byte iowcyclespending; //Write cycles pending
 	byte memory_waitstates = 0;
 	CPU_CycleTimingInfo *cycleinfo;
 	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
@@ -742,22 +737,11 @@ void CPU_tickBIU()
 	{
 		cycleinfo->cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
 		if (cycleinfo->cycles==0) cycleinfo->cycles = 1; //Take 1 cycle at least!
-		cycleinfo->iorcycles = CPU[activeCPU].cycles_MMUR; //Don't count memory access cycles!
-		cycleinfo->iowcycles = CPU[activeCPU].cycles_MMUW; //Don't count memory access cycles!
-		cycleinfo->iorcycles += CPU[activeCPU].cycles_IO; //Don't count I/O access cycles!
 
 		cycleinfo->prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
 		cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
 		cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
 		cycleinfo->cycles_stallBUS = CPU[activeCPU].cycles_stallBUS; //BUS stall cycles!
-		for (iowcyclespending=cycleinfo->iowcycles, cycleinfo->iowcyclestart=0;cycleinfo->iowcyclestart && iowcyclespending;++cycleinfo->iowcyclestart)
-		{
-			if (((BIU[activeCPU].prefetchclock+cycleinfo->cycles-cycleinfo->iowcyclestart)&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))==(((EMULATED_CPU<=CPU_NECV30)<<1)|1)) //BIU cycle at the end?
-			{
-				iowcyclespending -= (2<<(EMULATED_CPU<=CPU_NECV30)); //Remainder of spent cycles!
-				if (iowcyclespending==0) break; //Starting this cycle?
-			}
-		}
 	}
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
@@ -824,8 +808,6 @@ void CPU_tickBIU()
 						else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 						{
 							if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch808X;}
-							else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 4; CPU[activeCPU].BUSactive = 1; BIU[activeCPU].requestready = 0; ++BIU[activeCPU].prefetchclock; /*Tick!*/ } //Skip read cycle!
-							else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 4; CPU[activeCPU].BUSactive = 1; BIU[activeCPU].requestready = 0; ++BIU[activeCPU].prefetchclock; /*Tick!*/ } //Skip write cycle!
 							else
 							{
 								tryprefetch808X:
@@ -878,7 +860,7 @@ void CPU_tickBIU()
 		else
 		{
 			BIU[activeCPU].stallingBUS = 0; //Not stalling BUS!
-			if ((CPU[activeCPU].halt & 0xC) && ((BIU[activeCPU].prefetchclock&3)==3)) //CGA wait state is active?
+			if ((CPU[activeCPU].halt & 0xC) && ((BIU[activeCPU].prefetchclock&1)==1)) //CGA wait state is active?
 			{
 				if ((CPU[activeCPU].halt&0xC) == 8) //Are we to resume execution now?
 				{
@@ -931,8 +913,6 @@ void CPU_tickBIU()
 						else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
 						{
 							if (cycleinfo->prefetchcycles) {--cycleinfo->prefetchcycles; goto tryprefetch80286;}
-							else if (cycleinfo->iorcycles) { cycleinfo->iorcycles -= 2; CPU[activeCPU].BUSactive = 1; BIU[activeCPU].requestready = 0; ++BIU[activeCPU].prefetchclock; /*Tick!*/ } //Skip read cycle!
-							else if (cycleinfo->iowcycles && (cycleinfo->cycles<=cycleinfo->iowcyclestart)) { cycleinfo->iowcycles -= 2; CPU[activeCPU].BUSactive = 1; BIU[activeCPU].requestready = 0; ++BIU[activeCPU].prefetchclock; /*Tick!*/ } //Skip write cycle!
 							else
 							{
 								tryprefetch80286:

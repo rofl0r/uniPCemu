@@ -7,9 +7,6 @@
 typedef struct
 {
 	byte cycles; //Cycles left pending! 0=Ready to process next step!
-	byte iorcycles; //Read cycles left!
-	byte iowcycles; //Write cycles left!
-	byte iowcyclestart; //Write cycle start!
 	byte prefetchcycles; //Prefetch cycles done
 	byte cycles_stallBIU; //How many cycles to stall the BIU when running the BIU?
 	byte curcycle; //Current cycle to process?
