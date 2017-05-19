@@ -724,6 +724,8 @@ void CPU_tickBIU()
 	byte memory_waitstates = 0;
 	CPU_CycleTimingInfo *cycleinfo;
 	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
+
+	byte BIU_active = 1; //Are we counted as active cycles?
 	//Determine memory waitstate first!
 	if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 	{
@@ -787,6 +789,7 @@ void CPU_tickBIU()
 					--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
 					waitstate:
 					BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
+					BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 				}
 				else //No waitstates to apply?
 				{
@@ -794,6 +797,7 @@ void CPU_tickBIU()
 					{
 						++CPU[activeCPU].cycles_Prefetch_DMA;
 						BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+						BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 					}
 					else //Active CPU cycle?
 					{
@@ -811,6 +815,10 @@ void CPU_tickBIU()
 										CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 									}
 								}
+							}
+							else
+							{
+								BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 							}
 						}
 						else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
@@ -865,6 +873,7 @@ void CPU_tickBIU()
 		{
 			--cycleinfo->cycles_stallBUS; //Stall!
 			BIU[activeCPU].stallingBUS = 1; //Stalling!
+			BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 		}
 		else
 		{
@@ -887,6 +896,7 @@ void CPU_tickBIU()
 					--BIU[activeCPU].waitstateRAMremaining; //Tick waitstate RAM!
 					waitstate286:
 					BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
+					BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 				}
 				else //No waitstates to apply?
 				{
@@ -894,6 +904,7 @@ void CPU_tickBIU()
 					{
 						++CPU[activeCPU].cycles_Prefetch_DMA;
 						BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+						BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 					}
 					else //Active CPU cycle?
 					{
@@ -911,6 +922,10 @@ void CPU_tickBIU()
 										CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 									}
 								}
+							}
+							else
+							{
+								BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 							}
 						}
 						else if ((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0)) //T1 while not busy? Start transfer, if possible!
@@ -951,7 +966,7 @@ void CPU_tickBIU()
 						CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 						BIU[activeCPU].requestready = 1; //The request is ready to be served!
 					}
-					if (cycleinfo->cycles) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
+					if (cycleinfo->cycles && BIU_active) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 				}
 			}
 		}
