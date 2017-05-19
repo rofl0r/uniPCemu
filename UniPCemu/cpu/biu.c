@@ -742,6 +742,7 @@ void CPU_tickBIU()
 		cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
 		cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
 		cycleinfo->cycles_stallBUS = CPU[activeCPU].cycles_stallBUS; //BUS stall cycles!
+		CPU[activeCPU].cycles_Prefetch = CPU[activeCPU].cycles_EA = CPU[activeCPU].cycles_stallBIU = CPU[activeCPU].cycles_stallBUS = 0; //We don't have any of these after this!
 	}
 	//Now we have the amount of cycles we're idling.
 	if (EMULATED_CPU<=CPU_NECV30) //Old CPU?
@@ -842,7 +843,7 @@ void CPU_tickBIU()
 							BIU[activeCPU].requestready = 1; //The request is ready to be served!
 						}
 
-						if (cycleinfo->cycles) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
+						if (cycleinfo->cycles && BIU_active) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 					}
 				}
 			}
