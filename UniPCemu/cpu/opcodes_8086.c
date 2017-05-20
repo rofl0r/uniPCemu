@@ -2046,6 +2046,11 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
 	}
+	if (*quotient>((1<<resultbits)-1)) //Quotient overflow?
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!		
+	}
 	*remainder = temp; //Give the modulo! The result is already calculated!
 	*error = 0; //We're having a valid result!
 }
