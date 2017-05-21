@@ -343,7 +343,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 }
 
 //PORT IN/OUT instructions!
-byte CPU_PORT_OUT_B(word port, byte data)
+byte CPU_PORT_OUT_B(byte base, word port, byte data)
 {
 	//Check rights!
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
@@ -356,7 +356,7 @@ byte CPU_PORT_OUT_B(word port, byte data)
 	}
 	//Execute it!
 	byte dummy;
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSwb(port,data)==0) //Not ready?
 		{
@@ -366,7 +366,7 @@ byte CPU_PORT_OUT_B(word port, byte data)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultb(&dummy)==0) //Not ready?
 		{
@@ -379,7 +379,7 @@ byte CPU_PORT_OUT_B(word port, byte data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_OUT_W(word port, word data)
+byte CPU_PORT_OUT_W(byte base, word port, word data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -396,7 +396,7 @@ byte CPU_PORT_OUT_W(word port, word data)
 	}
 	//Execute it!
 	word dummy;
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSww(port,data)==0) //Not ready?
 		{
@@ -406,7 +406,7 @@ byte CPU_PORT_OUT_W(word port, word data)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultw(&dummy)==0) //Not ready?
 		{
@@ -419,7 +419,7 @@ byte CPU_PORT_OUT_W(word port, word data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_OUT_D(word port, uint_32 data)
+byte CPU_PORT_OUT_D(byte base, word port, uint_32 data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -446,7 +446,7 @@ byte CPU_PORT_OUT_D(word port, uint_32 data)
 	}
 	//Execute it!
 	uint_32 dummy;
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSwdw(port,data)==0) //Not ready?
 		{
@@ -456,7 +456,7 @@ byte CPU_PORT_OUT_D(word port, uint_32 data)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultdw(&dummy)==0) //Not ready?
 		{
@@ -469,7 +469,7 @@ byte CPU_PORT_OUT_D(word port, uint_32 data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_B(word port, byte *result)
+byte CPU_PORT_IN_B(byte base, word port, byte *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -480,7 +480,7 @@ byte CPU_PORT_IN_B(word port, byte *result)
 		}
 	}
 	//Execute it!
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSrb(port)==0) //Not ready?
 		{
@@ -490,7 +490,7 @@ byte CPU_PORT_IN_B(word port, byte *result)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultb(result)==0) //Not ready?
 		{
@@ -503,7 +503,7 @@ byte CPU_PORT_IN_B(word port, byte *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_W(word port, word *result)
+byte CPU_PORT_IN_W(byte base, word port, word *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -519,7 +519,7 @@ byte CPU_PORT_IN_W(word port, word *result)
 		}
 	}
 	//Execute it!
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSrw(port)==0) //Not ready?
 		{
@@ -529,7 +529,7 @@ byte CPU_PORT_IN_W(word port, word *result)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultw(result)==0) //Not ready?
 		{
@@ -542,7 +542,7 @@ byte CPU_PORT_IN_W(word port, word *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_D(word port, uint_32 *result)
+byte CPU_PORT_IN_D(byte base, word port, uint_32 *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -568,7 +568,7 @@ byte CPU_PORT_IN_D(word port, uint_32 *result)
 		}
 	}
 	//Execute it!
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		if (BIU_request_BUSrdw(port)==0) //Not ready?
 		{
@@ -578,7 +578,7 @@ byte CPU_PORT_IN_D(word port, uint_32 *result)
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (CPU[activeCPU].internalinstructionstep==1)
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
 	{
 		if (BIU_readResultdw(result)==0) //Not ready?
 		{

@@ -869,7 +869,6 @@ OPTINLINE byte coreHandler()
 			}
 			else
 			{
-				skipHaltRestart:
 				//Execute using actual CPU clocks!
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
