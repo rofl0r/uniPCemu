@@ -5,7 +5,7 @@ To build SDL2 configuration(x86) on Windows:
 To build SDL2 configuration(x64) on Windows:
 ./configure --prefix=/mingw CFLAGS="-g -O3 -DUSING_GENERATED_CONFIG_H -static-libgcc -static-libstdc++" --host=x86_64-w64-mingw32
 
-SDL2-2.0.5 x64 fix:
+SDL2-2.0.5 x64 fix(not on Mecurial repository):
 Add the following lines below: "#include <mmsystem.h>" at src/audio/winmm.c:
 
 typedef struct tagWAVEINCAPS2W {
@@ -34,3 +34,5 @@ typedef struct tagWAVEINCAPS2W {
     GUID ProductGuid;
     GUID NameGuid;
   } WAVEOUTCAPS2W,*PWAVEOUTCAPS2W,*NPWAVEOUTCAPS2W,*LPWAVEOUTCAPS2W;
+  
+  SDL2-2.0.5 fixes are also given at https://bugzilla.libsdl.org/show_bug.cgi?id=3609 (XINPUT bugs and bugfixes reported).
