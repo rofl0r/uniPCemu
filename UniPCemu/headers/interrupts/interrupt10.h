@@ -57,5 +57,6 @@ void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count);
 //ROM Video Parameter tables support!
 void INT10_SetupBasicVideoParameterTable(void);
 word INT10_SetupVideoParameterTable(word basepos);
+void INT10_StartBasicVideoParameterTable();
 
 #endif

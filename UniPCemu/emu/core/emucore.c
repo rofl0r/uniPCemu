@@ -522,7 +522,7 @@ void initEMU(int full) //Init!
 		BIOS_registerROM(); //Register the ROMs for usage!
 		BIOS_load_systemROM(); //Load custom ROM from emulator itself, we don't know about any system ROM!
 		clearCBHandlers(); //Reset all callbacks!
-		if (full!=2) BIOS_initStart(); //Get us ready to load our own BIOS boot sequence!
+		BIOS_initStart(); //Get us ready to load our own BIOS boot sequence, so load the ROM with all required data!
 	}
 	else
 	{
