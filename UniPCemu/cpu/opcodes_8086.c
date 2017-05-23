@@ -1014,6 +1014,7 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		oper2 = 1;
 		op_add16();
 		FLAGW_CF(tempCF);
+		FLAGW_AF(((res16&0xF)==0)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1067,6 +1068,7 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		oper2 = 1;
 		op_sub16();
 		FLAGW_CF(tempCF);
+		FLAGW_AF(((res16&0xF)==0xF)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1121,6 +1123,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		oper2b = 1;
 		op_add8();
 		FLAGW_CF(tempCF);
+		FLAGW_AF(((res8&0xF)==0)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1174,6 +1177,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		oper2b = 1;
 		op_sub8();
 		FLAGW_CF(tempCF);
+		FLAGW_AF(((res8&0xF)==0xF)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -4587,29 +4591,30 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
-			backup = s; //Backup!
 			s = (s << 1) & 0xFF;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (cnt) FLAGW_OF((FLAG_CF ^ (s >> 7)));
 		flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
 		if (cnt == 1) FLAGW_OF((s & 0x80) ? 1 : 0); else FLAGW_OF(0);
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Backup!
 			s = s >> 1;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
 		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x80;
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
@@ -4629,7 +4634,6 @@ word op_grp2_16(byte cnt, byte varshift) {
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
-	word backup;
 	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 	s = oper1;
 	oldCF = FLAG_CF;
@@ -4681,29 +4685,30 @@ word op_grp2_16(byte cnt, byte varshift) {
 		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
-			backup = s; //Backup!
 			s = (s << 1) & 0xFFFF;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp16(s); break;
 
 	case 5: //SHR r/m16
 		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Backup!
 			s = s >> 1;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp16(s); break;
 
 	case 7: //SAR r/m16
 		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x8000; //Read the MSB!
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
@@ -4835,6 +4840,7 @@ void op_grp3_8() {
 		res8 = (~oper1b) + 1;
 		flag_sub8(0, oper1b);
 		if (res8 == 0) FLAGW_CF(0); else FLAGW_CF(1);
+		FLAGW_AF((res8&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(params)) //Memory?
@@ -5023,6 +5029,7 @@ void op_grp3_16() {
 		res16 = (~oper1) + 1;
 		flag_sub16(0, oper1);
 		if (res16) FLAGW_CF(1); else FLAGW_CF(0);
+		FLAGW_AF((res16&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(params)) //Memory?

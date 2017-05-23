@@ -269,6 +269,7 @@ OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 	oper2d = 1;
 	op_add32();
 	FLAGW_CF(tempCF);
+	FLAGW_AF(((res32&0xF)==0)?1:0); //Auxiliary flag!
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -295,6 +296,7 @@ OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
 	oper2d = 1;
 	op_sub32();
 	FLAGW_CF(tempCF);
+	FLAGW_AF(((res32&0xF)==0xF)?1:0); //Auxiliary flag!
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -2310,7 +2312,6 @@ OPTINLINE void op386_grp2_cycles(byte cnt, byte varshift)
 uint_32 op386_grp2_32(byte cnt, byte varshift) {
 	//uint32_t d,
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
-	uint_32 backup;
 	//if (cnt>0x10) return(oper1d); //NEC V20/V30+ limits shift count
 	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 	s = oper1d;
@@ -2365,27 +2366,30 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
 			backup = s; //Backup!
 			s = (s << 1) & 0xFFFFFFFF;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		if ((cnt) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp32(s); break;
 
 	case 5: //SHR r/m32
 		if (cnt) FLAGW_OF((s & 0x80000000) ? 1 : 0);
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			backup = s;
 			s = s >> 1;
-			if ((s^backup) & 0x10) FLAGW_AF(1); //Auxiliary carry?
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp32(s); break;
 
 	case 7: //SAR r/m32
 		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x80000000; //Read the MSB!
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
@@ -2503,6 +2507,7 @@ void op386_grp3_32() {
 		res32 = (~oper1d) + 1;
 		flag_sub32(0, oper1d);
 		if (res32) FLAGW_CF(1); else FLAGW_CF(0);
+		FLAGW_AF((res32&0xF)?1:0); //Auxiliary flag!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem!
@@ -2990,27 +2995,33 @@ uint_32 op_grp2_32(byte cnt, byte varshift) { //TODO!
 		break;
 
 	case 4: case 6: //SHL r/m16
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
 			s = (s << 1) & 0xFFFFFFFF;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		if ((cnt) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp32(s); break;
 
 	case 5: //SHR r/m16
 		if (cnt) FLAGW_OF((s & 0x80000000) ? 1 : 0);
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = s >> 1;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp32(s); break;
 
 	case 7: //SAR r/m16
 		if (cnt) FLAGW_OF(0);
 		msb = s & 0x80000000; //Read the MSB!
+		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | msb;
+			FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
