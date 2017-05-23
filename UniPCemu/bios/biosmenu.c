@@ -195,6 +195,7 @@ void BIOS_useDirectMIDIPassthrough();
 void BIOS_breakpoint();
 void BIOS_syncTime(); //Reset the kept time in UniPCemu!
 void BIOS_ROMMode(); //ROM mode!
+void BIOS_DebugState(); //State log!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -262,6 +263,7 @@ Handler BIOS_Menus[] =
 	,BIOS_breakpoint //Breakpoint is #60!
 	,BIOS_syncTime //Reset timekeeping is #61!
 	,BIOS_ROMMode //BIOS ROM mode is #62!
+	,BIOS_DebugState //BIOS State log is #63!
 };
 
 //Not implemented?
@@ -3243,6 +3245,14 @@ void BIOS_DebugLog()
 	}
 	BIOS_Menu = 35; //Goto CPU menu!
 }
+
+void BIOS_DebugState()
+{
+	BIOS_Settings.debugger_logstates = !BIOS_Settings.debugger_logstates;
+	BIOS_Changed = 1; //We're changed!
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
 extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
@@ -4869,7 +4879,22 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 10; //We're diagnostics output!
+	optioninfo[advancedoptions] = 10; //We're debug log setting!
+	strcpy(menuoptions[advancedoptions], "Debugger state log: ");
+	switch (BIOS_Settings.debugger_logstates)
+	{
+	case DEBUGGERSTATELOG_DISABLED: //None
+		strcat(menuoptions[advancedoptions++], "Disabled"); //Set filename from options!
+		break;
+	case DEBUGGERSTATELOG_ENABLED: //Only when debugging
+		strcat(menuoptions[advancedoptions++], "Enabled"); //Set filename from options!
+		break;
+	default:
+		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
+		break;
+	}
+
+	optioninfo[advancedoptions] = 11; //We're diagnostics output!
 	if (BIOS_Settings.diagnosticsportoutput_breakpoint>=0) //Diagnostics breakpoint specified?
 	{
 		sprintf(menuoptions[advancedoptions++], "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
@@ -4879,7 +4904,7 @@ setShowCPUSpeed:
 		sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 	}
 
-	optioninfo[advancedoptions] = 11; //Change Diagnostics Port Breakpoint Timeout!
+	optioninfo[advancedoptions] = 12; //Change Diagnostics Port Breakpoint Timeout!
 	strcpy(menuoptions[advancedoptions], "Diagnostics Port Breakpoint Timeout: ");
 	switch (BIOS_Settings.diagnosticsportoutput_timeout) //What Diagnostics Port Breakpoint Timeout?
 	{
@@ -4892,7 +4917,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 12; //Breakpoint!
+	optioninfo[advancedoptions] = 13; //Breakpoint!
 	strcpy(menuoptions[advancedoptions], "Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
@@ -4916,7 +4941,7 @@ setShowCPUSpeed:
 	++advancedoptions; //Increase after!
 
 setArchitecture: //For fixing it!
-	optioninfo[advancedoptions] = 13; //Architecture!
+	optioninfo[advancedoptions] = 14; //Architecture!
 	strcpy(menuoptions[advancedoptions], "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
@@ -4940,7 +4965,7 @@ setArchitecture: //For fixing it!
 	}
 
 setBIOSROMmode: //For fixing it!
-	optioninfo[advancedoptions] = 14; //BIOS ROM mode!
+	optioninfo[advancedoptions] = 15; //BIOS ROM mode!
 	strcpy(menuoptions[advancedoptions], "BIOS ROM mode: ");
 	switch (BIOS_Settings.BIOSROMmode) //What architecture?
 	{
@@ -4983,7 +5008,8 @@ void BIOS_CPU() //CPU menu!
 	case 11:
 	case 12:
 	case 13:
-	case 14: //Valid option?
+	case 14:
+	case 15: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5049,7 +5075,13 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Menu = 23; //Debugger log setting!
 			}
 			break;
-		case 10: //Diagnostics output breakpoint setting!
+		case 10: //Debugger state log setting!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 63; //Debugger state log setting!
+			}
+			break;
+		case 11: //Diagnostics output breakpoint setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 57; //Diagnostics Output Breakpoint setting!
@@ -5060,13 +5092,13 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Changed = 1; //We've changed!
 			}
 			break; //We do nothing!
-		case 11: //Timeout to be used for breakpoints?
+		case 12: //Timeout to be used for breakpoints?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
 			}
 			break;
-		case 12: //Breakpoint
+		case 13: //Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 60; //Timeout to be used for breakpoints?
@@ -5100,10 +5132,10 @@ void BIOS_CPU() //CPU menu!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
 			break; //TODO
-		case 13: //Architecture
+		case 14: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
-		case 14: //BIOS ROM mode
+		case 15: //BIOS ROM mode
 			if (!EMU_RUNNING) BIOS_Menu = 62; //Architecture option!
 			break;
 		}

@@ -73,6 +73,7 @@ typedef struct PACKED
 	byte useDirectMIDI; //Use Direct MIDI synthesis by using a passthrough to the OS?
 	uint_64 breakpoint; //The used breakpoint segment:offset and mode!
 	byte BIOSROMmode; //BIOS ROM mode.
+	byte debugger_logstates; //Are we logging states? 1=Log states, 0=Don't log states!
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -109,6 +110,12 @@ typedef struct PACKED
 #define DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED 9
 //Debugging only, Single line, simplified
 #define DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED 10
+
+//Debugger state log
+//Disabled state log
+#define DEBUGGERSTATELOG_DISABLED 0
+//Enabled state log
+#define DEBUGGERSTATELOG_ENABLED 1
 
 //Execution modes:
 //None:
@@ -154,6 +161,7 @@ enum BIOSROMMode {
 #define DEFAULT_DEBUGMODE DEBUGMODE_NONE
 #define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
 #define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
+#define DEFAULT_DEBUGGERSTATELOG DEBUGGERSTATELOG_DISABLED
 #define DEFAULT_ASPECTRATIO 2
 #ifdef STATICSCREEN
 #define DEFAULT_DIRECTPLOT 0
