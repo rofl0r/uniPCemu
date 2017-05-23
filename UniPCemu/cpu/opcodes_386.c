@@ -2364,7 +2364,6 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
-			backup = s; //Backup!
 			s = (s << 1) & 0xFFFFFFFF;
 			FLAGW_AF(1); //Auxiliary carry?
 		}
@@ -2376,7 +2375,6 @@ uint_32 op386_grp2_32(byte cnt, byte varshift) {
 		FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s;
 			s = s >> 1;
 			FLAGW_AF(1); //Auxiliary carry?
 		}
