@@ -56,7 +56,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	CPU[activeCPU].halt &= ~0x12; //Make sure to stop the CPU again!
 	unlock(LOCK_CPU);
 	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!
-	initEMU(1); //Init EMU first, enable video!
+	initEMU(2); //Init EMU first, enable video, no BIOS initialization in memory!
 	unlock(LOCK_MAINTHREAD); //Unlock us!
 	lock(LOCK_CPU);
 	dolog("debugger","RUNROMVERIFY: ready to go.");
