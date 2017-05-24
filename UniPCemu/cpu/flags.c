@@ -13,6 +13,39 @@ byte parity[0x100] = { //All parity values!
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/cpu/easyregs.h" //EASY Regs!
 
+void flag_p8(uint8_t value)
+{
+	FLAGW_PF(parity[value]);	
+}
+
+void flag_p16(uint16_t value)
+{
+	FLAGW_PF(parity[value&0xFF]);	
+}
+
+void flag_p32(uint32_t value)
+{
+	FLAGW_PF(parity[value&0xFF]);	
+}
+
+void flag_s8(uint8_t value)
+{
+	if (value & 0x80) FLAGW_SF(1);
+	else FLAGW_SF(0);
+}
+
+void flag_s16(uint16_t value)
+{
+	if (value & 0x8000) FLAGW_SF(1);
+	else FLAGW_SF(0);
+}
+
+void flag_s32(uint32_t value)
+{
+	if (value & 0x80000000) FLAGW_SF(1);
+	else FLAGW_SF(0);
+}
+
 void flag_szp8(uint8_t value)
 {
 	if (!value) FLAGW_ZF(1);

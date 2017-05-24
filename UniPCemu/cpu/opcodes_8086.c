@@ -4557,7 +4557,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
+		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
 		break;
 
 	case 1: //ROR r/m8
@@ -4565,7 +4565,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | (FLAG_CF << 7);
 		}
-		if (cnt) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
+		if (cnt==1) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
 		break;
 
 	case 2: //RCL r/m8
@@ -4575,7 +4575,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = s << 1;
 			s = s | oldCF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
+		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
 		break;
 
 	case 3: //RCR r/m8
@@ -4584,37 +4584,38 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | (oldCF << 7);
 		}
-		if (cnt) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
+		if (cnt==1) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m8
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80) FLAGW_CF(1); else FLAGW_CF(0);
+			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFF;
-			FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (cnt) FLAGW_OF((FLAG_CF ^ (s >> 7)));
+		if (cnt==1) FLAGW_OF((FLAG_CF ^ (s >> 7)));
 		flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
 		if (cnt == 1) FLAGW_OF((s & 0x80) ? 1 : 0); else FLAGW_OF(0);
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Save backup!
 			s = s >> 1;
-			FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
-		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x80;
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Save backup!
 			s = (s >> 1) | msb;
-			FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
@@ -4623,6 +4624,19 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		if (!cnt) //Nothing done?
 		{
 			FLAGW_SF(tempSF); //We don't update when nothing's done!
+		}
+		else if (cnt==1) //Overflow is cleared on all 1-bit shifts!
+		{
+			flag_s8(s); //Affect sign as well!
+			FLAGW_OF(0); //Cleared!
+		}
+		else if (cnt) //Anything shifted at all?
+		{
+			flag_s8(s); //Affect sign as well!
+		}
+		if ((EMULATED_CPU>=CPU_NECV30) && cnt) //NECV20+ affected?
+		{
+			flag_p8(s); //Affect parity as well!
 		}
 		break;
 	}
@@ -4635,6 +4649,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
 	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+	word backup;
 	s = oper1;
 	oldCF = FLAG_CF;
 	switch (thereg) {
@@ -4644,7 +4659,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
+		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 1: //ROR r/m16
@@ -4652,7 +4667,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			FLAGW_CF(s & 1);
 			s = (s >> 1) | (FLAG_CF << 15);
 		}
-		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
+		if (cnt==1) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 2: //RCL r/m16
@@ -4665,11 +4680,11 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//s = (s<<1)+FLAG_CF;
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
+		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 15) & 1));
 		break;
 
 	case 3: //RCR r/m16
-		if (cnt) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
+		if (cnt==1) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
 			FLAGW_CF(s & 1);
@@ -4678,37 +4693,38 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//s = (s<<1)+(FLAG_CF<<16);
 			//FLAG_CF = oldCF;
 		}
-		if (cnt) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
+		if (cnt==1) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m16
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFF;
-			FLAGW_AF(1); //Auxiliary carry?
 		}
 		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
 		flag_szp16(s); break;
 
 	case 5: //SHR r/m16
 		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Save backup!
 			s = s >> 1;
-			FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		flag_szp16(s); break;
 
 	case 7: //SAR r/m16
-		if (cnt) FLAGW_OF(0); else FLAGW_OF(1);
 		msb = s & 0x8000; //Read the MSB!
-		FLAGW_AF(0);
+		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			backup = s; //Save backup!
 			s = (s >> 1) | msb;
-			FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
@@ -4717,6 +4733,20 @@ word op_grp2_16(byte cnt, byte varshift) {
 		if (!cnt) //Nothing done?
 		{
 			FLAGW_SF(tempSF); //We don't update when nothing's done!
+		}
+		else if (cnt==1) //Overflow is cleared on all 1-bit shifts!
+		{
+			flag_s16(s); //Affect sign as well!
+			FLAGW_OF(0); //Cleared!
+		}
+		else if (cnt) //Anything shifted at all?
+		{
+			flag_s16(s); //Affect sign as well!
+		}
+		if ((EMULATED_CPU>=CPU_NECV30) && cnt) //NECV20+ affected?
+		{
+			flag_p16(s); //Affect parity as well!
+			flag_s16(s); //Affect sign as well!
 		}
 		break;
 	}

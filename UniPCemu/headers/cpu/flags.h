@@ -3,6 +3,12 @@
 
 #include "headers/types.h" //CPU!
 
+void flag_p8(uint8_t value);
+void flag_p16(uint16_t value);
+void flag_p32(uint32_t value);
+void flag_s8(uint8_t value);
+void flag_s16(uint16_t value);
+void flag_s32(uint32_t value);
 void flag_szp8(uint8_t value);
 void flag_szp16(uint16_t value);
 void flag_szp32(uint32_t value);
