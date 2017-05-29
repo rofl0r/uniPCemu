@@ -663,7 +663,7 @@ byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
 	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
-	return !ATA[disk_ATA].Drive[disk_channel].preventMediumRemoval; //Are we not preventing removal of this medium?
+	return !ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval; //Are we not preventing removal of this medium?
 }
 
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
@@ -993,6 +993,7 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 {
+	//We're to move to either HPD3(raising an IRQ when enabled, which moves us to HPD2) or HPD2(data phase). Busy must be cleared to continue transferring, otherwise software's waiting. Next we start HPD4(data transfer phase) to transfer data if needed, finish otherwise.
 	//Stuff based on Bochs
 	byte MSF; //MSF bit!
 	byte sub_Q; //SubQ bit!
