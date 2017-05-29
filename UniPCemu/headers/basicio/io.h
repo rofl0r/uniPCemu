@@ -17,7 +17,6 @@ BOOTIMGINFO customdisk; //Boot image info!
 byte dynamicimage; //Are we a dynamic image?
 byte DSKimage; //Are we a DSK image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
-DISKCHANGEDHANDLER diskchangedhandler; //Disk changed handler!
 uint_32 selectedtrack; //The track selected for this disk!
 } IODISK; //I/O mounted disk info.
 

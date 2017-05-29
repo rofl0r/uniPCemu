@@ -10,10 +10,13 @@
 char diskpath[256] = "disks"; //The full disk path of the directory containing the disk images!
 
 IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
+DISKCHANGEDHANDLER diskchangedhandlers[0x100]; //Disk changed handler!
+
 
 void ioInit() //Resets/unmounts all disks!
 {
 	memset(&disks,0,sizeof(disks)); //Initialise disks!
+	memset(&diskchangedhandlers,0,sizeof(diskchangedhandlers)); //Initialise disks changed handlers!
 }
 
 void requestEjectDisk(int drive)
@@ -57,7 +60,7 @@ void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Re
 	case HDD1:
 	case CDROM0:
 	case CDROM1:
-		disks[device].diskchangedhandler = diskchangedhandler; //Register disk changed handler!
+		diskchangedhandlers[device] = diskchangedhandler; //Register disk changed handler!
 		break;
 	default: //Unknown disk?
 		break;
@@ -67,6 +70,8 @@ void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Re
 OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte readonly, uint_32 customsize) //Disk mount routine!
 {
 	char fullfilename[256]; //Full filename of the mount!
+	char oldfilename[256]; //Old filename!
+	memset(&oldfilename,0,sizeof(oldfilename)); //Init!
 	memset(&fullfilename,0,sizeof(fullfilename));
 	strcpy(fullfilename,diskpath); //Load the disk path!
 	strcat(fullfilename,"/");
@@ -76,6 +81,8 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 		strcpy(fullfilename,""); //No filename = no path to file!
 	}
 
+	strcpy(oldfilename,disks[device].filename); //Save the old filename!
+
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
@@ -84,19 +91,12 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 			if (!is_staticimage(fullfilename)) //Not a static image? We're invalid!
 			{
 				memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
-				return; //Abort!
+				goto registerdiskchange; //Unmount us! Don't abort, because we need to register properly(as in the case of removable media)!
 			}
 		}
 	}
 
-	if (disks[device].diskchangedhandler)
-	{
-		if (strcmp(disks[device].filename, fullfilename) != 0) //Different disk?
-		{
-			disks[device].diskchangedhandler(device); //This disk has been changed!
-		}
-	}
-
+	//Register the new disk to be assigned!
 	strcpy(disks[device].filename, fullfilename); //Set file!
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
@@ -105,6 +105,15 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	disks[device].readhandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector); //What read sector function to use!
 	disks[device].writehandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector); //What write sector function to use!
+
+	registerdiskchange: //Register any disk changes!
+	if (diskchangedhandlers[device])
+	{
+		if (strcmp(oldfilename, fullfilename) != 0) //Different disk?
+		{
+			diskchangedhandlers[device](device); //This disk has been changed!
+		}
+	}
 }
 
 void iofloppy0(char *filename, uint_64 startpos, byte readonly, uint_32 customsize)
