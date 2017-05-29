@@ -398,6 +398,17 @@ OPTINLINE byte BIU_isfulltransfer()
 		{
 			result = 1; //Start a full transfer this very clock!
 		}
+		else if (EMULATED_CPU>=CPU_80386) //32-bit processor with 16-bit data bus?
+		{
+			result = 2; //Start a full transfer, broken in half(two 16-bit accesses)!
+		}
+	}
+	else if ((BIU[activeCPU].currentrequest&REQUEST_32BIT) && ((BIU[activeCPU].currentaddress&1)==0)) //Word-Aligned 32-bit access, but not 32-bit aligned? Break up into word accesses, when possible!
+	{
+		if (EMULATED_CPU>=CPU_80386) //32-bit processor with 16-bit data bus at least?
+		{
+			result = 2; //Start a full transfer, broken in half(two 16-bit accesses)!
+		}
 	}
 	return result; //Give the result!
 }
@@ -407,7 +418,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 	sword segdesc;
 	word segdescval;
 	byte is_offset16;
-	byte fulltransfer=0; //Are we to fully finish the transfer in one go?
+	static byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
@@ -444,6 +455,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
 					if (fulltransfer) goto fulltransferMMUread;
 				}
 				return 1; //Handled!
@@ -477,6 +489,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
 					if (fulltransfer) goto fulltransferMMUwrite;
 				}
 				return 1; //Handled!
@@ -495,6 +508,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
 					if (fulltransfer) goto fulltransferIOread;
 				}
 				return 1; //Handled!
@@ -512,6 +526,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
+					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
 					if (fulltransfer) goto fulltransferIOwrite;
 				}
 				return 1; //Handled!
@@ -526,6 +541,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 	{
 		if (BIU_readRequest(&BIU[activeCPU].currentrequest,&BIU[activeCPU].currentpayload[0],&BIU[activeCPU].currentpayload[1])) //Read the request, if available!
 		{
+			fulltransfer = 0; //Init full transfer flag!
 			switch (BIU[activeCPU].currentrequest&REQUEST_TYPEMASK) //What kind of request?
 			{
 				//Memory operations!
