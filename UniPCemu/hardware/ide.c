@@ -732,7 +732,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
         return result; //Give the result!
 		break;
 	case 0xA0: //PACKET?
-		if (!ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET) //Sending data?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET!=1) //Sending data?
 		{
 			switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 			{
@@ -810,7 +810,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 		}
 		break;
 	case 0xA0: //ATAPI: PACKET!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET) //Are we processing a packet?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET==1) //Are we processing a packet?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[ATA[channel].datapos++] = data; //Add the packet byte!
 			if (ATA[channel].datapos==12) //Full packet written?
@@ -1544,6 +1544,8 @@ void ATA_reset(byte channel)
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead |= 0xA0; //Always 1!
 	ATA[channel].commandstatus = 3; //We're busy waiting!
 	ATA[channel].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
+	ATA[channel].Drive[0].ATAPI_processingPACKET = 0; //Not processing any packet!
+	ATA[channel].Drive[1].ATAPI_processingPACKET = 0; //Not processing any packet!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -1993,7 +1995,10 @@ byte outATA16(word port, word value)
 			return 0; //Not our port?
 		}
 	}
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET!=1) //Not sending an ATAPI packet?
+	{
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
+	}
 	ATA_writedata(channel, (value&0xFF)); //Write the data low!
 	ATA_writedata(channel, ((value >> 8) & 0xFF)); //Write the data high!
 	return 1;
