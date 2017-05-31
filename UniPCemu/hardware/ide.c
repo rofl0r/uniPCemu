@@ -43,6 +43,7 @@ struct
 	struct
 	{
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
+		double ATAPI_PendingExecuteCommand; //How much time is left pending?
 		byte ATAPI_PACKET[12]; //Full ATAPI packet!
 		byte ATAPI_ModeData[0x10000]; //All possible mode selection data, that's specified!
 		byte ATAPI_DefaultModeData[0x10000]; //All possible default mode selection data, that's specified!
@@ -272,6 +273,8 @@ void cleanATA()
 {
 }
 
+void ATAPI_executeCommand(byte channel, byte drive); //Prototype for ATAPI execute Command!
+
 void updateATA(double timepassed) //ATA timing!
 {
 	if (timepassed) //Anything passed?
@@ -334,6 +337,7 @@ void updateATA(double timepassed) //ATA timing!
 			}
 		}*/ //Not used atm!
 
+		//Handle ATA reset timing!
 		if (ATA[0].resetTiming) //Timing reset?
 		{
 			ATA[0].resetTiming -= timepassed; //Time until timeout!
@@ -353,6 +357,7 @@ void updateATA(double timepassed) //ATA timing!
 			}
 		}
 
+		//Handle ATA drive select timing!
 		if (ATA[0].driveselectTiming) //Timing driveselect?
 		{
 			ATA[0].driveselectTiming -= timepassed; //Time until timeout!
@@ -367,6 +372,44 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[1].driveselectTiming<=0.0) //Timeout?
 			{
 				ATA[1].driveselectTiming = 0.0; //Timer finished!
+			}
+		}
+
+		//Handle ATAPI execute command delay!
+		if (ATA[0].Drive[0].ATAPI_PendingExecuteCommand) //Pending execute command?
+		{
+			ATA[0].Drive[0].ATAPI_PendingExecuteCommand -= timepassed; //Time until finished!
+			if (ATA[0].Drive[0].ATAPI_PendingExecuteCommand<=0.0) //Finished?
+			{
+				ATA[0].Drive[0].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATAPI_executeCommand(0,0); //Execute the command!
+			}
+		}
+		if (ATA[0].Drive[1].ATAPI_PendingExecuteCommand) //Pending execute command?
+		{
+			ATA[0].Drive[1].ATAPI_PendingExecuteCommand -= timepassed; //Time until finished!
+			if (ATA[0].Drive[1].ATAPI_PendingExecuteCommand<=0.0) //Finished?
+			{
+				ATA[0].Drive[1].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATAPI_executeCommand(0,1); //Execute the command!
+			}
+		}
+		if (ATA[1].Drive[0].ATAPI_PendingExecuteCommand) //Pending execute command?
+		{
+			ATA[1].Drive[0].ATAPI_PendingExecuteCommand -= timepassed; //Time until finished!
+			if (ATA[1].Drive[0].ATAPI_PendingExecuteCommand<=0.0) //Finished?
+			{
+				ATA[1].Drive[0].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATAPI_executeCommand(1,0); //Execute the command!
+			}
+		}
+		if (ATA[1].Drive[1].ATAPI_PendingExecuteCommand) //Pending execute command?
+		{
+			ATA[1].Drive[1].ATAPI_PendingExecuteCommand -= timepassed; //Time until finished!
+			if (ATA[1].Drive[1].ATAPI_PendingExecuteCommand<=0.0) //Finished?
+			{
+				ATA[1].Drive[1].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATAPI_executeCommand(1,1); //Execute the command!
 			}
 		}
 	}
@@ -741,8 +784,13 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 	return 0; //Unknown data!
 }
 
-void ATAPI_executeCommand(byte channel); //Prototype for ATAPI execute Command!
 void ATAPI_executeData(byte channel); //Prototype for ATAPI data processing!
+
+void ATAPI_PendingExecuteCommand(byte channel) //We're pending until execution!
+{
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteCommand = 20000.0; //Initialize timing to 20us!
+	ATA[channel].commandstatus = 3; //We're pending until ready!
+}
 
 OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 {
@@ -768,7 +816,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			if (ATA[channel].datapos==12) //Full packet written?
 			{
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
-				ATAPI_executeCommand(channel); //Execute the ATAPI command!
+				ATAPI_PendingExecuteCommand(channel); //Execute the ATAPI command!
 			}
 		}
 		else //We're processing data for an ATAPI packet?
@@ -991,7 +1039,7 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 }
 
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
-void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
+void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execute Command!
 {
 	//We're to move to either HPD3(raising an IRQ when enabled, which moves us to HPD2) or HPD2(data phase). Busy must be cleared to continue transferring, otherwise software's waiting. Next we start HPD4(data transfer phase) to transfer data if needed, finish otherwise.
 	//Stuff based on Bochs
@@ -1014,8 +1062,6 @@ void ATAPI_executeCommand(byte channel) //Prototype for ATAPI execute Command!
 	byte isvalidpage = 0; //Valid page?
 	uint_32 packet_datapos;
 	byte i;
-	byte drive;
-	drive = ATA_activeDrive(channel); //The current drive!
 	uint_32 disk_size,LBA;
 	disk_size = (ATA[channel].Drive[drive].driveparams[61]<<16) | ATA[channel].Drive[drive].driveparams[60]; //Disk size in 512 byte sectors!
 	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
