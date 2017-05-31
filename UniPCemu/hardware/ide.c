@@ -662,13 +662,14 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		datadest = &ATA[channel].data[0]; //Start of our buffer!
 	}
 
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 9), 0x800)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		ATA_increasesector(channel); //Increase the current sector!
 
 		ATA[channel].datapos = 0; //Initialise our data position!
 		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
 		return 1; //Process the block!
 	}
@@ -746,6 +747,8 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 				if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 				{
+					ATA[channel].commandstatus = 0; //Reset to enter a new command!
+					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We've finished transferring ATAPI data now!
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 				}
 				return result; //Give the result!
@@ -837,12 +840,13 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 {
 	word pageaddr;
 	byte pagelength; //The length of the page!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore!
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Store the data, just ignore it!
 		//Copy pages that are supported to their location in the Active Mode data!
-		for (pageaddr=0;pageaddr<ATA[channel].datablock;) //Process all available data!
+		for (pageaddr=0;pageaddr<(ATA[channel].datablock-1);) //Process all available data!
 		{
 			pagelength = ATA[channel].data[pageaddr + 1]-1; //This value is the last byte used minus 1(zero-based)!
 			switch (ATA[channel].data[pageaddr]&0x3F) //What page code?
@@ -1098,6 +1102,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
@@ -1115,6 +1120,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
@@ -1127,6 +1133,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
@@ -1174,6 +1181,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 						break;
 					}
 					isvalidpage = 1; //Were valid!
+					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 				}
 				else
@@ -1315,6 +1323,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].datasize = 1; //One block to transfer!
 		ATA[channel].datablock = MIN(alloc_length, ret_len); //Give the smallest result, limit by allocation length!
 		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
@@ -1356,6 +1365,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].datasize = 1; //One block to transfer!
 		ATA[channel].datablock = MIN(alloc_length,ret_len); //Give the smallest result, limit by allocation length!
 		ATA[channel].commandstatus = 1; //Transferring data IN for the result!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
 		break;
 	case 0x43: //Read TOC (mandatory)?
@@ -1376,6 +1386,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].datablock = MIN(toc_length,alloc_length); //Take the lesser length!
 			ATA[channel].datasize = 1; //One block to transfer!
 			ATA[channel].commandstatus = 1; //Transferring data IN for the result!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 			ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 			break;
@@ -1473,6 +1484,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].data[6] = 0;
 		ATA[channel].data[7] = 0; //We're 4096 byte sectors!
 		ATA[channel].commandstatus = 1; //Transferring data IN!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,ATA[channel].datablock*ATA[channel].datasize); //Result size!
 		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're finished!
 		break;
@@ -1554,6 +1566,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
 #endif
 	ATA[channel].longop = 0; //Default: no long operation!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not transferring ATAPI data now anymore!
 	int drive;
 	byte temp;
 	uint_32 disk_size; //For checking against boundaries!
