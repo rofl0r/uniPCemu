@@ -728,7 +728,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 	return 0; //No requests left!
 }
 
-extern byte CPU386_WAITSTATE_DELAY; //386+ Waitstate, which is software-programmed?
+byte CPU386_WAITSTATE_DELAY = 0; //386+ Waitstate, which is software-programmed?
 
 void CPU_tickBIU()
 {

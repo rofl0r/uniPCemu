@@ -19,8 +19,6 @@ extern MMU_type MMU; //MMU itself!
 
 #define CPU286_WAITSTATE_DELAY 1
 
-byte CPU386_WAITSTATE_DELAY = 0; //386+ Waitstate, which is software-programmed?
-
 byte writeword = 0; //Hi-end word written?
 
 //Pointer support (real mode only)!

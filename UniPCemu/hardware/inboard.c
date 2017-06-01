@@ -12,7 +12,6 @@ extern byte is_XT; //XT?
 extern Controller8042_t Controller8042; //The PS/2 Controller chip!
 extern byte MoveLowMemoryHigh; //Move HMA physical memory high?
 byte inboard386_speed = 0; //What speed to use? Level 0-3!
-extern byte inboard386_WaitStates; //How many clocks to idle each instruction?
 const byte effective_waitstates[4] = {30,16,8,0}; //The Wait States!
 
 byte Inboard_readIO(word port, byte *result)
@@ -24,7 +23,7 @@ void refresh_outputport(); //For letting the 8042 refresh the output port!
 
 void updateInboardWaitStates()
 {
-	inboard386_WaitStates = effective_waitstates[inboard386_speed]; //What speed to slow down, in cycles?
+	CPU386_WAITSTATE_DELAY = effective_waitstates[inboard386_speed]; //What speed to slow down, in cycles?
 }
 
 byte Inboard_writeIO(word port, byte value)
@@ -93,7 +92,7 @@ void initInboard() //Initialize the Inboard chipset, if needed for the current C
 	MMU.maxsize = 0; //Default: no limit!
 	MoveLowMemoryHigh = 1; //Default: enable the HMA memory and enable the memory hole and BIOS ROM!
 	inboard386_speed = 0; //Default speed: slow!
-	inboard386_WaitStates = 0; //No Wait States!
+	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
 	if ((EMULATED_CPU==CPU_80386) && is_XT) //XT 386? We're an Inboard 386!
 	{

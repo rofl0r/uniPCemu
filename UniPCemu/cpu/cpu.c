@@ -75,8 +75,6 @@ byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
 #endif
 
-byte inboard386_WaitStates = 0; //How many clocks to idle each instruction!
-
 word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 
 uint_32 getstackaddrsizelimiter()
@@ -2046,7 +2044,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	#ifdef CPU_USECYCLES
 	}
 	//cycles_counted = 1; //Cycles have been counted!
-	CPU[activeCPU].cycles += inboard386_WaitStates; //Add 80386 WaitStates to slow us down!
 	#endif
 
 	if (CPU[activeCPU].executed) //Are we finished executing?
