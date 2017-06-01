@@ -1547,7 +1547,6 @@ void CPU_OP(byte OP) //Normal CPU opcode execution!
 void CPU_beforeexec()
 {
 	//This applies to all processors:
-	CPU[activeCPU].trapped = FLAG_TF; //Are we to be trapped this instruction?
 	INLINEREGISTER uint_32 tempflags;
 	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
 	tempflags &= ~(8|32); //Clear bits 3&5!
@@ -1583,6 +1582,11 @@ void CPU_beforeexec()
 	}
 	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
 	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
+
+	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
+	{
+		CPU[activeCPU].trapped = FLAG_TF; //Are we to be trapped this instruction?
+	}
 }
 
 byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
@@ -2188,6 +2192,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].allowTF)) //Are we trapped and allowed to trap?
 		{
 			CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
+			if (CPU[activeCPU].trapped) return; //Continue on while handling us!
 			CPU_afterexec(); //All after execution fixing!
 			return; //Abort: we're finished!
 		}
@@ -2258,6 +2263,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	exception_busy &= ~2; //Not busy anymore!
 	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles!
 	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU[activeCPU].trapped = 0; //We're not trapped anymore: we're handling the single-step!
 }
 
 void CPU_BoundException() //Bound exception!
