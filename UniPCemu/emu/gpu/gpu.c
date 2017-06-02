@@ -45,6 +45,7 @@ VIDEO BASICS!
 byte firstwindow = 1;
 word window_xres = 0;
 word window_yres = 0;
+uint_32 window_flags = 0; //Current flags for the window!
 byte video_aspectratio = 0; //Current aspect ratio!
 
 TicksHolder renderTiming;
@@ -59,13 +60,15 @@ SDL_Texture *sdlTexture = NULL;
 
 void updateWindow(word xres, word yres, uint_32 flags)
 {
-	if ((xres!=window_xres) || (yres!=window_yres) || !originalrenderer) //Do we need to update the Window?
+	byte useFullscreen; //Are we to use fullscreen?
+	if ((xres!=window_xres) || (yres!=window_yres) || (flags!=window_flags) || !originalrenderer) //Do we need to update the Window?
 	{
 #include "headers/emu/icon.h" //We need our icon!
 		SDL_Surface *icon = NULL; //Our icon!
 		icon = SDL_CreateRGBSurfaceFrom((void *)&icondata,ICON_BMPWIDTH,ICON_BMPHEIGHT,32,ICON_BMPWIDTH<<2, 0x000000FF, 0x0000FF00,0x00FF0000,0); //We have a RGB icon only!
 		window_xres = xres;
 		window_yres = yres;
+		window_flags = flags;
 		#ifndef SDL2
 		//SDL1?
 		if (icon) //Gotten an icon?
@@ -74,6 +77,12 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		}
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
+		useFullscreen = 0; //Default: not fullscreen!
+		if (flags&SDL_WINDOW_FULLSCREEN) //Fullscreen specified?
+		{
+			flags &= ~SDL_WINDOW_FULLSCREEN; //Don't apply fullscreen this way!
+			useFullscreen = 1; //We're using fullscreen!
+		}
 		if (sdlTexture)
 		{
 			SDL_DestroyTexture(sdlTexture);
@@ -96,6 +105,7 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		{
 			SDL_SetWindowSize(sdlWindow,xres,yres); //Set the new window size!
 		}
+		SDL_SetWindowFullscreen(sdlWindow,useFullscreen?SDL_WINDOW_FULLSCREEN:0); //Are we to apply fullscreen?
 		if (sdlWindow) //Gotten a window?
 		{
 			if (icon) //Gotten an icon?
