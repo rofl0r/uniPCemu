@@ -269,7 +269,6 @@ OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
 	oper2d = 1;
 	op_add32();
 	FLAGW_CF(tempCF);
-	FLAGW_AF(((res32&0xF)==0)?1:0); //Auxiliary flag!
 	if (reg) //Register?
 	{
 		*reg = res32;
@@ -296,7 +295,6 @@ OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
 	oper2d = 1;
 	op_sub32();
 	FLAGW_CF(tempCF);
-	FLAGW_AF(((res32&0xF)==0xF)?1:0); //Auxiliary flag!
 	if (reg) //Register?
 	{
 		*reg = res32;

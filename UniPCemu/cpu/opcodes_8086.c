@@ -1014,7 +1014,6 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		oper2 = 1;
 		op_add16();
 		FLAGW_CF(tempCF);
-		FLAGW_AF(((res16&0xF)==0)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1068,7 +1067,6 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		oper2 = 1;
 		op_sub16();
 		FLAGW_CF(tempCF);
-		FLAGW_AF(((res16&0xF)==0xF)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1123,7 +1121,6 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		oper2b = 1;
 		op_add8();
 		FLAGW_CF(tempCF);
-		FLAGW_AF(((res8&0xF)==0)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
@@ -1177,7 +1174,6 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		oper2b = 1;
 		op_sub8();
 		FLAGW_CF(tempCF);
-		FLAGW_AF(((res8&0xF)==0xF)?1:0); //Auxiliary flag!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		if (reg==NULL) //Destination to write?
 		{
