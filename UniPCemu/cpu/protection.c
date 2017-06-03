@@ -773,7 +773,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		(getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) //Data or System in CS (non-exec)?
 		)
 	{
-		return 0; //Not present: limit exceeded!	
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		return NULL; //Not present: invalid descriptor type loaded!	
 	}
 
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
@@ -1064,37 +1065,32 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
 	{
-		switch (((descriptor->AccessRights&0xE)>>1)) //What type of descriptor?
+		switch (((descriptor->AccessRights>>1)&0x7)) //What type of descriptor?
 		{
 			case 0: //Data, read-only
-				if (forreading) //Writing?
+				if (forreading==1) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!					
+					return 1; //Error!
 				}
 				break; //Allow!
 			case 1: //Data, read/write
-				if (forreading==3) //Execution?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!					
-				}
 				break; //Allow!
 			case 2: //Stack, read-only
-				if (forreading) //Writing or execution?
+				if (forreading==1) //Writing or execution?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!					
+					return 1; //Error!
 				}
 				break; //Allow!
 			case 3: //Stack, read/write
 				break; //Allow!
 			case 6: //Code, execute-only, conforming
 			case 4: //Code, execute-only
-				if (forreading!=3) //Writing or execution?
+				if (forreading!=3) //Writing or reading normally?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!					
+					return 1; //Error!
 				}
 				break; //Allow!
 			case 5: //Code, execute/read
@@ -1102,7 +1098,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				if (forreading==1) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!					
+					return 1; //Error!
 				}
 				break;
 		}
