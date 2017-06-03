@@ -1064,20 +1064,47 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
 	{
-		if (segment == CPU_SEGMENT_CS && !(EXECSEGMENTPTR_ISEXEC(descriptor)) && (forreading == 3)) //Non-executable segment execution?
+		switch (((descriptor->AccessRights&0xE)>>1)) //What type of descriptor?
 		{
-			CPU_MMU_checkrights_cause = 3; //What cause?
-			return 1; //Error!
-		}
-		else if (((EXECSEGMENTPTR_ISEXEC(descriptor)) || !(DATASEGMENTPTR_OTHERSTRUCT(descriptor) || DATASEGMENTPTR_W(descriptor))) && (forreading==0)) //Writing to executable segment or read-only data segment?
-		{
-			CPU_MMU_checkrights_cause = 4; //What cause?
-			return 1; //Error!
-		}
-		else if (EXECSEGMENTPTR_ISEXEC(descriptor) && (EXECSEGMENTPTR_R(descriptor)==0) && (forreading == 1)) //Reading execute-only segment?
-		{
-			CPU_MMU_checkrights_cause = 5; //What cause?
-			return 1; //Error!
+			case 0: //Data, read-only
+				if (forreading) //Writing?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!					
+				}
+				break; //Allow!
+			case 1: //Data, read/write
+				if (forreading==3) //Execution?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!					
+				}
+				break; //Allow!
+			case 2: //Stack, read-only
+				if (forreading) //Writing or execution?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!					
+				}
+				break; //Allow!
+			case 3: //Stack, read/write
+				break; //Allow!
+			case 6: //Code, execute-only, conforming
+			case 4: //Code, execute-only
+				if (forreading!=3) //Writing or execution?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!					
+				}
+				break; //Allow!
+			case 5: //Code, execute/read
+			case 7: //Code, execute/read, conforming
+				if (forreading==1) //Writing?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!					
+				}
+				break;
 		}
 	}
 
