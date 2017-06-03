@@ -990,7 +990,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x9D; //Load default access rights!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(-1); //We're jumping to another address!
 		}
@@ -1074,7 +1074,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			CPU_MMU_checkrights_cause = 4; //What cause?
 			return 1; //Error!
 		}
-		else if (EXECSEGMENTPTR_ISEXEC(descriptor) && !EXECSEGMENTPTR_R(descriptor) && forreading == 1) //Reading execute-only segment?
+		else if (EXECSEGMENTPTR_ISEXEC(descriptor) && (EXECSEGMENTPTR_R(descriptor)==0) && (forreading == 1)) //Reading execute-only segment?
 		{
 			CPU_MMU_checkrights_cause = 5; //What cause?
 			return 1; //Error!
