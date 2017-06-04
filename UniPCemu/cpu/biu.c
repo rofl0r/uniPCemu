@@ -50,12 +50,17 @@ byte CPUhardinthandling;
 
 void CPU_initBIU()
 {
+	if (BIU[activeCPU].ready) //Are we ready?
+	{
+		CPU_doneBIU(); //Finish us first!
+	}
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
 		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
 	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
 	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_64)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU[activeCPU].ready = 1; //We're ready to be used!
 }
 
 void CPU_doneBIU()
@@ -63,6 +68,7 @@ void CPU_doneBIU()
 	free_fifobuffer(&BIU[activeCPU].PIQ); //Release our PIQ!
 	free_fifobuffer(&BIU[activeCPU].requests); //Our request buffer to use(1 64-bit entry as 2 32-bit entries)!
 	free_fifobuffer(&BIU[activeCPU].responses); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU[activeCPU].ready = 0; //We're not ready anymore!
 }
 
 void CPU_flushPIQ(int_64 destaddr)

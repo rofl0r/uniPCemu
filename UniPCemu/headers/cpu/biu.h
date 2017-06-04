@@ -15,6 +15,7 @@ typedef struct
 
 typedef struct
 {
+	byte ready; //Ready to use(initialized)?
 	FIFOBUFFER *requests; //Request FIFO!
 	FIFOBUFFER *responses; //Response FIFO!
 
