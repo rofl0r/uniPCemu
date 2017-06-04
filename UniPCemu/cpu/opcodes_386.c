@@ -1011,8 +1011,7 @@ OPTINLINE void CPU80386_internal_AAA()
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
-		REG_AL += 6;
-		++REG_AH;
+		REG_AX += 0x0106;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
 	}
@@ -1025,6 +1024,7 @@ OPTINLINE void CPU80386_internal_AAA()
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	FLAGW_SF(0); //Clear Sign!
 	//z=s=p=o=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -1037,8 +1037,7 @@ OPTINLINE void CPU80386_internal_AAS()
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
-		REG_AL -= 6;
-		--REG_AH;
+		REG_AX -= 0x0106;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
 	}
@@ -1051,6 +1050,7 @@ OPTINLINE void CPU80386_internal_AAS()
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	FLAGW_SF(0); //Sign is cleared!
 	//z=s=o=p=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -1504,19 +1504,29 @@ OPTINLINE void CPU80386_internal_AAM(byte data)
 	}
 	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
 	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
-	flag_szp32(REG_AX);
-	//FLAGW_OF(0);FLAGW_CF(0);FLAGW_AF(0); //Clear these!
+
+	//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
+	flag_szp8(REG_AL); //Result of MOD instead!
+	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
 	//C=O=A=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 83; //Timings!
 }
+
+OPTINLINE void op_add16_386() {
+	res16 = oper1 + oper2;
+	flag_add16 (oper1, oper2);
+}
+
 OPTINLINE void CPU80386_internal_AAD(byte data)
 {
 	CPUPROT1
-	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
-	REG_AH = 0;
-	flag_szp8(REG_AL); //Update the flags!
-	//FLAGW_OF(0);FLAGW_CF(0);FLAGW_AF(0); //Clear these!
+	oper2 = (word)REG_AL; //What to add!
+	REG_AX = (REG_AH*data);    //AAD
+	oper1 = REG_AX; //Load for addition!
+	op_add16_386(); //Add, 16-bit, including flags!
+	REG_AX = res16; //The result to load!
+	REG_AH = 0; //AH is cleared!
 	//C=O=A=?
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 60; //Timings!

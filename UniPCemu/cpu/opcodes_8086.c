@@ -2389,7 +2389,7 @@ Non-logarithmic opcodes!
 */
 
 
-OPTINLINE byte CPU8086_internal_DAA()
+byte CPU8086_internal_DAA()
 {
 	word ALVAL, oldCF;
 	CPUPROT1
@@ -2422,7 +2422,7 @@ OPTINLINE byte CPU8086_internal_DAA()
 	}
 	return 0;
 }
-OPTINLINE byte CPU8086_internal_DAS()
+byte CPU8086_internal_DAS()
 {
 	INLINEREGISTER byte tempCF, tempAL;
 	INLINEREGISTER word bigAL;
@@ -2457,25 +2457,51 @@ OPTINLINE byte CPU8086_internal_DAS()
 	}
 	return 0;
 }
-OPTINLINE byte CPU8086_internal_AAA()
+byte CPU8086_internal_AAA()
 {
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	if (EMULATED_CPU<CPU_80286) //Before new CPU?
 	{
-		REG_AL += 6;
-		++REG_AH;
-		FLAGW_AF(1);
-		FLAGW_CF(1);
+		if (((REG_AL&0xF)>9) || FLAG_AF)
+		{
+			REG_AL += 6;
+			++REG_AH;
+			FLAGW_AF(1);
+			FLAGW_CF(1);
+		}
+		else
+		{
+			FLAGW_AF(0);
+			FLAGW_CF(0);
+		}
+		REG_AL &= 0xF;
+	}
+	else //Newer CPUs?
+	{
+		if (((REG_AL&0xF)>9) || FLAG_AF)
+		{
+			REG_AX += 0x0106;
+			FLAGW_AF(1);
+			FLAGW_CF(1);
+		}
+		else
+		{
+			FLAGW_AF(0);
+			FLAGW_CF(0);
+		}
+		REG_AL &= 0xF;
+	}
+	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	if (EMULATED_CPU<CPU_80286) //Before new CPU?
+	{
+		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	}
 	else
 	{
-		FLAGW_AF(0);
-		FLAGW_CF(0);
+		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+		FLAGW_SF(0); //Clear Sign!
 	}
-	REG_AL &= 0xF;
-	//flag_szp8(REG_AL); //Basic flags!
-	flag_p8(REG_AL); //Parity is affected!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=p=o=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2484,25 +2510,51 @@ OPTINLINE byte CPU8086_internal_AAA()
 	}
 	return 0;
 }
-OPTINLINE byte CPU8086_internal_AAS()
+byte CPU8086_internal_AAS()
 {
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	if (EMULATED_CPU<CPU_80286) //Before new CPU?
 	{
-		REG_AL -= 6;
-		--REG_AH;
-		FLAGW_AF(1);
-		FLAGW_CF(1);
+		if (((REG_AL&0xF)>9) || FLAG_AF)
+		{
+			REG_AL -= 6;
+			--REG_AH;
+			FLAGW_AF(1);
+			FLAGW_CF(1);
+		}
+		else
+		{
+			FLAGW_AF(0);
+			FLAGW_CF(0);
+		}
+		REG_AL &= 0xF;
+	}
+	else //Newer CPUs?
+	{
+		if (((REG_AL&0xF)>9) || FLAG_AF)
+		{
+			REG_AX -= 0x0106;
+			FLAGW_AF(1);
+			FLAGW_CF(1);
+		}
+		else
+		{
+			FLAGW_AF(0);
+			FLAGW_CF(0);
+		}
+		REG_AL &= 0xF;
+	}
+	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	if (EMULATED_CPU<CPU_80286) //Before new CPU?
+	{
+		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	}
 	else
 	{
-		FLAGW_AF(0);
-		FLAGW_CF(0);
+		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+		FLAGW_SF(0); //Sign is cleared!
 	}
-	REG_AL &= 0xF;
-	//flag_szp8(REG_AL); //Basic flags!
-	flag_p8(REG_AL); //Parity is affected!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=o=p=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -3378,8 +3430,9 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 	{
 		REG_AH = (byte)(quotient&0xFF);
 		REG_AL = (byte)(remainder&0xFF);
-		flag_szp16(REG_AX);
-		//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+		//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
+		flag_szp8(REG_AL); //Result of MOD instead!
+		FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
 		//C=O=A=?
 	}
 	CPUPROT2
@@ -3388,10 +3441,12 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
-	REG_AX = ((REG_AH*data)+REG_AL);    //AAD
-	REG_AH = 0;
-	flag_szp8(REG_AL); //Update the flags!
-	//FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+	oper2 = (word)REG_AL; //What to add!
+	REG_AX = (REG_AH*data);    //AAD
+	oper1 = REG_AX; //Load for addition!
+	op_add16(); //Add, 16-bit, including flags!
+	REG_AX = res16; //The result to load!
+	REG_AH = 0; //AH is cleared!
 	//C=O=A=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
