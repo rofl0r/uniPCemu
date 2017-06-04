@@ -942,18 +942,19 @@ Non-logarithmic opcodes!
 
 OPTINLINE void CPU80386_internal_DAA()
 {
-	word ALVAL;
+	word ALVAL, oldCF;
 	CPUPROT1
+	oldCF = FLAG_CF; //Save old Carry!
 	ALVAL = (word)REG_AL;
 	if (((ALVAL&0xF)>9) || FLAG_AF)
 	{
 		oper1 = ALVAL+6;
 		ALVAL = (oper1&0xFF);
-		FLAGW_CF(((oper1&0xFF00)>0));
+		FLAGW_CF((((oper1&0xFF00)>0)?1:0)|FLAG_CF);
 		FLAGW_AF(1);
 	}
 	else FLAGW_AF(0);
-	if (((ALVAL&0xF0)>0x90) || FLAG_CF)
+	if (((REG_AL)>0x99) || oldCF)
 	{
 		ALVAL += 0x60;
 		FLAGW_CF(1);
@@ -964,9 +965,12 @@ OPTINLINE void CPU80386_internal_DAA()
 	}
 	REG_AL = (byte)(ALVAL&0xFF); //Write the value back to AL!
 	flag_szp8(REG_AL);
-	if (ALVAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
+	//if (ALVAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
-	CPU[activeCPU].cycles_OP = 4; //Timings!
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
 }
 OPTINLINE void CPU80386_internal_DAS()
 {
@@ -995,9 +999,12 @@ OPTINLINE void CPU80386_internal_DAS()
 		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
-	if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
+	//if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
-	CPU[activeCPU].cycles_OP = 4; //Timings!
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
 }
 OPTINLINE void CPU80386_internal_AAA()
 {
@@ -1016,9 +1023,14 @@ OPTINLINE void CPU80386_internal_AAA()
 	}
 	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=p=o=?
 	CPUPROT2
-	CPU[activeCPU].cycles_OP = 4; //Timings!
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
 }
 OPTINLINE void CPU80386_internal_AAS()
 {
@@ -1037,9 +1049,14 @@ OPTINLINE void CPU80386_internal_AAS()
 	}
 	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=o=p=?
 	CPUPROT2
-	CPU[activeCPU].cycles_OP = 4; //Timings!
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
 }
 
 OPTINLINE void CPU80386_internal_CWDE()
