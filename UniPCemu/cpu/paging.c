@@ -81,15 +81,27 @@ void raisePF(uint_32 address, word flags)
 	}
 }
 
-OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte RW, byte US) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
+OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW, byte PTEUS) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
 {
-	if (!US && getUserLevel(userlevel)) //User when not an user page?
+	byte uslevel; //Combined US level! 0=Supervisor, 1=User
+	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
+	if (PDEUS&&PTEUS) //User level?
 	{
-		return 0; //Invalid CPL: we don't have rights!
+		uslevel = 1; //We're user!
+		rwlevel = ((PDERW&&PTERW)?1:0); //Are we writable?
 	}
-	if (!RW && iswrite) //Write on real-only page?
+	else //System? Allow read/write if supervisor only! Otherwise, fault!
 	{
-		return 0; //Invalid: we don't allow writing!
+		uslevel = 0; //We're system!
+		rwlevel = 2; //Ignore read/write!
+	}
+	if ((uslevel==0) && userlevel) //System access by user isn't allowed!
+	{
+		return 0; //Fault: system access by user!
+	}
+	if (userlevel && (rwlevel==0) && iswrite) //Write to read-only page for user level?
+	{
+		return 0; //Fault: read-only write by user!
 	}
 	return 1; //OK: verified!
 }
@@ -103,34 +115,30 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	
+	byte effectiveUS;
+	byte RW;
+	RW = iswrite?1:0; //Are we trying to write?
+	effectiveUS = getUserLevel(CPL); //Our effective user level!
+
 	//Check PDE
 	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
 	if (!(PDE&PXE_P)) //Not present?
 	{
-		raisePF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
-	}
-	if (!verifyCPL(iswrite,CPL,(PDE&PXE_RW)>>1,(PDE&PXE_US)>>2)) //Protection fault?
-	{
-		raisePF(address,(PDE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
-		return 0; //We have an error, abort!		
-	}
-	if (!(PDE&PXE_A)) //Not accessed yet?
-	{
-		PDE |= PXE_A; //Accessed!
-		memory_directwdw(PDBR+(DIR<<2),PDE); //Update in memory!
 	}
 	
 	//Check PTE
 	PTE = memory_directrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
 	if (!(PTE&PXE_P)) //Not present?
 	{
-		raisePF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
-	if (!verifyCPL(iswrite,CPL,(PTE&PXE_RW),(PTE&PXE_US))) //Protection fault?
+
+	if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PTE&PXE_RW)>>1),((PTE&PXE_US)>>2))) //Protection fault on combined flags?
 	{
-		raisePF(address,(PTE&PXE_P)|(iswrite?1:0)|(getUserLevel(CPL)<<2)); //Run a not present page fault!
+		raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
 	if (!(PTE&PXE_A))
@@ -145,6 +153,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 			PTEUPDATED = 1; //Updated!
 		}
 		PTE |= PTE_D; //Dirty!
+	}
+	if (!(PDE&PXE_A)) //Not accessed yet?
+	{
+		PDE |= PXE_A; //Accessed!
+		memory_directwdw(PDBR+(DIR<<2),PDE); //Update in memory!
 	}
 	if (PTEUPDATED) //Updated?
 	{
