@@ -774,7 +774,25 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		)
 	{
 		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
-		return NULL; //Not present: invalid descriptor type loaded!	
+		return NULL; //Not present: invalid descriptor type loaded!
+	}
+	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (segment!=CPU_SEGMENT_CS) && (EXECSEGMENT_R(LOADEDDESCRIPTOR.desc)==0)) //Executable non-readable in non-executable segment?
+	{
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		return NULL; //Not present: invalid descriptor type loaded!
+	}
+	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==2) && ((segment!=CPU_SEGMENT_DS) && (segment!=CPU_SEGMENT_ES) && (segment!=CPU_SEGMENT_FS) && (segment!=CPU_SEGMENT_GS) && (segment!=CPU_SEGMENT_SS))) //Data descriptor in invalid type?
+	{
+		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		return NULL; //Not present: invalid descriptor type loaded!
+	}
+	else if (getLoadedTYPE(&LOADEDDESCRIPTOR)==0) //Data descriptor loaded?
+	{
+		if ((DATASEGMENT_W(LOADEDDESCRIPTOR.desc)==0) && (segment==CPU_SEGMENT_SS)) //Non-writable SS segment?
+		{
+			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
 	}
 
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
@@ -1068,31 +1086,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		switch (((descriptor->AccessRights>>1)&0x7)) //What type of descriptor?
 		{
 			case 0: //Data, read-only
-				if (forreading==1) //Writing?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-			case 1: //Data, read/write
-				break; //Allow!
-			case 2: //Stack, read-only
-				if (forreading==1) //Writing or execution?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-			case 3: //Stack, read/write
-				break; //Allow!
-			case 6: //Code, execute-only, conforming
-			case 4: //Code, execute-only
-				if (forreading!=3) //Writing or reading normally?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
+			case 2: //Data(expand down), read-only
 			case 5: //Code, execute/read
 			case 7: //Code, execute/read, conforming
 				if (forreading==1) //Writing?
@@ -1100,7 +1094,18 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
 				}
-				break;
+				break; //Allow!
+			case 1: //Data, read/write
+			case 3: //Data(expand down), read/write
+				break; //Allow!
+			case 4: //Code, execute-only
+			case 6: //Code, execute-only, conforming
+				if (forreading!=3) //Writing or reading normally?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!
+				}
+				break; //Allow!
 		}
 	}
 
