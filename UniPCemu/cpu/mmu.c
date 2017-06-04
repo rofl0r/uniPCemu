@@ -153,7 +153,7 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 	return 0; //OK!	
 }
 
-//isread = 1|(opcode<<1) for reads! 0 for writes!
+//readflags = 1|(opcode<<1) for reads! 0 for writes!
 byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 {
 	INLINEREGISTER uint_32 realaddress;

@@ -1061,7 +1061,7 @@ MMU: Memory limit!
 */
 
 byte CPU_MMU_checkrights_cause = 0; //What cause?
-//Used by the CPU(VERR/VERW)&MMU I/O!
+//Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
 {
 	//byte isconforming;
@@ -1098,7 +1098,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			case 2: //Data(expand down), read-only
 			case 5: //Code, execute/read
 			case 7: //Code, execute/read, conforming
-				if (forreading==1) //Writing?
+				if (forreading==0) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
@@ -1182,7 +1182,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	return 0; //OK!
 }
 
-//Used by the MMU!
+//Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	//Determine the Limit!
