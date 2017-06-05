@@ -780,7 +780,6 @@ byte out8254(word portnum, byte value)
 		case 0x4A: //Second timer on Compaq?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
-			--portnum; //Make the port number compatible with the PIT!
 		case 0x40: //pit 0 data port
 		case 0x41: //pit 1 data port
 		case 0x42: //speaker data port
