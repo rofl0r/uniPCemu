@@ -308,15 +308,15 @@ OPTINLINE uint_32 samplesize(uint_32 samples, byte method)
 		case SMPL16: //16 bit unsigned?
 		case SMPL16S: //16 bit signed?
 		case SMPL16U: //16 bit unsigned linear?
-			return (samples<<1)*sizeof(word);
+			return (((uint_32)samples)<<1)*(uint_32)sizeof(word);
 			break;
 		case SMPL8: //8 bit unsigned?
 		case SMPL8S: //8 bit signed?
 		case SMPL8U: //8 bit unsigned linear?
-			return (samples<<1)*sizeof(byte);
+			return (((uint_32)samples)<<1)*(uint_32)sizeof(byte);
 			break;
 		case SMPLFLT: //Floating point numbers?
-			return (samples<<1)*sizeof(float);
+			return (((uint_32)samples)<<1)*(uint_32)sizeof(float);
 			break;
 		default:
 			break;

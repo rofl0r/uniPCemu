@@ -382,7 +382,7 @@ OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/f
 {
 	byte noisechannels[8] = {0,2,2,1,2,2,2,2}; //Noise channels to use!
 	channel &= 7; //Safety on channel!
-	chip->channels[channel].freq = (float)((double)((GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	chip->channels[channel].freq = (float)((double)((uint_64)(GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
 	if (chip->channels[channel].freq!=chip->squarewave[channel].freq) //Frequency changed?
 	{
 		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->channels[channel].freq)); //New timeout!
@@ -851,6 +851,7 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 			GAMEBLASTER.samplesleft -= tempf; //Take off the samples we've processed!
 			render_ticks = (uint_32)tempf; //The ticks to render!
 
+			filtersamplel = filtersampler = 0.0f; //Initialize the filter to be sure!
 			//render_ticks contains the output samples to process! Calculate the duty cycle by low pass filter and use it to generate a sample!
 			for (dutycyclei = render_ticks;dutycyclei;--dutycyclei)
 			{

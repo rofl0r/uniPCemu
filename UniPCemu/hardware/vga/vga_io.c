@@ -556,8 +556,11 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		{
 			break; //Out of range!
 		}
-		value &= VGA_RegisterWriteMasks_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0][getActiveVGA()->registers->SequencerRegisters_Index]; //Apply the write mask to the data written to the register!
-		getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
+		if (getActiveVGA()->registers->SequencerRegisters_Index<MIN(sizeof(VGA_RegisterWriteMasks_Sequencer[0]),sizeof(getActiveVGA()->registers->SequencerRegisters.DATA))) //Within range?
+		{
+			value &= VGA_RegisterWriteMasks_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0][getActiveVGA()->registers->SequencerRegisters_Index]; //Apply the write mask to the data written to the register!
+			getActiveVGA()->registers->SequencerRegisters.DATA[getActiveVGA()->registers->SequencerRegisters_Index] = value; //Set!
+		}
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_SEQUENCER|getActiveVGA()->registers->SequencerRegisters_Index); //We have been updated!		
 		ok = 1;
 		break;

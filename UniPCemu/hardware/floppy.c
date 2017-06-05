@@ -121,12 +121,12 @@ struct
 //Configuration byte 1
 
 //Threadhold!
-#define FLOPPY_CONFIGURATION_THRESHOLDW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0xF)|(val&0xF))
+#define FLOPPY_CONFIGURATION_THRESHOLDW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0xF)|((val)&0xF))
 #define FLOPPY_CONFIGURATION_THRESHOLDR (FLOPPY.Configuration.SecondParameterByte&0xF)
 //Disable drive polling mode if set!
 #define FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER ((FLOPPY.Configuration.SecondParameterByte>>4)&1)
 //Disable FIFO if set!
-#define FLOPPY_CONFIGURATION_FIFODISABLEW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0x20)&1)|((val&1)<<5)
+#define FLOPPY_CONFIGURATION_FIFODISABLEW(val) FLOPPY.Configuration.SecondParameterByte=((FLOPPY.Configuration.SecondParameterByte&~0x20)&1)|(((val)&1)<<5)
 #define FLOPPY_CONFIGURATION_FIFODISABLER ((FLOPPY.Configuration.SecondParameterByte>>5)&1)
 //Enable Implied Seek if set!
 #define FLOPPY_IMPLIEDSEEKENABLER ((FLOPPY.Configuration.SecondParameterByte>>6)&1)
@@ -141,79 +141,79 @@ struct
 //MSR
 
 //1 if busy in seek mode.
-#define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(val) FLOPPY.MSR=((FLOPPY.MSR&~0xF)|(val&0xF))
+#define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(val) FLOPPY.MSR=((FLOPPY.MSR&~0xF)|((val)&0xF))
 //Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
-#define FLOPPY_MSR_COMMANDBUSYW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x10)|((val&1)<<4))
+#define FLOPPY_MSR_COMMANDBUSYW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x10)|(((val)&1)<<4))
 //1 when not in DMA mode, else DMA mode, during execution phase.
-#define FLOPPY_MSR_NONDMAW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x20)|((val&1)<<5))
+#define FLOPPY_MSR_NONDMAW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x20)|(((val)&1)<<5))
 //1 when has data for CPU, 0 when expecting data.
-#define FLOPPY_MSR_HAVEDATAFORCPUW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<6))
+#define FLOPPY_MSR_HAVEDATAFORCPUW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|(((val)&1)<<6))
 //1 when ready for data transfer, 0 when not ready.
-#define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|((val&1)<<7))
+#define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|(((val)&1)<<7))
 
 //CCR
 //0=500kbits/s, 1=300kbits/s, 2=250kbits/s, 3=1Mbits/s
 #define FLOPPY_CCR_RATER (FLOPPY.CCR&3)
-#define FLOPPY_CCR_RATEW(val) FLOPPY.CCR=((FLOPPY.CCR&~3)|(val&3))
+#define FLOPPY_CCR_RATEW(val) FLOPPY.CCR=((FLOPPY.CCR&~3)|((val)&3))
 
 //DIR
 //1 if high density, 0 otherwise.
-#define FLOPPY_DIR_HIGHDENSITYW(val) FLOPPY.DIR=((FLOPPY.DIR&~1)|(val&1))
+#define FLOPPY_DIR_HIGHDENSITYW(val) FLOPPY.DIR=((FLOPPY.DIR&~1)|((val)&1))
 //0=500, 1=300, 2=250, 3=1MBit/s
-#define FLOPPY_DIR_DATARATEW(val) FLOPPY.DIR=((FLOPPY.DIR&~6)|((val&3)<<1))
+#define FLOPPY_DIR_DATARATEW(val) FLOPPY.DIR=((FLOPPY.DIR&~6)|(((val)&3)<<1))
 //Always 0xF
-#define FLOPPY_DIR_ALWAYSFW(val) FLOPPY.DIR=((FLOPPY.DIR&~0x78)|((val&0xF)<<3))
+#define FLOPPY_DIR_ALWAYSFW(val) FLOPPY.DIR=((FLOPPY.DIR&~0x78)|(((val)&0xF)<<3))
 //1 when disk changed. Executing a command clears this.
-#define FLOPPY_DIR_DISKCHANGE(val) FLOPPY.DIR==((FLOPPY.DIR&0x7F)|((val&1)<<7))
+#define FLOPPY_DIR_DISKCHANGE(val) FLOPPY.DIR==((FLOPPY.DIR&0x7F)|(((val)&1)<<7))
 
 //DSR
 #define FLOPPY_DSR_DRATESELR (FLOPPY.DSR&3)
-#define FLOPPY_DSR_DRATESELW(val) FLOPPY.DSR=((FLOPPY.DSR&~3)|(val&3))
+#define FLOPPY_DSR_DRATESELW(val) FLOPPY.DSR=((FLOPPY.DSR&~3)|((val)&3))
 #define FLOPPY_DSR_PRECOMPR ((FLOPPY.DSR>>2)&7)
 #define FLOPPY_DSR_DSR_0R ((FLOPPY.DSR>>5)&1)
 #define FLOPPY_DSR_POWERDOWNR ((FLOPPY.DSR>>6)&1)
 #define FLOPPY_DSR_SWRESETR ((FLOPPY.DSR>>7)&1)
-#define FLOPPY_DSR_SWRESETW(val) FLOPPY.DSR=((FLOPPY.DSR&~0x80)|((val&1)<<7))
+#define FLOPPY_DSR_SWRESETW(val) FLOPPY.DSR=((FLOPPY.DSR&~0x80)|(((val)&1)<<7))
 
 //Status registers:
 
 //ST0
-#define FLOPPY_ST0_UNITSELECTW(val) FLOPPY.ST0=((FLOPPY.ST0&~3)|(val&3))
-#define FLOPPY_ST0_CURRENTHEADW(val) FLOPPY.ST0=((FLOPPY.ST0&~4)|((val&1)<<2))
-#define FLOPPY_ST0_NOTREADYW(val) FLOPPY.ST0=((FLOPPY.ST0&~8)|((val&1)<<3))
+#define FLOPPY_ST0_UNITSELECTW(val) FLOPPY.ST0=((FLOPPY.ST0&~3)|((val)&3))
+#define FLOPPY_ST0_CURRENTHEADW(val) FLOPPY.ST0=((FLOPPY.ST0&~4)|(((val)&1)<<2))
+#define FLOPPY_ST0_NOTREADYW(val) FLOPPY.ST0=((FLOPPY.ST0&~8)|(((val)&1)<<3))
 //Set with drive fault or cannot find track 0 after 79 pulses!
-#define FLOPPY_ST0_UNITCHECKW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x10)|((val&1)<<4))
-#define FLOPPY_ST0_SEEKENDW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x20)|((val&1)<<5))
-#define FLOPPY_ST0_INTERRUPTCODEW(val) FLOPPY.ST0=((FLOPPY.ST0&~0xC0)|((val&3)<<6))
+#define FLOPPY_ST0_UNITCHECKW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x10)|(((val)&1)<<4))
+#define FLOPPY_ST0_SEEKENDW(val) FLOPPY.ST0=((FLOPPY.ST0&~0x20)|(((val)&1)<<5))
+#define FLOPPY_ST0_INTERRUPTCODEW(val) FLOPPY.ST0=((FLOPPY.ST0&~0xC0)|(((val)&3)<<6))
 
 //ST1
-#define FLOPPY_ST1_NOADDRESSMARKW(val) FLOPPY.ST1=((FLOPPY.ST1&~1)|(val&1))
-#define FLOPPY_ST1_NOTWRITABLEDURINGWRITECOMMANDW(val) FLOPPY.ST1=((FLOPPY.ST1&~2)|((val&1)<<1))
-#define FLOPPY_ST1_NODATAW(val) FLOPPY.ST1=((FLOPPY.ST1&~4)|((val&1)<<2))
-#define FLOPPY_ST1_ALWAYS0_1(val) FLOPPY.ST1=((FLOPPY.ST1&~8)|((val&1)<<3))
-#define FLOPPY_ST1_TIMEOUTW(val) FLOPPY.ST1=((FLOPPY.ST1&~0x10)|((val&1)<<4))
-#define FLOPPY_ST1_DATAERRORW(val) FLOPPY.ST1=((FLOPPY.ST1&~0x20)|((val&1)<<5))
-#define FLOPPY_ST1_ALWAYS0_2(val) FLOPPY.ST1=((FLOPPY.ST1&~0x40)|((val&1)<<6))
-#define FLOPPY_ST1_ENDOFCYCLINDER(val) FLOPPY.ST1=((FLOPPY.ST1&~0x80)|((val&1)<<7))
+#define FLOPPY_ST1_NOADDRESSMARKW(val) FLOPPY.ST1=((FLOPPY.ST1&~1)|((val)&1))
+#define FLOPPY_ST1_NOTWRITABLEDURINGWRITECOMMANDW(val) FLOPPY.ST1=((FLOPPY.ST1&~2)|(((val)&1)<<1))
+#define FLOPPY_ST1_NODATAW(val) FLOPPY.ST1=((FLOPPY.ST1&~4)|(((val)&1)<<2))
+#define FLOPPY_ST1_ALWAYS0_1(val) FLOPPY.ST1=((FLOPPY.ST1&~8)|(((val)&1)<<3))
+#define FLOPPY_ST1_TIMEOUTW(val) FLOPPY.ST1=((FLOPPY.ST1&~0x10)|(((val)&1)<<4))
+#define FLOPPY_ST1_DATAERRORW(val) FLOPPY.ST1=((FLOPPY.ST1&~0x20)|(((val)&1)<<5))
+#define FLOPPY_ST1_ALWAYS0_2(val) FLOPPY.ST1=((FLOPPY.ST1&~0x40)|(((val)&1)<<6))
+#define FLOPPY_ST1_ENDOFCYCLINDER(val) FLOPPY.ST1=((FLOPPY.ST1&~0x80)|(((val)&1)<<7))
 
 //ST2
-#define FLOPPY_ST2_NODATAADDRESSMASKDAMW(val) FLOPPY.ST2=((FLOPPY.ST2&~1)|(val&1))
-#define FLOPPY_ST2_BADCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~2)|((val&1)<<1)
-#define FLOPPY_ST2_SEEKERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~4)|((val&1)<<2)
-#define FLOPPY_ST2_SEEKEQUALW(val) FLOPPY.ST2=((FLOPPY.ST2&~8)|((val&1)<<3)
-#define FLOPPY_ST2_WRONGCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x10)|((val&1)<<4)
-#define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|((val&1)<<5)
-#define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|((val&1)<<6)
-#define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|((val&1)<<7)
+#define FLOPPY_ST2_NODATAADDRESSMASKDAMW(val) FLOPPY.ST2=((FLOPPY.ST2&~1)|((val)&1))
+#define FLOPPY_ST2_BADCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~2)|(((val)&1)<<1)
+#define FLOPPY_ST2_SEEKERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~4)|(((val)&1)<<2)
+#define FLOPPY_ST2_SEEKEQUALW(val) FLOPPY.ST2=((FLOPPY.ST2&~8)|(((val)&1)<<3)
+#define FLOPPY_ST2_WRONGCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x10)|(((val)&1)<<4)
+#define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|(((val)&1)<<5)
+#define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|(((val)&1)<<6)
+#define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|(((val)&1)<<7)
 
 //ST3
-#define FLOPPY_ST3_DRIVESELECTW(val) FLOPPY.ST3=((FLOPPY.ST3&~3)|(val&3))
-#define FLOPPY_ST3_HEAD1ACTIVEW(val) FLOPPY.ST3=((FLOPPY.ST3&~4)|((val&1)<<2))
-#define FLOPPY_ST3_DOUBLESIDEDW(val) FLOPPY.ST3=((FLOPPY.ST3&~8)|((val&1)<<3))
-#define FLOPPY_ST3_TRACK0W(val) FLOPPY.ST3=((FLOPPY.ST3&~0x10)|((val&1)<<4))
-#define FLOPPY_ST3_DRIVEREADYW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x20)|((val&1)<<5))
-#define FLOPPY_ST3_WRITEPROTECTIONW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x40)|((val&1)<<6))
-#define FLOPPY_ST3_ERRORSIGNATUREW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x80)|((val&1)<<7))
+#define FLOPPY_ST3_DRIVESELECTW(val) FLOPPY.ST3=((FLOPPY.ST3&~3)|((val)&3))
+#define FLOPPY_ST3_HEAD1ACTIVEW(val) FLOPPY.ST3=((FLOPPY.ST3&~4)|(((val)&1)<<2))
+#define FLOPPY_ST3_DOUBLESIDEDW(val) FLOPPY.ST3=((FLOPPY.ST3&~8)|(((val)&1)<<3))
+#define FLOPPY_ST3_TRACK0W(val) FLOPPY.ST3=((FLOPPY.ST3&~0x10)|(((val)&1)<<4))
+#define FLOPPY_ST3_DRIVEREADYW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x20)|(((val)&1)<<5))
+#define FLOPPY_ST3_WRITEPROTECTIONW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x40)|(((val)&1)<<6))
+#define FLOPPY_ST3_ERRORSIGNATUREW(val) FLOPPY.ST3=((FLOPPY.ST3&~0x80)|(((val)&1)<<7))
 
 //Start normal data!
 
@@ -1023,7 +1023,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 			}
 
 			//Fill the sector buffer and write it!
-			memset(FLOPPY.databuffer, FLOPPY.commandbuffer[5], (1 << sectorinfo.SectorSize)); //Clear our buffer with the fill byte!
+			memset(FLOPPY.databuffer, FLOPPY.commandbuffer[5], ((size_t)1 << sectorinfo.SectorSize)); //Clear our buffer with the fill byte!
 			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
 			{
 				goto floppy_errorformat;

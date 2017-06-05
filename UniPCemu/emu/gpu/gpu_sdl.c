@@ -381,7 +381,7 @@ OPTINLINE byte filledmem(void *start, uint_32 size)
 //Returns 1 on not equal, 0 on equal!
 OPTINLINE byte memdiff(void *start, void *value, uint_32 size)
 {
-		return memcmp(start,value,size<<2); //Simply convert memory difference to 0-1!
+	return memcmp(start,value,((size_t)size)<<2); //Simply convert memory difference to 0-1!
 }
 
 //Color key matching.
@@ -637,14 +637,14 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							if (filledmem(row, restpixels)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-								memset(row, 0, restpixels<<2); //Clear to the start of the row, so that only the part we specified gets something!
+								memset(row, 0, ((size_t)restpixels)<<2); //Clear to the start of the row, so that only the part we specified gets something!
 							}
 						}
 						if (xstart) *xstart = (word)restpixels; //Start of the row to apply, in pixels!
 						if (memdiff(&row[restpixels],pixels,use_rowsize)) //Different?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-							memcpy(&row[restpixels], pixels, use_rowsize<<2); //Copy the row to the buffer as far as we can go!
+							memcpy(&row[restpixels], pixels, ((size_t)use_rowsize)<<2); //Copy the row to the buffer as far as we can go!
 						}
 						break;
 					case 1: //Use horizontal centering?
@@ -655,19 +655,19 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 								if (filledmem(row, start)) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-									memset(row, 0, start << 2); //Clear the left!
+									memset(row, 0, ((size_t)start) << 2); //Clear the left!
 								}
 								if (filledmem(&row[start+use_rowsize],(getlayervirtualwidth(surface)-(start+use_rowsize)))) //Different left or right?
 								{
 									surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-									memset(&row[start + use_rowsize], 0, (getlayervirtualwidth(surface) - (start + use_rowsize)) << 2); //Clear the right!
+									memset(&row[start + use_rowsize], 0, ((size_t)(getlayervirtualwidth(surface) - (start + use_rowsize))) << 2); //Clear the right!
 								}
 							}
 							if (xstart) *xstart = (word)start; //Start of the row to apply, in pixels!
 							if (memdiff(&row[start], pixels, use_rowsize)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-								memcpy(&row[start], pixels, use_rowsize << 2); //Copy the pixels to the center!
+								memcpy(&row[start], pixels, ((size_t)use_rowsize) << 2); //Copy the pixels to the center!
 							}
 							return; //Done: we've written the pixels at the center!
 						}
@@ -679,7 +679,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 						if (memdiff(&row[row_start],pixels,use_rowsize)) //Different, so draw?
 						{
 							surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-							memcpy(&row[row_start], pixels, use_rowsize << 2); //Copy the row to the buffer as far as we can go!
+							memcpy(&row[row_start], pixels, ((size_t)use_rowsize) << 2); //Copy the row to the buffer as far as we can go!
 						}
 						//Now just render the rest part of the line to black!
 						if ((restpixels>0) && (!(center&4))) //Still a part of the row not rendered and valid rest location and not disable clearing?
@@ -687,7 +687,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 							if (filledmem(&row[row_start + use_rowsize], restpixels)) //Different?
 							{
 								surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-								memset(&row[row_start + use_rowsize], 0, restpixels << 2); //Clear to the end of the row, so that only the part we specified gets something!
+								memset(&row[row_start + use_rowsize], 0, ((size_t)restpixels) << 2); //Clear to the end of the row, so that only the part we specified gets something!
 							}
 						}
 						break;
@@ -719,7 +719,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 			if (filledmem(row, getlayervirtualwidth(surface))) //Different?
 			{
 				surface->flags |= SDL_FLAG_DIRTY; //Mark as dirty!
-				memset(row, 0, getlayervirtualwidth(surface) << 2); //Clear the row, because we have no pixels!
+				memset(row, 0, ((size_t)getlayervirtualwidth(surface)) << 2); //Clear the row, because we have no pixels!
 			}
 		}
 	}

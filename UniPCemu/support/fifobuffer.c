@@ -530,7 +530,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<1); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -559,7 +559,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<1); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<1); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -690,7 +690,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<2); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -719,7 +719,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<2); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<2); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -760,7 +760,7 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<3); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -791,7 +791,7 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<3); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -833,7 +833,7 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<3); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
@@ -864,7 +864,7 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 			}
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
-			readposhistory -= (int_64)(backtrace<<3); //Trace this far back!
+			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
 			if (readposhistory<0) //To make valid?
 			{
 				do //Invalid?
