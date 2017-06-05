@@ -42,7 +42,7 @@ PS/2 Controller chip (8042)
 
 */
 
-extern byte is_Compaq; //To emulate Compaq controller?
+extern byte is_Compaq; //To emulate Compaq 8042-compatible controller?
 
 //Keyboard has higher input priority: IRQ1 expects data always, so higher priority!
 byte ControllerPriorities[2] = {0,1}; //Port order to check if something's there 1=Second port, 0=First port else no port!
@@ -243,16 +243,26 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.Write_RAM = (Controller8042.command&0x1F)+1; //Write to internal RAM (value 0x01-0x20), so 1 more than our index!
 		Controller8042.writeoutputport = (byte)(Controller8042.inputtingsecurity = 0); //Not anymore!
 		break;
-	case 0xA4: //Password Installed Test
+	case 0xA4: //Password Installed Test. Compaq: toggle speed.
+		if (is_Compaq) break; //TODO: Compaq speed toggle
 		input_lastwrite_8042(); //Force data to user!
 		give_8042_output((Controller8042.has_security && (Controller8042.securitychecksum==Controller8042.securitykey))?0xFA:0xF1); //Passed: give result! No password present!
 		input_lastwrite_8042(); //Force byte 0 to user!
 		break;
-	case 0xA5: //Load security
-		Controller8042.inputtingsecurity = 1; //We're starting to input security data until a 0 is found!
+	case 0xA5: //Load security. Compaq: Special read:
+		/*
+		Compaq: 8042 places the real values of port 2 except for bits 4 and 5 which are given a new definition in the output buffer. No output buffer full is generated.
+			if bit 5 = 0, a 9-bit keyboard is in use
+			if bit 5 = 1, an 11-bit keyboard is in use
+			if bit 4 = 0, outp-buff-full interrupt disabled
+			if bit 4 = 1, output-buffer-full int. enabled
+		*/
+		Controller8042.inputtingsecurity = is_Compaq?0:1; //We're starting to input security data until a 0 is found!
+		Controller8042.readoutputport = is_Compaq?2:0; //Compaq special read?
 		Controller8042.securitychecksum = 0; //Init checksum!
 		break;
-	case 0xA6: //Enable Security
+	case 0xA6: //Enable Security. Compaq: Unknown speedfunction.
+		if (is_Compaq) break; //TODO: Compaq speedfunction.
 		//Unknown what to do? Simply set the new key?
 		Controller8042.inputtingsecurity = 0; //Finished!
 		Controller8042.securitykey = Controller8042.securitychecksum; //Set the new security key!
@@ -279,12 +289,24 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xAA: //Test PS/2 controller! Result: 0x55: Test passed. 0xFC: Test failed.
+		//Compaq:  Initializes ports 1 and 2, disables the keyboard and clears the buffer pointers. It then places 55 in the output buffer.
+		//TODO: Compaq port 1/2 initialization
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0x55); //Always OK!
 		break;
 	case 0xAB: //Test first PS/2 port! See Command A9!
+		/*
+		result values:
+		0 = no error
+		1 = keyboard clock line stuck low
+		2 = keyboard clock line stuck high
+		3 = keyboard data line is stuck low
+		4 = keyboard data line stuck high
+		Compaq: 5 = Compaq diagnostic feature
+		*/
+		//TODO: Compaq diagnostic feature
 		input_lastwrite_8042(); //Force 0xFA to user!
 		if (Controller8042.portwrite[0] && Controller8042.portread[0] && Controller8042.portpeek[0]) //Registered?
 		{
@@ -313,6 +335,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.data[0] &= ~0x10; //Enabled!
 		break;
 	case 0xC0: //Read controller input port?
+		//Compaq:  Places status of input port in output buffer. Use this command only when the output buffer is empty
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(Controller8042.inputport); //Give it fully!
 		input_lastwrite_8042(); //Force 0xFA to user!
@@ -327,9 +350,11 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xD0: //Next byte read from port 0x60 is read from the Controller 8042 output port!
 		Controller8042.readoutputport = 1; //Next byte to port 0x60 is placed on the 8042 output port!
+		Controller8042.inputtingsecurity = 0;
 		Controller8042.Read_RAM = 0; //Not anymore!
 		break;
 	case 0xD1: //Next byte written to port 0x60 is placed on the Controller 8042 output port?
+		//Compaq: The system speed bits are not set by this command. Use commands A1-A6 (!) for speed functions.
 		Controller8042.writeoutputport = 1; //Next byte to port 0x60 is placed on the 8042 output port!
 		Controller8042.inputtingsecurity = 0; //Not anymore!
 		Controller8042.Write_RAM = 0; //Not anymore!
@@ -374,6 +399,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.outputport = Controller8042.outputport|(0x2); //Wrap arround: enable A20 line!
 		refresh_outputport(); //Handle the new output port!
 		break;
+	case 0xA1: //Compaq. Unknown speedfunction?
+	case 0xA2: //Compaq. Unknown speedfunction?
+	case 0xA3: //Compaq. Enable system speed control?
+		if (is_Compaq) break; //TODO: Compaq speed functionality.
 	default: //Default: output to the keyboard controller!
 		//Unknown device!
 		break;
@@ -544,7 +573,22 @@ byte read_8042(word port, byte *result)
 		{
 			if (Controller8042.readoutputport) //Read the output port?
 			{
-				*result = Controller8042.outputport; //Read the output port directly!
+				if (Controller8042.readoutputport==1) //8042-compatible read?
+				{
+					*result = Controller8042.outputport; //Read the output port directly!
+				}
+				else //Compaq special read?
+				{
+					/*
+					Compaq: 8042 places the real values of port 2 except for bits 4 and 5 which are given a new definition in the output buffer. No output buffer full is generated.
+					if bit 5 = 0, a 9-bit keyboard is in use
+					if bit 5 = 1, an 11-bit keyboard is in use
+					if bit 4 = 0, outp-buff-full interrupt disabled
+					if bit 4 = 1, output-buffer-full int. enabled
+					*/
+					*result = (Controller8042.outputport&0xCF)|(PS2_FIRSTPORTINTERRUPTENABLED(Controller8042)<<4); //Read the output port directly!
+				}
+				Controller8042.readoutputport = 0; //We're done reading!
 				return 1; //Don't process normally!
 			}
 			if (Controller8042.Read_RAM) //Write to VRAM byte?
