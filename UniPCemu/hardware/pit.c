@@ -177,7 +177,7 @@ OPTINLINE void wrapPITticker(byte channel)
 	}
 }
 
-byte channel_reload[6] = {0,0,0,0,0,0}; //To reload the channel next cycle?
+byte channel_reload[8] = {0,0,0,0,0,0,0,0}; //To reload the channel next cycle?
 
 double ticklength = 0.0; //Length of PIT samples to process every output sample!
 
@@ -421,7 +421,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 					break;
 				}
 				currentsample = PITchannels[channel].channel_status; //The current sample we're processing, prefetched!
-				if (channel) //Handle channel 1&2 seperately too!
+				if (channel) //Handle channel 1&2 and 3+ seperately too!
 				{
 					//Process the rise toggle!
 					if (((PITchannels[channel].lastchannel_status^currentsample)&1) && currentsample) //Raised?
@@ -435,7 +435,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						//We're ready for the current result!
 						writefifobuffer(PITchannels[channel].rawsignal, currentsample&((PCSpeakerPort & 2) >> 1)); //Add the data to the raw signal! Apply the output mask too!
 					}
-					else //PIT1 is connected to an external ticker!
+					else if (channel==1) //PIT1 is connected to an external ticker!
 					{
 						if ((PITchannels[channel].lastchannel_status^currentsample) & 1) //Changed?
 						{
@@ -617,8 +617,8 @@ void updatePITState(byte channel)
 }
 
 //Read back command support!
-byte statusbytes[6] = {0,0,0,0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
-byte readstatus[6] = {0,0,0,0,0,0};
+byte statusbytes[8] = {0,0,0,0,0,0,0,0}; //All 3 status bytes to be read when the Read Back command executes 
+byte readstatus[8] = {0,0,0,0,0,0,0,0};
 byte readlatch[8] = {0,0,0,0,0,0,0,0};
 
 byte lastpit[2] = {0,0};

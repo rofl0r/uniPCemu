@@ -341,9 +341,6 @@ void initEMU(int full) //Init!
 
 	autoDetectArchitecture(); //Detect the architecture to use!
 
-	debugrow("Initialising PC Speaker...");
-	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
-
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!
 
@@ -455,9 +452,13 @@ void initEMU(int full) //Init!
 	//Load all BIOS presets!
 	debugrow("Initializing 8253...");
 	init8253(); //Init Timer&PC Speaker!
+
+	debugrow("Initialising PC Speaker...");
+	initSpeakers(BIOS_Settings.usePCSpeaker); //Initialise the speaker. Enable/disable sound according to the setting!
 	
 	if (BIOS_Settings.architecture==ARCHITECTURE_XT) //XT architecture?
 	{
+		debugrow("Initialising EMS...");
 		initEMS(2 * MBMEMORY); //2MB EMS memory!
 	}
 
@@ -566,6 +567,8 @@ void doneEMU()
 		doneMMU(); //Release memory!
 		debugrow("doneEMU: finish EMS if enabled...");
 		doneEMS(); //Finish EMS!
+		debugrow("doneEMU: Finishing PC Speaker...");
+		doneSpeakers();
 		debugrow("doneEMU: Finishing MPU...");
 		doneMPU(); //Finish our MPU!
 		debugrow("doneEMU: Finishing Disney Sound Source...");
@@ -578,8 +581,6 @@ void doneEMU()
 		doneGameBlaster(); //Finish Game Blaster!
 		debugrow("doneEMU: Finishing Adlib...");
 		doneAdlib(); //Finish adlib!
-		debugrow("doneEMU: Finishing PC Speaker...");
-		doneSpeakers();
 		debugrow("doneEMU: finish Keyboard chip...");
 		BIOS_doneKeyboard(); //Done with the keyboard!
 		debugrow("doneEMU: finish Mouse chip...");
