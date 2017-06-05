@@ -291,8 +291,11 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xAA: //Test PS/2 controller! Result: 0x55: Test passed. 0xFC: Test failed.
 		//Compaq:  Initializes ports 1 and 2, disables the keyboard and clears the buffer pointers. It then places 55 in the output buffer.
 		//TODO: Compaq port 1/2 initialization
-		input_lastwrite_8042(); //Force 0xFA to user!
-		give_8042_output(0xFA); //ACK!
+		if (is_Compaq==0) //Compaq expects 0x55!
+		{
+			input_lastwrite_8042(); //Force 0xFA to user!
+			give_8042_output(0xFA); //ACK!
+		}
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0x55); //Always OK!
 		break;
