@@ -838,11 +838,12 @@ void CPU_tickPendingReset()
 {
 	if (CPU[activeCPU].resetPending) //Are we pending?
 	{
-		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1) && (CPU[activeCPU].executed || CPU[activeCPU].halt)) //Starting a new instruction or halted with pending Reset?
+		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1)) //Starting a new instruction or halted with pending Reset?
 		{
 			unlock(LOCK_CPU);
 			resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
 			lock(LOCK_CPU);
+			CPU[activeCPU].resetPending = 0; //Not pending reset anymore!
 		}
 	}
 }

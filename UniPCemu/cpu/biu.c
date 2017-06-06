@@ -99,6 +99,7 @@ void BIU_dosboxTick()
 byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 {
 	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
+	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
 	if (BIU[activeCPU].PIQ) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
@@ -984,5 +985,5 @@ byte BIU_Ready() //Are we ready to continue execution?
 
 byte BIU_resetRequested()
 {
-	return CPU[activeCPU].resetPending && (CPU[activeCPU].halt || (CPU[activeCPU].executed)); //Finished executing or halting, and reset is Pending?
+	return (CPU[activeCPU].resetPending && BIU_Ready() && (CPU[activeCPU].BUSactive==0)); //Finished executing or halting, and reset is Pending?
 }
