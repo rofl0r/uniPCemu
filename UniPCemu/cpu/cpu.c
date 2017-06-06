@@ -834,6 +834,19 @@ void initCPU() //Initialize CPU for full system reset into known state!
 	resetCPU(); //Reset normally!
 }
 
+void CPU_tickPendingReset()
+{
+	if (CPU[activeCPU].resetPending) //Are we pending?
+	{
+		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1) && (CPU[activeCPU].executed || CPU[activeCPU].halt)) //Starting a new instruction or halted with pending Reset?
+		{
+			unlock(LOCK_CPU);
+			resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+			lock(LOCK_CPU);
+		}
+	}
+}
+
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 /*

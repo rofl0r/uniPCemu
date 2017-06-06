@@ -908,6 +908,7 @@ typedef struct PACKED
 	byte instructionstep, internalinstructionstep, internalmodrmstep, internalinterruptstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
 	byte pushbusy; //Is a push operation busy?
 	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
+	byte resetPending; //Is a CPU reset pending?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 
@@ -1272,4 +1273,7 @@ uint_32 CPU_EIPmask();
 byte CPU_EIPSize();
 
 byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
+
+void CPU_tickPendingReset(); //Tick a pending CPU reset!
+byte BIU_resetRequested(); //Reset requested?
 #endif

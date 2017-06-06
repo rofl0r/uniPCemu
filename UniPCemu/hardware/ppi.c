@@ -171,8 +171,7 @@ byte PPI_writeIO(word port, byte value)
 		checkPPIA20(); //Fast A20
 		if (value&1) //Fast reset?
 		{
-			doneCPU();
-			resetCPU(); //Reset the CPU!
+			CPU[activeCPU].resetPending = 1; //Start pending reset!
 		}
 		return 1;
 		break;

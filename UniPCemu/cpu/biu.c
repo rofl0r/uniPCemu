@@ -981,3 +981,8 @@ byte BIU_Ready() //Are we ready to continue execution?
 {
 	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0) && (CPUhardinthandling==0) && (CPU[activeCPU].halt==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
 }
+
+byte BIU_resetRequested()
+{
+	return CPU[activeCPU].resetPending && (CPU[activeCPU].halt || (CPU[activeCPU].executed)); //Finished executing or halting, and reset is Pending?
+}

@@ -388,10 +388,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF: //Pulses!
 		if (!(Controller8042.command&0x1)) //CPU reset (pulse line 0)?
 		{
-			unlock(LOCK_CPU);
-			doneCPU();
-			resetCPU(); //Process CPU reset!
-			lock(LOCK_CPU); //Relock the CPU!
+			CPU[activeCPU].resetPending = 1; //Start pending reset!
 		}
 		break;
 	case 0xDD: //Disable A20 line?
@@ -416,10 +413,7 @@ void refresh_outputport()
 {
 	if ((Controller8042.outputport&1)==0) //This keeps the CPU reset permanently?
 	{
-		unlock(LOCK_CPU);
-		doneCPU();
-		resetCPU();
-		lock(LOCK_CPU); //Relock the CPU!
+		CPU[activeCPU].resetPending = 1; //Start pending reset!
 		Controller8042.outputport &= ~1; //Keep us locked down!
 		CPU[activeCPU].permanentreset = 1; //Enter a permanent reset state!
 	}

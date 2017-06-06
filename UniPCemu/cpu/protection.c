@@ -27,9 +27,7 @@ uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
 
 void CPU_triplefault()
 {
-	unlock(LOCK_CPU);
-	resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
-	lock(LOCK_CPU);
+	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 }
 

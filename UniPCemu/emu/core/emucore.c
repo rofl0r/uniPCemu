@@ -855,6 +855,8 @@ OPTINLINE byte coreHandler()
 
 		CPU_resetTimings(); //Reset all required CPU timings required!
 
+		CPU_tickPendingReset();
+
 		if (CPU[activeCPU].halt&3) //Halted normally? Don't count CGA wait states!
 		{
 			if (romsize) //Debug HLT?
