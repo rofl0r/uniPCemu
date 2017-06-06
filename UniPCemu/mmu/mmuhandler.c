@@ -350,13 +350,13 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		}
 		if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
 		{
-			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END  (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
+			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
 		}
 	}
 	//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
 	if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
 	{
-		if (memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000) //Memory protected?
+		if (memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000)) //Memory protected?
 		{
 			*nonexistant = 1; //We're non-existant!
 			return; //Abort!
