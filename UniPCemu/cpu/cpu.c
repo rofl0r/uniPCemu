@@ -2288,7 +2288,6 @@ void CPU_BoundException() //Bound exception!
 		return; //Abort handling when needed!
 	}
 	busyEX2:
-	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)) return;
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	if ((CPU086_int(EXCEPTION_BOUNDSCHECK)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
