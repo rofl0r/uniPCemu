@@ -289,6 +289,7 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte iswrite)
 {
+	uint_32 originaladdress = *realaddress; //Original address!
 	INLINEREGISTER byte memloc; //What memory block?
 	INLINEREGISTER byte memoryhole;
 	memloc = 0; //Default: first memory block: low memory!
@@ -327,19 +328,19 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	if (memoryhole) //Memory hole?
 	{
 		*nonexistant = 1; //We're non-existant!
-		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1)) //Move memory FE0000-FFFFFF to E0000-FFFFF?
+		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1) && BIOSROM_LowMemoryBecomesHighMemory) //Compaq remaps RAM from E0000-FFFFF to FE0000-FFFFFF.
 		{
-			if ((*realaddress>=0xE0000) && (*realaddress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
+			if ((originaladdress>=0xE0000) && (originaladdress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
 			{
 				memloc = 2; //We're the second block instead!
-				*realaddress |= 0xF00000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+				originaladdress |= 0xF00000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
 			}
 		}
 	}
 	else //Plain memory?
 	{
 		*nonexistant = 0; //We're to be used directly!
-		if ((MoveLowMemoryHigh&1) && (memloc) && (is_Compaq!=1)) //Move first block lower?
+		if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
 		{
 			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
 		}
@@ -351,12 +352,8 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		{
 			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
 		}
-		if ((*realaddress >= MMU.size) || ((*realaddress>=MMU.maxsize) && MMU.maxsize)) //Reserved memory?
-		{
-			*nonexistant = 2; //Reserved for reading only!
-		}
 	}
-	if ((*realaddress>=0xFE0000) && (*realaddress<=0xFFFFFF)) //Special area addressed?
+	if ((originaladdress>=0xFE0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
 	{
 		if (memoryprotect_FE0000 && iswrite) //Memory protected?
 		{
@@ -364,18 +361,10 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 			return; //Abort!
 		}
 		//Reading or not protected?
-		if (is_Compaq!=1) //Special XT 386 handling?
+		if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
 		{
-			*realaddress -= MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)-0xE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
-		}
-	}
-	if (is_Compaq==1) //Compaq remaps RAM from A0000-FFFFF to FA0000-FFFFFF.
-	{
-		//This should be correct, according to PCem: https://bitbucket.org/pcem_emulator/pcem/src/66eec7c1b664f2f1496b5ed3763ec2b2738a6fab/src/compaq.c?at=default
-		if ((*realaddress>=0xFA0000) && (*realaddress<=0xFFFFFF)) //Remapped RAM area addressed?
-		{
-			*nonexistant = 0; //We're to be used directly!
-			*realaddress &= 0xFFFFF; //Remap the low RAM area high!
+			*realaddress += MMU.size-0xFE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+			*nonexistant = 3; //Reserved memory!
 		}
 	}
 }
@@ -392,7 +381,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
-	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || ((realaddress>=(MMU.maxsize+MMU_RESERVEDMEMORY)) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
+	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || (((realaddress>=(MMU.maxsize?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
@@ -430,8 +419,8 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	byte nonexistant = 0;
 	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
-		memoryprotect_FE0000 = (value&1); //Write-protect 128KB RAM at 0xFE0000?
-		if (value&2) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
+		memoryprotect_FE0000 = ((~value)&2); //Write-protect 128KB RAM at 0xFE0000?
+		if (value&1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
 		{
 			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
 		}
@@ -439,6 +428,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		{
 			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory!
 		}
+		MoveLowMemoryHigh = 0; //Move all memory blocks high when needed?
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?
@@ -446,7 +436,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || ((realaddress>=(MMU.maxsize+MMU_RESERVEDMEMORY)) && MMU.maxsize) || nonexistant) //Overflow/invalid location?
+	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || (((realaddress>=(MMU.maxsize?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
