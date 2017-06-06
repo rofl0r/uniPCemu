@@ -350,13 +350,13 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		}
 		if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
 		{
-			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
+			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END  (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
 		}
 	}
-	//TODO(According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
-	if ((originaladdress>=0xFE0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
+	//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
+	if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
 	{
-		if (memoryprotect_FE0000 && iswrite) //Memory protected?
+		if (memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000) //Memory protected?
 		{
 			*nonexistant = 1; //We're non-existant!
 			return; //Abort!
@@ -364,7 +364,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		//Reading or not protected?
 		if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
 		{
-			*realaddress += MMU.size-0xFE0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+			*realaddress += MMU.size-0xFA0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
 			*nonexistant = 3; //Reserved memory!
 		}
 	}
@@ -429,7 +429,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		{
 			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory!
 		}
-		MoveLowMemoryHigh = 0; //Move all memory blocks high when needed?
+		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?

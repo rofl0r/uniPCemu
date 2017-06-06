@@ -62,5 +62,5 @@ uint_32 memory_directrdw(uint_32 realaddress);
 void memory_directwdw(uint_32 realaddress, uint_32 value);
 
 //Reserved memory for special cases!
-#define MMU_RESERVEDMEMORY 0x20000
+#define MMU_RESERVEDMEMORY 0x60000
 #endif
