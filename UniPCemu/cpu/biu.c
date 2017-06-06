@@ -204,7 +204,7 @@ OPTINLINE byte BIU_request(uint_32 requesttype, uint_64 payload1, uint_64 payloa
 {
 	byte result;
 	uint_32 request1, request2;
-	if (BIU[activeCPU].requestready==0) return 0; //Not ready!
+	if ((BIU[activeCPU].requestready==0) || (fifobuffer_freesize(BIU[activeCPU].responses)==0)) return 0; //Not ready! Don't allow requests while responses are waiting to be handled!
 	request1 = (payload1&0xFFFFFFFF); //Low!
 	request2 = (payload1>>32); //High!
 	if (fifobuffer_freesize(BIU[activeCPU].requests)>=20) //Enough to accept?
