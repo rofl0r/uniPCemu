@@ -59,7 +59,7 @@ void CPU_initBIU()
 		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
 	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
-	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_64)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
 }
 
@@ -177,7 +177,7 @@ byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned intege
 OPTINLINE byte BIU_haveRequest() //BIU: Does the BIU have a request?
 {
 	uint_32 request1;
-	return (peekfifobuffer32(BIU[activeCPU].requests,&request1) && fifobuffer_freesize(BIU[activeCPU].responses)>=12); //Do we have a request and enough size for a response?
+	return (peekfifobuffer32(BIU[activeCPU].requests,&request1) && (fifobuffer_freesize(BIU[activeCPU].responses)>=8)); //Do we have a request and enough size for a response?
 }
 
 OPTINLINE byte BIU_readRequest(uint_32 *requesttype, uint_64 *payload1, uint_64 *payload2) //BIU: Read a request to process!
