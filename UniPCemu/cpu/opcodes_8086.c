@@ -292,7 +292,7 @@ byte CPU8086_internal_PUSHw(byte base, word *data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
