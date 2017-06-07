@@ -841,6 +841,7 @@ void CPU_tickPendingReset()
 		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1)) //Starting a new instruction or halted with pending Reset?
 		{
 			unlock(LOCK_CPU);
+			doneCPU(); //Finish the CPU!
 			resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
 			lock(LOCK_CPU);
 			CPU[activeCPU].resetPending = 0; //Not pending reset anymore!
@@ -1185,6 +1186,7 @@ void doneCPU() //Finish the CPU!
 	free_CPUregisters(); //Finish the allocated registers!
 	CPU_doneBIU(); //Finish the BIU!
 	free_fifobuffer(&CPU[activeCPU].CallGateStack); //Release our Call Gate Stack space!
+	memset(&CPU[activeCPU],0,sizeof(CPU[activeCPU])); //Initilialize the CPU to known state!
 }
 
 CPU_registers dummyregisters; //Dummy registers!

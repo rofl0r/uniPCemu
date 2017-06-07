@@ -54,6 +54,7 @@ void CPU_initBIU()
 	{
 		CPU_doneBIU(); //Finish us first!
 	}
+	
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
 		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
@@ -61,6 +62,7 @@ void CPU_initBIU()
 	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
 	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
+	CPU_flushPIQ(-1); //Init us to start!
 }
 
 void CPU_doneBIU()
@@ -69,6 +71,7 @@ void CPU_doneBIU()
 	free_fifobuffer(&BIU[activeCPU].requests); //Our request buffer to use(1 64-bit entry as 2 32-bit entries)!
 	free_fifobuffer(&BIU[activeCPU].responses); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 	BIU[activeCPU].ready = 0; //We're not ready anymore!
+	memset(&BIU[activeCPU],0,sizeof(BIU)); //Full init!
 }
 
 void CPU_flushPIQ(int_64 destaddr)
@@ -985,5 +988,5 @@ byte BIU_Ready() //Are we ready to continue execution?
 
 byte BIU_resetRequested()
 {
-	return (CPU[activeCPU].resetPending && BIU_Ready() && (CPU[activeCPU].BUSactive==0)); //Finished executing or halting, and reset is Pending?
+	return (CPU[activeCPU].resetPending && (BIU_Ready()||CPU[activeCPU].halt==1) && (CPU[activeCPU].BUSactive==0)); //Finished executing or halting, and reset is Pending?
 }
