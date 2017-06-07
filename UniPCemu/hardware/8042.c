@@ -66,6 +66,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.output_buffer = 0; //Undefined to start with!
+		Controller8042.status_buffermask = ~0; //Enable all bits to be viewed by default!
 		if (is_XT==0) //We're an AT?
 		{
 			if (Controller8042.readoutputport) //Read the output port?
@@ -84,6 +85,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 					if bit 4 = 1, output-buffer-full int. enabled
 					*/
 					Controller8042.output_buffer = (Controller8042.outputport&0xCF)|(PS2_FIRSTPORTINTERRUPTENABLED(Controller8042)<<4); //Read the output port directly!
+					Controller8042.status_buffermask &= ~1; //Disable the full bit: hide it!
 				}
 				Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 				Controller8042.status_buffer |= 0x1; //Set output buffer 
@@ -329,6 +331,7 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 void commandwritten_8042() //A command has been written to the 8042 controller?
 {
 	clocks8042 = 0; //We're resetting the clock to receive!
+	Controller8042.status_buffermask = ~0; //Enable all bits to be read by default (again)!
 	//Handle specific PS/2 commands!
 	switch (Controller8042.command) //Special command?
 	{
@@ -696,6 +699,7 @@ byte read_8042(word port, byte *result)
 			{
 				*result |= 2; //The write buffer is still full!
 			}
+			*result &= Controller8042.status_buffermask; //Apply the buffer mask for our special case!
 			if (Controller8042.status_high) //High status overwritten?
 			{
 				*result &= 0xF; //Only low data given!
@@ -728,6 +732,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
 	Controller8042.RAM[0] = 0x50; //Init default status! Disable first port and enable translation!
+	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 	reset8042(); //First 8042 controller reset!
 	if (is_XT==0) //IBM AT? We're setting up the input port!
 	{

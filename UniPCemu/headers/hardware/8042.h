@@ -25,6 +25,7 @@ typedef struct
 
 	//Status buffer!
 	byte status_buffer; //8 status flags; read-only
+	byte status_buffermask; //The full mask of the status buffer to use when reading it!
 	/*
 
 	bit 0: 1=Output buffer full (port 0x60)
