@@ -246,38 +246,35 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 							commandwritten_8042(); //Written handler!
 						}
 					}
-					else if (Controller8042.WritePending==4) //To special port?
+					else if (Controller8042.WritePending==4) //To first PS/2 Output?
 					{
 						Controller8042.WritePending = 0; //Not pending anymore!
-						if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
+						Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
+						Controller8042.status_buffer |= 0x1; //Set output buffer full!
+						Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+						if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
 						{
-							Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
-							Controller8042.status_buffer &= ~0x2; //Cleared ougoing command buffer!
-							Controller8042.status_buffer |= 0x1; //Set output buffer full!
-							if (Controller8042.port60toSecondPS2Output) //AUX port?
-							{
-								Controller8042.status_buffer |= 0x20; //Set AUX bit!
-								if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
-								{
-									lowerirq(1); //Remove the keyboard IRQ!
-									acnowledgeIRQrequest(1); //Acnowledge!
-									lowerirq(12); //Remove the mouse IRQ!
-									raiseirq(12); //Call the interrupt if neccesary!
-								}
-							}
-							else //Non-AUX?
-							{
-								Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
-								if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
-								{
-									lowerirq(12); //Remove the mouse IRQ!
-									acnowledgeIRQrequest(12); //Acnowledge!
-									lowerirq(1); //Remove the keyboard IRQ!
-									raiseirq(1); //Call the interrupt if neccesary!
-								}
-							}
-							goto finishwrite; //Abort normal process!
+							lowerirq(12); //Remove the mouse IRQ!
+							acnowledgeIRQrequest(12); //Acnowledge!
+							lowerirq(1); //Remove the keyboard IRQ!
+							raiseirq(1); //Call the interrupt if neccesary!
 						}
+						goto finishwrite; //Abort normal process!
+					}
+					else if (Controller8042.WritePending==5) //To second PS/2 Output?
+					{
+						Controller8042.WritePending = 0; //Not pending anymore!
+						Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
+						Controller8042.status_buffer |= 0x1; //Set output buffer full!
+						Controller8042.status_buffer |= 0x20; //Set AUX bit!
+						if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
+						{
+							lowerirq(1); //Remove the keyboard IRQ!
+							acnowledgeIRQrequest(1); //Acnowledge!
+							lowerirq(12); //Remove the mouse IRQ!
+							raiseirq(12); //Call the interrupt if neccesary!
+						}
+						goto finishwrite; //Abort normal process!
 					}
 					else
 					{
@@ -290,7 +287,6 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 						if (Controller8042.writeoutputport) //Write the output port?
 						{
 							Controller8042.outputport = Controller8042.input_buffer; //Write the output port directly!
-							Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 							refresh_outputport(); //Handle the new output port!
 							Controller8042.writeoutputport = 0; //Not anymore!
 							goto finishwrite; //Don't process normally!
@@ -299,7 +295,6 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 						{
 							Controller8042.RAM[Controller8042.Write_RAM-1] = Controller8042.input_buffer; //Set data in RAM!
 							Controller8042.Write_RAM = 0; //Not anymore!
-							Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
 							goto finishwrite; //Don't process normally!
 						}
 						Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
@@ -550,10 +545,17 @@ void datawritten_8042(byte iscommandregister) //Data has been written?
 		return; //We're redirecting to the 8042!
 	}
 
-	if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
+	if (Controller8042.port60toFirstPS2Output) //port 60 to first/second PS2 output?
 	{
 		Controller8042.status_buffer |= 2; //We're pending data to write!
 		Controller8042.WritePending = 4; //This port is pending to write!
+		return; //Abort normal process!
+	}
+
+	if (Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
+	{
+		Controller8042.status_buffer |= 2; //We're pending data to write!
+		Controller8042.WritePending = 5; //This port is pending to write!
 		return; //Abort normal process!
 	}
 
