@@ -16,6 +16,7 @@
 //#define LOG8042
 
 byte force8042 = 0; //Force 8042 controller handling?
+extern byte is_XT; //Are we emulating a XT architecture?
 
 byte translation8042[0x100] = { //Full 8042 translation table!
 	0xff, 0x43, 0x41, 0x3f,	0x3d, 0x3b, 0x3c, 0x58,	0x64, 0x44, 0x42, 0x40,	0x3e, 0x0f, 0x29, 0x59,
@@ -64,7 +65,39 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.output_buffer = 0; //Undefined to start with!
-
+		if (is_XT==0) //We're an AT?
+		{
+			if (Controller8042.readoutputport) //Read the output port?
+			{
+				if (Controller8042.readoutputport==1) //8042-compatible read?
+				{
+					Controller8042.output_buffer = Controller8042.outputport; //Read the output port directly!
+				}
+				else //Compaq special read?
+				{
+					/*
+					Compaq: 8042 places the real values of port 2 except for bits 4 and 5 which are given a new definition in the output buffer. No output buffer full is generated.
+					if bit 5 = 0, a 9-bit keyboard is in use
+					if bit 5 = 1, an 11-bit keyboard is in use
+					if bit 4 = 0, outp-buff-full interrupt disabled
+					if bit 4 = 1, output-buffer-full int. enabled
+					*/
+					Controller8042.output_buffer = (Controller8042.outputport&0xCF)|(PS2_FIRSTPORTINTERRUPTENABLED(Controller8042)<<4); //Read the output port directly!
+				}
+				Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+				Controller8042.status_buffer |= 0x1; //Set output buffer 
+				Controller8042.readoutputport = 0; //We're done reading!
+				return 1; //Don't process normally!
+			}
+			if (Controller8042.Read_RAM) //Write to VRAM byte?
+			{
+				Controller8042.output_buffer = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
+				Controller8042.Read_RAM = 0; //Not anymore!
+				Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+				Controller8042.status_buffer |= 0x1; //Set output buffer 
+				return 1; //Don't process normally!
+			}
+		}
 		if (readfifobuffer(Controller8042.buffer, &Controller8042.output_buffer)) //Gotten something from 8042?
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
@@ -167,6 +200,8 @@ void reset8042() //Reset 8042 up till loading BIOS!
 double timing8042=0.0, timing8042_tick=0.0;
 uint_64 clocks8042=0; //How many clock ticks are left?
 
+void commandwritten_8042(); //Prototype: A command has been written to the 8042 controller?
+
 void update8042(double timepassed) //Update 8042 input/output timings!
 {
 	uint_64 clocks; //Clocks to tick!
@@ -190,8 +225,82 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 				if (Controller8042.WritePending) //Write(Input buffer) is pending?
 				{
 					Controller8042.status_buffer &= ~0x2; //Cleared input buffer!
-					Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
-					Controller8042.WritePending = 0; //Not pending anymore!
+					if (Controller8042.WritePending==3) //To 8042 command?
+					{
+						Controller8042.WritePending = 0; //Not pending anymore!
+						if (is_XT==0) //We're an AT?
+						{
+							#ifdef LOG8042
+							if (force8042 == 0) //Not forced for initialization?
+							{
+								dolog("8042", "Write port 0x64: %02X", value);
+							}
+							#endif
+							Controller8042.status_high = 0; //Disable high status, we're writing a new command!
+							Controller8042.command = Controller8042.input_buffer; //Set command!
+							commandwritten_8042(); //Written handler!
+						}
+					}
+					else if (Controller8042.WritePending==4) //To special port?
+					{
+						Controller8042.WritePending = 0; //Not pending anymore!
+						if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
+						{
+							Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
+							Controller8042.status_buffer &= ~0x2; //Cleared ougoing command buffer!
+							Controller8042.status_buffer |= 0x1; //Set output buffer full!
+							if (Controller8042.port60toSecondPS2Output) //AUX port?
+							{
+								Controller8042.status_buffer |= 0x20; //Set AUX bit!
+								if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
+								{
+									lowerirq(1); //Remove the keyboard IRQ!
+									acnowledgeIRQrequest(1); //Acnowledge!
+									lowerirq(12); //Remove the mouse IRQ!
+									raiseirq(12); //Call the interrupt if neccesary!
+								}
+							}
+							else //Non-AUX?
+							{
+								Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
+								if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
+								{
+									lowerirq(12); //Remove the mouse IRQ!
+									acnowledgeIRQrequest(12); //Acnowledge!
+									lowerirq(1); //Remove the keyboard IRQ!
+									raiseirq(1); //Call the interrupt if neccesary!
+								}
+							}
+							goto finishwrite; //Abort normal process!
+						}
+					}
+					else
+					{
+						if (Controller8042.inputtingsecurity) //Inputting security string?
+						{
+							Controller8042.securitychecksum += Controller8042.input_buffer; //Add to the value!
+							if (Controller8042.input_buffer==0) Controller8042.inputtingsecurity = 0; //Finished inputting?
+							goto finishwrite; //Don't process normally!
+						}
+						if (Controller8042.writeoutputport) //Write the output port?
+						{
+							Controller8042.outputport = Controller8042.input_buffer; //Write the output port directly!
+							Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+							refresh_outputport(); //Handle the new output port!
+							Controller8042.writeoutputport = 0; //Not anymore!
+							goto finishwrite; //Don't process normally!
+						}
+						if (Controller8042.Write_RAM) //Write to VRAM byte?
+						{
+							Controller8042.RAM[Controller8042.Write_RAM-1] = Controller8042.input_buffer; //Set data in RAM!
+							Controller8042.Write_RAM = 0; //Not anymore!
+							Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
+							goto finishwrite; //Don't process normally!
+						}
+						Controller8042.portwrite[Controller8042.WritePending-1](Controller8042.input_buffer); //Write data to the specified port!
+						finishwrite: //Not a normal hardware write?
+						Controller8042.WritePending = 0; //Not pending anymore!
+					}
 					clocks8042 -= 12; //Substract the pending data, because we're now processed and sent completely!
 				}
 			}
@@ -420,43 +529,37 @@ void refresh_outputport()
 	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
 }
 
-void datawritten_8042() //Data has been written?
+void datawritten_8042(byte iscommandregister) //Data has been written?
 {
 	clocks8042 = 0; //We're resetting the clock to receive!
-	if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
-	{
-		Controller8042.output_buffer = Controller8042.input_buffer; //Input to output!
-		Controller8042.status_buffer &= ~0x2; //Cleared ougoing command buffer!
-		Controller8042.status_buffer |= 0x1; //Set output buffer full!
-		if (Controller8042.port60toSecondPS2Output) //AUX port?
-		{
-			Controller8042.status_buffer |= 0x20; //Set AUX bit!
-			if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
-			{
-				lowerirq(1); //Remove the keyboard IRQ!
-				acnowledgeIRQrequest(1); //Acnowledge!
-				lowerirq(12); //Remove the mouse IRQ!
-				raiseirq(12); //Call the interrupt if neccesary!
-			}
-		}
-		else //Non-AUX?
-		{
-			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
-			if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
-			{
-				lowerirq(12); //Remove the mouse IRQ!
-				acnowledgeIRQrequest(12); //Acnowledge!
-				lowerirq(1); //Remove the keyboard IRQ!
-				raiseirq(1); //Call the interrupt if neccesary!
-			}
-		}
-		return; //Abort normal process!
-	}
 
 	if (Controller8042.WritePending) //Write is already pending?
 	{
 		return; //Abort: a write is pending!
 	}
+
+	if (iscommandregister) //Command register write?
+	{
+		Controller8042.status_buffer |= 2; //We're pending data to write!
+		Controller8042.WritePending = 3; //This port is pending to write!
+		return; //We're redirecting to the 8042!
+	}
+
+	if (Controller8042.port60toFirstPS2Output || Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
+	{
+		Controller8042.status_buffer |= 2; //We're pending data to write!
+		Controller8042.WritePending = 4; //This port is pending to write!
+		return; //Abort normal process!
+	}
+
+	if (Controller8042.inputtingsecurity || Controller8042.writeoutputport || Controller8042.Write_RAM) //Inputting security string? Write the output port? Write to RAM byte?
+	{
+		Controller8042.status_buffer |= 2; //We're pending data to write!
+		Controller8042.WritePending = 1; //This port is pending to write, simulate keyboard!
+		return; //Don't process normally!
+	}
+
+	//Normal device write?
 
 	if (!(Controller8042.has_port[0] || Controller8042.has_port[1])) //Neither port?
 	{
@@ -480,8 +583,6 @@ void datawritten_8042() //Data has been written?
 	}
 }
 
-extern byte is_XT; //Are we emulating a XT architecture?
-
 byte write_8042(word port, byte value)
 {
 	if ((port & 0xFFF8) != 0x60) return 0; //Not our port!
@@ -497,31 +598,9 @@ byte write_8042(word port, byte value)
 			}
 			#endif
 			Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
-			if (Controller8042.inputtingsecurity) //Inputting security string?
-			{
-				Controller8042.securitychecksum += value; //Add to the value!
-				if (value==0) Controller8042.inputtingsecurity = 0; //Finished inputting?
-				return 1; //Don't process normally!
-			}
-			if (Controller8042.writeoutputport) //Write the output port?
-			{
-				Controller8042.outputport = value; //Write the output port directly!
-				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-				refresh_outputport(); //Handle the new output port!
-				Controller8042.writeoutputport = 0; //Not anymore!
-				return 1; //Don't process normally!
-			}
-			if (Controller8042.Write_RAM) //Write to VRAM byte?
-			{
-				Controller8042.RAM[Controller8042.Write_RAM-1] = value; //Set data in RAM!
-				Controller8042.Write_RAM = 0; //Not anymore!
-				Controller8042.status_buffer &= ~0x2; //Cleared output buffer!
-				return 1; //Don't process normally!
-			}
-
 			Controller8042.input_buffer = value; //Write to output buffer to process!
 
-			datawritten_8042(); //Written handler!
+			datawritten_8042(0); //Written handler for data!
 			return 1;
 		}
 		break;
@@ -549,10 +628,10 @@ byte write_8042(word port, byte value)
 				dolog("8042", "Write port 0x64: %02X", value);
 			}
 			#endif
-			Controller8042.status_high = 0; //Disable high status, we're writing a new command!
+			Controller8042.input_buffer = value; //Write to output buffer to process!
+
+			datawritten_8042(1); //Written handler for command!
 			Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
-			Controller8042.command = value; //Set command!
-			commandwritten_8042(); //Written handler!
 			return 1;
 		}
 		break;
@@ -566,35 +645,7 @@ byte read_8042(word port, byte *result)
 	switch (port)
 	{
 	case 0x60: //Data port: Read input buffer?
-		if (is_XT==0) //We're an AT?
-		{
-			if (Controller8042.readoutputport) //Read the output port?
-			{
-				if (Controller8042.readoutputport==1) //8042-compatible read?
-				{
-					*result = Controller8042.outputport; //Read the output port directly!
-				}
-				else //Compaq special read?
-				{
-					/*
-					Compaq: 8042 places the real values of port 2 except for bits 4 and 5 which are given a new definition in the output buffer. No output buffer full is generated.
-					if bit 5 = 0, a 9-bit keyboard is in use
-					if bit 5 = 1, an 11-bit keyboard is in use
-					if bit 4 = 0, outp-buff-full interrupt disabled
-					if bit 4 = 1, output-buffer-full int. enabled
-					*/
-					*result = (Controller8042.outputport&0xCF)|(PS2_FIRSTPORTINTERRUPTENABLED(Controller8042)<<4); //Read the output port directly!
-				}
-				Controller8042.readoutputport = 0; //We're done reading!
-				return 1; //Don't process normally!
-			}
-			if (Controller8042.Read_RAM) //Write to VRAM byte?
-			{
-				*result = Controller8042.RAM[Controller8042.Read_RAM-1]; //Get data in RAM!
-				Controller8042.Read_RAM = 0; //Not anymore!
-				return 1; //Don't process normally!
-			}
-		}
+		
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
 			*result = Controller8042.output_buffer; //Read output buffer!
