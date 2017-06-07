@@ -62,6 +62,7 @@ void input_lastwrite_8042()
 
 byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 {
+	byte whatport;
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.output_buffer = 0; //Undefined to start with!
@@ -87,7 +88,8 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 				Controller8042.status_buffer |= 0x1; //Set output buffer 
 				Controller8042.readoutputport = 0; //We're done reading!
-				return 1; //Don't process normally!
+				whatport = 0; //Port #0!
+				goto processoutput; //Don't process normally!
 			}
 			if (Controller8042.Read_RAM) //Write to VRAM byte?
 			{
@@ -95,21 +97,23 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				Controller8042.Read_RAM = 0; //Not anymore!
 				Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 				Controller8042.status_buffer |= 0x1; //Set output buffer 
-				return 1; //Don't process normally!
+				whatport = 0; //Port #0!
+				goto processoutput; //Don't process normally!
 			}
 		}
 		if (readfifobuffer(Controller8042.buffer, &Controller8042.output_buffer)) //Gotten something from 8042?
 		{
 			Controller8042.status_buffer &= ~0x20; //Clear AUX bit!
 			Controller8042.status_buffer |= 0x1; //Set output buffer full!
-			return 1; //We've received something!
+			whatport = 0; //Port #0!
+			goto processoutput; //We've received something!
 		}
 		else //Input from hardware?
 		{
 			byte portorder;
 			for (portorder = 0;portorder < 2;portorder++) //Process all our ports!
 			{
-				byte whatport = ControllerPriorities[portorder]; //The port to check!
+				whatport = ControllerPriorities[portorder]; //The port to check!
 				if (whatport < 2) //Port has priority and available?
 				{
 					if ((PS2_FIRSTPORTDISABLED(Controller8042)|(PS2_SECONDPORTDISABLED(Controller8042)<<1))&(1<<whatport)) //Port disabled?
@@ -134,6 +138,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								}
 							}
 							Controller8042.status_buffer |= 0x1; //Set input buffer full!
+							processoutput:
 							if (whatport) //AUX port?
 							{
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
