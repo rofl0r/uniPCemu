@@ -284,7 +284,11 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 						if (Controller8042.inputtingsecurity) //Inputting security string?
 						{
 							Controller8042.securitychecksum += Controller8042.input_buffer; //Add to the value!
-							if (Controller8042.input_buffer==0) Controller8042.inputtingsecurity = 0; //Finished inputting?
+							if (Controller8042.input_buffer==0)
+							{
+								Controller8042.inputtingsecurity = 0; //Finished inputting?
+								Controller8042.securitykey = Controller8042.securitychecksum; //Set the new security key!
+							}
 							goto finishwrite; //Don't process normally!
 						}
 						if (Controller8042.writeoutputport) //Write the output port?
@@ -382,7 +386,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		if (is_Compaq) break; //TODO: Compaq speedfunction.
 		//Unknown what to do? Simply set the new key?
 		Controller8042.inputtingsecurity = 0; //Finished!
-		Controller8042.securitykey = Controller8042.securitychecksum; //Set the new security key!
+		//Superfury: This apparently starts reading the keyboard and compares it's input with the security key loaded. Result is unknown!
 		break;
 	case 0xA7: //Disable second PS/2 port! No ACK!
 		Controller8042.data[0] |= 0x20; //Disabled!
