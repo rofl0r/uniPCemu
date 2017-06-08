@@ -427,7 +427,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		}
 		else
 		{
-			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory!
+			BIOSROM_LowMemoryBecomesHighMemory = 1; BIOSROM_DisableLowMemory = 0; //Low memory becomes high memory! Leave the BIOS ROM in place!
 		}
 		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 	}
