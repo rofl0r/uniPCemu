@@ -79,8 +79,8 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 				{
 					/*
 					Compaq: 8042 places the real values of port 2 except for bits 4 and 5 which are given a new definition in the output buffer. No output buffer full is generated.
-					if bit 5 = 0, a 9-bit keyboard is in use
-					if bit 5 = 1, an 11-bit keyboard is in use
+					if bit 5 = 0, a 9-bit keyboard is in use. Superfury: This must be an XT keyboard(receiving: 10 bits: 1 start bit, 8 data bits, 1 stop bit
+					if bit 5 = 1, an 11-bit keyboard is in use. Superfury: This must be an AT keyboard receiving(receiving: 11 bits: 1 start bit, 8 data bits, 1 parity bit(adds to the checksum, which must be odd to make this transfer valid), 1 stop bit
 					if bit 4 = 0, outp-buff-full interrupt disabled
 					if bit 4 = 1, output-buffer-full int. enabled
 					*/
@@ -223,6 +223,7 @@ void update8042(double timepassed) //Update 8042 input/output timings!
 	outputpending = (Controller8042.status_buffer & 2); //Output pending to be sent? Takes 12 clocks
 	inputpending = ((Controller8042.status_buffer & 1) == 0); //Input pending to be received? Takes 11 clocks
 	outputprocessed = inputprocessed = 0; //Default: not processed!
+	//Information about the clocks can be found at: http://halicery.com/8042/8042_INTERN_TXT.htm
 	for (;(((clocks8042>=11) && inputpending) || ((clocks8042>=12) && outputpending));) //Enough to tick at at least once?
 	{
 		if (outputpending && (outputprocessed==0)) //Output buffer is full?
@@ -372,6 +373,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.inputtingsecurity = is_Compaq?0:1; //We're starting to input security data until a 0 is found!
 		Controller8042.readoutputport = is_Compaq?2:0; //Compaq special read?
 		Controller8042.securitychecksum = 0; //Init checksum!
+		if (is_Compaq) //Compaq special reed?
+		{
+			fill8042_output_buffer(1); //Fill the output buffer immediately, since the software has no way of identifying the special reed finished!
+		}
 		break;
 	case 0xA6: //Enable Security. Compaq: Unknown speedfunction.
 		if (is_Compaq) break; //TODO: Compaq speedfunction.
@@ -663,6 +668,7 @@ byte read_8042(word port, byte *result)
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
 			}
+			Controller8042.status_buffermask = ~0; //Make the buffer respond normally again, resuming normal operation!
 		}
 		else
 		{
