@@ -559,6 +559,7 @@ void datawritten_8042(byte iscommandregister) //Data has been written?
 
 	if (Controller8042.port60toFirstPS2Output) //port 60 to first/second PS2 output?
 	{
+		Controller8042.port60toFirstPS2Output = 0; //Not anymore!
 		Controller8042.status_buffer |= 2; //We're pending data to write!
 		Controller8042.WritePending = 4; //This port is pending to write!
 		return; //Abort normal process!
@@ -566,6 +567,7 @@ void datawritten_8042(byte iscommandregister) //Data has been written?
 
 	if (Controller8042.port60toSecondPS2Output) //port 60 to first/second PS2 output?
 	{
+		Controller8042.port60toSecondPS2Output = 0; //Not anymore!
 		Controller8042.status_buffer |= 2; //We're pending data to write!
 		Controller8042.WritePending = 5; //This port is pending to write!
 		return; //Abort normal process!
