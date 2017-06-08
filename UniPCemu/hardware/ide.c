@@ -2349,7 +2349,7 @@ void ATA_DiskChanged(int disk)
 		if (is_mounted(disk)) //Do we even have this drive?
 		{
 			disk_size = disksize(disk); //Get the disk's size!
-			disk_size >>= 9; //Get the disk size in sectors!
+			disk_size >>= IS_CDROM?11:9; //Get the disk size in sectors!
 			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
 			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
 			ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
