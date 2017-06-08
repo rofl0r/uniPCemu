@@ -456,21 +456,21 @@ void ATA_updateCapacity(byte channel, byte slave)
 	ATA[channel].Drive[slave].driveparams[58] = (word)(sectors&0xFFFF);
 }
 
-word get_cylinders(uint_64 disk_size)
+OPTINLINE word get_SPT(uint_64 disk_size)
 {
-	uint_32 cylinders=0;
-	cylinders = (uint_32)(disk_size / (63 * 16)); //How many cylinders!
-	return (cylinders>=0x3FFF)?0x3FFF:cylinders; //Give the maximum amount of cylinders allowed!
+	return (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
 }
 
 OPTINLINE word get_heads(uint_64 disk_size)
 {
-	return 16;
+	return ((disk_size/get_SPT(disk_size))>=16)?16:((disk_size/get_SPT(disk_size))?(disk_size/get_SPT(disk_size)):1); //1-16 heads!
 }
 
-OPTINLINE word get_SPT(uint_64 disk_size)
+word get_cylinders(uint_64 disk_size)
 {
-	return 63;
+	uint_32 cylinders=0;
+	cylinders = (uint_32)(disk_size / (63 * 16)); //How many cylinders!
+	return (cylinders>=0x3FFF)?0x3FFF:(cylinders?cylinders:1); //Give the maximum amount of cylinders allowed!
 }
 
 OPTINLINE void ATA_increasesector(byte channel) //Increase the current sector to the next sector!
