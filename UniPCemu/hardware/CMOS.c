@@ -679,6 +679,10 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 						updateTimeDivergeance(); //Make sure the divergeance is set accordingly when restarting the RTC clock!
 					}
 				}
+				if ((CMOS.ADDR==0xF) && isDebuggingPOSTCodes()) //CMOS shutdown byte?
+				{
+					dolog("debugger","Shutdown status: %02X",value); //Log the shutdown value!
+				}
 				CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
 			}
 		}
