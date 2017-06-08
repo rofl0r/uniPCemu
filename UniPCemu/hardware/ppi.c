@@ -102,8 +102,17 @@ void checkPPIA20()
 	MMU_setA20(1,SystemControlPortA&2); //Update with our new value!
 }
 
+extern char ROMpath[256]; //ROM path!
+
 byte PPI_writeIO(word port, byte value)
 {
+	FILE *f; 
+	char platformfile[256];
+	char codetranslation[256]; //Code translation!
+	char beforecode = 0;
+	unsigned int rawcode; //Raw code read from the file!
+	char platform[7] = {0,0,0,0,0,0,0}; //Platform!
+	char beforetranslation[2] = {0,0}; //Before the translated code!
 	switch (port)
 	{
 	case 0x61: //System control port B?
@@ -161,8 +170,50 @@ byte PPI_writeIO(word port, byte value)
 		}
 		if (isDebuggingPOSTCodes() && ((sword)value!=breakpoint_comparison)) //Changed and debugging POST codes?
 		{
-			dolog("debugger", "POST Code: %02X", value); //Log the new value!
+			//Generate platform name!
+			memset(&platformfile,0,sizeof(platformfile));
+			platform[0] = 'A';
+			platform[1] = 'T'; //Default: AT!
+			platform[2] = 0;
+			if (is_XT) //XT?
+			{
+				platform[0] = 'X'; //XT instead!
+			}
+			else if (is_Compaq) //Compaq?
+			{
+				platform[0] = 'C';
+				platform[1] = 'O';
+				platform[2] = 'M';
+				platform[3] = 'P';
+				platform[4] = 'A';
+				platform[5] = 'Q';
+				platform[6] = 0;
+			}
+			sprintf(platformfile,"%s/POSTCODE.%s.TXT",ROMpath,platform); //Generate our filename to search for!
+			memset(&codetranslation,0,sizeof(codetranslation)); //Initialize to no code!
+			beforetranslation[0] = beforetranslation[1] = 0; //Init to none!
+			f = fopen(platformfile,"rb"); //Open the platform file!
+			if (f==NULL) goto skipfile;
+			nextentry: //Check for a next entry?
+			if (feof(f)) goto finishfile; //Finished?
+			//Try to read an entry!
+			if (fscanf(f,"%2X %[^\r\n]255c\r\n",&rawcode,&codetranslation)==2) //Correctly read!
+			{
+				if (rawcode==(unsigned int)value) //Are we found?
+				{
+					beforetranslation[0] = ' '; //Seperator to use now!
+					goto finishfile; //Finish up: the translation is loaded!
+				}
+				goto nextentry; //Try the next entry!
+			}
+			//Not found or invalid entry?
+			memset(&codetranslation,0,sizeof(codetranslation)); //Initialize to no code!
+			finishfile: //Finished?
+			fclose(f); //Finished?
+			dolog("debugger", "POST Code: %02X%s%s", value,beforetranslation,codetranslation); //Log the new value!
 		}
+
+		skipfile: //File not found or aborted?
 		breakpoint_comparison = (sword)value; //Save into the comparison for new changes!
 		diagnosticsportoutput = value; //Save it to the diagnostics display!
 		break;
