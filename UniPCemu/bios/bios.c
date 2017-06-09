@@ -821,12 +821,6 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 		++numdrives;
 	}
 
-	if ((BIOS_Settings.emulated_CPU!=CPU_8086) && (BIOS_Settings.emulated_CPU!=CPU_NECV30) && (BIOS_Settings.emulated_CPU!=CPU_80286)) //Invalid CPU detected?
-	{
-		BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Load default CPU!
-		forceBIOSSave(); //Force the BIOS to be saved!
-	}
-
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
 		if (BIOS_Settings.DataBusSize) //8-bit bus?
