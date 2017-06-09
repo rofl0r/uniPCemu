@@ -508,6 +508,11 @@ void loadCMOS()
 	{
 		memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 	}
+
+	//Initialize running data for making us tick correctly!
+	updatedividerchain(); //Update the divider chain setting!
+	CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
+
 	CMOS.Loaded = 1; //The CMOS is loaded!
 }
 
