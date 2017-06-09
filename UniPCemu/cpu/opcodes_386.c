@@ -2544,7 +2544,7 @@ void op_grp3_32() {
 		res32 = (~oper1d) + 1;
 		flag_sub32(0, oper1d);
 		if (res32) FLAGW_CF(1); else FLAGW_CF(0);
-		FLAGW_AF((res32&0xF)?1:0); //Auxiliary flag!
+		//FLAGW_AF((res32&0xF)?1:0); //Auxiliary flag!
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem!

@@ -4925,7 +4925,7 @@ void op_grp3_8() {
 		res8 = (~oper1b) + 1;
 		flag_sub8(0, oper1b);
 		if (res8 == 0) FLAGW_CF(0); else FLAGW_CF(1);
-		FLAGW_AF((res8&0xF)?1:0); //Auxiliary flag!
+		//FLAGW_AF((res8&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(params)) //Memory?
@@ -5114,7 +5114,7 @@ void op_grp3_16() {
 		res16 = (~oper1) + 1;
 		flag_sub16(0, oper1);
 		if (res16) FLAGW_CF(1); else FLAGW_CF(0);
-		FLAGW_AF((res16&0xF)?1:0); //Auxiliary flag!
+		//FLAGW_AF((res16&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(params)) //Memory?
