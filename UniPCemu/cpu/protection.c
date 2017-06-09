@@ -1013,6 +1013,12 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
 			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
+			if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
+			{
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = 0x93; //Compatible rights!
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = 0xFFFF;
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info = 0x00; //Not used!
+			}
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
