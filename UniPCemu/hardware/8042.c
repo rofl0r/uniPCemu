@@ -482,6 +482,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.writeoutputport = 1; //Next byte to port 0x60 is placed on the 8042 output port!
 		Controller8042.inputtingsecurity = 0; //Not anymore!
 		Controller8042.Write_RAM = 0; //Not anymore!
+		break;
 	case 0xD2: //Next byte written to port 0x60 is send as from the First PS/2 port!
 		Controller8042.port60toFirstPS2Output = 1;
 		Controller8042.inputtingsecurity = 0; //Not anymore!
