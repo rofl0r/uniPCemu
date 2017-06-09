@@ -118,6 +118,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	lock(LOCK_CPU);
 	CPU[activeCPU].registers->CS = 0xF000;
 	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
+	REG_DX = 0; //Make sure DX is zeroed for compatiblity with 16-bit ROMs!
 	CPU_flushPIQ(-1); //Clear the PIQ from any unused instructions!
 	for (;!CPU[activeCPU].halt;) //Still running?
 	{
