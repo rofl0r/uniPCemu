@@ -1078,14 +1078,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	if (GENERALSEGMENTPTR_P(descriptor)==0) //Not present(invalid in the cache)?
 	{
 		CPU_MMU_checkrights_cause = 2; //What cause?
-		if (segment==CPU_SEGMENT_SS) //Stack fault?
-		{
-			return 3; //Stack fault!
-		}
-		else
-		{
-			return (getcpumode()==CPU_MODE_REAL)?1:2; //#NP(Redirect to #GP when in real mode)!
-		}
+		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
 	}
 
 	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
