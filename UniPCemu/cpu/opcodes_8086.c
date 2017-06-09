@@ -2381,14 +2381,13 @@ OPTINLINE word getLEA(MODRM_PARAMS *theparams)
 	return modrm_lea16(theparams,1);
 }
 
-
 /*
 
 Non-logarithmic opcodes!
 
 */
 
-
+//BCD opcodes!
 byte CPU8086_internal_DAA()
 {
 	word ALVAL, oldCF;
@@ -2560,6 +2559,54 @@ byte CPU8086_internal_AAS()
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
 		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
+	return 0;
+}
+
+OPTINLINE byte CPU8086_internal_AAM(byte data)
+{
+	CPUPROT1
+	if ((!data) && (CPU[activeCPU].instructionstep==0)) //First step?
+	{
+		CPU[activeCPU].cycles_OP += 1; //Timings always!
+		++CPU[activeCPU].instructionstep; //Next step after we're done!
+		CPU[activeCPU].executed = 0; //Not executed yet!
+		return 1;
+	}
+	word quotient, remainder;
+	byte error, applycycles;
+	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,2,6,&applycycles);
+	if (error) //Error occurred?
+	{
+		CPU_exDIV0(); //Raise error that's requested!
+		return 1;
+	}
+	else //Valid result?
+	{
+		REG_AH = (byte)(quotient&0xFF);
+		REG_AL = (byte)(remainder&0xFF);
+		//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
+		flag_szp8(REG_AL); //Result of MOD instead!
+		FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+		//C=O=A=?
+	}
+	CPUPROT2
+	return 0;
+}
+OPTINLINE byte CPU8086_internal_AAD(byte data)
+{
+	CPUPROT1
+	oper2 = (word)REG_AL; //What to add!
+	REG_AX = (REG_AH*data);    //AAD
+	oper1 = REG_AX; //Load for addition!
+	op_add16(); //Add, 16-bit, including flags!
+	REG_AX = res16; //The result to load!
+	REG_AH = 0; //AH is cleared!
+	//C=O=A=?
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 60; //Timings!
 	}
 	return 0;
 }
@@ -3405,54 +3452,6 @@ OPTINLINE byte CPU8086_internal_INTO()
 		}
 	}
 	CPUPROT2
-	return 0;
-}
-
-OPTINLINE byte CPU8086_internal_AAM(byte data)
-{
-	CPUPROT1
-	if ((!data) && (CPU[activeCPU].instructionstep==0)) //First step?
-	{
-		CPU[activeCPU].cycles_OP += 1; //Timings always!
-		++CPU[activeCPU].instructionstep; //Next step after we're done!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return 1;
-	}
-	word quotient, remainder;
-	byte error, applycycles;
-	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,2,6,&applycycles);
-	if (error) //Error occurred?
-	{
-		CPU_exDIV0(); //Raise error that's requested!
-		return 1;
-	}
-	else //Valid result?
-	{
-		REG_AH = (byte)(quotient&0xFF);
-		REG_AL = (byte)(remainder&0xFF);
-		//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
-		flag_szp8(REG_AL); //Result of MOD instead!
-		FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
-		//C=O=A=?
-	}
-	CPUPROT2
-	return 0;
-}
-OPTINLINE byte CPU8086_internal_AAD(byte data)
-{
-	CPUPROT1
-	oper2 = (word)REG_AL; //What to add!
-	REG_AX = (REG_AH*data);    //AAD
-	oper1 = REG_AX; //Load for addition!
-	op_add16(); //Add, 16-bit, including flags!
-	REG_AX = res16; //The result to load!
-	REG_AH = 0; //AH is cleared!
-	//C=O=A=?
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 60; //Timings!
-	}
 	return 0;
 }
 
