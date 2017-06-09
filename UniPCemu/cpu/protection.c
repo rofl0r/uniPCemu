@@ -1084,7 +1084,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		}
 		else
 		{
-			return 2; //#NP!
+			return (getcpumode()==CPU_MODE_REAL)?1:2; //#NP(Redirect to #GP when in real mode)!
 		}
 	}
 
