@@ -24,6 +24,9 @@ TARGET_PROFILE = prof$(TARGET)
 #Programs
 CC = $(CROSS_COMPILE)gcc
 RM = rm -f
+ifeq (,$(MKDIR))
+MKDIR = mkdir
+endif
 
 WARNS = -Wall
 
@@ -122,20 +125,24 @@ redebug: clean debug
 #Compile into debug mode without stripping (-s)!
 $(BUILD_DEBUG): ${OBJS}
 	$(info Creating debug executable $@...)
+	@$(MKDIR) -p $(dir $@)
 	@${CC} -ggdb -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 $(BUILD_PROFILE): ${OBJS}
 	$(info Creating profiling executable $@...)
+	@$(MKDIR) -p $(dir $@)
 	@${CC} -g -pg -o "$@" $(OBJS) -Wl,-gc-sections ${LDFLAGS}
 
 #Compile into release mode with stripping (-s)!
 $(BUILD_RELEASE): ${OBJS}
 	$(info Creating release executable $@...)
+	@$(MKDIR) -p $(dir $@)
 	@${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
 
 #Patch for dependancy output using incorrect .o file paths is right below the CC lines!
 $(BUILD_DIR)/%.o:%.c
 	$(info Compiling $<)
+	@$(MKDIR) -p $(dir $@)
 	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
 	@${CC} $(CFLAGS) $(INCLUDE_DIRS) -c $< -MM -MF $(patsubst %.o,%.d,$@)
 	@sed -i 's|$(notdir $@):|$@:|' $(patsubst %.o,%.d,$@)
