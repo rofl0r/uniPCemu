@@ -1956,6 +1956,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		break;
 	case 1: //Transferring data IN?
