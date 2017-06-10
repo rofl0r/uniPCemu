@@ -155,6 +155,11 @@ void updatePS2Keyboard(double timepassed)
 		Keyboard.timeout -= timepassed; //Pass some time!
 		if (Keyboard.timeout <= 0.0) //Done?
 		{
+			if (Keyboard.has_command==0) //Nothing to be done?
+			{
+				Keyboard.timeout = (double)0; //Stop timing: we're finished!
+				return; //Not when no command!
+			}
 			switch (Keyboard.command) //What command?
 			{
 			case 0xFF: //Reset command?
