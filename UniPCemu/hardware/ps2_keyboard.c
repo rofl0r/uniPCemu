@@ -360,6 +360,40 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 	}
 }
 
+OPTINLINE byte keyboard_is_command(byte data) //Command has been written?
+{
+	if (__HW_DISABLED) return 1; //Abort!
+	switch (Keyboard.command) //What command?
+	{
+	case 0xFF: //Reset?
+	case 0xFE: //Resend?
+	case 0xFD: //Mode 3 change: Set Key Type Make
+	case 0xFC: //Mode 3 change: 
+	case 0xFB: //Mode 3 change:
+	case 0xFA: //Mode 3 change:
+	case 0xF9: //Mode 3 change:
+	case 0xF8: //Mode 3 change:
+	case 0xF7: //Set All Keys Typematic: every type is one character send only!
+	//0xFD-0xFB not supported, because we won't support mode 3!
+	case 0xF5: //Same as 0xF6, but with scanning stop!
+	case 0xF6: //Load default!
+	case 0xF4: //Enable scanning?
+	case 0xF3: //Set typematic rate/delay?
+	case 0xF2: //Read ID: return 0xAB, 0x83!
+	case 0xF0: //Set Scan Code Set!
+	//Still need 0xF7-0xFD!
+	case 0xEE: //Echo 0xEE!
+	case 0xED: //Set/reset LEDs!
+		return 1; //We're a command!
+		break;
+	default: //Unknown command?
+		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
+		return 0; //Abort!
+		break;
+	}
+	return 0; //Default: no command!
+}
+
 OPTINLINE void handle_keyboard_data(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -413,7 +447,7 @@ OPTINLINE void handle_keyboard_data(byte data)
 void handle_keyboardwrite(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (Keyboard.has_command) //Parameter of command?
+	if (Keyboard.has_command && (keyboard_is_command(data)==0)) //Parameter of command and not issuing a new command?
 	{
 		handle_keyboard_data(data); //Handle parameters!
 		if (!Keyboard.has_command) //No command anymore?

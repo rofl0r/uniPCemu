@@ -381,6 +381,39 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 	}
 }
 
+OPTINLINE byte mouse_is_command(byte data) //Command has been written to the mouse?
+{
+	if (__HW_DISABLED) return 1; //Abort!
+	//Handle mouse!
+
+	switch (data) //What command?
+	{
+		case 0xFF: //Reset?
+		case 0xFE: //Resend?
+		case 0xF6: //Set defaults!
+		case 0xF5: //Disable data reporting?
+		case 0xF4: //Enable data reporting?
+		case 0xF3: //Set sample rate?
+		case 0xF2: //Get device ID?
+		case 0xF0: //Set Remote Mode?
+		case 0xEE: //Set Wrap Mode?
+		case 0xEC: //Reset Wrap Mode?
+		case 0xEB: //Read data?
+		case 0xEA: //Set stream mode?
+		case 0xE9: //Status request?
+		case 0xE8: //Set resolution?
+		case 0xE7: //Set Scaling 2:1?
+		case 0xE6: //Set Scaling 1:1?
+			return 1;
+			break;
+		default:
+			return 0;
+			break;
+		
+	}
+	return 0;
+}
+
 OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse?
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -411,7 +444,7 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 void handle_mousewrite(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (!Mouse.has_command) //Not processing a command?
+	if ((!Mouse.has_command) || mouse_is_command(data)) //Not processing a command or issuing a new command?
 	{
 		Mouse.command = data; //Becomes a command!
 		commandwritten_mouse(); //Process mouse command?
