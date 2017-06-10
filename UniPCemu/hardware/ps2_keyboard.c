@@ -363,7 +363,7 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 OPTINLINE byte keyboard_is_command(byte data) //Command has been written?
 {
 	if (__HW_DISABLED) return 1; //Abort!
-	switch (Keyboard.command) //What command?
+	switch (data) //What command?
 	{
 	case 0xFF: //Reset?
 	case 0xFE: //Resend?
@@ -387,7 +387,6 @@ OPTINLINE byte keyboard_is_command(byte data) //Command has been written?
 		return 1; //We're a command!
 		break;
 	default: //Unknown command?
-		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		return 0; //Abort!
 		break;
 	}
@@ -447,18 +446,18 @@ OPTINLINE void handle_keyboard_data(byte data)
 void handle_keyboardwrite(byte data)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (Keyboard.has_command && (keyboard_is_command(data)==0)) //Parameter of command and not issuing a new command?
+	if ((!Keyboard.has_command) || (keyboard_is_command(data))) //Command itself?
 	{
-		handle_keyboard_data(data); //Handle parameters!
+		Keyboard.command = data; //Becomes a command!
+		commandwritten_keyboard(); //Process keyboard command?
 		if (!Keyboard.has_command) //No command anymore?
 		{
 			Keyboard.command_step = 0; //Reset command step!
 		}
 	}
-	else //Command itself?
+	else //Data?
 	{
-		Keyboard.command = data; //Becomes a command!
-		commandwritten_keyboard(); //Process keyboard command?
+		handle_keyboard_data(data); //Handle parameters!
 		if (!Keyboard.has_command) //No command anymore?
 		{
 			Keyboard.command_step = 0; //Reset command step!
