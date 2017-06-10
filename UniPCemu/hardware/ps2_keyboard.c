@@ -55,6 +55,7 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
+	Keyboard.LEDS = 0; //Disable all LEDs, as part of the BAT!
 }
 
 void resetKeyboard_8042(byte flags)
