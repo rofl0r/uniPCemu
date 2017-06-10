@@ -317,7 +317,6 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		maximummemory = 0x10000; //Bare minumum: 64KB + reserved memory!
 	}
 
-	maximummemory += MMU_RESERVEDMEMORY; //Apply reserved memory to the limit as well!
 	maximummemory += FREEMEMALLOC; //Required free memory is always to be applied as a limit!
 
 	if (((uint_64)freememory)>=maximummemory) //Limit broken?
@@ -325,15 +324,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		freememory = (uint_32)maximummemory; //Limit the memory as specified!
 	}
 
-	//Reserved memory and architecture limits are placed on the detected memmory, which is truncated by the set memory limit!
-	if (freememory>=MMU_RESERVEDMEMORY) //Can we substract?
-	{
-		freememory -= MMU_RESERVEDMEMORY; //Apply reserved memory as well, to prevent the MMU from allocating too much(that's not available)!
-	}
-	else
-	{
-		freememory = 0; //Nothing to substract: ran out of memory!
-	}
+	//Architecture limits are placed on the detected memmory, which is truncated by the set memory limit!
 
 	if (freememory>=FREEMEMALLOC) //Can we substract?
 	{

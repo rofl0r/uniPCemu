@@ -203,9 +203,16 @@ resetmmu:
 	//dolog("MMU","Initialising MMU...");
 	MMU.size = BIOS_GetMMUSize(); //Take over predefined: don't try to detect!
 
+	if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
+	{
+		if (MMU.size<(0x100000-0xA0000)) //Not enough for reserved memory?
+		{
+			MMU.size = 0x100000-0xA0000; //Minimum required memory!
+		}
+	}
 	if ((EMULATED_CPU <= CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
 	//dolog("zalloc","Allocating MMU memory...");
-	MMU.memory = (byte *)zalloc((MMU.size+MMU_RESERVEDMEMORY), "MMU_Memory", NULL); //Allocate the memory available for the segments
+	MMU.memory = (byte *)zalloc(MMU.size, "MMU_Memory", NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
 	user_memory_used = 0; //Default: no memory used yet!
 	if (MMU.memory != NULL && (!force_memoryredetect) && MMU.size) //Allocated and not forcing redetect?
@@ -233,8 +240,9 @@ resetmmu:
 	MMUBuffer = allocfifobuffer(100 * 6, 0); //Alloc the write buffer with 100 entries (100 bytes)
 	//Defaults first!
 	BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Default low memory behaviour!
-	memoryprotect_FE0000 = 1; //Enable memory protection on FE0000+ by default!
+	memoryprotect_FE0000 = 0; //Don't enable memory protection on FE0000+ by default!
 	//Reset the register!
+	MMU.maxsize = -1; //Default to not using any maximum size: full memory addressable!
 	memory_directwb(0x80C00000,0xFF); //Init to all bits set!
 }
 
@@ -364,7 +372,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		//Reading or not protected?
 		if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
 		{
-			*realaddress += MMU.size-0xFA0000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+			*realaddress += MMU.size-(0xFA0000+(0x100000-0xA0000)); //Patch to physical FE0000-FFFFFF reserved memory range to use, at the end of the physical memory!
 			*nonexistant = 3; //Reserved memory!
 		}
 	}
@@ -378,11 +386,41 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	byte nonexistant = 0;
 	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
 	{
-		result = ~((MIN(MMU.size,MMU.maxsize?MMU.maxsize:MMU.size)+MMU_RESERVEDMEMORY)>=0xA0000)?0xF0:0x30; //Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)). Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
+		//Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)).
+		//Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
+		if (MMU.maxsize>=0xA0000) //640K base memory?
+		{
+			result = (3<<4); //640K installed!
+		}
+		else if (MMU.maxsize>=0x80000) //512K base memory?
+		{
+			result = (1<<4); //512K installed!
+		}
+		else if (MMU.maxsize>=0x40000) //256K base memory?
+		{
+			result = (0<<4); //256K base memory?
+		}
+		else //Unknown?
+		{
+			result = (2<<4); //Invalid!
+		}
+		if ((MMU.size&0xFFF00000)>=0x400000) //4MB installed?
+		{
+			result |= 0xC0; //Second 1MB installed, Memory expansion board installed(adding 2M).
+		}
+		else if ((MMU.size&0xFFF00000)>=0x400000) //3MB installed?
+		{
+			result |= 0x80; //Memory expansion board installed(adding 2M).
+		}
+		else if ((MMU.size&0xFFF00000)>=0x400000) //2MB installed?
+		{
+			result |= 0x40; //Second 1MB installed
+		}
+		result = ~result; //Reverse to get the correct output!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
-	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || (((realaddress>=(MMU.maxsize?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
+	if ((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
@@ -430,6 +468,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 			BIOSROM_LowMemoryBecomesHighMemory = 1; BIOSROM_DisableLowMemory = 0; //Low memory becomes high memory! Leave the BIOS ROM in place!
 		}
 		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
+		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (index != 0xFF) //Don't ignore BUS?
@@ -437,7 +476,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if ((realaddress >= (MMU.size+MMU_RESERVEDMEMORY)) || (((realaddress>=(MMU.maxsize?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
+	if ((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!

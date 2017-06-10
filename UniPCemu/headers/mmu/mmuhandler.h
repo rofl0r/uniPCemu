@@ -6,7 +6,7 @@
 typedef struct
 {
 	uint_32 size; //The total size of memory allocated!
-	uint_32 maxsize; //Limit when set(0=no limit)!
+	int_64 maxsize; //Limit when set(-1=no limit)!
 	byte *memory; //The memory itself!
 	int invaddr; //Invalid adress in memory with MMU_ptr?
 	uint_32 wraparround; //To wrap arround memory mask?
@@ -60,7 +60,4 @@ void memory_directww(uint_32 realadress, word value); //Direct write to real mem
 //For paging/system only!
 uint_32 memory_directrdw(uint_32 realaddress);
 void memory_directwdw(uint_32 realaddress, uint_32 value);
-
-//Reserved memory for special cases!
-#define MMU_RESERVEDMEMORY 0x60000
 #endif
