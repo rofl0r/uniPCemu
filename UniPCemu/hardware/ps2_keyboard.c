@@ -173,6 +173,7 @@ void updatePS2Keyboard(double timepassed)
 					Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					Keyboard.command = 0xFF; //Restore the command byte, so that we can continue!
+					Keyboard.has_command = 1; //We're stil executing a command!
 					break;
 				case 2: //Final stage?
 					Keyboard.timeout = (double)0; //Finished!
