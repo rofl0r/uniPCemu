@@ -423,12 +423,12 @@ OPTINLINE byte BIU_isfulltransfer()
 	return result; //Give the result!
 }
 
+byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 {
 	sword segdesc;
 	word segdescval;
 	byte is_offset16;
-	static byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!

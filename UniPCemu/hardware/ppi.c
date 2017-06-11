@@ -109,7 +109,6 @@ byte PPI_writeIO(word port, byte value)
 	FILE *f; 
 	char platformfile[256];
 	char codetranslation[256]; //Code translation!
-	char beforecode = 0;
 	unsigned int rawcode; //Raw code read from the file!
 	char platform[7] = {0,0,0,0,0,0,0}; //Platform!
 	char beforetranslation[2] = {0,0}; //Before the translated code!
@@ -197,7 +196,7 @@ byte PPI_writeIO(word port, byte value)
 			nextentry: //Check for a next entry?
 			if (feof(f)) goto finishfile; //Finished?
 			//Try to read an entry!
-			if (fscanf(f,"%2X %[^\r\n]255c\r\n",&rawcode,&codetranslation)==2) //Correctly read!
+			if (fscanf(f,"%2X %[^\r\n]255c\r\n",&rawcode,&codetranslation[0])==2) //Correctly read!
 			{
 				if (rawcode==(unsigned int)value) //Are we found?
 				{

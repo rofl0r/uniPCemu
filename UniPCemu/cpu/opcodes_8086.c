@@ -4600,7 +4600,7 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 byte op_grp2_8(byte cnt, byte varshift) {
 	//word d,
 	INLINEREGISTER word s, shift, oldCF, msb;
-	word backup;
+	//word backup;
 	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	s = oper1b;
 	oldCF = FLAG_CF;
@@ -4657,7 +4657,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Save backup!
+			//backup = s; //Save backup!
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
@@ -4668,7 +4668,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Save backup!
+			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
@@ -4704,7 +4704,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	INLINEREGISTER uint_32 s, shift, oldCF, msb;
 	//if (cnt>0x10) return(oper1); //NEC V20/V30+ limits shift count
 	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
-	word backup;
+	//word backup;
 	s = oper1;
 	oldCF = FLAG_CF;
 	switch (thereg) {
@@ -4766,7 +4766,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Save backup!
+			//backup = s; //Save backup!
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
@@ -4777,7 +4777,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
-			backup = s; //Save backup!
+			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}

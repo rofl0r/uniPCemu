@@ -6,6 +6,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/support/highrestimer.h" //Time support!
+#include "headers/emu/debugger/debugger.h" //Debugger POST code used support!
 
 //For time support!
 #ifdef IS_PSP
