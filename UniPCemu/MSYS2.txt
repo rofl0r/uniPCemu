@@ -1,0 +1,17 @@
+Getting UniPCemu to compile on SDL2 with MSys2:
+
+Note: "these are literals, don't include the "-characters when typing such a literal"
+
+1. Use: https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2
+2. Follow it until step 5(6 if you only use the 32-bit toolchain).
+3. Download the SDL2 development version.
+4. Mount the correct mingw folder you want to use, or simply mount both to compile for x86(32-bit) and x64(64-bit):
+4.1. x86 building: Execute: "mount 'PATHTOmsys2\mingw32' /mingw32". Replace PATHTOmsys2 with the location of your MSYS2 installation.
+4.2. x64 building: Execute: "mount 'PATHTOmsys2\mingw64' /mingw64". See above above step.
+5. Extract the folders from the archive into your toolchains:
+5.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder.
+5.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
+6. Make sure to have this repository in a folder in the home directory of msys2(msys2\home\<yourusername>). For example: msys2\home\<yourusername>\unipcemu contains androidprompt.bat when properly set up.
+7. Open the 32-bit or 64-bit MSys2(MSYS MinGW 32-bit or MSYS MinGW 64-bit).
+7. CD into the repository's unipcemu directories from the home (~) directory, e.g. "cd unipcemu\unipcemu"
+8. Compile the project using "make win build SDL2 mingw32" for 32-bit versions and "make win build SDL2 mingw64 x64" for 64-bit versions.
