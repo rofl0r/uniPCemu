@@ -54,6 +54,15 @@ ifeq (,$(MKDIR))
 MKDIR = mkdir
 endif
 
+ifneq (,$(findstring mingw64,$(MAKECMDGOALS)))
+prefix = /mingw64/x86_64-w64-mingw32
+endif
+
+ifneq (,$(findstring mingw32,$(MAKECMDGOALS)))
+prefix = /mingw32/i686-w64-mingw32
+endif
+
+
 WARNS = -Wall
 
 ifeq (,$(findstring x64,$(MAKECMDGOALS)))
