@@ -54,12 +54,17 @@ ifeq (,$(MKDIR))
 MKDIR = mkdir
 endif
 
+#Default SDL2.dll location
+dllloc = /bin
+
 ifneq (,$(findstring mingw64,$(MAKECMDGOALS)))
 prefix = /mingw64/x86_64-w64-mingw32
+dllloc = $(prefix)/bin
 endif
 
 ifneq (,$(findstring mingw32,$(MAKECMDGOALS)))
 prefix = /mingw32/i686-w64-mingw32
+dllloc = $(prefix)/bin
 endif
 
 
@@ -235,11 +240,11 @@ $(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES)
 	@${CC} -o "$@" ${OBJS} $(BUILD_RESOURCES) $(STRIP) ${LDFLAGS}
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions instead!
-	@cp /bin/SDL2.dll $(dir $@)
+	@cp $(dllloc)/SDL2.dll $(dir $@)
 endif
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
-	@cp /bin/SDL.dll $(dir $@)
+	@cp $(dllloc)/SDL.dll $(dir $@)
 endif
 
 
