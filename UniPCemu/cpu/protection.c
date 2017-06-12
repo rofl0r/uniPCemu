@@ -1223,7 +1223,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 byte checkSpecialRights() //Check special rights, common by any rights instructions!
 {
 	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
-	if (FLAG_PL > getCPL()) //We're not allowed!
+	if (FLAG_PL < getCPL()) //We're not allowed!
 	{
 		return 1; //Not priviledged!
 	}
@@ -1234,7 +1234,7 @@ byte checkSTICLI() //Check STI/CLI rights!
 {
 	if (checkSpecialRights()) //Not priviledged?
 	{
-		THROWDESCGP(CPU[activeCPU].registers->CS,0,0); //Raise exception!
+		THROWDESCGP(0,0,0); //Raise exception!
 		return 0; //Ignore this command!
 	}
 	return 1; //We're allowed to execute!
