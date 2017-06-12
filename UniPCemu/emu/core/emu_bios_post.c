@@ -651,10 +651,15 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			BIOS_DUMPSYSTEMROM(); //Dump our system ROM for debugging purposes, if enabled!
 			allow_debuggerstep = 1; //Allow stepping from now on!
 		}
-		resumeEMU(1); //Resume the emulator!
 		lock(LOCK_CPU);
+		BIOS_registerROM(); //Register the BIOS ROMS!
+		EMU_startInput(); //Start input again!
+		allow_debuggerstep = 1; //Allow stepping from now on!
+		startTimers(0); //Make sure we're running fully!
+		startTimers(1); //Make sure we're running fully!
+		resumeEMU(1); //Resume the emulator!
 		CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
-		unlock(LOCK_CPU); //We're done with the CPU!
+		unlock(LOCK_CPU);
 		unlock(LOCK_MAINTHREAD);
 		return 0; //Continue normally: we've booted, or give an error message!
 	}
