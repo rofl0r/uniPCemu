@@ -818,6 +818,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	byte oldCPL= getCPL();
 	byte TSSSize, isDifferentCPL;
 	word tempSS;
+	uint_32 tempesp;
 	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -946,6 +947,25 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					{
 						REG_ESP = (uint_32)CPU_POP16();
 					}
+				}
+			}
+			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
+			{
+				if (getCPL()>oldCPL) //Stack needs to be restored when returning to outer privilege level!
+				{
+					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
+					tempSS = CPU_POP16();
+					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return;
+					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
+					{
+						tempesp = CPU_POP32();
+					}
+					else
+					{
+						tempesp = CPU_POP16();
+					}
+					REG_ESP = tempesp;
 				}
 			}
 

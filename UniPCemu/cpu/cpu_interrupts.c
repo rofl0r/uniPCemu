@@ -140,10 +140,10 @@ void CPU_IRET()
 	byte V86SegReg; //Currently processing segment register!
 	byte oldCPL = getCPL(); //Original CPL
 	word tempCS, tempSS;
-	byte needsCSload=0; //Needs to POP CS?
 	uint_32 tempEFLAGS;
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
+		if (checkStackAccess(3,0,0)) return; //3 Word POPs!
 		destEIP = CPU_POP16(); //POP IP!
 		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
@@ -195,13 +195,11 @@ void CPU_IRET()
 			else
 			{
 				THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
-				return; //Abort!
 			}
+			return; //Abort!
 		}
-		else //Protected mode?
-		{
-			needsCSload = 1; //We need to load the CS variable!
-		}
+
+		//Normal protected mode?
 		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 		{
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
@@ -217,36 +215,41 @@ void CPU_IRET()
 		else //Normal IRET?
 		{
 			uint_32 tempesp;
-			if (needsCSload==0) //We're not already loaded?
+			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 			{
-				if (checkStackAccess(3,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
-				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
-				{
-					destEIP = CPU_POP32(); //POP EIP!
-				}
-				else
-				{
-					destEIP = CPU_POP16(); //POP IP!
-				}
-				tempCS = CPU_POP16(); //CS to be loaded!
-				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
-				{
-					tempEFLAGS = CPU_POP32(); //Pop flags!
-				}
-				else
-				{
-					tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
-				}
+				if (checkStackAccess(3,0,1)) return; //Top 12 bytes!
+			}
+			else //16-bit?
+			{
+				if (checkStackAccess(3,0,0)) return; //Top 6 bytes!
+			}
+			
+			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+			{
+				destEIP = CPU_POP32(); //POP EIP!
+			}
+			else
+			{
+				destEIP = (uint_32)CPU_POP16(); //POP IP!
+			}
+			tempCS = CPU_POP16(); //CS to be loaded!
+			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+			{
+				tempEFLAGS = CPU_POP32(); //Pop flags!
+			}
+			else
+			{
+				tempEFLAGS = (uint_32)CPU_POP16(); //Pop flags!
 			}
 
-			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
+			if ((tempEFLAGS&0x20000) && (!oldCPL)) //Returning to virtual 8086 mode?
 			{
-				if (checkStackAccess(NUMITEMS(V86SegRegs)+2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
+				if (checkStackAccess(12,0,0)) return; //First level IRET data?
 				tempesp = CPU_POP32(); //POP ESP!
 				tempSS = CPU_POP16(); //POP SS!
 				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
 				{
-					V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register!
+					V86SegRegs[V86SegReg] = (CPU_POP16()&0xFFFF); //POP segment register!
 				}
 				REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
 				updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
@@ -264,22 +267,6 @@ void CPU_IRET()
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
 				CPU_flushPIQ(-1); //We're jumping to another address!
-				if (oldCPL!=getCPL()) //Stack needs to be restored?
-				{
-					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
-					tempSS = CPU_POP16();
-					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return;
-					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
-					{
-						tempesp = CPU_POP32();
-					}
-					else
-					{
-						tempesp = CPU_POP16();
-					}
-					REG_ESP = tempesp;
-				}
 			}
 		}
 	}
