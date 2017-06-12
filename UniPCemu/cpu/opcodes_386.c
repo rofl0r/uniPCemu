@@ -951,7 +951,6 @@ OPTINLINE void CPU80386_internal_DAA()
 	{
 		oper1 = ALVAL+6;
 		ALVAL = (oper1&0xFF);
-		FLAGW_CF((((oper1&0xFF00)>0)?1:0)|FLAG_CF);
 		FLAGW_AF(1);
 	}
 	else FLAGW_AF(0);
