@@ -1254,7 +1254,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		byte mapvalue;
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
-		mapvalue = 0; //Default to have the value 0, not trapping!
+		mapvalue = 1; //Default to have the value 1!
 		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 		{
 			uint_32 limit;
@@ -1263,10 +1263,6 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 			if (maplocation < limit) //Not over the limit? We're an valid entry!
 			{
 				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos); //We're the bit to use!
-			}
-			else
-			{
-				mapvalue = 1; //Default to being trapped!
 			}
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
