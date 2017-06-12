@@ -7,6 +7,7 @@
 #include "headers/bios/bios.h" //Need BIOS comp!
 #include "headers/interrupts/interrupt13.h" //We need disk support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/protection.h" //Protection support for segment register loading!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 extern IODISK disks[6]; //All mounted disks!
@@ -14,12 +15,17 @@ extern IODISK disks[6]; //All mounted disks!
 int customsegment = 0; //Custom segment?
 extern word ISOREADER_SEGMENT; //Segment to load ISO boot record in!
 
+byte boot_bootsector[512]; //The full boot sector to use!
+
+extern uint_32 destEIP; //Where to start booting!
+
 int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE: unable to boot/unbootable/read error etc.)!
 {
 	int imagegotten = 0; //Image gotten?
 	word loadedsegment = BOOT_SEGMENT;
 	BOOTIMGINFO imageinfo; //The info for the image from CD-ROM!
 	int emuread = 0; //Ammount of bytes read!
+	word dataindex;
 
 	loadedsegment = BOOT_SEGMENT; //Default segment!
 	if (customsegment) //Use custom segment?
@@ -30,38 +36,29 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 	switch (device) //Which device to boot?
 	{
 	case FLOPPY0:
-	case FLOPPY1: //Floppy?
-		if (readdata(device,MMU_ptr(-1,loadedsegment,BOOT_OFFSET,0,512),0,512)) //Read boot sector!
+	case FLOPPY1:
+	case HDD0:
+	case HDD1: //Floppy or hard disk?
+		memset(&boot_bootsector,0,sizeof(boot_bootsector)); //Initialize the boot sector!
+		if (readdata(device,&boot_bootsector,0,512)) //Read boot sector!
 		{
-			if ((MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0x1fe), 0,0) != 0x55) && (MMU_rb(-1, loadedsegment, (BOOT_OFFSET + 0x1ff), 0,0) != 0xAA)) //Valid boot sector? Not officially, but nice as an extra check!
+			if ((boot_bootsector[0x1fe] != 0x55) || (boot_bootsector[0x1ff] != 0xAA)) //Valid boot sector? Not officially, but nice as an extra check!
 			{
 				return BOOT_ERROR; //Not booted!
 			}
-			CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment!
-			CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded boot sector executable!
-			CPU_flushPIQ(-1); //We're jumping to another address!
+			for (dataindex=0;dataindex<0x200;++dataindex)
+			{
+				MMU_wb(-1,loadedsegment,BOOT_OFFSET+dataindex,boot_bootsector[dataindex],1); //Write the data to memory!
+			}
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			destEIP = BOOT_OFFSET; //Where to start booting! Loaded boot sector executable!
+			segmentWritten(CPU_SEGMENT_CS,loadedsegment,1); //Jump to the boot sector!
 			return BOOT_OK; //Booted!
 		}
 		else
 		{
 			return BOOT_ERROR; //Not booted!
 		}
-	case HDD0:
-	case HDD1: //HDD?
-		if (readdata(device,MMU_ptr(-1,loadedsegment,BOOT_OFFSET,0,512),0,512)) //Read MBR to memory!
-		{
-			if (MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0x1fe),0,0)==0x55 && MMU_rb(-1,loadedsegment,(BOOT_OFFSET+0x1ff),0,0)==0xAA) //Valid boot sector?
-			{
-				CPU[activeCPU].registers->CS = loadedsegment; //Loaded segment
-				CPU[activeCPU].registers->EIP = BOOT_OFFSET; //Loaded MBR executable!
-				CPU_flushPIQ(-1); //We're jumping to another address!
-				CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
-				return BOOT_OK; //Booted!
-			}
-		}
-		//Boot from HDD!
-		return BOOT_ERROR; //Not supported yet or unbootable!
 	case CDROM0:
 	case CDROM1: //CD-ROM?
 		imagegotten = getBootImageInfo(device,&imageinfo); //Try and get the CD-ROM image info!
@@ -90,9 +87,9 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			{
 				return FALSE; //Error loading data file!
 			}
-			CPU[activeCPU].registers->CS = ISOREADER_SEGMENT; //Loaded segment!
-			CPU[activeCPU].registers->IP = 0x7C00; //Loaded executable!
-			CPU_flushPIQ(-1); //We're jumping to another address!
+			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			destEIP = 0x7C00; //Where to start booting! Loaded boot sector executable!
+			segmentWritten(CPU_SEGMENT_CS,ISOREADER_SEGMENT,1); //Jump to the boot sector!
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 			break;
