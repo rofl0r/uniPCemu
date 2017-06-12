@@ -1416,7 +1416,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		}
 		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode)) //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!
 		{
-			if (errorcode!=-1) //Error code to be pushed on the stack?
+			if ((errorcode!=-1) && (CPU[activeCPU].faultraised==0)) //Error code to be pushed on the stack?
 			{
 				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
 				{
@@ -1586,7 +1586,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
+				if (checkStackAccess(5+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
 
 				if (is32bit) //32-bit gate?
 				{
@@ -1603,7 +1603,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else
 			{
-				if (checkStackAccess(3,1,1)) return 0; //Abort on fault!
+				if (checkStackAccess(3+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
 			}
 
 			if (is32bit)
