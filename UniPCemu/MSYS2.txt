@@ -1,17 +1,39 @@
 Getting UniPCemu to compile on SDL2 with MSys2:
 
-Note: "these are literals, don't include the "-characters when typing such a literal"
+Note: "these are literals, don't include the "-characters when typing such a literal".
 
-1. Use: https://github.com/orlp/dev-on-windows/wiki/Installing-GCC--&-MSYS2
-2. Follow it until step 5(6 if you only use the 32-bit toolchain).
-3. Download the SDL2 development version.
-4. Mount the correct mingw folder you want to use, or simply mount both to compile for x86(32-bit) and x64(64-bit):
-4.1. x86 building: Execute: "mount 'PATHTOmsys2\mingw32' /mingw32". Replace PATHTOmsys2 with the location of your MSYS2 installation.
-4.2. x64 building: Execute: "mount 'PATHTOmsys2\mingw64' /mingw64". See above above step.
-5. Extract the folders from the archive into your toolchains:
-5.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder.
-5.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
-6. Make sure to have this repository in a folder in the home directory of msys2(msys2\home\<yourusername>). For example: msys2\home\<yourusername>\unipcemu contains androidprompt.bat when properly set up.
-7. Open the 32-bit or 64-bit MSys2(MSYS MinGW 32-bit or MSYS MinGW 64-bit).
-7. CD into the repository's unipcemu directories from the home (~) directory, e.g. "cd unipcemu\unipcemu"
-8. Compile the project using "make win build SDL2 mingw32" for 32-bit versions and "make win build SDL2 mingw64 x64" for 64-bit versions.
+Command are executed by typing them and pressing enter. Instead of typing, you can also paste it from the clipboard using the Shift+Insert keyboard combination or right click and click paste.
+
+First: Installing and configuration of the compiler:
+1. Install MSYS2. This can be found at http://repo.msys2.org/distrib/msys2-x86_64-latest.exe for 64-bit systems and http://repo.msys2.org/distrib/msys2-i686-latest.exe for 32-bit systems.
+2. Start the plain MSYS2 shell(called MSYS2 MSYS in the start menu).
+3. Execute: "pacman -Syuu". When asked ":: Proceed with installation? [Y/n]", type "Y" and press enter.
+4. It might give a warning ending with exit. When it does so, close the window and repeat steps 2-4. When closing the window, it will say "Processes are running in session: Close anyway?". Click OK in that case.
+5. The second try executing the command above (if done correctly), the updates have finished and you will return to the prompt. Close the window and restart MSYS2 MSYS.
+6. Type "pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \" and press enter.
+7. It will show a ">"-prompt. Type "git subversion mercurial \" and press enter.
+8. It will show another ">"-prompt. Type "mingw-w64-i686-cmake mingw-w64-x86_64-cmake" and press enter.
+9. It will show a list, ending with "Enter a selection (default=all):" prompt. Type enter.
+10. It will show another list, ending with the same prompt as before. Type enter again.
+11. The same prompt will show again. Type enter again.
+12. It will show a large list and ask ":: Proceed with installation? [Y/n] ". Type "Y" and press enter.
+13. Mount the correct mingw folder you want to use, or simply mount both to compile for x86(32-bit) and x64(64-bit):
+13.1. x86 building: Execute: "mount 'PATHTOMSYS2\mingw32' /mingw32". Replace PATHTOMSYS2 with the location of your MSYS2 installation(the path entered during installation of MSYS2, like C:\msys64).
+13.2. x64 building: Execute: "mount 'PATHTOMSYS2\mingw64' /mingw64". See above above step.
+14. Close the MSYS2 prompt.
+
+That concludes the setting up of the development environment(the compiler) itself. This is usually only done once(or when an update is needed).
+
+Now, either when a new SDL2 version comes out, or when first installing, we need to install the library required to compile and run UniPCemu.
+
+15. Download the SDL2 mingw development library from http://libsdl.org/download-2.0.php . The current version is http://libsdl.org/release/SDL2-devel-2.0.5-mingw.tar.gz .
+16. Extract the folders from the archive into your toolchains. The archive contains a .tar file(which is the actual archive itself). Within this tar file is a folder named SDL2-2.0.5. Open this directory.
+16.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder, replacing the folder of the same name that's already there.
+16.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
+17. Make sure to have this repository in a folder in the home directory of msys2(C:\msys64\home\<yourusername>). For example: msys2\home\<yourusername>\unipcemu contains androidprompt.bat when properly set up(the androidprompt.bat that's in the root of the cloned repository).
+
+Finally, building UniPCemu or updating it to the latest version(after pulling the changes from the repository).
+
+18. Open the 32-bit or 64-bit MSys2(MSYS MinGW 32-bit or MSYS MinGW 64-bit), depending on what version you want to compile.
+19. Change into the repository's unipcemu directories from the home (~) directory, e.g. "cd unipcemu\unipcemu" when using the folder name as described above. The first unipcemu can be replaced with the name you've given the folder of the repository(it's the repository folder itself).
+19. Compile the project using "make win build SDL2 mingw32" for 32-bit versions and "make win build SDL2 mingw64 x64" for 64-bit versions. The compiled program(UniPCemu_x86/64.exe and required SDL2.dll will appear in the projects_build/unipcemu directory in the home folder of msys(so at C:\msys64\home\<yourusername>\projects_build\unipcemu, when using the default installation path of MSYS2).
