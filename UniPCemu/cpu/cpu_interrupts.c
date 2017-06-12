@@ -140,6 +140,7 @@ void CPU_IRET()
 	byte V86SegReg; //Currently processing segment register!
 	byte oldCPL = getCPL(); //Original CPL
 	word tempCS, tempSS;
+	byte needsCSload=0; //Needs to POP CS?
 	uint_32 tempEFLAGS;
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
@@ -197,6 +198,10 @@ void CPU_IRET()
 				return; //Abort!
 			}
 		}
+		else //Protected mode?
+		{
+			needsCSload = 1; //We need to load the CS variable!
+		}
 		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 		{
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
@@ -211,27 +216,32 @@ void CPU_IRET()
 		}
 		else //Normal IRET?
 		{
-			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
-			{
-				destEIP = CPU_POP32(); //POP EIP!
-			}
-			else
-			{
-				destEIP = CPU_POP16(); //POP IP!
-			}
 			uint_32 tempesp;
-			tempCS = CPU_POP16(); //CS to be loaded!
-			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+			if (needsCSload==0) //We're not already loaded?
 			{
-				tempEFLAGS = CPU_POP32(); //Pop flags!
-			}
-			else
-			{
-				tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
+				if (checkStackAccess(3,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
+				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+				{
+					destEIP = CPU_POP32(); //POP EIP!
+				}
+				else
+				{
+					destEIP = CPU_POP16(); //POP IP!
+				}
+				tempCS = CPU_POP16(); //CS to be loaded!
+				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+				{
+					tempEFLAGS = CPU_POP32(); //Pop flags!
+				}
+				else
+				{
+					tempEFLAGS = ((REG_EFLAGS&0xFFFF0000)|CPU_POP16()); //Pop flags!
+				}
 			}
 
 			if (tempEFLAGS&0x20000) //Returning to virtual 8086 mode?
 			{
+				if (checkStackAccess(NUMITEMS(V86SegRegs)+2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
 				tempesp = CPU_POP32(); //POP ESP!
 				tempSS = CPU_POP16(); //POP SS!
 				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
@@ -256,6 +266,7 @@ void CPU_IRET()
 				CPU_flushPIQ(-1); //We're jumping to another address!
 				if (oldCPL!=getCPL()) //Stack needs to be restored?
 				{
+					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
 					tempSS = CPU_POP16();
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
