@@ -488,23 +488,25 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 
 //Initialisation stuff!
 
-OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootup (self test)!
+OPTINLINE void keyboardControllerInit(byte is_extern) //Part before the BIOS at computer bootup (self test)!
 {
 	if (__HW_DISABLED) return; //Abort!
 	force8042 = 1; //We're forcing 8042 style init!
 	byte result; //For holding the result from the hardware!
 	Controller8042.RAM[0] &= ~0x50; //Enable our input, disable translation!
-	for (;!(PORT_IN_B(0x64)&0x1);) //Wait for input data?
+	if (is_extern==0) //Not externally?
 	{
-		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
-		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		for (;!(PORT_IN_B(0x64)&0x1);) //Wait for input data?
+		{
+			updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+			update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		}
+		result = PORT_IN_B(0x60); //Must be 0xAA!
+		if (result!=0xAA) //Error?
+		{
+			raiseError("Keyboard Hardware initialisation","Couldn't get Self Test passed! Result: %02X",result);
+		}
 	}
-	result = PORT_IN_B(0x60); //Must be 0xAA!
-	if (result!=0xAA) //Error?
-	{
-		raiseError("Keyboard Hardware initialisation","Couldn't get Self Test passed! Result: %02X",result);
-	}
-
 
 	PORT_OUT_B(0x60,0xED); //Set/reset status indicators!
 	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
@@ -586,7 +588,8 @@ OPTINLINE void keyboardControllerInit() //Part before the BIOS at computer bootu
 
 void keyboardControllerInit_extern()
 {
-	keyboardControllerInit(); //Part before the BIOS at computer bootup (self test), external!
+	BIOS_initKeyboard(); //Initialize the keyboard!
+	keyboardControllerInit(1); //Part before the BIOS at computer bootup (self test), external!
 }
 
 void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
@@ -600,7 +603,7 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
-	if (is_XT==0) keyboardControllerInit(); //Initialise the basic keyboard controller when allowed!
+	if (is_XT==0) keyboardControllerInit(0); //Initialise the basic keyboard controller when allowed!
 	else //IBM XT initialization required?
 	{
 		Controller8042.RAM[0] |= 0x40; //Enable translation!
