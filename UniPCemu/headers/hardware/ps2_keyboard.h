@@ -57,4 +57,7 @@ void keyboardControllerInit_extern(); //Keyboard initialization for the BIOS!
 
 void updatePS2Keyboard(double timepassed); //For stuff requiring timing!
 
+//Special use for the BIOS only!
+void keyboardControllerInit(byte is_extern); //Part before the BIOS at computer bootup (self test)!
+
 #endif

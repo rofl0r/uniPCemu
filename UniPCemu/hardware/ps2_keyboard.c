@@ -485,7 +485,7 @@ int handle_keyboardpeek(byte *result) //Peek at the keyboard!
 
 //Initialisation stuff!
 
-OPTINLINE void keyboardControllerInit(byte is_extern) //Part before the BIOS at computer bootup (self test)!
+void keyboardControllerInit(byte is_extern) //Part before the BIOS at computer bootup (self test)!
 {
 	if (__HW_DISABLED) return; //Abort!
 	force8042 = 1; //We're forcing 8042 style init!
