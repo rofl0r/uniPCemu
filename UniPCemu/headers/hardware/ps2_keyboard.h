@@ -4,6 +4,9 @@
 #include "headers/types.h" //Basic types!
 #include "headers/support/fifobuffer.h" //FIFOBUFF#R support!
 
+//Timeout between commands or parameters and results being buffered! Use 5ms timings!
+#define KEYBOARD_DEFAULTTIMEOUT 100000.0
+
 typedef struct
 {
 byte keypress[8];

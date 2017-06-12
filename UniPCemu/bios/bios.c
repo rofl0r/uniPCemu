@@ -13,6 +13,7 @@
 #include "headers/hardware/ports.h" //Port I/O support!
 #include "headers/emu/sound.h" //Volume support!
 #include "headers/hardware/midi/mididevice.h" //MIDI support!
+#include "headers/hardware/ps2_keyboard.h" //For timeout support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -996,10 +997,24 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	byte result; //For holding the result from the hardware!
 	force8042 = 1; //We're forcing 8042 style init!
 
-	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
-	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
 	{
-		raiseError("Keyboard BIOS initialisation","No set/reset status indicator command result:2!");
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
+	BIOS_writeKBDCMD(0xED); //Set/reset status indicators!
+
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
+	{
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
 	}
 
 	result = PORT_IN_B(0x60); //Check the result!
@@ -1009,6 +1024,19 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 	}
 
 	write_8042(0x60,0x02); //Turn on NUM LOCK led!
+
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
+	for (;!(PORT_IN_B(0x64) & 0x1);) //Wait for input data?
+	{
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
 	if (!(PORT_IN_B(0x64)&0x1)) //No input data?
 	{
 		raiseError("Keyboard BIOS initialisation","No turn on NUM lock led result!");
@@ -1021,14 +1049,43 @@ void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 
 	PORT_OUT_B(0x64, 0xAE); //Enable first PS/2 port!
 
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
 	BIOS_writeKBDCMD(0xF4); //Enable scanning!
 
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
 	PORT_OUT_B(0x64, 0x20); //Read PS2ControllerConfigurationByte!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
+
+
 	byte PS2ControllerConfigurationByte;
 	PS2ControllerConfigurationByte = PORT_IN_B(0x60); //Read result!
 
 	PS2ControllerConfigurationByte |= 1; //Enable our interrupt!
 	PORT_OUT_B(0x64, 0x60); //Write PS2ControllerConfigurationByte!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
 	PORT_OUT_B(0x60, PS2ControllerConfigurationByte); //Write the new configuration byte!
+	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
+	{
+		update8042(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+		updatePS2Keyboard(KEYBOARD_DEFAULTTIMEOUT); //Update the keyboard when allowed!
+	}
 	force8042 = 0; //Disable 8042 style init!
 }
