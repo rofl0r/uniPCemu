@@ -276,7 +276,7 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 		{
 			last_status = 0x00;
 			CALLBACK_SCF(1); //Error!
-			return (byte)sector; //Abort with ammount of sectors read!
+			goto finishupr; //Abort with ammount of sectors read!
 		}
 
 		//Sector is read, now write it to memory!
@@ -284,14 +284,14 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 		current = 0; //Current byte in the buffer!
 		for (;;)
 		{
+			if (!left--) goto nextsector; //Stop when nothing left!
 			MMU_wb(CPU_SEGMENT_ES,REG_ES,position,int13_buffer[current],1); //Write the data to memory!
 			if (MMU_rb(CPU_SEGMENT_ES, REG_ES, position++, 0,1) != int13_buffer[current]) //Failed to write (unexistant memory, paged out or read-only)?
 			{
 				last_status = 0x00;
 				CALLBACK_SCF(1); //Error!
-				goto finishup;
+				goto finishupr;
 			}
-			if (!--left) goto nextsector; //Stop when nothing left!
 			++current; //Next byte in the buffer!
 		}
 		nextsector: //Process next sector!
@@ -299,7 +299,7 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 		++sector; //Process to the next sector!
 	}
 
-	finishup: //Early stop: we cannot write any further!
+	finishupr: //Early stop: we cannot write any further!
 	
 	dolog("debugger","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
 					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
@@ -337,12 +337,13 @@ OPTINLINE byte writediskdata(uint_32 startpos)
 		{
 			last_status = 0x00;
 			CALLBACK_SCF(1); //Error!
-			return (byte)sector; //Abort!
+			goto finishupw; //Abort!
 		}
 		--sectors; //One sector processed!
 		++sector; //Process to the next sector!
 	}
 	
+	finishupw:
 	dolog("debugger","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
 	return (byte)sector; //Ammount of sectors read!
 }
