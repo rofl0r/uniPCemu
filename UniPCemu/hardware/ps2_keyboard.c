@@ -504,6 +504,11 @@ OPTINLINE void keyboardControllerInit(byte is_extern) //Part before the BIOS at 
 			raiseError("Keyboard Hardware initialisation","Couldn't get Self Test passed! Result: %02X",result);
 		}
 	}
+	if (is_XT)
+	{
+		force8042 = 0; //We're finishing 8042 style init!
+		goto skipcheck;
+	}
 
 	PORT_OUT_B(0x60,0xED); //Set/reset status indicators!
 	for (;(PORT_IN_B(0x64) & 0x2);) //Wait for output of data?
@@ -579,8 +584,9 @@ OPTINLINE void keyboardControllerInit(byte is_extern) //Part before the BIOS at 
 	}
 	fifobuffer_clear(Keyboard.buffer); //Clear our output buffer for compatibility!
 	resetKeyboard(0,1); //Reset us to a known state on AT PCs when needed!
-	force8042 = 0; //Disable 8042 style init!
 	Controller8042.RAM[0] |= 0x50; //Disable our input, enable translation!
+	skipcheck:
+	force8042 = 0; //Disable 8042 style init!
 }
 
 void keyboardControllerInit_extern()

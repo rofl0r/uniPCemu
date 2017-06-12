@@ -599,6 +599,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		keyboardControllerInit_extern(); //Initialize the keyboard controller always!
 		BIOSKeyboardInit(); //Initialise the BIOS stuff for the keyboard!
+		if (is_XT) keyboardControllerInit(0); //BIOS: Swallow the 0xAA byte that's left, if required!
 
 		CPU[activeCPU].registers->AX = VIDEOMODE_BOOT; //TEXT mode for booting!
 		BIOS_int10(); //Switch modes!

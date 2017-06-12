@@ -994,6 +994,7 @@ extern byte force8042; //Force 8042 style handling?
 void BIOSKeyboardInit() //BIOS part of keyboard initialisation!
 {
 	if (__HW_DISABLED) return; //Abort!
+	if (is_XT) return;
 	byte result; //For holding the result from the hardware!
 	force8042 = 1; //We're forcing 8042 style init!
 
