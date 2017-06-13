@@ -3043,8 +3043,10 @@ void CPU386_OPC8()
 		if (checkStackAccess(1,1,1)) return; //Abort on error!		
 	}
 
+	/*
 	CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
 	CPU[activeCPU].oldESP = REG_ESP; //Back-up!
+	*/ //Done automatically at the start of an instruction!
 
 	CPU_PUSH32(&REG_EBP);
 	uint_32 frametemp = REG_ESP;

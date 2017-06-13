@@ -68,11 +68,14 @@ void raisePF(uint_32 address, word flags)
 	}
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
+	/*
 	if (CPU[activeCPU].have_oldESP && CPU[activeCPU].registers) //Returning the (E)SP to it's old value?
 	{
 		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
 		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
+	*/
+	CPU_onResettingFault(); //Set the fault data!
 	if (CPU_faultraised(EXCEPTION_PAGEFAULT)) //Fault raising exception!
 	{
 		call_soft_inthandler(EXCEPTION_PAGEFAULT,(int_64)flags); //Call IVT entry #13 decimal!

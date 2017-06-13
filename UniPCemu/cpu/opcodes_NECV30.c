@@ -562,11 +562,13 @@ void CPU186_OPC8()
 		if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(1,1,0)) return; //Abort on error!		
 	}
 
+	/*
 	if (CPU[activeCPU].instructionstep==0) //Starting the instruction?
 	{
 		CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
 		CPU[activeCPU].oldESP = REG_ESP; //Back-up!
 	}
+	*/ //Done automatically at the start of an instruction!
 
 	if (CPU8086_PUSHw(0,&REG_BP)) return; //Busy pushing?
 	word frametemp = (word)CPU[activeCPU].oldESP; //Read the original value to start at(for stepping compatibility)!

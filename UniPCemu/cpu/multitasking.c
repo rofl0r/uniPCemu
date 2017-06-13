@@ -422,6 +422,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		TSS_dirty = 1; //We're dirty!
 	}
 
+	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
+
 	if (TSS_dirty) //Destination TSS dirty?
 	{
 		if (debugger_logging()) //Are we logging?

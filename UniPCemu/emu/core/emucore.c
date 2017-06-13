@@ -942,6 +942,7 @@ OPTINLINE byte coreHandler()
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
+							CPU_saveFaultData(); //Save fault data to go back to when exceptions occur!
 							hardwareinterrupthandler: //Hardware interrupt busy!
 							if ((call_hard_inthandler(HWINT_nr)==0) && (!(EMULATED_CPU>=CPU_80286))) //get next interrupt from the i8259, if any!
 							{

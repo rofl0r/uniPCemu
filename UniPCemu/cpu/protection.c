@@ -111,17 +111,14 @@ void CPU_onResettingFault()
 	if (CPU[activeCPU].have_oldSS) //Returning the SS to it's old value?
 	{
 		REG_SS = CPU[activeCPU].oldSS; //Restore SS to it's original value!
-		CPU[activeCPU].have_oldSS = 0; //Don't have anything to restore anymore!
 	}
 	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
 	{
 		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldESP = 0; //Don't have anything to restore anymore!
 	}
 	if (CPU[activeCPU].have_oldEFLAGS) //Returning the (E)SP to it's old value?
 	{
 		REG_EFLAGS = CPU[activeCPU].oldEFLAGS; //Restore EFLAGS to it's original value!
-		CPU[activeCPU].have_oldEFLAGS = 0; //Don't have anything to restore anymore!
 		updateCPUmode(); //Restore the CPU mode!
 	}
 	if (CPU[activeCPU].have_oldSegments) //Returning the (E)SP to it's old value?
@@ -130,8 +127,23 @@ void CPU_onResettingFault()
 		REG_ES = CPU[activeCPU].oldSegmentES; //Restore ESP to it's original value!
 		REG_FS = CPU[activeCPU].oldSegmentFS; //Restore ESP to it's original value!
 		REG_GS = CPU[activeCPU].oldSegmentGS; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldSegments = 0; //Don't have anything to restore anymore!
 	}
+}
+
+void CPU_saveFaultData() //Prepare for a fault by saving all required data!
+{
+		CPU[activeCPU].oldSS = REG_SS; //Restore SS to it's original value!
+		CPU[activeCPU].have_oldSS = 1; //Restorable!
+		CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldESP = 1; //Restorable!
+		CPU[activeCPU].oldEFLAGS = REG_EFLAGS; //Restore EFLAGS to it's original value!
+		CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
+		updateCPUmode(); //Restore the CPU mode!
+		CPU[activeCPU].oldSegmentDS = REG_DS; //Restore ESP to it's original value!
+		CPU[activeCPU].oldSegmentES = REG_ES; //Restore ESP to it's original value!
+		CPU[activeCPU].oldSegmentFS = REG_FS; //Restore ESP to it's original value!
+		CPU[activeCPU].oldSegmentGS = REG_GS; //Restore ESP to it's original value!
+		CPU[activeCPU].have_oldSegments = 1; //Restorable!
 }
 
 //More info: http://wiki.osdev.org/Paging
@@ -738,10 +750,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
 			{
 				//Backup the old stack data!
+				/*
 				CPU[activeCPU].have_oldESP = 1;
 				CPU[activeCPU].have_oldSS = 1;
 				CPU[activeCPU].oldESP = REG_ESP; //Backup!
 				CPU[activeCPU].oldSS = REG_SS; //Backup!
+				*/ //Dont automatically at the start of the instruction!
 				//Now, copy the stack arguments!
 
 				*isdifferentCPL = 1; //We're a different level!
@@ -929,10 +943,12 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					//Privilege change!
 					//Backup the old stack data!
+					/*
 					CPU[activeCPU].have_oldESP = 1;
 					CPU[activeCPU].have_oldSS = 1;
 					CPU[activeCPU].oldESP = REG_ESP; //Backup!
 					CPU[activeCPU].oldSS = REG_SS; //Backup!
+					*/ //Dont automatically at the start of an instruction!
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
@@ -1500,28 +1516,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (FLAG_V8 && ((getCPL()!=oldCPL) && (getCPL()!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
-				if (CPU[activeCPU].have_oldEFLAGS==0) //Setup back-up EFLAGS?
+				if (getCPL()!=0)
 				{
-					CPU[activeCPU].oldEFLAGS = EFLAGSbackup; //Save EFLAGS!
-					CPU[activeCPU].have_oldEFLAGS = 1; //We have EFLAGS to restore!
-				}
-				if (CPU[activeCPU].have_oldSS==0) //Setup back-up SS?
-				{
-					CPU[activeCPU].oldSS = REG_SS; //Save SS!
-					CPU[activeCPU].have_oldSS = 1; //We have SS to restore!
-				}
-				if (CPU[activeCPU].have_oldESP==0) //Setup back-up ESP?
-				{
-					CPU[activeCPU].oldESP = REG_ESP; //Save ESP!
-					CPU[activeCPU].have_oldESP = 1; //We have ESP to restore!
-				}
-				if (CPU[activeCPU].have_oldSegments==0) //Setup old segments?
-				{
-					CPU[activeCPU].oldSegmentDS = REG_DS; //Save DS!
-					CPU[activeCPU].oldSegmentES = REG_ES; //Save ES!
-					CPU[activeCPU].oldSegmentFS = REG_FS; //Save FS!
-					CPU[activeCPU].oldSegmentGS = REG_GS; //Save GS!
-					CPU[activeCPU].have_oldSegments = 1; //We have all segments to update!
+					THROWDESCGP(REG_CS,is_EXT,EXCEPTION_TABLE_GDT); //Exception!
+					return 0; //Abort on fault!
 				}
 
 				word SS0;
@@ -1534,6 +1532,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
 				updateCPUmode(); //Update the CPU mode!
 
+				FLAGW_RF(0); //Clear Resume flag too!
+
 				//We're back in protected mode now!
 
 				//Switch Stack segment first!
@@ -1543,7 +1543,14 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(9,1,1)) return 0; //Abort on fault!
+				if (is32bit) //32-bit gate?
+				{
+					if (checkStackAccess(19+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
+				}
+				else //16-bit gate?
+				{
+					if (checkStackAccess(19+((errorcode!=-1)?1:0),1,0)) return 0; //Abort on fault!
+				}
 
 				//Save the Segment registers on the new stack!
 				CPU_PUSH16(&REG_GS);
@@ -1567,29 +1574,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			else if ((getCPL()!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
 			{
 				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
-				if (CPU[activeCPU].have_oldEFLAGS==0) //Setup back-up EFLAGS?
-				{
-					CPU[activeCPU].oldEFLAGS = EFLAGSbackup; //Save EFLAGS!
-					CPU[activeCPU].have_oldEFLAGS = 1; //We have EFLAGS to restore!
-				}
-				if (CPU[activeCPU].have_oldSS==0) //Setup back-up SS?
-				{
-					CPU[activeCPU].oldSS = REG_SS; //Save SS!
-					CPU[activeCPU].have_oldSS = 1; //We have SS to restore!
-				}
-				if (CPU[activeCPU].have_oldESP==0) //Setup back-up ESP?
-				{
-					CPU[activeCPU].oldESP = REG_ESP; //Save ESP!
-					CPU[activeCPU].have_oldESP = 1; //We have ESP to restore!
-				}
-				if (CPU[activeCPU].have_oldSegments==0) //Setup old segments?
-				{
-					CPU[activeCPU].oldSegmentDS = REG_DS; //Save DS!
-					CPU[activeCPU].oldSegmentES = REG_ES; //Save ES!
-					CPU[activeCPU].oldSegmentFS = REG_FS; //Save FS!
-					CPU[activeCPU].oldSegmentGS = REG_GS; //Save GS!
-					CPU[activeCPU].have_oldSegments = 1; //We have all segments to update!
-				}
 
 				word SS0;
 				uint_32 ESP0;
