@@ -159,7 +159,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags)) //Disallowed?
+	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags,is_offset16)) //Disallowed?
 	{
 		MMU.invaddr = 2; //Invalid address signaling!
 		return 1; //Not found.

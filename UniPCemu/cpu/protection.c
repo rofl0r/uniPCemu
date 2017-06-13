@@ -1099,7 +1099,7 @@ MMU: Memory limit!
 
 byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
-byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest)
+byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
 	//byte isconforming;
 
@@ -1160,6 +1160,14 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	}
 
+	if ((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor)) //Data segment that's expand-down?
+	{
+		if (is_offset16) //16-bits offset? Set the high bits for compatibility!
+		{
+			offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly!
+		}
+	}
+
 	if (addrtest) //Execute address test?
 	{
 		isvalid = (offset<=limit); //Valid address range!
@@ -1213,7 +1221,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 }
 
 //Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
-int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading) //Determines the limit of the segment, forreading=2 when reading an opcode!
+int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	//Determine the Limit!
 	if (EMULATED_CPU >= CPU_80286) //Handle like a 80286+?
@@ -1230,7 +1238,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 		}
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!
-		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1)) //What rights resulting? Test the address itself too!
+		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16)) //What rights resulting? Test the address itself too!
 		{
 		case 0: //OK?
 			break; //OK!

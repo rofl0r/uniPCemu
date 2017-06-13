@@ -198,7 +198,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 			{
-				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor.desc, 0)==0) //Check without address test!
+				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor.desc, 0,1)==0) //Check without address test!
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
@@ -227,7 +227,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			SEGDESCRIPTOR_TYPE verdescriptor;
 			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 			{
-				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor.desc, 0)==0) //Check without address test!
+				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor.desc, 0,1)==0) //Check without address test!
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
