@@ -147,6 +147,7 @@ typedef struct
 	int segmentregister_index; //Segment register index!
 	uint_32 mem_offset; //Offset of memory address!
 	uint_32 memorymask; //Memory mask to use!
+	byte is16bit; //16-bit address based?
 } MODRM_PTR; //ModRM decoded pointer!
 
 typedef struct
