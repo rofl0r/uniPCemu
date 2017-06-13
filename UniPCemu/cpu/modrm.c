@@ -1787,7 +1787,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
-		result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
+		result->memorymask = (EMULATED_CPU<CPU_80386)?~0:0xFFFF; //Only 16-bit offsets are used?
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
 		switch (reg) //Which register?
@@ -1874,7 +1874,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
-		result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
+		result->memorymask = (EMULATED_CPU<CPU_80386)?~0:0xFFFF; //Only 16-bit offsets are used?
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
 		if (CPU_Operand_size[activeCPU]) //Operand size is 32-bits?
@@ -2034,7 +2034,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				return;
 				break;
 			}
-			result->memorymask = 0xFFFF; //Only 16-bit offsets are used!
+			result->memorymask = (EMULATED_CPU<CPU_80386)?~0:0xFFFF; //Only 16-bit offsets are used?
 			break;
 		}
 		break;
