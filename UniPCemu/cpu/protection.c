@@ -379,7 +379,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		{
 			if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
 			{
-				return 1; //Error out!
+				return 0; //Error out!
 			}
 		}
 		descriptor_address -= sizeof(container->descdata); //Restore start address!
