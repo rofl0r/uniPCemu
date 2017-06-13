@@ -24,7 +24,7 @@
 //#define LOGFLAGSONLY
 
 //Debug logging for protected mode?
-//#define DEBUG_PROTECTEDMODE
+#define DEBUG_PROTECTEDMODE
 
 //Debugger skipping functionality
 uint_32 skipopcodes = 0; //Skip none!
