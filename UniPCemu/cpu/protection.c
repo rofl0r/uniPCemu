@@ -148,7 +148,7 @@ void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 
 //More info: http://wiki.osdev.org/Paging
 //General Protection fault.
-void CPU_GP(int toinstruction,int_64 errorcode)
+void CPU_GP(int_64 errorcode)
 {
 	if (debugger_logging()) //Are we logging?
 	{
@@ -163,10 +163,7 @@ void CPU_GP(int toinstruction,int_64 errorcode)
 	}
 	if (CPU_faultraised(EXCEPTION_GENERALPROTECTIONFAULT)) //Fault raising exception!
 	{
-		if (toinstruction) //Point to the faulting instruction?
-		{
-			CPU_resetOP(); //Point to the faulting instruction!
-		}
+		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
@@ -316,7 +313,7 @@ int isGateDescriptor(SEGDESCRIPTOR_TYPE *loadeddescriptor) //0=Fault, 1=Gate, -1
 
 void THROWDESCGP(word segmentval, byte external, byte tbl)
 {
-	CPU_GP(1,(external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_GP((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCSP(word segmentval, byte external, byte tbl)
