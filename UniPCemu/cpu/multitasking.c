@@ -109,7 +109,6 @@ extern uint_32 CPU_exec_EIP; //Save for handling!
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
-	byte destStack = 3; //Destination stack!
 	//Both structures to use for the TSS!
 	word LDTsegment;
 	word oldtask;
@@ -124,12 +123,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","Switching task to task %04X",destinationtask);
-	}
-
-	if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR->desc) != getCPL()) //Different CPL? Stack switch?
-	{
-		destStack = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR->desc); //Switch to this stack!
-		//isStackSwitch = 1; //Switching stacks!
 	}
 
 	uint_32 limit; //The limit we use!
@@ -543,47 +536,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	word *SPPtr=&TSS16.SP;
 	if (TSSSize) //32-bit to load?
 	{
-		switch (destStack) //What are we switching to?
-		{
-		case 0: //Level 0?
-			SSPtr = &TSS32.SS0;
-			ESPPtr = &TSS32.ESP0;
-			break;
-		case 1: //Level 1?
-			SSPtr = &TSS32.SS1;
-			ESPPtr = &TSS32.ESP1;
-			break;
-		case 2: //Level 2?
-			SSPtr = &TSS32.SS2;
-			ESPPtr = &TSS32.ESP2;
-			break;
-		case 3: //Level 3?
-			SSPtr = &TSS32.SS;
-			ESPPtr = &TSS32.ESP;
-			break;
-		}
+		SSPtr = &TSS32.SS;
+		ESPPtr = &TSS32.ESP;
 	}
 	else //16-bit to load?
 	{
-		switch (destStack) //What are we switching to?
-		{
-		case 0: //Level 0?
-			SSPtr = &TSS16.SS0;
-			SPPtr = &TSS16.SP0;
-			break;
-		case 1: //Level 1?
-			SSPtr = &TSS16.SS1;
-			SPPtr = &TSS16.SP1;
-			break;
-		case 2: //Level 2?
-			SSPtr = &TSS16.SS2;
-			SPPtr = &TSS16.SP2;
-			break;
-		case 3: //Level 3?
-			SSPtr = &TSS16.SS;
-			SPPtr = &TSS16.SP;
-			break;
-		}
+		SSPtr = &TSS16.SS;
+		SPPtr = &TSS16.SP;
 	}
 
 	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment!
