@@ -899,7 +899,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
