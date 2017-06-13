@@ -796,6 +796,7 @@ void updateSpeedLimit()
 }
 
 extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
+extern word CPU_exec_CS; //Executing CS for faults!
 
 extern byte allcleared;
 
@@ -942,6 +943,8 @@ OPTINLINE byte coreHandler()
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
+							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+							CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 							CPU_saveFaultData(); //Save fault data to go back to when exceptions occur!
 							hardwareinterrupthandler: //Hardware interrupt busy!
 							if ((call_hard_inthandler(HWINT_nr)==0) && (!(EMULATED_CPU>=CPU_80286))) //get next interrupt from the i8259, if any!
