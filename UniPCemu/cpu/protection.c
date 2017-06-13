@@ -1168,9 +1168,9 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			if (DATASEGMENTPTR_E(descriptor)) //Expand-down data segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
-				if (SEGDESCPTR_NONCALLGATE_G(descriptor) == 0) //Small granularity?
+				if (!((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386))) //Small granularity?
 				{
-					isvalid = (isvalid && (offset <= 0x10000)); //Limit to 64K!
+					isvalid = (isvalid && (offset <= limit)); //Limit to 64K or lower!
 				}
 			}
 		}
