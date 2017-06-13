@@ -423,6 +423,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
+	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
@@ -445,9 +447,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	protectedModeDebugger_taskswitch(); //Apply any action required for a task switch!
 
 	updateCPUmode(); //Make sure the CPU mode is updated, according to the task!
-
-	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 
 	if (debugger_logging()) //Are we logging?
 	{
