@@ -578,7 +578,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 			return NULL; //We're an invalid descriptor to use!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
-		if (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR.desc) == AVL_SYSTEM_TASKGATE) //Task gate?
+		if (GENERALSEGMENT_TYPE(GATEDESCRIPTOR.desc) == AVL_SYSTEM_TASKGATE) //Task gate?
 		{
 			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal! TR doesn't support Task Gates directly(hardware only)!
 			{
@@ -647,6 +647,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	default:
 		is_TSS = 0; //We're no TSS!
 		break;
+	}
+
+	if (is_TSS && (segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET allowed regardless of privilege?
+	{
+		privilegedone = 1; //Allow us always!
 	}
 
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
