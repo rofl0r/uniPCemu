@@ -1159,6 +1159,7 @@ extern PS2_KEYBOARD Keyboard; //Active keyboard!
 extern byte SCREEN_CAPTURE; //Screen capture requested?
 
 byte FINGEROSK = 0; //Finger OSK enabled?
+byte Stickykeys = 0; //Use sticky keys?
 
 void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 {
@@ -1177,6 +1178,15 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 't'; //OSK Input mode!
 	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 3;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 'S'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 4;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 't'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 4;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 'i'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 4;
 	#endif
 
 	if (!input_enabled) //Input disabled atm?
@@ -1733,6 +1743,13 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
 				{
 					Settings_request = 1; //Requesting settings to be loaded!
+				}
+			}
+			if (keyboard_special[y - ybase][x - xbase] == 4) //Sticky keys toggle?
+			{
+				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Sticky toggle on click?
+				{
+					Stickykeys ^= 1; //Toggle sticky keys!
 				}
 			}
 			else if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
