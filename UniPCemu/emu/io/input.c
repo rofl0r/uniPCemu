@@ -1636,7 +1636,7 @@ OPTINLINE static void updateFingerOSK()
 		if (OSKdrawn == 0) //Not drawn yet?
 		{
 			OSKdrawn = 1; //We're drawn after this!
-			releasingstickykeys = 0; //Default: not releasing any sticky keys now!
+			releasingstickykeys = (Stickykeys==0); //Default: not releasing any sticky keys now!
 			startreleasestickykeys: //To jump back here when releasing!
 			pendingreleasestickykeys = 0; //Pending to release sticky keys?
 			currentkey = &OSKinfo[0]; //The first key to process
@@ -1708,7 +1708,7 @@ OPTINLINE static void updateFingerOSK()
 			updateFingerOSK_mouse(); //Update our mouse handling!
 		}
 
-		releasingstickykeys = 0; //Default: not releasing any sticky keys now!
+		releasingstickykeys = (Stickykeys==0); //Default: not releasing any sticky keys now!
 		startreleasestickykeysdrawn: //To jump back here when releasing!
 		pendingreleasestickykeys = 0; //Pending to release sticky keys?
 		currentkey = &OSKinfo[0]; //The first key to process
@@ -1734,7 +1734,7 @@ OPTINLINE static void updateFingerOSK()
 			{
 				fingerOSK_OSK_presskey(currentkey,key,activecolor,bordercolor); //We're pressed, supporting Sticky keys!
 			}
-			else if ((pressed == 0) && ((currentkey->pressed&1) || ((currentkey->pressed && releasingstickykeys)))) //Are we released or second release, or full release by sticky key being released?
+			else if ((pressed == 0) && ((currentkey->pressed&1) || ((currentkey->pressed && (releasingstickykeys || ((currentkey->pressed&&(Stickykeys==0)))))))) //Are we released or second release, or full release by sticky key being released?
 			{
 				fingerOSK_OSK_releasekey(currentkey,key,fontcolor,bordercolor,&pendingreleasestickykeys,releasingstickykeys); //We're release, supporting Sticky keys!
 			}
@@ -1840,6 +1840,9 @@ void keyboard_renderer() //Render the keyboard on-screen!
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Sticky toggle on click?
 				{
 					Stickykeys ^= 1; //Toggle sticky keys!
+					GPU_text_releasesurface(keyboardsurface); //Lock us!
+					updateFingerOSK(); //Make sure the finger OSK is updated!
+					GPU_text_locksurface(keyboardsurface); //Lock us!
 				}
 			}
 			else if (keyboard_special[y - ybase][x - xbase]==2) //Finger OSK toggle?
