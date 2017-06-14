@@ -1193,7 +1193,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	{
 		if (FINGEROSK) //Finger OSK enabled?
 		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
 			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
 		}
 		#ifndef IS_PSP
@@ -1374,7 +1374,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 
 	if (FINGEROSK) //Finger OSK enabled?
 	{
-		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
 		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color active!		
 	}
 	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
