@@ -57,6 +57,7 @@
 #include "headers/hardware/gameblaster.h" //Game blaster support!
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
 #include "headers/cpu/easyregs.h" //Flag support!
+#include "headers/cpu/protection.h" //Save fault data support!
 
 #include "headers/cpu/memory_adressing.h" //Internal MMU call support! For CPU_MMU_start functionality!
 #include "headers/support/mid.h" //MIDI player support!
