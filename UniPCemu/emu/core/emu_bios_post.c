@@ -190,6 +190,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 
 extern byte is_XT; //XT Architecture?
 extern byte is_Compaq; //Compaq Architecture?
+extern byte dumpBIOS; //dump BIOS?
 
 //Result: 0=Continue;1=Reset!
 int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
@@ -392,6 +393,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				doneCPU();
 				lock(LOCK_CPU);
 				resetCPU(); //Reset the CPU to load the BIOS!
+				if (dumpBIOS)
+				{
+					BIOSROM_dumpBIOS(); //Dump the BIOS!
+				}
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!

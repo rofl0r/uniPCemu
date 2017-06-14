@@ -1099,3 +1099,45 @@ byte isTurboXTBIOS() //Are we running the Turbo XT BIOS now?
 {
 	return (getcpumode()!=CPU_MODE_PROTECTED)?checkTurboXTBIOS():0;
 }
+
+void BIOSROM_dumpBIOS()
+{
+		uint_64 baseloc, endloc;
+		if (is_XT) //XT?
+		{
+			baseloc = BIOSROM_BASE_XT;
+			endloc = 0x100000;
+		}
+		else if (is_Compaq==1) //32-bit?
+		{	
+			baseloc = BIOSROM_BASE_Modern;
+			endloc = 0x100000000LL;
+		}
+		else //AT?
+		{
+			baseloc = BIOSROM_BASE_AT;
+			endloc = 0x1000000;
+		}
+		FILE *f;
+		byte data;
+		char filename[2][100];
+		memset(&filename[0],0,sizeof(filename)); //Clear/init!
+		sprintf(filename[0], "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		sprintf(filename[1], "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+
+		f = fopen(filename[0],"wb");
+		if (!f) return;
+		for (;baseloc<endloc;++baseloc)
+		{
+			if (BIOS_readhandler(baseloc,&data)) //Read directly!
+			{
+				if (!fwrite(&data,1,1,f)) //Failed to write?
+				{
+					fclose(f); //close!
+					delete_file(ROMpath,filename[1]); //Remove: invalid!
+					return;
+				}
+			}
+		}
+		fclose(f); //close!
+}

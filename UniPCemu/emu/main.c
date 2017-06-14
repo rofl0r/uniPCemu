@@ -278,6 +278,8 @@ void monpendingcleanup()
 extern char UniPCEmu_root_dir[256]; //Our root directory to use!
 #endif
 
+byte dumpBIOS = 0;
+
 int main(int argc, char * argv[])
 {
 	int argn;
@@ -285,6 +287,7 @@ int main(int argc, char * argv[])
 	char *testparam;
 	char nosoundparam[] = "nosound";
 	char RDPparam[] = "rdp";
+	char dumpBIOSparam[] = "dumpbios";
 	byte usesoundmode = 1;
 	uint_32 SDLsubsystemflags = 0; //Our default SDL subsystem flags of used functionality!
 	int emu_status;
@@ -376,6 +379,28 @@ int main(int argc, char * argv[])
 				if ((*argch==*testparam) && (*argch=='\0')) //End of string? Full match!
 				{
 					RDP = 1; //Enable RDP: we're enabled by the parameter!
+				}
+
+				//Third param option!
+				argch = &argv[argn][0]; //First character of the parameter!
+				testparam = &dumpBIOSparam[0]; //Our parameter to check for!
+				for (;*argch!='\0';) //Parse the string!
+				{
+					if ((char)tolower((int)*argch)!=*testparam) //Not matched?
+					{
+						goto nomatch3;
+					}
+					if (*testparam=='\0') //No match? We're too long!
+					{
+						goto nomatch3;
+					}
+					++argch;
+					++testparam;
+				}
+				nomatch3:
+				if ((*argch==*testparam) && (*argch=='\0')) //End of string? Full match!
+				{
+					dumpBIOS = 1; //Enable RDP: we're enabled by the parameter!
 				}
 			}
 		}
