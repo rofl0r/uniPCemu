@@ -1537,6 +1537,67 @@ OPTINLINE static void setOSKfont(EMU_KEYINFO *currentkey, uint_32 font, uint_32 
 	}
 }
 
+OPTINLINE byte isStickyKey(byte index)
+{
+	switch (emu_keys_SDL[index]) //Are we a sticky key?
+	{
+		case SDLK_LCTRL:
+		case SDLK_LALT:
+		case SDLK_LSHIFT:
+		case SDLK_LGUI:
+		case SDLK_RCTRL:
+		case SDLK_RALT:
+		case SDLK_RSHIFT:
+		case SDLK_RGUI:
+			return 1; //Sticky!
+			break;
+		default: //Not sticky?
+			return 0;
+	}
+	return 0; //Default: not sticky!
+}
+
+void fingerOSK_OSK_presskey(EMU_KEYINFO *currentkey, byte index, uint_32 fontcolor, uint_32 bordercolor)
+{
+	//Handle stickykeys too?
+	setOSKfont(currentkey,fontcolor,bordercolor); //Set us to the active color!
+	if (Stickykeys) //Stickykeys active?
+	{
+		if (isStickyKey(index)) //Sticky?
+		{
+			currentkey->pressed = 2; //We're pressed(sticky)!
+		}
+		else
+		{
+			currentkey->pressed = 1; //We're pressed!
+		}
+	}
+	else //Normal press?
+	{
+		currentkey->pressed = 1; //We're pressed!
+	}
+	fingerOSK_presskey(index); //Press normally!
+}
+
+void fingerOSK_OSK_releasekey(EMU_KEYINFO *currentkey, byte index, uint_32 fontcolor, uint_32 bordercolor, byte *releasestickykeys, byte releasingstickykeys)
+{
+	//Handle stickykeys too?
+	if (Stickykeys) //Stickykeys active?
+	{
+		if (currentkey->pressed==2) //Sticky?
+		{
+			if (releasingstickykeys==0) return; //Don't release when not releasing sticky keys!
+		}
+	}
+	if (isStickyKey(index)==0) //Not a sticky key that's released?
+	{
+		*releasestickykeys = 1; //We're to release any sticky keys after releasing what's released!
+	}
+	currentkey->pressed = 0; //We're released!
+	setOSKfont(currentkey, fontcolor, bordercolor); //Set us to the inactive color!
+	fingerOSK_releasekey(index); //Press normally!
+}
+
 OPTINLINE static void updateFingerOSK()
 {
 	static byte OSKdrawn = 0; //Are we drawn?
@@ -1555,12 +1616,16 @@ OPTINLINE static void updateFingerOSK()
 	uint_32 screenfont, screenborder; //Dummy!
 
 	word screenx;
+	byte releasingstickykeys, pendingreleasestickykeys; 
 	if (FINGEROSK) //OSK enabled?
 	{
 		GPU_text_locksurface(keyboardsurface); //Lock us!
 		if (OSKdrawn == 0) //Not drawn yet?
 		{
 			OSKdrawn = 1; //We're drawn after this!
+			releasingstickykeys = 0; //Default: not releasing any sticky keys now!
+			startreleasestickykeys: //To jump back here when releasing!
+			pendingreleasestickykeys = 0; //Pending to release sticky keys?
 			currentkey = &OSKinfo[0]; //The first key to process
 			currentsize = &OSKsize[0]; //The first key to process
 			for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey, ++currentsize) //Check for all keys!
@@ -1618,12 +1683,21 @@ OPTINLINE static void updateFingerOSK()
 
 				if (pressed) //Print the text on the screen!
 				{
-					fingerOSK_releasekey(key); //Releasing this key, because we can't be pressed when opening the keyboard!
+					fingerOSK_OSK_releasekey(currentkey,key,fontcolor,bordercolor,&pendingreleasestickykeys,releasingstickykeys); //Releasing this key, because we can't be pressed when opening the keyboard!
 				}
+			}
+			if (pendingreleasestickykeys) //Pending to release?
+			{
+				pendingreleasestickykeys = 0;
+				releasingstickykeys = 1; //We're to release the sticky keys, while still pressed!
+				goto startreleasestickykeys; //Start releasing the sticky keys!
 			}
 			updateFingerOSK_mouse(); //Update our mouse handling!
 		}
 
+		releasingstickykeys = 0; //Default: not releasing any sticky keys now!
+		startreleasestickykeysdrawn: //To jump back here when releasing!
+		pendingreleasestickykeys = 0; //Pending to release sticky keys?
 		currentkey = &OSKinfo[0]; //The first key to process
 		currentsize = &OSKsize[0]; //The first key to process
 		for (key = 0;key<NUMITEMS(OSKinfo);++key, ++currentkey, ++currentsize) //Check for all keys!
@@ -1645,16 +1719,18 @@ OPTINLINE static void updateFingerOSK()
 
 			if (pressed && (currentkey->pressed == 0)) //Are we pressed?
 			{
-				setOSKfont(currentkey,fontcolor,activecolor); //Set us to the active color!
-				currentkey->pressed = 1; //We're pressed!
-				fingerOSK_presskey(key); //We're pressed!
+				fingerOSK_OSK_presskey(currentkey,key,activecolor,bordercolor); //We're pressed, supporting Sticky keys!
 			}
 			else if ((pressed == 0) && (currentkey->pressed)) //Are we released?
 			{
-				setOSKfont(currentkey, fontcolor, bordercolor); //Set us to the inactive color!
-				currentkey->pressed = 0; //We're released!
-				fingerOSK_releasekey(key); //We're release!
+				fingerOSK_OSK_releasekey(currentkey,key,fontcolor,bordercolor,&pendingreleasestickykeys,releasingstickykeys); //We're release, supporting Sticky keys!
 			}
+		}
+		if (pendingreleasestickykeys) //Pending to release?
+		{
+			pendingreleasestickykeys = 0;
+			releasingstickykeys = 1; //We're to release the sticky keys!
+			goto startreleasestickykeysdrawn; //Start releasing the sticky keys!
 		}
 		GPU_text_releasesurface(keyboardsurface); //Release us!
 	}
@@ -1683,9 +1759,10 @@ OPTINLINE static void updateFingerOSK()
 				if (currentkey->pressed)
 				{
 					fingerOSK_releasekey(key); //Releasing this key when pressed!
-					currentkey->pressed = 0; //Not pressed anymore!
+					currentkey->pressed = 0; //Not pressed anymore! Ignore sticky keys: we're forced off!
 				}
 			}
+
 			GPU_text_releasesurface(keyboardsurface); //Release us!
 		}
 		updateFingerOSK_mouse(); //Update our mouse handling!
