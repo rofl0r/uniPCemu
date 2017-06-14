@@ -975,7 +975,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 }
 
 //Rows: 3, one for top, middle, bottom.
-#define KEYBOARD_NUMY 5
+#define KEYBOARD_NUMY 6
 //Columns: 21: 10 for left, 1 space, 10 for right
 #define KEYBOARD_NUMX 21
 
