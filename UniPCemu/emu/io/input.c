@@ -1561,11 +1561,15 @@ void fingerOSK_OSK_presskey(EMU_KEYINFO *currentkey, byte index, uint_32 fontcol
 {
 	//Handle stickykeys too?
 	setOSKfont(currentkey,fontcolor,bordercolor); //Set us to the active color!
+	if (currentkey->pressed==0) //Not already pressed?
+	{
+		fingerOSK_presskey(index); //Press normally!
+	}
 	if (Stickykeys) //Stickykeys active?
 	{
-		if (isStickyKey(index)) //Sticky?
+		if (isStickyKey(index)) //Sticky and newly pressed, also not pressed again after releasing sticky?
 		{
-			currentkey->pressed = 2; //We're pressed(sticky)!
+			currentkey->pressed = 3|(((currentkey->pressed&4)<<1)|(currentkey->pressed&4)); //We're pressed(sticky)! Set bit 4 again, when pressing for the second time!
 		}
 		else
 		{
@@ -1576,7 +1580,6 @@ void fingerOSK_OSK_presskey(EMU_KEYINFO *currentkey, byte index, uint_32 fontcol
 	{
 		currentkey->pressed = 1; //We're pressed!
 	}
-	fingerOSK_presskey(index); //Press normally!
 }
 
 void fingerOSK_OSK_releasekey(EMU_KEYINFO *currentkey, byte index, uint_32 fontcolor, uint_32 bordercolor, byte *releasestickykeys, byte releasingstickykeys)
@@ -1584,11 +1587,21 @@ void fingerOSK_OSK_releasekey(EMU_KEYINFO *currentkey, byte index, uint_32 fontc
 	//Handle stickykeys too?
 	if (Stickykeys) //Stickykeys active?
 	{
-		if (currentkey->pressed==2) //Sticky?
+		if (currentkey->pressed&2) //Sticky active?
 		{
-			if (releasingstickykeys==0) return; //Don't release when not releasing sticky keys!
+			if ((currentkey->pressed&4)==0) //Pressed and released for the first time?
+			{
+				currentkey->pressed |= 4; //Special flag: we're pressed and released!
+				currentkey->pressed &= ~1; //Simulated off, but still sticky on!
+			}
+			else if (currentkey->pressed&8) //Pressed for the second time?
+			{
+				goto doublereleasekey; //Release, because we've been pressed for the second time, doing an untoggle!
+			}
+			if (releasingstickykeys==0) return; //Don't release when not releasing sticky keys, except when double releasing!
 		}
 	}
+	doublereleasekey:
 	if (isStickyKey(index)==0) //Not a sticky key that's released?
 	{
 		*releasestickykeys = 1; //We're to release any sticky keys after releasing what's released!
@@ -1717,11 +1730,11 @@ OPTINLINE static void updateFingerOSK()
 				}
 			}
 
-			if (pressed && (currentkey->pressed == 0)) //Are we pressed?
+			if (pressed && ((currentkey->pressed&1) == 0)) //Are we newly pressed?
 			{
 				fingerOSK_OSK_presskey(currentkey,key,activecolor,bordercolor); //We're pressed, supporting Sticky keys!
 			}
-			else if ((pressed == 0) && (currentkey->pressed)) //Are we released?
+			else if ((pressed == 0) && ((currentkey->pressed&1) || ((currentkey->pressed && releasingstickykeys)))) //Are we released or second release, or full release by sticky key being released?
 			{
 				fingerOSK_OSK_releasekey(currentkey,key,fontcolor,bordercolor,&pendingreleasestickykeys,releasingstickykeys); //We're release, supporting Sticky keys!
 			}
