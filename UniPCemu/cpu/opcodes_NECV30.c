@@ -96,7 +96,8 @@ void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
 	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,1,0)) return; //Abort on fault!
-	word oldSP = REG_SP;    //PUSHA
+	static word oldSP;
+	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU8086_PUSHw(0,&REG_AX)) return;
 	CPUPROT1
 	if (CPU8086_PUSHw(2,&REG_CX)) return;
