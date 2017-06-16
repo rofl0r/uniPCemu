@@ -1540,11 +1540,11 @@ OPTINLINE void giveATASignature(byte channel)
 
 OPTINLINE void giveSignature(byte channel)
 {
-	if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //CD-ROM specified?
+	if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //CD-ROM specified? Act according to the ATA/ATAPI-4 specification?
 	{
 		giveATAPISignature(channel); //We're a CD-ROM, give ATAPI signature!
 	}
-	else //Normal IDE harddrive?
+	else //Normal IDE harddrive(ATA-1)?
 	{
 		giveATASignature(channel); //We're a harddisk, give ATA signature!
 	}
@@ -1588,7 +1588,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 
 		ATA[channel].commandstatus = 0; //Reset status!
 		//Set the correct signature for detection!
-		giveSignature(channel); //Give our signature!
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM(ATAPI-4) specifies Signature? ATA-1 doesn't!
+		{
+			giveSignature(channel); //Give our signature!
+		}
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
@@ -1701,7 +1704,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
-			giveATAPISignature(channel);
+			giveSignature(channel); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
@@ -1820,7 +1823,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
-			giveATAPISignature(channel);
+			giveSignature(channel); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].command = 0xEC; //We're running this command!
