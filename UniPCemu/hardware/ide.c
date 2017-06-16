@@ -2291,9 +2291,10 @@ void resetPCISpaceIDE()
 	PCI_IDE.Subclass = 1; //Are an IDE controller
 }
 
-void ATA_ConfigurationSpaceChanged(uint_32 address, byte size)
+void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size)
 {
 	byte *addr;
+	//Ignore device,function: we only have one!
 	if (address == 0x3C) //IRQ changed?
 	{
 		PCI_IDE.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
@@ -2456,7 +2457,7 @@ void initATA()
 	ATA_DiskChanged(CDROM1); //Init HDD1!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
-	register_PCI(&PCI_IDE, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
+	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
 	resetPCISpaceIDE();
 	ATA[0].resetTiming = 0.0; //Clear the reset timing!

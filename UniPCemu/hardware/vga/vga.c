@@ -251,7 +251,7 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 void resetPCISpaceVGA()
 {
 	//Info from: http://wiki.osdev.org/PCI
-	PCI_VGA.VendorID = ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2))?0x100C:0x0000; //Tseng labs or plain VGA!
+	PCI_VGA.VendorID = ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2))?0x100C:0xFFFF; //Tseng labs or plain VGA!
 	PCI_VGA.DeviceID = 0x0000; //We're a VGA card!
 	PCI_VGA.ClassCode = 3; //We...
 	PCI_VGA.Subclass = 0; //Are...
@@ -259,8 +259,9 @@ void resetPCISpaceVGA()
 	memset(&PCI_VGA.BAR,0,sizeof(PCI_VGA.BAR)); //Don't allow changing the BARs!
 }
 
-void VGA_ConfigurationSpaceChanged(uint_32 address, byte size)
+void VGA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size)
 {
+	//Ignore device,function: we only have one!
 	if (address == 0x3C) //IRQ changed?
 	{
 		PCI_VGA.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
@@ -278,7 +279,8 @@ void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
 	VGA_initIO(); //Initialise I/O suppport!
 	memset(&PCI_VGA, 0, sizeof(PCI_VGA)); //Initialise to 0!
-	register_PCI(&PCI_VGA, sizeof(PCI_VGA),&VGA_ConfigurationSpaceChanged); //Register the PCI data area!
+	register_PCI(&PCI_VGA,2,0,sizeof(PCI_VGA),&VGA_ConfigurationSpaceChanged); //Register the PCI data area!
+	resetPCISpaceVGA(); //Make sure our space is initialized to detect!
 }
 
 /*
