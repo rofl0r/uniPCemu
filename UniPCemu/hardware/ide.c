@@ -29,7 +29,7 @@
 //Saved values
 #define CDROM_PAGECONTROL_SAVED 3
 
-PCI_CONFIG PCI_IDE;
+PCI_GENERALCONFIG PCI_IDE;
 
 struct
 {

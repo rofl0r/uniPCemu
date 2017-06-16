@@ -218,7 +218,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	return VGA; //Give the new allocated VGA!
 }
 
-PCI_CONFIG PCI_VGA; //Our PCI configuration space!
+PCI_GENERALCONFIG PCI_VGA; //Our PCI configuration space!
 
 void dumpVRAM() //Diagnostic dump of VRAM!
 {
