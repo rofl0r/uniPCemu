@@ -1538,7 +1538,7 @@ OPTINLINE void giveATASignature(byte channel)
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
 }
 
-void ATA_reset(byte channel)
+OPTINLINE void giveSignature(byte channel)
 {
 	if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //CD-ROM specified?
 	{
@@ -1548,6 +1548,11 @@ void ATA_reset(byte channel)
 	{
 		giveATASignature(channel); //We're a harddisk, give ATA signature!
 	}
+}
+
+void ATA_reset(byte channel)
+{
+	giveSignature(channel); //Give the signature!
 	//Clear errors!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0x00; //No error!
 	//Clear Drive/Head register, leaving the specified drive as it is!
@@ -1580,7 +1585,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[1].ERRORREGISTER = 0x1; //OK!
 		ATA_STATUSREGISTER_ERRORW(channel,0,0); //Not an error!
 		ATA_STATUSREGISTER_ERRORW(channel,1,0); //Not an error!
+
 		ATA[channel].commandstatus = 0; //Reset status!
+		//Set the correct signature for detection!
+		giveSignature(channel); //Give our signature!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
