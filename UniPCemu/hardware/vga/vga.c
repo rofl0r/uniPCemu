@@ -248,6 +248,8 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 #define VGAREGISTER_PORTW(port) register_PORTOUT(&PORT_writeVGA)
 #define VGAREGISTER_PORTRW(port) VGAREGISTER_PORTR(port);VGAREGISTER_PORTW(port)
 
+extern byte is_XT; //XT emulation?
+
 void resetPCISpaceVGA()
 {
 	//Info from: http://wiki.osdev.org/PCI
@@ -256,6 +258,9 @@ void resetPCISpaceVGA()
 	PCI_VGA.ClassCode = 3; //We...
 	PCI_VGA.Subclass = 0; //Are...
 	PCI_VGA.ProgIF = 0; //A VGA controller!
+	PCI_VGA.HeaderType = 0x00; //Normal header!
+	PCI_VGA.CacheLineSize = 0x00; //No cache supported!
+	PCI_VGA.InterruptLine = is_XT?VGA_IRQ_XT:VGA_IRQ_AT; //What IRQ are we using?
 	memset(&PCI_VGA.BAR,0,sizeof(PCI_VGA.BAR)); //Don't allow changing the BARs!
 }
 

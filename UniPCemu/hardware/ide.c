@@ -2289,23 +2289,19 @@ void resetPCISpaceIDE()
 	PCI_IDE.ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
 	PCI_IDE.ClassCode = 1; //We...
 	PCI_IDE.Subclass = 1; //Are an IDE controller
+	PCI_IDE.HeaderType = 0x00; //Normal header!
+	PCI_IDE.CacheLineSize = 0x00; //No cache supported!
+	PCI_IDE.InterruptLine = 0xFF; //What IRQ are we using?
 }
 
 void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size)
 {
 	byte *addr;
 	//Ignore device,function: we only have one!
-	if (address == 0x3C) //IRQ changed?
+	addr = (((byte *)&PCI_IDE)+address); //Actual update location?
+	if ((addr<(byte *)&PCI_IDE.BAR[0]) || (addr>((byte *)&PCI_IDE.BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
 	{
-		PCI_IDE.InterruptLine = 0xFF; //We're unused, so let the software detect it, if required!
-	}
-	else //Might be unknown data?
-	{
-		addr = (((byte *)&PCI_IDE)+address); //Actual update location?
-		if ((addr<(byte *)&PCI_IDE.BAR[0]) || (addr>((byte *)&PCI_IDE.BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
-		{
-			memset(addr,0,1); //Clear the set data!
-		}
+		memset(addr,0,1); //Clear the set data!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
