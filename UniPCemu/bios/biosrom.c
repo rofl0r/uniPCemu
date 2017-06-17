@@ -35,6 +35,8 @@ uint_64 OPTROM_location[40]; //All possible OPT ROM locations(low word) and end 
 char OPTROM_filename[40][256]; //All possible filenames for the OPTROMs loaded!
 
 byte OPTROM_writeSequence[40]; //Current write sequence command state!
+byte OPTROM_pendingAA_1555[40]; //Pending write AA to 1555?
+byte OPTROM_pending55_0AAA[40]; //Pending write 55 to 0AAA?
 byte OPTROM_writeSequence_waitingforDisable[40]; //Waiting for disable command?
 byte OPTROM_writeenabled[40]; //Write enabled ROM?
 double OPTROM_writetimeout[40]; //Timeout until SDP is activated!
@@ -79,6 +81,8 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	memset(&OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
 	memset(&OPTROM_writeSequence_waitingforDisable, 0, sizeof(OPTROM_writeSequence_waitingforDisable)); //Disable all write enable flags by default!
 	memset(&OPTROM_writetimeout,0,sizeof(OPTROM_writetimeout)); //Disable all timers for all ROMs!
+	memset(&OPTROM_pending55_0AAA,0,sizeof(OPTROM_pending55_0AAA)); //Disable all timers for all ROMs!
+	memset(&OPTROM_pendingAA_1555,0,sizeof(OPTROM_pendingAA_1555)); //Disable all timers for all ROMs!
 	OPTROM_timeoutused = 0; //Not timing?
 	byte i; //Current OPT ROM!
 	uint_32 location; //The location within the OPT ROM area!
@@ -660,12 +664,15 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 								break;
 						}
 					}
+					byte OPTROM_inhabitwrite = 0; //Are we to inhabit the current write(pending buffered)?
 					switch (OPTROM_address)
 					{
 					case 0x1555:
 						if ((value == 0xAA) && !OPTROM_writeSequence[i]) //Start sequence!
 						{
 							OPTROM_writeSequence[i] = 1; //Next step!
+							OPTROM_pendingAA_1555[i] = 1; //We're pending to write!
+							OPTROM_inhabitwrite = 1; //We're inhabiting the write!
 						}
 						else if (OPTROM_writeSequence[i] == 2) //We're a command byte!
 						{
@@ -676,25 +683,35 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 								OPTROM_writeSequence[i] = 0; //Finished write sequence!
 								OPTROM_writetimeout[i] = 10000000.0; //We're disabling writes to the EEPROM 10ms after this write, the same applies to the following writes!
 								OPTROM_timeoutused = 1; //Timing!
+								OPTROM_pending55_0AAA[i] = OPTROM_pendingAA_1555[i] = 0; //Not pending anymore!
+								OPTROM_inhabitwrite = 1; //We're preventing us from writing!
 								break;
 							case 0x80: //Wait for 0x20 to disable write protect!
 								OPTROM_writeSequence_waitingforDisable[i] = 1; //Waiting for disable!
 								OPTROM_writeSequence[i] = 0; //Finished write sequence!
+								OPTROM_inhabitwrite = 1; //We're preventing us from writing!
+								OPTROM_pendingAA_1555[i] = OPTROM_pending55_0AAA[i] = 0; //Not pending anymore!
 								break;
 							case 0x20: //Disable write protect!
 								if (OPTROM_writeSequence_waitingforDisable[i]) //Waiting for disable?
 								{
 									OPTROM_writeenabled[i] = OPTROM_writeenabled[i]?1:2; //We're enabling writes to the EEPROM now/before next write!
+									OPTROM_pending55_0AAA[i] = OPTROM_pendingAA_1555[i] = 0; //Not pending anymore!
+									OPTROM_inhabitwrite = (OPTROM_writeenabled[i]==1)?1:0; //We're preventing us from writing!
+									OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
+									OPTROM_writeSequence[i] =  0; //Reset the sequence!
 								}
 								else
 								{
 									OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 									OPTROM_writeSequence[i] = 0; //Finished write sequence!
+									OPTROM_pendingAA_1555[i] = 0;
 								}
 								break;
 							default: //Not a command!
 								OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 								OPTROM_writeSequence[i] = 0; //Finished write sequence!
+								OPTROM_pendingAA_1555[i] = 0;
 								break;
 							}
 						}
@@ -702,25 +719,30 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						{
 							OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							OPTROM_pendingAA_1555[i] = 0; //Not pending anymore!
 						}
 						break;
 					case 0x0AAA:
 						if ((value == 0x55) && (OPTROM_writeSequence[i] == 1)) //Start of valid sequence which is command-specific?
 						{
 							OPTROM_writeSequence[i] = 2; //Start write command sequence!
+							OPTROM_pending55_0AAA[i] = 1; //We're pending to write!
+							OPTROM_inhabitwrite = 1; //We're inhabiting the write!
 						}
 						else
 						{
 							OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 							OPTROM_writeSequence[i] = 0; //Finished write sequence!
+							OPTROM_pending55_0AAA[i] = 0; //Not pending anymore!
 						}
 						break;
-					default:
+					default: //Any other address!
 						OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 						OPTROM_writeSequence[i] = 0; //No sequence running!
 						break;
 					}
-					if (!OPTROM_writeenabled[i]) return 1; //Handled: ignore writes to ROM or protected ROM!
+					uint_32 originaladdress = (uint_32)OPTROM_address; //Save the address we're writing to!
+					if ((!OPTROM_writeenabled[i]) || OPTROM_inhabitwrite) return 1; //Handled: ignore writes to ROM or protected ROM!
 					else if (OPTROM_writeenabled[i]==2)
 					{
 						OPTROM_writeenabled[i] = 1; //Start next write!
@@ -731,6 +753,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						OPTROM_writetimeout[i] = 10000000.0; //Reset timer!
 						OPTROM_timeoutused = 1; //Timing!
 					}
+					processPendingWrites:
 					if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 					{
 						OPTROM_address = ((OPTROM_location[i]>>32)-OPTROM_address)-1; //The ROM is reversed, so reverse write too!
@@ -756,6 +779,20 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					}
 					fclose(f); //Close the file!
 					OPT_ROMS[i][OPTROM_address] = value; //Write the data to the ROM in memory!
+					if (OPTROM_pending55_0AAA[i] && ((OPTROM_location[i]>>32)>0x0AAA)) //Pending write and within ROM range?
+					{
+						OPTROM_pending55_0AAA[i] = 0; //Not pending anymore, processing now!
+						value = 0x55; //We're writing this anyway!
+						OPTROM_address = 0x0AAA; //The address to write to!
+						if (originaladdress!=0x0AAA) goto processPendingWrites; //Process the pending write!
+					}
+					if (OPTROM_pendingAA_1555[i] && ((OPTROM_location[i]>>32)>0x1555)) //Pending write and within ROM range?
+					{
+						OPTROM_pendingAA_1555[i] = 0; //Not pending anymore, processing now!
+						value = 0xAA; //We're writing this anyway!
+						OPTROM_address = 0x1555; //The address to write to!
+						if (originaladdress!=0x1555) goto processPendingWrites; //Process the pending write!
+					}
 					return 1; //Ignore writes to memory: we've handled it!
 				}
 			}
