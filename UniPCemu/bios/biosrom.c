@@ -78,7 +78,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	memset(&OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
 	memset(&OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
 	memset(&OPTROM_writeSequence_waitingforDisable, 0, sizeof(OPTROM_writeSequence_waitingforDisable)); //Disable all write enable flags by default!
-	memset(&OPTROM_writetimeout,0,sizeof(OPTROM_writetimeout); //Disable all timers for all ROMs!
+	memset(&OPTROM_writetimeout,0,sizeof(OPTROM_writetimeout)); //Disable all timers for all ROMs!
 	OPTROM_timeoutused = 0; //Not timing?
 	byte i; //Current OPT ROM!
 	uint_32 location; //The location within the OPT ROM area!
@@ -596,14 +596,14 @@ void BIOSROM_updateTimers(double timepassed)
 	if (OPTROM_timeoutused)
 	{
 		timersleft = 0; //Default: finished!
-		for (i=0;i<NUMOPT_ROMS;++i)
+		for (i=0;i<numOPT_ROMS;++i)
 		{
 			if (OPTROM_writetimeout[i]) //Timing?
 			{
 				OPTROM_writetimeout[i] -= timepassed; //Time passed!
 				if (OPTROM_writetimeout[i]<=0.0) //Expired?
 				{
-					OPTROM_writetimeout = (double)0; //Finish state!
+					OPTROM_writetimeout[i] = (double)0; //Finish state!
 					OPTROM_writeenabled[i] = 0; //Disable writes!
 				}
 				else timersleft = 1; //Still running?
