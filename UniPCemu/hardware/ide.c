@@ -1987,6 +1987,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //No error pending!
 		break;
 	case 1: //Transferring data IN?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
