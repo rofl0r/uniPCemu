@@ -508,8 +508,17 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0; //How many sectors are left is updated!
 			return 1; //We're finished!
 		}
+		else
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
+		}
+	}
+	else //New read command?
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is initialized!
 	}
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
@@ -555,6 +564,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_updatesector(channel); //Update the current sector!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 		return 1; //We're finished!
@@ -575,8 +585,13 @@ OPTINLINE byte ATA_writesector(byte channel)
 #ifdef ATA_LOG
 			dolog("ATA", "All sectors to be written written! Ready.");
 #endif
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 			return 1; //We're finished!
+		}
+		else //Busy transferring?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		}
 
 #ifdef ATA_LOG
@@ -608,6 +623,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),1); //Not found!
 		}
 		ATA_updatesector(channel); //Update the current sector!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 	}
