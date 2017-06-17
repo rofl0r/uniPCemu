@@ -18,7 +18,7 @@ uint_32 PCI_device, PCI_currentaddress; //What registered device and data addres
 
 byte PCI_decodedevice(uint_32 address)
 {
-	byte bus, device, function, whatregister, effectivedevice; //To load our data into!
+	byte bus, device, function, whatregister; //To load our data into!
 	if ((address&0x80000000)==0) //Disabled?
 	{
 		PCI_status = 0xFFFFFFFF; //Error!
@@ -64,7 +64,6 @@ byte PCI_decodedevice(uint_32 address)
 
 byte PCI_read_data(uint_32 address, byte index) //Read data from the PCI space!
 {
-	word device;
 	if (PCI_decodedevice(address))
 	{
 		return 0xFF; //Unknown device!
