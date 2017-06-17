@@ -674,7 +674,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 							case 0xA0: //Enable write protect!
 								OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 								OPTROM_writeSequence[i] = 0; //Finished write sequence!
-								OPTROM_writetimeout[i] = 10000.0; //We're disabling writes to the EEPROM 10us after this write, the same applies to the following writes!
+								OPTROM_writetimeout[i] = 10000000.0; //We're disabling writes to the EEPROM 10ms after this write, the same applies to the following writes!
 								OPTROM_timeoutused = 1; //Timing!
 								break;
 							case 0x80: //Wait for 0x20 to disable write protect!
@@ -728,7 +728,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					}
 					if (OPTROM_writetimeout[i]) //Timing?
 					{
-						OPTROM_writetimeout[i] = 10000.0; //Reset timer!
+						OPTROM_writetimeout[i] = 10000000.0; //Reset timer!
 						OPTROM_timeoutused = 1; //Timing!
 					}
 					if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
