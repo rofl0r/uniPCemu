@@ -1031,6 +1031,7 @@ OPTINLINE byte coreHandler()
 		if ((CPU[activeCPU].halt&0x10)==0) updateVGA(instructiontime); //Update the VGA timer when running!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
+		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!

@@ -18,5 +18,6 @@ void BIOS_DUMPSYSTEMROM(); //Dump the ROM currently set (debugging purposes)!
 byte isTurboXTBIOS(); //Are we running the Turbo XT BIOS now this instruction?
 
 void BIOSROM_dumpBIOS(); /* For dumping the ROMs */
+void BIOSROM_updateTimers(double timepassed);
 
 #endif
