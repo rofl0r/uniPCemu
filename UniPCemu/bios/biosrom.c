@@ -684,7 +684,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 							case 0x20: //Disable write protect!
 								if (OPTROM_writeSequence_waitingforDisable[i]) //Waiting for disable?
 								{
-									OPTROM_writeenabled[i] = 1; //We're enabling writes to the EEPROM!
+									OPTROM_writeenabled[i] = OPTROM_writeenabled[i]?1:2; //We're enabling writes to the EEPROM now/before next write!
 								}
 								else
 								{
@@ -721,6 +721,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						break;
 					}
 					if (!OPTROM_writeenabled[i]) return 1; //Handled: ignore writes to ROM or protected ROM!
+					else if (OPTROM_writeenabled[i]==2)
+					{
+						OPTROM_writeenabled[i] = 1; //Start next write!
+						return 1; //Disable this write, enable next write!
+					}
 					if (OPTROM_writetimeout[i]) //Timing?
 					{
 						OPTROM_writetimeout[i] = 10000.0; //Reset timer!
