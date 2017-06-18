@@ -1619,6 +1619,7 @@ void ATA_reset(byte channel)
 	ATA_DRIVEHEAD_LBAMODE_2W(channel,ATA_activeDrive(channel),0); //LBA mode?
 	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead |= 0xA0; //Always 1!
 	ATA[channel].commandstatus = 3; //We're busy waiting!
+	ATA[channel].command = 0; //Full reset!
 	ATA[channel].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 	ATA[channel].Drive[0].ATAPI_processingPACKET = 0; //Not processing any packet!
 	ATA[channel].Drive[1].ATAPI_processingPACKET = 0; //Not processing any packet!
@@ -2003,7 +2004,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidcommand;
 		}
 		ATA[channel].commandstatus = 0; //Reset command status!
-		ATA[channel].command = 0; //Full reset!
 		ATA_reset(channel); //Reset the channel!
 		break;
 	case 0xC6: //Set multiple mode?
