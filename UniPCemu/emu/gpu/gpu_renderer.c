@@ -401,7 +401,7 @@ OPTINLINE static void render_EMU_buffer() //Render the EMU to the buffer!
 				if (!(VIDEO_DIRECT) || GPU.aspectratio) //No direct plot or aspect ratio set?
 				{
 					//Resize to resized!
-					isresized = resizeImage(emu_screen,&resized,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.aspectratio); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
+					isresized = resizeImage(emu_screen,&resized,rendersurface->sdllayer->w,rendersurface->sdllayer->h,GPU.aspectratio,1); //Render it to the PSP screen, keeping aspect ratio with letterboxing!
 					if ((!isresized) || (!memprotect(resized,sizeof(*resized),NULL))) //Error resizing?
 					{
 						dolog("GPU","Error resizing the EMU screenbuffer to the displayed screen!");
@@ -463,7 +463,9 @@ void renderHWFrame() //Render a frame from hardware!
 		//Start the rendering!
 		if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Allowed rendering?
 		{
+			unlockGPU();
 			render_EMU_buffer(); //Render the EMU to the buffer, if updated! This is our main layer!
+			lockGPU(); //Lock again!
 		}
 		if (SCREEN_CAPTURE) //Screen capture?
 		{

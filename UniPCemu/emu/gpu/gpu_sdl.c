@@ -1,3 +1,4 @@
+#include "headers/support/locks.h" //Locking support!
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
 #include "headers/support/zalloc.h" //For registering our data we've allocated!
 #include "headers/emu/gpu/gpu_sdl.h" //SDL support!
@@ -58,7 +59,7 @@ typedef struct PACKED
 //zoomSurfaceRGBA from SDL_gfx(the only functionality used from the project): Zooms a surface from src to dst (flipx&y=flip), SMOOTH=SMOOTHING_ON.
 //It's been adjusted to store it's precalculation tables in the destination surface for easier recalculation.
 //1 on error, 0 on rendered.
-byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
+byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst, byte dounlockGPU)
 {
 	int x, y, sx, sy, ssx, ssy, *sax, *say, *csax, *csay, *salast, csx, csy;
 	INLINEREGISTER int ex,ey;
@@ -148,6 +149,7 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 	/*
 	* Interpolating Zoom
 	*/
+	if (dounlockGPU) unlockGPU(); //Unlock te GPU during rendering!
 	csay = say;
 	for (y = 0; y < dst->sdllayer->h; y++) {
 		csp = sp;
@@ -232,6 +234,7 @@ byte zoomSurfaceRGBA(GPU_SDL_Surface * src, GPU_SDL_Surface * dst)
 		*/
 		dp = (tColorRGBA *)((Uint8 *)dp + dgap);
 	}
+	if (dounlockGPU) lockGPU(); //Unlock te GPU during rendering!
 
 	return 0; //OK!
 }
@@ -457,7 +460,7 @@ void calcResize(int aspectratio, uint_32 originalwidth, uint_32 originalheight, 
 }
 
 //Resizing.
-byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 newwidth, const uint_32 newheight, int aspectratio)
+byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 newwidth, const uint_32 newheight, int aspectratio, byte dounlockGPU)
 {
 	//dolog("SDL","ResizeImage called!");
 	if ((!img) || (!dstimg)) //No image to resize or resize to?
@@ -501,7 +504,7 @@ byte resizeImage( GPU_SDL_Surface *img, GPU_SDL_Surface **dstimg, const uint_32 
 	//Now the destination surface is ready for the resizing process!
 	//dolog("SDL","Resizing screen...");
 	//Apply smoothing always, since disabling it will result in black scanline insertions!
-	if (zoomSurfaceRGBA( img, *dstimg )) //Resize the image to the destination size!
+	if (zoomSurfaceRGBA( img, *dstimg, dounlockGPU)) //Resize the image to the destination size!
 	{
 		//We've failed zooming!
 		return 0; //Failed zooming!
