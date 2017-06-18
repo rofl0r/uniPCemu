@@ -1553,7 +1553,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		break;
 	default:
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
-		ATAPI_invalidcommand:
+		ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		ATAPI_giveresultsize(channel,0); //No result size!
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
@@ -2050,10 +2050,11 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x3C: //Write verify?
 	default: //Unknown command?
 		//Invalid command?
-		invalidcommand:
+		invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 #ifdef ATA_LOG
 		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		//Present ABRT error! BSY=0 in status, ERR=1 in status, ABRT(4) in error register.
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error occurred: wee're executing an invalid command!
@@ -2094,7 +2095,8 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		break;
 	default: //Unknown?
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
-	case 0xFF: //Error?
+	case 0xFF: //Error? See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Error occurred: wee're executing an invalid command!
 		ATA[channel].commandstatus = 0; //Reset command status: we've reset!
 		break;
 	}
