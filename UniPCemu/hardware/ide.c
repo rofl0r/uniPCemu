@@ -526,6 +526,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
@@ -546,6 +547,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	else //Error reading?
 	{
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
@@ -563,6 +565,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 		dolog("ATA", "Write Sector out of range:%i,%i=%08X/%08X!",channel,ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address,disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
@@ -622,6 +625,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 #endif
 			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),1); //Not found!
 		}
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA_updatesector(channel); //Update the current sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
@@ -656,6 +660,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		ATAPI_giveresultsize(channel,0); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
@@ -692,6 +697,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	else //Error reading?
 	{
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		ATAPI_giveresultsize(channel,0); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
@@ -1665,6 +1671,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //We've not completed seeking!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //Track 0 couldn't be found!
 			ATA_ERRORREGISTER_TRACK0NOTFOUNDW(channel,ATA_activeDrive(channel),1); //Track 0 couldn't be found!
+			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 			ATA[channel].commandstatus = 0xFF; //Error!
 		}
 		break;
@@ -1967,7 +1974,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error occurred: wee're executing an invalid command!
 		invalidcommand_noerror:
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
@@ -2005,8 +2012,8 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		break;
 	default: //Unknown?
-	case 0xFF: //Error?
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
+	case 0xFF: //Error?
 		ATA[channel].commandstatus = 0; //Reset command status: we've reset!
 		break;
 	}
