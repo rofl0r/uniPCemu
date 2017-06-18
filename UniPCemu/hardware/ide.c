@@ -1608,6 +1608,8 @@ void ATA_reset(byte channel)
 	ATA[channel].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 	ATA[channel].Drive[0].ATAPI_processingPACKET = 0; //Not processing any packet!
 	ATA[channel].Drive[1].ATAPI_processingPACKET = 0; //Not processing any packet!
+	ATA[channel].Drive[0].multiplesectors = 0; //Disable multiple mode!
+	ATA[channel].Drive[1].multiplesectors = 0; //Disable multiple mode!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
