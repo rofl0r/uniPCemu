@@ -575,7 +575,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	return 1; //We're finished!
 }
 
-OPTINLINE byte ATA_writesector(byte channel)
+OPTINLINE byte ATA_writesector(byte channel, byte command)
 {
 	byte multiple = 1; //Multiple to read!
 	byte counter;
@@ -635,6 +635,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 		dolog("ATA", "Process next sector...");
 #endif
 		//Process next sector!
+		ATA[channel].command = command; //Set the command to use when writing!
 		ATA[channel].datablock = 0x200; //We're refreshing after this many bytes!
 		ATA[channel].datapos = 0; //Initialise our data position!
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
@@ -864,7 +865,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 		ATA[channel].data[ATA[channel].datapos++] = data; //Write the data byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 		{
-			if (ATA_writesector(channel)) //Sector written and to write another sector?
+			if (ATA_writesector(channel,ATA[channel].command)) //Sector written and to write another sector?
 			{
 				ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 			}
