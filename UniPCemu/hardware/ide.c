@@ -549,9 +549,9 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	}
 	ATA[channel].multipletransferred = multiple; //How many have we transferred?
 
+	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200*multiple)) //Read the data from disk?
 	{
-		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
 		{
 			ATA_increasesector(channel); //Increase the current sector!
@@ -717,9 +717,9 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		datadest = &ATA[channel].data[0]; //Start of our buffer!
 	}
 
+	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
-		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 		ATA_increasesector(channel); //Increase the current sector!
 
 		ATA[channel].datapos = 0; //Initialise our data position!
