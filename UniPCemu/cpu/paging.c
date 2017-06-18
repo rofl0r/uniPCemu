@@ -15,13 +15,9 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
 byte is_paging()
 {
-	if (getcpumode()==CPU_MODE_REAL) //Real mode (no paging)?
+	if (likely(CPU[activeCPU].registers)) //Gotten registers?
 	{
-		return 0; //Not paging in REAL mode!
-	}
-	if (CPU[activeCPU].registers) //Gotten registers?
-	{
-		return (CPU[activeCPU].registers->CR0&CR0_PG)?1:0; //Are we paging!
+		return ((getcpumode()!=CPU_MODE_REAL) && (CPU[activeCPU].registers->CR0&CR0_PG))?1:0; //Are we paging in protected mode!
 	}
 	return 0; //Not paging: we don't have registers!
 }

@@ -999,18 +999,18 @@ OPTINLINE byte coreHandler()
 
 		//Tick 14MHz master clock, for basic hardware using it!
 		MHZ14_ticktiming += instructiontime; //Add time to the 14MHz master clock!
-		if (MHZ14_ticktiming>=MHZ14tick) //To tick some 14MHz clocks?
+		if (likely(MHZ14_ticktiming<MHZ14tick)) //To not tick some 14MHz clocks? This ix the case with most faster CPUs!
+		{
+			MHZ14passed = 0; //No time has passed on the 14MHz Master clock!
+		}
+		else
 		{
 			MHZ14passed = (uint_32)(MHZ14_ticktiming/MHZ14tick); //Tick as many as possible!
 			MHZ14_ticktiming -= MHZ14tick*(float)MHZ14passed; //Rest the time passed!
 		}
-		else
-		{
-			MHZ14passed = 0; //No time has passed on the 14MHz Master clock!
-		}
 
 		MMU_logging = 0; //Are we logging hardware memory accesses(DMA etc)?
-		if ((CPU[activeCPU].halt&0x10)==0) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
+		if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
@@ -1028,7 +1028,7 @@ OPTINLINE byte coreHandler()
 		tickParallel(instructiontime); //Update the Parallel timer!
 		updateUART(instructiontime); //Update the UART timer!
 		if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
-		if ((CPU[activeCPU].halt&0x10)==0) updateVGA(instructiontime); //Update the VGA timer when running!
+		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime); //Update the VGA timer when running!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
 		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!

@@ -72,10 +72,10 @@ OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte
 	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
 
-	if (segdesc!=-1) //valid segment descriptor?
+	if (likely(segdesc!=-1)) //valid segment descriptor?
 	{
 		descriptor = &CPU[activeCPU].SEG_DESCRIPTOR[segdesc]; //Get our using descriptor!
-		if ((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor)) //Data segment that's expand-down?
+		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
 		{
 			if (is_offset16) //16-bits offset? Set the high bits for compatibility!
 			{

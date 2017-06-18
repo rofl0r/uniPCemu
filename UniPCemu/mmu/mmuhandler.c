@@ -157,7 +157,7 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 	{
 		handler = *current++; //Load the current address!
 		if (handler == 0) continue; //Set?
-		if (handler(offset,value)) //Success?
+		if (unlikely(handler(offset,value))) //Success?
 		{
 			return 0; //Abort searching: we're processed!
 		}
@@ -177,7 +177,7 @@ byte MMU_IO_readhandler(uint_32 offset, byte *value)
 	{
 		handler = *current++; //Load the current address!
 		if (handler == 0) continue; //Set?
-		if (handler(offset,value)) //Success reading?
+		if (unlikely(handler(offset,value))) //Success reading?
 		{
 			return 0; //Abort searching: we're processed!
 		}
@@ -520,7 +520,7 @@ void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
 	byte data;
-	if (MMU_IO_readhandler(realaddress, &data)) //Normal memory address?
+	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
@@ -560,7 +560,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
-	if (MMU_IO_writehandler(realaddress, val)) //Normal memory access?
+	if (likely(MMU_IO_writehandler(realaddress, val))) //Normal memory access?
 	{
 		MMU_INTERNAL_directwb(realaddress, val, index); //Set data in real memory!
 	}
