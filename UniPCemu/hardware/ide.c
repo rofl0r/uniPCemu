@@ -513,6 +513,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0; //How many sectors are left is updated!
 			return 1; //We're finished!
 		}
@@ -557,6 +558,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA_increasesector(channel); //Increase the current sector!
 		}
 
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 		ATA[channel].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].datapos = 0; //Initialise our data position!
 		ATA[channel].commandstatus = 1; //Transferring data IN!
@@ -624,6 +626,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 #endif
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			return 1; //We're finished!
 		}
 		else //Busy transferring?
@@ -683,6 +686,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	{
 		if (!--ATA[channel].datasize) //Finished?
 		{
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 			ATAPI_giveresultsize(channel,0); //No result size!
