@@ -33,6 +33,7 @@ PCI_GENERALCONFIG PCI_IDE;
 
 struct
 {
+	byte multipletransferred; //How many sectors were transferred in multiple mode this block?
 	byte multiplemode; //Use multiple mode transfer?
 	byte longop; //Long operation instead of a normal one?
 	uint_32 datapos; //Data position?
@@ -507,7 +508,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].commandstatus == 1) //We're reading already?
 	{
-		if (!--ATA[channel].datasize) //Finished?
+		if (!(ATA[channel].datasize-=ATA[channel].multipletransferred)) //Finished?
 		{
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
@@ -546,6 +547,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	{
 		multiple = ATA[channel].datasize; //Only take what's requested!
 	}
+	ATA[channel].multipletransferred = multiple; //How many have we transferred?
 
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200*multiple)) //Read the data from disk?
 	{
@@ -604,6 +606,8 @@ OPTINLINE byte ATA_writesector(byte channel)
 	{
 		multiple = ATA[channel].datasize; //Only take what's requested!
 	}
+	ATA[channel].multipletransferred = multiple; //How many have we transferred?
+
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
 	{
 		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
@@ -611,7 +615,7 @@ OPTINLINE byte ATA_writesector(byte channel)
 			ATA_increasesector(channel); //Increase the current sector!
 		}
 
-		if (!--ATA[channel].datasize) //Finished?
+		if (!(ATA[channel].datasize-=ATA[channel].multipletransferred)) //Finished?
 		{
 			ATA_updatesector(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
