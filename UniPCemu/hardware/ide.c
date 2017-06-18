@@ -2466,6 +2466,8 @@ void ATA_DiskChanged(int disk)
 	case HDD1: //HDD1 changed?
 	case CDROM0: //CDROM0 changed?
 	case CDROM1: //CDROM1 changed?
+		//Initialize the drive parameters!
+		memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		if (is_mounted(disk)) //Do we even have this drive?
 		{
 			disk_size = disksize(disk); //Get the disk's size!
@@ -2477,8 +2479,9 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = IS_CDROM?0:0x200; //512 bytes per sector!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = IS_CDROM?0:1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = 0x80; //Buffer size in sectors! We're a 64KB buffer, so 0x80 sectors buffered(of 512 bytes each)!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = (sizeof(ATA[0].data)>>(IS_CDROM?11:9)); //Buffer size in sectors! We're a 64KB buffer, so 0x80 sectors buffered(of 512 bytes each)!
 
+			ATA[disk_channel].Drive[disk_ATA].driveparams[47] = IS_CDROM?0:((sizeof(ATA[disk_ATA].data)>>9)&0xFF); //Amount of read/write multiple supported, in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)!
 			--disk_size; //LBA is 0-based, not 1 based!
@@ -2491,10 +2494,6 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[81] = IS_CDROM?0x0017:0x0000; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
 			ATA[disk_channel].Drive[disk_ATA].driveparams[82] = IS_CDROM?((1<<4)|(1<<9)|(1<<14)):0x0000; //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
 			ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
-		}
-		else //Drive not inserted?
-		{
-			memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		}
 		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
 		{
