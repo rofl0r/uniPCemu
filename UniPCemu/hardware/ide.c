@@ -1580,37 +1580,38 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	} //Clear reason on success!
 }
 
-OPTINLINE void giveATAPISignature(byte channel)
+OPTINLINE void giveATAPISignature(byte channel, byte drive)
 {
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0xEB;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x14;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.sectorcount = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0xEB;
+	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x14;
+	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01;
 }
 
-OPTINLINE void giveATASignature(byte channel)
+OPTINLINE void giveATASignature(byte channel, byte drive)
 {
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0x01;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0x00;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0x00;
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.sectorcount = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0x00;
+	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x00;
+	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01;
 }
 
-OPTINLINE void giveSignature(byte channel)
+OPTINLINE void giveSignature(byte channel, byte drive)
 {
-	if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //CD-ROM specified? Act according to the ATA/ATAPI-4 specification?
+	if ((ATA_Drives[channel][drive] >= CDROM0)) //CD-ROM specified? Act according to the ATA/ATAPI-4 specification?
 	{
-		giveATAPISignature(channel); //We're a CD-ROM, give ATAPI signature!
+		giveATAPISignature(channel,drive); //We're a CD-ROM, give ATAPI signature!
 	}
 	else //Normal IDE harddrive(ATA-1)?
 	{
-		giveATASignature(channel); //We're a harddisk, give ATA signature!
+		giveATASignature(channel,drive); //We're a harddisk, give ATA signature!
 	}
 }
 
 void ATA_reset(byte channel)
 {
-	giveSignature(channel); //Give the signature!
+	giveSignature(channel,0); //Give the signature!
+	giveSignature(channel,1); //Give the signature!
 	//Clear errors!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0x00; //No error!
 	//Clear Drive/Head register, leaving the specified drive as it is!
@@ -1636,6 +1637,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	int drive;
 	byte temp;
 	uint_32 disk_size; //For checking against boundaries!
+	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (command) //What command?
 	{
 	case 0x90: //Execute drive diagnostic (Mandatory)?
@@ -1644,14 +1646,21 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		ATA[channel].Drive[0].ERRORREGISTER = 0x1; //OK!
 		ATA[channel].Drive[1].ERRORREGISTER = 0x1; //OK!
-		ATA_STATUSREGISTER_ERRORW(channel,0,0); //Not an error!
-		ATA_STATUSREGISTER_ERRORW(channel,1,0); //Not an error!
+
+		if (ATA_Drives[channel][1]==0) //No second drive?
+		{
+			ATA[channel].Drive[1].ERRORREGISTER = 0x0; //Not detected!
+		}
 
 		ATA[channel].commandstatus = 0; //Reset status!
 		//Set the correct signature for detection!
-		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM(ATAPI-4) specifies Signature? ATA-1 doesn't!
+		if (ATA_Drives[channel][0] >= CDROM0) //CD-ROM(ATAPI-4) specifies Signature? ATA-1 doesn't!
 		{
-			giveSignature(channel); //Give our signature!
+			giveSignature(channel,0); //Give our signature!
+		}
+		if (ATA_Drives[channel][1] >= CDROM0) //CD-ROM(ATAPI-4) specifies Signature? ATA-1 doesn't!
+		{
+			giveSignature(channel,1); //Give our signature!
 		}
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
 		break;
@@ -1774,7 +1783,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
-			giveSignature(channel); //Give our signature!
+			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
@@ -1901,7 +1910,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
-			giveSignature(channel); //Give our signature!
+			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].command = 0xEC; //We're running this command!
