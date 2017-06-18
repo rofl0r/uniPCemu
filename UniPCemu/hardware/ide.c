@@ -2276,6 +2276,7 @@ byte inATA16(word port, word *result)
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	byte buffer;
 	word resultbuffer;
+	buffer = 0x00; //Default for nothing read!
 	ATA_readdata(channel, &buffer); //Read the low data!
 	resultbuffer = buffer; //Load the low byte!
 	buffer = 0x00; //Default for nothing read!
