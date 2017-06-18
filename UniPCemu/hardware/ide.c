@@ -33,6 +33,7 @@ PCI_GENERALCONFIG PCI_IDE;
 
 struct
 {
+	byte multiplemode; //Use multiple mode transfer?
 	byte longop; //Long operation instead of a normal one?
 	uint_32 datapos; //Data position?
 	uint_32 datablock; //How large is a data block to be transferred?
@@ -42,6 +43,7 @@ struct
 	byte commandstatus; //Do we have a command?
 	struct
 	{
+		byte multiplesectors; //How many sectors to transfer in multiple mode? 0=Disabled(according to the ATA-1 documentation)!
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		double ATAPI_PendingExecuteCommand; //How much time is left pending?
 		byte ATAPI_PACKET[12]; //Full ATAPI packet!
@@ -500,6 +502,8 @@ OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
 
 OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sector set up!
 {
+	byte multiple = 1; //Multiple to read!
+	byte counter;
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].commandstatus == 1) //We're reading already?
 	{
@@ -533,12 +537,20 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		return 0; //Stop!
 	}
 
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Read the data from disk?
+	if (ATA[channel].multiplemode) //Enabled multiple mode?
+	{
+		multiple = ATA[channel].multiplemode; //Multiple sectors instead!
+	}
+
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200*multiple)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-		ATA_increasesector(channel); //Increase the current sector!
+		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
+		{
+			ATA_increasesector(channel); //Increase the current sector!
+		}
 
-		ATA[channel].datablock = 0x200; //We're refreshing after this many bytes!
+		ATA[channel].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].datapos = 0; //Initialise our data position!
 		ATA[channel].commandstatus = 1; //Transferring data IN!
 		ATA[channel].command = command; //Set the command to use when reading!
@@ -558,6 +570,8 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 
 OPTINLINE byte ATA_writesector(byte channel)
 {
+	byte multiple = 1; //Multiple to read!
+	byte counter;
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
@@ -577,9 +591,16 @@ OPTINLINE byte ATA_writesector(byte channel)
 	dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
 #endif
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 2); //We're writing!
+	if (ATA[channel].multiplemode) //Enabled multiple mode?
+	{
+		multiple = ATA[channel].multiplemode; //Multiple sectors instead!
+	}
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
 	{
-		ATA_increasesector(channel); //Increase the current sector!
+		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
+		{
+			ATA_increasesector(channel); //Increase the current sector!
+		}
 
 		if (!--ATA[channel].datasize) //Finished?
 		{
@@ -744,6 +765,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 	case 0x21: //Read sectors?
 	case 0x22: //Read long (w/retry)?
 	case 0x23: //Read long (w/o retry)?
+	case 0xC4: //Read multiple?
 		result = ATA[channel].data[ATA[channel].datapos++]; //Read the data byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 		{
@@ -825,6 +847,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 	case 0x31: //Write sectors (w/o retry)?
 	case 0x32: //Write long (w/retry)?
 	case 0x33: //Write long (w/o retry)?
+	case 0xC5: //Write multiple?
 		ATA[channel].data[ATA[channel].datapos++] = data; //Write the data byte!
 		if (ATA[channel].datapos == ATA[channel].datablock) //Full block read?
 		{
@@ -1593,6 +1616,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
 #endif
 	ATA[channel].longop = 0; //Default: no long operation!
+	ATA[channel].multiplemode = 0; //Multiple operation!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not transferring ATAPI data now anymore!
 	int drive;
 	byte temp;
@@ -1715,6 +1739,13 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		else goto invalidcommand; //Error out!
 		break;
+	case 0xC4: //Read multiple?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors==0) //Disabled?
+		{
+			goto invalidcommand; //Invalid command!
+		}
+		ATA[channel].multiplemode = ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors; //Multiple operation!
+		goto readsectors; //Start the write sector command normally!
 	case 0x22: //Read long (w/retry, ATAPI Mandatory)?
 	case 0x23: //Read long (w/o retry, ATAPI Mandatory)?
 		ATA[channel].longop = 1; //Long operation!
@@ -1723,6 +1754,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
 #endif
+		readsectors:
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
 		{
 			//Enter reserved ATAPI result!
@@ -1789,15 +1821,23 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the OK IRQ!
 		}
 		break;
+	case 0xC5: //Write multiple?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors==0) //Disabled?
+		{
+			goto invalidcommand; //Invalid command!
+		}
+		ATA[channel].multiplemode = ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors; //Multiple operation!
+		goto writesectors; //Start the write sector command normally!
 	case 0x32: //Write long (w/retry)?
 	case 0x33: //Write long (w/o retry)?
 		ATA[channel].longop = 1; //Long operation!
 	case 0x30: //Write sector(s) (w/retry)?
 	case 0x31: //Write sectors (w/o retry)?
-		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
+		writesectors:
 #ifdef ATA_LOG
 		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
+		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
 		{
@@ -1942,6 +1982,22 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].command = 0; //Full reset!
 		ATA_reset(channel); //Reset the channel!
 		break;
+	case 0xC6: //Set multiple mode?
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //ATAPI device? Unsupported!
+		{
+			#ifdef ATA_LOG
+			dolog("ATA", "Invalid ATAPI on ATA drive command: %02X", command);
+			#endif
+			goto invalidcommand;
+		}
+		if ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
+		{
+			goto invalidcommand;
+		}
+		ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Sector count register is used!
+		ATA[channel].commandstatus = 0; //Reset command status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
+		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
 	case 0x50: //Format track?
@@ -1952,8 +2008,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0xE4: //Read buffer?
 	case 0xC8: //Read DMA (w/retry)?
 	case 0xC9: //Read DMA (w/o retry)?
-	case 0xC4: //Read multiple?
-	case 0xC6: //Set multiple mode?
 	case 0x99:
 	case 0xE6: //Sleep?
 	case 0x96:
@@ -1963,7 +2017,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0xE8: //Write buffer?
 	case 0xCA: //Write DMA (w/retry)?
 	case 0xCB: //Write DMA (w/o retry)?
-	case 0xC5: //Write multiple?
 	case 0xE9: //Write same?
 	case 0x3C: //Write verify?
 	default: //Unknown command?
