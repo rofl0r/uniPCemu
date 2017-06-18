@@ -63,8 +63,8 @@ struct
 				struct
 				{
 					byte sectornumber; //LBA bits 0-7!
-					byte cylinderhigh; //LBA bits 8-15!
-					byte cylinderlow; //LBA bits 16-23!
+					byte cylinderlow; //LBA bits 8-15!
+					byte cylinderhigh; //LBA bits 16-23!
 					byte drivehead; //LBA 24-27!
 				};
 				uint_32 LBA; //LBA address in LBA mode (28 bits value)!
@@ -95,7 +95,7 @@ struct
 #define ATA_DRIVEHEAD_HEADW(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0xF)|(val&0xF))
 #define ATA_DRIVEHEAD_SLAVEDRIVER(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>4)&1)
 #define ATA_DRIVEHEAD_LBAMODE_2R(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>6)&1)
-#define ATA_DRIVEHEAD_LBAMODE_2W(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0x40)|((val&1)<6))
+#define ATA_DRIVEHEAD_LBAMODE_2W(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0x40)|((val&1)<<6))
 #define ATA_DRIVEHEAD_LBAHIGHR(channel,drive) (ATA[channel].Drive[drive].PARAMETERS.drivehead&0x3F)
 #define ATA_DRIVEHEAD_LBAHIGHW(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0x3F)|(val&0x3F))
 #define ATA_DRIVEHEAD_LBAMODER(channel,drive) ((ATA[channel].Drive[drive].PARAMETERS.drivehead>>6)&1)
@@ -551,7 +551,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	ATA[channel].multipletransferred = multiple; //How many have we transferred?
 
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200*multiple)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (multiple<<9))) //Read the data from disk?
 	{
 		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
 		{
@@ -610,7 +610,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 	}
 	ATA[channel].multipletransferred = multiple; //How many have we transferred?
 
-	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
+	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (multiple<<9))) //Write the data to the disk?
 	{
 		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
 		{
