@@ -54,6 +54,7 @@ typedef struct
 	byte memoryaddressclock; //The memory address clock itself!
 	byte linearcounterdivider; //The linear counter clock divider itself!
 	byte is_topwindow; //Are we the top window?
+	word topwindowCRTbase; //What top-window scanline are we at?
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"

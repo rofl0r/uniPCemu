@@ -410,7 +410,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
-		Sequencer->is_topwindow = 1; //We're the top window rendering!
+		Sequencer->is_topwindow = 1; //We're starting the top window rendering!
 	}
 	else
 	{
@@ -491,6 +491,10 @@ OPTINLINE void VGA_RenderOutput(SEQ_DATA *Sequencer, VGA_Type *VGA) //Render the
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
+	if (Sequencer->is_topwindow) //Top window isn't supported yet?
+	{
+		GPU.yres = Sequencer->topwindowCRTbase; //Take the top window only, the bottom window(splitscreen) isn't supported yet!
+	}
 	//unlockGPU(); //Unlock the GPU!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	//lockGPU(); //Lock the GPU again! We're using it again!
@@ -529,7 +533,10 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Retrace handlers!
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (VGA->CRTC.y>Sequencer->yres) Sequencer->yres = VGA->CRTC.y; //Current y resolution!
+	if (VGA->CRTC.y>Sequencer->yres)
+	{
+		Sequencer->yres = VGA->CRTC.y; //Current y resolution!
+	}
 	VGA->CRTC.y = 0; //Reset destination row!
 	VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 }
@@ -548,6 +555,10 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 		}
 		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
+		if (likely(Sequencer->is_topwindow==0)) //Not top window?
+		{
+			Sequencer->topwindowCRTbase = VGA->CRTC.y; //Save bottom resolution!
+		}
 	}
 	++Sequencer->Scanline; //Next scanline to process!
 }
@@ -571,7 +582,7 @@ void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (hretrace||Sequencer->is_topwindow) return; //Don't handle during horizontal retraces or top screen rendering!
+	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
@@ -642,7 +653,6 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 			DACcolor = VGA_DAC(VGA,(Sequencer->lastDACcolor&0xFF)); //Render through the 8-bit DAC!
 		}
 	}
-	if (Sequencer->is_topwindow) return; //Don't draw the top window!
 	//Draw the pixel(s) that is/are latched!
 	do //We always render at least 1 pixel from the DAC!
 	{
@@ -667,7 +677,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 
 OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (hretrace||Sequencer->is_topwindow) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
 	/*
 	if (VGA->precalcs.AttributeController_16bitDAC==3) //16-bit color mode?
