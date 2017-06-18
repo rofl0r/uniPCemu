@@ -75,6 +75,7 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 
 byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at memory/IO port?
 {
+	if (likely(getcpumode()==CPU_MODE_REAL)) return 0; //Not supported in real mode!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,0)) return 1; //Break into the debugger on Breakpoint #0!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,1)) return 1; //Break into the debugger on Breakpoint #1!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,2)) return 1; //Break into the debugger on Breakpoint #2!
