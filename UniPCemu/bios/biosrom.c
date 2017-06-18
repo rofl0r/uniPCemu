@@ -831,9 +831,9 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	basepos = tempoffset = offset; //Load the current location!
 	if (basepos >= BIOSROM_BASE_XT) //Inside 16-bit/32-bit range?
 	{
-		if (basepos<0x100000) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
-		else if ((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386)) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if ((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000)) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		if (unlikely(basepos<0x100000)) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
+		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
+		else if (unlikely(	(basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000))) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
@@ -872,117 +872,106 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 	INLINEREGISTER uint_32 originaloffset;
 	INLINEREGISTER uint_32 segment; //Current segment!
-	switch (EMULATED_CPU) //What CPU is being emulated?
-	{
-		case CPU_8086:
-		case CPU_NECV30: //5160 PC!
-		case CPU_80286:
-		case CPU_80386:
-		case CPU_80486:
-		case CPU_PENTIUM: //5170 AT PC!
-			segment = basepos; //Load the offset!
-			switch (BIOS_ROM_type) //What type of ROM is loaded?
+		segment = basepos; //Load the offset!
+		switch (BIOS_ROM_type) //What type of ROM is loaded?
+		{
+		case BIOSROMTYPE_U18_19: //U18&19 combo?
+			originaloffset = basepos; //Save the original offset for reference!
+			if (basepos>=0x10000) return 0; //Not us!
+			basepos &= 0x7FFF; //Our offset within the ROM!
+			if (originaloffset&0x8000) //u18?
 			{
-			case BIOSROMTYPE_U18_19: //U18&19 combo?
-				originaloffset = basepos; //Save the original offset for reference!
-				if (basepos>=0x10000) return 0; //Not us!
-				basepos &= 0x7FFF; //Our offset within the ROM!
-				if (originaloffset&0x8000) //u18?
+				if (BIOS_ROMS[18]) //Set?
 				{
-					if (BIOS_ROMS[18]) //Set?
-					{
-						if (BIOS_ROM_size[18]>basepos) //Within range?
-						{
-							return 1; //Ignore writes!
-						}
-					}
-				}
-				else if (BIOS_ROMS[19]) //u19?
-				{
-					if (BIOS_ROM_size[19]>basepos) //Within range?
+					if (BIOS_ROM_size[18]>basepos) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
 				}
-				break;
-			case BIOSROMTYPE_U13_15: //U13&15 combo?
-				if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			}
+			else if (BIOS_ROMS[19]) //u19?
+			{
+				if (BIOS_ROM_size[19]>basepos) //Within range?
 				{
-					if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
-					{
-						if (tempoffset>=(BIOS_ROM_U13_15_double>>1)) //Second copy?
-						{
-							tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
-						}
-					}
+					return 1; //Ignore writes!
 				}
-				tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-				segment &= 1; //Even=u27, Odd=u47
-				if (segment) //u47/u35/u15?
-				{
-					if (BIOS_ROMS[15]) //u13/u15 combination?
-					{
-						if (BIOS_ROM_size[15]>tempoffset) //Within range?
-						{
-							return 1; //Ignore writes!
-						}					
-					}
-				}
-				else if (BIOS_ROMS[13]) //u13/u15 combination?
-				{
-					if (BIOS_ROM_size[13]>tempoffset) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
-				}
-				break;
-			case BIOSROMTYPE_U34_35: //U34/35 combo?
-				tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-				segment &= 1; //Even=u27, Odd=u47
-				if (segment)
-				{
-					if (BIOS_ROMS[35]) //u34/u35 combination?
-					{
-						if (BIOS_ROM_size[35]>tempoffset) //Within range?
-						{
-							return 1; //Ignore writes!
-						}
-					}
-				}
-				else if (BIOS_ROMS[34]) //u34/u35 combination?
-				{
-					if (BIOS_ROM_size[34]>tempoffset) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
-				}
-				break;
-			case BIOSROMTYPE_U27_47: //U27/47 combo?
-				tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-				segment &= 1; //Even=u27, Odd=u47
-				if (segment) //Normal AT BIOS ROM?
-				{
-					if (BIOS_ROMS[47]) //Loaded?
-					{
-						if (BIOS_ROM_size[47]>tempoffset) //Within range?
-						{
-							return 1; //Ignore writes!
-						}
-					}
-				}
-				else if (BIOS_ROMS[27]) //Loaded?
-				{
-					if (BIOS_ROM_size[27]>tempoffset) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
-				}
-				break;
 			}
 			break;
-		default: //Unknown CPU?
+		case BIOSROMTYPE_U13_15: //U13&15 combo?
+			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			{
+				if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
+				{
+					if (tempoffset>=(BIOS_ROM_U13_15_double>>1)) //Second copy?
+					{
+						tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
+					}
+				}
+			}
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment) //u47/u35/u15?
+			{
+				if (BIOS_ROMS[15]) //u13/u15 combination?
+				{
+					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					{
+						return 1; //Ignore writes!
+					}					
+				}
+			}
+			else if (BIOS_ROMS[13]) //u13/u15 combination?
+			{
+				if (BIOS_ROM_size[13]>tempoffset) //Within range?
+				{
+					return 1; //Ignore writes!
+				}
+			}
 			break;
-	}
+		case BIOSROMTYPE_U34_35: //U34/35 combo?
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment)
+			{
+				if (BIOS_ROMS[35]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[35]>tempoffset) //Within range?
+					{
+						return 1; //Ignore writes!
+					}
+				}
+			}
+			else if (BIOS_ROMS[34]) //u34/u35 combination?
+			{
+				if (BIOS_ROM_size[34]>tempoffset) //Within range?
+				{
+					return 1; //Ignore writes!
+				}
+			}
+			break;
+		case BIOSROMTYPE_U27_47: //U27/47 combo?
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment) //Normal AT BIOS ROM?
+			{
+				if (BIOS_ROMS[47]) //Loaded?
+				{
+					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					{
+						return 1; //Ignore writes!
+					}
+				}
+			}
+			else if (BIOS_ROMS[27]) //Loaded?
+			{
+				if (BIOS_ROM_size[27]>tempoffset) //Within range?
+				{
+					return 1; //Ignore writes!
+				}
+			}
+			break;
+		default: break; //Unknown even/odd mapping!
+		}
 
 	return 0; //Not recognised, use normal RAM!
 }
@@ -1035,126 +1024,115 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 
 	INLINEREGISTER uint_32 segment; //Current segment!
 	//dolog("CPU","BIOS Read handler: %08X+%08X",baseoffset,reloffset);
-	switch (EMULATED_CPU) //What CPU is being emulated?
+	switch (BIOS_ROM_type) //What ROM type are we emulating?
 	{
-		case CPU_8086:
-		case CPU_NECV30: //5160 PC!
-		case CPU_80286:
-		case CPU_80386:
-		case CPU_80486:
-		case CPU_PENTIUM: //5170 AT PC!
-			switch (BIOS_ROM_type) //What ROM type are we emulating?
+		case BIOSROMTYPE_U18_19: //U18&19 combo?
+			tempoffset = basepos;
+			if (basepos>=0x10000) return 0; //Not us!
+			tempoffset &= 0x7FFF; //Our offset within the ROM!
+			if (basepos&0x8000) //u18?
 			{
-				case BIOSROMTYPE_U18_19: //U18&19 combo?
-					tempoffset = basepos;
-					if (basepos>=0x10000) return 0; //Not us!
-					tempoffset &= 0x7FFF; //Our offset within the ROM!
-					if (basepos&0x8000) //u18?
+				if (BIOS_ROMS[18]) //Set?
+				{
+					if (BIOS_ROM_size[18]>tempoffset) //Within range?
 					{
-						if (BIOS_ROMS[18]) //Set?
-						{
-							if (BIOS_ROM_size[18]>tempoffset) //Within range?
-							{
-								*value = BIOS_ROMS[18][tempoffset]; //Give the value!
-								return 1;
-							}
-						}
+						*value = BIOS_ROMS[18][tempoffset]; //Give the value!
+						return 1;
 					}
-					else if (BIOS_ROMS[19]) //u19?
-					{
-						if (BIOS_ROM_size[19]>tempoffset) //Within range?
-						{
-							*value = BIOS_ROMS[19][tempoffset]; //Give the value!
-							return 1;
-						}
-					}
-					break;
-				case BIOSROMTYPE_U13_15: //U13&15 combo?
-					segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
-					if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
-					{
-						if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
-						{
-							if (tempoffset>=BIOS_ROM_U13_15_single) //Second copy?
-							{
-								tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
-							}
-						}
-					}
-					tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-					segment &= 1; //Even=u27, Odd=u47
-					if (segment) //u47/u35/u15?
-					{
-						if (BIOS_ROMS[15]) //u34/u35 combination?
-						{
-							if (BIOS_ROM_size[15]>tempoffset) //Within range?
-							{
-								*value = BIOS_ROMS[15][tempoffset]; //Give the value!
-								return 1;
-							}
-						}
-					}
-					else if (BIOS_ROMS[13]) //u34/u35 combination?
-					{
-						if (BIOS_ROM_size[13]>tempoffset) //Within range?
-						{
-							*value = BIOS_ROMS[13][tempoffset]; //Give the value!
-							return 1;
-						}
-					}
-					break;
-				case BIOSROMTYPE_U27_47: //U27&47 combo?
-					segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
-					tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-					segment &= 1; //Even=u27, Odd=u47
-					if (segment)
-					{
-						if (BIOS_ROMS[47]) //Loaded?
-						{
-							if (BIOS_ROM_size[47]>tempoffset) //Within range?
-							{
-								*value = BIOS_ROMS[47][tempoffset]; //Give the value!
-								return 1;
-							}
-						}
-					}
-					else if (BIOS_ROMS[27]) //Loaded?
-					{
-						if (BIOS_ROM_size[27]>tempoffset) //Within range?
-						{
-							*value = BIOS_ROMS[27][tempoffset]; //Give the value!
-							return 1;
-						}
-					}
-					break;
-				case BIOSROMTYPE_U34_35: //U34&35 combo?
-					segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
-					tempoffset >>= 1; //The offset is at every 2 bytes of memory!
-					segment &= 1; //Even=u27, Odd=u47
-					if (segment)
-					{
-						if (BIOS_ROMS[35]) //u34/u35 combination?
-						{
-							if (BIOS_ROM_size[35]>tempoffset) //Within range?
-							{
-								*value = BIOS_ROMS[35][tempoffset]; //Give the value!
-								return 1;
-							}
-						}
-					}
-					else if (BIOS_ROMS[34]) //u34/u35 combination?
-					{
-						if (BIOS_ROM_size[34]>tempoffset) //Within range?
-						{
-							*value = BIOS_ROMS[34][tempoffset]; //Give the value!
-							return 1;
-						}
-					}
-					break;
+				}
+			}
+			else if (BIOS_ROMS[19]) //u19?
+			{
+				if (BIOS_ROM_size[19]>tempoffset) //Within range?
+				{
+					*value = BIOS_ROMS[19][tempoffset]; //Give the value!
+					return 1;
+				}
 			}
 			break;
-		default: //Unknown CPU?
+		case BIOSROMTYPE_U13_15: //U13&15 combo?
+			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			{
+				if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
+				{
+					if (tempoffset>=BIOS_ROM_U13_15_single) //Second copy?
+					{
+						tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
+					}
+				}
+			}
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment) //u47/u35/u15?
+			{
+				if (BIOS_ROMS[15]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[15][tempoffset]; //Give the value!
+						return 1;
+					}
+				}
+			}
+			else if (BIOS_ROMS[13]) //u34/u35 combination?
+			{
+				if (BIOS_ROM_size[13]>tempoffset) //Within range?
+				{
+					*value = BIOS_ROMS[13][tempoffset]; //Give the value!
+					return 1;
+				}
+			}
 			break;
+		case BIOSROMTYPE_U27_47: //U27&47 combo?
+			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment)
+			{
+				if (BIOS_ROMS[47]) //Loaded?
+				{
+					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[47][tempoffset]; //Give the value!
+						return 1;
+					}
+				}
+			}
+			else if (BIOS_ROMS[27]) //Loaded?
+			{
+				if (BIOS_ROM_size[27]>tempoffset) //Within range?
+				{
+					*value = BIOS_ROMS[27][tempoffset]; //Give the value!
+					return 1;
+				}
+			}
+			break;
+		case BIOSROMTYPE_U34_35: //U34&35 combo?
+			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
+			segment &= 1; //Even=u27, Odd=u47
+			if (segment)
+			{
+				if (BIOS_ROMS[35]) //u34/u35 combination?
+				{
+					if (BIOS_ROM_size[35]>tempoffset) //Within range?
+					{
+						*value = BIOS_ROMS[35][tempoffset]; //Give the value!
+						return 1;
+					}
+				}
+			}
+			else if (BIOS_ROMS[34]) //u34/u35 combination?
+			{
+				if (BIOS_ROM_size[34]>tempoffset) //Within range?
+				{
+					*value = BIOS_ROMS[34][tempoffset]; //Give the value!
+					return 1;
+				}
+			}
+			break;
+			default: break; //Unknown even/odd mapping!
 	}
 
 	return 0; //Not recognised, use normal RAM!
