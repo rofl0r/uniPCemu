@@ -542,6 +542,11 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		multiple = ATA[channel].multiplemode; //Multiple sectors instead!
 	}
 
+	if (multiple>ATA[channel].datasize) //More than requested left?
+	{
+		multiple = ATA[channel].datasize; //Only take what's requested!
+	}
+
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200*multiple)) //Read the data from disk?
 	{
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
@@ -594,6 +599,10 @@ OPTINLINE byte ATA_writesector(byte channel)
 	if (ATA[channel].multiplemode) //Enabled multiple mode?
 	{
 		multiple = ATA[channel].multiplemode; //Multiple sectors instead!
+	}
+	if (multiple>ATA[channel].datasize) //More than requested left?
+	{
+		multiple = ATA[channel].datasize; //Only take what's requested!
 	}
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200)) //Write the data to the disk?
 	{
