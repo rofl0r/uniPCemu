@@ -171,13 +171,13 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	switch (readflags) //What kind of flags?
 	{
 		case 0: //Data Write?
-			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE)) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE))) return 1; //Error out!
 			break;
 		case 1: //Data Read?
-			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD)) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD))) return 1; //Error out!
 			break;
 		case 3: //Opcode read?
-			if (checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION))) return 1; //Error out!
 			break;
 		case 2: //Unknown?
 		default: //Unknown? Unsupported!
