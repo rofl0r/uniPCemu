@@ -2278,6 +2278,7 @@ byte inATA16(word port, word *result)
 	word resultbuffer;
 	ATA_readdata(channel, &buffer); //Read the low data!
 	resultbuffer = buffer; //Load the low byte!
+	buffer = 0x00; //Default for nothing read!
 	ATA_readdata(channel, &buffer); //Read the high data!
 	resultbuffer |= (buffer << 8); //Load the high byte!
 	*result = resultbuffer; //Set the result!
