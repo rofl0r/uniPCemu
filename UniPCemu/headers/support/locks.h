@@ -1,5 +1,6 @@
 #ifndef __LOCKS_H
 #define __LOCKS_H
+#include "headers/types.h" //Basic types!
 
 void initLocks();
 byte lock(byte id);
