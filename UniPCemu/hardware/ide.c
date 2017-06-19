@@ -1150,6 +1150,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	uint_32 disk_size,LBA;
 	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 512 byte sectors!
 	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
+	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
@@ -1733,7 +1734,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			temp = (ATA[channel].command & 0xF); //???
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Clear cylinder #!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
-			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 			ATA[channel].commandstatus = 0; //Reset status!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
@@ -1777,7 +1777,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 				ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //No error!
 				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
-				ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 				ATA[channel].commandstatus = 0; //Reset status!
 				ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),(command & 0xF)); //Select the following head!
@@ -1812,7 +1811,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		if (ATA_readsector(channel,command)) //OK?
 		{
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
@@ -1824,7 +1822,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		nextverification: //Verify the next sector!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<disk_size) //OK?
 		{
@@ -1866,7 +1863,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
 		ATA[channel].datablock = 0x200; //We're writing 512 bytes to our output at a time!
@@ -1883,7 +1879,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
 		ATA_updateCapacity(channel,ATA_activeDrive(channel)); //Update the capacity!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		break;
 	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE (ATAPI Mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
@@ -1911,7 +1906,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //Needs to be 0 to detect!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We have data now!
 		//Finish up!
 		ATA[channel].datapos = 0; //Initialise data position for the result!
@@ -1949,7 +1943,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),0); //Are we read-only!
 			}
 			ATA_ERRORREGISTER_MEDIACHANGEDW(channel,ATA_activeDrive(channel),0); //Not anymore!
-			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
 			ATA[channel].commandstatus = 0; //Reset status!
 		}
