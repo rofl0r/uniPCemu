@@ -83,6 +83,7 @@ struct
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
+		uint_32 ATAPI_disksize; //The ATAPI disk size!
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -698,7 +699,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, word size)
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 {
 	byte *datadest = NULL; //Destination of our loaded data!
-	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
+	uint_32 disk_size = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_disksize; //The size of the disk in sectors!
 	if (ATA[channel].commandstatus == 1) //We're reading already?
 	{
 		if (!--ATA[channel].datasize) //Finished?
@@ -1000,7 +1001,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				buf[len++] = 0x16; // ADR, control
 				buf[len++] = 0xaa; // Track number
 				buf[len++] = 0; // Reserved
-				blocks = ((ATA[channel].Drive[drive].driveparams[61] << 16) | ATA[channel].Drive[drive].driveparams[60]); //Get the drive size from the disk information, in 2KB blocks!
+				blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
 				// Start address
 				if (msf) {
 					buf[len++] = 0; // reserved
@@ -1051,7 +1052,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						buf[len++] = 0;
 					}
 					else if (i == 2) {
-						blocks = ((ATA[channel].Drive[drive].driveparams[61] << 16) | ATA[channel].Drive[drive].driveparams[60]); //Capacity, in 2KB sectors!
+						blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Capacity, in 2KB sectors!
 						if (msf) {
 							buf[len++] = 0; // reserved
 							buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
@@ -1147,7 +1148,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	uint_32 packet_datapos;
 	byte i;
 	uint_32 disk_size,LBA;
-	disk_size = (ATA[channel].Drive[drive].driveparams[61]<<16) | ATA[channel].Drive[drive].driveparams[60]; //Disk size in 512 byte sectors!
+	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 512 byte sectors!
 	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
@@ -2003,7 +2004,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			#endif
 			goto invalidcommand;
 		}
-		if ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
+		if (((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].data)) || (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount&0x80)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
 		{
 			goto invalidcommand;
 		}
@@ -2472,37 +2473,54 @@ void ATA_DiskChanged(int disk)
 	case CDROM0: //CDROM0 changed?
 	case CDROM1: //CDROM1 changed?
 		//Initialize the drive parameters!
-		memset(ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
+		memset(&ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		if (is_mounted(disk)) //Do we even have this drive?
 		{
 			disk_size = disksize(disk); //Get the disk's size!
 			disk_size >>= IS_CDROM?11:9; //Get the disk size in sectors!
-			if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
-			ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
-			ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
-			ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
-			ATA[disk_channel].Drive[disk_ATA].driveparams[5] = IS_CDROM?0:0x200; //512 bytes per sector!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = IS_CDROM?0:1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = (sizeof(ATA[0].data)>>(IS_CDROM?11:9)); //Buffer size in sectors! We're a 64KB buffer, so 0x80 sectors buffered(of 512 bytes each)!
+			if (IS_CDROM==0) //Not with CD-ROM?
+			{
+				if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
+				ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
+				ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
+				ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
+				ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector unformatted!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track unformatted!
+			}
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,&SERIAL[IS_CDROM][0]);
+			if (IS_CDROM==0)
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
+			}
 
 			//Fill text fields, padded with spaces!
-			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[27],20,&MODEL[IS_CDROM][0]);
-			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,&SERIAL[IS_CDROM][0]);
 			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[23],4,&FIRMWARE[IS_CDROM][0]);
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[27],20,&MODEL[IS_CDROM][0]);
 
-			ATA[disk_channel].Drive[disk_ATA].driveparams[47] = IS_CDROM?0:((sizeof(ATA[disk_ATA].data)>>9)&0xFF); //Amount of read/write multiple supported, in sectors!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[47] = IS_CDROM?0:(MIN(sizeof(ATA[disk_ATA].data)>>9,0x7F)&0xFF); //Amount of read/write multiple supported, in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)!
+			ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)! Specify mode 2(which is the fastest)!
 			--disk_size; //LBA is 0-based, not 1 based!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
+			if (IS_CDROM==0) //HDD only!
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //The data at 54-58 are valid on ATA-1!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[59] = 0x80|(ATA[disk_channel].Drive[disk_ATA].multiplesectors); //Current multiple sectors setting!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
+			}
+			else
+			{
+				ATA[disk_channel].Drive[disk_ATA].ATAPI_disksize = disk_size; //Number of addressable LBA sectors, minus one!
+			}
 			//ATA-1 supports up to word 63 only. Above is filled on ATAPI only(newer ATA versions)!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Major version! We're ATA/ATAPI 4 on CD-ROM, ATA-1 on HDD!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Minor version! We're ATA/ATAPI 4!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = IS_CDROM?(1<<4):0x00; //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[81] = IS_CDROM?0x0017:0x0000; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
-			ATA[disk_channel].Drive[disk_ATA].driveparams[82] = IS_CDROM?((1<<4)|(1<<9)|(1<<14)):0x0000; //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
+			if (IS_CDROM) //CD-ROM only?
+			{
+				ATA[disk_channel].Drive[disk_ATA].driveparams[80] = (1<<4); //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
+				ATA[disk_channel].Drive[disk_ATA].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
+			}
 			ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
 		}
 		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
