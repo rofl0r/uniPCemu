@@ -31,6 +31,11 @@
 
 PCI_GENERALCONFIG PCI_IDE;
 
+//Index: 0=HDD, 1=CD-ROM! Swapped in the command! Empty is padded with spaces!
+byte MODEL[2][41] = {"Generic HDD","Generic CD-ROM"}; //Word #27-46.
+byte SERIAL[2][21] = {"UniPCemu HDD","UniPCemu CD-ROM"}; //Word #5-10.
+byte FIRMWARE[2][9] = {"1.0","1.0"}; //Word #23-26.
+
 struct
 {
 	byte multipletransferred; //How many sectors were transferred in multiple mode this block?
@@ -2430,8 +2435,29 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 
 byte CDROM_DiskChanged = 0;
 
+void strcpy_swappedpadded(word *buffer, byte sizeinwords, char *s)
+{
+	byte counter, lowbyte, highbyte;
+	word length;
+	length = strlen(s); //Check the length for the copy!
+	for (counter=0;counter<sizeinwords;++counter) //Step words!
+	{
+		lowbyte = highbyte = 0x20; //Initialize to unused!
+		if (length>=((counter<<1)|1)) //Low byte available?
+		{
+			lowbyte = s[(counter<<1)|1]; //Low byte as high byte!
+		}
+		if (length>=(counter<<1)) //High byte available?
+		{
+			highbyte = s[(counter<<1)]; //High byte as low byte!
+		}
+		buffer[counter] = lowbyte|(highbyte<<8); //Set the byte information!
+	}
+}
+
 void ATA_DiskChanged(int disk)
 {
+	int counter;
 	byte disk_ATA, disk_channel, disk_nr;
 	switch (disk) //What disk?
 	{
@@ -2457,7 +2483,7 @@ void ATA_DiskChanged(int disk)
 	{
 		ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_ATA,1); //We've changed media!
 	}
-	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1)); //CD-ROM drive?
+	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
 	uint_64 disk_size;
 	switch (disk)
@@ -2480,6 +2506,11 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = IS_CDROM?0:1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[21] = (sizeof(ATA[0].data)>>(IS_CDROM?11:9)); //Buffer size in sectors! We're a 64KB buffer, so 0x80 sectors buffered(of 512 bytes each)!
+
+			//Fill text fields, padded with spaces!
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[27],20,&MODEL[IS_CDROM][0]);
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,&SERIAL[IS_CDROM][0]);
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[23],4,&FIRMWARE[IS_CDROM][0]);
 
 			ATA[disk_channel].Drive[disk_ATA].driveparams[47] = IS_CDROM?0:((sizeof(ATA[disk_ATA].data)>>9)&0xFF); //Amount of read/write multiple supported, in sectors!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
