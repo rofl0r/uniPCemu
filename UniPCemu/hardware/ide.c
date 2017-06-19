@@ -170,11 +170,6 @@ OPTINLINE byte ATA_activeDrive(byte channel)
 	return ATA[channel].activedrive; //Give the drive or 0xFF if invalid!
 }
 
-OPTINLINE uint_32 read_LBA(byte channel)
-{
-	return (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //Give the LBA register contents!
-}
-
 OPTINLINE uint_32 ATA_CHS2LBA(byte channel, byte slave, word cylinder, byte head, byte sector)
 {
 	return ((cylinder*ATA[channel].Drive[slave].driveparams[55]) + head)*ATA[channel].Drive[slave].driveparams[56] + sector - 1; //Give the LBA value!
@@ -481,12 +476,29 @@ word get_cylinders(uint_64 disk_size)
 	return (cylinders>=0x3FFF)?0x3FFF:(cylinders?cylinders:1); //Give the maximum amount of cylinders allowed!
 }
 
+//LBA address support with CHS/LBA input/output!
 OPTINLINE void ATA_increasesector(byte channel) //Increase the current sector to the next sector!
 {
 	++ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Increase the current sector!
 }
 
-OPTINLINE void ATA_updatesector(byte channel) //Update the current sector!
+void ATA_readLBACHS(byte channel)
+{
+	if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.LBA & 0xFFFFFFF); //The LBA address!
+	}
+	else //Normal CHS address?
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel,ATA_activeDrive(channel),
+			((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
+			ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
+
+	}
+}
+
+void ATA_writeLBACHS(byte channel) //Update the current sector!
 {
 	word cylinder;
 	byte head, sector;
@@ -515,7 +527,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	{
 		if (!(ATA[channel].datasize-=ATA[channel].multipletransferred)) //Finished?
 		{
-			ATA_updatesector(channel); //Update the current sector!
+			ATA_writeLBACHS(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
@@ -538,7 +550,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA_updatesector(channel); //Update the current sector!
+		ATA_writeLBACHS(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 		return 0; //Stop!
@@ -574,7 +586,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	{
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA_updatesector(channel); //Update the current sector!
+		ATA_writeLBACHS(channel); //Update the current sector!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 		return 0; //Stop!
@@ -594,7 +606,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA_updatesector(channel); //Update the current sector!
+		ATA_writeLBACHS(channel); //Update the current sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
@@ -624,7 +636,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 
 		if (!(ATA[channel].datasize-=ATA[channel].multipletransferred)) //Finished?
 		{
-			ATA_updatesector(channel); //Update the current sector!
+			ATA_writeLBACHS(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0; //We're back in command mode!
 #ifdef ATA_LOG
 			dolog("ATA", "All sectors to be written written! Ready.");
@@ -669,7 +681,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),1); //Not found!
 		}
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA_updatesector(channel); //Update the current sector!
+		ATA_writeLBACHS(channel); //Update the current sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].datasize&0xFF); //How many sectors are left is updated!
 		ATA[channel].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
@@ -1798,18 +1810,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
-		}
-		else //Normal CHS address?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel,ATA_activeDrive(channel),
-				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
-
-		}
+		ATA_readLBACHS(channel); //Read the LBA/CHS address!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		if (ATA_readsector(channel,command)) //OK?
 		{
@@ -1821,23 +1822,12 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
-		}
-		else //Normal CHS address?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel, ATA_activeDrive(channel),
-				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
-
-		}
+		ATA_readLBACHS(channel);
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		nextverification: //Verify the next sector!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<disk_size) //OK?
 		{
-			++ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Next sector!
+			ATA_increasesector(channel); //Next sector!
 			if (--ATA[channel].datasize) //Still left?
 			{
 				goto nextverification; //Verify the next sector!
@@ -1848,7 +1838,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //Reset error register!
 			ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
-			ATA_updatesector(channel); //Update the current sector!
+			ATA_writeLBACHS(channel); //Update the current sector!
 			ATA[channel].commandstatus = 0xFF; //Error!
 		}
 		if (!ATA_STATUSREGISTER_ERRORR(channel,ATA_activeDrive(channel))) //Finished OK?
@@ -1874,18 +1864,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
-		if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = read_LBA(channel); //The LBA address!
-		}
-		else //Normal CHS address?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = ATA_CHS2LBA(channel, ATA_activeDrive(channel),
-				((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh << 8) | (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow)),
-				ATA_DRIVEHEAD_HEADR(channel,ATA_activeDrive(channel)),
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber); //The LBA address based on the CHS address!
-
-		}
+		ATA_readLBACHS(channel);
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Not an error!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 		ATA[channel].commandstatus = 2; //Transferring data OUT!
