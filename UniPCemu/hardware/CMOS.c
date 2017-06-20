@@ -522,6 +522,10 @@ void loadCMOS()
 		}
 	}
 
+	//Apply the reset signal results(usually done when applying power to a computer)!
+	CMOS.DATA.DATA80.data[0xC] = 0x00; //Register C is cleared when reset is asserted!
+	CMOS.DATA.DATA80.info.STATUSREGISTERB &= ~0x78; //The interrupt settings and Square wave enable are cleared when reset is asserted!
+
 	//Initialize running data for making us tick correctly!
 	updatedividerchain(); //Update the divider chain setting!
 	CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
@@ -584,7 +588,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			data = CMOS.DATA.DATA80.data[CMOS.ADDR]; //Give the data from the CMOS!
 			if (CMOS.ADDR == 0xD) //Read only status register D?
 			{
-				data |= 0x80; //We have power!
+				CMOS.DATA.DATA80.data[0xD] = 0x80; //We now have valid data and RAM, when not already! This is according to the Moterola MC146818 chip documentation!
 			}
 			//Status register B&C are read-only!
 		}
