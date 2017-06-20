@@ -74,6 +74,10 @@ typedef struct PACKED
 	uint_64 breakpoint; //The used breakpoint segment:offset and mode!
 	byte BIOSROMmode; //BIOS ROM mode.
 	byte debugger_logstates; //Are we logging states? 1=Log states, 0=Don't log states!
+
+	//CMOS for Compaq systems!
+	CMOSDATA CompaqCMOS; //The full saved CMOS!
+	byte got_CompaqCMOS; //Gotten an CMOS?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 

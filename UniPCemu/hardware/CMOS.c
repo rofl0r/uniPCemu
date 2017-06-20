@@ -498,16 +498,25 @@ OPTINLINE void CMOS_onWrite() //When written to CMOS!
 	CMOS.Loaded = 1; //We're loaded now!
 }
 
+extern byte is_Compaq; //Are we emulating a Compaq device?
+
 void loadCMOS()
 {
-	if (!BIOS_Settings.got_CMOS)
+	if (!(((BIOS_Settings.got_CMOS) && (is_Compaq==0)) || ((BIOS_Settings.got_CompaqCMOS) && is_Compaq))) //Compaq/AT CMOS?
 	{
 		loadCMOSDefaults(); //Load our default requirements!
 		return;
 	}
 	else //Load BIOS CMOS!
 	{
-		memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		if (is_Compaq) //Compaq?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.CompaqCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
+		else //Normal CMOS?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
 	}
 
 	//Initialize running data for making us tick correctly!
@@ -520,8 +529,16 @@ void loadCMOS()
 void saveCMOS()
 {
 	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
-	memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
-	BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
+	if (is_Compaq) //Compaq?
+	{
+		memcpy(&BIOS_Settings.CompaqCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		BIOS_Settings.got_CompaqCMOS = 1; //We've saved an CMOS!
+	}
+	else //Normal CMOS?
+	{
+		memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
+	}
 	forceBIOSSave(); //Save the BIOS data!
 }
 

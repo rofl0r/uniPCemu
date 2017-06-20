@@ -5262,6 +5262,7 @@ void BIOS_CPUSpeed() //CPU speed selection!
 }
 
 extern CMOS_Type CMOS; //The currently running CMOS!
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 void BIOS_ClearCMOS() //Clear the CMOS!
 {
@@ -5276,8 +5277,16 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear the data!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
-	BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
+	if (is_Compaq) //Compaq?
+	{
+		memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS));
+		BIOS_Settings.got_CompaqCMOS = 0; //We haven't gotten a CMOS!
+	}
+	else //Normal CMOS?
+	{
+		memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
+		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
+	}
 	BIOS_Changed = 1; //We've changed!
 	reboot_needed |= 2; //We're needing a reboot!
 	BIOS_Menu = 8; //Goto Advanced Menu!
