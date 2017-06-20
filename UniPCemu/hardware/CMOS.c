@@ -80,6 +80,7 @@ CMOS_Type CMOS;
 extern byte NMI; //NMI interrupt enabled?
 
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
+extern byte is_Compaq; //Are we emulating a Compaq device?
 
 #define FLOPPY_NONE 0
 #define FLOPPY_360 1
@@ -93,6 +94,10 @@ OPTINLINE void loadCMOSDefaults()
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
 	CMOS.DATA.timedivergeance = 0; //No second divergeance!
 	CMOS.DATA.timedivergeance2 = 0; //No us divergeance!
+	if (is_Compaq) //Compaq defaults?
+	{
+		CMOS.DATA.DATA80.info.STATUSREGISTERA = (2<<4)|0x6; //Make sure the timer is properly counting!
+	}
 	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
@@ -497,8 +502,6 @@ OPTINLINE void CMOS_onWrite() //When written to CMOS!
 	}
 	CMOS.Loaded = 1; //We're loaded now!
 }
-
-extern byte is_Compaq; //Are we emulating a Compaq device?
 
 void loadCMOS()
 {
