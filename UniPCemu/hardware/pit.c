@@ -655,6 +655,7 @@ word encodeBCD16(word value) //Converts from decimal to digits!
 extern byte is_XT; //Are we emulating a XT architecture?
 
 byte TimerBase[2] = {0,3}; //The timer base to use!
+byte secondPITmapping[8] = {0,0xFF,0xFF,0xFF,0xFF,1,1,0xFF}; //Ports 44-4B mapping to second PIT, when emulation is enabled!
 
 byte in8254(word portnum, byte *result)
 {
@@ -663,16 +664,22 @@ byte in8254(word portnum, byte *result)
 	if (__HW_DISABLED) return 0; //Abort!
 	switch (portnum)
 	{
-		case 0x48:
+		case 0x44:
 		case 0x49:
 		case 0x4A: //Second timer on Compaq?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
+			pit = (byte)(portnum&0xFF);
+			pit -= 0x44; //PIT!
+			pit = secondPITmapping[pit]; //Map according to the second PIT!
+			if (pit==0xFF) return 0; //Unmapped?
+			goto applyINpit;
 		case 0x40:
 		case 0x41:
 		case 0x42: //First PIT?
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //PIT!
+			applyINpit:
 			pit += TimerBase[whichtimer]; //Convert to the correct timer (0-5)!
 			if (readstatus[pit]) //Status is to be read now?
 			{
@@ -742,7 +749,7 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 			break;
-		case 0x4B: //Second timer command?
+		case 0x47: //Second timer command?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
 		case 0x43:
@@ -775,16 +782,22 @@ byte out8254(word portnum, byte value)
 	byte currentstatus; //For read back command!
 	switch (portnum)
 	{
-		case 0x48:
+		case 0x44:
 		case 0x49:
 		case 0x4A: //Second timer on Compaq?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
+			pit = (byte)(portnum&0xFF);
+			pit -= 0x44; //PIT!
+			pit = secondPITmapping[pit]; //Map according to the second PIT!
+			if (pit==0xFF) return 0; //Unmapped?
+			goto applyOUTpit;
 		case 0x40: //pit 0 data port
 		case 0x41: //pit 1 data port
 		case 0x42: //speaker data port
 			pit = (byte)(portnum&0xFF);
 			pit &= 3; //Low 2 bits only!
+			applyOUTpit:
 			pit += TimerBase[whichtimer]; //Convert to the correct timer (0-5)!
 			PIT_LOG("Write to data port 0x%02X=%02X",portnum,value);
 			switch (pitcommand[pit]&0x30) //What input mode currently?
@@ -845,7 +858,7 @@ byte out8254(word portnum, byte value)
 				break;
 			}
 			return 1;
-		case 0x4B: //Second timer command?
+		case 0x47: //Second timer command?
 			if (numPITchannels!=6) return 0; //Disabled?			
 			whichtimer = 1; //Second timer to use!
 		case 0x43: //pit command port
@@ -936,12 +949,16 @@ void init8253() {
 	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 	PCSpeakerPort = 0; //Init PC speaker port!
+	/*
 	if (is_Compaq==1) //Emulating Compaq architecture?
 	{
 		numPITchannels = 6; //We're emulating all 6 channels instead!
 	}
 	else
 	{
+	*/
 		numPITchannels = 3; //We're emulating base XT+ 3 channel PIT!
+	/*
 	}
+	*/
 }
