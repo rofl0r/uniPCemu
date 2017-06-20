@@ -96,24 +96,24 @@ OPTINLINE void loadCMOSDefaults()
 	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
-OPTINLINE void RTC_raiseIRQ()
+void RTC_raiseIRQ()
 {
 	raiseirq(8); //We're the cause of the interrupt!
 }
 
-OPTINLINE void RTC_PeriodicInterrupt() //Periodic Interrupt!
+void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
 	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag is always set!
 	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
-OPTINLINE void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
+void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
 	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
-OPTINLINE void RTC_AlarmInterrupt() //Alarm handler!
+void RTC_AlarmInterrupt() //Alarm handler!
 {
 	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
 	RTC_raiseIRQ(); //Raise the IRQ!
