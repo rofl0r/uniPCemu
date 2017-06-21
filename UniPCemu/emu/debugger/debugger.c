@@ -28,7 +28,7 @@
 
 //Debugger skipping functionality
 uint_32 skipopcodes = 0; //Skip none!
-byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination.
+byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
 uint_32 skipopcodes_destEIP = 0; //Wait for EIP to become this value?
 
 //Repeat log?
@@ -1261,6 +1261,10 @@ void debugger_step() //Processes the debugging step!
 					skipstep = 0; //Disable skip step!
 				}
 				else if (debuggerregisters.EIP == skipopcodes_destEIP) //We've reached the destination address?
+				{
+					skipstep = 0; //We're finished!
+				}
+				else if (skipstep==3) //Stop immediately?
 				{
 					skipstep = 0; //We're finished!
 				}

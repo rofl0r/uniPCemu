@@ -810,6 +810,8 @@ extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
 extern byte CPUhardinthandling;
 
+extern byte skipstep; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
@@ -1063,6 +1065,7 @@ OPTINLINE byte coreHandler()
 	{
 		if ((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || Settings_request) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
+			skipstep = 3; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
 			lock(LOCK_INPUT);
 			Settings_request = 0; //We're handling the request!
 			unlock(LOCK_INPUT);
