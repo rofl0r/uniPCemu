@@ -975,6 +975,8 @@ void SoundBlaster_DREQ()
 void SoundBlaster_DACK()
 {
 	//We're transferring something?
+	DMA_SetDREQ(__SOUNDBLASTER_DMA8,0); //Set the DREQ signal accordingly!
+	SOUNDBLASTER.DREQ = 2; //We're acnowledged, inhabit more transfers!
 }
 
 void SoundBlaster_TC()

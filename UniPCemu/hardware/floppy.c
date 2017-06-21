@@ -2015,6 +2015,7 @@ void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 
 void FLOPPY_DMADACK() //For processing DACK signal!
 {
+	DMA_SetDREQ(FLOPPY_DMA,0); //Stop the current transfer!
 	FLOPPY.DMAPending = 0; //We're not pending anymore!
 }
 
