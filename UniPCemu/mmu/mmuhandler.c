@@ -205,9 +205,9 @@ resetmmu:
 
 	if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
 	{
-		if (MMU.size<(0x100000-0xA0000)) //Not enough for reserved memory?
+		if (MMU.size<((0x100000-0xA0000)+(256*1024))) //Not enough for reserved memory?
 		{
-			MMU.size = 0x100000-0xA0000; //Minimum required memory!
+			MMU.size = (0x100000-0xA0000)+(256*1024); //Minimum required memory!
 		}
 	}
 	if ((EMULATED_CPU <= CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
