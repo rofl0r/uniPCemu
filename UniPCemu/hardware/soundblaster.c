@@ -329,7 +329,6 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start the DAC transfer immediately, we have no parameters!
 		}
 		break;
 	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
@@ -360,7 +359,6 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start the DAC transfer immediately, we have no parameters!
 		}
 		break;
 	case 0x30: //MIDI read poll
@@ -402,7 +400,6 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start the DAC transfer immediately, we have no parameters!
 		}
 		break;
 	case 0x7F: //Auto-initialize DMA DAC, 2.6-bit ADPCM Reference
@@ -416,7 +413,6 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start the DAC transfer immediately, we have no parameters!
 		}
 		break;
 	case 0x80: //Silence DAC
