@@ -26,6 +26,9 @@
 //What DMA channel is expected of floppy disk I/O
 #define FLOPPY_DMA 2
 
+//Floppy DMA transfer pulse time, in nanoseconds! How long to take to transfer one byte!
+#define FLOPPY_DMA_TIMEOUT 39062.5
+
 //Automatic setup.
 #ifdef FLOPPY_LOGFILE
 #ifdef FLOPPY_LOGFILE2
@@ -847,7 +850,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY_useDMA()) //DMA mode?
 	{
-		FLOPPY.DMAPending = 1; //Pending DMA!
+		FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
 	}
 	FLOPPY_dataReady(); //We have data to transfer!
 }
@@ -1865,7 +1868,15 @@ void updateFloppy(double timepassed)
 					}
 					break;
 				default: //Unsupported command?
-					floppytimer = 0.0; //Don't time anymore!
+					if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending==2)) //DMA transfer busy?
+					{
+						FLOPPY.DMAPending = 1; //Start up DMA again!
+						floppytimer = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
+					}
+					else //Unsupported?
+					{
+						floppytimer = 0.0; //Don't time anymore!
+					}
 					break; //Don't handle us yet!
 			}
 		}
@@ -2010,13 +2021,14 @@ byte DMA_floppyread()
 
 void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 {
-	DMA_SetDREQ(FLOPPY_DMA, (FLOPPY.commandstep == 2) && FLOPPY_useDMA()); //Set DREQ from hardware when in the data phase and using DMA transfers and not busy yet(pending)!
+	DMA_SetDREQ(FLOPPY_DMA, (FLOPPY.commandstep == 2) && FLOPPY_useDMA() && (FLOPPY.DMAPending==1)); //Set DREQ from hardware when in the data phase and using DMA transfers and not busy yet(pending)!
 }
 
 void FLOPPY_DMADACK() //For processing DACK signal!
 {
 	DMA_SetDREQ(FLOPPY_DMA,0); //Stop the current transfer!
-	FLOPPY.DMAPending = 0; //We're not pending anymore!
+	FLOPPY.DMAPending = 2; //We're not pending anymore, until timed out!
+	floppytimer = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
 }
 
 void FLOPPY_DMATC() //Terminal count triggered?
