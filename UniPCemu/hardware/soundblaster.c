@@ -460,6 +460,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SB2COMMAND
 		SB_LOGCOMMAND
 		SOUNDBLASTER.AutoInit = 0; //Disable the auto-initialize option when we're finished rendering!
+		SOUNDBLASTER.DREQ = 0; //Stop requesting: we're done!
 		break;
 	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too according to it's SBFMDRV driver?
 		SB_LOGCOMMAND
@@ -688,8 +689,12 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
+						SOUNDBLASTER.DREQ |= (2|4); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
-					SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
+					else
+					{
+						SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
+					}
 				}
 				else
 				{
@@ -846,6 +851,11 @@ OPTINLINE byte readDSPData(byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
+						SOUNDBLASTER.DREQ |= (2|4); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
+					}
+					else
+					{
+						SOUNDBLASTER.DREQ = 0; //Finished!
 					}
 				}
 				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
@@ -927,6 +937,7 @@ byte inSoundBlaster(word port, byte *result)
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
 			lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
 			acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
+			SOUNDBLASTER.DREQ &= ~4; //IRQ has been acnowledged, resume playback!
 		}
 		return 1; //We have a result!
 	default:
