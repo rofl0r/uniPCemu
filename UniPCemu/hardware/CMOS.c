@@ -104,18 +104,21 @@ void RTC_raiseIRQ()
 
 void RTC_PeriodicInterrupt() //Periodic Interrupt!
 {
+	if (CMOS.DATA.DATA80.data[0xC]&0x70) return; //Disable when pending!
 	CMOS.DATA.DATA80.data[0x0C] |= 0x40; //Periodic Interrupt flag is always set!
 	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
 void RTC_UpdateEndedInterrupt() //Update Ended Interrupt!
 {
+	if (CMOS.DATA.DATA80.data[0xC]&0x70) return; //Disable when pending!
 	CMOS.DATA.DATA80.data[0x0C] |= 0x10; //Update Ended Interrupt flag!
 	RTC_raiseIRQ(); //Raise the IRQ!
 }
 
 void RTC_AlarmInterrupt() //Alarm handler!
 {
+	if (CMOS.DATA.DATA80.data[0xC]&0x70) return; //Disable when pending!
 	CMOS.DATA.DATA80.data[0x0C] |= 0x20; //Alarm Interrupt flag!
 	RTC_raiseIRQ(); //Raise the IRQ!
 }
