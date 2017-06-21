@@ -61,7 +61,7 @@ struct
 	byte muted; //Is speaker output disabled?
 	byte singen; //Sine wave generator enabled?
 	double singentime; //Sine wave generator position in time!
-	byte DMAEnabled; //DMA not paused?
+	byte DMADisabled; //DMA not paused?
 	byte ADPCM_format; //Format of the ADPCM data, if used!
 	byte ADPCM_reference; //The current by of ADPCM is the reference?
 	byte ADPCM_currentreference; //Current reference byte!
@@ -142,7 +142,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 					{
 						SoundBlaster_IRQ8(); //Fire the IRQ!
-						SOUNDBLASTER.DMAEnabled |= 2; //We're a paused DMA transaction automatically!
+						SOUNDBLASTER.DMADisabled |= 1; //We're a paused DMA transaction automatically!
 					}
 				}
 				else //Audio playing?
@@ -161,9 +161,9 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						}
 					}
 				}
-				if (SOUNDBLASTER.DMAEnabled&4) //Timing?
+				if (SOUNDBLASTER.DREQ&4) //Timing?
 				{
-					SOUNDBLASTER.DMAEnabled &= ~4; //We're done timing, start up DMA again, if allowed!
+					SOUNDBLASTER.DREQ &= ~4; //We're done timing, start up DMA again, if allowed!
 				}
 				soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 			}
@@ -284,9 +284,9 @@ OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
 OPTINLINE void DSP_startDMADAC(byte autoinitDMA)
 {
 	SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
-	if (((SOUNDBLASTER.DMAEnabled&1) == 0) || autoinitDMA) //DMA Disabled?
+	if ((SOUNDBLASTER.DMADisabled&1) || autoinitDMA) //DMA Disabled?
 	{
-		SOUNDBLASTER.DMAEnabled |= 1; //Start the DMA transfer fully itself!
+		SOUNDBLASTER.DMADisabled &= ~1; //Start the DMA transfer fully itself!
 	}
 	SOUNDBLASTER.commandstep = 1; //Goto step 1!
 	SOUNDBLASTER.AutoInit = SOUNDBLASTER.AutoInitBuf; //Apply auto-init setting, when supported!
@@ -430,9 +430,9 @@ OPTINLINE void DSP_writeCommand(byte command)
 		break;
 	case 0xD0: //Halt DMA operation, 8-bit
 		SB_LOGCOMMAND
-		if (SOUNDBLASTER.DREQ && SOUNDBLASTER.DMAEnabled) //DMA enabled? Busy transaction!
+		if (SOUNDBLASTER.DREQ) //DMA enabled? Busy transaction!
 		{
-			SOUNDBLASTER.DMAEnabled |= 2; //We're a paused DMA transaction now!
+			SOUNDBLASTER.DMADisabled = 1; //We're a paused DMA transaction now!
 		}
 		break;
 	case 0xD1: //Enable Speaker
@@ -446,9 +446,9 @@ OPTINLINE void DSP_writeCommand(byte command)
 		break;
 	case 0xD4: //Continue DMA operation, 8-bit
 		SB_LOGCOMMAND
-		if (SOUNDBLASTER.DREQ && SOUNDBLASTER.DMAEnabled) //DMA enabled? Busy transaction!
+		if (SOUNDBLASTER.DMADisabled) //DMA enabled? Busy transaction!
 		{
-			SOUNDBLASTER.DMAEnabled &= ~2; //We're a continuing DMA transaction now!
+			SOUNDBLASTER.DMADisabled = 0; //We're a continuing DMA transaction now!
 		}
 		break;
 	case 0xD8: //Speaker Status
@@ -612,7 +612,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 	case 0: return; //Unknown command!
 	case 0x10: //Direct DAC output?
 		sb_leftsample = sb_rightsample = data; //Set the direct DAC output!
-		SOUNDBLASTER.DMAEnabled = 0; //Disable DMA transaction!
+		SOUNDBLASTER.DMADisabled = 0; //Disable DMA transaction!
 		SOUNDBLASTER.DREQ = 0; //Lower DREQ!
 		SOUNDBLASTER.command = 0; //No command anymore!
 		fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer to use this sample!
@@ -689,7 +689,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
-						SOUNDBLASTER.DREQ |= (2|4); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
+						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
@@ -838,9 +838,9 @@ OPTINLINE byte readDSPData(byte isDMA)
 				{
 					SOUNDBLASTER.DirectADC = 0; //Clear the Direct ADC flag: we're handled!
 					SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
-					if ((SOUNDBLASTER.DMAEnabled & 1) == 0) //DMA Disabled?
+					if (SOUNDBLASTER.DMADisabled == 1) //DMA Disabled?
 					{
-						SOUNDBLASTER.DMAEnabled |= 1; //Start the DMA transfer fully itself!
+						SOUNDBLASTER.DMADisabled = 0; //Start the DMA transfer fully itself!
 					}
 				}
 				if (SOUNDBLASTER.dataleft==0) goto noreaddataleft;
@@ -851,7 +851,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
-						SOUNDBLASTER.DREQ |= (2|4); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
+						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
@@ -937,7 +937,7 @@ byte inSoundBlaster(word port, byte *result)
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
 			lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
 			acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
-			SOUNDBLASTER.DREQ &= ~4; //IRQ has been acnowledged, resume playback!
+			SOUNDBLASTER.DREQ &= ~8; //IRQ has been acnowledged, resume playback!
 		}
 		return 1; //We have a result!
 	default:
@@ -991,13 +991,13 @@ void SoundBlaster_writeDMA8(byte data)
 
 void SoundBlaster_DREQ()
 {
-	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) && (SOUNDBLASTER.DMAEnabled==1)); //Set the DREQ signal accordingly!
+	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) && (SOUNDBLASTER.DMADisabled==0)); //Set the DREQ signal accordingly!
 }
 
 void SoundBlaster_DACK()
 {
 	//We're transferring something?
-	SOUNDBLASTER.DMAEnabled |= 4; //We're acnowledged, inhabit more transfers until we're done!
+	SOUNDBLASTER.DREQ |= 4; //We're acnowledged, inhabit more transfers until we're done(by timer)!
 	SoundBlaster_DREQ(); //Set the DREQ signal accordingly!
 }
 
