@@ -1997,11 +1997,12 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			#endif
 			goto invalidcommand;
 		}
-		if (((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].data)) || (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount&0x80)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
+		if ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
 		{
 			goto invalidcommand;
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Sector count register is used!
+		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[59] = (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors?0x100:0)|(ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 		ATA[channel].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
 		break;
@@ -2497,7 +2498,7 @@ void ATA_DiskChanged(int disk)
 			if (IS_CDROM==0) //HDD only!
 			{
 				ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //The data at 54-58 are valid on ATA-1!
-				ATA[disk_channel].Drive[disk_ATA].driveparams[59] = 0x80|(ATA[disk_channel].Drive[disk_ATA].multiplesectors); //Current multiple sectors setting!
+				ATA[disk_channel].Drive[disk_ATA].driveparams[59] = (ATA[disk_channel].Drive[disk_ATA].multiplesectors?0x100:0)|(ATA[disk_channel].Drive[disk_ATA].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 				ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
 				ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
 			}
