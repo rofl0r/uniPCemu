@@ -460,7 +460,6 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SB2COMMAND
 		SB_LOGCOMMAND
 		SOUNDBLASTER.AutoInit = 0; //Disable the auto-initialize option when we're finished rendering!
-		SOUNDBLASTER.DREQ = 0; //Stop requesting: we're done!
 		break;
 	case 0xE0: //DSP Identification. Should be 2.0+, but apparently 1.5 has it too according to it's SBFMDRV driver?
 		SB_LOGCOMMAND
@@ -858,7 +857,10 @@ OPTINLINE byte readDSPData(byte isDMA)
 						SOUNDBLASTER.DREQ = 0; //Finished!
 					}
 				}
-				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
+				else //Busy transfer?
+				{
+					SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
+				}
 				return getRecordedSample8u(); //Send the current sample from DMA!
 			}
 			else //Non-DMA read?
