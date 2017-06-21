@@ -161,6 +161,10 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						}
 					}
 				}
+				if (SOUNDBLASTER.DMAEnabled&4) //Timing?
+				{
+					SOUNDBLASTER.DMAEnabled &= ~4; //We're done timing, start up DMA again, if allowed!
+				}
 				soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 			}
 		}
@@ -669,15 +673,24 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				{
 					writefifobuffer(SOUNDBLASTER.DSPoutdata, data); //Send the current sample for rendering!
 				}
+				if (SOUNDBLASTER.dataleft==0) //Nothing left?
+				{
+					goto nooutdataleft;
+				}
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
+					nooutdataleft: //Nothing left?
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
 					}
+					SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
 				}
-				SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
+				else
+				{
+					SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
+				}
 			}
 			else //Manual override?
 			{
@@ -693,7 +706,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
-				DSP_startDMADAC(0); //Start the DMA DAC!
+				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf); //Start the DMA DAC!
 				break;
 			}
 		}
@@ -730,11 +743,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				}
 				else //Start DMA normally!
 				{
-					SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
-					if ((SOUNDBLASTER.DMAEnabled & 1) == 0) //DMA Disabled?
-					{
-						SOUNDBLASTER.DMAEnabled |= 1; //Start the DMA transfer fully itself!
-					}
+					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf); //Start DMA DAC, autoinit supplied!
 				}
 				break;
 			}
@@ -825,8 +834,10 @@ OPTINLINE byte readDSPData(byte isDMA)
 						SOUNDBLASTER.DMAEnabled |= 1; //Start the DMA transfer fully itself!
 					}
 				}
+				if (SOUNDBLASTER.dataleft==0) goto noreaddataleft;
 				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
 				{
+					noreaddataleft:
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
@@ -971,8 +982,8 @@ void SoundBlaster_DREQ()
 void SoundBlaster_DACK()
 {
 	//We're transferring something?
-	DMA_SetDREQ(__SOUNDBLASTER_DMA8,0); //Set the DREQ signal accordingly!
-	SOUNDBLASTER.DREQ = 2; //We're acnowledged, inhabit more transfers!
+	SOUNDBLASTER.DMAEnabled |= 4; //We're acnowledged, inhabit more transfers until we're done!
+	SoundBlaster_DREQ(); //Set the DREQ signal accordingly!
 }
 
 void SoundBlaster_TC()
