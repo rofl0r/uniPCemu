@@ -94,10 +94,6 @@ OPTINLINE void loadCMOSDefaults()
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear/init CMOS!
 	CMOS.DATA.timedivergeance = 0; //No second divergeance!
 	CMOS.DATA.timedivergeance2 = 0; //No us divergeance!
-	if (is_Compaq) //Compaq defaults?
-	{
-		CMOS.DATA.DATA80.info.STATUSREGISTERA = (2<<4)|0x6; //Make sure the timer is properly counting!
-	}
 	//We don't affect loaded: we're not loaded and invalid by default!
 }
 
@@ -525,6 +521,7 @@ void loadCMOS()
 	//Apply the reset signal results(usually done when applying power to a computer)!
 	CMOS.DATA.DATA80.data[0xC] = 0x00; //Register C is cleared when reset is asserted!
 	CMOS.DATA.DATA80.info.STATUSREGISTERB &= ~0x78; //The interrupt settings and Square wave enable are cleared when reset is asserted!
+	CMOS.DATA.DATA80.info.STATUSREGISTERA = (2<<4)|0x6; //Make sure the timer is properly counting! Load the Status register A defaults!
 
 	//Initialize running data for making us tick correctly!
 	updatedividerchain(); //Update the divider chain setting!
