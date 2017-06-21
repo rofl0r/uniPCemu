@@ -1039,7 +1039,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	SOUNDBLASTER.DREQ = 0; //Not requesting anything!
 	SOUNDBLASTER.IRQ8Pending = 0; //Not pending anything!
 	SOUNDBLASTER.muted = 1; //Default: muted!
-	SOUNDBLASTER.DMAEnabled = 0; //Start with disabled DMA(paused)!
+	SOUNDBLASTER.DMADisabled = 0; //Start with enabled DMA(paused)!
 	SOUNDBLASTER.command = 0; //Default: no command!
 	writefifobuffer(SOUNDBLASTER.DSPindata,0xAA); //Last input!
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Default state!
