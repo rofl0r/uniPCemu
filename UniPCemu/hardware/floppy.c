@@ -872,6 +872,78 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY_dataReady(); //We have data to transfer!
 }
 
+//Physical floppy CHS emulation!
+/*
+double floppyCHStiming = 0.0; //CHS timing!
+void updateFloppy(double timepassed)
+{
+	byte timed = 0; //Are we timed?
+	//Use FLOPPY_steprate, FLOPPY_head(un)loadtimerate and FLOPPY_sectorrate(/bytespersector) to time all output!
+	if (unlikely(floppyCHStiming)>0.0) //Time left?
+	{
+		floppyCHStiming -= timepassed; //Tick some time!
+		if (likely(floppyCHStiming>0.0)) return; //Abort when time is left?
+	}
+	nexttiming: //Next timing is looped?
+	//We're to process the next requested step!
+	if (FLOPPY.currentaction&1) //What action to take? We're seeking the track?
+	{
+		if (FLOPPY.currentcylinder[FLOPPPY_DOR_DRIVENUMBERR]<FLOPPY.requestedcylinder[FLOPPY_DOR_DRIVENUMBERR]) //To increase cylinder?
+		{
+			++FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBER]; //Increase cylinder!
+			floppyCHStiming += FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Delay until done!
+			timed = 1; //Timed!
+		}
+		else if (FLOPPY.currentcylinder[FLOPPPY_DOR_DRIVENUMBERR]>FLOPPY.requestedcylinder[FLOPPY_DOR_DRIVENUMBERR]) //To decrease cylinder?
+		{
+			--FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBER]; //Increase cylinder!
+			floppyCHStiming += FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Delay until done!
+			timed = 1; //Timed!
+		}
+		else //Track found?
+		{
+			FLOPPY.currentaction &= ~1; //Finished this action!
+		}
+	}
+	else if (FLOPPY.currentaction&2) //Are we seeking a sector?
+	{
+		if (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.requestedsector[FLOPPY_DOR_DRIVENUMBERR]) //Requested sector found?
+		{
+			FLOPPY.currentaction &= ~1; //Finished: sector found!
+		}
+		else //Sector not yet found? Increase sector, check and delay!
+		{
+			//Detect index hole, when at sector #0!
+			if (FLOPPY.indexhole[FLOPPY_DOR_DRIVENUMBERR]) //Index hole?
+			{
+				if (++FLOPPY.indexholes[FLOPPY_DOR_DRIVENUMBERR]==2) //Passed for the second time?
+				{
+					FLOPPY.currentaction &= ~2; //Abort: sector not found!
+					return; //Abort!
+				}
+			}
+			++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Goto next sector!
+			floppyCHStiming += FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR); //Delay until done!
+			timed = 1; //Timed!
+		}
+	}
+	else //At the sector that's requested(or not when erroring out)!
+	{
+		if (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.requestedsector[FLOPPY_DOR_DRIVENUMBER]) //Found sector at the track?
+		{
+			//Do something with the sector, read it or write it?
+		}
+	}
+	if ((floppyCHStiming<0) && timed) //Still something left to time?
+	{
+		timed = 0; //Timed!
+		goto nexttiming; //Apply next timing, if needed, right away!
+	}
+}
+*/
+
+//Normal floppy disk emulation again!
+
 OPTINLINE void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
