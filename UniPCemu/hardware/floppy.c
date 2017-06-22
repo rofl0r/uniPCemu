@@ -26,8 +26,8 @@
 //What DMA channel is expected of floppy disk I/O
 #define FLOPPY_DMA 2
 
-//Floppy DMA transfer pulse time, in nanoseconds! How long to take to transfer one byte!
-#define FLOPPY_DMA_TIMEOUT 39062.5
+//Floppy DMA transfer pulse time, in nanoseconds! How long to take to transfer one byte! Use 25KBPS!
+#define FLOPPY_DMA_TIMEOUT FLOPPY.DMArate
 
 //Automatic setup.
 #ifdef FLOPPY_LOGFILE
@@ -108,6 +108,7 @@ struct
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 	byte recalibratestepsleft; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
 	byte MTMask; //Allow MT to be used in sector increase operations?
+	double DMArate; //Current DMA transfer rate!
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -555,7 +556,11 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	currentrate = FLOPPY_CCR_RATER; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
 	for (;current<4;) //Check all available rates!
 	{
-		if (currentrate==(supported&3)) return 1; //We're a supported rate!
+		if (currentrate==(supported&3))
+		{
+			FLOPPY.DMArate = (1000000000.0/(FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)*512.0)); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+			return 1; //We're a supported rate!
+		}
 		supported  >>= 2; //Check next rate!
 		++current; //Next supported!
 	}
@@ -1868,9 +1873,9 @@ void updateFloppy(double timepassed)
 					}
 					break;
 				default: //Unsupported command?
-					if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending==2)) //DMA transfer busy?
+					if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2)) //DMA transfer busy?
 					{
-						FLOPPY.DMAPending = 1; //Start up DMA again!
+						FLOPPY.DMAPending &= ~2; //Start up DMA again!
 						floppytimer = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
 					}
 					else //Unsupported?
@@ -2027,7 +2032,7 @@ void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 void FLOPPY_DMADACK() //For processing DACK signal!
 {
 	DMA_SetDREQ(FLOPPY_DMA,0); //Stop the current transfer!
-	FLOPPY.DMAPending = 2; //We're not pending anymore, until timed out!
+	FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
 	floppytimer = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
 }
 
