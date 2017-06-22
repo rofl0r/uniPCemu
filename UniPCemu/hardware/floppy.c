@@ -26,7 +26,7 @@
 //What DMA channel is expected of floppy disk I/O
 #define FLOPPY_DMA 2
 
-//Floppy DMA transfer pulse time, in nanoseconds! How long to take to transfer one byte! Use 25KBPS!
+//Floppy DMA transfer pulse time, in nanoseconds! How long to take to transfer one byte! Use the sector byte speed for now!
 #define FLOPPY_DMA_TIMEOUT FLOPPY.DMArate
 
 //Automatic setup.
@@ -108,7 +108,7 @@ struct
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 	byte recalibratestepsleft; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
 	byte MTMask; //Allow MT to be used in sector increase operations?
-	double DMArate; //Current DMA transfer rate!
+	double DMArate, DMAratePending; //Current DMA transfer rate!
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -323,10 +323,17 @@ OPTINLINE double FLOPPY_headunloadtimerate(byte drivenumber)
 	return floppy_headunloadtimerate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_HEADUNLOADTIMER(drivenumber)]; //Look up the head load time rate for this disk!
 }
 
-//Floppy sector reading rate, depending on RPM and Sectors per Track! Each round reads/writes a full track always!
+//Floppy sector reading rate, depending on RPM and Sectors per Track! Each round reads/writes a full track always! Gives the amount of nanoseconds per sector!
 OPTINLINE double FLOPPY_sectorrate(byte drivenumber)
 {
-	return (60000000000.0/(double)FLOPPY.geometries[drivenumber]->RPM)/(double)FLOPPY.geometries[drivenumber]->SPT; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+	if (FLOPPY.geometries[drivenumber]) //Valid geometry?
+	{
+		return (60000000000.0/(double)FLOPPY.geometries[drivenumber]->RPM)/(double)FLOPPY.geometries[drivenumber]->SPT; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+	}
+	else //Default rate for unknown disk geometries!
+	{
+		return (60000000000.0/(double)300)/(double)80; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+	}
 }
 
 //Normal floppy specific stuff
@@ -549,8 +556,11 @@ OPTINLINE byte FLOPPY_useDMA()
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
 {
-	return 1; //Support all rates officially!
-	if (!FLOPPY.geometries[disk]) return 1; //No disk geometry, so supported by default(unknown drive)!
+	if (!FLOPPY.geometries[disk]) //Unknown geometry?
+	{
+		FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+		return 1; //No disk geometry, so supported by default(unknown drive)!
+	}
 	byte supported = 0, current=0, currentrate;
 	supported = FLOPPY.geometries[disk]->supportedrates; //Load the supported rates!
 	currentrate = FLOPPY_CCR_RATER; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
@@ -558,7 +568,7 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	{
 		if (currentrate==(supported&3))
 		{
-			FLOPPY.DMArate = (1000000000.0/(FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)*512.0)); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+			FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
 			return 1; //We're a supported rate!
 		}
 		supported  >>= 2; //Check next rate!
@@ -856,6 +866,8 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	if (FLOPPY_useDMA()) //DMA mode?
 	{
 		FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
+		FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
 	}
 	FLOPPY_dataReady(); //We have data to transfer!
 }
