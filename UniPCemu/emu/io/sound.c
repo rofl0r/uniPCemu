@@ -103,7 +103,7 @@ SDL_AudioDeviceID recorddevice; //Our used audio device!
 #endif
 
 byte audioticksready = 0; //Default: not ready yet!
-TicksHolder audioticks;
+TicksHolder audioticks, recordticks;
 
 //Our calls for data buffering and processing.
 typedef uint_32 (*fillbuffer_call)(playing_p currentchannel, uint_32 *relsample, uint_32 currentpos);
@@ -987,7 +987,7 @@ void updateAudio(double timepassed)
 	byte ticksound, tickrecording, locked; //To tick us?
 	//Sound output
 	sound_soundtiming += timepassed; //Get the amount of time passed!
-	sound_recordtiming += timepassed; //Get the amount of time passed!
+	sound_recordtiming += getnspassed(&recordticks); //Get the amount of time passed, use real-time recording for accuracy!
 	ticksound = ((sound_soundtiming >= sound_soundtick) && sound_soundtick); //To tick sound?
 	tickrecording = ((sound_recordtiming >= sound_recordtick) && sound_recordtick); //To tick recording?
 	if (ticksound || tickrecording) //Anything to lock?
@@ -1145,6 +1145,7 @@ void initAudio() //Initialises audio subsystem!
 			if (!audioticksready) //Not ready yet?
 			{
 				initTicksHolder(&audioticks); //Init!
+				initTicksHolder(&recordticks); //Init!
 				audioticksready = 1; //Ready!
 			}
 			//dolog("soundservice","Use SDL rendering...");
@@ -1171,7 +1172,7 @@ void initAudio() //Initialises audio subsystem!
 			audiospecs.userdata = NULL;	/* we don't need this */
 			//dolog("soundservice","Opening audio device...");
 #ifdef SDL_QUEUEAUDIO
-			audiodevice = SDL_OpenAudioDevice(NULL, 0, &audiospecs, NULL, 0); //We need this for our direct rendering!
+			audiodevice = SDL_OpenAudioDevice(NULL, 0, &audiospecs, NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE); //We need this for our direct rendering!
 			if (audiodevice==0)
 			{
 				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
@@ -1182,7 +1183,7 @@ void initAudio() //Initialises audio subsystem!
 			if (SDL_OpenAudio(&audiospecs, NULL) < 0)
 			{
 				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
-				raiseError("sound service","Unable to open audio device: %s", SDL_GetError());
+				raiseError("sound service","Unable to open audio playback device: %s", SDL_GetError());
 				return; //Just to be safe!
 			}
 #endif
@@ -1195,11 +1196,10 @@ void initAudio() //Initialises audio subsystem!
 			recordspecs.size = recordspecs.samples * recordspecs.channels * sizeof(sample_t);
 			recordspecs.callback = &Sound_RecordCallback; //We're not queueing audio! Use the callback instead!
 			recordspecs.userdata = NULL;	/* we don't need this */
-			recorddevice = SDL_OpenAudioDevice(NULL, 1, &recordspecs, NULL, 0); //We need this for our direct rendering!
+			recorddevice = SDL_OpenAudioDevice(NULL, 1, &recordspecs, NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE); //We need this for our direct rendering!
 			if (recorddevice == 0) //No recording device?
 			{
-				//dolog("soundservice","Unable to open audio device: %s",SDL_GetError());
-				SDL_GetError();
+				dolog("soundservice","Unable to open audio record device: %s",SDL_GetError());
 				SDL_ClearError(); //Clear any error that's occurred!
 				sound_recordtick = (double)0; //Set the sample rate we render at!
 			}

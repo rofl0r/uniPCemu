@@ -8,6 +8,7 @@
 #include "headers/hardware/pic.h" //Interrupt support!
 #include "headers/hardware/8237A.h" //DMA support!
 #include "headers/hardware/midi/midi.h" //MIDI support!
+#include "headers/support/highrestimer.h" //Ticks holder support for real-time recording!
 
 #define MHZ14_TICK 644
 #define __SOUNDBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
@@ -74,13 +75,15 @@ struct
 	byte TestRegister; //Sound Blaster 2.01+ Test register!
 	double frequency; //The frequency we're currently rendering at!
 	byte DirectADC; //Special ADC condition for Sound Blaster prior to SB16!
+	TicksHolder recordingtimer; //Real-time recording support!
+	byte recordedsample; //Last recorded sample, updated real-time!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 extern byte specialdebugger; //Enable special debugger input?
 
 uint_32 soundblaster_soundtiming = 0;
 double soundblaster_soundtick = 0.0;
-double soundblaster_sampletiming = 0.0, soundblaster_sampletick = 0.0;
+double soundblaster_sampletiming = 0.0, soundblaster_recordingtiming = 0.0, soundblaster_sampletick = 0.0;
 
 double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
@@ -104,6 +107,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	double dummy;
 	double temp;
 	byte activeleft, activeright;
+	double soundblaster_recordedpassed;
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
 	//Check for pending IRQ request!
@@ -128,44 +132,79 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		}
 	}
 
+	soundblaster_recordedpassed = getnspassed(&SOUNDBLASTER.recordingtimer); //Tick the recording timer real-time!
+
 	if (SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples) //Transaction busy?
 	{
 		//Play audio normally using timed output!
-		soundblaster_sampletiming += timepassed; //Tick time!
-		if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
+		if (soundblaster_sampletick) //Valid to time?
 		{
-			for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
+			soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
+			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 			{
-				if (SOUNDBLASTER.silencesamples) //Silence requested?
+				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
 				{
-					sb_leftsample = sb_rightsample = 0x80; //Silent sample!
-					if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
+					if (SOUNDBLASTER.silencesamples) //Silence requested?
 					{
-						SoundBlaster_IRQ8(); //Fire the IRQ!
-						SOUNDBLASTER.DMADisabled |= 1; //We're a paused DMA transaction automatically!
-					}
-				}
-				else //Audio playing?
-				{
-					if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &sb_leftsample)) //Mono sample read?
-					{
-						sb_rightsample = sb_leftsample; //Render the new mono sample!
-					}
-
-					if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
-					{
-						//Time played audio that's ready!
-						if (SOUNDBLASTER.DREQ && (SOUNDBLASTER.DREQ & 2)) //Paused until the next sample?
+						sb_leftsample = sb_rightsample = 0x80; //Silent sample!
+						if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
 						{
-							SOUNDBLASTER.DREQ &= ~2; //Start us up again, if allowed!
+							SoundBlaster_IRQ8(); //Fire the IRQ!
+							SOUNDBLASTER.DMADisabled |= 1; //We're a paused DMA transaction automatically!
 						}
 					}
+					else //Audio playing?
+					{
+						if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &sb_leftsample)) //Mono sample read?
+						{
+							sb_rightsample = sb_leftsample; //Render the new mono sample!
+						}
+
+						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+
+						if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
+						{
+							//Time played audio that's ready!
+							if (SOUNDBLASTER.DREQ && (SOUNDBLASTER.DREQ & 2)) //Paused until the next sample?
+							{
+								SOUNDBLASTER.DREQ &= ~2; //Start us up again, if allowed!
+							}
+						}
+					}
+					if (SOUNDBLASTER.DREQ&4) //Timing?
+					{
+						SOUNDBLASTER.DREQ &= ~4; //We're done timing, start up DMA again, if allowed!
+					}
+					soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 				}
-				if (SOUNDBLASTER.DREQ&4) //Timing?
+			}
+		}
+	}
+	else //Not requesting playback/recording?
+	{
+		//Record audio normally/silenced using timed output!
+		if (soundblaster_sampletick) //Sample ticking?
+		{
+			soundblaster_sampletiming += soundblaster_recordedpassed; //Tick time or real-time(for recording)!
+			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
+			{
+				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
 				{
-					SOUNDBLASTER.DREQ &= ~4; //We're done timing, start up DMA again, if allowed!
+					if (SOUNDBLASTER.silencesamples) //Silence requested?
+					{
+						sb_leftsample = sb_rightsample = 0x80; //Silent sample!
+						if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
+						{
+							SoundBlaster_IRQ8(); //Fire the IRQ!
+							SOUNDBLASTER.DMADisabled |= 1; //We're a paused DMA transaction automatically!
+						}
+					}
+					else //Audio recording at hardware rate?
+					{
+						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
+					}	
 				}
-				soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 			}
 		}
 	}
@@ -281,9 +320,9 @@ OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
 	}
 }
 
-OPTINLINE void DSP_startDMADAC(byte autoinitDMA)
+OPTINLINE void DSP_startDMADAC(byte autoinitDMA, byte isRecording)
 {
-	SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
+	SOUNDBLASTER.DREQ = 1|((isRecording&1)<<4); //Raise: we're outputting data for playback!
 	if ((SOUNDBLASTER.DMADisabled&1) || autoinitDMA) //DMA Disabled?
 	{
 		SOUNDBLASTER.DMADisabled &= ~1; //Start the DMA transfer fully itself!
@@ -333,7 +372,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start DMA transfer!
+			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
 		break;
 	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
@@ -348,7 +387,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x20: //Direct ADC, 8-bit
 		SB_LOGCOMMAND
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
-		writefifobuffer(SOUNDBLASTER.DSPindata, getRecordedSample8u()); //Give the current sample!
+		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		break;
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
@@ -364,7 +403,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start DMA transfer!
+			DSP_startDMADAC(1,1); //Start DMA transfer!
 		}
 		break;
 	case 0x30: //MIDI read poll
@@ -406,7 +445,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start DMA transfer!
+			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
 		break;
 	case 0x7F: //Auto-initialize DMA DAC, 2.6-bit ADPCM Reference
@@ -420,7 +459,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
-			DSP_startDMADAC(1); //Start DMA transfer!
+			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
 		break;
 	case 0x80: //Silence DAC
@@ -714,7 +753,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
-				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf); //Start the DMA DAC!
+				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,0); //Start the DMA DAC!
 				break;
 			}
 		}
@@ -751,7 +790,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				}
 				else //Start DMA normally!
 				{
-					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf); //Start DMA DAC, autoinit supplied!
+					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
 				}
 				break;
 			}
@@ -836,7 +875,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 				if (SOUNDBLASTER.DirectADC) //Special Direct ADC case starts DMA after?
 				{
 					SOUNDBLASTER.DirectADC = 0; //Clear the Direct ADC flag: we're handled!
-					SOUNDBLASTER.DREQ = 1; //Raise: we're outputting data for playback!
+					SOUNDBLASTER.DREQ = 1|0x10; //Raise: we're outputting data for playback! Raise real-time flag as well!
 					if (SOUNDBLASTER.DMADisabled == 1) //DMA Disabled?
 					{
 						SOUNDBLASTER.DMADisabled = 0; //Start the DMA transfer fully itself!
@@ -861,7 +900,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 				{
 					SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 				}
-				return getRecordedSample8u(); //Send the current sample from DMA!
+				return SOUNDBLASTER.recordedsample; //Send the current sample from DMA!
 			}
 			else //Non-DMA read?
 			{
@@ -1034,6 +1073,8 @@ void initSoundBlaster(word baseaddr, byte version)
 		}
 	}
 
+	initTicksHolder(&SOUNDBLASTER.recordingtimer); //Initialize the real-time recording timer!
+
 	SOUNDBLASTER.resetport = 0xFF; //Reset the reset port!
 	SOUNDBLASTER.busy = 0; //Default to not busy!
 	SOUNDBLASTER.DREQ = 0; //Not requesting anything!
@@ -1045,6 +1086,10 @@ void initSoundBlaster(word baseaddr, byte version)
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Default state!
 	lastresult = 0xAA; //Last result was 0xAA!
 	sb_leftsample = sb_rightsample = 0x80; //Default to silence!
+
+	SOUNDBLASTER.frequency = (1000000.0 / (double)(256 - 0)); //Calculate the frequency to run at!
+	soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
+
 
 	switch (version) //What version to emulate?
 	{
@@ -1067,7 +1112,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	DSP_HWreset(); //Hardware reset!
 
 	//Our tick timings!
-	soundblaster_soundtiming = 0;
+	soundblaster_soundtiming = soundblaster_recordingtiming = 0;
 }
 
 void doneSoundBlaster()
