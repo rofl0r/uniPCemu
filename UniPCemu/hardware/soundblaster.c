@@ -37,6 +37,9 @@
 
 #define MIN_ADAPTIVE_STEP_SIZE 0
 
+//Record a test wave!
+#define RECORD_TESTWAVE
+
 //Enable below define to log all command bytes sent.
 //#define SOUNDBLASTER_LOG
 
@@ -134,12 +137,18 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 
 	soundblaster_recordedpassed = getnspassed(&SOUNDBLASTER.recordingtimer); //Tick the recording timer real-time!
 
+	#ifdef RECORD_TESTWAVE
+	//For testing!
+	sword sample;
+	static float recordtime = 0.0f;
+	#endif
+
 	if (SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples) //Transaction busy?
 	{
 		//Play audio normally using timed output!
 		if (soundblaster_sampletick) //Valid to time?
 		{
-			soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
+			soundblaster_sampletiming += /*(SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:*/timepassed; //Tick time or real-time(for recording)!
 			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
@@ -160,7 +169,14 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 							sb_rightsample = sb_leftsample; //Render the new mono sample!
 						}
 
+						#ifdef RECORD_TESTWAVE
+						sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
+						recordtime += (1.0f/SOUNDBLASTER.frequency); //Tick time by one sample!
+						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
+						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
+						#else
 						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+						#endif
 
 						if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
 						{
@@ -185,7 +201,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		//Record audio normally/silenced using timed output!
 		if (soundblaster_sampletick) //Sample ticking?
 		{
-			soundblaster_sampletiming += soundblaster_recordedpassed; //Tick time or real-time(for recording)!
+			//soundblaster_sampletiming += soundblaster_recordedpassed; //Tick time or real-time(for recording)!
 			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
@@ -201,7 +217,14 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 					}
 					else //Audio recording at hardware rate?
 					{
+						#ifdef RECORD_TESTWAVE
+						sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
+						recordtime += (1.0f/SOUNDBLASTER.frequency); //Tick time!
+						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
+						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
+						#else
 						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+						#endif
 						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 					}	
 				}
@@ -875,7 +898,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 				if (SOUNDBLASTER.DirectADC) //Special Direct ADC case starts DMA after?
 				{
 					SOUNDBLASTER.DirectADC = 0; //Clear the Direct ADC flag: we're handled!
-					SOUNDBLASTER.DREQ = 1|0x10; //Raise: we're outputting data for playback! Raise real-time flag as well!
+					SOUNDBLASTER.DREQ = (1|0x10|2); //Raise: we're outputting data for playback! Raise real-time flag as well!
 					if (SOUNDBLASTER.DMADisabled == 1) //DMA Disabled?
 					{
 						SOUNDBLASTER.DMADisabled = 0; //Start the DMA transfer fully itself!
@@ -1032,7 +1055,7 @@ void SoundBlaster_writeDMA8(byte data)
 
 void SoundBlaster_DREQ()
 {
-	DMA_SetDREQ(__SOUNDBLASTER_DMA8,(SOUNDBLASTER.DREQ==1) && (SOUNDBLASTER.DMADisabled==0)); //Set the DREQ signal accordingly!
+	DMA_SetDREQ(__SOUNDBLASTER_DMA8,((SOUNDBLASTER.DREQ&(~0x10))==1) && (SOUNDBLASTER.DMADisabled==0)); //Set the DREQ signal accordingly! Ignore bit 4 of DREQ: this is only for timing purposes!
 }
 
 void SoundBlaster_DACK()
