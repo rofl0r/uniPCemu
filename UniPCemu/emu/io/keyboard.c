@@ -155,11 +155,12 @@ void releaseKeysReleased()
 }
 
 byte keys_active = 0;
+byte repeatflag = 0; //Repeat flag, set when the timeout has expired!
 
 void tickPressedKey(uint_64 keytime)
 {
 	int i;
-	if (keyboard_step) //Typematic key?
+	if (keyboard_step) //Typematic key hold or new key during typematic? We're a delay in progress(repeat flag means that the delay has expired)!
 	{
 		int last_key_pressed = -1; //Last key pressed!
 		uint_64 last_key_pressed_time = 0; //Last key pressed time!
@@ -184,6 +185,7 @@ void tickPressedKey(uint_64 keytime)
 			{
 				last_key_pressed_time_saved = last_key_pressed_time; //Save the new value!
 				keyboard_step = 0; //Start the delay again!
+				repeatflag = 1; //Enable repeat: we're the first new key to check(restarting the delay)!
 			}
 			if ((i==lctrlindex) || (i==laltindex) || (i==lshiftindex) || (i==rctrlindex) || (i==raltindex) || (i==rshiftindex)) key_status[last_key_pressed] |= 4; //Ignore ctrl/alt/shift after it's pressed until it's released! We're not typematic!
 			keys_active = 1; //We're active!
@@ -193,10 +195,14 @@ void tickPressedKey(uint_64 keytime)
 				dolog("keyboard","Key press: %s",releasename); //Log our release input!
 			}
 			#endif
-			if (EMU_keyboard_handler(last_key_pressed, 1|(keyboard_step?0:2))) //Fired the handler for pressing(repeating when the same as last time)!
+			if (repeatflag) //Are we to press a repeated key, or pressing a new key?
 			{
-				if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
-				keys_ispressed[last_key_pressed] = 1; //We're pressed!
+				if (EMU_keyboard_handler(last_key_pressed, 1|(keyboard_step?0:2))) //Fired the handler for pressing(repeating when the same as last time)!
+				{
+					if (!keys_ispressed[last_key_pressed]) ++keys_arepressed; //A new key has been pressed!
+					keys_ispressed[last_key_pressed] = 1; //We're pressed!
+					calculateKeyboardStep(); //Calculate the step for pressed keys, at the active step rate!
+				}
 			}
 		}
 	}
@@ -220,6 +226,7 @@ void tickPressedKey(uint_64 keytime)
 					keys_ispressed[i] = 1; //We're pressed!
 					if ((i==lctrlindex) || (i==laltindex) || (i==lshiftindex) || (i==rctrlindex) || (i==raltindex) || (i==rshiftindex)) key_status[i] |= 4; //Ignore ctrl/alt/shift after it's pressed until it's released! We're not typematic!
 					last_key_pressed_time_saved = key_pressed_time[i]; //Save the last time we're pressed as the current time!
+					calculateKeyboardStep(); //Calculate the step for pressed keys!
 				}
 			}
 		}
@@ -248,15 +255,16 @@ void tickPendingKeys(double timepassed) //Handle all pending keys from our emula
 	{
 		keyboard_time -= KEYBOARD_CHECKTIME; //Rest the time passed, allow overflow!
 		
-		if (++pressedkeytimer > keyboard_step) //Timer expired? Tick pressed keys!
+		if (++pressedkeytimer > keyboard_step) //Timer expired? Tick pressed keys, when required!
 		{
 			pressedkeytimer = 0; //Reset the timer!
-			if (keys_pressed) //Gotten any keys pressed to process?
-			{
-				tickPressedKeys(); //Tick any pressed keys!
-				calculateKeyboardStep(); //Calculate the step for pressed keys!
-			}
+			repeatflag = 1; //Set the repeat flag: we're to handle as a repeat, when used!
 		}
+		if (keys_pressed) //Gotten any keys pressed to process?
+		{
+			tickPressedKeys(); //Tick any pressed keys!
+		}
+		repeatflag = 0; //Clear the repeat flag!
 	}
 }
 
