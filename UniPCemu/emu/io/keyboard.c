@@ -8,9 +8,9 @@
 
 //How many ns to wait to check for input (1000000=1ms)!
 #define KEYBOARD_CHECKTIME 1000000
-//How many us to take for each rapid fire divider (up to x/30 us)!
+//How many us to take, in multiples of KEYBOARD_CHECKTIME, to reach one second!
 #define KEYBOARD_MAXSTEP 1000
-//Multiplier on keyboard delay (in ms) to get equal to check time (KEYBOARD_CHECKTIME/10 => KEYBOARD_DELAYSTEP*10).
+//Multiplier on keyboard delay (in ms) to get equal to check time. Multiply this by KEYBOARD_CHECKTIME to get 1ms.
 #define KEYBOARD_DELAYSTEP 1
 
 
