@@ -16,6 +16,7 @@
 #include "headers/hardware/vga/vga.h" //Video adapter dumping support!
 #include "headers/emu/timers.h" //Keyboard swap timer!
 #include "headers/hardware/joystick.h" //Joystick support!
+#include "headers/emu/threads.h" //BIOS Thread support!
 
 #ifdef VISUALC
 #include "sdl_joystick.h" //Joystick support!
@@ -1782,11 +1783,17 @@ OPTINLINE static void updateFingerOSK()
 	}
 }
 
+extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
+
 void keyboard_renderer() //Render the keyboard on-screen!
 {
 	static byte last_rendered = 0; //Last rendered keyboard status: 1=ON, 0=OFF!
 	lock(LOCK_INPUT);
-	if (!KEYBOARD_ENABLED) return; //Disabled?
+	if (!KEYBOARD_ENABLED)
+	{
+		unlock(LOCK_INPUT); //Finished!
+		return; //Disabled?
+	}
 
 	int x;
 	int y; //The coordinates in the buffer!
@@ -1832,10 +1839,13 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			{
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
 				{
-					Settings_request = 1; //Requesting settings to be loaded!
+					if (BIOSMenuThread==NULL)  //BIOS pause menu thread not already running?
+					{
+						Settings_request = 1; //Requesting settings to be loaded!
+					}
 				}
 			}
-			if (keyboard_special[y - ybase][x - xbase] == 4) //Sticky keys toggle?
+			else if (keyboard_special[y - ybase][x - xbase] == 4) //Sticky keys toggle?
 			{
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Sticky toggle on click?
 				{
