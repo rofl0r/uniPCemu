@@ -2413,7 +2413,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 {
 	byte counter, lowbyte, highbyte;
 	word length;
-	length = strlen(s); //Check the length for the copy!
+	length = strlen((char *)s); //Check the length for the copy!
 	for (counter=0;counter<sizeinwords;++counter) //Step words!
 	{
 		lowbyte = highbyte = 0x20; //Initialize to unused!
