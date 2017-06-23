@@ -2431,7 +2431,6 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 
 void ATA_DiskChanged(int disk)
 {
-	int counter;
 	byte disk_ATA, disk_channel, disk_nr;
 	switch (disk) //What disk?
 	{
