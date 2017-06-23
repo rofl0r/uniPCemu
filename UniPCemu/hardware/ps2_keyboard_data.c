@@ -1,10 +1,11 @@
 #include "headers/hardware/ps2_keyboard.h" //Basic types!
 
+//Keyboard repeat rate table from http://www.computer-engineering.org/ps2keyboard/
 float kbd_repeat_rate[0x20] = { //Rate in keys per second when trashing!
-    30.0f, 26.7f, 24.0f, 21.8f, 20.0f, 18.5f, 17.1f, 16.0f, 15.0f, 13.3f,
-       0.0f, 10.0f,  9.2f,    0.0f,  8.0f,  7.5f,    0.0f,  6.0f,    0.0f,  5.0f,
-       0.0f,    0.0f,  4.0f,    0.0f,    0.0f,  3.0f,    0.0f,    0.0f,    0.0f,    0.0f,
-     2.0f
+	30.0f, 26.7f, 24.0f, 21.8f, 20.7f, 18.5f, 17.1f, 16.0f,
+	15.0f, 13.3f, 12.0f, 10.9f, 10.0f, 9.2f ,  8.6f,  8.0f,
+	7.5f , 6.7f , 6.0f , 5.5f , 5.0f , 4.6f , 4.3f , 4.0f ,
+	3.7f , 3.3f , 3.0f , 2.7f , 2.5f , 2.3f , 2.1f , 2.0f
     };
 
 word kbd_repeat_delay[0x4] = { //Time before we start trashing!
