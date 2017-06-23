@@ -38,7 +38,7 @@
 #define MIN_ADAPTIVE_STEP_SIZE 0
 
 //Record a test wave!
-#define RECORD_TESTWAVE
+//#define RECORD_TESTWAVE
 
 //Enable below define to log all command bytes sent.
 //#define SOUNDBLASTER_LOG
@@ -148,7 +148,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		//Play audio normally using timed output!
 		if (soundblaster_sampletick) //Valid to time?
 		{
-			soundblaster_sampletiming += /*(SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:*/timepassed; //Tick time or real-time(for recording)!
+			soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
 			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
@@ -178,6 +178,13 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
 						#endif
 
+						if (SOUNDBLASTER.command==0x20) //Direct ADC?
+						{
+							writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
+							fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
+							SOUNDBLASTER.command = 0; //Finished!
+						}
+
 						if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
 						{
 							//Time played audio that's ready!
@@ -201,7 +208,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		//Record audio normally/silenced using timed output!
 		if (soundblaster_sampletick) //Sample ticking?
 		{
-			//soundblaster_sampletiming += soundblaster_recordedpassed; //Tick time or real-time(for recording)!
+			soundblaster_sampletiming += soundblaster_recordedpassed; //Tick time or real-time(for recording)!
 			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
@@ -225,6 +232,13 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						#else
 						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
 						#endif
+
+						if (SOUNDBLASTER.command==0x20) //Direct ADC?
+						{
+							writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
+							fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
+							SOUNDBLASTER.command = 0; //Finished!
+						}
 						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 					}	
 				}
@@ -410,8 +424,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x20: //Direct ADC, 8-bit
 		SB_LOGCOMMAND
 		SOUNDBLASTER.command = 0x20; //Enable direct ADC mode!
-		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
-		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
+		fifobuffer_clear(SOUNDBLASTER.DSPindata); //Wait for input!
 		break;
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 		SB2COMMAND
@@ -898,7 +911,12 @@ OPTINLINE byte readDSPData(byte isDMA)
 				if (SOUNDBLASTER.DirectADC) //Special Direct ADC case starts DMA after?
 				{
 					SOUNDBLASTER.DirectADC = 0; //Clear the Direct ADC flag: we're handled!
+
+					#ifndef RECORD_TESTWAVE
 					SOUNDBLASTER.DREQ = (1|0x10|2); //Raise: we're outputting data for playback! Raise real-time flag as well!
+					#else
+					SOUNDBLASTER.DREQ = (1|2); //Same as above, but not realtime.
+					#endif
 					if (SOUNDBLASTER.DMADisabled == 1) //DMA Disabled?
 					{
 						SOUNDBLASTER.DMADisabled = 0; //Start the DMA transfer fully itself!
