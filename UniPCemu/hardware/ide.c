@@ -2409,7 +2409,7 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 
 byte CDROM_DiskChanged = 0;
 
-void strcpy_swappedpadded(word *buffer, byte sizeinwords, char *s)
+void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 {
 	byte counter, lowbyte, highbyte;
 	word length;
