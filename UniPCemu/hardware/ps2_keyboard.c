@@ -35,7 +35,7 @@ OPTINLINE void loadKeyboardDefaults()
 	//We set: rate/delay: 10.9cps/500ms; key types (all keys typematic/make/break) and scan code set (2)
 	memset(scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
 	memset(scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
-	Keyboard.typematic_rate_delay = 0x1B; //rate/delay: 10.9cps/500ms!
+	Keyboard.typematic_rate_delay = 0x2B; //rate/delay: 10.9cps/500ms!
 	Keyboard.scancodeset = 1; //Scan code set 2!
 }
 
