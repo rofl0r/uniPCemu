@@ -757,7 +757,7 @@ sbyte getRecordedSample8s()
 
 byte getRecordedSample8u()
 {
-	return (signed2unsigned8((sbyte)(inputleft>>8))^0x80); //Left channel only!
+	return (byte)(signed2unsigned16(inputleft)>>8)^0x80); //Left channel only!
 }
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
