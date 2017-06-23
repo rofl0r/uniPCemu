@@ -43,6 +43,8 @@
 //#define EXTERNAL_TIMING
 //Use the equalizer functionality?
 //#define __USE_EQUALIZER
+//Define RECORD_TESTWAVE to make it record a test sine wave instead.
+#define RECORD_TESTWAVE 1.0
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
 #define SOUND_HIGHPASS 18.2f
@@ -728,24 +730,34 @@ OPTINLINE static void applyRecordFilters(sword *leftsample, sword *rightsample)
 	*rightsample = (sword)sample_r;
 }
 
+word getRecordedSample16() //Give signed 16-bit!
+{
+	return signed2unsigned16(inputleft);
+}
+
+sword getRecordedSample16s() //Give signed 16-bit!
+{
+	return inputleft; //Left channel only!
+}
+
+word getRecordedSample16u() //Give unsigned 16-bit!
+{
+	return (signed2unsigned16(inputleft)^0x8000); //Left channel only!
+}
+
+byte getRecordedSample8()
+{
+	return (signed2unsigned8((sbyte)(inputleft>>8))); //Left channel only!
+}
+
 sbyte getRecordedSample8s()
 {
-	return (sbyte)(inputleft>>8); //Left sample!
+	return (sbyte)(inputleft>>8); //Left channel only!
 }
 
 byte getRecordedSample8u()
 {
-	return (byte)((signed2unsigned16(inputleft)^0x8000)>>8); //Left sample!
-}
-
-sword getRecordedSample16s()
-{
-	return inputleft; //Left sample!
-}
-
-word getRecordedSample16u()
-{
-	return (signed2unsigned16(inputleft)^0x8000); //Left sample!
+	return (signed2unsigned8((sbyte)(inputleft>>8))^0x80); //Left channel only!
 }
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!
@@ -957,6 +969,9 @@ OPTINLINE static void HW_recordaudio(sample_stereo_p buffer, uint_32 length) //M
 	INLINEREGISTER uint_32 currentsample; //The current sample number!
 
 	static uint_32 mixersample;
+	#ifdef RECORD_TESTWAVE
+	static float recordtime=0.0f;
+	#endif
 
 	//Stuff for Master gain
 
@@ -966,9 +981,14 @@ OPTINLINE static void HW_recordaudio(sample_stereo_p buffer, uint_32 length) //M
 	currentsample = length; //Init samples to give!
 	for (;;)
 	{
-		mixersample = unsigned2signed16(buffer->r); //Right output!
+		#ifdef RECORD_TESTWAVE
+		buffer->r = buffer->l = (sword)(sinf(2.0f*PI*RECORD_TESTWAVE*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
+		recordtime += (1.0f/SW_RECORDRATE); //Tick time!
+		recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
+		#endif
+		mixersample = signed2unsigned16(buffer->r); //Right output!
 		mixersample <<= 16; //Shift high!
-		mixersample |= unsigned2signed16(buffer->l); //Left output!
+		mixersample |= signed2unsigned16(buffer->l); //Left output!
 		//Give the output!
 
 		writeDoubleBufferedSound32(&mixerinput, mixersample); //Write a sample, if present!
