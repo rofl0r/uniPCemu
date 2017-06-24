@@ -730,34 +730,65 @@ OPTINLINE static void applyRecordFilters(sword *leftsample, sword *rightsample)
 	*rightsample = (sword)sample_r;
 }
 
-word getRecordedSample16() //Give signed 16-bit!
+word getRecordedSampleL16() //Give signed 16-bit!
 {
 	return signed2unsigned16(inputleft);
 }
 
-sword getRecordedSample16s() //Give signed 16-bit!
+sword getRecordedSampleL16s() //Give signed 16-bit!
 {
 	return inputleft; //Left channel only!
 }
 
-word getRecordedSample16u() //Give unsigned 16-bit!
+word getRecordedSampleL16u() //Give unsigned 16-bit!
 {
 	return (signed2unsigned16(inputleft)^0x8000); //Left channel only!
 }
 
-byte getRecordedSample8()
+byte getRecordedSampleL8()
 {
 	return (signed2unsigned8((sbyte)(inputleft>>8))); //Left channel only!
 }
 
-sbyte getRecordedSample8s()
+sbyte getRecordedSampleL8s()
 {
 	return (sbyte)(inputleft>>8); //Left channel only!
 }
 
-byte getRecordedSample8u()
+byte getRecordedSampleL8u()
 {
-	return (byte)(signed2unsigned16(inputleft)>>8)^0x80); //Left channel only!
+	return (byte)((signed2unsigned16(inputleft)>>8)^0x80); //Left channel only!
+}
+
+//Right channel support!
+word getRecordedSampleR16() //Give signed 16-bit!
+{
+	return signed2unsigned16(inputright);
+}
+
+sword getRecordedSampleR16s() //Give signed 16-bit!
+{
+	return inputright; //Left channel only!
+}
+
+word getRecordedSampleR16u() //Give unsigned 16-bit!
+{
+	return (signed2unsigned16(inputright)^0x8000); //Left channel only!
+}
+
+byte getRecordedSampleR8()
+{
+	return (signed2unsigned8((sbyte)(inputright>>8))); //Left channel only!
+}
+
+sbyte getRecordedSampleR8s()
+{
+	return (sbyte)(inputright>>8); //Left channel only!
+}
+
+byte getRecordedSampleR8u()
+{
+	return (byte)((signed2unsigned16(inputright)>>8)^0x80); //Left channel only!
 }
 
 int_32 mixedsamples[SAMPLESIZE*2]; //All mixed samples buffer!

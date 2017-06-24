@@ -38,7 +38,7 @@
 #define MIN_ADAPTIVE_STEP_SIZE 0
 
 //Record a test wave!
-//#define RECORD_TESTWAVE
+#define RECORD_TESTWAVE
 
 //Enable below define to log all command bytes sent.
 //#define SOUNDBLASTER_LOG
@@ -175,7 +175,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
 						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
 						#else
-						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
 						#endif
 
 						if (SOUNDBLASTER.command==0x20) //Direct ADC?
@@ -230,7 +230,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
 						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
 						#else
-						SOUNDBLASTER.recordedsample = getRecordedSample8u(); //Update recording samples in real-time!
+						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
 						#endif
 						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 					}	

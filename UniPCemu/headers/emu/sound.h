@@ -55,8 +55,12 @@ void unlockaudio();
 #define convertVolume(vol) (factor2dB(((vol)*0.01f+1.0f),0.0f)/factor2dB(1.0f+1.0f,0.0f))
 
 //Get the current recorded sample at hardware rate. This is timed according to the core clock timing.
-sbyte getRecordedSample8s();
-byte getRecordedSample8u();
-sword getRecordedSample16s();
-word getRecordedSample16u();
+sbyte getRecordedSampleL8s();
+byte getRecordedSampleL8u();
+sword getRecordedSampleL16s();
+word getRecordedSampleL16u();
+sbyte getRecordedSampleR8s();
+byte getRecordedSampleR8u();
+sword getRecordedSampleR16s();
+word getRecordedSampleR16u();
 #endif
