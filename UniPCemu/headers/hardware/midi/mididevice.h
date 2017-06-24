@@ -18,8 +18,8 @@
 
 //Chorus amount(4 chorus channels) and reverberations including origin(7 reverberations and 1 origin, for a total of 8 copies)
 #define CHORUSSIZE 4
-#define REVERBSIZE 8
-#define CHORUSREVERBSIZE 32
+#define REVERBSIZE 3
+#define CHORUSREVERBSIZE 12
 
 typedef struct
 {
