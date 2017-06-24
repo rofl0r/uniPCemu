@@ -227,6 +227,8 @@ double floppytimer = 0.0; //The timer for ticking floppy disk actions!
 double floppytime = 0.0; //Buffered floppy disk time!
 byte currentfloppytimerstep = 0; //Current step to execute within the floppy disk timer process!
 
+extern byte is_XT; //Are we emulating a XT architecture?
+
 //Formulas for the different rates:
 
 /*
@@ -563,6 +565,10 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	}
 	byte supported = 0, current=0, currentrate;
 	supported = FLOPPY.geometries[disk]->supportedrates; //Load the supported rates!
+	if (is_XT) //Special case for the XT BIOS? Allow all rates!
+	{
+		supported = TRANSFERRATE_250k|(TRANSFERRATE_300k<<2)|(TRANSFERRATE_500k<<4)|(TRANSFERRATE_1M<<4); //Support all rates, ignore the rate setting on XT machines for easy compatiblity(HACK)!
+	}
 	currentrate = FLOPPY_CCR_RATER; //Current rate we use (both CCR and DSR can be used, since they're both updated when either changes)!
 	for (;current<4;) //Check all available rates!
 	{
@@ -1984,8 +1990,6 @@ byte getfloppydisktype(byte floppy)
 	}
 	return FLOPPYTYPE_12MB; //Default to the default AT controller to fit all!
 }
-
-extern byte is_XT; //Are we emulating a XT architecture?
 
 byte PORT_IN_floppy(word port, byte *result)
 {
