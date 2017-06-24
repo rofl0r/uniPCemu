@@ -33,7 +33,7 @@ PCI_GENERALCONFIG PCI_IDE;
 
 //Index: 0=HDD, 1=CD-ROM! Swapped in the command! Empty is padded with spaces!
 byte MODEL[2][41] = {"Generic HDD","Generic CD-ROM"}; //Word #27-46.
-byte SERIAL[2][21] = {"UniPCemu HDD","UniPCemu CD-ROM"}; //Word #5-10.
+byte SERIAL[2][21] = {"UniPCemu HDD0","UniPCemu CD-ROM0"}; //Word #5-10.
 byte FIRMWARE[2][9] = {"1.0","1.0"}; //Word #23-26.
 
 struct
@@ -2431,6 +2431,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 
 void ATA_DiskChanged(int disk)
 {
+	char newserial[21]; //A serial to build!
 	byte disk_ATA, disk_channel, disk_nr;
 	switch (disk) //What disk?
 	{
@@ -2480,7 +2481,13 @@ void ATA_DiskChanged(int disk)
 				ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector unformatted!
 				ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track unformatted!
 			}
-			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,&SERIAL[IS_CDROM][0]);
+			memset(&newserial,0,sizeof(newserial));
+			strcpy(&newserial[0],&SERIAL[IS_CDROM][0]); //Copy the serial to use!
+			if (strlen(newserial)) //Any length at all?
+			{
+				newserial[strlen(newserial)-1] = 48+((disk_channel<<1)|disk_ATA); //Unique identifier for the disk, acting as the serial number!
+			}
+			strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,(byte *)newserial);
 			if (IS_CDROM==0)
 			{
 				ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
