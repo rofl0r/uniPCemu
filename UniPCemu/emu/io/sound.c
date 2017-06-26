@@ -530,7 +530,7 @@ int_32 getsample_8(playing_p channel, uint_32 position)
 	byte *x = (byte *)channel->sound.samples;	
 	word result=(word)x[position]; //Load the result!
 	result <<= 8; //Multiply into range!
-	result |= (result&0x100)?0xFF:0x00; //Bit fill
+	result |= (result&0xFF00)?0xFF:0x00; //Bit fill
 	return (int_32)unsigned2signed16(result);
 }
 
@@ -539,7 +539,7 @@ int_32 getsample_8s(playing_p channel, uint_32 position)
 	byte *xs = (byte *)channel->sound.samples;
 	word result = (word)xs[position]; //Load the result!
 	result <<= 8; //Multiply into range!
-	result |= (result & 0x100) ? 0xFF : 0x00; //Bit fill!
+	result |= (result & 0xFF00) ? 0xFF : 0x00; //Bit fill!
 	return (int_32)unsigned2signed16(result); //Give the data!
 }
 
@@ -549,7 +549,7 @@ int_32 getsample_8u(playing_p channel, uint_32 position)
 	word result = (word)x[position]; //Load the result!
 	result ^= 0x80; //Flip the sign bit!
 	result <<= 8; //Multiply into range!
-	result |= (result & 0x100) ? 0xFF : 0x00; //Bit fill!
+	result |= (result & 0xFF00) ? 0xFF : 0x00; //Bit fill!
 	return (int_32)unsigned2signed16(result); //Give the data!
 }
 
@@ -1085,7 +1085,7 @@ void sound_stopRecording() //Stop sound recording!
 }
 
 char recordingfilename[256];
-OPTINLINE static char *get_soundrecording_filename() //Filename for a screen capture!
+char *get_soundrecording_filename() //Filename for a screen capture!
 {
 	domkdir("captures"); //Captures directory!
 	uint_32 i = 0; //For the number!

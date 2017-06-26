@@ -41,6 +41,7 @@ byte setSampleRate(SOUNDHANDLER handler, void *extradata, float rate); //Set sam
 byte sound_isRecording(); //Are we recording?
 void sound_startRecording(); //Start sound recording?
 void sound_stopRecording(); //Stop sound recording!
+char *get_soundrecording_filename(); //Filename for a screen capture!
 
 //Audio locking!
 void lockaudio();
