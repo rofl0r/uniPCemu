@@ -9,6 +9,7 @@
 #include "headers/hardware/8237A.h" //DMA support!
 #include "headers/hardware/midi/midi.h" //MIDI support!
 #include "headers/support/highrestimer.h" //Ticks holder support for real-time recording!
+#include "headers/support/wave.h" //Wave file logging support!
 
 #define MHZ14_TICK 644
 #define __SOUNDBLASTER_SAMPLERATE (MHZ14/MHZ14_TICK)
@@ -39,6 +40,8 @@
 
 //Record a test wave!
 #define RECORD_TESTWAVE
+//Log what we record?
+#define LOG_RECORDING
 
 //Enable below define to log all command bytes sent.
 //#define SOUNDBLASTER_LOG
@@ -92,6 +95,11 @@ double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor rese
 
 byte sb_leftsample=0x80, sb_rightsample=0x80; //Two stereo samples, silence by default!
 
+#ifdef LOG_RECORDING
+WAVEFILE *sb_output=NULL;
+float sb_recordingrate = (float)0;
+#endif
+
 OPTINLINE void SoundBlaster_IRQ8()
 {
 	SOUNDBLASTER.IRQ8Pending |= 2; //We're actually pending!
@@ -105,8 +113,38 @@ OPTINLINE void SoundBlaster_FinishedReset()
 	SOUNDBLASTER.reset = DSP_S_NORMAL; //Normal execution of the DSP!
 }
 
+void tickSoundBlasterRecording()
+{
+	#ifdef LOG_RECORDING
+	if (sb_output) //Recording?
+	{
+		if (sb_recordingrate!=SOUNDBLASTER.frequency) //Rate changed?
+		{
+			closeWAV(&sb_output); //Close: we're to restart!
+		}
+	}
+	if (sb_output==NULL) //Not recording yet or changed rate?
+	{
+		lockaudio();
+		sb_output = createWAV(get_soundrecording_filename(),1,(uint_32)SOUNDBLASTER.frequency); //Start recording to this file!
+		sb_recordingrate = SOUNDBLASTER.frequency; //The new rate!
+		unlockaudio();
+	}
+	if (sb_output) //Valid output?
+	{
+		word sample16;
+		sample16 = SOUNDBLASTER.recordedsample; //The recorded sample!
+		sample16 ^= 0x80; //Flip the sign bit!
+		sample16 <<= 8; //Multiply into range!
+		sample16 |= (sample16 & 0xFF00) ? 0xFF : 0x00; //Bit fill!
+		writeWAVMonoSample(sb_output,sample16); //Write the sample to the log file!
+	}
+	#endif
+}
+
 void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 {
+	
 	double dummy;
 	double temp;
 	byte activeleft, activeright;
@@ -178,6 +216,8 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
 						#endif
 
+						tickSoundBlasterRecording();
+
 						if (SOUNDBLASTER.command==0x20) //Direct ADC?
 						{
 							writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
@@ -232,6 +272,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 						#else
 						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
 						#endif
+						tickSoundBlasterRecording();
 						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
 					}	
 				}
@@ -1152,6 +1193,12 @@ void initSoundBlaster(word baseaddr, byte version)
 
 void doneSoundBlaster()
 {
+#ifdef LOG_RECORDING
+	if (sb_output) //Recording?
+	{
+		closeWAV(&sb_output); //Close the file!
+	}
+#endif
 	removechannel(&SoundBlaster_soundGenerator, NULL, 0); //Stop the sound emulation?
 	freeDoubleBufferedSound(&SOUNDBLASTER.soundbuffer); //Free our double buffered sound!
 	free_fifobuffer(&SOUNDBLASTER.DSPindata); //Release our input buffer!
