@@ -88,6 +88,8 @@ void WAVdealloc(void **ptr, uint_32 size, SDL_sem *lock)
 WAVEFILE *createWAV(char *filename, byte channels, uint_32 samplerate)
 {
 	WAVEFILE *f;
+	if (!samplerate) return NULL; //Invalid: without samples we don't work!
+	if (!channels) return NULL; //Invalid: without channels we don't work!
 	f = zalloc(sizeof(WAVEFILE),"WAVEFILE",NULL); //Allocate the structure for processing!
 	if (!f) return NULL; //Cannot allocate structure!
 	if (!changedealloc(f, sizeof(WAVEFILE), &WAVdealloc)) //Failed to register our deallocation function?
