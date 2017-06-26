@@ -97,7 +97,7 @@ byte sb_leftsample=0x80, sb_rightsample=0x80; //Two stereo samples, silence by d
 
 #ifdef LOG_RECORDING
 WAVEFILE *sb_output=NULL;
-float sb_recordingrate = (float)0;
+uint_32 sb_recordingrate = 0;
 #endif
 
 OPTINLINE void SoundBlaster_IRQ8()
@@ -118,7 +118,7 @@ void tickSoundBlasterRecording()
 	#ifdef LOG_RECORDING
 	if (sb_output) //Recording?
 	{
-		if (sb_recordingrate!=SOUNDBLASTER.frequency) //Rate changed?
+		if (sb_recordingrate!=(uint_32)SOUNDBLASTER.frequency) //Rate changed?
 		{
 			closeWAV(&sb_output); //Close: we're to restart!
 		}
@@ -127,7 +127,7 @@ void tickSoundBlasterRecording()
 	{
 		lockaudio();
 		sb_output = createWAV(get_soundrecording_filename(),1,(uint_32)SOUNDBLASTER.frequency); //Start recording to this file!
-		sb_recordingrate = SOUNDBLASTER.frequency; //The new rate!
+		sb_recordingrate = (uint_32)SOUNDBLASTER.frequency; //The new rate!
 		unlockaudio();
 	}
 	if (sb_output) //Valid output?
