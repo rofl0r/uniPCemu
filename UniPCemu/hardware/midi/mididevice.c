@@ -63,7 +63,7 @@ byte direct_midi = 0; //Enable direct MIDI synthesis?
 
 float reverb_delay[0x100];
 float chorus_delay[0x100];
-float choruscents[4];
+float choruscents[2];
 
 MIDIDEVICE_CHANNEL MIDI_channels[0x10]; //Stuff for all channels!
 
@@ -196,7 +196,7 @@ Voice support
 #define SINUSTABLE_PERCISION_FLT 3600.0f
 #define SINUSTABLE_PERCISION_REVERSE (1.0f/SINUSTABLE_PERCISION_FLT)
 
-sword chorussinustable[SINUSTABLE_PERCISION][4][2]; //10x percision steps of sinus! With 1.0 added always!
+sword chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
@@ -205,7 +205,7 @@ void MIDIDEVICE_generateSinusTable()
 	byte choruschannel;
 	for (x=0;x<NUMITEMS(chorussinustable);++x)
 	{
-		for (choruschannel=0;choruschannel<4;++choruschannel) //All channels!
+		for (choruschannel=0;choruschannel<2;++choruschannel) //All channels!
 		{
 			chorussinustable[x][choruschannel][0] = (sword)((sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
 			chorussinustable[x][choruschannel][1] = (sword)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
@@ -489,7 +489,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 				rchannel += (int_32)(channelsampler*VolumeEnvelope); //Sound the right channel at reverb level!
 			}
 			++chorus; //Next chorus channel to apply!
-			chorus &= 3; //Only 4 choruses to apply, so loop around them!
+			chorus &= 1; //Only 2 choruses to apply, so loop around them!
 			reverb += !chorus; //Next reverb channel when needed!
 		}
 		VolumeEnvelope = tempstorage; //Restore the volume envelope!
@@ -532,11 +532,12 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	sword rootMIDITone, cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float panningtemp, pitchwheeltemp,attenuation;
+	float chorusfactor, reverbfactor; //Chorus/reverb factors to use!
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
 	sfPresetHeader currentpreset;
-	sfGenList instrumentptr;
+	sfGenList instrumentptr, applygen;
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
@@ -804,6 +805,15 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
 	}
 
+	if (lookupSFPresetModGlobal(soundfont,LE16(instrumentptr.genAmount.wAmount), pbag, chorusEffectsSend,&applymod)) //Chorus effects send specified?
+	{
+		panningtemp *= (((float)LE16(applymod.modAmount))*0.001f); //Chorus effects send, in 0.1% units!
+	}
+	else
+	{
+		panningtemp = 0; //No chorus effect to apply!
+	}
+
 	for (chorusreverbdepth=1;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
 	{
 		voice->chorusdepth[chorusreverbdepth] = powf(panningtemp,(float)chorusreverbdepth); //Apply the volume!
@@ -817,9 +827,19 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
 		panningtemp *= 0.0002f; //Make into a percentage, it's in 0.02% units!
 	}
+
+	if (lookupSFPresetModGlobal(soundfont,LE16(instrumentptr.genAmount.wAmount), pbag, reverbEffectsSend,&applymod)) //Reverb effects send specified?
+	{
+		panningtemp *= (((float)LE16(applymod.modAmount))*0.001f); //Reverb effects send, in 0.1% units!
+	}
+	else
+	{
+		panningtemp = 0; //No reverb effect to apply!
+	}
+
 	for (chorusreverbdepth=0;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
 	{
-		for (chorusreverbchannel=0;chorusreverbchannel<7;chorusreverbchannel++) //Process all channels!
+		for (chorusreverbchannel=0;chorusreverbchannel<2;chorusreverbchannel++) //Process all channels!
 		{
 			if (chorusreverbdepth==0)
 			{
@@ -835,12 +855,12 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	voice->currentchorusdepth = channel->choruslevel; //Current chorus depth!
 	voice->currentreverbdepth = channel->reverblevel; //Current reverb depth!
 
-	for (chorusreverbchannel=0;chorusreverbchannel<4;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	for (chorusreverbchannel=0;chorusreverbchannel<2;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
 		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[voice->currentchorusdepth]; //The chorus feedback strength for that channel!
 	}
 
-	for (chorusreverbchannel=0;chorusreverbchannel<7;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	for (chorusreverbchannel=0;chorusreverbchannel<2;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
 		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The selected value!
 	}
@@ -1562,7 +1582,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	reset_MIDIDEVICE(); //Reset our MIDI device!
 
 	int i,j;
-	for (i=0;i<4;++i)
+	for (i=0;i<2;++i)
 	{
 		choruscents[i] = (MIDI_CHORUS_SINUS_CENTS*(float)i); //Cents used for this chorus!
 	}
