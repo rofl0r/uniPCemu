@@ -41,7 +41,7 @@
 //Record a test wave!
 //#define RECORD_TESTWAVE
 //Log what we record?
-#define LOG_RECORDING
+//#define LOG_RECORDING
 
 //Enable below define to log all command bytes sent.
 //#define SOUNDBLASTER_LOG
