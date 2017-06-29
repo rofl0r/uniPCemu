@@ -50,7 +50,7 @@ OPTINLINE float enterRelease(ADSR *adsr, int_64 play_counter, byte release_veloc
 
 OPTINLINE float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
-	if (sustaining || (adsr->releasestarted && (play_counter < adsr->releasestart))) return adsr->sustainfactor; //Disable our voice when not sustaining anymore!
+	if ((sustaining && adsr->sustain) || (adsr->releasestarted && (play_counter < adsr->releasestart))) return adsr->sustainfactor; //Disable our voice when not sustaining anymore or sustain is unsupported!
 	//Sustain expired?
 	return enterRelease(adsr,play_counter,release_velocity,adsr->sustainfactor); //Enter the release phase!
 }
