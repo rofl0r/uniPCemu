@@ -2595,11 +2595,11 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
-	oper2 = (word)REG_AL; //What to add!
-	REG_AX = (REG_AH*data);    //AAD
-	oper1 = REG_AX; //Load for addition!
-	op_add16(); //Add, 16-bit, including flags!
-	REG_AX = res16; //The result to load!
+	oper2b = REG_AL; //What to add!
+	REG_AL = (REG_AH*data);    //AAD
+	oper1b = REG_AL; //Load for addition!
+	op_add8(); //Add, 8-bit, including flags!
+	REG_AL = res8; //The result to load!
 	REG_AH = 0; //AH is cleared!
 	//C=O=A=?
 	CPUPROT2

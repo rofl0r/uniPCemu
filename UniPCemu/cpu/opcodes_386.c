@@ -1078,19 +1078,19 @@ OPTINLINE void CPU80386_internal_AAM(byte data)
 	CPU[activeCPU].cycles_OP = 83; //Timings!
 }
 
-OPTINLINE void op_add16_386() {
-	res16 = oper1 + oper2;
-	flag_add16 (oper1, oper2);
+OPTINLINE void op_add8_386() {
+	res8 = oper1b + oper2b;
+	flag_add8 (oper1b, oper2b);
 }
 
 OPTINLINE void CPU80386_internal_AAD(byte data)
 {
 	CPUPROT1
-	oper2 = (word)REG_AL; //What to add!
-	REG_AX = (REG_AH*data);    //AAD
-	oper1 = REG_AX; //Load for addition!
-	op_add16_386(); //Add, 16-bit, including flags!
-	REG_AX = res16; //The result to load!
+	oper2b = REG_AL; //What to add!
+	REG_AL = (REG_AH*data);    //AAD
+	oper1b = REG_AL; //Load for addition!
+	op_add8_386(); //Add, 8-bit, including flags!
+	REG_AL = res8; //The result to load!
 	REG_AH = 0; //AH is cleared!
 	//C=O=A=?
 	CPUPROT2
