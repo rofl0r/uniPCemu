@@ -1246,7 +1246,7 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 				gotpgen = lookupSFPresetGen(sf,preset,PBag,velRange,&pgen2); //Velocity lookup!
 				if (lookupSFPresetGen(sf,preset,PBag,keyRange,&pgen)) //Key range lookup! //Found?
 				{
-					if (MIDIKey>=pgen.genAmount.ranges.byLo && MIDIKey<=pgen.genAmount.ranges.byHi) //Within range?
+					if ((MIDIKey>=pgen.genAmount.ranges.byLo) && (MIDIKey<=pgen.genAmount.ranges.byHi)) //Within range?
 					{
 						if (!gotpgen || (gotpgen && (MIDIVelocity>=pgen2.genAmount.ranges.byLo) && (MIDIVelocity<=pgen2.genAmount.ranges.byHi))) //Velocity match or no velocity?
 						{
