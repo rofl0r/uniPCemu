@@ -16,7 +16,7 @@
 #define MIDI_VOLUME 100.0f
 
 //Effective volume vs samples!
-#define VOLUME 0.3f
+#define VOLUME 0.01f
 
 #ifdef WIN32
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -134,7 +134,7 @@ OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].pressure = 0x40; //Centered pressure!
 		MIDI_channels[channel].program = 0; //First program!
 		MIDI_channels[channel].sustain = 0; //Disable sustain!
-		MIDI_channels[channel].volume = 0x2000; //Centered volume as the default volume!
+		MIDI_channels[channel].volume = 0x2000; //Centered volume as the default volume, no expression!
 		MIDI_channels[channel].panposition = 0x2000; //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
@@ -490,7 +490,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			}
 			++chorus; //Next chorus channel to apply!
 			chorus &= 1; //Only 2 choruses to apply, so loop around them!
-			reverb += !chorus; //Next reverb channel when needed!
+			reverb += (chorus^1); //Next reverb channel when needed!
 		}
 		VolumeEnvelope = tempstorage; //Restore the volume envelope!
 
@@ -767,18 +767,56 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 	}
 
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
+	//Apply volume modulation!
+	if (lookupSFPresetModGlobal(soundfont, preset,pbag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
 		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
 		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
-		attenuation += MIDIconcave((float)applymod.modAmount*((127.0f-((float)note->noteon_velocity-1))/127.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+		attenuation += MIDIconcave((float)applymod.modAmount,960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+	}
+	else if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x0502,&applymod)) //Gotten Note On velocity to Initial Attenuation?
+	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount*((((float)((sword)note->noteon_velocity-0x40)))/64.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 	}
 
-	if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
+	if (lookupSFPresetModGlobal(soundfont, preset,pbag,0x0582,&applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
+	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount,960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+	}
+	else if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x0582,&applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
+	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount*((((float)(((sword)((channel->volume>>7)&0x7F)-0x40))))/64.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+	}
+
+	if (lookupSFPresetModGlobal(soundfont, preset,pbag,0x058B,&applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
+	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount,960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+	}
+	else if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,0x058B,&applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
+	{
+		applymod.modAmount = LE16(applymod.modAmount); //Patch!
+		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
+		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
+		attenuation += MIDIconcave((float)applymod.modAmount*((((float)((sword)(((channel->volume>>14)&0x7F)-0x40))))/64.0f),960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+	}
+
+	if (attenuation>4320.0f) attenuation = 4320.0f; //Limit to max!
 	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 
-	voice->initialAttenuation = (float)dB2factor(((1440.0-(double)attenuation)/10.0),144.0); //We're on a rate of 1440 cb!
+	voice->initialAttenuation = (float)dB2factor((((4320.0-(double)attenuation)*(96.0f/432.0f))/10.0),96.0); //We're converted to a rate of 960 cb!
 
 	//Determine panning!
 	panningtemp = 0.0f; //Default: no panning at all: centered!
@@ -1251,22 +1289,31 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 					}
 					break;
 
-				case 0x07: //Volume (MSB)
+				case 0x07: //Volume (MSB) CC 07
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockMPURenderer(); //Lock the audio!
-					MIDI_channels[currentchannel].volume &= 0x3F80; //Only keep MSB!
-					MIDI_channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
+					MIDI_channels[currentchannel].volume &= ~(0x7F<<7); //Only keep LSB&Expression!
+					MIDI_channels[currentchannel].volume |= (current->buffer[1]<<7); //Set MSB!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
-				case 0x27: //Volume (LSB)
+				case 0x0B: //Expression (MSB) CC 11
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %i: %02X",currentchannel, current->buffer[1]); //Log it!
+					#endif
+					lockMPURenderer(); //Lock the audio!
+					MIDI_channels[currentchannel].volume &= (~(0x7F<<14)); //Only keep MSB&LSB!
+					MIDI_channels[currentchannel].volume |= (current->buffer[1]<<14); //Set Expression!
+					unlockMPURenderer(); //Unlock the audio!
+					break;
+				case 0x27: //Volume (LSB) CC 39
 #ifdef MIDI_LOG
 					dolog("MPU", "MIDIDEVICE: Volume LSB on channel %i: %02X", currentchannel, current->buffer[1]); //Log it!
 #endif
 					lockMPURenderer(); //Lock the audio!
-					MIDI_channels[currentchannel].volume &= 0x7F; //Only keep LSB!
-					MIDI_channels[currentchannel].volume |= (current->buffer[1] << 7); //Set MSB!
+					MIDI_channels[currentchannel].volume &= ~0x7F; //Only keep MSB&Expression!
+					MIDI_channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
@@ -1294,8 +1341,6 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 				//case 0x04: //Foot Pedal (MSB)
 					//break;
 				//case 0x06: //Data Entry, followed by cc100&101 for the address.
-					//break;
-				//case 0x0B: //Expression (MSB)
 					//break;
 				//case 0x21: //Modulation wheel (LSB)
 					//break;
