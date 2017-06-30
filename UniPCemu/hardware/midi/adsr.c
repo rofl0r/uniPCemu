@@ -6,8 +6,8 @@
 //16/32 bit quantities from the SoundFont loaded in memory!
 #define LE16(x) SDL_SwapLE16(x)
 #define LE32(x) SDL_SwapLE32(x)
-#define LE16S(x) = unsigned2signed16(LE16(signed2unsigned16(x)))
-#define LE32S(x) = unsigned2signed32(LE32(signed2unsigned32(x)))
+#define LE16S(x) unsigned2signed16(LE16(signed2unsigned16(x)))
+#define LE32S(x) unsigned2signed32(LE32(signed2unsigned32(x)))
 
 //ADSR itself:
 
@@ -146,13 +146,14 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	sfInstGenList applyigen;
 
 //Volume envelope information!
-	uint_32 delay, attack, hold, decay, sustain, release; //All lengths!
+	int_32 delay, attack, hold, decay, sustain, release; //All lengths!
+	uint_32 delaylength, attacklength, holdlength, decaylength, sustainlength, releaselength; //All lengths!
 	float attackfactor, decayfactor, sustainfactor, holdenvfactor, decayenvfactor;
 	
 //Delay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
 	{
-		delay = LE16(applyigen.genAmount.shAmount); //Apply!
+		delay = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -160,13 +161,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
 	{
-		delay += LE16(applypgen.genAmount.shAmount); //Apply!
+		delay += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Attack
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, attackLookup, &applyigen))
 	{
-		attack = LE16(applyigen.genAmount.shAmount); //Apply!
+		attack = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -174,13 +175,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
 	{
-		attack = LE16(applypgen.genAmount.shAmount); //Apply!
+		attack = LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Hold
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, holdLookup, &applyigen))
 	{
-		hold = LE16(applyigen.genAmount.shAmount); //Apply!
+		hold = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -188,13 +189,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
 	{
-		hold += LE16(applypgen.genAmount.shAmount); //Apply!
+		hold += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Hold factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
 	{
-		holdenvfactor = LE16(applyigen.genAmount.shAmount); //Apply!
+		holdenvfactor = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -202,13 +203,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
 	{
-		holdenvfactor += LE16(applypgen.genAmount.shAmount); //Apply!
+		holdenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Decay
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, decayLookup, &applyigen))
 	{
-		decay = LE16(applyigen.genAmount.shAmount); //Apply!
+		decay = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -216,13 +217,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
 	{
-		decay += LE16(applypgen.genAmount.shAmount); //Apply!
+		decay += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Decay factor
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
 	{
-		decayenvfactor = LE16(applyigen.genAmount.shAmount); //Apply!
+		decayenvfactor = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -230,13 +231,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
 	{
-		decayenvfactor += LE16(applypgen.genAmount.shAmount); //Apply!
+		decayenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Sustain (dB)
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, sustainLookup, &applyigen))
 	{
-		sustain = LE16(applyigen.genAmount.shAmount); //Apply!
+		sustain = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -244,13 +245,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
 	{
-		sustain += LE16(applypgen.genAmount.shAmount); //Apply!
+		sustain += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
 	//Release (disabled!)
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, releaseLookup, &applyigen))
 	{
-		release = LE16(applyigen.genAmount.shAmount); //Apply!
+		release = LE16S(applyigen.genAmount.shAmount); //Apply!
 	}
 	else
 	{
@@ -258,67 +259,68 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
 	{
-		release += LE16(applypgen.genAmount.shAmount); //Apply!
+		release += LE16S(applypgen.genAmount.shAmount); //Apply!
 	}
 
-	//Now, calculate the length of each interval.
+	//Now, calculate the length of each interval, in samples.
 	if (cents2samplesfactord((double)delay) < 0.0002f) //0.0001 sec?
 	{
-		delay = 0; //No delay!
+		delaylength = 0; //No delay!
 	}
 	else
 	{
-		delay = (uint_32)(sampleRate*cents2samplesfactord((double)delay)); //Calculate the ammount of samples!
+		delaylength = (uint_32)(sampleRate*cents2samplesfactord((double)delay)); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactord((double)attack) < 0.0002f) //0.0001 sec?
 	{
-		attack = 0; //No attack!
+		attacklength = 0; //No attack!
 	}
 	else
 	{
-		attack = (uint_32)(sampleRate*cents2samplesfactord((double)attack)); //Calculate the ammount of samples!
+		attacklength = (uint_32)(sampleRate*cents2samplesfactord((double)attack)); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactord((double)hold) < 0.0002f) //0.0001 sec?
 	{
-		hold = 0; //No hold!
+		holdlength = 0; //No hold!
 	}
 	else
 	{
-		hold = (uint_32)(sampleRate*cents2samplesfactord((double)hold)); //Calculate the ammount of samples!
+		holdlength = (uint_32)(sampleRate*cents2samplesfactord((double)hold)); //Calculate the ammount of samples!
 	}
-	hold = (uint_32)(hold*cents2samplesfactord((double)(holdenvfactor*relKeynum))); //Apply key number!
+	holdlength = (uint_32)(holdlength*cents2samplesfactord((double)(holdenvfactor*relKeynum))); //Apply key number!
 
 	if (cents2samplesfactord((double)decay) < 0.0002f) //0.0001 sec?
 	{
-		decay = 0; //No decay!
+		decaylength = 0; //No decay!
 	}
 	else
 	{
-		decay = (uint_32)(sampleRate*cents2samplesfactord((double)decay)); //Calculate the ammount of samples!
+		decaylength = (uint_32)(sampleRate*cents2samplesfactord((double)decay)); //Calculate the ammount of samples!
 	}
-	decay = (uint_32)(decay*cents2samplesfactord((double)(decayenvfactor*relKeynum))); //Apply key number!
+	decaylength = (uint_32)(decay*cents2samplesfactord((double)(decayenvfactor*relKeynum))); //Apply key number!
 
 	sustainfactor = (float)dB2factor(((1000.0-sustain)/10.0),100.0); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
+
 	if (cents2samplesfactord((double)release) < 0.0002f) //0.0001 sec?
 	{
-		release = 0; //No release!
+		releaselength = 0; //No release!
 	}
 	else
 	{
-		release = (uint_32)(sampleRate*cents2samplesfactord((double)release)); //Calculate the ammount of samples!
+		releaselength = (uint_32)(sampleRate*cents2samplesfactord((double)release)); //Calculate the ammount of samples!
 	}
 	
 	//Now calculate the steps for the envelope!
 	//Delay does nothing!
 	//Attack!
-	if (attack) //Gotten attack?
+	if (attacklength) //Gotten attack?
 	{
 		attackfactor = 1.0f;
-		attackfactor /= attack; //Equal steps from 0 to 1.0f!
+		attackfactor /= attacklength; //Equal steps from 0 to 1.0f!
 		if (!attackfactor)
 		{
-			attack = 0; //No attack!
+			attacklength = 0; //No attack!
 		}
 	}
 	else
@@ -327,13 +329,13 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	//Hold does nothing!
 	//Decay
-	if (decay) //Gotten decay?
+	if (decaylength) //Gotten decay?
 	{
 		decayfactor = 1.0f; //From full!
-		decayfactor /= decay; //Equal steps from 1.0f to 0.0f!
+		decayfactor /= decaylength; //Equal steps from 1.0f to 0.0f!
 		if (!decayfactor) //No decay?
 		{
-			decay = 0; //No decay!
+			decaylength = 0; //No decay!
 		}
 		else
 		{
@@ -341,7 +343,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 			temp = 1; //Full volume!
 			temp -= sustainfactor; //Change to sustain factor difference!
 			temp /= decayfactor; //Calculate the new decay time needed to change to the sustain factor!
-			decay = (uint_32)temp; //Load the calculated decay time!
+			decaylength = (uint_32)temp; //Load the calculated decay time!
 		}
 	}
 	else
@@ -351,15 +353,15 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	//Sustain does nothing!
 
 	//Apply ADSR to the voice!
-	adsr->delay = delay; //Delay
-	adsr->attack = attack; //Attack
+	adsr->delay = delaylength; //Delay
+	adsr->attack = attacklength; //Attack
 	adsr->attackfactor = attackfactor;
-	adsr->hold = hold; //Hold
-	adsr->decay = decay; //Decay
+	adsr->hold = holdlength; //Hold
+	adsr->decay = decaylength; //Decay
 	adsr->decayfactor = decayfactor;
 	adsr->sustain = sustain; //Sustain
 	adsr->sustainfactor = sustainfactor; //Sustain %
-	adsr->release = release; //Release
+	adsr->release = releaselength; //Release
 
 	//Finally calculate the actual values needed!
 	adsr->attackend = adsr->attack + adsr->delay;
