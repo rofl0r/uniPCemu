@@ -423,7 +423,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Calculate the sample speedup!; //Apply pitch bend!
+	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Apply pitch bend!
 	voice->effectivesamplespeedup = (sword)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
