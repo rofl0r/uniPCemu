@@ -371,7 +371,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	ADSR *ModulationADSR = &voice->ModulationEnvelope; //Our used modulation envelope ADSR!
 	MIDIDEVICE_CHANNEL *channel = voice->channel; //Get the channel to use!
 	uint_32 numsamples = length; //How many samples to buffer!
-	++numsamples; //Take one sample more!
 	byte currentchorusreverb; //Current chorus and reverb levels we're processing!
 	int_64 chorusreverbsamplepos;
 
@@ -463,11 +462,12 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	byte activechannel, currentactivefinalchannel; //Are we an active channel?
 
 	//Now produce the sound itself!
-	for (; --numsamples;) //Produce the samples!
+	do //Produce the samples!
 	{
 		lchannel = 0; //Reset left channel!
 		rchannel = 0; //Reset right channel!
-		for (currentchorusreverb=0;currentchorusreverb<CHORUSSIZE;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
+		currentchorusreverb=0; //Init to first chorus channel!
+		do //Process all chorus used(2 chorus channels)!
 		{
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
 			totaldelay = voice->chorusdelay[currentchorusreverb]; //Load the total delay!
@@ -475,14 +475,14 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			VolumeEnvelope = ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
 			ModulationEnvelope = ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
-		}
+		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
 		//Apply reverb based on chorus history now!
 		chorus = 0; //Init chorus number!
 		reverb = 1; //First reverberation to apply!
 		tempstorage = VolumeEnvelope; //Store for temporary storage!
 		activechannel = (chorusreverbsamplepos>=0); //Are we an active channel?
-		for (currentchorusreverb=CHORUSSIZE;currentchorusreverb<CHORUSREVERBSIZE;++currentchorusreverb) //Process all reverb&chorus used(4 chorus channels within 4 reverb channels)!
+		do //Process all reverb used(2 reverb channels)!
 		{
 			totaldelay = voice->reverbdelay[reverb]; //Load the total delay!
 			currentactivefinalchannel = (voice->isfinalchannel_reverb[reverb]) && activechannel; //Active&final channel?
@@ -498,7 +498,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			++chorus; //Next chorus channel to apply!
 			chorus &= 1; //Only 2 choruses to apply, so loop around them!
 			reverb += (chorus^1); //Next reverb channel when needed!
-		}
+		} while (++currentchorusreverb<CHORUSREVERBSIZE); //Remaining channel loop.
 		VolumeEnvelope = tempstorage; //Restore the volume envelope!
 
 		//Clip the samples to prevent overflow!
@@ -510,7 +510,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		ubuf->r = rchannel; //Right sample!
 		++voice->play_counter; //Next sample!
 		++ubuf; //Prepare for the next sample!
-	}
+	} while (--numsamples); //Repeat while samples are left!
 
 	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
 	voice->CurrentModulationEnvelope = ModulationEnvelope; //Current volume envelope updated!
