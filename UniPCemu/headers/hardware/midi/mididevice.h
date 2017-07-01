@@ -126,6 +126,7 @@ typedef struct
 	float chorussinposstep; //The step of one sample in chorussinpos, wrapping around 
 	byte isfinalchannel_chorus[CHORUSSIZE]; //Are we the final channel to process for the current sample?
 	byte isfinalchannel_reverb[REVERBSIZE]; //Are we the final channel to process for the current sample?
+	HIGHLOWPASSFILTER reverbfilter[CHORUSREVERBSIZE*2]; //Reverb filters, stereo!
 	HIGHLOWPASSFILTER lowpassfilter[CHORUSSIZE]; //Each channel has it's own low-pass filter!
 	float last_lowpass[CHORUSSIZE]; //Last lowpass frequency used!
 	byte lowpass_dirty[CHORUSSIZE]; //Are we to update the low-pass filter?

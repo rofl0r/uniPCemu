@@ -185,6 +185,11 @@ OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *cur
 	applySoundFilter(&voice->lowpassfilter[filterindex], currentsample); //Apply a low pass filter!
 }
 
+OPTINLINE static void applyMIDIReverbFilter(MIDIDEVICE_VOICE *voice, float *currentsample, byte filterindex)
+{
+	applySoundFilter(&voice->reverbfilter[filterindex], currentsample); //Apply a low pass filter!
+}
+
 /*
 
 Voice support
@@ -485,6 +490,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			if (readfifobufferflt_backtrace_2(voice->effect_backtrace_chorus[chorus],&channelsamplel,&channelsampler,totaldelay,currentactivefinalchannel)) //Are we successfully read back?
 			{
 				VolumeEnvelope = voice->reverbvol[reverb]; //Load the envelope to apply!
+				applyMIDIReverbFilter(voice, &channelsamplel, (currentchorusreverb<<1)); //Low pass filter!
+				applyMIDIReverbFilter(voice, &channelsampler, ((currentchorusreverb<<1)|1)); //Low pass filter!
 				lchannel += (int_32)(channelsamplel*VolumeEnvelope); //Sound the left channel at reverb level!
 				rchannel += (int_32)(channelsampler*VolumeEnvelope); //Sound the right channel at reverb level!
 			}
@@ -972,6 +979,12 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 		voice->reverbvol[chorusreverbdepth] = voice->activereverbdepth[chorusreverbdepth]; //Chorus reverb volume!
 		voice->reverbdelay[chorusreverbdepth] = (uint_32)((reverb_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
 		voice->isfinalchannel_reverb[chorusreverbdepth] = (chorusreverbdepth==(REVERBSIZE-1)); //Are we the final channel?
+	}
+
+	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
+	{
+		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0:(0.7*powf(0.9,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0:(0.7*powf(0.9,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
 	}
 
 	//Setup default channel chorus/reverb!
