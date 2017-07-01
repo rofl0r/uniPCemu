@@ -866,6 +866,19 @@ byte isGlobalPresetZone(RIFFHEADER *sf, uint_32 preset, word PBag)
 								{
 									return 1; //We're a global zone!
 								}
+								else if (finalgen.sfGenOper==endOper) //Ending operator? We're to look one back further!
+								{
+									if (isPresetGenNdx(sf,preset,firstPBag,LE16(pbag.wGenNdx)-2)) //Final is valid?
+									{
+										if (getSFPresetGen(sf,LE16(pbag.wGenNdx)-2,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+										{
+											if (finalgen.sfGenOper!=instrument) //Final isn't an instrument?
+											{
+												return 1; //We're a global zone!
+											}
+										}
+									}
+								}
 							}
 						}
 						
@@ -905,9 +918,22 @@ byte isGlobalInstrumentZone(RIFFHEADER *sf, word instrument, word IBag)
 					{
 						if (getSFInstrumentGen(sf,LE16(ibag.wInstGenNdx)-1,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
 						{
-							if (finalgen.sfGenOper!=sampleID) //Final isn't an instrument?
+							if (finalgen.sfGenOper!=sampleID) //Final isn't an sampleId?
 							{
 								return 1; //We're a global zone!
+							}
+							else if (finalgen.sfGenOper==endOper) //Ending operator? We're to look one back further!
+							{
+								if (isInstrumentGenNdx(sf,instrument,firstIBag,LE16(ibag.wInstGenNdx)-2)) //Final is valid?
+								{
+									if (getSFInstrumentGen(sf,LE16(ibag.wInstGenNdx)-2,&finalgen)) //Retrieve the final generator of the first zone! //Loaded!
+									{
+										if (finalgen.sfGenOper!=sampleID) //Final isn't an sampleId?
+										{
+											return 1; //We're a global zone!
+										}
+									}
+								}
 							}
 						}
 					}
@@ -997,7 +1023,7 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 	sfPresetHeader currentpreset;
 	word CurrentMod;
 	sfPresetBag pbag;
-	sfModList mod;
+	sfModList mod,emptymod;
 	byte found;
 	found = 0; //Default: not found!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
@@ -1011,10 +1037,12 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 					if (isValidPresetZone(sf,preset,PBag)) //Valid?
 					{
 						CurrentMod = LE16(pbag.wModNdx); //Load the first PMod!
+						memset(&emptymod,0,sizeof(emptymod)); //Final mod!
 						for (;isPresetModNdx(sf,preset,PBag,CurrentMod);) //Process all PMods for our bag!
 						{
 							if (getSFPresetMod(sf,CurrentMod,&mod)) //Valid?
 							{
+								if (memcmp(&mod,&emptymod,sizeof(mod))==0) break; //Stop searching on final item!
 								if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
 								{
 									found = 1; //Found!
@@ -1054,6 +1082,7 @@ byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sf
 						{
 							if (getSFPresetGen(sf,CurrentGen,&gen)) //Valid?
 							{
+								if (LE16(gen.sfGenOper)==endOper) break; //Stop when finding the last entry!
 								if (LE16(gen.sfGenOper)==sfGenOper) //Found?
 								{
 									found = 1; //Found!
@@ -1077,7 +1106,7 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 	sfInst currentinstrument;
 	word CurrentMod;
 	sfInstBag ibag;
-	sfModList mod;
+	sfModList mod,emptymod;
 	byte found;
 	found = 0; //Default: not found!
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Valid instrument?
@@ -1089,10 +1118,12 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 				if (isValidInstrumentZone(sf,instrument,IBag)) //Valid?
 				{
 					CurrentMod = LE16(ibag.wInstModNdx); //Load the first PMod!
+					memset(&emptymod,0,sizeof(emptymod)); //Final mod!
 					for (;isInstrumentModNdx(sf,instrument,IBag,CurrentMod);) //Process all PMods for our bag!
 					{
 						if (getSFInstrumentMod(sf,CurrentMod,&mod)) //Valid?
 						{
+							if (memcmp(&mod,&emptymod,sizeof(mod))==0) break; //Stop searching on final item!
 							if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
 							{
 								found = 1;
@@ -1161,6 +1192,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 							}
 							if (valid) //Still valid?
 							{
+								if (LE16(gen.sfGenOper)==endOper) break; //Stop when finding the last entry!
 								if (LE16(gen.sfGenOper)==sfGenOper && (dontignoregenerators || LE16(gen.sfGenOper)==sampleID)) //Found and not ignoring (or sampleid generator)?
 								{
 									//Log the retrieval!
@@ -1220,7 +1252,7 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 		return 0; //Invalid preset: disabled?
 	}
 
-	if (LE16(activepreset.wBank)!=bank || LE16(activepreset.wPreset)!=preset)
+	if ((LE16(activepreset.wBank)!=bank) || (LE16(activepreset.wPreset)!=preset))
 	{
 		return 0; //Unfound preset: disabled!
 	}
