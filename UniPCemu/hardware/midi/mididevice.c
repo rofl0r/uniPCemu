@@ -539,7 +539,6 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	sword rootMIDITone, cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float panningtemp, pitchwheeltemp,attenuation;
-	float chorusfactor, reverbfactor; //Chorus/reverb factors to use!
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;

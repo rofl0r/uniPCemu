@@ -2,6 +2,7 @@
 #include "headers/hardware/midi/adsr.h" //Our own typedefs!
 #include "headers/support/sf2.h" //Soundfont support!
 #include "headers/emu/sound.h" //dB support!
+#include "headers/support/signedness.h" //Sign conversion support!
 
 //16/32 bit quantities from the SoundFont loaded in memory!
 #define LE16(x) SDL_SwapLE16(x)
@@ -147,7 +148,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 
 //Volume envelope information!
 	int_32 delay, attack, hold, decay, sustain, release; //All lengths!
-	uint_32 delaylength, attacklength, holdlength, decaylength, sustainlength, releaselength; //All lengths!
+	uint_32 delaylength, attacklength, holdlength, decaylength, releaselength; //All lengths!
 	float attackfactor, decayfactor, sustainfactor, holdenvfactor, decayenvfactor;
 	
 //Delay

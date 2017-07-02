@@ -2482,7 +2482,7 @@ void ATA_DiskChanged(int disk)
 				ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track unformatted!
 			}
 			memset(&newserial,0,sizeof(newserial));
-			strcpy(&newserial[0],&SERIAL[IS_CDROM][0]); //Copy the serial to use!
+			strcpy(&newserial[0],(char *)&SERIAL[IS_CDROM][0]); //Copy the serial to use!
 			if (strlen(newserial)) //Any length at all?
 			{
 				newserial[strlen(newserial)-1] = 48+((disk_channel<<1)|disk_ATA); //Unique identifier for the disk, acting as the serial number!
