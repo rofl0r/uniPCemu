@@ -1038,13 +1038,13 @@ typedef void (*hblankretraceHandler)(SEQ_DATA *Sequencer, VGA_Type *VGA, word si
 
 void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
-	if (VGA_hblankstart) //HBlank start?
+	if (unlikely(VGA_hblankstart)) //HBlank start?
 	{
 		hblank = 1; //We're blanking!
 	}
-	else if (hblank)
+	else if (unlikely(hblank))
 	{
-		if (signal&VGA_SIGNAL_HBLANKEND) //HBlank end?
+		if (unlikely(signal&VGA_SIGNAL_HBLANKEND)) //HBlank end?
 		{
 			if ((VGA->registers->specialCGAMDAflags) & 1)
 			{
@@ -1059,17 +1059,17 @@ void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 		}
 	}
 
-	if (signal&VGA_SIGNAL_HRETRACESTART) //HRetrace start?
+	if (unlikely(signal&VGA_SIGNAL_HRETRACESTART)) //HRetrace start?
 	{
-		if (!hretrace) //Not running yet?
+		if (unlikely(hretrace==0)) //Not running yet?
 		{
 			VGA_HRetrace(Sequencer, VGA); //Execute the handler!
 		}
 		hretrace = 1; //We're retracing!
 	}
-	else if (hretrace)
+	else if (unlikely(hretrace))
 	{
-		if (signal&VGA_SIGNAL_HRETRACEEND) //HRetrace end?
+		if (unlikely(signal&VGA_SIGNAL_HRETRACEEND)) //HRetrace end?
 		{
 			hretrace = 0; //We're not retraing anymore!
 		}
@@ -1078,7 +1078,7 @@ void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 
 void nohblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 {
-	if (hblankendpending==0) return; //End pending HBlank!
+	if (likely(hblankendpending==0)) return; //End pending HBlank!
 	{
 		hblank = 0; //We're not blanking anymore!
 		hblankendpending = 0; //Remove from flags pending!
@@ -1101,15 +1101,15 @@ recalcsignal: //Recalculate the signal to process!
 
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
 	tempsignal &= VGA_VBLANKRETRACEMASK; //Check for blanking/tretracing!
-	if (tempsignal) //VBlank?
+	if (unlikely(tempsignal)) //VBlank?
 	{
-		if (tempsignal&VGA_SIGNAL_VBLANKSTART) //VBlank start?
+		if (unlikely(tempsignal&VGA_SIGNAL_VBLANKSTART)) //VBlank start?
 		{
 			vblank = 1; //We're blanking!
 		}
-		else if (vblank)
+		else if (unlikely(vblank))
 		{
-			if (tempsignal&VGA_SIGNAL_VBLANKEND) //VBlank end?
+			if (unlikely(tempsignal&VGA_SIGNAL_VBLANKEND)) //VBlank end?
 			{
 				if (VGA->registers->specialCGAMDAflags & 1) //CGA special?
 				{
@@ -1124,9 +1124,9 @@ recalcsignal: //Recalculate the signal to process!
 			}
 		}
 
-		if (tempsignal&VGA_SIGNAL_VRETRACESTART) //VRetrace start?
+		if (unlikely(tempsignal&VGA_SIGNAL_VRETRACESTART)) //VRetrace start?
 		{
-			if (!vretrace) //Not running yet?
+			if (unlikely(vretrace==0)) //Not running yet?
 			{
 				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 
@@ -1142,9 +1142,9 @@ recalcsignal: //Recalculate the signal to process!
 			}
 			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
 		}
-		else if (vretrace)
+		else if (unlikely(vretrace))
 		{
-			if (tempsignal&VGA_SIGNAL_VRETRACEEND) //VRetrace end?
+			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
 			{
 				vretrace = 0; //We're not retracing anymore!
 				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //Vertical retrace?
@@ -1161,7 +1161,7 @@ recalcsignal: //Recalculate the signal to process!
 	}
 	else
 	{
-		if (vblankendpending) //End pending HBlank!
+		if (unlikely(vblankendpending)) //End pending HBlank!
 		{
 			vblank = 0; //We're not blanking anymore!
 			vblankendpending = 0; //Remove from flags pending!
@@ -1185,23 +1185,23 @@ recalcsignal: //Recalculate the signal to process!
 	//INLINEREGISTER byte currenttotalling; //Current totalling state!
 	//currenttotalling = 0; //Default: Not totalling!
 	tempsignal = tempsignalbackup; //Restore the original backup signal!
-	if (tempsignal&VGA_SIGNAL_HTOTAL) //HTotal?
+	if (unlikely(tempsignal&VGA_SIGNAL_HTOTAL)) //HTotal?
 	{
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
 		//currenttotalling = 1; //Total reached!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if ((displaystate&VGA_SIGNAL_HTOTAL)==0) //Not infinitely looping?
+		if (likely((displaystate&VGA_SIGNAL_HTOTAL)==0)) //Not infinitely looping?
 		{
 			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
 			goto recalcsignal; //Execute immediately!
 		}
 	}
-	if (tempsignal&VGA_SIGNAL_VTOTAL) //VTotal?
+	if (unlikely(tempsignal&VGA_SIGNAL_VTOTAL)) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
 		/*currenttotalling =*/ vtotal = 1; //Total reached!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if ((displaystate&VGA_SIGNAL_VTOTAL)==0) //Not infinitely looping(VTotal ended)?
+		if (likely((displaystate&VGA_SIGNAL_VTOTAL)==0)) //Not infinitely looping(VTotal ended)?
 		{
 			VGA_VTotalEnd(Sequencer, VGA); //Signal end of vertical total!
 			vtotal = 0; //Not vertical total anymore!
@@ -1209,7 +1209,7 @@ recalcsignal: //Recalculate the signal to process!
 			goto recalcsignal; //Execute immediately!
 		}
 	}
-	else if (vtotal) //VTotal ended?
+	else if (unlikely(vtotal)) //VTotal ended?
 	{
 		VGA_VTotalEnd(Sequencer,VGA); //Signal end of vertical total!
 		vtotal = 0; //Not vertical total anymore!
@@ -1228,7 +1228,7 @@ recalcsignal: //Recalculate the signal to process!
 	VGA->CRTC.DisplayEnabled = currenttotalretracing; //The Display Enable signal, which depends on the active video adapter how to use it!
 	++VGA->PixelCounter; //Simply blindly increase the pixel counter!
 
-	if (CurrentWaitState) CurrentWaitState(VGA); //Execute the current waitstate, when used!
+	if (unlikely(CurrentWaitState)) CurrentWaitState(VGA); //Execute the current waitstate, when used!
 }
 
 extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
