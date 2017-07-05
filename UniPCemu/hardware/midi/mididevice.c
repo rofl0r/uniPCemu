@@ -420,7 +420,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
 	}
 	//Calculate the pitch bend speedup!
-	pitchcents = (float)(channel->pitch%0x1FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
+	pitchcents = (float)(channel->pitch&0x3FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
 	pitchcents /= 128.0f; //Create a value between -1 and 1!
 	pitchcents *= cents2samplesfactorf(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
@@ -1497,7 +1497,7 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 			break;
 		case 0xE0: //Pitch wheel?
 			lockMPURenderer(); //Lock the audio!
-			MIDI_channels[currentchannel].pitch = ((sword)((current->buffer[1]<<7)|firstparam))-0x2000; //Actual pitch, converted to signed value!
+			MIDI_channels[currentchannel].pitch = (sword)((current->buffer[1]<<7)|firstparam); //Actual pitch, converted to signed value!
 			unlockMPURenderer(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Pitch wheel: %i=%i",currentchannel,MIDI_channels[currentchannel].pitch); //Log it!
@@ -1652,8 +1652,8 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		}
 	}
 	#endif
-	lockaudio();
 	done_MIDIDEVICE(); //Start finished!
+	lockaudio();
 	memset(&activevoices,0,sizeof(activevoices)); //Clear all voice data!
 
 	reset_MIDIDEVICE(); //Reset our MIDI device!
