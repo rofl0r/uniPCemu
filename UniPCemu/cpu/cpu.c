@@ -1574,22 +1574,43 @@ void CPU_beforeexec()
 	case CPU_80286:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			tempflags &= 0xFFFF0FFF; //Always set the high flags in real mode only!
+			tempflags &= 0x0FFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
-			tempflags &= 0xFFFF7FFF; //Bit 15 is always cleared!
+			tempflags &= 0x7FFF; //Bit 15 is always cleared!
 		}
 		break;
 	case CPU_80386:
-		tempflags &= 0x37FFF; //Bit 15 is always cleared! AC is stuck to 0! All bits above AC are always cleared!
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x30FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x37FFF; //Bit 15 is always cleared! AC is stuck to 0! All bits above AC are always cleared!
+		}
 		break;
 	case CPU_80486:
-		tempflags &= 0x277FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID and larger flags! Allow toggling the CPUID flag too(it's supported)!
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x270FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x277FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID and larger flags! Allow toggling the CPUID flag too(it's supported)!
+		}
 		break;
 	case CPU_PENTIUM:
 		//Allow all bits to be set, except the one needed from the 80386+ identification(bit 15=0)!
-		tempflags &= 0x3F7FFF;
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x3F0FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x3F7FFF;
+		}
 		break;
 	default: //Unknown CPU?
 		break;
