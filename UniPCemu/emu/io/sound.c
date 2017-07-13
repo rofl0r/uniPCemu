@@ -142,7 +142,7 @@ word audiolocklvl = 0; //Audio lock level!
 void lockaudio()
 {
 	if (__HW_DISABLED) return; //Nothing to lock!
-	if (!audiolocklvl) //Root level?
+	if (audiolocklvl==0) //Root level?
 	{
 		lock(LOCK_SOUND); //Lock the audio!
 	}
@@ -153,7 +153,7 @@ void unlockaudio()
 {
 	if (__HW_DISABLED) return; //Nothing to lock!
 	--audiolocklvl; //Decrease the lock level!
-	if (!audiolocklvl) //Root level?
+	if (audiolocklvl==0) //Root level?
 	{
 		//We're unlocking!
 		unlock(LOCK_SOUND); //Unlock the audio!
