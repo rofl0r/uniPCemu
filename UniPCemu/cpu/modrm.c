@@ -1789,7 +1789,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
-		result->memorymask = (EMULATED_CPU<CPU_80286)?~0:0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
+		result->memorymask = 0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
 		result->is16bit = 1; //16-bit offset!
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
@@ -1877,7 +1877,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 			return;
 			break;
 		}
-		result->memorymask = (EMULATED_CPU<CPU_80286)?~0:0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
+		result->memorymask = 0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
 		result->is16bit = 1; //16-bit offset!
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
@@ -2038,7 +2038,7 @@ OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whic
 				return;
 				break;
 			}
-			result->memorymask = (EMULATED_CPU<CPU_80286)?~0:0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
+			result->memorymask = 0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
 			result->is16bit = 1; //16-bit offset!
 			break;
 		}
