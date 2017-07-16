@@ -484,7 +484,7 @@ void initEMU(int full) //Init!
 	initCPU(); //Initialise CPU for emulation!
 
 	debugrow("Initializing Inboard when required...");
-	initInboard(); //Initialise CPU for emulation!
+	initInboard(BIOS_Settings.InboardInitialWaitstates?1:0); //Initialise CPU for emulation! Emulate full-speed from the start when requested!
 	
 	debugrow("Initialising CMOS...");
 	initCMOS(); //Initialise the CMOS!

@@ -87,11 +87,15 @@ byte Inboard_writeIO(word port, byte value)
 
 extern MMU_type MMU;
 
-void initInboard() //Initialize the Inboard chipset, if needed for the current CPU!
+void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed for the current CPU!
 {
 	//Default memory addressable limit is specified by the MMU itself already, so don't apply a new limit, unless we're used!
 	MoveLowMemoryHigh = 7; //Default: enable the HMA memory and enable the memory hole and BIOS ROM!
 	inboard386_speed = 0; //Default speed: slow!
+	if (initFullspeed) //Full speed init instead?
+	{
+		inboard386_speed = 3; //Switch to full speed instead!
+	}
 	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
 	if ((EMULATED_CPU==CPU_80386) && is_XT) //XT 386? We're an Inboard 386!

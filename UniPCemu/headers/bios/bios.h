@@ -78,6 +78,7 @@ typedef struct PACKED
 	//CMOS for Compaq systems!
 	CMOSDATA CompaqCMOS; //The full saved CMOS!
 	byte got_CompaqCMOS; //Gotten an CMOS?
+	byte InboardInitialWaitstates; //Inboard 386 initial delay used?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -183,6 +184,7 @@ enum BIOSROMMode {
 #define DEFAULT_DIRECTMIDIMODE 0
 #define DEFAULT_BREAKPOINT 0
 #define DEFAULT_BIOSROMMODE BIOSROMMODE_NORMAL
+#define DEFAULT_INBOARDINITIALWAITSTATES 0
 
 //Breakpoint helper constants
 //2-bit mode(0=Disabled, 1=Real, 2=Protected, 3=Virtual 8086)

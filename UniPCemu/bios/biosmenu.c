@@ -196,6 +196,7 @@ void BIOS_breakpoint();
 void BIOS_syncTime(); //Reset the kept time in UniPCemu!
 void BIOS_ROMMode(); //ROM mode!
 void BIOS_DebugState(); //State log!
+void BIOS_InboardInitialWaitstates(); //Inboard Initial Waitstates
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -264,6 +265,7 @@ Handler BIOS_Menus[] =
 	,BIOS_syncTime //Reset timekeeping is #61!
 	,BIOS_ROMMode //BIOS ROM mode is #62!
 	,BIOS_DebugState //BIOS State log is #63!
+	,BIOS_InboardInitialWaitstates //Inboard Initial Waitstates is #64!
 };
 
 //Not implemented?
@@ -4981,6 +4983,24 @@ setBIOSROMmode: //For fixing it!
 		goto setBIOSROMmode; //Goto!
 		break;
 	}
+
+setInboardInitialWaitstates: //For fixing it!
+	optioninfo[advancedoptions] = 16; //Inboard Initial Waitstates!
+	strcpy(menuoptions[advancedoptions], "Inboard Initial Waitstates: ");
+	switch (BIOS_Settings.InboardInitialWaitstates) //What architecture?
+	{
+	case 0:
+		strcat(menuoptions[advancedoptions++], "Default waitstates");
+		break;
+	case 1:
+		strcat(menuoptions[advancedoptions++], "No waitstates");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.InboardInitialWaitstates = DEFAULT_INBOARDINITIALWAITSTATES; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setInboardInitialWaitstates; //Goto!
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
@@ -5009,7 +5029,8 @@ void BIOS_CPU() //CPU menu!
 	case 12:
 	case 13:
 	case 14:
-	case 15: //Valid option?
+	case 15:
+	case 16: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5137,6 +5158,9 @@ void BIOS_CPU() //CPU menu!
 			break;
 		case 15: //BIOS ROM mode
 			if (!EMU_RUNNING) BIOS_Menu = 62; //Architecture option!
+			break;
+		case 16: //Inboard Initial Waitstates?
+			BIOS_Menu = 64; //Architecture option!
 			break;
 		}
 		break;
@@ -6620,6 +6644,61 @@ void BIOS_ROMMode()
 		{
 			BIOS_Changed = 1; //Changed!
 			BIOS_Settings.BIOSROMmode = file; //Select PS/2 Mouse setting!
+			reboot_needed |= 1; //A reboot is needed when applied!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_InboardInitialWaitstates()
+{
+	BIOS_Title("Inboard Initial Waitstates");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Inboard Initial Waitstates: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Amount of Direct modes!
+	for (i = 0; i<2; i++) //Process options!
+	{
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "Default waitstates"); //Set filename from options!
+	strcpy(itemlist[1], "No waitstates"); //Set filename from options!
+	int current = 0;
+	switch (BIOS_Settings.InboardInitialWaitstates) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.InboardInitialWaitstates; //Valid: use!
+		break;
+	default: //Invalid
+		current = DEFAULT_INBOARDINITIALWAITSTATES; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.InboardInitialWaitstates != current) //Invalid?
+	{
+		BIOS_Settings.InboardInitialWaitstates = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(28, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_INBOARDINITIALWAITSTATES; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.InboardInitialWaitstates = file; //Select PS/2 Mouse setting!
 			reboot_needed |= 1; //A reboot is needed when applied!
 		}
 		break;
