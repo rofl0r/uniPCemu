@@ -2814,7 +2814,7 @@ void CPU386_OP62()
 	modrm_addoffset = 4; //Max offset!
 	bound_max=modrm_read32(&params,1); //Read max!
 	modrm_addoffset = 0; //Reset offset!
-	if ((theval<bound_min) || (theval>bound_max))
+	if ((unsigned2signed32(theval)<unsigned2signed32(bound_min)) || (unsigned2signed32(theval)>unsigned2signed32(bound_max)))
 	{
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!

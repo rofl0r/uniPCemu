@@ -181,7 +181,7 @@ void CPU186_OP62()
 	modrm_addoffset = 2; //Max offset!
 	if (CPU8086_instructionstepreadmodrmw(4,&bound_max,1)) return; //Read max!
 	modrm_addoffset = 0; //Reset offset!
-	if ((theval<bound_min) || (theval>bound_max))
+	if ((unsigned2signed16(theval)<unsigned2signed16(bound_min)) || (unsigned2signed16(theval)>unsigned2signed16(bound_max)))
 	{
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!
