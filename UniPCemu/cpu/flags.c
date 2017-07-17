@@ -230,42 +230,15 @@ void flag_sbb32(uint32_t v1, uint32_t v2, uint32_t v3)
 
 void flag_sub8(uint8_t v1, uint8_t v2)
 {
-	int16_t dst;
-	dst = (int16_t)v1 - (int16_t)v2;
-	flag_szp8(dst & 0xFF);
-	/*if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;*/
-	FLAGW_CF((dst & 0xFF00) ? 1 : 0); //Carry?
-	if ((dst ^ v1) & (v1 ^ v2) & 0x80) FLAGW_OF(1);
-	else FLAGW_OF(0);
-	if ((v1 ^ v2 ^ dst) & 0x10) FLAGW_AF(1);
-	else FLAGW_AF(0);
+	flag_add8(v1,((~v2)+1)); //Done using addition!
 }
 
 void flag_sub16(uint16_t v1, uint16_t v2)
 {
-	int32_t dst;
-	dst = (int32_t)v1 - (int32_t)v2;
-	flag_szp16(dst & 0xFFFF);
-	/*if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;*/
-	FLAGW_CF((dst & 0xFFFF0000) ? 1 : 0); //Carry?
-	if ((dst ^ v1) & (v1 ^ v2) & 0x8000) FLAGW_OF(1);
-	else FLAGW_OF(0);
-	if ((v1 ^ v2 ^ dst) & 0x10) FLAGW_AF(1);
-	else FLAGW_AF(0);
+	flag_add16(v1,((~v2)+1)); //Done using addition!
 }
 
 void flag_sub32(uint32_t v1, uint32_t v2)
 {
-	int64_t dst;
-	dst = (int64_t)v1 - (int64_t)v2;
-	flag_szp32(dst & 0xFFFFFFFF);
-	/*if (v1 < v2) FLAG_CF = 1;
-	else FLAG_CF = 0;*/
-	FLAGW_CF((dst & 0xFFFFFFFF00000000ULL) ? 1 : 0); //Carry?
-	if ((dst ^ v1) & (v1 ^ v2) & 0x80000000) FLAGW_OF(1);
-	else FLAGW_OF(0);
-	if ((v1 ^ v2 ^ dst) & 0x10) FLAGW_AF(1);
-	else FLAGW_AF(0);
+	flag_add32(v1,((~v2)+1)); //Done using addition!
 }
