@@ -651,6 +651,22 @@ void ATA_writeLBACHS(byte channel) //Update the current sector!
 	}
 }
 
+void strcpy_padded(byte *buffer, byte sizeinbytes, byte *s)
+{
+	byte counter, data;
+	word length;
+	length = strlen((char *)s); //Check the length for the copy!
+	for (counter=0;counter<sizeinbytes;++counter) //Step words!
+	{
+		data = 0x20; //Initialize to unused!
+		if (length>counter) //Byte available?
+		{
+			data = s[counter]; //High byte as low byte!
+		}
+		buffer[counter] = data; //Set the byte information!
+	}
+}
+
 OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sector set up!
 {
 	byte multiple = 1; //Multiple to read!
@@ -1396,7 +1412,11 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Now fill the packet with data!
 		ATA[channel].Drive[ATA_activeDrive(channel)].data[0] = 0x05; //We're a CD-ROM drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].data[1] = 0x80; //We're always removable!
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[3] = (4<<4); //We're ATAPI version 4, response data format 0?
+		ATA[channel].Drive[ATA_activeDrive(channel)].data[3] = ((1<<4)|(1)); //We're ATAPI version 1(high nibble), response data format 1?
+		ATA[channel].Drive[ATA_activeDrive(channel)].data[4] = 31; //Amount of bytes following this byte for the full buffer? Total 36, so 31 more.
+		strcpy_padded(&ATA[channel].Drive[ATA_activeDrive(channel)].data[8],8,"UniPCemu"); //Vendor ID
+		strcpy_padded(&ATA[channel].Drive[ATA_activeDrive(channel)].data[16],16,"Generic CD-ROM"); //Product ID
+		strcpy_padded(&ATA[channel].Drive[ATA_activeDrive(channel)].data[32],4,&FIRMWARE[1][0]); //Product revision level
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize,1); //Result size, Raise an IRQ: we're needing attention!
