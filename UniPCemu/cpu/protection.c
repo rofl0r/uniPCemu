@@ -1169,7 +1169,10 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	{
 		if (is_offset16) //16-bits offset? Set the high bits for compatibility!
 		{
-			offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly!
+			if (((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386))) //Large granularity?
+			{
+				offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly in 32-bit cases!
+			}
 		}
 	}
 
@@ -1181,10 +1184,6 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			if (DATASEGMENTPTR_E(descriptor)) //Expand-down data segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
-				if (!((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386))) //Small granularity?
-				{
-					isvalid = (isvalid && (offset <= limit)); //Limit to 64K or lower!
-				}
 			}
 		}
 		if (!isvalid) //Not valid?
