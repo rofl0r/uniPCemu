@@ -304,8 +304,8 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	}
 	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET) //Processing data?
 	{
-		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
-		ATAPI_INTERRUPTREASON_IO(channel,drive,ATA[channel].Drive[drive].commandstatus==2?0:1); //Transfer to device or from device!
+		ATAPI_INTERRUPTREASON_CD(channel,drive,0); //Not a command packet: we're data!
+		ATAPI_INTERRUPTREASON_IO(channel,drive,(ATA[channel].Drive[drive].commandstatus==2)?0:1); //Transfer to device or from device!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Unknown, but to be cleared!
 	}
 	else //Inactive?
