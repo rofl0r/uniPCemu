@@ -1412,7 +1412,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Now fill the packet with data!
 		ATA[channel].Drive[ATA_activeDrive(channel)].data[0] = 0x05; //We're a CD-ROM drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].data[1] = 0x80; //We're always removable!
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[3] = ((1<<4)|(1)); //We're ATAPI version 1(high nibble), response data format 1?
+		ATA[channel].Drive[ATA_activeDrive(channel)].data[3] = ((2<<4)|(1)); //We're ATAPI version 2(high nibble, from SFF-8020i documentation we're based on), response data format 1?
 		ATA[channel].Drive[ATA_activeDrive(channel)].data[4] = 31; //Amount of bytes following this byte for the full buffer? Total 36, so 31 more.
 		strcpy_padded(&ATA[channel].Drive[ATA_activeDrive(channel)].data[8],8,"UniPCemu"); //Vendor ID
 		strcpy_padded(&ATA[channel].Drive[ATA_activeDrive(channel)].data[16],16,"Generic CD-ROM"); //Product ID
