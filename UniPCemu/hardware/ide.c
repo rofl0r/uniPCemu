@@ -861,6 +861,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 			ATAPI_giveresultsize(channel,0,0); //No result size!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+			ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
 			return 1; //We're finished!
 		}
 	}
@@ -874,7 +876,9 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		ATAPI_giveresultsize(channel,0,0); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-		return 0; //Stop!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+		return 1; //Stop! IRQ and finish!
 	}
 
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
@@ -901,8 +905,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
-		ATAPI_giveresultsize(channel,ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize,0); //Result size!
-		return 1; //Process the block!
+		ATAPI_giveresultsize(channel,ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize,1); //Result size!
+		return 0; //Process the block once we're ready!
 	}
 	else //Error reading?
 	{
@@ -911,8 +915,12 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		ATAPI_giveresultsize(channel,0,0); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
-		return 0; //Stop!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+		return 1; //Stop! IRQ and finish!
 	}
+	ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 	return 1; //We're finished!
 }
 
