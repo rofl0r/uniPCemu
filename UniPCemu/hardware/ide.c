@@ -1011,8 +1011,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				{
 					ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset to enter a new command!
 					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-					ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+					ATAPI_giveresultsize(channel,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 				}
 				else //Still transferring data?
 				{
@@ -1156,14 +1155,12 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 			pageaddr += ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr+1]+1; //Jump to the next block, if any!
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: we're done!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're done!
+		ATAPI_giveresultsize(channel,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: we're done!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're done!
+		ATAPI_giveresultsize(channel,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 		break;
 	}	
 }
