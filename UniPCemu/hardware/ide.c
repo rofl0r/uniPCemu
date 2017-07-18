@@ -2294,7 +2294,6 @@ byte outATA8(word port, byte value)
 #endif
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //We're an PATA device!
 		ATA[channel].driveselectTiming = ATA_DRIVESELECT_TIMEOUT; //Drive select timing to use!
 		return 1; //OK!
 		break;
