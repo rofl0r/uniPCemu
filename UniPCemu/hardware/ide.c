@@ -499,7 +499,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[0].Drive[0].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[0].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ && ATA[0].Drive[0].ATAPI_bytecountleft) //Anything left to give an IRQ for?
+				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,0); //Generate our reason!
 					ATA_IRQ(0,0); //Raise an IRQ!
@@ -513,7 +513,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[0].Drive[1].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[0].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ && ATA[0].Drive[1].ATAPI_bytecountleft) //Anything left to give an IRQ for?
+				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,1); //Generate our reason!
 					ATA_IRQ(0,1); //Raise an IRQ!
@@ -527,7 +527,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[1].Drive[0].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[1].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ && ATA[1].Drive[0].ATAPI_bytecountleft) //Anything left to give an IRQ for?
+				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,0); //Generate our reason!
 					ATA_IRQ(1,0); //Raise an IRQ!
@@ -541,7 +541,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[1].Drive[1].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[1].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ && ATA[1].Drive[1].ATAPI_bytecountleft) //Anything left to give an IRQ for?
+				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,1); //Generate our reason!
 					ATA_IRQ(1,1); //Raise an IRQ!
@@ -836,6 +836,15 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //St
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (size&0xFF); //Low byte of the result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((size>>8)&0xFF); //High byte of the result size!
 	}
+	else //Finishing an transfer and entering result phase? This is what we do when nothing is to be transferred anymore!
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
+		if (raiseIRQ) //Raise an IRQ after some time?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = 20000.0f; //Wait 20us before giving the new data that's to be transferred!		
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = 0; //We're special: indicating end of transfer is to be executed only by setting an invalid value!
+		}
+	}
 }
 
 OPTINLINE uint_32 ATAPI_getresultsize(byte channel) //Retrieve the current result size from the Task file
@@ -860,10 +869,10 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-			ATAPI_giveresultsize(channel,0,0); //No result size!
+			ATAPI_giveresultsize(channel,0,1); //No result size!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 			ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
-			return 1; //We're finished!
+			return 0; //We're finished!
 		}
 	}
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
@@ -878,7 +887,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
-		return 1; //Stop! IRQ and finish!
+		return 0; //Stop! IRQ and finish!
 	}
 
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
@@ -913,11 +922,11 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-		ATAPI_giveresultsize(channel,0,0); //No result size!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
-		return 1; //Stop! IRQ and finish!
+		return 0; //Stop! IRQ and finish!
 	}
 	ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
@@ -1365,7 +1374,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
-		ATAPI_giveresultsize(channel,0,0); //No result size!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
@@ -1474,9 +1483,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
 		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
-		ATAPI_giveresultsize(channel,0,0); //No result size!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATAPI_giveresultsize(channel,0,1); //No result size! Raise and interrupt to end the transfer after busy!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
@@ -1488,9 +1495,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			//Execute NOP command!
 			readCDNOP: //NOP for reading CD directly!
-			ATAPI_giveresultsize(channel,0,0); //Result size!
-			ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			ATAPI_giveresultsize(channel,0,1); //Result size!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		}
 		else //Normal processing!
@@ -1538,9 +1543,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			//Execute NOP command!
 			readCDMSFNOP: //NOP for reading CD directly!
-			ATAPI_giveresultsize(channel,0,0); //No result size!
-			ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			ATAPI_giveresultsize(channel,0,1); //No result size!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		}
 		else //Normal processing!
@@ -1686,18 +1689,14 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		//Save the Seeked LBA somewhere? Currently unused?
 
-		ATAPI_giveresultsize(channel,0,0); //No result size!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATAPI_giveresultsize(channel,0,0); //No result size!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
@@ -1724,9 +1723,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		case 3: //Load the disc (Close tray)?
 			break;
 		}
-		ATAPI_giveresultsize(channel,0,0); //No result size!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
@@ -1773,7 +1770,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	default:
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
 		ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
-		ATAPI_giveresultsize(channel,0,0); //No result size!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
@@ -1793,8 +1790,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-		ATA_IRQ(channel, ATA_activeDrive(channel));
 		aborted = 1; //We're aborted!
 		break;
 	}
