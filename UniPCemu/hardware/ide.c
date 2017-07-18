@@ -869,9 +869,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-			ATAPI_giveresultsize(channel,0,1); //No result size!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-			ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+			ATAPI_giveresultsize(channel,0,1); //No result size!
 			return 0; //We're finished!
 		}
 	}
@@ -883,10 +882,9 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-		ATAPI_giveresultsize(channel,0,0); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		return 0; //Stop! IRQ and finish!
 	}
 
@@ -925,12 +923,12 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-		ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		return 0; //Stop! IRQ and finish!
 	}
-	ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason for finishing!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-	return 1; //We're finished!
+	ATAPI_giveresultsize(channel,0,1); //No result size!
+	return 0; //We're finished!
 }
 
 byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
@@ -1462,8 +1460,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					}
 					isvalidpage = 1; //Were valid!
 					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
-					ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+					ATAPI_giveresultsize(channel,ATA[channel].Drive[ATA_activeDrive(channel)].datapos*ATA[channel].Drive[ATA_activeDrive(channel)].datablock,1); //No result size!
 				}
 				else
 				{
