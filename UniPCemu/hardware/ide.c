@@ -175,7 +175,7 @@ struct
 #define ATAPI_INTERRUPTREASON_CD(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.sectorcount=(ATA[channel].Drive[drive].PARAMETERS.sectorcount&(~0x01))|(val&1)
 //IO: 1 for transfer from the device, 0 for transfer to the device.
 #define ATAPI_INTERRUPTREASON_IO(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.sectorcount=(ATA[channel].Drive[drive].PARAMETERS.sectorcount&(~0x02))|((val&1)<<1)
-//REL: ???
+//REL: Release: the device has released the ATA bus before completing the command in process.
 #define ATAPI_INTERRUPTREASON_REL(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.sectorcount=(ATA[channel].Drive[drive].PARAMETERS.sectorcount&(~0x04))|((val&1)<<2)
 //TAG: ???
 #define ATAPI_INTERRUPTREASON_TAG(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.sectorcount=(ATA[channel].Drive[drive].PARAMETERS.sectorcount&(~0xF8))|((val&0x1F)<<3)
@@ -296,23 +296,40 @@ void ATAPI_executeCommand(byte channel, byte drive); //Prototype for ATAPI execu
 
 void ATAPI_generateInterruptReason(byte channel, byte drive)
 {
+	/*
+	IO DRQ CoD
+	0 1 1 Command - Ready to Accept Command Packet Bytes
+	1 1 1 Message (Future) - Ready to Send Message data to Host
+	1 1 0 Data To Host- Send command parameter data (e.g. Read
+	Data) to the host
+	0 1 0 Data From Host - Receive command parameter data (e.g.
+	Write Data) from the host
+	1 0 1 Status - Register contains Completion Status
+	*/
 	if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,0); //Transfer to device!
-		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Unknown, but to be cleared!
+		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 	}
-	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET) //Processing data?
+	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==2) //Processing data?
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,0); //Not a command packet: we're data!
-		ATAPI_INTERRUPTREASON_IO(channel,drive,(ATA[channel].Drive[drive].commandstatus==2)?0:1); //Transfer to device or from device!
-		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Unknown, but to be cleared!
+		ATAPI_INTERRUPTREASON_IO(channel,drive,(ATA[channel].Drive[drive].commandstatus==1)?1:0); //IO is set when reading data to the Host(CPU), through PORT IN!
+		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 	}
-	else //Inactive?
+	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==3) //Result phase? We contain the Completion Status!
+	{
+		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet: we're data!
+		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //IO is set when reading data to the Host(CPU), through PORT IN!
+		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //Reset the status after the result's been read!
+	}
+	else //Inactive? Indicate command to be sent!
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,0); //Transfer to device!
-		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Unknown, but to be cleared!
+		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 	}
 }
 
@@ -970,7 +987,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 				{
 					ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset to enter a new command!
-					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We've finished transferring ATAPI data now!
+					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 					ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
 					ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
 				}
@@ -1083,7 +1100,7 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 {
 	word pageaddr;
 	byte pagelength; //The length of the page!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We're not processing a packet anymore! Default to result phase!
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x55: //MODE SELECT(10)(Mandatory)?
