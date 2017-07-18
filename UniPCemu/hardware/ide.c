@@ -2032,10 +2032,9 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //We're requesting data to be written!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 12; //We're requesting...
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //12 bytes of data to be transferred!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 1; //We're processing an ATAPI/SCSI packet!
-		ATA_IRQ(channel,ATA_activeDrive(channel)); //Execute an IRQ: we're ready to receive the packet!
+		//Packet doesn't raise an IRQ! Just Busy/DRQ is used here!
+		ATAPI_giveresultsize(channel,12,1); //We're entering a mini-Busy-result phase: raise an IRQ afterwards!
 		break;
 	case 0xDA: //Get media status?
 #ifdef ATA_LOG
