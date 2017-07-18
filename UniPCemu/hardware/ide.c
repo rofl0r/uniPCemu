@@ -53,8 +53,8 @@ struct
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		double ATAPI_PendingExecuteCommand; //How much time is left pending?
 		double ATAPI_PendingExecuteTransfer; //How much time is left pending for transfer timing?
-		word ATAPI_bytecount; //How many data to transfer in one go at most!
-		word ATAPI_bytecountleft; //How many data is left to transfer!
+		uint_32 ATAPI_bytecount; //How many data to transfer in one go at most!
+		uint_32 ATAPI_bytecountleft; //How many data is left to transfer!
 		byte ATAPI_bytecountleft_IRQ; //Are we to fire an IRQ when starting a new ATAPI data transfer subblock?
 		byte ATAPI_PACKET[12]; //Full ATAPI packet!
 		byte ATAPI_ModeData[0x10000]; //All possible mode selection data, that's specified!
@@ -825,7 +825,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //Store the result size to use in the Task file
 {
 	//Apply the maximum size to transfer, saving the full packet size to count down from!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft = size; //How much is left to transfer?
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 
 	if (size) //Is something left to be transferred? We're not a finished transfer(size=0)?
 	{
@@ -838,9 +838,15 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //St
 	}
 }
 
-OPTINLINE word ATAPI_getresultsize(byte channel) //Retrieve the current result size from the Task file
+OPTINLINE uint_32 ATAPI_getresultsize(byte channel) //Retrieve the current result size from the Task file
 {
-	return ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh<<8)|ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow); //Low byte of the result size!
+	uint_32 result;
+	result = ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh<<8)|ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow); //Low byte of the result size!
+	if (result==0)
+	{
+		result = 0x10000; //Maximum instead: 0 is illegal!
+	}
+	return result; //Give the result!
 }
 
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
