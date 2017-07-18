@@ -456,7 +456,7 @@ void updateATA(double timepassed) //ATA timing!
 				ATA[1].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ && ATA[1].Drive[0].ATAPI_bytecountleft) //Anything left to give an IRQ for?
 				{
-					ATA_IRQ(0,0); //Raise an IRQ!
+					ATA_IRQ(1,0); //Raise an IRQ!
 				}
 			}
 		}
@@ -469,7 +469,7 @@ void updateATA(double timepassed) //ATA timing!
 				ATA[1].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ && ATA[1].Drive[1].ATAPI_bytecountleft) //Anything left to give an IRQ for?
 				{
-					ATA_IRQ(0,1); //Raise an IRQ!
+					ATA_IRQ(1,1); //Raise an IRQ!
 				}
 			}
 		}
