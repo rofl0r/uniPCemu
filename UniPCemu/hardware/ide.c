@@ -1720,10 +1720,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 OPTINLINE void giveATAPISignature(byte channel, byte drive)
 {
-	ATA[channel].Drive[drive].PARAMETERS.sectorcount = 0x01;
-	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0xEB;
-	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x14;
-	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.sectorcount = 0x01; //Sector count
+	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0xEB; //LBA 16-23
+	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x14; //LBA 8-15
+	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01; //LBA 0-7
 }
 
 OPTINLINE void giveATASignature(byte channel, byte drive)
