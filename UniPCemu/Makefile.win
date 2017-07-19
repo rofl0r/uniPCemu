@@ -165,7 +165,8 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 LDFLAGS = -lmingw32 -lSDLmain -lSDL
 endif
 
-LDFLAGS += -lwinmm
+#Required library to run on Windows. Also, apply DEP
+LDFLAGS += -lwinmm -Wl,--nxcompat
 
 #Apply build directory etc.
 BUILD_RELEASE = $(BUILD_DIR)/$(TARGET_RELEASE)
