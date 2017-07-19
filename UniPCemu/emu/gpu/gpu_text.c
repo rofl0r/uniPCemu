@@ -556,22 +556,22 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 						goto loadnextrow; //Load the next row!
 				if (likely(sx<tsurface->horizontalprecalcsentries)) //End of row not reached?
 				{
-					if (likely(curs!=~0)) //Valid?
+					if (likely(curs==~0)) //Invalid?
+					{
+						notbackground = 0; //We're background only!
+					}
+					else //Valid horizontal location?
 					{
 						++renderpixel; //We've rendered a pixel!
 						x = curs; //Load the new y coordinate to use!
-						if (unlikely((curs&0x1F)==0)) //To reload the foreground mask?
-						{
-							notbackground = tsurface->notbackground[(y<<4)|(curs>>5)]; //Load the next background mask!
-						}
-						else
+						if (likely((curs&0x1F)!=0)) //To not reload the foreground mask?
 						{
 							notbackground >>= 1; //Take the next pixel from the background mask!
 						}
-					}
-					else //Invalid horizontal location?
-					{
-						notbackground = 0; //We're background only!
+						else
+						{
+							notbackground = tsurface->notbackground[(y<<4)|(curs>>5)]; //Load the next background mask!
+						}
 					}
 				}
 				else //Forced next row?
