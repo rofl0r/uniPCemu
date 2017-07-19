@@ -184,6 +184,10 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 			if (!rendersurface->sdllayer) goto abortrendering; //Error occurred?
 		}
 		abortrendering:
+		if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
+		{
+			resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+		}
 		return; //Don't render anymore!
 	}
 
@@ -215,6 +219,10 @@ OPTINLINE void render_EMU_direct() //Plot directly 1:1 on-screen!
 
 	//We can't use the keyboard with the old renderer, so you just have to do it from the top of your head!
 	//OK: rendered to PSP buffer!
+	if (memprotect(resized, sizeof(*resized), NULL) && resized) //Using resized?
+	{
+		resized->flags &= ~SDL_FLAG_DIRTY; //Not dirty anymore!
+	}
 }
 
 OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
