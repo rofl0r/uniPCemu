@@ -725,8 +725,8 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		}
 
 		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //Set the command to use when reading!
 		return 1; //Process the block!
@@ -805,8 +805,8 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 #endif
 		//Process next sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //Set the command to use when writing!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //Transferring data OUT!
 		return 1; //Process the block!
 	}
@@ -1518,16 +1518,16 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		else //Normal processing!
 		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x800; //Default block size!
-
 			if ((LBA>disk_size) || ((LBA + ATA[channel].Drive[ATA_activeDrive(channel)].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+
+			ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning properly!
+			ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x800; //Default block size!
 
 			switch (transfer_req&0xF8) //What type to transfer?
 			{
 			case 0x00: goto readCDNOP; //Same as NOP!
 			case 0xF8: ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 			case 0x10: //Normal 2KB sectors?
-				ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start of data!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA = LBA; //The LBA to use!
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
@@ -1568,6 +1568,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		else //Normal processing!
 		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning properly!
 			ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x800; //Default block size!
 
 			if ((LBA>disk_size) || ((LBA + ATA[channel].Drive[ATA_activeDrive(channel)].datasize - 1)>disk_size)) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
@@ -1577,7 +1578,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			case 0x00: goto readCDMSFNOP; //Same as NOP!
 			case 0xF8: ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 			case 0x10: //Normal 2KB sectors?
-				ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start of data!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA = LBA; //The LBA to use!
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
@@ -1624,6 +1624,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Process the command normally!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 1; //One block to transfer!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning properly!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = MIN(alloc_length, ret_len); //Give the smallest result, limit by allocation length!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN for the result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
@@ -1666,6 +1667,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Process the command normally!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 1; //One block to transfer!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning properly!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = MIN(alloc_length,ret_len); //Give the smallest result, limit by allocation length!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN for the result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
@@ -1686,6 +1688,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				goto invalidTOCrequest; //Invalid TOC request!
 			}
+			ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Init position for the transfer!
 			ATA[channel].Drive[ATA_activeDrive(channel)].datablock = MIN(toc_length,alloc_length); //Take the lesser length!
 			ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 1; //One block to transfer!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN for the result!
@@ -2082,8 +2085,8 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA_readLBACHS(channel);
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //Transferring data OUT!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're writing 512 bytes to our output at a time!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning of the sector buffer!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're writing 512 bytes to our output at a time!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //We're executing this command!
 		break;
 	case 0x91: //Initialise device parameters?
@@ -2133,8 +2136,8 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA0; //We're sending a ATAPI packet!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //We're requesting data to be written!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
