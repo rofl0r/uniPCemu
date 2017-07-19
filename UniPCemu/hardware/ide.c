@@ -1363,8 +1363,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	uint_32 packet_datapos;
 	byte i;
 	uint_32 disk_size,LBA;
-	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 512 byte sectors!
-	disk_size >>= 2; //We're 4096 byte sectors instead of 512 byte sectors!
+	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 4096 byte sectors!
 	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
