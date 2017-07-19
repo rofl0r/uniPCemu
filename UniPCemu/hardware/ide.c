@@ -2258,7 +2258,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Not busy! You can write to the CBRs!
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
