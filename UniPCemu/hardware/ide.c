@@ -659,6 +659,11 @@ OPTINLINE void ATA_increasesector(byte channel) //Increase the current sector to
 	++ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Increase the current sector!
 }
 
+OPTINLINE void ATAPI_increasesector(byte channel) //Increase the current sector to the next sector!
+{
+	++ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA; //Increase the current sector!
+}
+
 void ATA_readLBACHS(byte channel)
 {
 	if (ATA_DRIVEHEAD_LBAMODER(channel,ATA_activeDrive(channel))) //Are we in LBA mode?
@@ -937,7 +942,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
-		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
+		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
@@ -967,7 +972,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
-		ATA_increasesector(channel); //Increase the current sector!
+		ATAPI_increasesector(channel); //Increase the current sector!
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
