@@ -1584,7 +1584,7 @@ void CPU_beforeexec()
 	case CPU_80386:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			tempflags &= 0x30FFF; //Always set the high flags in real mode only!
+			tempflags &= 0x37FFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
@@ -1594,7 +1594,7 @@ void CPU_beforeexec()
 	case CPU_80486:
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			tempflags &= 0x270FFF; //Always set the high flags in real mode only!
+			tempflags &= 0x277FFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
@@ -1605,7 +1605,7 @@ void CPU_beforeexec()
 		//Allow all bits to be set, except the one needed from the 80386+ identification(bit 15=0)!
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{
-			tempflags &= 0x3F0FFF; //Always set the high flags in real mode only!
+			tempflags &= 0x3F7FFF; //Always set the high flags in real mode only!
 		}
 		else //Protected mode?
 		{
