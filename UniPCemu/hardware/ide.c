@@ -2756,6 +2756,7 @@ void initATA()
 {
 	memset(&ATA, 0, sizeof(ATA)); //Initialise our data!
 	memset(&IRQtimer, 0, sizeof(IRQtimer)); //Init timers!
+
 	//We don't register a disk change handler, because ATA doesn't change disks when running!
 	//8-bits ports!
 	register_PORTIN(&inATA8);
@@ -2826,4 +2827,5 @@ void initATA()
 	resetPCISpaceIDE();
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
+	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!
 }
