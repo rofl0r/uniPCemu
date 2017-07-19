@@ -402,7 +402,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[0].Drive[0].resetTiming<=0.0) //Timeout?
 			{
 				ATA[0].Drive[0].resetTiming = 0.0; //Timer finished!
-				ATA[0].Drive[1].commandstatus = 0; //We're ready now!
+				ATA[0].Drive[0].commandstatus = 0; //We're ready now!
 			}
 		}
 
@@ -412,7 +412,7 @@ void updateATA(double timepassed) //ATA timing!
 			if (ATA[0].Drive[1].resetTiming<=0.0) //Timeout?
 			{
 				ATA[0].Drive[1].resetTiming = 0.0; //Timer finished!
-				ATA[0].Drive[0].commandstatus = 0; //We're ready now!
+				ATA[0].Drive[1].commandstatus = 0; //We're ready now!
 			}
 		}
 
