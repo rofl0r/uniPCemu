@@ -946,6 +946,8 @@ OPTINLINE byte coreHandler()
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
+							CPU_exec_lastCS = CPU_exec_CS;
+							CPU_exec_lastEIP = CPU_exec_EIP;
 							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
 							CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 							CPU_saveFaultData(); //Save fault data to go back to when exceptions occur!

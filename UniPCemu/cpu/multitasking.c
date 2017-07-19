@@ -106,6 +106,9 @@ byte enableMMUbuffer; //To buffer the MMU writes?
 extern word CPU_exec_CS; //Save for handling!
 extern uint_32 CPU_exec_EIP; //Save for handling!
 
+extern word CPU_exec_lastCS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP; //OPCode EIP
+
 byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
@@ -418,6 +421,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+	//No last: we're entering a task that has this information, so no return point is given!
+	CPU_exec_lastCS = CPU_exec_CS;
+	CPU_exec_lastEIP = CPU_exec_lastEIP;
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
