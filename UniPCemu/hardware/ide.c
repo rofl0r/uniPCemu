@@ -323,7 +323,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet: we're data!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //IO is set when reading data to the Host(CPU), through PORT IN!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //Reset the status after the result's been read!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 4; //We're triggering the reason read to reset!
 	}
 	else //Inactive? Indicate command to be sent!
 	{
@@ -2527,6 +2527,11 @@ byte inATA8(word port, byte *result)
 #ifdef ATA_LOG
 		dolog("ATA", "Sector count register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
 #endif
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET==4) //Reading the result phase final result at the end of an ATAPI command?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Reset the status after the result's been read!
+			ATAPI_giveresultsize(channel,0,1); //Generate the reason for the new command!
+		}
 		return 1;
 		break;
 	case 3: //Sector number?
