@@ -328,7 +328,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	}
 	else //Inactive? Indicate command to be sent!
 	{
-		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
+		ATAPI_INTERRUPTREASON_CD(channel,drive,0); //Not a command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,0); //Transfer to device!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 		if (ATA[channel].Drive[drive].ATAPI_processingPACKET==0) //Finished packet transfer? We're becoming ready still?
@@ -1759,6 +1759,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		if (LBA>disk_size) { abortreason = 5;additionalsensecode = 0x21;goto ATAPI_invalidcommand; } //Error out when invalid sector!
 
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
+
 		//Save the Seeked LBA somewhere? Currently unused?
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
@@ -2584,7 +2586,7 @@ byte inATA8(word port, byte *result)
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET==4) //Reading the result phase final result at the end of an ATAPI command?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Reset the status after the result's been read!
-			ATAPI_giveresultsize(channel,0,1); //Generate the reason for the new command!
+			ATAPI_giveresultsize(channel,0,/*1*/ 0); //Generate the reason for the new command!
 		}
 		return 1;
 		break;
