@@ -89,6 +89,7 @@ struct
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
 		double resetTiming;
+		double ReadyTiming; //Timing until we become ready after executing a command!
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -330,6 +331,10 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,0); //Transfer to device!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
+		if (ATA[channel].Drive[drive].ATAPI_processingPACKET==0) //Finished packet transfer? We're becoming ready still?
+		{
+			ATA[channel].Drive[drive].ReadyTiming = 20000.0f; //Timeout for becoming ready after finishing an command!
+		}
 	}
 }
 
@@ -395,7 +400,26 @@ void updateATA(double timepassed) //ATA timing!
 			}
 		}*/ //Not used atm!
 
+		//Handle ATA drive select timing!
+		if (ATA[0].driveselectTiming) //Timing driveselect?
+		{
+			ATA[0].driveselectTiming -= timepassed; //Time until timeout!
+			if (ATA[0].driveselectTiming<=0.0) //Timeout?
+			{
+				ATA[0].driveselectTiming = 0.0; //Timer finished!
+			}
+		}
+		if (ATA[1].driveselectTiming) //Timing driveselect?
+		{
+			ATA[1].driveselectTiming -= timepassed; //Time until timeout!
+			if (ATA[1].driveselectTiming<=0.0) //Timeout?
+			{
+				ATA[1].driveselectTiming = 0.0; //Timer finished!
+			}
+		}
+
 		//Handle ATA reset timing!
+
 		if (ATA[0].Drive[0].resetTiming) //Timing reset?
 		{
 			ATA[0].Drive[0].resetTiming -= timepassed; //Time until timeout!
@@ -436,21 +460,41 @@ void updateATA(double timepassed) //ATA timing!
 			}
 		}
 
-		//Handle ATA drive select timing!
-		if (ATA[0].driveselectTiming) //Timing driveselect?
+		//Handle ATAPI Ready Timing!
+
+		if (ATA[0].Drive[0].ReadyTiming) //Timing reset?
 		{
-			ATA[0].driveselectTiming -= timepassed; //Time until timeout!
-			if (ATA[0].driveselectTiming<=0.0) //Timeout?
+			ATA[0].Drive[0].ReadyTiming -= timepassed; //Time until timeout!
+			if (ATA[0].Drive[0].ReadyTiming<=0.0) //Timeout?
 			{
-				ATA[0].driveselectTiming = 0.0; //Timer finished!
+				ATA[0].Drive[0].ReadyTiming = 0.0; //Timer finished!
 			}
 		}
-		if (ATA[1].driveselectTiming) //Timing driveselect?
+
+		if (ATA[0].Drive[1].ReadyTiming) //Timing reset?
 		{
-			ATA[1].driveselectTiming -= timepassed; //Time until timeout!
-			if (ATA[1].driveselectTiming<=0.0) //Timeout?
+			ATA[0].Drive[1].ReadyTiming -= timepassed; //Time until timeout!
+			if (ATA[0].Drive[1].ReadyTiming<=0.0) //Timeout?
 			{
-				ATA[1].driveselectTiming = 0.0; //Timer finished!
+				ATA[0].Drive[1].ReadyTiming = 0.0; //Timer finished!
+			}
+		}
+
+		if (ATA[1].Drive[0].ReadyTiming) //Timing reset?
+		{
+			ATA[1].Drive[0].ReadyTiming -= timepassed; //Time until timeout!
+			if (ATA[1].Drive[0].ReadyTiming<=0.0) //Timeout?
+			{
+				ATA[1].Drive[0].ReadyTiming = 0.0; //Timer finished!
+			}
+		}
+
+		if (ATA[1].Drive[1].ReadyTiming) //Timing reset?
+		{
+			ATA[1].Drive[1].ReadyTiming -= timepassed; //Time until timeout!
+			if (ATA[1].Drive[1].ReadyTiming<=0.0) //Timeout?
+			{
+				ATA[1].Drive[1].ReadyTiming = 0.0; //Timer finished!
 			}
 		}
 
@@ -2279,7 +2323,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	{
 	case 0: //Ready for command?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming)?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		break;
