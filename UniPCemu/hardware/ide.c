@@ -897,8 +897,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		return 0; //Stop! IRQ and finish!
@@ -935,13 +935,13 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	{
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-		ATAPI_giveresultsize(channel,0,1); //No result size!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		return 0; //Stop! IRQ and finish!
 	}
+	ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Error!
 	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 	ATAPI_giveresultsize(channel,0,1); //No result size!
 	return 0; //We're finished!
@@ -1385,6 +1385,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //OK!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
@@ -1497,8 +1499,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
 		if (!is_mounted(ATA_Drives[channel][drive])){abortreason=2;additionalsensecode=0x3A;goto ATAPI_invalidcommand;} //Error out if not present!
 		ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
-		ATAPI_giveresultsize(channel,0,1); //No result size! Raise and interrupt to end the transfer after busy!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+		ATAPI_giveresultsize(channel,0,1); //No result size! Raise and interrupt to end the transfer after busy!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
@@ -1509,8 +1512,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			//Execute NOP command!
 			readCDNOP: //NOP for reading CD directly!
-			ATAPI_giveresultsize(channel,0,1); //Result size!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel,0,1); //Result size!
 		}
 		else //Normal processing!
 		{
@@ -1534,6 +1538,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			default: //Unknown request?
 				abortreason = 5; //Error category!
 				additionalsensecode = 0x24; //Invalid Field in command packet!
+				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 				ATAPI_giveresultsize(channel,0,0); //Result size!
 				goto ATAPI_invalidcommand;
 			}
@@ -1557,8 +1562,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			//Execute NOP command!
 			readCDMSFNOP: //NOP for reading CD directly!
-			ATAPI_giveresultsize(channel,0,1); //No result size!
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel,0,1); //No result size!
 		}
 		else //Normal processing!
 		{
@@ -1703,15 +1709,17 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		//Save the Seeked LBA somewhere? Currently unused?
 
-		ATAPI_giveresultsize(channel,0,1); //No result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].isSpinning) { abortreason = 2;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATAPI_giveresultsize(channel,0,1); //No result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
 		switch (ATA[channel].Drive[drive].ATAPI_PACKET[4] & 3) //What kind of action to take?
@@ -1737,8 +1745,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		case 3: //Load the disc (Close tray)?
 			break;
 		}
-		ATAPI_giveresultsize(channel,0,1); //No result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //New command can be specified!
+		ATAPI_giveresultsize(channel,0,1); //No result size!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
@@ -1784,6 +1793,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	default:
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
 		ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
@@ -1803,7 +1814,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		//Reset of the status register is 0!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
 		aborted = 1; //We're aborted!
 		break;
 	}
