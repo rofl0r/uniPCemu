@@ -556,12 +556,8 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 						goto loadnextrow; //Load the next row!
 				if (likely(sx<tsurface->horizontalprecalcsentries)) //End of row not reached?
 				{
-					if (likely(curs==~0)) //Invalid?
-					{
-						notbackground = 0; //We're background only!
-					}
-					else //Valid horizontal location?
-					{
+					if (likely(curs!=~0)) //Valid? Always the case on static screens!
+					{ //Valid horizontal location?
 						++renderpixel; //We've rendered a pixel!
 						x = curs; //Load the new y coordinate to use!
 						if (likely((curs&0x1F)!=0)) //To not reload the foreground mask?
@@ -572,6 +568,10 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 						{
 							notbackground = tsurface->notbackground[(y<<4)|(curs>>5)]; //Load the next background mask!
 						}
+					}
+					else //Invalid? Never the case on static screens!
+					{
+						notbackground = 0; //We're background only!
 					}
 				}
 				else //Forced next row?
@@ -589,7 +589,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					{
 						break; //Finished the specified area!
 					}
-					if (likely(curs!=~0)) //Valid?
+					if (likely(curs!=~0)) //Valid? Always the case on static screens!
 					{
 						y = curs; //Load the new y coordinate to use!
 						renderpixel = &tsurface->notdirty[y<<9]; //Start with the first pixel in our (new) row!
@@ -599,7 +599,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 							notbackground = 0; //We're background to start with!
 						}
 					}
-					else //Invalid vertical location?
+					else //Invalid vertical location? Never the case on static screens!
 					{
 						notbackground = 0; //We're background!
 					}
