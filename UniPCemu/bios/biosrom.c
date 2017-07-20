@@ -373,10 +373,10 @@ int BIOS_load_ROM(byte nr)
 byte *BIOS_custom_ROM;
 uint_32 BIOS_custom_ROM_size;
 char customROMname[256]; //Custom ROM name!
+byte ROM_doubling = 0; //Double the ROM?
 
 int BIOS_load_custom(char *path, char *rom)
 {
-	byte ROM_doubling; //Double the ROM?
 	FILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
@@ -980,17 +980,19 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
 {
-	INLINEREGISTER uint_32 basepos, tempoffset;
+	INLINEREGISTER uint_32 basepos, tempoffset, baseposbackup;
+	uint_64 endpos;
 	basepos = tempoffset = offset;
 	if (basepos>=0xF0000) //Inside 16-bit/32-bit range?
 	{
-		if (unlikely(basepos<0x100000)) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
-		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000))) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		if (unlikely(basepos<0x100000)) {  basepos = BIOSROM_BASE_XT; endpos = 0x100000; } //Our base reference position(low memory)!
+		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) { basepos = BIOSROM_BASE_Modern; endpos = 0x100000000ULL; } //Our base reference position(high memory 386+)!
+		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000))) { basepos = BIOSROM_BASE_AT; endpos = 0x1000000; } //Our base reference position(high memmory 286)
 		else return 0; //Our of range (32-bit)?
 	}
 	else return 0; //Our of range (32-bit)?
 	
+	baseposbackup = basepos; //Store for end location reversal!
 	tempoffset -= basepos; //Calculate from the base position!
 	basepos = tempoffset; //Save for easy reference!
 	if (unlikely(BIOS_custom_ROM)) //Custom/system ROM loaded?
@@ -1006,11 +1008,12 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		}
 		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
 		{
-			if (tempoffset>=BIOS_custom_ROM_size) //Doubled copy?
+			if ((tempoffset<BIOS_custom_ROM_size) && ROM_doubling) //Doubled copy?
 			{
-				tempoffset -= BIOS_custom_ROM_size; //Double in memory!
+				tempoffset += BIOS_custom_ROM_size; //Double in memory by patching to second block!
 			}
 		}
+		tempoffset = BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup)); //Patch to the end block of the ROM instead of the start.
 		if (tempoffset<BIOS_custom_ROM_size) //Within range?
 		{
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
