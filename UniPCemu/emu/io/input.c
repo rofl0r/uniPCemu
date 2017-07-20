@@ -2913,6 +2913,12 @@ void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
 		//Convert the touchId and fingerId to finger! For now, allow only one finger!
 		lock(LOCK_INPUT);
 		GPU_mousebuttondown((word)(getxres()*x), (word)(getyres()*y), (fingerId & 0xFF)); //We're released at the current coordinates!
+		int_64 relxfull, relyfull;
+		relxfull = (int_64)((float)getxres()*relx); //X coordinate on the screen!
+		relyfull = (int_64)((float)getyres()*rely); //Y coordinate on the screen!
+		fingerId &= 0xFF; //Only use lower 8-bits to limit us to a good usable range!
+		lastxy[fingerId][0] = (sword)relxfull; //Save the last coordinate for getting movement!
+		lastxy[fingerId][1] = (sword)relyfull; //Save the last coordinate for getting movement!
 		updateFingerOSK();
 		unlock(LOCK_INPUT);
 }
@@ -2941,8 +2947,8 @@ void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 		lock(LOCK_INPUT);
 		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
 		{
-			mouse_xmove += lastxy[fingerId][0]-relxfull; //Move the mouse horizontally!
-			mouse_ymove += lastxy[fingerId][1]-relyfull; //Move the mouse vertically!
+			mouse_xmove += relxfull-lastxy[fingerId][0] //Move the mouse horizontally!
+			mouse_ymove += relyfull-lastxy[fingerId][1]; //Move the mouse vertically!
 		}
 		else //Not direct input?
 		{
