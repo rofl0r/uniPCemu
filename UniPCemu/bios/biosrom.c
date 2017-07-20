@@ -416,16 +416,18 @@ int BIOS_load_custom(char *path, char *rom)
 		strcpy(customROMname,filename); //Custom ROM name for easy dealloc!
 		//Update the base address to use for this CPU!
 		ROM_doubling = 0; //Default: no ROM doubling!
-		if (BIOS_custom_ROM_size!=0x10000) //Safe to double?
+		if (BIOS_custom_ROM_size<=0x8000) //Safe to double?
 		{
 			if (EMULATED_CPU>=CPU_80386 && (is_XT==0)) //We're to emulate a Compaq Deskpro 386?
 			{
 				ROM_doubling = 1; //Double the ROM!
 			}
 		}
-		BIOSROM_BASE_AT = 0xFFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //XT ROM size!
-		BIOSROM_BASE_Modern = 0xFFFFFFFF-((BIOS_custom_ROM_size<<ROM_doubling)-1); //Modern ROM size!
+
+		//Also limit the ROM base addresses accordingly(only last block).
+		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x100000)-1); //AT ROM size!
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000)-1); //XT ROM size!
+		BIOSROM_BASE_Modern = 0xFFFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000000)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
 	
