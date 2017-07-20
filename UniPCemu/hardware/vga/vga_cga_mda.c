@@ -1319,7 +1319,7 @@ OPTINLINE void CGA_presetlightpenlatch()
 void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed) //Check the lightpen on the current location!
 {
 	word lightpenlocation;
-	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA is emulated?
+	if (likely(!CGAEMULATION_ENABLED(getActiveVGA()))) return; //CGA is emulated? Not used for most of the hardware! VGA and all SVGA cards don't use this!
 	{
 		if (((getActiveVGA()->registers->specialCGAflags&0x6)==2) || (is_lightpenlocation && ((getActiveVGA()->registers->specialCGAflags&4)==0))) //Light pen preset or light pen pulse at our location?
 		{
