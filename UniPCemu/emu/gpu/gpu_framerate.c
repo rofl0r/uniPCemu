@@ -28,9 +28,7 @@
 //Log VGA speed?
 //#define LOG_VGA_SPEED
 //Show cycles speed?
-#ifdef ANDROID
-#define SHOWCYCLESSPEED
-#endif
+//#define SHOWCYCLESSPEED
 
 extern GPU_type GPU; //GPU!
 
