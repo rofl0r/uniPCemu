@@ -3872,6 +3872,8 @@ void updateInput(SDL_Event *event) //Update all input!
 	#ifdef SDL2
 	#ifdef ANDROID
 	case SDL_APP_TERMINATING: //Terminating the application by the OS?
+	
+	case SDL_APP_LOWMEMORY: //Low on memory?
 		#ifdef NDK_PROFILE
 			monpendingcleanup(); //Process any pending cleanup when needed!
 		#endif
@@ -3945,11 +3947,14 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 		}
 		break;
+	case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		lock(LOCK_INPUT);
 		haswindowactive &= ~2; //We're iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
 		break;
+	case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
+		break; //Unhandled!
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushing to the foreground?
 		lock(LOCK_INPUT);
 		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
