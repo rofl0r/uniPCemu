@@ -4047,7 +4047,7 @@ int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 		case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
 		case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
-		updateInput(event); //Handle this immediately!
+			updateInput(event); //Handle this immediately!
 		return 1; //Drop the event, as this is handled already!
 	}
 	// etc
