@@ -2947,8 +2947,8 @@ void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 		lock(LOCK_INPUT);
 		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
 		{
-			mouse_xmove += relxfull-lastxy[fingerId][0]; //Move the mouse horizontally!
-			mouse_ymove += relyfull-lastxy[fingerId][1]; //Move the mouse vertically!
+			mouse_xmove += (relxfull-lastxy[fingerId][0])*(SAFEDIV(1.0f,getxres())*150.9f); //Move the mouse horizontally, in mm!
+			mouse_ymove += (relyfull-lastxy[fingerId][1])*(SAFEDIV(1.0f,getyres())*72.6f); //Move the mouse vertically, in mm!
 		}
 		else //Not direct input?
 		{
