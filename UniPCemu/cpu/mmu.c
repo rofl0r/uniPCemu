@@ -283,7 +283,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
 	processBUS(realaddress, index, result); //Process us on the BUS!
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
