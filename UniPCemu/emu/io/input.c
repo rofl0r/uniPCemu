@@ -3873,7 +3873,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	#ifdef ANDROID
 	case SDL_APP_TERMINATING: //Terminating the application by the OS?
 	
-	case SDL_APP_LOWMEMORY: //Low on memory?
+	//case SDL_APP_LOWMEMORY: //Low on memory?
 		#ifdef NDK_PROFILE
 			monpendingcleanup(); //Process any pending cleanup when needed!
 		#endif
@@ -3955,7 +3955,7 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
 		break; //Unhandled!
-	case SDL_APP_DIDENTERFOREGROUND: //Are we pushing to the foreground?
+	case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
 		lock(LOCK_INPUT);
 		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
 		unlock(LOCK_INPUT);
@@ -4038,13 +4038,20 @@ void updateMouse(double timepassed)
 int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 {
 	//Emergency calls! Immediately update!
-	if (event->type==SDL_APP_WILLENTERBACKGROUND) //Emergency event?
+	switch (event->type) //Emergency event?
 	{
+		case SDL_APP_TERMINATING: //Terminating the application by the OS?
+	
+		case SDL_APP_LOWMEMORY: //Low on memory?
+		case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
+		case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
+		case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
+		case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
 		updateInput(event); //Handle this immediately!
 		return 1; //Drop the event, as this is handled already!
 	}
 	// etc
-	return 0;
+	return 0; //Handle normally, as a normal event!
 }
 #endif
 
