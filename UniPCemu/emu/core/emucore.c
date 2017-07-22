@@ -812,12 +812,16 @@ extern byte CPUhardinthandling;
 
 extern byte skipstep; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
 
+extern byte haswindowactive; //For detecting paused operation!
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
-	currenttiming += getnspassed(&CPU_timing); //Check for any time that has passed to emulate!
+	lock(LOCK_INPUT);
+	currenttiming += likely(haswindowactive&2)?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
+	unlock(LOCK_INPUT);
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 

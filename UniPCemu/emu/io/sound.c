@@ -798,6 +798,8 @@ WAVEFILE *recording = NULL; //We are recording when set.
 byte mixerready = 0; //Are we ready to give output to the buffer?
 byte inputready = 0; //Are we ready to give output to the buffer?
 
+extern byte haswindowactive; //Window status information about minimized, iconified and Android background(bit 2)
+
 OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 {
 	//Variables first
@@ -910,6 +912,10 @@ OPTINLINE static void mixaudio(uint_32 length) //Mix audio channels to buffer!
 
 		//Apply recording of sound!
 		if (recording) writeWAVStereoSample(recording,result_l,result_r); //Write the recording to the file if needed!
+		if ((haswindowactive&4)==0) //Not to sound audio?
+		{
+			result_l = result_r = 0; //Mute audio!
+		}
 
 		//Give the output!
 		if (mixerready)

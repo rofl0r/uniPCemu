@@ -2780,7 +2780,7 @@ void toggleDirectInput(byte cause)
 	clearBuffers(); //Make sure the buffers are cleared when toggling, so we start fresh!
 }
 
-byte haswindowactive = 3; //Are we displayed on-screen?
+byte haswindowactive = 7; //Are we displayed on-screen and other active/inactive flags! Bit0: 1=Not iconified, Bit1: 1=Not backgrounded, 2=Sound output enabled.
 byte hasmousefocus = 1; //Do we have mouse focus?
 byte hasinputfocus = 1; //Do we have input focus?
 
@@ -3950,14 +3950,14 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		lock(LOCK_INPUT);
-		haswindowactive &= ~2; //We're iconified! This also prevents drawing! This is critical!
+		haswindowactive &= ~6; //We're iconified! This also prevents drawing and audio output! This is critical!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
 		break; //Unhandled!
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
 		lock(LOCK_INPUT);
-		haswindowactive |= 2; //We're not iconified! This also prevents drawing! This is critical!
+		haswindowactive |= 6; //We're not iconified! This also enables drawing and audio output!
 		unlock(LOCK_INPUT);
 		break;
 	#ifdef ANDROID
