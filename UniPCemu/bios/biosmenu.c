@@ -317,6 +317,8 @@ byte BIOS_printopentext(uint_32 timeout)
 
 byte bootBIOS = 0; //Boot into BIOS?
 
+extern byte Settings_request; //Settings requested to be executed?
+
 int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -352,8 +354,11 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		{
 			return 1; //Reset, abort if needed!
 		}
-		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked) //R trigger pressed or first run? Also when clicked!
+		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked || Settings_request) //R trigger pressed or first run? Also when clicked!
 		{
+			lock(LOCK_INPUT);
+			Settings_request = 0; //Requested and handled!
+			unlock(LOCK_INPUT);
 			bootBIOS = 0; //Not booting into BIOS anymore!
 			if (timeout) //Before boot?
 			{
