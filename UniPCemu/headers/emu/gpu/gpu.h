@@ -47,7 +47,14 @@
 //Direct plot forced?
 #define VIDEO_DFORCED (BIOS_Settings.VGA_AllowDirectPlot==2)
 //Normal dynamic direct plot according to resolution?
+#if defined(STATICSCREEN) || defined(IS_PSP)
+#ifndef IS_GPU
+extern word window_xres, window_yres;
+#endif
+#define VIDEO_DIRECT (((GPU.xres<=window_xres) && (GPU.yres<=window_yres) && (BIOS_Settings.VGA_AllowDirectPlot==1))||VIDEO_DFORCED)
+#else
 #define VIDEO_DIRECT (((GPU.xres<=PSP_SCREEN_COLUMNS) && (GPU.yres<=PSP_SCREEN_ROWS) && (BIOS_Settings.VGA_AllowDirectPlot==1))||VIDEO_DFORCED)
+#endif
 
 //Start address of real device (PSP) VRAM!
 //#define VRAM_START (0x40000000 | 0x04000000)
