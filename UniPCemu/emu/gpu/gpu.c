@@ -434,7 +434,7 @@ extern byte haswindowactive; //Are we displayed on-screen?
 void CPU_updateVideo()
 {
 	lock(LOCK_VIDEO);
-	if (needvideoupdate && (haswindowactive==3)) //We need to update the screen resolution and we're not hidden (We can't update the Window resolution correctly when we're hidden)?
+	if (needvideoupdate && ((haswindowactive&3)==3)) //We need to update the screen resolution and we're not hidden (We can't update the Window resolution correctly when we're hidden)?
 	{
 		unlock(LOCK_VIDEO);
 		lockGPU(); //Lock the GPU: we're working on it!
