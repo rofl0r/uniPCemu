@@ -301,6 +301,7 @@ OPTINLINE void render_EMU_fullscreen() //Render the EMU buffer to the screen!
 }
 
 byte hadresized = 0; //Did we have a resized before?
+byte request_render = 0; //Requesting for rendering once?
 OPTINLINE byte getresizeddirty() //Is the emulated screen dirty?
 {
 	if (resized) //Able to check?
@@ -325,7 +326,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 	if (SDL_WasInit(SDL_INIT_VIDEO) && rendersurface) //Rendering using SDL?
 	{
 		byte dirty;
-		dirty = getresizeddirty(); //Check if resized is dirty!
+		dirty = getresizeddirty()|request_render; //Check if resized is dirty!
 
 		int i; //For processing surfaces!
 		//Check for dirty text surfaces!
@@ -348,6 +349,7 @@ OPTINLINE void renderFrames() //Render all frames to the screen!
 
 		if (dirty) //Any surfaces dirty?
 		{
+			request_render = 0; //Processing request for rendering!
 			if (VIDEO_DIRECT) //Direct mode?
 			{
 				render_EMU_direct(); //Render directly!

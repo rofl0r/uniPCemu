@@ -51,6 +51,7 @@ byte mousebuttons = 0; //Active mouse buttons!
 byte Direct_Input = 0; //Direct input enabled?
 
 extern byte EMU_RUNNING; //Are we running?
+extern byte request_render; //Requesting for rendering once?
 
 byte keysactive; //Ammount of keys active!
 
@@ -3958,6 +3959,9 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
 		lock(LOCK_INPUT);
 		haswindowactive |= 6; //We're not iconified! This also enables drawing and audio output!
+		lock(LOCK_GPU);
+		request_render = 1; //Requesting for rendering once!
+		unlock(LOCK_GPU);
 		unlock(LOCK_INPUT);
 		break;
 	#ifdef ANDROID
