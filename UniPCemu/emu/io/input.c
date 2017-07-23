@@ -1191,6 +1191,26 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 4;
 	#endif
 
+	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
+	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
+	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
+
+	if (SCREEN_CAPTURE) //Screen capture status?
+	{
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+	}
+	else
+	{
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+	}
+
 	if (!input_enabled) //Input disabled atm?
 	{
 		if (FINGEROSK) //Finger OSK enabled?
@@ -1298,26 +1318,6 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 				}
 			}
 		} //Keyboard mode?
-
-		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
-		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
-		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
-		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
-		keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
-		keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
-
-		if (SCREEN_CAPTURE) //Screen capture status?
-		{
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
-		}
-		else
-		{
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
-			keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
-		}
 
 		if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
 		{
