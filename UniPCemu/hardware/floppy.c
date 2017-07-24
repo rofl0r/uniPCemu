@@ -1443,6 +1443,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0 = 0x00; //Correct command!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
+			FLOPPY_raiseIRQ(); //Raise an IRQ!
 			break;
 		case RECALIBRATE: //Calibrate drive
 			FLOPPY.commandstep = 4; //Start our timed execution!
