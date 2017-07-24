@@ -153,7 +153,7 @@ struct
 //1 when has data for CPU, 0 when expecting data.
 #define FLOPPY_MSR_HAVEDATAFORCPUW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|(((val)&1)<<6))
 //1 when ready for data transfer, 0 when not ready.
-#define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x40)|(((val)&1)<<7))
+#define FLOPPY_MSR_RQMW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x80)|(((val)&1)<<7))
 
 //CCR
 //0=500kbits/s, 1=300kbits/s, 2=250kbits/s, 3=1Mbits/s
