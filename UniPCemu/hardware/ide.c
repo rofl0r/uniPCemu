@@ -11,7 +11,16 @@
 
 //Timeout for a reset! We're up to 3us!
 #define ATA_RESET_TIMEOUT 2000.0
+//Timing for drive select
 #define ATA_DRIVESELECT_TIMEOUT 50000.0
+//Timing to execute an ATAPI command
+#define ATAPI_PENDINGEXECUTECOMMANDTIMING 20000.0
+//Timing for ATAPI to prepare data and give it to the host!
+#define ATAPI_PENDINGEXECUTETRANSFER_DATATIMING 20000.0
+//Timing for ATAPI to prepare result phase and give it to the host!
+#define ATAPI_PENDINGEXECUTETRANSFER_RESULTTIMING 7000.0
+//Timing until ATAPI becomes ready for a new command.
+#define ATAPI_FINISHREADYTIMING 20000.0
 
 //Hard disk IRQ!
 #define ATA_PRIMARYIRQ_AT 0x0E
@@ -333,7 +342,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 		if (ATA[channel].Drive[drive].ATAPI_processingPACKET==0) //Finished packet transfer? We're becoming ready still?
 		{
-			ATA[channel].Drive[drive].ReadyTiming = 20000.0f; //Timeout for becoming ready after finishing an command!
+			ATA[channel].Drive[drive].ReadyTiming = ATAPI_FINISHREADYTIMING; //Timeout for becoming ready after finishing an command!
 		}
 	}
 }
@@ -896,7 +905,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //St
 	{
 		size = MIN(size,ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount); //Limit the size of a ATAPI-block to transfer in one go!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = 20000.0f; //Wait 20us before giving the new data that's to be transferred!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_DATATIMING; //Wait 20us before giving the new data that's to be transferred!
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (size&0xFF); //Low byte of the result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((size>>8)&0xFF); //High byte of the result size!
@@ -904,7 +913,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //St
 	else //Finishing an transfer and entering result phase? This is what we do when nothing is to be transferred anymore!
 	{
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ = raiseIRQ?1:2; //Are we to raise an IRQ when starting a new data transfer?
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = 7000.0f; //Wait a bit before giving the new data that's to be transferred!		
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_RESULTTIMING; //Wait a bit before giving the new data that's to be transferred!		
 		if (raiseIRQ) //Raise an IRQ after some time?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = 0; //We're special: indicating end of transfer is to be executed only by setting an invalid value!
@@ -1129,7 +1138,7 @@ void ATAPI_executeData(byte channel); //Prototype for ATAPI data processing!
 
 void ATAPI_PendingExecuteCommand(byte channel) //We're pending until execution!
 {
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteCommand = 20000.0; //Initialize timing to 20us!
+	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteCommand = ATAPI_PENDINGEXECUTECOMMANDTIMING; //Initialize timing to 20us!
 	ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 3; //We're pending until ready!
 }
 
