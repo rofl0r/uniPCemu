@@ -1450,6 +1450,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytime = 0.0;
 			floppytimer = FLOPPY_steprate(FLOPPY.commandbuffer[1]); //Step rate!
 			FLOPPY.recalibratestepsleft = 79; //Up to 79 pulses!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(1<<FLOPPY_DOR_DRIVENUMBERR); //Seeking!
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
@@ -1490,7 +1491,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 4; //Start our timed execution!
 			floppytime = 0.0;
-			floppytimer = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!			
+			floppytimer = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(1<<FLOPPY_DOR_DRIVENUMBERR); //Seeking!
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
 			FLOPPY.currenthead[FLOPPY.commandbuffer[1]&3] = (FLOPPY.commandbuffer[1]&4)>>2; //Set the new head from the parameters!
@@ -1896,6 +1898,7 @@ void updateFloppy(double timepassed)
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY_raiseIRQ(); //Finished executing phase!
 							floppytimer = 0.0; //Don't time anymore!
+							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
 							return; //Abort!
 						}
 						
@@ -1921,6 +1924,7 @@ void updateFloppy(double timepassed)
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0);
 							floppytimer = 0.0; //Don't time anymore!
+							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
 							return; //Give an error!
 						}
 						else if (movedcylinder==0) //Reached no destination?
@@ -1932,6 +1936,7 @@ void updateFloppy(double timepassed)
 							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
 							FLOPPY_raiseIRQ(); //Finished executing phase!
 							floppytimer = 0.0; //Don't time anymore!
+							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
 						}
 					}
 					break;
@@ -1960,6 +1965,7 @@ void updateFloppy(double timepassed)
 							updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
 							clearDiskChanged(); //Clear the disk changed flag for the new command!
 							FLOPPY_raiseIRQ(); //We're finished!
+							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
 							floppytimer = 0.0; //Don't time anymore!
 						}
 					}
