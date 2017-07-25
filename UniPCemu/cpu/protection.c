@@ -344,7 +344,7 @@ byte memory_writelinear(uint_32 address, byte value)
 byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) //Result: 0=#GP, 1=container=descriptor.
 {
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
@@ -430,7 +430,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
@@ -1323,7 +1323,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 {
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_low | (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_mid << 16)) | CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].base_high << 24) : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!

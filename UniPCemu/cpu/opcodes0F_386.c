@@ -253,6 +253,7 @@ void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((DESC_32BITS(source->BASE)>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = (DESC_32BITS(source->BASE)>>24); //Full 32-bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
+	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 }
 
 void CPU386_OP0F07() //Undocumented LOADALL instruction
