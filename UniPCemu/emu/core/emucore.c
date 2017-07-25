@@ -911,6 +911,7 @@ OPTINLINE byte coreHandler()
 				}
 				//Increase the instruction counter every cycle/HLT time!
 				debugger_step(); //Step debugger if needed, even during HLT state!
+				CPU_tickBIU(); //Tick the BIU, if anything is needed to be finished!
 			}
 		}
 		else //We're not halted? Execute the CPU routines!
