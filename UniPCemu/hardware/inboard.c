@@ -12,7 +12,7 @@ extern byte is_XT; //XT?
 extern Controller8042_t Controller8042; //The PS/2 Controller chip!
 extern byte MoveLowMemoryHigh; //Move HMA physical memory high?
 byte inboard386_speed = 0; //What speed to use? Level 0-3!
-const byte effective_waitstates[4] = {30,16,8,0}; //The Wait States!
+const byte effective_waitstates[2][4] = {{6,16,8,0},{30,16,8,0}}; //The Wait States! First AT(compatibility case), then XT!
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 byte Inboard_readIO(word port, byte *result)
@@ -24,7 +24,7 @@ void refresh_outputport(); //For letting the 8042 refresh the output port!
 
 void updateInboardWaitStates()
 {
-	CPU386_WAITSTATE_DELAY = effective_waitstates[inboard386_speed]; //What speed to slow down, in cycles?
+	CPU386_WAITSTATE_DELAY = effective_waitstates[is_XT][inboard386_speed]; //What speed to slow down, in cycles?
 }
 
 byte Inboard_writeIO(word port, byte value)
@@ -99,7 +99,7 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 	}
 	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
-	if ((EMULATED_CPU==CPU_80386) && is_XT) //XT 386? We're an Inboard 386!
+	if ((EMULATED_CPU==CPU_80386) && (is_Compaq==0)) //XT/AT 386? We're an Inboard 386!
 	{
 		MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 		if (MMU.size>=0x100000) //1MB+ detected?
@@ -115,12 +115,5 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 		register_PORTOUT(&Inboard_writeIO);
 		register_PORTIN(&Inboard_readIO);
 		updateInboardWaitStates(); //Set the default Wait States!
-	}
-	else if ((EMULATED_CPU==CPU_80386) && (is_Compaq==0) && (is_XT==0)) //AT with Inboard 80386?
-	{
-		//if (initFullspeed) //Running at full AT speed instead of default speed?
-		{
-			CPU386_WAITSTATE_DELAY = 1; //One Waitstate RAM is emulated for compatibility!
-		}
 	}
 }

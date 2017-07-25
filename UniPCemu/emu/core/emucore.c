@@ -775,7 +775,7 @@ void updateSpeedLimit()
 				}
 				if ((EMULATED_CPU==CPU_80386) || (is_Compaq==1)) //80386 or Compaq?
 				{
-					if (is_XT) //XT 386+? 16MHz clock!
+					if (!(is_Compaq) && (EMULATED_CPU==CPU_80386)) //XT/AT 386? 16MHz clock!
 					{
 						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 					}
