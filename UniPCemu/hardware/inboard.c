@@ -12,7 +12,7 @@ extern byte is_XT; //XT?
 extern Controller8042_t Controller8042; //The PS/2 Controller chip!
 extern byte MoveLowMemoryHigh; //Move HMA physical memory high?
 byte inboard386_speed = 0; //What speed to use? Level 0-3!
-const byte effective_waitstates[2][4] = {{6,16,8,0},{30,16,8,0}}; //The Wait States! First AT(compatibility case), then XT!
+const byte effective_waitstates[2][4] = {{12,16,8,0},{30,16,8,0}}; //The Wait States! First AT(compatibility case), then XT!
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 byte Inboard_readIO(word port, byte *result)

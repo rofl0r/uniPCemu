@@ -94,7 +94,9 @@ which is at the first row of the IBM AT POST3 function.
 #define CPU80286_CLOCK 6000000.0
 
 //Inboard 386 runs at 16MHz.
-#define CPU80386_INBOARD_CLOCK 16000000.0
+#define CPU80386_INBOARD_XT_CLOCK 16000000.0
+// https://www.flickr.com/photos/11812307@N03/sets/72157643447132144/ says Inboard 386/AT runs at 32MHz.
+#define CPU80386_INBOARD_AT_CLOCK 32000000.0
 
 //Compaq 386 runs at 16MHz.
 #define CPU80386_COMPAQ_CLOCK 16000000.0
@@ -777,7 +779,14 @@ void updateSpeedLimit()
 				{
 					if (!(is_Compaq) && (EMULATED_CPU==CPU_80386)) //XT/AT 386? 16MHz clock!
 					{
-						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+						if (is_XT) //Inboard 386 XT?
+						{
+							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+						}
+						else //Inboard 386 AT?
+						{
+							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+						}
 					}
 					else if (is_Compaq==1) //Compaq Deskpro 386+?
 					{
