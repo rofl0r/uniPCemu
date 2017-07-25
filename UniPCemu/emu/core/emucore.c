@@ -775,14 +775,15 @@ void updateSpeedLimit()
 				}
 				if ((EMULATED_CPU==CPU_80386) || (is_Compaq==1)) //80386 or Compaq?
 				{
-					if (is_XT) //XT 386? 16MHz clock!
+					if (is_XT) //XT 386+? 16MHz clock!
 					{
 						CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 					}
-					else if (is_Compaq==1) //Compaq Deskpro 386?
+					else if (is_Compaq==1) //Compaq Deskpro 386+?
 					{
 						CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 					}
+					//Use AT speed for AT compatiblity for AT architectures!
 				}
 				break;
 			default: //Unknown CPU?
