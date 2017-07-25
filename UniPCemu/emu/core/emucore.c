@@ -63,6 +63,7 @@
 #include "headers/support/mid.h" //MIDI player support!
 
 #include "headers/hardware/inboard.h" //Inboard support!
+#include "headers/cpu/biu.h" //For checking if we're able to HLT!
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
@@ -882,7 +883,7 @@ OPTINLINE byte coreHandler()
 
 		CPU_tickPendingReset();
 
-		if (CPU[activeCPU].halt&3) //Halted normally? Don't count CGA wait states!
+		if ((CPU[activeCPU].halt&3) && BIU_Ready()) //Halted normally? Don't count CGA wait states!
 		{
 			if (romsize) //Debug HLT?
 			{
@@ -911,7 +912,6 @@ OPTINLINE byte coreHandler()
 				}
 				//Increase the instruction counter every cycle/HLT time!
 				debugger_step(); //Step debugger if needed, even during HLT state!
-				CPU_tickBIU(); //Tick the BIU, if anything is needed to be finished!
 			}
 		}
 		else //We're not halted? Execute the CPU routines!
