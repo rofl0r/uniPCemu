@@ -13,6 +13,7 @@ extern Controller8042_t Controller8042; //The PS/2 Controller chip!
 extern byte MoveLowMemoryHigh; //Move HMA physical memory high?
 byte inboard386_speed = 0; //What speed to use? Level 0-3!
 const byte effective_waitstates[4] = {30,16,8,0}; //The Wait States!
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 byte Inboard_readIO(word port, byte *result)
 {
@@ -114,5 +115,12 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 		register_PORTOUT(&Inboard_writeIO);
 		register_PORTIN(&Inboard_readIO);
 		updateInboardWaitStates(); //Set the default Wait States!
+	}
+	else if ((EMULATED_CPU==CPU_80386) && (is_Compaq==0) && (is_XT==0)) //AT with Inboard 80386?
+	{
+		//if (initFullspeed) //Running at full AT speed instead of default speed?
+		{
+			CPU386_WAITSTATE_DELAY = 1; //One Waitstate RAM is emulated for compatibility!
+		}
 	}
 }
