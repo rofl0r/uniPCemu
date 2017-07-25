@@ -989,6 +989,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
+			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
@@ -1050,6 +1051,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
+			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
 			if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
 			{
@@ -1087,13 +1089,13 @@ MMU: memory start!
 uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of the segment!
 {
 	//Determine the Base always, even in real mode(which automatically loads the base when loading the segment registers)!
-	if (segment == -1) //Forced 8086 mode by the emulators?
+	if (unlikely(segment == -1)) //Forced 8086 mode by the emulators?
 	{
 		return (segmentval << 4); //Behave like a 8086!
 	}
 	
 	//Protected mode addressing!
-	return ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Base!
+	return CPU[activeCPU].SEG_base[segment]; //Base!
 }
 
 /*
@@ -1646,6 +1648,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
+			CPU[activeCPU].SEG_base[CPU_SEGMENT_CS] = ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_low); //Update the base address!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!

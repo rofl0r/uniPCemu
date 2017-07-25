@@ -845,6 +845,7 @@ typedef struct PACKED
 
 	//Everything containing and buffering segment registers!
 	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
+	uint_32 SEG_base[8]; //The base addresses, precalculated from the segment descriptor!
 	word *SEGMENT_REGISTERS[8]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
 	byte CPL; //The current privilege level, registered on descriptor load!
 

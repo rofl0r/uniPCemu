@@ -789,6 +789,11 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = (CSBase>>16); //Mid range!
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_low = (CSBase&0xFFFF); //Low range!
 	}
+
+	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
+	{
+		CPU[activeCPU].SEG_base[reg] = ((CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low); //Update the base address!
+	}
 }
 
 void CPU_initLookupTables(); //Initialize the CPU timing lookup tables! Prototype!
@@ -1781,7 +1786,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	//byte cycles_counted = 0; //Cycles have been counted?
-	if (BIU_Ready()==0) //BIU not ready to continue? We're handling seperate cycles still!
+	if (likely(BIU_Ready()==0)) //BIU not ready to continue? We're handling seperate cycles still!
 	{
 		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
