@@ -1449,10 +1449,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0 = 0x00; //Correct command!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
-			if (is_XT) //Special case for the Turbo XT BIOS?
-			{
-				FLOPPY_raiseIRQ(); //Raise an IRQ!
-			}
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
 			break;
 		case RECALIBRATE: //Calibrate drive
