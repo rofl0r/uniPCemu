@@ -1502,6 +1502,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			break;
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Start our timed execution!
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
 			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
