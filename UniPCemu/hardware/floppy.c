@@ -101,12 +101,14 @@ struct
 	byte reset_pending,reset_pended; //Reset pending?
 	byte reset_pending_size; //Size of the pending reset max value! A maximum set of 3 with 4 drives reset!
 	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives!
+	byte activecommand[4]; //What command is running to time?
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
 	byte MT,DoubleDensity,Skip; //MT bit, Double Density bit and Skip bit  as set by the command, if any!
 	byte floppy_resetted; //Are we resetted?
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
-	byte recalibratestepsleft; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
+	byte recalibratestepsleft[4]; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
+	byte seekdestination[4]; //Where to seek to?
 	byte MTMask; //Allow MT to be used in sector increase operations?
 	double DMArate, DMAratePending; //Current DMA transfer rate!
 } FLOPPY; //Our floppy drive data!
@@ -145,7 +147,7 @@ struct
 //MSR
 
 //1 if busy in seek mode.
-#define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(val) FLOPPY.MSR=((FLOPPY.MSR&~0xF)|((val)&0xF))
+#define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,val) FLOPPY.MSR=((FLOPPY.MSR&~(1<<drive))|((val&1)<<drive))
 //Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
 #define FLOPPY_MSR_COMMANDBUSYW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x10)|(((val)&1)<<4))
 //1 when not in DMA mode, else DMA mode, during execution phase.
@@ -223,9 +225,10 @@ struct
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
-double floppytimer = 0.0; //The timer for ticking floppy disk actions!
-double floppytime = 0.0; //Buffered floppy disk time!
-byte currentfloppytimerstep = 0; //Current step to execute within the floppy disk timer process!
+double floppytimer[4] = {0.0,0.0,0.0,0.0}; //The timer for ticking floppy disk actions!
+double floppytime[4] = {0.0,0.0,0.0,0.0}; //Buffered floppy disk time!
+byte floppytiming = 0; //Are we timing?
+byte currentfloppytimerstep[4] = {0,0,0,0}; //Current step to execute within the floppy disk timer process!
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
@@ -1424,6 +1427,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
 		case WRITE_DATA: //Write sector
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
@@ -1431,6 +1435,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppy_writesector(); //Start writing a sector!
 			break;
 		case READ_DATA: //Read sector
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
@@ -1438,20 +1443,26 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppy_readsector(); //Start reading a sector!
 			break;
 		case SPECIFY: //Fix drive data/specify command
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0] = FLOPPY.commandbuffer[1]; //Set setting byte 1/2!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			FLOPPY.ST0 = 0x00; //Correct command!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
-			//FLOPPY_raiseIRQ(); //Raise an IRQ!
+			if (is_XT) //Special case for the Turbo XT BIOS?
+			{
+				FLOPPY_raiseIRQ(); //Raise an IRQ!
+			}
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
 			break;
 		case RECALIBRATE: //Calibrate drive
-			FLOPPY.commandstep = 4; //Start our timed execution!
-			floppytime = 0.0;
-			floppytimer = FLOPPY_steprate(FLOPPY.commandbuffer[1]); //Step rate!
-			FLOPPY.recalibratestepsleft = 79; //Up to 79 pulses!
-			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(1<<FLOPPY_DOR_DRIVENUMBERR); //Seeking!
+			FLOPPY.commandstep = 0; //Start our timed execution!
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute timing!
+			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY.commandbuffer[1]); //Step rate!
+			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
+			FLOPPY.recalibratestepsleft[FLOPPY_DOR_DRIVENUMBERR] = 79; //Up to 79 pulses!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
@@ -1490,10 +1501,12 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
 		case SEEK: //Seek/park head
-			FLOPPY.commandstep = 4; //Start our timed execution!
-			floppytime = 0.0;
-			floppytimer = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
-			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(1<<FLOPPY_DOR_DRIVENUMBERR); //Seeking!
+			FLOPPY.commandstep = 0; //Start our timed execution!
+			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
+			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
+			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
 			FLOPPY.currenthead[FLOPPY.commandbuffer[1]&3] = (FLOPPY.commandbuffer[1]&4)>>2; //Set the new head from the parameters!
@@ -1503,6 +1516,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
 		case READ_ID: //Read sector ID
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
@@ -1567,6 +1581,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
+			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
@@ -1875,119 +1890,121 @@ OPTINLINE byte floppy_readData()
 //Timed floppy disk operations!
 void updateFloppy(double timepassed)
 {
+	byte drive=0; //Drive loop!
 	byte movedcylinder;
-	if (floppytimer) //Are we timing?
+	if (unlikely(floppytiming)) //Are we timing?
 	{
-		floppytime += timepassed; //We're measuring time!
-		for (;(floppytime>=floppytimer) && floppytimer;) //Timeout and still timing?
+		do
 		{
-			floppytime -= floppytimer; //Time some!
-			switch (FLOPPY.commandbuffer[0]) //What command is processing?
+			if (floppytimer[drive]) //Are we timing?
 			{
-				case SEEK: //Seek/park head
-					if (FLOPPY.commandstep==4) //Are we busy?
+				floppytime[drive] += timepassed; //We're measuring time!
+				for (;(floppytime[drive]>=floppytimer[drive]) && floppytimer[drive];) //Timeout and still timing?
+				{
+					floppytime[drive] -= floppytimer[drive]; //Time some!
+					switch (FLOPPY.activecommand[drive]) //What command is processing?
 					{
-						updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
-						if ((FLOPPY_DOR_DRIVENUMBERR >= 2) || (FLOPPY_DOR_DRIVENUMBERR!=(FLOPPY.commandbuffer[1]&3))) //Invalid drive specified?
-						{
-							goto invalidtrackseek; //Error out!
-						}
-						if (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
-						{
-							FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Error: drive not ready!
-							FLOPPY.commandstep = 0; //Reset command!
-							clearDiskChanged(); //Clear the disk changed flag for the new command!
-							FLOPPY_raiseIRQ(); //Finished executing phase!
-							floppytimer = 0.0; //Don't time anymore!
-							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
-							return; //Abort!
-						}
-						
-						if (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]>FLOPPY.commandbuffer[2]) //Step out towards smaller cylinder numbers?
-						{
-							--FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step up!
-							movedcylinder = 1;
-						}
-						else if (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]<FLOPPY.commandbuffer[2]) //Step in towards bigger cylinder numbers?
-						{
-							++FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Step down!
-							movedcylinder = 1;
-						}
-						else movedcylinder = 0; //We didn't move?
-
-						//Check if we're there!
-						if ((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.commandbuffer[2]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)))) //Found and existant?
-						{
-							FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Set the current cylinder!
-							FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2) | FLOPPY_DOR_DRIVENUMBERR; //Valid command!
-							updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
-							FLOPPY_raiseIRQ(); //Finished executing phase!
-							clearDiskChanged(); //Clear the disk changed flag for the new command!
-							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0);
-							floppytimer = 0.0; //Don't time anymore!
-							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
-							return; //Give an error!
-						}
-						else if (movedcylinder==0) //Reached no destination?
-						{
-							invalidtrackseek:
-							//Invalid track?
-							FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | FLOPPY_DOR_DRIVENUMBERR; //Valid command! Just don't report completion(invalid track to seek to)!
-							FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
-							FLOPPY.commandstep = (byte)(FLOPPY.commandposition = 0); //Reset command!
-							FLOPPY_raiseIRQ(); //Finished executing phase!
-							floppytimer = 0.0; //Don't time anymore!
-							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
-						}
-					}
-					break;
-				case RECALIBRATE: //Calibrate drive
-					if (FLOPPY.commandstep==4) //Are we busy?
-					{
-						if (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]]) //Not there yet?
-						{
-							--FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]]; //Step down!
-						}
-						if (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] && FLOPPY.recalibratestepsleft) //Not there yet?
-						{
-							--FLOPPY.recalibratestepsleft;
-						}
-						else //Finished? Track 0 might be found!
-						{
-							//Execute interrupt!
-							FLOPPY.commandstep = 0; //Reset controller command status!
-							FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]] = 0; //Goto cylinder #0!
-							FLOPPY.ST0 = 0x20|FLOPPY.commandbuffer[1]; //Completed command!
-							updateST3(FLOPPY.commandbuffer[1]); //Update ST3 only!
-							if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(FLOPPY.commandbuffer[1]&3)))==0) || ((FLOPPY.commandbuffer[1]&3)>1) || (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1]]!=0)) //Motor not on or invalid drive?
+						case SEEK: //Seek/park head
+							updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
+							if ((drive >= 2) /*|| (drive!=(FLOPPY.commandbuffer[1]&3))*/) //Invalid drive specified?
 							{
-								FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
-							} //We always report success!
-							updateFloppyWriteProtected(0,FLOPPY.commandbuffer[1]); //Try to read with(out) protection!
-							clearDiskChanged(); //Clear the disk changed flag for the new command!
-							FLOPPY_raiseIRQ(); //We're finished!
-							FLOPPY_MSR_BUSYINPOSITIONINGMODEW(0<<FLOPPY_DOR_DRIVENUMBERR); //Not seeking anymore!
-							floppytimer = 0.0; //Don't time anymore!
-						}
+								goto invalidtrackseek; //Error out!
+							}
+							if (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
+							{
+								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Error: drive not ready!
+								clearDiskChanged(); //Clear the disk changed flag for the new command!
+								FLOPPY_raiseIRQ(); //Finished executing phase!
+								floppytimer[drive] = 0.0; //Don't time anymore!
+								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+								goto finishdrive; //Abort!
+							}
+						
+							if (FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive]) //Step out towards smaller cylinder numbers?
+							{
+								--FLOPPY.currentcylinder[drive]; //Step up!
+								movedcylinder = 1;
+							}
+							else if (FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive]) //Step in towards bigger cylinder numbers?
+							{
+								++FLOPPY.currentcylinder[drive]; //Step down!
+								movedcylinder = 1;
+							}
+							else movedcylinder = 0; //We didn't move?
+
+							//Check if we're there!
+							if ((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0)))) //Found and existant?
+							{
+								FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
+								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
+								updateST3(drive); //Update ST3 only!
+								FLOPPY_raiseIRQ(); //Finished executing phase!
+								clearDiskChanged(); //Clear the disk changed flag for the new command!
+								floppytimer[drive] = 0.0; //Don't time anymore!
+								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+								goto finishdrive; //Give an error!
+							}
+							else if (movedcylinder==0) //Reached no destination?
+							{
+								invalidtrackseek:
+								//Invalid track?
+								FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | drive; //Valid command! Just don't report completion(invalid track to seek to)!
+								FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
+								FLOPPY_raiseIRQ(); //Finished executing phase!
+								floppytimer[drive] = 0.0; //Don't time anymore!
+								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+								goto finishdrive;
+							}
+							break;
+						case RECALIBRATE: //Calibrate drive
+							if (FLOPPY.currentcylinder[drive]) //Not there yet?
+							{
+								--FLOPPY.currentcylinder[drive]; //Step down!
+							}
+							if (FLOPPY.currentcylinder[drive] && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
+							{
+								--FLOPPY.recalibratestepsleft[drive];
+							}
+							else //Finished? Track 0 might be found!
+							{
+								//Execute interrupt!
+								FLOPPY.currentcylinder[drive] = 0; //Goto cylinder #0!
+								FLOPPY.ST0 = 0x20|drive; //Completed command!
+								updateST3(drive); //Update ST3 only!
+								if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.currentcylinder[drive]!=0)) //Motor not on or invalid drive?
+								{
+									FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
+								} //We always report success!
+								updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
+								clearDiskChanged(); //Clear the disk changed flag for the new command!
+								FLOPPY_raiseIRQ(); //We're finished!
+								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+								floppytimer[drive] = 0.0; //Don't time anymore!
+								goto finishdrive;
+							}
+							break;
+						default: //Unsupported command?
+							if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2) && (drive==FLOPPY_DOR_DRIVENUMBERR)) //DMA transfer busy on this channel?
+							{
+								FLOPPY.DMAPending &= ~2; //Start up DMA again!
+								floppytimer[drive] = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
+							}
+							else //Unsupported?
+							{
+								floppytimer[drive] = 0.0; //Don't time anymore!
+								goto finishdrive;
+							}
+							break; //Don't handle us yet!
 					}
-					break;
-				default: //Unsupported command?
-					if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2)) //DMA transfer busy?
-					{
-						FLOPPY.DMAPending &= ~2; //Start up DMA again!
-						floppytimer = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
-					}
-					else //Unsupported?
-					{
-						floppytimer = 0.0; //Don't time anymore!
-					}
-					break; //Don't handle us yet!
+				}
+				finishdrive:
+				if (!floppytimer[drive]) //Finished timing?
+				{
+					floppytime[drive] = (double)0; //Clear the remaining time!
+					floppytiming &= ~(1<<drive); //We're not timing anymore on this drive!
+				}
 			}
-		}
-		if (!floppytimer) //Finished timing?
-		{
-			floppytime = (double)0; //Clear the remaining time!
-		}
+		} while (++drive<4); //Process all drives!
 	}
 }
 
@@ -2130,7 +2147,8 @@ void FLOPPY_DMADACK() //For processing DACK signal!
 {
 	DMA_SetDREQ(FLOPPY_DMA,0); //Stop the current transfer!
 	FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
-	floppytimer = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+	floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+	floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 }
 
 void FLOPPY_DMATC() //Terminal count triggered?
@@ -2153,6 +2171,8 @@ void initFDC()
 	register_DISKCHANGE(FLOPPY0, &FLOPPY_notifyDiskChanged);
 	register_DISKCHANGE(FLOPPY1, &FLOPPY_notifyDiskChanged);
 
-	floppytime = floppytimer = 0.0; //No time spent or in-use by the floppy disk!
+	memset(&floppytime,0,sizeof(floppytime));
+	memset(&floppytimer,0,sizeof(floppytimer)); //No time spent or in-use by the floppy disk!
+	floppytiming = 0; //We're not timing!
 	initFloppyRates(); //Initialize the floppy disk rate tables to use!
 }
