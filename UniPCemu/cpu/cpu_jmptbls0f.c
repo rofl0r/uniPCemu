@@ -566,15 +566,15 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	{
 		//0x00:
 		{ NULL, NULL }, //00h:
-		{ NULL, NULL }, //01h
+		{ CPU486_OP0F01_16, CPU486_OP0F01_32 }, //01h
 		{ NULL, NULL }, //02h:
 		{ NULL, NULL }, //03h:
 		{ NULL, NULL }, //04h:
 		{ NULL, NULL }, //05h:
 		{ NULL, NULL }, //06h:
 		{ NULL, NULL }, //07h:
-		{ NULL, NULL }, //08h:
-		{ NULL, NULL }, //09h:
+		{ CPU486_OP0F08, NULL }, //08h:
+		{ CPU486_OP0F09, NULL }, //09h:
 		{ NULL, NULL }, //0Ah:
 		{ NULL, NULL }, //0Bh:
 		{ NULL, NULL }, //0Ch:
@@ -752,8 +752,8 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{ NULL, NULL },
 		{ NULL, NULL },
 		//0xB0:
-		{ NULL, NULL },
-		{ NULL, NULL },
+		{ CPU486_OP0FB0, NULL },
+		{ CPU486_OP0FB1_16, CPU486_OP0FB1_32 },
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
@@ -769,22 +769,22 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{ NULL, NULL },
 		{ NULL, NULL },
 		//0xC0:
+		{ CPU486_OP0FC0, NULL },
+		{ CPU486_OP0FC1_16, CPU486_OP0FC1_32 },
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
 		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
-		{ NULL, NULL },
+		{ CPU486_OP0FC8_16, CPU486_OP0FC8_32 },
+		{ CPU486_OP0FC9_16, CPU486_OP0FC9_32 },
+		{ CPU486_OP0FCA_16, CPU486_OP0FCA_32 },
+		{ CPU486_OP0FCB_16, CPU486_OP0FCB_32 },
+		{ CPU486_OP0FCC_16, CPU486_OP0FCC_32 },
+		{ CPU486_OP0FCD_16, CPU486_OP0FCD_32 },
+		{ CPU486_OP0FCE_16, CPU486_OP0FCE_32 },
+		{ CPU486_OP0FCF_16, CPU486_OP0FCF_32 },
 		//0xD0:
 		{ NULL, NULL },
 		{ NULL, NULL },
