@@ -46,7 +46,7 @@ void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
 
-byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 
 //Direct memory support for the CPU!
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL); //Check direct memory access before applying the writes below!

@@ -154,10 +154,16 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 }
 
 //readflags = 1|(opcode<<1) for reads! 0 for writes!
-byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
+
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0) && ((segdesc!=-1) && (readflags!=3))) //Aligment enforced and wrong? Don't apply on internal accesses and opcode fetches!
+	{
+		CPU_AC(0); //Alignment check fault!
+		return 1; //Error out!
+	}
 
 	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags,is_offset16)) //Disallowed?
 	{

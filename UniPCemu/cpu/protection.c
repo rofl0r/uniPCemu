@@ -171,6 +171,29 @@ void CPU_GP(int_64 errorcode)
 	}
 }
 
+void CPU_AC(int_64 errorcode)
+{
+	if (debugger_logging()) //Are we logging?
+	{
+		if (errorcode>=0)
+		{
+			dolog("debugger","#AC fault(%08X)!",errorcode);
+		}
+		else
+		{
+			dolog("debugger","#AC fault(-1)!");
+		}
+	}
+	if (CPU_faultraised(EXCEPTION_ALIGNMENTCHECK)) //Fault raising exception!
+	{
+		CPU_resetOP(); //Point to the faulting instruction!
+		CPU_onResettingFault(); //Apply reset to fault!
+		call_soft_inthandler(EXCEPTION_ALIGNMENTCHECK,errorcode); //Call IVT entry #13 decimal!
+		//Execute the interrupt!
+		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
+	}
+}
+
 void CPU_SegNotPresent(int_64 errorcode)
 {
 	if (debugger_logging()) //Are we logging?

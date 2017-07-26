@@ -160,7 +160,7 @@ byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		return checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit)); //Check the data to memory using byte depth!
+		return checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),0); //Check the data to memory using byte depth!
 		break;
 		//return result; //Give memory!
 	default:
@@ -334,11 +334,11 @@ byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),0)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}
-		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),1)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}
@@ -368,19 +368,19 @@ byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 			modrm_lastoffset = offset;
 		}
 		offset += modrm_addoffset; //Add to get the destination offset!
-		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, offset&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),0)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}
-		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+1)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),1)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}
-		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+2)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+2)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),2)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}
-		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+3)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit))) //Check the data to memory using byte depth!
+		else if (checkMMUaccess(params->info[whichregister].segmentregister_index, params->info[whichregister].mem_segment, (offset+3)&params->info[whichregister].memorymask,isread,getCPL(),(params->info[whichregister].is16bit),3)) //Check the data to memory using byte depth!
 		{
 			return 1; //Errored out!
 		}

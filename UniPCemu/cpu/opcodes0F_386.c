@@ -313,7 +313,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address)
 	{
-		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,REG_EDI,0,getCPL(),1)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,REG_EDI,0,getCPL(),1,(address==0)?0:0xFF)) return; //Abort on fault!
 	}
 
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address) //Load all remaining data in default byte order!

@@ -49,4 +49,6 @@ uint_32 getstackaddrsizelimiter(); //80286+: Gives the stack address size mask t
 void CPU_saveFaultData(); //Prepare for a fault by saving all required data!
 void CPU_onResettingFault(); //When resetting the current instruction for a fault!
 
+void CPU_AC(int_64 errorcode); //Alignment check fault!
+
 #endif

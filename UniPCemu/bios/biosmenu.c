@@ -1628,7 +1628,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
 	strcpy(itemlist[CPU_80286], "Intel 80286"); //Set filename from options!
 	strcpy(itemlist[CPU_80386], "Intel 80386"); //Set filename from options!
-	strcpy(itemlist[CPU_80486], "Intel 80486(unfinished)"); //Set filename from options!
+	strcpy(itemlist[CPU_80486], "Intel 80486"); //Set filename from options!
 	strcpy(itemlist[CPU_PENTIUM], "Intel Pentium(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
@@ -4703,7 +4703,7 @@ void BIOS_InitCPUText()
 		strcat(menuoptions[advancedoptions++], "Intel 80386"); //Add installed CPU!
 		break;
 	case CPU_80486: //80486?
-		strcat(menuoptions[advancedoptions++], "Intel 80486(unfinished)"); //Add installed CPU!
+		strcat(menuoptions[advancedoptions++], "Intel 80486"); //Add installed CPU!
 		break;
 	case CPU_PENTIUM: //PENTIUM?
 		strcat(menuoptions[advancedoptions++], "Intel Pentium(unfinished)"); //Add installed CPU!
