@@ -3,6 +3,7 @@
 #include "headers/cpu/cpu_OP80286.h" //80286 opcodes!
 #include "headers/cpu/cpu_OP80386.h" //80386 opcodes!
 #include "headers/cpu/modrm.h" //ModR/M support!
+#include "headers/cpu/protection.h" //Protection fault support!
 
 extern MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -64,8 +65,14 @@ void CPU486_OP0F01_32()
 {
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
-		//TODO? Unhandled for now!
-		//CPU_unkOP(); //#UD
+		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+		{
+			if (getCPL())
+			{
+				CPU_GP(0);
+			}
+		}
+		//TODO: Clear Paging TLB?
 	}
 	else
 	{
@@ -77,8 +84,14 @@ void CPU486_OP0F01_16()
 {
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
-		//TODO? Unhandled for now!
-		//CPU_unkOP(); //#UD
+		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+		{
+			if (getCPL())
+			{
+				CPU_GP(0);
+			}
+		}
+		//TODO: Clear Paging TLB?
 	}
 	else
 	{
@@ -88,14 +101,24 @@ void CPU486_OP0F01_16()
 
 void CPU486_OP0F08() //INVD?
 {
-	//TODO?
-	//CPU_unkOP(); //#UD
+	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+	{
+		if (getCPL())
+		{
+			CPU_GP(0);
+		}
+	}
 }
 
 void CPU486_OP0F09() //WBINVD?
 {
-	//TODO?
-	//CPU_unkOP(); //#UD
+	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
+	{
+		if (getCPL())
+		{
+			CPU_GP(0);
+		}
+	}
 }
 
 void CPU486_OP0FB0() {byte temp; if (modrm_check8(&params,1,1)) return; temp = modrm_read8(&params,1); if (REG_AL==temp) { if (modrm_check8(&params,1,0)) return; FLAGW_ZF(1); modrm_write8(&params,1,modrm_read8(&params,0)); /* r/m8=r8 */ } else { FLAGW_ZF(0); REG_AL = temp; /* AL=r/m8 */ }} //CMPXCHG r/m8,AL,r8
