@@ -19,7 +19,7 @@
 //Double logging if FLOPPY_LOGFILE2 is defined!
 #define FLOPPY_LOGFILE "debugger"
 //#define FLOPPY_LOGFILE2 "floppy"
-//#define FLOPPY_FORCELOG
+#define FLOPPY_FORCELOG
 
 //What IRQ is expected of floppy disk I/O
 #define FLOPPY_IRQ 6
@@ -686,11 +686,13 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		FLOPPY_MSR_COMMANDBUSYW(0); //Not busy: we're waiting for a command!
 		FLOPPY_MSR_RQMW(!FLOPPY.floppy_resetted); //Ready for data transfer when not being reset!
 		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We don't have data for the CPU!
+		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
 	case 1: //Parameters?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Ready for data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We don't have data for the CPU!
+		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
 	case 2: //Data?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
@@ -707,7 +709,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			break;
 		default: //Unknown command?
 			FLOPPY_MSR_RQMW(1); //Use no DMA by default, for safety!
-			FLOPPY_MSR_NONDMAW(1); //Use no DMA by default, for safety!
+			FLOPPY_MSR_NONDMAW(0); //Use no DMA by default, for safety!
 			break; //Don't process!
 		}
 
@@ -732,16 +734,13 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
-		break;
-	case 4: //Busy Seek/Recalibrate?
-		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
-		FLOPPY_MSR_RQMW(0); //No data transfer!
-		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We have no data for the CPU!
+		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
 	case 0xFF: //Error?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
+		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
 	default: //Unknown status?
 		break; //Unknown?
@@ -1443,11 +1442,9 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppy_readsector(); //Start reading a sector!
 			break;
 		case SPECIFY: //Fix drive data/specify command
-			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0] = FLOPPY.commandbuffer[1]; //Set setting byte 1/2!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			FLOPPY.ST0 = 0x00; //Correct command!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
 			break;
