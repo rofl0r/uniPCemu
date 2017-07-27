@@ -196,7 +196,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 
 byte Paging_TLBSet(uint_32 logicaladdress)
 {
-	return ((logicaladdress&0x3000)>>12); //The set is determined by the lower 2 bits of the entry!
+	return ((logicaladdress&0x30000000)>>28); //The set is determined by the upper 2 bits of the entry, the memory block!
 }
 
 byte Paging_oldestTLB(byte set) //Find a TLB to be used/overwritten!
