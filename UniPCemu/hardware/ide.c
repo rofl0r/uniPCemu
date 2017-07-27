@@ -1054,7 +1054,12 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	}
 
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending==0)) //Read the data from disk?
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending)
+	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending = 0; //Not pending anymore!
+	}
+
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
 		ATAPI_increasesector(channel); //Increase the current sector!
 
