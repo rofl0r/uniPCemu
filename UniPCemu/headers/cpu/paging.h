@@ -24,4 +24,5 @@ void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, uint_32 result);
 byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, uint_32 *result);
 void Paging_ticktime(double timepassed); //Update Paging timers for determining the oldest entry!
 void Paging_initTLB(); //Initialize the Paging TLB!
+void Paging_Invalidate(uint_32 logicaladdress); //Invalidate a single address!
 #endif

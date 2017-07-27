@@ -41,7 +41,7 @@ void MMU_wb(sword segdesc, word segment, uint_32 offset, byte val, byte is_offse
 void MMU_ww(sword segdesc, word segment, uint_32 offset, word val, byte is_offset16); //Get adress (word)!
 void MMU_wdw(sword segdesc, word segment, uint_32 offset, uint_32 val, byte is_offset16); //Get adress (dword)!
 
-//uint_32 MMU_realaddr(int segdesc, word segment, uint_32 offset); //Real adress in real (direct) memory?
+uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16); //Real adress in real (linear) memory?
 void MMU_setA20(byte where, byte enabled); //Set A20 line enabled?
 void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!

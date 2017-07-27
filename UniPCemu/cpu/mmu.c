@@ -59,7 +59,7 @@ extern byte is_XT; //Are we an XT?
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 //Address translation routine.
-OPTINLINE uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
 {
 	SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;

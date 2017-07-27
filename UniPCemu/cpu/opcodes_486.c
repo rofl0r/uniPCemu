@@ -4,6 +4,7 @@
 #include "headers/cpu/cpu_OP80386.h" //80386 opcodes!
 #include "headers/cpu/modrm.h" //ModR/M support!
 #include "headers/cpu/protection.h" //Protection fault support!
+#include "headers/cpu/paging.h" //Paging support for clearing TLB!
 
 extern MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -63,6 +64,7 @@ void CPU486_CPUID()
 
 void CPU486_OP0F01_32()
 {
+	uint_32 linearaddr;
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
@@ -72,7 +74,8 @@ void CPU486_OP0F01_32()
 				CPU_GP(0);
 			}
 		}
-		//TODO: Clear Paging TLB?
+		linearaddr = MMU_realaddr(params.info[1].segmentregister_index,*params.info[1].segmentregister,params.info[1].mem_offset,0,params.info[1].is16bit); //Linear address!
+		Paging_Invalidate(linearaddr); //Invalidate the address that's used!
 	}
 	else
 	{
@@ -82,6 +85,7 @@ void CPU486_OP0F01_32()
 
 void CPU486_OP0F01_16()
 {
+	uint_32 linearaddr;
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
@@ -91,7 +95,8 @@ void CPU486_OP0F01_16()
 				CPU_GP(0);
 			}
 		}
-		//TODO: Clear Paging TLB?
+		linearaddr = MMU_realaddr(params.info[1].segmentregister_index,*params.info[1].segmentregister,params.info[1].mem_offset,0,params.info[1].is16bit); //Linear address!
+		Paging_Invalidate(linearaddr); //Invalidate the address that's used!
 	}
 	else
 	{
