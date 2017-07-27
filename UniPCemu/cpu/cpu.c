@@ -831,12 +831,14 @@ void resetCPU() //Initialises the currently selected CPU!
 	memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Reset the instruction fetching system!
 	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase =  1; //We're starting to fetch!
 	CPU_initBIU(); //Initialize the BIU for use!
+	Paging_clearTLB(); //Clear the TLB when resetting!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
 {
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
 	resetCPU(); //Reset normally!
+	Paging_initTLB(); //Initialize the TLB for usage!
 }
 
 void CPU_tickPendingReset()

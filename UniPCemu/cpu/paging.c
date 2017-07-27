@@ -274,17 +274,34 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 	}	
 }
 
+double Paging_timer=0.0;
 void Paging_ticktime(double timepassed) //Update Paging timers for determining the oldest entry!
 {
-	TLBEntry *entry;
-	entry = &CPU[activeCPU].Paging_TLB.TLB[0][0]; //Load first entry!
-	do //Check all!
+	if (unlikely(CPU[activeCPU].executed)) //Executed something?
 	{
-		(entry++)->age += timepassed; //Tick age of a TLB entry!
-	} while (entry!=&CPU[activeCPU].Paging_TLB.TLB[NUMITEMS(CPU[0].Paging_TLB.TLB)][0]); //While not finished, repeat!
+		INLINEREGISTER TLBEntry *entry, *finishentry;
+		Paging_timer += timepassed; //Tick time!
+		entry = &CPU[activeCPU].Paging_TLB.TLB[0][0]; //Load first entry!
+		finishentry = &CPU[activeCPU].Paging_TLB.TLB[NUMITEMS(CPU[0].Paging_TLB.TLB)][0]; //Finishing entry!
+		do //Check all!
+		{
+			(entry++)->age += timepassed; //Tick age of a TLB entry!
+		} while (entry!=finishentry); //While not finished, repeat!
+		Paging_timer = 0.0; //Clear timer!
+	}
+	else
+	{
+		Paging_timer += timepassed; //Accumulate time in the meanwhile, executing an instruction!
+	}
 }
 
 void Paging_clearTLB()
 {
 	memset(&CPU[activeCPU].Paging_TLB,0,sizeof(CPU[activeCPU].Paging_TLB)); //Reset fully and clear the TLB!
+}
+
+void Paging_initTLB()
+{
+	Paging_clearTLB(); //Clear the TLB!
+	Paging_timer = 0.0; //Initialize timer!
 }
