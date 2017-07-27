@@ -5,6 +5,7 @@
 #include "headers/cpu/mmu.h"
 #include "headers/bios/bios.h" //Basic BIOS!
 #include "headers/support/fifobuffer.h" //Prefetch Input Queue support!
+#include "headers/cpu/paging.h" //Paging support!
 
 //CPU?
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
@@ -910,6 +911,7 @@ typedef struct PACKED
 	byte pushbusy; //Is a push operation busy?
 	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
 	byte resetPending; //Is a CPU reset pending?
+	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

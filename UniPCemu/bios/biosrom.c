@@ -1153,42 +1153,6 @@ void BIOS_registerROM()
 	MMU_registerWriteHandler(&OPTROM_writehandler,"OPTROM");
 }
 
-extern word CPU_exec_CS;
-extern uint_32 CPU_exec_EIP; //Currently executing address!
-
-OPTINLINE byte checkTurboXTBIOS()
-{
-	word index;
-	byte result;
-	byte rom_value; //The value of the rom
-	byte TurboID[32] = {0x54,0x75,0x72,0x62,0x6F,0x20,0x58,0x54,0x20,0x42,0x49,0x4F,0x53,0x20,0x76,0x32,0x2E,0x35,0x20,0x66,0x6F,0x72,0x20,0x38,0x30,0x38,0x38,0x2F,0x56,0x32,0x30,0x00}; //Our identifier string!
-	uint_32 execaddress,biosaddress;
-	biosaddress = 0x10000-0x2000; //Start of our BIOS identifier, 8K ROM!
-	execaddress = mappage((CPU_exec_CS<<4)+(CPU_exec_EIP)); //We're the Current address! Don't do any protection for our sake!
-	result = ((execaddress>=(0xF0000+biosaddress)) && (execaddress<=0xFFFFF)); //We're the Turbo XT BIOS if we're running in it's memory range!
-	if (result) //Might be Turbo XT BIOS?
-	{
-		if (getcpumode()==CPU_MODE_PROTECTED)
-		{
-			result = 0; //No Turbo XT BIOS after all!
-		}
-		for (index=0;index<sizeof(TurboID);index++) //Check our ID for checking the BIOS!
-		{
-			rom_value = MMU_rb(CPU_SEGMENT_CS,0xF000,index+biosaddress,0,!CPU_Address_size[activeCPU]); //The value in the ROM!
-			if (rom_value!=TurboID[index])
-			{
-				return 0; //Not Turbo XT BIOS after all!
-			}
-		}
-	}
-	return result; //Give the result!
-}
-
-byte isTurboXTBIOS() //Are we running the Turbo XT BIOS now?
-{
-	return (getcpumode()!=CPU_MODE_PROTECTED)?checkTurboXTBIOS():0;
-}
-
 void BIOSROM_dumpBIOS()
 {
 		uint_64 baseloc, endloc;

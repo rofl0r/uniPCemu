@@ -396,6 +396,7 @@ byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
 	uint_32 *result; //The result holder if needed!
+	uint_32 backupval;
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -403,10 +404,20 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
+			backupval = *result;
 			*result = value; //Write the data to the result!
 			if (result==&CPU[activeCPU].registers->CR0) //CR0 has been updated? Update the CPU mode, if needed!
 			{
+				backupval ^= value; //Check for changes!
+				if (backupval&0x80000000) //Paging changed?
+				{
+					Paging_clearTLB(); //Clear the TLB!
+				}
 				updateCPUmode(); //Try to update the CPU mode, if needed!
+			}
+			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
+			{
+				Paging_clearTLB(); //Clear the TLB!
 			}
 		}
 		else if (LOG_INVALID_REGISTERS)

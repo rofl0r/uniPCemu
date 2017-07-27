@@ -206,7 +206,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	byte result;
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!
 	}
 
 	if (segdesc!=-1) //Normal memory access by the CPU itself?
@@ -232,7 +232,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 {
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+		realaddress = mappage(realaddress,1,getCPL()); //Map it using the paging mechanism!
 	}
 
 	if (segdesc!=-1) //Normal memory access?
@@ -267,7 +267,7 @@ void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcod
 
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = mappage(realaddress); //Map it using the paging mechanism!
+		realaddress = mappage(realaddress,(opcode==0),getCPL()); //Map it using the paging mechanism!
 	}
 	writeword = writewordbackup; //Restore the word address backup!
 }

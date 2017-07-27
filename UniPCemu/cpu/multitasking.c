@@ -383,6 +383,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->EIP = TSS32.EIP;
 		CPU[activeCPU].registers->SS = TSS32.SS; //Default stack to use: the old stack!
 		LDTsegment = TSS32.LDT; //LDT used!
+		Paging_clearTLB(); //Clear the TLB: CR3 has been changed!
 	}
 	else //We're a 16-bit TSS?
 	{
