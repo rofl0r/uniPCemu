@@ -1911,76 +1911,48 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/MBMEMORY), (uint_32)((result%MBMEMORY)/1024)); //Show current size!
 		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
-		//1GB steps!
-		if ((key & BUTTON_LTRIGGER)>0)
+		FILEPOS step;
+		step = 4096; //Default to 4KB steps!
+		//1GB/1MB steps!
+		if ((key & BUTTON_LTRIGGER)>0) //GB steps?
 		{
-			if (result == 0) {}
-			else
-			{
-				if (((int_64)(result - (1024*MBMEMORY))) <= 0)
-				{
-					result = 0;    //1GB steps!
-				}
-				else
-				{
-					result -= 1024*MBMEMORY;
-				}
-			}
+			step = 1024*MBMEMORY; //GB steps!
 		}
-		else if ((key & BUTTON_RTRIGGER)>0)
+		else if ((key & BUTTON_RTRIGGER)>0) //MB steps?
 		{
-			oldvalue = result; //Save the old value!
-			result += 1024*MBMEMORY; //Add 1GB!
-			if (result < oldvalue) //We've overflown?
-			{
-				result = oldvalue; //Undo: we've overflown!
-			}
+			step = MBMEMORY; //Add 1GB!
 		}
-		//1MB steps!
-		else if ((key & BUTTON_LEFT)>0)
+
+		//Multiplier of steps!
+		if ((key & BUTTON_LEFT)>0)
+		{
+			step *= 10; //x10
+		}
+		if ((key & BUTTON_RIGHT)>0)
+		{
+			step *= 100; //x100
+		}
+
+		//Apply steps to take!
+		if ((key & BUTTON_DOWN)>0)
 		{
 			if (result==0) { }
 			else
 			{
-				if (((int_64)(result-MBMEMORY))<=0)
-				{
-					result = 0;    //1MB steps!
-				}
-				else
-				{
-					result -= MBMEMORY;
-				}
-			}
-		}
-		else if ((key & BUTTON_RIGHT)>0)
-		{
-			oldvalue = result; //Save the old value!
-			result += MBMEMORY; //Add 1MB!
-			if (result < oldvalue) //We've overflown?
-			{
-				result = oldvalue; //Undo: we've overflown!
-			}
-		}
-		//4KB steps!
-		else if ((key & BUTTON_DOWN)>0)
-		{
-			if (result==0) { }
-			else
-			{
-				if (((int_64)(result - 4096)) <= 0)
+				if (((int_64)(result - step)) <= 0)
 				{
 					result = 0;    //4KB steps!
 				}
 				else
 				{
-					result -= 4096;
+					result -= step;
 				}
 			}
 		}
 		else if ((key & BUTTON_UP)>0)
 		{
 			oldvalue = result; //Save the old value!
-			result += 4096; //Add 4KB!
+			result += step; //Add step!
 			if (result < oldvalue) //We've overflown?
 			{
 				result = oldvalue; //Undo: we've overflown!
