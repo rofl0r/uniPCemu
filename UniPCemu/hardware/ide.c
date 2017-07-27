@@ -76,7 +76,7 @@ struct
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		double ATAPI_PendingExecuteCommand; //How much time is left pending?
 		double ATAPI_PendingExecuteTransfer; //How much time is left pending for transfer timing?
-		double ATAPI_diskchangepending; //Disk change pending until packet is given!
+		byte ATAPI_diskchangepending; //Disk change pending until packet is given!
 		uint_32 ATAPI_bytecount; //How many data to transfer in one go at most!
 		uint_32 ATAPI_bytecountleft; //How many data is left to transfer!
 		byte ATAPI_bytecountleft_IRQ; //Are we to fire an IRQ when starting a new ATAPI data transfer subblock?
