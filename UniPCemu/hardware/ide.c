@@ -38,6 +38,20 @@
 //Saved values
 #define CDROM_PAGECONTROL_SAVED 3
 
+//Sense key etc. defines
+#define SENSE_NONE 0
+#define SENSE_NOT_READY 2
+#define SENSE_ILLEGAL_REQUEST 5
+#define SENSE_UNIT_ATTENTION 6
+
+//ASC extended sense information!
+#define ASC_ILLEGAL_OPCODE 0x20
+#define ASC_LOGICAL_BLOCK_OOR 0x21
+#define ASC_INV_FIELD_IN_CMD_PACKET 0x24
+#define ASC_MEDIUM_MAY_HAVE_CHANGED 0x28
+#define ASC_SAVING_PARAMETERS_NOT_SUPPORTED 0x39
+#define ASC_MEDIUM_NOT_PRESENT 0x3a
+
 PCI_GENERALCONFIG PCI_IDE;
 
 //Index: 0=HDD, 1=CD-ROM! Swapped in the command! Empty is padded with spaces!
@@ -62,6 +76,7 @@ struct
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
 		double ATAPI_PendingExecuteCommand; //How much time is left pending?
 		double ATAPI_PendingExecuteTransfer; //How much time is left pending for transfer timing?
+		double ATAPI_diskchangepending; //Disk change pending until packet is given!
 		uint_32 ATAPI_bytecount; //How many data to transfer in one go at most!
 		uint_32 ATAPI_bytecountleft; //How many data is left to transfer!
 		byte ATAPI_bytecountleft_IRQ; //Are we to fire an IRQ when starting a new ATAPI data transfer subblock?
@@ -316,7 +331,14 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	Write Data) from the host
 	1 0 1 Status - Register contains Completion Status
 	*/
-	if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
+	if (ATA[channel].Drive[drive].ATAPI_diskchangepending==2)
+	{
+		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet!
+		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //Transfer to device!
+		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
+		ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
+	}
+	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,0); //Transfer to device!
@@ -544,6 +566,48 @@ void updateATA(double timepassed) //ATA timing!
 				ATAPI_executeCommand(1,1); //Execute the command!
 			}
 		}
+
+		//Handle ATAPI disk change input!
+		if (ATA[0].Drive[0].ATAPI_diskchangepending) //Pending execute transfer?
+		{
+			if (ATA[0].Drive[0].commandstatus==0) //Ready for a new command?
+			{
+				ATA[0].Drive[0].ATAPI_diskchangepending = 2; //Special: disk inserted!
+				ATAPI_generateInterruptReason(0,0); //Generate our reason!
+				ATA_IRQ(0,0); //Raise an IRQ!
+			}
+		}
+
+		if (ATA[0].Drive[1].ATAPI_diskchangepending) //Pending execute transfer?
+		{
+			if (ATA[0].Drive[1].commandstatus==0) //Ready for a new command?
+			{
+				ATA[0].Drive[1].ATAPI_diskchangepending = 2; //Special: disk inserted!
+				ATAPI_generateInterruptReason(0,1); //Generate our reason!
+				ATA_IRQ(0,1); //Raise an IRQ!
+			}
+		}
+
+		if (ATA[1].Drive[0].ATAPI_diskchangepending) //Pending execute transfer?
+		{
+			if (ATA[1].Drive[0].commandstatus==0) //Ready for a new command?
+			{
+				ATA[1].Drive[0].ATAPI_diskchangepending = 2; //Special: disk inserted!
+				ATAPI_generateInterruptReason(1,0); //Generate our reason!
+				ATA_IRQ(1,0); //Raise an IRQ!
+			}
+		}
+
+		if (ATA[1].Drive[1].ATAPI_diskchangepending) //Pending execute transfer?
+		{
+			if (ATA[1].Drive[1].commandstatus==0) //Ready for a new command?
+			{
+				ATA[1].Drive[1].ATAPI_diskchangepending = 2; //Special: disk inserted!
+				ATAPI_generateInterruptReason(1,1); //Generate our reason!
+				ATA_IRQ(1,1); //Raise an IRQ!
+			}
+		}
+
 
 		//Handle ATAPI execute transfer delay!
 		if (ATA[0].Drive[0].ATAPI_PendingExecuteTransfer) //Pending execute transfer?
@@ -979,7 +1043,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	}
 
 	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending==0)) //Read the data from disk?
 	{
 		ATAPI_increasesector(channel); //Increase the current sector!
 
@@ -1452,6 +1516,24 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start of data!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(ATA[channel].Drive[drive].SensePacket)); //Size of a block to transfer!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 1; //How many blocks to transfer!
+
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending) //Disk change pending?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending = 0; //Not pending anymore!
+			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
+			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
+			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70|(1<<7)); //Default error code?
+			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
+			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information? ASCQ also!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
+		}
 
 		//Now fill the packet with data!
 		memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &ATA[channel].Drive[drive].SensePacket, ATA[channel].Drive[ATA_activeDrive(channel)].datablock); //Give the result!
@@ -2751,6 +2833,7 @@ void ATA_DiskChanged(int disk)
 	{
 		ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_ATA,1); //We've changed media!
 		ATA[disk_channel].Drive[disk_ATA].isSpinning = 1;
+		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangepending = 1; //Pending until we're given!
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
