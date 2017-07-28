@@ -1537,7 +1537,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
-			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70|(1<<7)); //Default error code?
+			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,(0x70|(1<<7))); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
 			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
@@ -2038,7 +2038,7 @@ void ATA_reset(byte channel, byte slave)
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
-	uint_32 multiple;
+	uint_32 multiple=1;
 #ifdef ATA_LOG
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
 #endif
@@ -2886,7 +2886,7 @@ void ATA_DiskChanged(int disk)
 		{
 			disk_size = 0; //Nothing!
 		}
-		if (is_mounted)
+		if (disk_mounted)
 		{
 			if (IS_CDROM==0) //Not with CD-ROM?
 			{

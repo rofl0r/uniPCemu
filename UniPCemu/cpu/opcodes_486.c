@@ -5,6 +5,7 @@
 #include "headers/cpu/modrm.h" //ModR/M support!
 #include "headers/cpu/protection.h" //Protection fault support!
 #include "headers/cpu/paging.h" //Paging support for clearing TLB!
+#include "headers/cpu/flags.h" //Flags support for adding!
 
 extern MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -71,7 +72,8 @@ void CPU486_OP0F01_32()
 		{
 			if (getCPL())
 			{
-				CPU_GP(0);
+				THROWDESCGP(0,0,0);
+				return;
 			}
 		}
 		linearaddr = MMU_realaddr(params.info[1].segmentregister_index,*params.info[1].segmentregister,params.info[1].mem_offset,0,params.info[1].is16bit); //Linear address!
@@ -92,7 +94,8 @@ void CPU486_OP0F01_16()
 		{
 			if (getCPL())
 			{
-				CPU_GP(0);
+				THROWDESCGP(0,0,0);
+				return;
 			}
 		}
 		linearaddr = MMU_realaddr(params.info[1].segmentregister_index,*params.info[1].segmentregister,params.info[1].mem_offset,0,params.info[1].is16bit); //Linear address!
@@ -110,7 +113,8 @@ void CPU486_OP0F08() //INVD?
 	{
 		if (getCPL())
 		{
-			CPU_GP(0);
+			THROWDESCGP(0,0,0);
+			return;
 		}
 	}
 }
@@ -121,7 +125,8 @@ void CPU486_OP0F09() //WBINVD?
 	{
 		if (getCPL())
 		{
-			CPU_GP(0);
+			THROWDESCGP(0,0,0);
+			return;
 		}
 	}
 }
