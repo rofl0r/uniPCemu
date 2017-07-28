@@ -159,9 +159,19 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0) && ((segdesc!=-1) && (readflags!=3))) //Aligment enforced and wrong? Don't apply on internal accesses and opcode fetches!
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&7) && (subbyte==0x20) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
 	{
-		CPU_AC(0); //Alignment check fault!
+		CPU_AC(0); //Alignment DWORD check fault!
+		return 1; //Error out!
+	}
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0x10) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	{
+		CPU_AC(0); //Alignment DWORD check fault!
+		return 1; //Error out!
+	}
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&1) && (subbyte==0x8) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	{
+		CPU_AC(0); //Alignment WORD check fault!
 		return 1; //Error out!
 	}
 

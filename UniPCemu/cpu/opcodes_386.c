@@ -747,11 +747,11 @@ OPTINLINE void CPU80386_internal_MOV16(word *dest, word val, byte flags)
 	{
 		if (custommem)
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
 			{
 				return; //Abort on fault!
 			}
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) //Error accessing memory?
 			{
 				return; //Abort on fault!
 			}
@@ -866,11 +866,11 @@ OPTINLINE void CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 	{
 		if (custommem)
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
 			{
 				return; //Abort on fault!
 			}
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) //Error accessing memory?
 			{
 				return; //Abort on fault!
 			}
@@ -1134,35 +1134,35 @@ OPTINLINE void CPU80386_internal_MOVSD()
 {
 	INLINEREGISTER uint_32 data;
 	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
@@ -1219,36 +1219,36 @@ OPTINLINE void CPU80386_internal_CMPSD()
 {
 	INLINEREGISTER uint_32 data1, data2;
 	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),CPU_Address_size[activeCPU]?REG_ESI:REG_SI,1,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),CPU_Address_size[activeCPU]?REG_ESI:REG_SI,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
 
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
@@ -1305,19 +1305,19 @@ OPTINLINE void CPU80386_internal_CMPSD()
 OPTINLINE void CPU80386_internal_STOSD()
 {
 	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
@@ -1360,19 +1360,19 @@ OPTINLINE void CPU80386_internal_LODSD()
 {
 	INLINEREGISTER uint_32 value;
 	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
@@ -1416,23 +1416,23 @@ OPTINLINE void CPU80386_internal_SCASD()
 {
 	INLINEREGISTER uint_32 cmp1;
 	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) //Error accessing memory?
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
 	{
 		return; //Abort on fault!
 	}
-	cmp1 = MMU_rw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), 0,!CPU_Address_size[activeCPU]); //Try to read the data to compare!
+	cmp1 = MMU_rdw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), 0,!CPU_Address_size[activeCPU]); //Try to read the data to compare!
 	CPUPROT1
 	CMP_dw(REG_EAX,cmp1,4);
 	if (FLAG_DF)
@@ -1538,7 +1538,7 @@ OPTINLINE void CPU80386_internal_XLAT()
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0xFF)) return; //Abort on fault!
+	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,!CPU_Address_size[activeCPU]);    //XLAT
 	CPUPROT1
@@ -1842,9 +1842,9 @@ void CPU80386_OP9D_32() {
 OPTINLINE void CPU80386_OPA0_8exec_addr32() {debugger_setcommand("MOVB AL,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AL,[imm32]*/ if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; CPU80386_internal_MOV8(&REG_AL,MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,0),1);/*MOV AL,[imm32]*/ }
 
 //A1 16/32-bits address version with 16/32-bit reg
-OPTINLINE void CPU80386_OPA1_16exec_addr32() {debugger_setcommand("MOVW AX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; CPU80386_internal_MOV16(&REG_AX,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV AX,[imm32]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOVD EAX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV EAX,[imm16]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOVD EAX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV EAX,[imm32]*/ }
+OPTINLINE void CPU80386_OPA1_16exec_addr32() {debugger_setcommand("MOVW AX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; CPU80386_internal_MOV16(&REG_AX,MMU_rw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV AX,[imm32]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOVD EAX,[%s:%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV EAX,[imm16]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOVD EAX,[%s:%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/  if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; CPU80386_internal_MOV32(&REG_EAX,MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,0,!CPU_Address_size[activeCPU]),1);/*MOV EAX,[imm32]*/ }
 
 //A2 32-bits address version with 8-bit reg
 OPTINLINE void CPU80386_OPA2_8exec_addr32() {debugger_setcommand("MOVB [%s:%08X],AL",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32],AL*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV8(NULL,REG_AL,1);/*MOV [imm32],AL*/ custommem = 0; }
@@ -2677,12 +2677,12 @@ void op_grp5_32() {
 		break;
 	case 5: //JMP Mp
 		modrm_decode32(&params, &info, 1); //Get data!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; //Abort on fault!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) return; //Abort on fault!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) return; //Abort on fault!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+4,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
-		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+5,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+4,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+5,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
 
 		destEIP = MMU_rdw(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset, 0,!CPU_Address_size[activeCPU]);
 		CPUPROT1
@@ -2906,10 +2906,10 @@ void CPU386_OP6D()
 	debugger_setcommand("INSD");
 	if (blockREP) return; //Disabled REP!
 	uint_32 data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
 	if (CPU_PORT_IN_D(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
 	MMU_wdw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU]);    //INSW
@@ -2945,10 +2945,10 @@ void CPU386_OP6F()
 	debugger_setcommand("OUTSD");
 	if (blockREP) return; //Disabled REP!
 	uint_32 data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
+	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
 	data = MMU_rdw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]);
 	CPUPROT1
 	if (CPU_PORT_OUT_D(0,REG_DX,data)) return;    //OUTS DX,Xz

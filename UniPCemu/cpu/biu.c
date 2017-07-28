@@ -110,7 +110,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 		//Execution can start on any cycle!
 		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0xFF)) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -127,7 +127,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0xFF)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 	{
 		return 1; //Abort on fault!
 	}
