@@ -898,20 +898,10 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 #ifdef ATA_LOG
 	dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
 #endif
-	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 2); //We're writing!
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
-	{
-		multiple = ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode; //Multiple sectors instead!
-	}
-	if (multiple>ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //More than requested left?
-	{
-		multiple = ATA[channel].Drive[ATA_activeDrive(channel)].datasize; //Only take what's requested!
-	}
-	ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How many have we transferred?
 
-	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (multiple<<9))) //Write the data to the disk?
+	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred<<9))) //Write the data to the disk?
 	{
-		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
+		for (counter=0;counter<ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred;++counter) //Increase sector count as much as required!
 		{
 			ATA_increasesector(channel); //Increase the current sector!
 		}
@@ -937,9 +927,18 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 		dolog("ATA", "Process next sector...");
 #endif
 		//Process next sector!
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
+		{
+			multiple = ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode; //Multiple sectors instead!
+		}
+		if (multiple>ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //More than requested left?
+		{
+			multiple = ATA[channel].Drive[ATA_activeDrive(channel)].datasize; //Only take what's requested!
+		}
+		ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How many have we transferred?
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //Set the command to use when writing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're refreshing after this many bytes!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //Transferring data OUT!
 		return 1; //Process the block!
 	}
@@ -2034,10 +2033,12 @@ void ATA_reset(byte channel, byte slave)
 	ATA[channel].Drive[slave].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 	ATA[channel].Drive[slave].ATAPI_processingPACKET = 0; //Not processing any packet!
 	ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
+	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
+	uint_32 multiple;
 #ifdef ATA_LOG
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
 #endif
@@ -2249,10 +2250,23 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
+
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
+		{
+			multiple = ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode; //Multiple sectors instead!
+		}
+
+		if (multiple>ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //More than requested left?
+		{
+			multiple = ATA[channel].Drive[ATA_activeDrive(channel)].datasize; //Only take what's requested!
+		}
+		ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How many have we transferred?
+
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //Transferring data OUT!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Start at the beginning of the sector buffer!
-		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200; //We're writing 512 bytes to our output at a time!
+		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're writing 512 bytes to our output at a time!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //We're executing this command!
+		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 2); //We're writing!
 		break;
 	case 0x91: //Initialise device parameters?
 #ifdef ATA_LOG
