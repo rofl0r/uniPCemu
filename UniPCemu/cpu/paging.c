@@ -119,6 +119,16 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
+	uint_32 temp;
+	if (Paging_readTLB(address,RW,effectiveUS,0,&temp)) //Cache hit not dirty?
+	{
+		return 1; //Valid!
+	}
+	if (Paging_readTLB(address,RW,effectiveUS,1,&temp)) //Cache hit dirty?
+	{
+		return 1; //Valid!
+	}
+
 	//Check PDE
 	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
 	if (!(PDE&PXE_P)) //Not present?
@@ -162,7 +172,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	{
 		memory_directwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(address,RW,effectiveUS,((PTE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)); //Save the PTE in the TLB!
+	Paging_writeTLB(address,RW,effectiveUS,(PTE&PTE_D)?1:0,((PTE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)); //Save the PTE in the TLB!
 	return 1; //Valid!
 }
 
@@ -180,7 +190,11 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
-	if (Paging_readTLB(address,RW,effectiveUS, &result)) //Cache hit?
+	if (Paging_readTLB(address,RW,effectiveUS,0,&result)) //Cache hit?
+	{
+		return result+(address&0xFFF); //Give the actual address from the TLB!
+	}
+	else if (Paging_readTLB(address,RW,effectiveUS,1,&result)) //Cache hit?
 	{
 		return result+(address&0xFFF); //Give the actual address from the TLB!
 	}
@@ -218,9 +232,9 @@ byte Paging_oldestTLB(byte set) //Find a TLB to be used/overwritten!
 	return oldest; //Give the oldest entry!
 }
 
-uint_32 Paging_generateTAG(uint_32 logicaladdress, byte RW, byte US)
+uint_32 Paging_generateTAG(uint_32 logicaladdress, byte RW, byte US, byte Dirty)
 {
-	return ((logicaladdress&0xFFFFF000)|(RW<<2)|(US<<1)|1); //The used TAG!
+	return ((logicaladdress&0xFFFFF000)|(Dirty<<3)|(RW<<2)|(US<<1)|1); //The used TAG!
 }
 
 byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
@@ -228,12 +242,12 @@ byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 	return (((logicaladdress&0xFFFFF000)|1)==((TAG&0xFFFFF000)|(TAG&1))); //The used TAG matches on address and availability only! Ignore US/RW!
 }
 
-void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, uint_32 result)
+void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
 {
 	byte TLB_set;
 	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
 	uint_32 TAG;
-	TAG = Paging_generateTAG(logicaladdress,RW,US); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = 0.0; //No age yet, we're brand new!
@@ -241,12 +255,12 @@ void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, uint_32 result)
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = TAG; //The TAG to find it by!
 }
 
-byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, uint_32 *result)
+byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 *result)
 {
 	byte TLB_set;
 	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
 	uint_32 TAG;
-	TAG = Paging_generateTAG(logicaladdress,RW,US); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
 	byte entry;
 	for (entry=0;entry<8;++entry) //Check all entries!
 	{
