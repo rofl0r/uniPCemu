@@ -260,23 +260,18 @@ void Paging_refreshAges(byte TLB_set, byte newestentry) //Refresh the ages, with
 	AGEENTRY sortarray[8];
 	byte x,y;
 	x = 0;
+	//Age bit 3 is assigned to become 8+(invalid/unused, which is moved to the end with value assigned 0)!
 	for (x=0;x<8;++x)
 	{
-		sortarray[x].age = ((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)==0)?8:(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
+		sortarray[x].age = (((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3)|(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
 		sortarray[x].entry = x; //What entry are we?
 	}
 	qsort(&sortarray,8,sizeof(AGEENTRY),&compareageentry); //Sort the entries!
 	y = 0; //Initialize the age to apply!
 	for (x=0;x<8;++x) //Apply the new order!
 	{
-		if (sortarray[x].age==8) //Unused entry?
-		{
-			CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = 0; //Unused age!
-		}
-		else //Valid entry to fill?
-		{
-			CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = y++; //Generate the new age for this entry!
-		}
+		CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = (y>>(sortarray[x].age&8)); //Generated age or unused age(0)!
+		if ((sortarray[x].age&8)==0) ++y; //Next when valid entry!
 	}
 }
 
