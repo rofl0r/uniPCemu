@@ -291,6 +291,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 double Paging_timer=0.0;
 void Paging_ticktime(double timepassed) //Update Paging timers for determining the oldest entry!
 {
+	byte overflown=0;
 	if (unlikely(CPU[activeCPU].executed)) //Executed something?
 	{
 		INLINEREGISTER TLBEntry *entry, *finishentry;
@@ -299,8 +300,16 @@ void Paging_ticktime(double timepassed) //Update Paging timers for determining t
 		finishentry = &CPU[activeCPU].Paging_TLB.TLB[NUMITEMS(CPU[0].Paging_TLB.TLB)][0]; //Finishing entry!
 		do //Check all!
 		{
-			(entry++)->age += timepassed; //Tick age of a TLB entry!
-		} while (entry!=finishentry); //While not finished, repeat!
+			entry->age += Paging_timer; //Tick age of a TLB entry!
+			if (unlikely(entry->age>1000000000.0)) overflown = 1;
+		} while (++entry!=finishentry); //While not finished, repeat!
+		if (unlikely(overflown))
+		{
+			do //Check all!
+			{
+				entry->age -= 100000000.0; //Max 1.0 second, preventing from overflow!
+			} while (++entry!=finishentry); //While not finished, repeat!
+		}
 		Paging_timer = 0.0; //Clear timer!
 	}
 	else
