@@ -1051,7 +1051,6 @@ OPTINLINE byte coreHandler()
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
 		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!
-		Paging_ticktime(instructiontime); //Tick the time that's passed on the Paging unit!
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!

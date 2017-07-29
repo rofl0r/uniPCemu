@@ -11,7 +11,7 @@ typedef struct
 {
 	uint_32 data; //80386 4-way associative TLB results!
 	uint_32 TAG; //All TAGs used with the respective TLB!
-	double age; //The age of a TAG, which is incremented in time, reset by accesses to it!
+	sbyte age; //The age of a TAG, which is incremented in time, reset by accesses to it!
 } TLBEntry;
 
 typedef struct
@@ -22,7 +22,6 @@ typedef struct
 void Paging_clearTLB(); //Clears the TLB for further fetching!
 void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result);
 byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 *result);
-void Paging_ticktime(double timepassed); //Update Paging timers for determining the oldest entry!
 void Paging_initTLB(); //Initialize the Paging TLB!
 void Paging_Invalidate(uint_32 logicaladdress); //Invalidate a single address!
 #endif
