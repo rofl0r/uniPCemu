@@ -305,6 +305,7 @@ void Paging_ticktime(double timepassed) //Update Paging timers for determining t
 		} while (++entry!=finishentry); //While not finished, repeat!
 		if (unlikely(overflown))
 		{
+			entry = &CPU[activeCPU].Paging_TLB.TLB[0][0]; //Load first entry!
 			do //Check all!
 			{
 				entry->age -= 100000000.0; //Max 1.0 second, preventing from overflow!
