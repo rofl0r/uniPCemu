@@ -42,8 +42,9 @@ byte is_paging()
 #define PTE_D 0x00000040
 //Global flag! Must be on PTE only (PDE is cleared always)
 #define PTE_G 0x00000100
-//Address mask
+//Address mask/active mask(in the lookup table)
 #define PXE_ADDRESSMASK 0xFFFFF000
+#define PXE_ACTIVEMASK 0xFFF
 //Address shift
 #define PXE_ADDRESSSHIFT 12
 
@@ -120,7 +121,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
-	if (Paging_readTLB(address,RW,effectiveUS,0,&temp)) //Cache hit not dirty?
+	if (Paging_readTLB(address,RW,effectiveUS,RW,&temp)) //Cache hit not dirty? Don't check not dirty when writing(must be marked dirty, otherwise we won't handle non-dirty values below(and mark them dirty appropriately)).
 	{
 		return 1; //Valid!
 	}
@@ -172,7 +173,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	{
 		memory_directwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(address,RW,effectiveUS,(PTE&PTE_D)?1:0,((PTE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)); //Save the PTE in the TLB!
+	Paging_writeTLB(address,RW,effectiveUS,(PTE&PTE_D)?1:0,(PTE&PXE_ADDRESSMASK)); //Save the PTE 32-bit address in the TLB!
 	return 1; //Valid!
 }
 
@@ -190,13 +191,13 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
-	if (Paging_readTLB(address,RW,effectiveUS,0,&result)) //Cache hit?
+	if (Paging_readTLB(address,RW,effectiveUS,RW,&result)) //Cache hit? Don't check not dirty when writing.
 	{
-		return result+(address&0xFFF); //Give the actual address from the TLB!
+		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
 	else if (Paging_readTLB(address,RW,effectiveUS,1,&result)) //Cache hit?
 	{
-		return result+(address&0xFFF); //Give the actual address from the TLB!
+		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
 	else
 	{
