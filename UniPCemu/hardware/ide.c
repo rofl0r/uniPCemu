@@ -350,9 +350,12 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	*/
 	if (ATA[channel].Drive[drive].ATAPI_diskchangepending==2)
 	{
-		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet!
+		ATAPI_INTERRUPTREASON_CD(channel,drive,0); //Not a command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //Transfer to device!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
+		ATAPI_ERRORREGISTER_SENSEKEY(channel,drive,SENSE_UNIT_ATTENTION); //Signal an Unit Attention Sense key!
+		ATAPI_ERRORREGISTER_ABRT(channel,drive,0); //Signal no Abort!
+		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Error(Unit Attention)!
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 3; //Not pending anymore, pending to give sense packet instead!
 	}
 	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
@@ -392,7 +395,7 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 	if (inserted) //Inserted?
 	{
 		ATA[channel].Drive[drive].diskInserted = 1; //We're inserted!
-		ATA[channel].Drive[drive].ERRORREGISTER = ((SENSE_UNIT_ATTENTION<<4)|8); //Reset error register! This also contains a copy of the Sense Key!
+		ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
 		ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 		ATA_IRQ(channel,drive); //Raise an IRQ!
