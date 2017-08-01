@@ -3056,6 +3056,8 @@ void initATA()
 	ATA_DiskChanged(HDD1); //Init HDD1!
 	ATA_DiskChanged(CDROM0); //Init HDD0!
 	ATA_DiskChanged(CDROM1); //Init HDD1!
+	ATA[CDROM_channel].Drive[0].diskInserted = is_mounted(CDROM0); //Init Mounted and inserted?
+	ATA[CDROM_channel].Drive[1].diskInserted = is_mounted(CDROM1); //Init Mounted and inserted?
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
 	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
