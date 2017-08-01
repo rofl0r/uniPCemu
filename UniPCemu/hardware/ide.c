@@ -1981,6 +1981,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		break;
 	default:
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+
 		ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
