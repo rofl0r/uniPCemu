@@ -1576,6 +1576,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		//Now fill the packet with data!
 		memcpy(&ATA[channel].Drive[drive].data, &ATA[channel].Drive[drive].SensePacket, ATA[channel].Drive[drive].datablock); //Give the result!
+		if (ATA[channel].Drive[drive].SensePacket[2]==SENSE_UNIT_ATTENTION) //Unit attention?
+		{
+			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_NONE); //No sense anymore!
+		}
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
