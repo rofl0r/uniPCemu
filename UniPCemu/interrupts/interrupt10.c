@@ -2427,8 +2427,11 @@ void BIOS_int10() //Handler!
 
 void int10_BIOSInit() //Initisation of the BIOS routine!
 {
-	INT10_SetupRomMemory(1); //Setup ROM memory with interrupts!
-	INT10_StartBasicVideoParameterTable(); //Setup the basic Video Parameter table!
-	CPU_setint(0x10, 0xC000, int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
-	initint10(); //Enter interrupt 10h defaults for our video card!
+	if (EMULATED_CPU<CPU_80286) //Good CPU? Otherwise, don't run(Protected mode CPUs)
+	{
+		INT10_SetupRomMemory(1); //Setup ROM memory with interrupts!
+		INT10_StartBasicVideoParameterTable(); //Setup the basic Video Parameter table!
+		CPU_setint(0x10, 0xC000, int10.rom.used); //Interrupt 10h overridable handler at the end of the VGA ROM!
+		initint10(); //Enter interrupt 10h defaults for our video card!
+	}
 }

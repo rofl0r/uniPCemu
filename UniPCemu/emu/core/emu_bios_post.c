@@ -78,7 +78,10 @@ void BIOS_initStart() //Memory defaults for the CPU with our internal BIOS!
 {
 	//Initialise VGA ROM memory!
 	INT10_SetupRomMemory(0); //Setup ROM memory without interrupts!
-	addCBHandler(CB_VIDEOINTERRUPT,&BIOS_int10,0x10); //Unassigned interrupt #10: Video BIOS. This is reserved in the emulator!
+	if (EMULATED_CPU<CPU_80286) //Good CPU?
+	{
+		addCBHandler(CB_VIDEOINTERRUPT,&BIOS_int10,0x10); //Unassigned interrupt #10: Video BIOS. This is reserved in the emulator!
+	}
 	addCBHandler(CB_VIDEOENTRY,&BIOS_int10entry,0x00); //Interrupt 10h entry point!
 	INT10_SetupRomMemoryChecksum(); //Set the checksum for detection!
 
