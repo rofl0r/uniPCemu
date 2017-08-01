@@ -350,12 +350,13 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	*/
 	if (ATA[channel].Drive[drive].ATAPI_diskchangepending==2)
 	{
-		ATAPI_INTERRUPTREASON_CD(channel,drive,0); //Not a command packet!
+		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //Transfer to device!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
 		ATAPI_ERRORREGISTER_SENSEKEY(channel,drive,SENSE_UNIT_ATTENTION); //Signal an Unit Attention Sense key!
 		ATAPI_ERRORREGISTER_ABRT(channel,drive,0); //Signal no Abort!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Error(Unit Attention)!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 4; //We're triggering the reason read to reset!
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 3; //Not pending anymore, pending to give sense packet instead!
 	}
 	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
