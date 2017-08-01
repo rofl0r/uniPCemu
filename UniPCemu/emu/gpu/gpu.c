@@ -665,6 +665,7 @@ void GPU_mousemove(word x, word y, byte finger)
 
 void GPU_tickVideo()
 {
+	if (unlikely(haswindowactive&8)) {getnspassed(&renderTiming);}
 	currentRenderTiming += (double)getnspassed(&renderTiming); //Add the time passed to calculate!
 	if (currentRenderTiming >= renderTimeout) //Timeout?
 	{

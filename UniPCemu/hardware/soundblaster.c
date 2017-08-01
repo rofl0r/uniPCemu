@@ -174,6 +174,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	}
 
 	soundblaster_recordedpassed = getnspassed(&SOUNDBLASTER.recordingtimer); //Tick the recording timer real-time!
+	if (unlikely(haswindowactive&0x10)) {soundblaster_recordedpassed = 0.0; haswindowactive |= ~0x20;} //Fully active again?
 
 	#ifdef RECORD_TESTWAVE
 	//For testing!

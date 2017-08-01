@@ -606,6 +606,7 @@ int main(int argc, char * argv[])
 		GPU_tickVideo(); //Tick the video display to keep it up-to-date!
 		//Now, run the CPU!
 		emu_status = DoEmulator(); //Run the emulator!
+		if (unlikely(haswindowactive&0x38)==0x38) {haswindowactive &= ~0x38;} //Fully active again?
 		switch (emu_status) //What to do next?
 		{
 		case -1: //Continue running?
