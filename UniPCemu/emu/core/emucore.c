@@ -831,7 +831,7 @@ OPTINLINE byte coreHandler()
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	lock(LOCK_INPUT);
-	if (unlikely((haswindowactive&0x1C)==0xC))) {getnspassed(&CPU_timing); haswindowactive|=0x10;} //Pending to finish Soundblaster!
+	if (unlikely((haswindowactive&0x1C)==0xC)) {getnspassed(&CPU_timing); haswindowactive|=0x10;} //Pending to finish Soundblaster!
 	currenttiming += likely(haswindowactive&2)?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
 	unlock(LOCK_INPUT);
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!

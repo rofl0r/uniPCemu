@@ -142,6 +142,8 @@ void tickSoundBlasterRecording()
 	#endif
 }
 
+extern byte haswindowactive; //For detecting paused operation!
+
 void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 {
 	
