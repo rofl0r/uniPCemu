@@ -57,6 +57,16 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define PARAM_MODRM21_IMM8 9
 #define PARAM_MODRM12_CL 10
 #define PARAM_MODRM21_CL 11
+
+//Specifics based on the information table:
+#define PARAM_MODRM_01 14
+#define PARAM_MODRM_10 15
+#define PARAM_MODRM_01_IMM8 16
+#define PARAM_MODRM_10_IMM8 17
+#define PARAM_MODRM_01_CL 18
+#define PARAM_MODRM_10_CL 19
+#define PARAM_MODRM_0 12
+#define PARAM_MODRM_1 13
 //Descriptors used by the CPU
 
 //Data segment descriptor

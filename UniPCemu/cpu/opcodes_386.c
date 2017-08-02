@@ -1664,23 +1664,23 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 void CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 {
 	modrm_addoffset = 0; //Add this to the offset to use!
-	if (modrm_check32(&params,1,1)) return; //Abort on fault!
+	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	modrm_addoffset = 2; //Add this to the offset to use!
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
-	if (modrm_check16(&params,0,0)) return; //Abort on fault for the used segment itself!
+	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault for the used segment itself!
 
 	CPUPROT1
 	modrm_addoffset = 0; //Add this to the offset to use!
-	uint_32 offset = modrm_read32(&params,1);
+	uint_32 offset = modrm_read32(&params,MODRM_src1);
 	CPUPROT1
 	modrm_addoffset = 2; //Add this to the offset to use!
-	word segment = modrm_read16(&params,1);
+	word segment = modrm_read16(&params,MODRM_src1);
 	modrm_addoffset = 0; //Reset again!
 	CPUPROT1
 		destEIP = REG_EIP; //Save EIP for transfers!
-		segmentWritten(segmentregister, segment,0); //Load the new segment!
+		segmentWritten(segmentregister, segment,MODRM_src0); //Load the new segment!
 	CPUPROT1
-		modrm_write16(&params, 0, offset, 0); //Try to load the new register with the offset!
+		modrm_write16(&params, MODRM_src0, offset, 0); //Try to load the new register with the offset!
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -2611,13 +2611,11 @@ void op_grp5_32() {
 	case 0: //INC Ev
 		if (modrm_check32(&params,1,1)) return; //Abort when needed!
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
-		MODRM_src0 = 1; //We're taking this source!
 		CPU80386_internal_INC32(modrm_addr32(&params,1,0));
 		break;
 	case 1: //DEC Ev
 		if (modrm_check32(&params,1,1)) return; //Abort when needed!
 		if (modrm_check32(&params,1,0)) return; //Abort when needed!
-		MODRM_src0 = 1; //We're taking this source!
 		CPU80386_internal_DEC32(modrm_addr32(&params,1,0));
 		break;
 	case 2: //CALL Ev

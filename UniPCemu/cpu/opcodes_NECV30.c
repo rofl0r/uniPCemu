@@ -15,6 +15,7 @@
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 extern byte MODRM_src0; //What source is our modr/m? (1/2)
+extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL instructions)!
 
 extern byte immb; //Immediate byte!
@@ -158,7 +159,7 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 //62 not implemented in fake86? Does this not exist?
 void CPU186_OP62()
 {
-	modrm_debugger16(&params,0,1); //Debug the location!
+	modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Debug the location!
 	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
 
 	if (modrm_isregister(params)) //ModR/M may only be referencing memory?
@@ -170,16 +171,16 @@ void CPU186_OP62()
 	static word bound_min, bound_max;
 	static word theval;
 	modrm_addoffset = 0; //No offset!
-	if (modrm_check16(&params,0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
+	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
 	modrm_addoffset = 2; //Max offset!
-	if (modrm_check16(&params,1,1)) return; //Abort on fault!
+	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
 
 	modrm_addoffset = 0; //No offset!
-	if (CPU8086_instructionstepreadmodrmw(0,&theval,0)) return; //Read index!
-	if (CPU8086_instructionstepreadmodrmw(2,&bound_min,1)) return; //Read min!
+	if (CPU8086_instructionstepreadmodrmw(0,&theval,MODRM_src0)) return; //Read index!
+	if (CPU8086_instructionstepreadmodrmw(2,&bound_min,MODRM_src1)) return; //Read min!
 	modrm_addoffset = 2; //Max offset!
-	if (CPU8086_instructionstepreadmodrmw(4,&bound_max,1)) return; //Read max!
+	if (CPU8086_instructionstepreadmodrmw(4,&bound_max,MODRM_src1)) return; //Read max!
 	modrm_addoffset = 0; //Reset offset!
 	if ((unsigned2signed16(theval)<unsigned2signed16(bound_min)) || (unsigned2signed16(theval)>unsigned2signed16(bound_max)))
 	{
@@ -203,8 +204,8 @@ void CPU186_OP68()
 
 void CPU186_OP69()
 {
-	modrm_decode16(&params,&info,0); //Reg!
-	modrm_decode16(&params,&info2,1); //Second parameter(R/M)!
+	modrm_decode16(&params,&info,MODRM_src0); //Reg!
+	modrm_decode16(&params,&info2,MODRM_src1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULW %s,%04X",info.text,immw); //IMUL reg,imm16
@@ -239,7 +240,7 @@ void CPU186_OP69()
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	modrm_write16(&params,0,temp3.val16,0); //Write to the destination(register)!
+	modrm_write16(&params,MODRM_src0,temp3.val16,0); //Write to the destination(register)!
 	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
@@ -259,8 +260,8 @@ void CPU186_OP6A()
 
 void CPU186_OP6B()
 {
-	modrm_decode16(&params,&info,0); //Store the address!
-	modrm_decode16(&params,&info2,1); //Store the address(R/M)!
+	modrm_decode16(&params,&info,MODRM_src0); //Store the address!
+	modrm_decode16(&params,&info2,MODRM_src1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULW %s,%02X",info.text,immb); //IMUL reg,imm8
@@ -275,12 +276,12 @@ void CPU186_OP6B()
 		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,1)) return; //Read R/M!
+			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
 		}
 		else
 		{
-			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,0)) return; //Read reg instead! Word register = Word register * imm16!
+			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm16!
 			temp1.val16high = 0; //Clear high part by default!
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
@@ -297,7 +298,7 @@ void CPU186_OP6B()
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 
-	modrm_write16(&params,0,temp3.val16,0); //Write to register!
+	modrm_write16(&params,MODRM_src0,temp3.val16,0); //Write to register!
 	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
@@ -463,7 +464,7 @@ void CPU186_OPC0()
 {
 	oper2b = immb;
 
-	modrm_decode16(&params,&info,1); //Store the address for debugging!
+	modrm_decode16(&params,&info,MODRM_src0); //Store the address for debugging!
 	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
@@ -495,15 +496,20 @@ void CPU186_OPC0()
 			break;
 	}
 
-	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,1,1)) return; //Abort when needed!
-	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,1,0)) return; //Abort when needed!
-	if (CPU8086_instructionstepreadmodrmb(0,&oper1b,1)) return;
-	if (CPU8086_instructionstepwritemodrmb(2,op_grp2_8(oper2b,2),1)) return;
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
+	//if (CPU8086_instructionstepreadmodrmb(0,&oper1b,MODRM_src1)) return;
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
+	{
+		res8 = op_grp2_8(oper2b,2); //Execute!
+		++CPU[activeCPU].instructionstep; //Next step: writeback!
+	}
+	if (CPU8086_instructionstepwritemodrmb(1,res8,MODRM_src0)) return;
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
 {
-	modrm_decode16(&params,&info,1); //Store the address for debugging!
+	modrm_decode16(&params,&info,MODRM_src0); //Store the address for debugging!
 	oper2 = (word)immb;
 	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
@@ -536,10 +542,15 @@ void CPU186_OPC1()
 			break;
 	}
 	
-	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,1,1)) return; //Abort when needed!
-	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,1,0)) return; //Abort when needed!
-	if (CPU8086_instructionstepreadmodrmw(0,&oper1,1)) return;
-	if (CPU8086_instructionstepwritemodrmw(2,op_grp2_16((byte)oper2,2),1,0)) return;
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
+	{
+		res16 = op_grp2_16((byte)oper2,2); //Execute!
+		++CPU[activeCPU].instructionstep; //Next step: writeback!
+	}
+	//if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return;
+	if (CPU8086_instructionstepwritemodrmw(1,res16,1,0)) return;
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!
