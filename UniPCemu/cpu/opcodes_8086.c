@@ -3433,15 +3433,28 @@ void external8086RETF(word popbytes)
 	CPU8086_internal_RETF(popbytes,1); //Return immediate variant!
 }
 
+extern uint_32 exception_busy; //Exception is busy?
+extern byte tempcycles;
+
 OPTINLINE byte CPU8086_internal_INTO()
 {
 	CPUPROT1
 	if (FLAG_OF)
 	{
-		if (CPU_faultraised(EXCEPTION_OVERFLOW))
+		if (exception_busy&0x10) goto busyEX4;
+		exception_busy |= 0x10; //We're busy!
+		if (CPU_faultraised(EXCEPTION_OVERFLOW)==0) //Fault raised?
 		{
-			CPU8086_int(EXCEPTION_OVERFLOW,0);
+			exception_busy &= ~0x10; //Not busy anymore!
+			return; //Abort handling when needed!
 		}
+		busyEX4:
+		CPU_resetOP(); //Reset instruction to start of instruction!
+		tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+		if ((CPU086_int(EXCEPTION_COPROCESSORNOTAVAILABLE)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
+		exception_busy &= ~0x10; //Not busy anymore!
+		CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+		CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
 	}
 	else
 	{
