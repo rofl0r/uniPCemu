@@ -5267,7 +5267,7 @@ void op_grp5() {
 		destEIP = (uint_32)oper1; //Convert to EIP!
 		CPUPROT1
 		modrm_addoffset = 2; //Then destination CS!
-		if (CPU8086_internal_stepreadmodrmw(2,&destCS,MODRM_src0)) return; //Get destination CS!
+		if (CPU8086_internal_stepreadmodrmw(0,&destCS,MODRM_src0)) return; //Get destination CS!
 		CPUPROT1
 		modrm_addoffset = 0;
 		CPU8086_CALLF(destCS,destEIP); //Call the destination address!
