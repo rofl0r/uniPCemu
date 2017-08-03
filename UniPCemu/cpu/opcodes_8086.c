@@ -4423,7 +4423,8 @@ void CPU8086_OPF6() //GRP3a Eb
 	{
 		oper1b = instructionbufferb;
 		op_grp3_8();
-		++CPU[activeCPU].instructionstep; //Next step!
+		if (likely(CPU[activeCPU].executed)) ++CPU[activeCPU].instructionstep; //Next step!
+		else return; //Wait for completion!
 	}
 	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
 	{
@@ -4474,7 +4475,8 @@ void CPU8086_OPF7() //GRP3b Ev
 	{
 		oper1 = instructionbufferw;
 		op_grp3_16();
-		++CPU[activeCPU].instructionstep; //Next step!
+		if (likely(CPU[activeCPU].executed)) ++CPU[activeCPU].instructionstep; //Next step!
+		else return; //Wait for completion!
 	}
 	if ((thereg>1) && (thereg<4)) //NOT/NEG?
 	{
