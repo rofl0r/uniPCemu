@@ -1821,7 +1821,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	//byte cycles_counted = 0; //Cycles have been counted?
-	if (likely(BIU_Ready()==0)) //BIU not ready to continue? We're handling seperate cycles still!
+	if (likely((BIU_Ready()&&(CPU[activeCPU].halt==0))==0)) //BIU not ready to continue? We're handling seperate cycles still!
 	{
 		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
