@@ -22,6 +22,11 @@ MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 
+//How many cycles to substract from the documented instruction timings for the raw EU cycles for each BIU access?
+#define EU_CYCLES_SUBSTRACT_ACCESSREAD 4
+#define EU_CYCLES_SUBSTRACT_ACCESSWRITE 4
+#define EU_CYCLES_SUBSTRACT_ACCESSRW 8
+
 //When using http://www.mlsite.net/8086/: G=Modr/m mod&r/m adress, E=Reg field in modr/m
 
 //INFO: http://www.mlsite.net/8086/
@@ -102,20 +107,34 @@ Start of help for opcode processing
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 extern uint_32 wordaddress; //Word address used during memory access!
 
-OPTINLINE void CPU80386_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
+OPTINLINE byte CPU80386_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
 {
-	call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
+	return call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
 }
 
-OPTINLINE void CPU80386_INTERNAL_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
+OPTINLINE byte CPU80386_INTERNAL_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
 {
+	byte result = 1; //Result!
 	CPUPROT1
-		CPU80386_software_int(interrupt, -1);
+		/*
+		if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
+		{
+			result = CPU8086_software_int(interrupt,-1);
+			if (result) //Final stage?
+			{
+				CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /Stall the BIU completely now!/
+			}
+		}
+		else
+		*/ //Unsupported CPU? Use plain general interrupt handling instead!
+		{
+			CPU80386_software_int(interrupt,-1);
+			if (CPU_apply286cycles()) return 1; //80286+ cycles instead?
+			result = 1; //Always 1!
+		}
+		return result; //Finished!
 	CPUPROT2
-	if (type3) //Type-3 interrupt?
-		CPU[activeCPU].cycles_OP = 52; /* Type-3 interrupt */
-	else //Normal interrupt?
-		CPU[activeCPU].cycles_OP = 51; /* Normal interrupt */
+	return result; //Finished!
 }
 
 void CPU80386_int(byte interrupt) //Software interrupt (external call)!
@@ -128,6 +147,7 @@ OPTINLINE void CPU80386_IRET()
 	CPUPROT1
 	CPU_IRET(); //IRET!
 	CPUPROT2
+	if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	CPU[activeCPU].cycles_OP = 24; /*Timings!*/
 }
 
@@ -207,39 +227,408 @@ OPTINLINE void op_sbb32() {
 	flag_sbb32 (oper1d, oper2d, FLAG_CF);
 }
 
+/*
+
+32-bit versions of BIU operations!
+
+*/
+
+//Stack operation support through the BIU!
+byte CPU80386_PUSHdw(byte base, uint_32 *data)
+{
+	uint_32 temp;
+	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	{
+		if (CPU_PUSH32_BIU(data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	if (CPU[activeCPU].instructionstep==(base+1))
+	{
+		if (BIU_readResultdw(&temp)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_PUSHdw(byte base, uint_32 *data)
+{
+	uint_32 temp;
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
+	{
+		if (CPU_PUSH32_BIU(data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
+	{
+		if (BIU_readResultdw(&temp)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_interruptPUSHdw(byte base, uint_32 *data)
+{
+	uint_32 temp;
+	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
+	{
+		if (CPU_PUSH32_BIU(data)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinterruptstep==(base+1))
+	{
+		if (BIU_readResultdw(&temp)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_POPdw(byte base, uint_32 *result)
+{
+	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	{
+		if (CPU_POP32_BIU()==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	if (CPU[activeCPU].instructionstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_POPdw(byte base, uint_32 *result)
+{
+	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
+	{
+		if (CPU_POP32_BIU()==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_POPESP(byte base)
+{
+	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	{
+		if (BIU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT?REG_ESP:REG_SP,1)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	if (CPU[activeCPU].instructionstep==(base+1))
+	{
+		if (BIU_readResultdw(&REG_ESP)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+//Instruction variants of ModR/M!
+
+byte CPU80386_instructionstepreadmodrmdw(byte base, uint_32 *result, byte paramnr)
+{
+	byte BIUtype;
+	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	{
+		if ((BIUtype = modrm_read32_BIU(&params,paramnr,result))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+		if (BIUtype==2) //Register?
+		{
+			++CPU[activeCPU].instructionstep; //Skip next step!
+		}
+	}
+	if (CPU[activeCPU].instructionstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_instructionstepwritemodrmdw(byte base, uint_32 value, byte paramnr)
+{
+	uint_32 dummy;
+	byte BIUtype;
+	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	{
+		if ((BIUtype = modrm_write32_BIU(&params,paramnr,value))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+		if (BIUtype==2) //Register?
+		{
+			++CPU[activeCPU].instructionstep; //Skip next step!
+		}
+	}
+	if (CPU[activeCPU].instructionstep==(base+1))
+	{
+		if (BIU_readResultdw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+//Now, the internal variants of the functions above!
+
+byte CPU80386_internal_stepreadmodrmdw(byte base, uint_32 *result, byte paramnr)
+{
+	byte BIUtype;
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if ((BIUtype = modrm_read32_BIU(&params,paramnr,result))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+		if (BIUtype==2) //Register?
+		{
+			++CPU[activeCPU].internalmodrmstep; //Skip next step!
+		}
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_stepwritedirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16)
+{
+	uint_32 dummy;
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if (BIU_request_MMUwdw(segment,offset,val,is_offset16)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultdw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_stepreaddirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
+{
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if (BIU_request_MMUrdw(segment,offset,is_offset16)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_stepreadinterruptdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
+{
+	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
+	{
+		if (BIU_request_MMUrdw(segment,offset,is_offset16)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinterruptstep==(base+1))
+	{
+		if (BIU_readResultdw(result)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalinterruptstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_internal_stepwritemodrmdw(byte base, uint_32 value, byte paramnr)
+{
+	uint_32 dummy;
+	byte BIUtype;
+	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
+	{
+		if ((BIUtype = modrm_write32_BIU(&params,paramnr,value))==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+		if (BIUtype==2) //Register?
+		{
+			++CPU[activeCPU].internalmodrmstep; //Skip next step!
+		}
+	}
+	if (CPU[activeCPU].internalmodrmstep==(base+1))
+	{
+		if (BIU_readResultdw(&dummy)==0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].internalmodrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+/*
+
+Start of general 80386+ CMP handlers!
+
+*/
+
 OPTINLINE void CMP_dw(uint_32 a, uint_32 b, byte flags) //Compare instruction!
 {
 	CPUPROT1
 	flag_sub32(a,b); //Flags only!
+	if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	switch (flags & 7)
 	{
 	case 0: //Default?
 		break; //Unused!
 	case 1: //Accumulator?
-		CPU[activeCPU].cycles_OP = 4; //Imm-Reg
+		CPU[activeCPU].cycles_OP += 4; //Imm-Reg
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
 		}
 		else //Imm->Reg?
 		{
-			CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
 		}
 		break;
 	case 4: //Mem-Mem instruction?
-		CPU[activeCPU].cycles_OP = 18; //Assume two times Reg->Mem
+		CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Assume two times Reg->Mem
 		break;
 	}
 	CPUPROT2
@@ -253,86 +642,147 @@ extern byte MODRM_src1; //What source is our modr/m? (1/2)
 extern byte custommem ; //Used in some instructions!
 extern uint_32 customoffset; //Offset to use!
 
+/*
+
+Start of general 80386+ instruction handlers!
+
+*/
+
 //Help functions:
-OPTINLINE void CPU80386_internal_INC32(uint_32 *reg)
+OPTINLINE byte CPU80386_internal_INC32(uint_32 *reg)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
 	//Check for exceptions first!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
-	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
-	oper2d = 1;
-	op_add32();
-	FLAGW_CF(tempCF);
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (reg==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = reg?*reg:oper1d;
+		oper2d = 1;
+		op_add32();
+		FLAGW_CF(tempCF);
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		if (reg==NULL) //Destination to write?
+		{
+			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+			{
+				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+			}
+			CPU[activeCPU].executed = 0;
+			return 1; //Wait for execution phase to finish!
+		}
+	}
 	if (reg) //Register?
 	{
 		*reg = res32;
-		CPU[activeCPU].cycles_OP = 2; //16-bit reg!
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 2; //16-bit reg!
+		}
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
-		CPU[activeCPU].cycles_OP = 15+MODRM_EA(params); //Mem
+		if (reg==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
 	CPUPROT2
+	return 0;
 }
-OPTINLINE void CPU80386_internal_DEC32(uint_32 *reg)
+OPTINLINE byte CPU80386_internal_DEC32(uint_32 *reg)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
-	oper1d = reg?*reg:modrm_read32(&params,MODRM_src0);
-	oper2d = 1;
-	op_sub32();
-	FLAGW_CF(tempCF);
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (reg==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = reg?*reg:oper1d;
+		oper2d = 1;
+		op_sub32();
+		FLAGW_CF(tempCF);
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		if (reg==NULL) //Destination to write?
+		{
+			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+			{
+				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+			}
+			CPU[activeCPU].executed = 0;
+			return 1; //Wait for execution phase to finish!
+		}
+	}
 	if (reg) //Register?
 	{
 		*reg = res32;
-		CPU[activeCPU].cycles_OP = 2; //16-bit reg!
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 2; //16-bit reg!
+		}
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
-		CPU[activeCPU].cycles_OP = 15+MODRM_EA(params); //Mem
+		if (reg==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
 	CPUPROT2
+	return 0;
 }
 
 OPTINLINE void timing_AND_OR_XOR_ADD_SUB32(uint_32 *dest, byte flags)
 {
+	if (CPU_apply286cycles()) return; //No 80286+ cycles instead?
 	switch (flags) //What type of operation?
 	{
 	case 0: //Reg+Reg?
-		CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
+		CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		break;
 	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP = 4; //Accumulator!
+		CPU[activeCPU].cycles_OP += 4; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
-				CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
 			}
 			else //Reg->Mem?
 			{
-				CPU[activeCPU].cycles_OP = 16 + MODRM_EA(params); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 16-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
@@ -340,593 +790,935 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB32(uint_32 *dest, byte flags)
 		{
 			if (dest) //Imm->Reg?
 			{
-				CPU[activeCPU].cycles_OP = 4; //Imm->Reg!
+				CPU[activeCPU].cycles_OP += 4; //Imm->Reg!
 			}
 			else //Imm->Mem?
 			{
-				CPU[activeCPU].cycles_OP = 17 + MODRM_EA(params); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 17-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		}
 		break;
 	}
 }
 
 //For ADD
-OPTINLINE void CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte flags)
+OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = addition;
-	op_add32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = addition;
+		op_add32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 //For ADC
-OPTINLINE void CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte flags)
+OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = addition;
-	op_adc32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = addition;
+		op_adc32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 
 //For OR
-OPTINLINE void CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
+OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = src;
-	op_or32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = src;
+		op_or32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
-
 //For AND
-OPTINLINE void CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
+OPTINLINE byte CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 {
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault on write only!
+	if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = src;
-	op_and32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = src;
+		op_and32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 
 //For SUB
-OPTINLINE void CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte flags)
+OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault on write only!
+	if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = addition;
-	op_sub32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = addition;
+		op_sub32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 //For SBB
-OPTINLINE void CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte flags)
+OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = addition;
-	op_sbb32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = addition;
+		op_sbb32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 //For XOR
 //See AND, but XOR
-OPTINLINE void CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
+OPTINLINE byte CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
-	oper1d = dest?*dest:modrm_read32(&params,MODRM_src0);
-	oper2d = src;
-	op_xor32();
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		oper1d = dest?*dest:oper1d;
+		oper2d = src;
+		op_xor32();
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
+		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
 	if (dest) //Register?
 	{
 		*dest = res32;
 	}
 	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,res32); //Write the result to memory!
+		if (dest==NULL) //Needs a read from memory?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(2,res32,MODRM_src0)) return 1;
+		}
 	}
-	timing_AND_OR_XOR_ADD_SUB32(dest, flags);
 	CPUPROT2
+	return 0;
 }
 
 //TEST : same as AND, but discarding the result!
-OPTINLINE void CPU80386_internal_TEST32(uint_32 dest, uint_32 src, byte flags)
+OPTINLINE byte CPU80386_internal_TEST32(uint_32 dest, uint_32 src, byte flags)
 {
-	uint_32 tmpdest = dest;
-	CPU80386_internal_AND32(&tmpdest,src,0);
+	CPUPROT1
+	oper1d = dest;
+	oper2d = src;
+	op_and32();
+	//We don't write anything back for TEST, so only execution step is used!
 	//Adjust timing for TEST!
-	switch (flags) //What type of operation?
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
-	case 0: //Reg+Reg?
-		CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
-		break;
-	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP = 4; //Accumulator!
-		break;
-	case 2: //Determined by ModR/M?
-		if (params.EA_cycles) //Memory is used?
+		switch (flags) //What type of operation?
 		{
-			//Mem->Reg/Reg->Mem?
-			CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
-		}
-		else //Reg->Reg?
-		{
-			CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
-		}
-		break;
-	case 3: //ModR/M+imm?
-		if (params.EA_cycles) //Memory is used?
-		{
-			if (dest) //Imm->Reg?
+		case 0: //Reg+Reg?
+			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			break;
+		case 1: //Reg+imm?
+			CPU[activeCPU].cycles_OP += 4; //Accumulator!
+			break;
+		case 2: //Determined by ModR/M?
+			if (params.EA_cycles) //Memory is used?
 			{
-				CPU[activeCPU].cycles_OP = 5; //Imm->Reg!
+				//Mem->Reg/Reg->Mem?
+				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
 			}
-			else //Imm->Mem?
+			else //Reg->Reg?
 			{
-				CPU[activeCPU].cycles_OP = 11 + MODRM_EA(params); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 			}
+			break;
+		case 3: //ModR/M+imm?
+			if (params.EA_cycles) //Memory is used?
+			{
+				if (dest) //Imm->Reg?
+				{
+					CPU[activeCPU].cycles_OP += 5; //Imm->Reg!
+				}
+				else //Imm->Mem?
+				{
+					CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+				}
+			}
+			else //Reg->Reg?
+			{
+				CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			}
+			break;
 		}
-		else //Reg->Reg?
+	}
+	CPUPROT2
+	return 0;
+}
+
+//Universal DIV instruction for x86 DIV instructions!
+/*
+
+Parameters:
+	val: The value to divide
+	divisor: The value to divide by
+	quotient: Quotient result container
+	remainder: Remainder result container
+	error: 1 on error(DIV0), 0 when valid.
+	resultbits: The amount of bits the result contains(16 or 8 on 8086) of quotient and remainder.
+	SHLcycle: The amount of cycles for each SHL.
+	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
+
+*/
+void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint_32 *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles)
+{
+	uint_64 temp, temp2, currentquotient; //Remaining value and current divisor!
+	byte shift; //The shift to apply! No match on 0 shift is done!
+	temp = val; //Load the value to divide!
+	*applycycles = 1; //Default: apply the cycles normally!
+	if (divisor==0) //Not able to divide?
+	{
+		*quotient = 0;
+		*remainder = temp; //Unable to comply!
+		*error = 1; //Divide by 0 error!
+		return; //Abort: division by 0!
+	}
+
+	if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
+	{
+		SHLcycle = ADDSUBcycle = 0; //Don't apply the cycle counts for this instruction!
+		*applycycles = 0; //Don't apply the cycles anymore!
+	}
+
+	temp = val; //Load the remainder to use!
+	*quotient = 0; //Default: we have nothing after division! 
+	nextstep:
+	//First step: calculate shift so that (divisor<<shift)<=remainder and ((divisor<<(shift+1))>remainder)
+	temp2 = divisor; //Load the default divisor for x1!
+	if (temp2>temp) //Not enough to divide? We're done!
+	{
+		goto gotresult; //We've gotten a result!
+	}
+	currentquotient = 1; //We're starting with x1 factor!
+	for (shift=0;shift<(resultbits+1);++shift) //Check for the biggest factor to apply(we're going from bit 0 to maxbit)!
+	{
+		if ((temp2<=temp) && ((temp2<<1)>temp)) //Found our value to divide?
 		{
-			CPU[activeCPU].cycles_OP = 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 more SHL cycle for this!
+			break; //We've found our shift!
 		}
-		break;
+		temp2 <<= 1; //Shift to the next position!
+		currentquotient <<= 1; //Shift to the next result!
+		CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 SHL cycle for this! Assuming parallel shifting!
+	}
+	if (shift==(resultbits+1)) //We've overflown? We're too large to divide!
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!
+	}
+	//Second step: substract divisor<<n from remainder and increase result with 1<<n.
+	temp -= temp2; //Substract divisor<<n from remainder!
+	*quotient += currentquotient; //Increase result(divided value) with the found power of 2 (1<<n).
+	CPU[activeCPU].cycles_OP += ADDSUBcycle; //We're taking 1 substract and 1 addition cycle for this(ADD/SUB register take 3 cycles)!
+	goto nextstep; //Start the next step!
+	//Finished when remainder<divisor or remainder==0.
+	gotresult: //We've gotten a result!
+	if (temp>((1<<resultbits)-1)) //Modulo overflow?
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!		
+	}
+	if (*quotient>((1<<resultbits)-1)) //Quotient overflow?
+	{
+		*error = 1; //Raise divide by 0 error due to overflow!
+		return; //Abort!		
+	}
+	*remainder = temp; //Give the modulo! The result is already calculated!
+	*error = 0; //We're having a valid result!
+}
+
+void CPU80386_internal_IDIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint_32 *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles)
+{
+	byte quotientnegative, remaindernegative; //To toggle the result and apply sign after and before?
+	quotientnegative = remaindernegative = 0; //Default: don't toggle the result not remainder!
+	if (((val>>31)!=(divisor>>15))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
+	{
+		quotientnegative = 1; //We're to toggle the result sign if not zero!
+	}
+	if (val&0x80000000) //Negative value to divide?
+	{
+		val = ((~val)+1); //Convert the negative value to be positive!
+		remaindernegative = 1; //We're to toggle the remainder is any, because the value to divide is negative!
+	}
+	if (divisor&0x8000) //Negative divisor? Convert to a positive divisor!
+	{
+		divisor = ((~divisor)+1); //Convert the divisor to be positive!
+	}
+	CPU80386_internal_DIV(val,divisor,quotient,remainder,error,resultbits-1,SHLcycle,ADDSUBcycle,applycycles); //Execute the division as an unsigned division!
+	if (*error==0) //No error has occurred? Do post-processing of the results!
+	{
+		if (quotientnegative) //The result is negative?
+		{
+			*quotient = (~*quotient)+1; //Apply the new sign to the result!
+		}
+		if (remaindernegative) //The remainder is negative?
+		{
+			*remainder = (~*remainder)+1; //Apply the new sign to the remainder!
+		}
 	}
 }
 
 //MOV
-OPTINLINE void CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
+OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
 	CPUPROT1
-	if (dest) //Register?
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
-		*dest = val;
-		switch (flags) //What type are we?
+		if (dest) //Register?
 		{
-		case 0: //Reg+Reg?
-			break; //Unused!
-		case 1: //Accumulator from immediate memory address?
-			CPU[activeCPU].cycles_OP = 10; //[imm16]->Accumulator!
-			break;
-		case 2: //ModR/M Memory->Reg?
-			if (MODRM_EA(params)) //Memory?
+			*dest = val;
+			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP = 8+MODRM_EA(params); //Mem->Reg!
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //[imm16]->Accumulator!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg?
+					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					break;
+				case 8: //SegReg->Reg?
+					if ((!MODRM_src1) || (MODRM_EA(params)==0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->SegReg!
+					}
+					break;
+				}
 			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 3: //ModR/M Memory immediate->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 4: //Register immediate->Reg?
-			CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-			break;
-		case 8: //SegReg->Reg?
-			if (MODRM_src0 || (MODRM_EA(params)==0)) //From register?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->SegReg!
-			}
-			else //From memory?
-			{
-				CPU[activeCPU].cycles_OP = 8+MODRM_EA(params); //Mem->SegReg!
-			}
-			break;
+			++CPU[activeCPU].internalinstructionstep; //Skip the writeback step!
 		}
+		else //Memory destination?
+		{
+			if (custommem)
+			{
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+				}
+			}
+			else //ModR/M?
+			{
+				if (modrm_check8(&params,MODRM_src0,0)) return 1; //Abort on fault!
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					switch (flags) //What type are we?
+					{
+					case 0: //Reg+Reg?
+						break; //Unused!
+					case 1: //Accumulator from immediate memory address?
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Accumulator->[imm16]!
+						break;
+					case 2: //ModR/M Memory->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						}
+						break;
+					case 3: //ModR/M Memory immediate->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						}
+						break;
+					case 4: //Register immediate->Reg (Non-existant!!!)?
+						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						break;
+					case 8: //Reg->SegReg?
+						if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+						{
+							CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+						}
+						else //From memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //SegReg->Mem!
+						}
+						break;
+					}
+				}
+			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+			CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
 	}
-	else //Memory?
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
 		if (custommem)
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			MMU_wb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU]); //Write to memory directly!
-			CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
+			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
-			if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-			modrm_write8(&params,MODRM_src0,val); //Write the result to memory!
-			switch (flags) //What type are we?
-			{
-			case 0: //Reg+Reg?
-				break; //Unused!
-			case 1: //Accumulator from immediate memory address?
-				CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
-				break;
-			case 2: //ModR/M Memory->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-				}
-				break;
-			case 3: //ModR/M Memory immediate->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				}
-				break;
-			case 4: //Register immediate->Reg (Non-existant!!!)?
-				CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				break;
-			case 8: //Reg->SegReg?
-				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-				{
-					CPU[activeCPU].cycles_OP = 2; //SegReg->Reg!
-				}
-				else //From memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //SegReg->Mem!
-				}
-				break;
-			}
+			if (CPU8086_internal_stepwritemodrmb(0,val,MODRM_src0)) return 1; //Write the result to memory!
 		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	CPUPROT2
-}
-OPTINLINE void CPU80386_internal_MOV16(word *dest, word val, byte flags)
-{
-	if (MMU_invaddr())
-	{
-		return;
-	}
-	CPUPROT1
-	if (dest) //Register?
-	{
-		destEIP = REG_EIP; //Store (E)IP for safety!
-		modrm_updatedsegment(dest,val,0); //Check for an updated segment!
-		CPUPROT1
-		*dest = val;
-		switch (flags) //What type are we?
-		{
-		case 0: //Reg+Reg?
-			break; //Unused!
-		case 1: //Accumulator from immediate memory address?
-			CPU[activeCPU].cycles_OP = 10; //[imm16]->Accumulator!
-			break;
-		case 2: //ModR/M Memory->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 3: //ModR/M Memory immediate->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 4: //Register immediate->Reg?
-			CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-			break;
-		case 8: //SegReg->Reg?
-			if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->SegReg!
-			}
-			else //From memory?
-			{
-				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->SegReg!
-			}
-			break;
-		}
-		CPUPROT2
-	}
-	else //Memory?
-	{
-		if (custommem)
-		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			MMU_ww(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU]); //Write to memory directly!
-			CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
-		}
-		else //ModR/M?
-		{
-			if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
-			modrm_write16(&params,MODRM_src0,val,0); //Write the result to memory!
-			switch (flags) //What type are we?
-			{
-			case 0: //Reg+Reg?
-				break; //Unused!
-			case 1: //Accumulator from immediate memory address?
-				CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm16]!
-				break;
-			case 2: //ModR/M Memory->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-				}
-				break;
-			case 3: //ModR/M Memory immediate->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				}
-				break;
-			case 4: //Register immediate->Reg (Non-existant!!!)?
-				CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				break;
-			case 8: //Reg->SegReg?
-				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-				{
-					CPU[activeCPU].cycles_OP = 2; //SegReg->Reg!
-				}
-				else //From memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //SegReg->Mem!
-				}
-				break;
-			}
-		}
-	}
-	CPUPROT2
+	return 0;
 }
 
-OPTINLINE void CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
+OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 {
 	if (MMU_invaddr())
 	{
-		return;
+		return 1;
 	}
 	CPUPROT1
-	if (dest) //Register?
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
-		CPUPROT1
-		*dest = val;
-		switch (flags) //What type are we?
+		if (dest) //Register?
 		{
-		case 0: //Reg+Reg?
-			break; //Unused!
-		case 1: //Accumulator from immediate memory address?
-			CPU[activeCPU].cycles_OP = 10; //[imm32]->Accumulator!
-			break;
-		case 2: //ModR/M Memory->Reg?
-			if (MODRM_EA(params)) //Memory?
+			destEIP = REG_EIP; //Store (E)IP for safety!
+			modrm_updatedsegment(dest,val,0); //Check for an updated segment!
+			CPUPROT1
+			*dest = val;
+			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->Reg!
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //[imm16]->Accumulator!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg?
+					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					break;
+				case 8: //SegReg->Reg?
+					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->SegReg!
+					}
+					break;
+				}
 			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 3: //ModR/M Memory immediate->Reg?
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-			}
-			else //Reg->Reg?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-			}
-			break;
-		case 4: //Register immediate->Reg?
-			CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-			break;
-		case 8: //SegReg->Reg?
-			if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-			{
-				CPU[activeCPU].cycles_OP = 2; //Reg->SegReg!
-			}
-			else //From memory?
-			{
-				CPU[activeCPU].cycles_OP = 8 + MODRM_EA(params); //Mem->SegReg!
-			}
-			break;
+			CPUPROT2
+			++CPU[activeCPU].internalinstructionstep; //Skip the memory step!
 		}
-		CPUPROT2
+		else //Memory?
+		{
+			if (custommem)
+			{
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+				}
+			}
+			else //ModR/M?
+			{
+				if (modrm_check16(&params,MODRM_src0,0)) return 1; //Abort on fault!
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					switch (flags) //What type are we?
+					{
+					case 0: //Reg+Reg?
+						break; //Unused!
+					case 1: //Accumulator from immediate memory address?
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+						break;
+					case 2: //ModR/M Memory->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						}
+						break;
+					case 3: //ModR/M Memory immediate->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						}
+						break;
+					case 4: //Register immediate->Reg (Non-existant!!!)?
+						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						break;
+					case 8: //Reg->SegReg?
+						if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+						{
+							CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+						}
+						else //From memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //SegReg->Mem!
+						}
+						break;
+					}
+				}
+			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+			CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
 	}
-	else //Memory?
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
 		if (custommem)
 		{
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) //Error accessing memory?
-			{
-				return; //Abort on fault!
-			}
-			MMU_wdw(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU]); //Write to memory directly!
-			CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm32]!
+			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
-			if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-			modrm_write32(&params,MODRM_src0,val); //Write the result to memory!
-			switch (flags) //What type are we?
-			{
-			case 0: //Reg+Reg?
-				break; //Unused!
-			case 1: //Accumulator from immediate memory address?
-				CPU[activeCPU].cycles_OP = 10; //Accumulator->[imm32]!
-				break;
-			case 2: //ModR/M Memory->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 2; //Reg->Reg!
-				}
-				break;
-			case 3: //ModR/M Memory immediate->Reg?
-				if (MODRM_EA(params)) //Memory?
-				{
-					CPU[activeCPU].cycles_OP = 10 + MODRM_EA(params); //Mem->Reg!
-				}
-				else //Reg->Reg?
-				{
-					CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				}
-				break;
-			case 4: //Register immediate->Reg (Non-existant!!!)?
-				CPU[activeCPU].cycles_OP = 4; //Reg->Reg!
-				break;
-			case 8: //Reg->SegReg?
-				if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
-				{
-					CPU[activeCPU].cycles_OP = 2; //SegReg->Reg!
-				}
-				else //From memory?
-				{
-					CPU[activeCPU].cycles_OP = 9 + MODRM_EA(params); //SegReg->Mem!
-				}
-				break;
-			}
+			if (CPU8086_internal_stepwritemodrmw(0,val,MODRM_src0,0)) return 1; //Write the result to memory!
 		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	CPUPROT2
+	return 0;
 }
 
+/*
+
+32-bit move for 80386+
+
+*/
+
+OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
+{
+	if (MMU_invaddr())
+	{
+		return 1;
+	}
+	CPUPROT1
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
+	{
+		if (dest) //Register?
+		{
+			//destEIP = REG_EIP; //Store (E)IP for safety!
+			//modrm_updatedsegment(dest,val,0); //Check for an updated segment!
+			CPUPROT1
+			*dest = val;
+			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+			{
+				switch (flags) //What type are we?
+				{
+				case 0: //Reg+Reg?
+					break; //Unused!
+				case 1: //Accumulator from immediate memory address?
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //[imm16]->Accumulator!
+					break;
+				case 2: //ModR/M Memory->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 3: //ModR/M Memory immediate->Reg?
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+					}
+					else //Reg->Reg?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+					}
+					break;
+				case 4: //Register immediate->Reg?
+					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					break;
+				case 8: //SegReg->Reg?
+					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					{
+						CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
+					}
+					else //From memory?
+					{
+						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->SegReg!
+					}
+					break;
+				}
+			}
+			CPUPROT2
+			++CPU[activeCPU].internalinstructionstep; //Skip the memory step!
+		}
+		else //Memory?
+		{
+			if (custommem)
+			{
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+				{
+					return 1; //Abort on fault!
+				}
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+				}
+			}
+			else //ModR/M?
+			{
+				if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
+				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				{
+					switch (flags) //What type are we?
+					{
+					case 0: //Reg+Reg?
+						break; //Unused!
+					case 1: //Accumulator from immediate memory address?
+						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+						break;
+					case 2: //ModR/M Memory->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						}
+						break;
+					case 3: //ModR/M Memory immediate->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						}
+						break;
+					case 4: //Register immediate->Reg (Non-existant!!!)?
+						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						break;
+					case 8: //Reg->SegReg?
+						if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+						{
+							CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+						}
+						else //From memory?
+						{
+							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //SegReg->Mem!
+						}
+						break;
+					}
+				}
+			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+			CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step: memory access!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
+	{
+		if (custommem)
+		{
+			if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+		}
+		else //ModR/M?
+		{
+			if (CPU80386_internal_stepwritemodrmdw(0,val,MODRM_src0)) return 1; //Write the result to memory!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	CPUPROT2
+	return 0;
+}
+
+
+/*
+
+80386 special
+
+*/
 //LEA for LDS, LES
 OPTINLINE uint_32 getLEA32(MODRM_PARAMS *theparams)
 {
@@ -936,7 +1728,7 @@ OPTINLINE uint_32 getLEA32(MODRM_PARAMS *theparams)
 
 /*
 
-Non-logarithmic opcodes!
+Non-logarithmic opcodes for 80386+!
 
 */
 
@@ -1059,23 +1851,36 @@ OPTINLINE void CPU80386_internal_AAS()
 	}
 }
 
-OPTINLINE void CPU80386_internal_AAM(byte data)
+OPTINLINE byte CPU80386_internal_AAM(byte data)
 {
 	CPUPROT1
-	if (!data)
+	if ((!data) && (CPU[activeCPU].instructionstep==0)) //First step?
 	{
-		CPU_exDIV0();    //AAM
-		return;
+		CPU[activeCPU].cycles_OP += 1; //Timings always!
+		++CPU[activeCPU].instructionstep; //Next step after we're done!
+		CPU[activeCPU].executed = 0; //Not executed yet!
+		return 1;
 	}
-	REG_AH = (((byte)SAFEDIV(REG_AL,data))&0xFF);
-	REG_AL = (SAFEMOD(REG_AL,data)&0xFF);
-
-	//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
-	flag_szp8(REG_AL); //Result of MOD instead!
-	FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
-	//C=O=A=?
+	word quotient, remainder;
+	byte error, applycycles;
+	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,2,6,&applycycles);
+	if (error) //Error occurred?
+	{
+		CPU_exDIV0(); //Raise error that's requested!
+		return 1;
+	}
+	else //Valid result?
+	{
+		REG_AH = (byte)(quotient&0xFF);
+		REG_AL = (byte)(remainder&0xFF);
+		//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
+		flag_szp8(REG_AL); //Result of MOD instead!
+		FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
+		//C=O=A=?
+	}
 	CPUPROT2
 	CPU[activeCPU].cycles_OP = 83; //Timings!
+	return 0;
 }
 
 OPTINLINE void op_add8_386() {
@@ -1083,7 +1888,7 @@ OPTINLINE void op_add8_386() {
 	flag_add8 (oper1b, oper2b);
 }
 
-OPTINLINE void CPU80386_internal_AAD(byte data)
+OPTINLINE byte CPU80386_internal_AAD(byte data)
 {
 	CPUPROT1
 	oper2b = REG_AL; //What to add!
@@ -1094,7 +1899,12 @@ OPTINLINE void CPU80386_internal_AAD(byte data)
 	REG_AH = 0; //AH is cleared!
 	//C=O=A=?
 	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 60; //Timings!
+	}
 	CPU[activeCPU].cycles_OP = 60; //Timings!
+	return 0;
 }
 
 OPTINLINE void CPU80386_internal_CWDE()
@@ -1106,7 +1916,7 @@ OPTINLINE void CPU80386_internal_CWDE()
 	}
 	else
 	{
-		REG_AX &= 0xFFFF;
+		REG_EAX &= 0xFFFF;
 	}
 	CPU[activeCPU].cycles_OP = 2; //Clock cycles!
 	CPUPROT2
@@ -1128,578 +1938,781 @@ OPTINLINE void CPU80386_internal_CDQ()
 
 //Now the repeatable instructions!
 
+/*
+
+80386 versions of the 8086+ 16-bit instructions!
+
+*/
+
 extern byte newREP; //Are we a new repeating instruction (REP issued for a new instruction, not repeating?)
 
-OPTINLINE void CPU80386_internal_MOVSD()
+uint_32 MOVSD_data;
+OPTINLINE byte CPU80386_internal_MOVSD()
 {
-	INLINEREGISTER uint_32 data;
-	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+	if (blockREP) return 1; //Disabled REP!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
-		return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
-		return; //Abort on fault!
+		//Needs a read from memory?
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSD_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
 	{
-		return; //Abort on fault!
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+		{
+			if (CPU[activeCPU].repeating) //Are we a repeating instruction?
+			{
+				if (newREP) //Include the REP?
+				{
+					CPU[activeCPU].cycles_OP += 9 + 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles including REP!
+				}
+				else //Repeating instruction itself?
+				{
+					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles excluding REP!
+				}
+			}
+			else //Plain non-repeating instruction?
+			{
+				CPU[activeCPU].cycles_OP += 18 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles!
+			}
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	data = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]); //Try to read the data!
+	//Writeback phase!
+	if (CPU80386_internal_stepwritedirectdw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSD_data,!CPU_Address_size[activeCPU])) return 1;
 	CPUPROT1
-	MMU_wdw(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU]); //Try to write the data!
-	CPUPROT1
-	if (FLAG_DF)
-	{
-		if (CPU_Address_size[activeCPU])		
-		{
-			REG_ESI -= 4;
-			REG_EDI -= 4;
-		}
-		else
-		{
-			REG_SI -= 4;
-			REG_DI -= 4;
-		}
-	}
-	else
-	{
-		if (CPU_Address_size[activeCPU])		
-		{
-			REG_ESI += 4;
-			REG_EDI += 4;
-		}
-		else
-		{
-			REG_SI += 4;
-			REG_DI += 4;
-		}
-	}
-	CPUPROT2
-	CPUPROT2
-	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
-	{
-		if (newREP) //Include the REP?
-		{
-			CPU[activeCPU].cycles_OP = 9 + 17; //Clock cycles including REP!
-		}
-		else //Repeating instruction itself?
-		{
-			CPU[activeCPU].cycles_OP = 17; //Clock cycles excluding REP!
-		}
-	}
-	else //Plain non-repeating instruction?
-	{
-		CPU[activeCPU].cycles_OP = 18; //Clock cycles!
-	}
-}
-
-OPTINLINE void CPU80386_internal_CMPSD()
-{
-	INLINEREGISTER uint_32 data1, data2;
-	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),CPU_Address_size[activeCPU]?REG_ESI:REG_SI,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	data1 = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]); //Try to read the first data!
-	CPUPROT1
-	data2 = MMU_rdw(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), 0,!CPU_Address_size[activeCPU]); //Try to read the second data!
-	CPUPROT1
-	CMP_dw(data1,data2,4);
-	if (FLAG_DF)
-	{
-		if (CPU_Address_size[activeCPU])		
-		{
-			REG_ESI -= 4;
-			REG_EDI -= 4;
-		}
-		else
-		{
-			REG_SI -= 4;
-			REG_DI -= 4;
-		}
-	}
-	else
-	{
-		if (CPU_Address_size[activeCPU])		
-		{
-			REG_ESI += 4;
-			REG_EDI += 4;
-		}
-		else
-		{
-			REG_SI += 4;
-			REG_DI += 4;
-		}
-	}
-	CPUPROT2
-	CPUPROT2
-	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
-	{
-		if (newREP) //Include the REP?
-		{
-			CPU[activeCPU].cycles_OP = 9 + 22; //Clock cycles including REP!
-		}
-		else //Repeating instruction itself?
-		{
-			CPU[activeCPU].cycles_OP = 22; //Clock cycles excluding REP!
-		}
-	}
-	else //Plain non-repeating instruction?
-	{
-		CPU[activeCPU].cycles_OP = 22; //Clock cycles!
-	}
-}
-
-OPTINLINE void CPU80386_internal_STOSD()
-{
-	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	MMU_wdw(CPU_segment_index(CPU_SEGMENT_ES),REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_EAX,!CPU_Address_size[activeCPU]);
-	CPUPROT1
-	if (FLAG_DF)
-	{
-		if (CPU_Address_size[activeCPU])		
-			REG_EDI -= 4;
-		else
-			REG_DI -= 4;
-	}
-	else
-	{
-		if (CPU_Address_size[activeCPU])		
-			REG_EDI += 4;
-		else
-			REG_DI += 4;
-	}
-	CPUPROT2
-	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
-	{
-		if (newREP) //Include the REP?
-		{
-			CPU[activeCPU].cycles_OP = 9 + 10; //Clock cycles including REP!
-		}
-		else //Repeating instruction itself?
-		{
-			CPU[activeCPU].cycles_OP = 10; //Clock cycles excluding REP!
-		}
-	}
-	else //Plain non-repeating instruction?
-	{
-		CPU[activeCPU].cycles_OP = 11; //Clock cycles!
-	}
-}
-//OK so far!
-
-OPTINLINE void CPU80386_internal_LODSD()
-{
-	INLINEREGISTER uint_32 value;
-	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-
-	value = MMU_rdw(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]); //Try to read the result!
-	CPUPROT1
-	REG_EAX = value;
-	if (FLAG_DF)
-	{
-		if (CPU_Address_size[activeCPU])		
-			REG_ESI -= 4;
-		else
-			REG_SI -= 4;
-	}
-	else
-	{
-		if (CPU_Address_size[activeCPU])		
-			REG_ESI += 4;
-		else
-			REG_SI += 4;
-	}
-	CPUPROT2
-	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
-	{
-		if (newREP) //Include the REP?
-		{
-			CPU[activeCPU].cycles_OP = 9 + 13; //Clock cycles including REP!
-		}
-		else //Repeating instruction itself?
-		{
-			CPU[activeCPU].cycles_OP = 13; //Clock cycles excluding REP!
-		}
-	}
-	else //Plain non-repeating instruction?
-	{
-		CPU[activeCPU].cycles_OP = 12; //Clock cycles!
-	}
-}
-
-OPTINLINE void CPU80386_internal_SCASD()
-{
-	INLINEREGISTER uint_32 cmp1;
-	if (blockREP) return; //Disabled REP!
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
-	{
-		return; //Abort on fault!
-	}
-	cmp1 = MMU_rdw(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), 0,!CPU_Address_size[activeCPU]); //Try to read the data to compare!
-	CPUPROT1
-	CMP_dw(REG_EAX,cmp1,4);
 	if (FLAG_DF)
 	{
 		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI -= 4;
 			REG_EDI -= 4;
+		}
 		else
+		{
+			REG_SI -= 4;
 			REG_DI -= 4;
+		}
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])		
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI += 4;
 			REG_EDI += 4;
+		}
 		else
+		{
+			REG_SI += 4;
 			REG_DI += 4;
-	}
-	CPUPROT2
-	if (CPU[activeCPU].repeating) //Are we a repeating instruction?
-	{
-		if (newREP) //Include the REP?
-		{
-			CPU[activeCPU].cycles_OP = 9 + 15; //Clock cycles including REP!
-		}
-		else //Repeating instruction itself?
-		{
-			CPU[activeCPU].cycles_OP = 15; //Clock cycles excluding REP!
 		}
 	}
-	else //Plain non-repeating instruction?
-	{
-		CPU[activeCPU].cycles_OP = 15; //Clock cycles!
-	}
+	CPUPROT2
+	return 0;
 }
 
-OPTINLINE void CPU80386_internal_RET(word popbytes, byte isimm)
+uint_32 CMPSD_data1,CMPSD_data2;
+OPTINLINE byte CPU80386_internal_CMPSD()
 {
-	if (checkStackAccess(1,0,1)) //Error accessing stack?
+	if (blockREP) return 1; //Disabled REP!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
-		return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
-	INLINEREGISTER uint_32 val = CPU_POP32();    //Near return
-	CPUPROT1
-	CPU_JMPabs(val);
-	CPU_flushPIQ(-1); //We're jumping to another address!
-	REG_SP += popbytes;
-	CPUPROT2
-	if (isimm)
-		CPU[activeCPU].cycles_OP = 12; /* Intrasegment with constant */
-	else
-		CPU[activeCPU].cycles_OP = 8; /* Intrasegment */
-}
-OPTINLINE void CPU80386_internal_RETF(word popbytes, byte isimm)
-{
-	if (checkStackAccess(2,0,1)) //Error accessing stack?
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
-		return; //Abort on fault!
+		//Needs a read from memory?
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSD_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSD_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	INLINEREGISTER uint_32 val = CPU_POP32(); //Far return
-	word destCS;
-	CPUPROT1
-	destCS = CPU_POP32(); //POP CS!
-	CPUPROT1
-	destEIP = val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS,destCS,4); //CS changed, we're a RETF instruction!
-	CPU_flushPIQ(-1); //We're jumping to another address!
-	CPUPROT1
-	REG_SP += popbytes; //Process SP!
-	if (isimm)
-		CPU[activeCPU].cycles_OP = 17; /* Intersegment with constant */
+	CMP_dw(CMPSD_data1,CMPSD_data2,4);
+	if (FLAG_DF)
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI -= 4;
+			REG_EDI -= 4;
+		}
+		else
+		{
+			REG_SI -= 4;
+			REG_DI -= 4;
+		}
+	}
 	else
-		CPU[activeCPU].cycles_OP = 18; /* Intersegment */
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI += 4;
+			REG_EDI += 4;
+		}
+		else
+		{
+			REG_SI += 4;
+			REG_DI += 4;
+		}
+	}
+
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
+		{
+			if (newREP) //Include the REP?
+			{
+				CPU[activeCPU].cycles_OP += 9 + 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles including REP!
+			}
+			else //Repeating instruction itself?
+			{
+				CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles excluding REP!
+			}
+		}
+		else //Plain non-repeating instruction?
+		{
+			CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles!
+		}
+	}
+	return 0;
 }
 
+OPTINLINE byte CPU80386_internal_STOSD()
+{
+	if (blockREP) return 1; //Disabled REP!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
+	{
+		//Needs a read from memory?
+		if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_ES),REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_EAX,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	CPUPROT1
+	if (FLAG_DF)
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI -= 4;
+		}
+		else
+		{
+			REG_DI -= 4;
+		}
+	}
+	else
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI += 4;
+		}
+		else
+		{
+			REG_DI += 4;
+		}
+	}
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
+		{
+			if (newREP) //Include the REP?
+			{
+				CPU[activeCPU].cycles_OP += 9 + 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles including REP!
+			}
+			else //Repeating instruction itself?
+			{
+				CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles excluding REP!
+			}
+		}
+		else //Plain non-repeating instruction?
+		{
+			CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles!
+		}
+	}
+	++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	return 0;
+}
+//OK so far!
+
+uint_32 LODSD_value;
+OPTINLINE byte CPU80386_internal_LODSD()
+{
+	if (blockREP) return 1; //Disabled REP!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep;
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
+	{
+		//Needs a read from memory?
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSD_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	CPUPROT1
+	REG_EAX = LODSD_value;
+	if (FLAG_DF)
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI -= 4;
+		}
+		else
+		{
+			REG_SI -= 4;
+		}
+	}
+	else
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_ESI += 4;
+		}
+		else
+		{
+			REG_SI += 4;
+		}
+	}
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
+		{
+			if (newREP) //Include the REP?
+			{
+				CPU[activeCPU].cycles_OP += 9 + 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+			}
+			else //Repeating instruction itself?
+			{
+				CPU[activeCPU].cycles_OP += 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+			}
+		}
+		else //Plain non-repeating instruction?
+		{
+			CPU[activeCPU].cycles_OP += 12 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+		}
+	}
+	return 0;
+}
+
+uint_32 SCASD_cmp1;
+OPTINLINE byte CPU80386_internal_SCASD()
+{
+	if (blockREP) return 1; //Disabled REP!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep;
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
+	{
+		//Needs a read from memory?
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_ES), REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASD_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+
+	CPUPROT1
+	CMP_dw(REG_EAX,SCASD_cmp1,4);
+	if (FLAG_DF)
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI -= 4;
+		}
+		else
+		{
+			REG_DI -= 4;
+		}
+	}
+	else
+	{
+		if (CPU_Address_size[activeCPU])
+		{
+			REG_EDI += 4;
+		}
+		else
+		{
+			REG_DI += 4;
+		}
+	}
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
+		{
+			if (newREP) //Include the REP?
+			{
+				CPU[activeCPU].cycles_OP += 9 + 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+			}
+			else //Repeating instruction itself?
+			{
+				CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+			}
+		}
+		else //Plain non-repeating instruction?
+		{
+			CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+		}
+	}
+	return 0;
+}
+
+OPTINLINE byte CPU80386_instructionstepPOPtimeout(byte base)
+{
+	return CPU8086_instructionstepdelayBIU(base,2);//Delay 2 cycles for POPs to start!
+}
+
+OPTINLINE byte CPU80386_internal_POPtimeout(byte base)
+{
+	return CPU8086_internal_delayBIU(base,2);//Delay 2 cycles for POPs to start!
+}
+
+uint_32 RETD_val;
+OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
+{
+	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
+	if (CPU80386_internal_POPdw(2,&RETD_val)) return 1;
+    //Near return
+	CPUPROT1
+	CPU_JMPabs(RETD_val);
+	CPU_flushPIQ(-1); //We're jumping to another address!
+	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+	{
+		REG_ESP += popbytes;
+	}
+	else
+	{
+		REG_SP += popbytes;
+	}
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (isimm)
+			CPU[activeCPU].cycles_OP += 12 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /* Intrasegment with constant */
+		else
+			CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /* Intrasegment */
+		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; //Stall the BIU completely now!
+	}
+	return 0;
+}
+extern word RETF_destCS; //Use 8086 location as well!
+uint_32 RETFD_val; //Far return
+
+OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
+{
+	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(2,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
+	if (CPU80386_internal_POPdw(2,&RETFD_val)) return 1;
+	CPUPROT1
+	if (CPU8086_internal_POPw(4,&RETF_destCS)) return 1;
+	CPUPROT1
+	destEIP = RETFD_val; //Load IP!
+	segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4); //CS changed, we're a RETF instruction!
+	CPU_flushPIQ(-1); //We're jumping to another address!
+	CPUPROT1
+	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+	{
+		REG_ESP += popbytes; //Process ESP!
+	}
+	else
+	{
+		REG_SP += popbytes; //Process SP!
+	}
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (isimm)
+			CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment with constant */
+		else
+			CPU[activeCPU].cycles_OP += 18 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment */
+		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; //Stall the BIU completely now!
+	}
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	return 0;
+}
 void external80386RETF(word popbytes)
 {
 	CPU80386_internal_RETF(popbytes,1); //Return immediate variant!
 }
 
-OPTINLINE void CPU80386_internal_INTO()
+extern uint_32 exception_busy; //Exception is busy?
+extern byte tempcycles;
+
+OPTINLINE byte CPU80386_internal_INTO()
 {
-	CPUPROT1
-	if (FLAG_OF)
+	if (exception_busy&0x10) goto busyEX4;
+	if (FLAG_OF==0) goto finishINTO; //Finish?
+	exception_busy |= 0x10; //We're busy!
+	if (CPU_faultraised(EXCEPTION_OVERFLOW)==0) //Fault raised?
 	{
-		if (CPU_faultraised(EXCEPTION_OVERFLOW))
+		exception_busy &= ~0x10; //Not busy anymore!
+		return 1; //Abort handling when needed!
+	}
+	busyEX4:
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	if ((CPU086_int(EXCEPTION_OVERFLOW)==0) && (!(EMULATED_CPU>=CPU_80286))) return 1; //Return to opcode!
+	exception_busy &= ~0x10; //Not busy anymore!
+	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
+	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	return 0; //Finished: OK!
+	finishINTO:
+	{
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU80386_INTERNAL_int(EXCEPTION_OVERFLOW,0);
+			CPU[activeCPU].cycles_OP += 4; //Timings!
 		}
-		CPU[activeCPU].cycles_OP = 53; //Timings!
 	}
-	else
-	{
-		CPU[activeCPU].cycles_OP = 4; //Timings!
-	}
-	CPUPROT2
+	return 0; //Finished: OK!
 }
 
-OPTINLINE void CPU80386_internal_XLAT()
+extern byte XLAT_value; //XLAT
+
+OPTINLINE byte CPU80386_internal_XLAT()
 {
 	if (cpudebugger) //Debugger on?
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
-	if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step?
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
+		++CPU[activeCPU].internalinstructionstep; //Next step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
+	{
+		//Needs a read from memory?
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size?REG_EBX:REG_BX)+REG_AL,&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
-	INLINEREGISTER byte value = MMU_rb(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,!CPU_Address_size[activeCPU]);    //XLAT
-	CPUPROT1
-	REG_AL = value;
+	REG_AL = XLAT_value;
 	CPUPROT2
-	CPUPROT2
-	CPU[activeCPU].cycles_OP = 11; //XLAT timing!
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //XLAT timing!
+	}
+	return 0;
 }
 
-OPTINLINE void CPU80386_internal_XCHG8(byte *data1, byte *data2, byte flags)
+extern byte secondparambase, writebackbase;
+OPTINLINE byte CPU80386_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
-	if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0)
+	{
+		if (!data1) if (modrm_check8(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!data1) if (modrm_check8(&params,MODRM_src0,0)) return 1; //Abort on fault!
+		secondparambase = (data1||data2)?0:2; //Second param base
+		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
+		if (!data2) if (modrm_check8(&params,MODRM_src1,1)) return 1; //Abort on fault!
+		if (!data2) if (modrm_check8(&params,MODRM_src1,0)) return 1; //Abort on fault!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
-	oper1b = data1?*data1:modrm_read8(&params,MODRM_src0);
-	CPUPROT1
-	oper2b = data2?*data2:modrm_read8(&params,MODRM_src1);
-	CPUPROT1
-	INLINEREGISTER byte temp = oper1b; //Copy!
-	oper1b = oper2b; //We're ...
-	oper2b = temp; //Swapping this!
-	if (data1)
+	if (CPU[activeCPU].internalinstructionstep==1) //First step?
+	{
+		if (data1==NULL) if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return 1;
+		if (data2==NULL) if (CPU8086_internal_stepreadmodrmb(secondparambase,&oper2b,MODRM_src1)) return 1;
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
+	{
+		oper1b = data1?*data1:oper1b;
+		oper2b = data2?*data2:oper2b;
+		INLINEREGISTER byte temp = oper1b; //Copy!
+		oper1b = oper2b; //We're ...
+		oper2b = temp; //Swapping this!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+		{
+			switch (flags)
+			{
+			case 0: //Unknown?
+				break;
+			case 1: //Acc<->Reg?
+				CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
+				break;
+			case 2: //Mem<->Reg?
+				if (MODRM_EA(params)) //Reg<->Mem?
+				{
+					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW*2); //SegReg->Mem!
+				}
+				else //Reg<->Reg?
+				{
+					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
+				}
+				break;
+			}
+		}
+		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
+	if (data1) //Register?
 	{
 		*data1 = oper1b;
 	}
-	else
+	else //Memory?
 	{
-		modrm_write8(&params,MODRM_src0,oper1b);
+		if (CPU8086_internal_stepwritemodrmb(writebackbase,oper1b,MODRM_src0)) return 1;
 	}
-	CPUPROT1
+	
 	if (data2)
 	{
 		*data2 = oper2b;
 	}
 	else
 	{
-		modrm_write8(&params,MODRM_src1,oper2b);
+		if (CPU8086_internal_stepwritemodrmb(writebackbase+secondparambase,oper2b,MODRM_src1)) return 1;
 	}
 	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	switch (flags)
-	{
-	case 0: //Unknown?
-		break;
-	case 1: //Acc<->Reg?
-		CPU[activeCPU].cycles_OP = 3; //Acc<->Reg!
-		break;
-	case 2: //Mem<->Reg?
-		if (MODRM_EA(params)) //Reg<->Mem?
-		{
-			CPU[activeCPU].cycles_OP = 17 + MODRM_EA(params); //SegReg->Mem!
-		}
-		else //Reg<->Reg?
-		{
-			CPU[activeCPU].cycles_OP = 4; //SegReg->Mem!
-		}
-		break;
-	}
+	return 0;
 }
 
-OPTINLINE void CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte flags)
+OPTINLINE byte CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte flags)
 {
-	if (!data1) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (!data1) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-	if (!data2) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (!data2) if (modrm_check32(&params,MODRM_src1,0)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0)
+	{
+		if (!data1) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!data1) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
+		secondparambase = (data1||data2)?0:2; //Second param base
+		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
+		if (!data2) if (modrm_check32(&params,MODRM_src1,1)) return 1; //Abort on fault!
+		if (!data2) if (modrm_check32(&params,MODRM_src1,0)) return 1; //Abort on fault!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
 	CPUPROT1
-	oper1d = data1?*data1:modrm_read32(&params,MODRM_src0);
-	CPUPROT1
-	oper2d = data2?*data2:modrm_read32(&params,MODRM_src1);
-	CPUPROT1
-	//Do a simple swap!
-	uint_32 temp = oper1d; //Copy!
-	oper1d = oper2d; //We're ...
-	oper2d = temp; //Swapping this!
-	if (data1)
+	if (CPU[activeCPU].internalinstructionstep==1) //First step?
+	{
+		if (data1==NULL) if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
+		if (data2==NULL) if (CPU80386_internal_stepreadmodrmdw(secondparambase,&oper2d,MODRM_src1)) return 1;
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
+	{
+		oper1d = data1?*data1:oper1d;
+		oper2d = data2?*data2:oper2d;
+		INLINEREGISTER uint_32 temp = oper1d; //Copy!
+		oper1d = oper2d; //We're ...
+		oper2d = temp; //Swapping this!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+		{
+			switch (flags)
+			{
+			case 0: //Unknown?
+				break;
+			case 1: //Acc<->Reg?
+				CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
+				break;
+			case 2: //Mem<->Reg?
+				if (MODRM_EA(params)) //Reg<->Mem?
+				{
+					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW*2); //SegReg->Mem!
+				}
+				else //Reg<->Reg?
+				{
+					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
+				}
+				break;
+			}
+		}
+		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+	}
+
+	if (data1) //Register?
 	{
 		*data1 = oper1d;
 	}
-	else
+	else //Memory?
 	{
-		modrm_write32(&params,MODRM_src0,oper1d);
+		if (CPU80386_internal_stepwritemodrmdw(writebackbase,oper1d,MODRM_src0)) return 1;
 	}
-	CPUPROT1
+	
 	if (data2)
 	{
 		*data2 = oper2d;
 	}
 	else
 	{
-		modrm_write32(&params,MODRM_src1,oper2d);
+		if (CPU80386_internal_stepwritemodrmdw(writebackbase+secondparambase,oper2d,MODRM_src1)) return 1;
 	}
 	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	switch (flags)
-	{
-	case 0: //Unknown?
-		break;
-	case 1: //Acc<->Reg?
-		CPU[activeCPU].cycles_OP = 3; //Acc<->Reg!
-		break;
-	case 2: //Mem<->Reg?
-		if (MODRM_EA(params)) //Reg<->Mem?
-		{
-			CPU[activeCPU].cycles_OP = 17 + MODRM_EA(params); //SegReg->Mem!
-		}
-		else //Reg<->Reg?
-		{
-			CPU[activeCPU].cycles_OP = 4; //SegReg->Mem!
-		}
-		break;
-	}
+	return 0;
 }
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 
-void CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
+byte CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 {
-	modrm_addoffset = 0; //Add this to the offset to use!
-	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
-	modrm_addoffset = 2; //Add this to the offset to use!
-	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault for the used segment itself!
+	static word segment;
+	static uint_32 offset;
 
-	CPUPROT1
-	modrm_addoffset = 0; //Add this to the offset to use!
-	uint_32 offset = modrm_read32(&params,MODRM_src1);
-	CPUPROT1
-	modrm_addoffset = 2; //Add this to the offset to use!
-	word segment = modrm_read16(&params,MODRM_src1);
-	modrm_addoffset = 0; //Reset again!
-	CPUPROT1
-		destEIP = REG_EIP; //Save EIP for transfers!
-		segmentWritten(segmentregister, segment,MODRM_src0); //Load the new segment!
-	CPUPROT1
-		modrm_write16(&params, MODRM_src0, offset, 0); //Try to load the new register with the offset!
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	CPUPROT2
-	if (MODRM_EA(params)) //Memory?
+	if (CPU[activeCPU].internalinstructionstep==0)
 	{
-		CPU[activeCPU].cycles_OP = 16+MODRM_EA(params); /* LXS based on MOV Mem->SS, DS, ES */
+		modrm_addoffset = 0; //Add this to the offset to use!
+		if (modrm_check32(&params,MODRM_src1,1)) return 1; //Abort on fault!
+		modrm_addoffset = 4; //Add this to the offset to use!
+		if (modrm_check16(&params,MODRM_src1,1)) return 1; //Abort on fault!
+		modrm_addoffset = 0;
+		if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault for the used segment itself!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	else //Register? Should be illegal?
+	CPUPROT1
+	if (CPU[activeCPU].internalinstructionstep==1) //First step?
 	{
-		CPU[activeCPU].cycles_OP = 2; /* LXS based on MOV Mem->SS, DS, ES */
+		modrm_addoffset = 0; //Add this to the offset to use!
+		if (CPU80386_internal_stepreadmodrmdw(0,&offset,MODRM_src1)) return 1;
+		modrm_addoffset = 4; //Add this to the offset to use!
+		if (CPU8086_internal_stepreadmodrmw(2,&segment,MODRM_src1)) return 1;
+		modrm_addoffset = 0; //Reset again!
+		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
+	//Execution phase!
+	CPUPROT1
+	destEIP = REG_EIP; //Save EIP for transfers!
+	segmentWritten(segmentregister, segment,0); //Load the new segment!
+	CPUPROT1
+	modrm_write32(&params, MODRM_src0, offset); //Try to load the new register with the offset!
+	CPUPROT2
+	CPUPROT2
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		if (MODRM_EA(params)) //Memory?
+		{
+			CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* LXS based on MOV Mem->SS, DS, ES */
+		}
+		else //Register? Should be illegal?
+		{
+			CPU[activeCPU].cycles_OP += 2; /* LXS based on MOV Mem->SS, DS, ES */
+		}
+	}
+	return 0;
 }
 
-void CPU80386_CALLF(word segment, uint_32 offset)
+byte CPU80386_CALLF(word segment, uint_32 offset)
 {
 	destEIP = offset;
 	segmentWritten(CPU_SEGMENT_CS, segment, 2); /*CS changed, call version!*/
 	CPU_flushPIQ(-1); //We're jumping to another address!
+	return 0;
 }
 
 /*
@@ -1710,83 +2723,90 @@ NOW THE REAL OPCODES!
 
 extern byte didJump; //Did we jump this instruction?
 
+//Temporarily disabled to check for unmodified instructions:
+//extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
+//extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
+uint_32 instructionbufferd=0, instructionbufferd2=0; //For 16-bit read storage!
 
-void CPU80386_OP01() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP03() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
+void CPU80386_OP01() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP03() {modrm_generateInstructionTEXT("ADDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_ADD32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP05() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ADDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_ADD32(&REG_EAX,theimm,1); }
-void CPU80386_OP09() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_OR32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP0B() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_OR32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
+void CPU80386_OP09() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_OR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP0B() {modrm_generateInstructionTEXT("ORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_OR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP0D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ORD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_OR32(&REG_EAX,theimm,1); }
-void CPU80386_OP11() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP13() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
-void CPU80386_OP15() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ADC AX,",0,theimm,PARAM_IMM32); CPU80386_internal_ADC32(&REG_EAX,theimm,1); }
-void CPU80386_OP19() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("SBBD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_SBB32(modrm_addr32(&params,1,0),(modrm_read32(&params,0)),2); }
-void CPU80386_OP1B() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("SBBD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_SBB32(modrm_addr32(&params,0,0),(modrm_read32(&params,1)),2); }
+void CPU80386_OP11() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP13() {modrm_generateInstructionTEXT("ADCD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_ADC32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP15() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ADCD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_ADC32(&REG_EAX,theimm,1); }
+void CPU80386_OP19() {modrm_generateInstructionTEXT("SBBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SBB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP1B() {modrm_generateInstructionTEXT("SBBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SBB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP1D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("SBBD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_SBB32(&REG_EAX,theimm,1); }
-void CPU80386_OP21() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_AND32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP23() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_AND32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
-void CPU80386_OP25() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ANDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_AND32(&REG_EAX,theimm,1); }
+void CPU80386_OP21() {modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP23() {modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP25() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("ANDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_AND32(&REG_EAX,theimm,1); }
 void CPU80386_OP27() {modrm_generateInstructionTEXT("DAA",0,0,PARAM_NONE);/*DAA?*/ CPU80386_internal_DAA();/*DAA?*/ }
-void CPU80386_OP29() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,1,0),(modrm_read32(&params,0)),2); }
-void CPU80386_OP2B() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,0,0),(modrm_read32(&params,1)),2); }
-void CPU80386_OP2D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("SUBD EAX,",0,theimm,PARAM_IMM32);/*5=AX,imm32*/ CPU80386_internal_SUB32(&REG_EAX,theimm,1);/*5=AX,imm32*/ }
-void CPU80386_OP2F() {modrm_generateInstructionTEXT("DAS",0,0,PARAM_NONE);/*DAS?*/ CPU80386_internal_DAS();/*DAS?*/ }
-void CPU80386_OP31() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP33() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
-void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("XORD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_XOR32(&REG_EAX,theimm,1); }
+void CPU80386_OP29() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP2B() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP2D() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("SUBD EAX,",0,theimm,PARAM_IMM16);/*5=AX,imm16*/ CPU80386_internal_SUB32(&REG_EAX,theimm,1);/*5=AX,imm16*/ }
+void CPU80386_OP2F() {modrm_generateInstructionTEXT("DAS",0,0,PARAM_NONE);/*DAS?*/ CPU8086_internal_DAS();/*DAS?*/ }
+void CPU80386_OP31() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP33() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("XORD EAX,",0,theimm,PARAM_IMM16); CPU80386_internal_XOR32(&REG_EAX,theimm,1); }
 void CPU80386_OP37() {modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/ CPU80386_internal_AAA();/*AAA?*/ }
-void CPU80386_OP39() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,1)) return; CMP_dw(modrm_read32(&params,1),modrm_read32(&params,0),2); }
-void CPU80386_OP3B() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM12); if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,1)) return; CMP_dw(modrm_read32(&params,0),modrm_read32(&params,1),2); }
-void CPU80386_OP3D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("CMP EAX,",0,theimm,PARAM_IMM32);/*CMP AX, imm32*/ CMP_dw(REG_EAX,theimm,1);/*CMP AX, imm32*/ }
+void CPU80386_OP39() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
+void CPU80386_OP3B() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
+void CPU80386_OP3D() {INLINEREGISTER word theimm = immw; modrm_generateInstructionTEXT("CMPD EAX,",0,theimm,PARAM_IMM16);/*CMP AX, imm16*/ CMP_dw(REG_EAX,theimm,1);/*CMP AX, imm16*/ }
 void CPU80386_OP3F() {modrm_generateInstructionTEXT("AAS",0,0,PARAM_NONE);/*AAS?*/ CPU80386_internal_AAS();/*AAS?*/ }
-void CPU80386_OP40() {modrm_generateInstructionTEXT("INC EAX",0,0,PARAM_NONE);/*INC AX*/ CPU80386_internal_INC32(&REG_EAX);/*INC AX*/ }
-void CPU80386_OP41() {modrm_generateInstructionTEXT("INC ECX",0,0,PARAM_NONE);/*INC CX*/ CPU80386_internal_INC32(&REG_ECX);/*INC CX*/ }
-void CPU80386_OP42() {modrm_generateInstructionTEXT("INC EDX",0,0,PARAM_NONE);/*INC DX*/ CPU80386_internal_INC32(&REG_EDX);/*INC DX*/ }
-void CPU80386_OP43() {modrm_generateInstructionTEXT("INC EBX",0,0,PARAM_NONE);/*INC BX*/ CPU80386_internal_INC32(&REG_EBX);/*INC BX*/ }
-void CPU80386_OP44() {modrm_generateInstructionTEXT("INC ESP",0,0,PARAM_NONE);/*INC SP*/ CPU80386_internal_INC32(&REG_ESP);/*INC SP*/ }
-void CPU80386_OP45() {modrm_generateInstructionTEXT("INC EBP",0,0,PARAM_NONE);/*INC BP*/ CPU80386_internal_INC32(&REG_EBP);/*INC BP*/ }
-void CPU80386_OP46() {modrm_generateInstructionTEXT("INC ESI",0,0,PARAM_NONE);/*INC SI*/ CPU80386_internal_INC32(&REG_ESI);/*INC SI*/ }
-void CPU80386_OP47() {modrm_generateInstructionTEXT("INC EDI",0,0,PARAM_NONE);/*INC DI*/ CPU80386_internal_INC32(&REG_EDI);/*INC DI*/ }
-void CPU80386_OP48() {modrm_generateInstructionTEXT("DEC EAX",0,0,PARAM_NONE);/*DEC AX*/ CPU80386_internal_DEC32(&REG_EAX);/*DEC AX*/ }
-void CPU80386_OP49() {modrm_generateInstructionTEXT("DEC ECX",0,0,PARAM_NONE);/*DEC CX*/ CPU80386_internal_DEC32(&REG_ECX);/*DEC CX*/ }
-void CPU80386_OP4A() {modrm_generateInstructionTEXT("DEC EDX",0,0,PARAM_NONE);/*DEC DX*/ CPU80386_internal_DEC32(&REG_EDX);/*DEC DX*/ }
-void CPU80386_OP4B() {modrm_generateInstructionTEXT("DEC EBX",0,0,PARAM_NONE);/*DEC BX*/ CPU80386_internal_DEC32(&REG_EBX);/*DEC BX*/ }
-void CPU80386_OP4C() {modrm_generateInstructionTEXT("DEC ESP",0,0,PARAM_NONE);/*DEC SP*/ CPU80386_internal_DEC32(&REG_ESP);/*DEC SP*/ }
-void CPU80386_OP4D() {modrm_generateInstructionTEXT("DEC EBP",0,0,PARAM_NONE);/*DEC BP*/ CPU80386_internal_DEC32(&REG_EBP);/*DEC BP*/ }
-void CPU80386_OP4E() {modrm_generateInstructionTEXT("DEC ESI",0,0,PARAM_NONE);/*DEC SI*/ CPU80386_internal_DEC32(&REG_ESI);/*DEC SI*/ }
-void CPU80386_OP4F() {modrm_generateInstructionTEXT("DEC EDI",0,0,PARAM_NONE);/*DEC DI*/ CPU80386_internal_DEC32(&REG_EDI);/*DEC DI*/ }
-void CPU80386_OP50() {modrm_generateInstructionTEXT("PUSH EAX",0,0,PARAM_NONE);/*PUSH AX*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EAX);/*PUSH AX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP51() {modrm_generateInstructionTEXT("PUSH ECX",0,0,PARAM_NONE);/*PUSH CX*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_ECX);/*PUSH CX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP52() {modrm_generateInstructionTEXT("PUSH EDX",0,0,PARAM_NONE);/*PUSH DX*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EDX);/*PUSH DX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP53() {modrm_generateInstructionTEXT("PUSH EBX",0,0,PARAM_NONE);/*PUSH BX*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EBX);/*PUSH BX*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP54() {modrm_generateInstructionTEXT("PUSH ESP",0,0,PARAM_NONE);/*PUSH SP*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_ESP);/*PUSH SP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP55() {modrm_generateInstructionTEXT("PUSH EBP",0,0,PARAM_NONE);/*PUSH BP*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EBP);/*PUSH BP*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP56() {modrm_generateInstructionTEXT("PUSH ESI",0,0,PARAM_NONE);/*PUSH SI*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_ESI);/*PUSH SI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP57() {modrm_generateInstructionTEXT("PUSH EDI",0,0,PARAM_NONE);/*PUSH DI*/ if (checkStackAccess(1,1,1)) return; CPU_PUSH32(&REG_EDI);/*PUSH DI*/ CPU[activeCPU].cycles_OP = 11; /*Push Reg!*/ }
-void CPU80386_OP58() {modrm_generateInstructionTEXT("POP EAX",0,0,PARAM_NONE);/*POP AX*/ if (checkStackAccess(1,0,1)) return; REG_EAX = CPU_POP32();/*POP AX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP59() {modrm_generateInstructionTEXT("POP ECX",0,0,PARAM_NONE);/*POP CX*/ if (checkStackAccess(1,0,1)) return; REG_ECX = CPU_POP32();/*POP CX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5A() {modrm_generateInstructionTEXT("POP EDX",0,0,PARAM_NONE);/*POP DX*/ if (checkStackAccess(1,0,1)) return; REG_EDX = CPU_POP32();/*POP DX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5B() {modrm_generateInstructionTEXT("POP EBX",0,0,PARAM_NONE);/*POP BX*/ if (checkStackAccess(1,0,1)) return; REG_EBX = CPU_POP32();/*POP BX*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5C() {modrm_generateInstructionTEXT("POP ESP",0,0,PARAM_NONE);/*POP SP*/ if (checkStackAccess(1,0,1)) return; REG_ESP = MMU_rw(CPU_SEGMENT_SS,REG_SS,REG_ESP&getstackaddrsizelimiter(),0,!STACK_SEGMENT_DESCRIPTOR_B_BIT());/*POP SP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5D() {modrm_generateInstructionTEXT("POP EBP",0,0,PARAM_NONE);/*POP BP*/ if (checkStackAccess(1,0,1)) return; REG_EBP = CPU_POP32();/*POP BP*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5E() {modrm_generateInstructionTEXT("POP ESI",0,0,PARAM_NONE);/*POP SI*/ if (checkStackAccess(1,0,1)) return; REG_ESI = CPU_POP32();/*POP SI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP5F() {modrm_generateInstructionTEXT("POP EDI",0,0,PARAM_NONE);/*POP DI*/ if (checkStackAccess(1,0,1)) return; REG_EDI = CPU_POP32();/*POP DI*/ CPU[activeCPU].cycles_OP = 8; /*Pop Reg!*/ }
-void CPU80386_OP85() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("TESTD",32,0,PARAM_MODRM12); if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,1)) return; CPU80386_internal_TEST32(modrm_read32(&params,0),modrm_read32(&params,1),2); }
-void CPU80386_OP87() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("XCHGD",32,0,PARAM_MODRM12); CPU80386_internal_XCHG32(modrm_addr32(&params,0,0),modrm_addr32(&params,1,0),2); /*XCHG reg32,r/m32*/ }
-void CPU80386_OP89() {modrm_debugger32(&params,1,0); modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM21); if (modrm_check32(&params,0,1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,1,0),modrm_read32(&params,0),2); }
-void CPU80386_OP8B() {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM12); if (modrm_check32(&params,1,1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,0,0),modrm_read32(&params,1),2); }
-void CPU80386_OP8D() {modrm_debugger32(&params,0,1); debugger_setcommand("LEA %s,%s",modrm_param1,getLEAtext32(&params)); CPU80386_internal_MOV32(modrm_addr32(&params,0,0),getLEA32(&params),0); CPU[activeCPU].cycles_OP = 2+MODRM_EA(params); /* Load effective address */}
-void CPU80386_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG AX,AX)*/ CPU80386_internal_XCHG32(&REG_EAX,&REG_EAX,1); CPU[activeCPU].cycles_OP = 3; /* NOP */}
-void CPU80386_OP91() {modrm_generateInstructionTEXT("XCHGD ECX,EAX",0,0,PARAM_NONE);/*XCHG AX,CX*/ CPU80386_internal_XCHG32(&REG_ECX,&REG_EAX,1); /*XCHG CX,AX*/ }
-void CPU80386_OP92() {modrm_generateInstructionTEXT("XCHGD EDX,EAX",0,0,PARAM_NONE);/*XCHG AX,DX*/ CPU80386_internal_XCHG32(&REG_EDX,&REG_EAX,1); /*XCHG DX,AX*/ }
-void CPU80386_OP93() {modrm_generateInstructionTEXT("XCHGD EBX,EAX",0,0,PARAM_NONE);/*XCHG AX,BX*/ CPU80386_internal_XCHG32(&REG_EBX,&REG_EAX,1); /*XCHG BX,AX*/ }
-void CPU80386_OP94() {modrm_generateInstructionTEXT("XCHGD ESP,EAX",0,0,PARAM_NONE);/*XCHG AX,SP*/ CPU80386_internal_XCHG32(&REG_ESP,&REG_EAX,1); /*XCHG SP,AX*/ }
-void CPU80386_OP95() {modrm_generateInstructionTEXT("XCHGD EBP,EAX",0,0,PARAM_NONE);/*XCHG AX,BP*/ CPU80386_internal_XCHG32(&REG_EBP,&REG_EAX,1); /*XCHG BP,AX*/ }
-void CPU80386_OP96() {modrm_generateInstructionTEXT("XCHGD ESI,EAX",0,0,PARAM_NONE);/*XCHG AX,SI*/ CPU80386_internal_XCHG32(&REG_ESI,&REG_EAX,1); /*XCHG SI,AX*/ }
-void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHGD EDI,EAX",0,0,PARAM_NONE);/*XCHG AX,DI*/ CPU80386_internal_XCHG32(&REG_EDI,&REG_EAX,1); /*XCHG DI,AX*/ }
-void CPU80386_OP98() {modrm_generateInstructionTEXT("CWDE",0,0,PARAM_NONE);/*CBW : sign extend AX to EAX*/ CPU80386_internal_CWDE();/*CWDE : sign extend AX to EAX (80386+)*/ }
-void CPU80386_OP99() {modrm_generateInstructionTEXT("CWQ",0,0,PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CDQ : sign extend EAX to EDX::EAX (80386+)*/ }
-void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%04x", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&CPU_EIPmask()); CPU[activeCPU].cycles_OP = 28; /* Intersegment direct */ }
+void CPU80386_OP40() {modrm_generateInstructionTEXT("INC EAX",0,0,PARAM_NONE);/*INC EAX*/ CPU80386_internal_INC32(&REG_EAX);/*INC EAX*/ }
+void CPU80386_OP41() {modrm_generateInstructionTEXT("INC ECX",0,0,PARAM_NONE);/*INC ECX*/ CPU80386_internal_INC32(&REG_ECX);/*INC ECX*/ }
+void CPU80386_OP42() {modrm_generateInstructionTEXT("INC EDX",0,0,PARAM_NONE);/*INC EDX*/ CPU80386_internal_INC32(&REG_EDX);/*INC EDX*/ }
+void CPU80386_OP43() {modrm_generateInstructionTEXT("INC EBX",0,0,PARAM_NONE);/*INC EBX*/ CPU80386_internal_INC32(&REG_EBX);/*INC EBX*/ }
+void CPU80386_OP44() {modrm_generateInstructionTEXT("INC ESP",0,0,PARAM_NONE);/*INC ESP*/ CPU80386_internal_INC32(&REG_ESP);/*INC ESP*/ }
+void CPU80386_OP45() {modrm_generateInstructionTEXT("INC EBP",0,0,PARAM_NONE);/*INC EBP*/ CPU80386_internal_INC32(&REG_EBP);/*INC EBP*/ }
+void CPU80386_OP46() {modrm_generateInstructionTEXT("INC ESI",0,0,PARAM_NONE);/*INC ESI*/ CPU80386_internal_INC32(&REG_ESI);/*INC ESI*/ }
+void CPU80386_OP47() {modrm_generateInstructionTEXT("INC EDI",0,0,PARAM_NONE);/*INC EDI*/ CPU80386_internal_INC32(&REG_EDI);/*INC EDI*/ }
+void CPU80386_OP48() {modrm_generateInstructionTEXT("DEC EAX",0,0,PARAM_NONE);/*DEC EAX*/ CPU80386_internal_DEC32(&REG_EAX);/*DEC EAX*/ }
+void CPU80386_OP49() {modrm_generateInstructionTEXT("DEC ECX",0,0,PARAM_NONE);/*DEC ECX*/ CPU80386_internal_DEC32(&REG_ECX);/*DEC ECX*/ }
+void CPU80386_OP4A() {modrm_generateInstructionTEXT("DEC EDX",0,0,PARAM_NONE);/*DEC EDX*/ CPU80386_internal_DEC32(&REG_EDX);/*DEC EDX*/ }
+void CPU80386_OP4B() {modrm_generateInstructionTEXT("DEC EBX",0,0,PARAM_NONE);/*DEC EBX*/ CPU80386_internal_DEC32(&REG_EBX);/*DEC EBX*/ }
+void CPU80386_OP4C() {modrm_generateInstructionTEXT("DEC ESP",0,0,PARAM_NONE);/*DEC ESP*/ CPU80386_internal_DEC32(&REG_ESP);/*DEC ESP*/ }
+void CPU80386_OP4D() {modrm_generateInstructionTEXT("DEC EBP",0,0,PARAM_NONE);/*DEC EBP*/ CPU80386_internal_DEC32(&REG_EBP);/*DEC EBP*/ }
+void CPU80386_OP4E() {modrm_generateInstructionTEXT("DEC ESI",0,0,PARAM_NONE);/*DEC ESI*/ CPU80386_internal_DEC32(&REG_ESI);/*DEC ESI*/ }
+void CPU80386_OP4F() {modrm_generateInstructionTEXT("DEC EDI",0,0,PARAM_NONE);/*DEC EDI*/ CPU80386_internal_DEC32(&REG_EDI);/*DEC EDI*/ }
+void CPU80386_OP50() {modrm_generateInstructionTEXT("PUSH EAX",0,0,PARAM_NONE);/*PUSH EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EAX)) return; /*PUSH AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP51() {modrm_generateInstructionTEXT("PUSH ECX",0,0,PARAM_NONE);/*PUSH ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ECX)) return; /*PUSH CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP52() {modrm_generateInstructionTEXT("PUSH EDX",0,0,PARAM_NONE);/*PUSH EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDX)) return; /*PUSH DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP53() {modrm_generateInstructionTEXT("PUSH EBX",0,0,PARAM_NONE);/*PUSH EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBX)) return; /*PUSH BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP54() {modrm_generateInstructionTEXT("PUSH ESP",0,0,PARAM_NONE);/*PUSH ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESP)) return; /*PUSH SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP55() {modrm_generateInstructionTEXT("PUSH EBP",0,0,PARAM_NONE);/*PUSH EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBP)) return; /*PUSH BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP56() {modrm_generateInstructionTEXT("PUSH ESI",0,0,PARAM_NONE);/*PUSH ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESI)) return; /*PUSH SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP57() {modrm_generateInstructionTEXT("PUSH EDI",0,0,PARAM_NONE);/*PUSH EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDI)) return; /*PUSH DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP58() {modrm_generateInstructionTEXT("POP EAX",0,0,PARAM_NONE);/*POP EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EAX)) return; /*POP AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP59() {modrm_generateInstructionTEXT("POP ECX",0,0,PARAM_NONE);/*POP ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ECX)) return; /*POP CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5A() {modrm_generateInstructionTEXT("POP EDX",0,0,PARAM_NONE);/*POP EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDX)) return; /*POP DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5B() {modrm_generateInstructionTEXT("POP EBX",0,0,PARAM_NONE);/*POP EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBX)) return; /*POP BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5C() {modrm_generateInstructionTEXT("POP ESP",0,0,PARAM_NONE);/*POP ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPESP(2)) return; /*POP SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5D() {modrm_generateInstructionTEXT("POP EBP",0,0,PARAM_NONE);/*POP EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBP)) return; /*POP BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5E() {modrm_generateInstructionTEXT("POP ESI",0,0,PARAM_NONE);/*POP ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ESI)) return;/*POP SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5F() {modrm_generateInstructionTEXT("POP EDI",0,0,PARAM_NONE);/*POP EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDI)) return;/*POP DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP85() {modrm_generateInstructionTEXT("TESTD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CPU80386_internal_TEST32(instructionbufferd,instructionbufferd2,2); }
+void CPU80386_OP87() {modrm_generateInstructionTEXT("XCHGD",32,0,PARAM_MODRM_01); CPU80386_internal_XCHG32(modrm_addr32(&params,MODRM_src0,0),modrm_addr32(&params,MODRM_src1,0),2); /*XCHG reg32,r/m32*/ }
+void CPU80386_OP89() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP8B() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP8D() {modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("LEAD %s,%s",modrm_param1,getLEAtext32(&params)); if (CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),getLEA32(&params),0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 2; /* Load effective address */ } }
+void CPU80386_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG EAX,EAX)*/ if (CPU80386_internal_XCHG32(&REG_EAX,&REG_EAX,1)) return; /* NOP */}
+void CPU80386_OP91() {modrm_generateInstructionTEXT("XCHG ECX,EAX",0,0,PARAM_NONE);/*XCHG ECX,EAX*/ CPU80386_internal_XCHG32(&REG_ECX,&REG_EAX,1); /*XCHG CX,AX*/ }
+void CPU80386_OP92() {modrm_generateInstructionTEXT("XCHG EDX,EAX",0,0,PARAM_NONE);/*XCHG EDX,EAX*/ CPU80386_internal_XCHG32(&REG_EDX,&REG_EAX,1); /*XCHG DX,AX*/ }
+void CPU80386_OP93() {modrm_generateInstructionTEXT("XCHG EBX,EAX",0,0,PARAM_NONE);/*XCHG EBX,EAX*/ CPU80386_internal_XCHG32(&REG_EBX,&REG_EAX,1); /*XCHG BX,AX*/ }
+void CPU80386_OP94() {modrm_generateInstructionTEXT("XCHG ESP,EAX",0,0,PARAM_NONE);/*XCHG ESP,EAX*/ CPU80386_internal_XCHG32(&REG_ESP,&REG_EAX,1); /*XCHG SP,AX*/ }
+void CPU80386_OP95() {modrm_generateInstructionTEXT("XCHG EBP,EAX",0,0,PARAM_NONE);/*XCHG EBP,EAX*/ CPU80386_internal_XCHG32(&REG_EBP,&REG_EAX,1); /*XCHG BP,AX*/ }
+void CPU80386_OP96() {modrm_generateInstructionTEXT("XCHG ESI,EAX",0,0,PARAM_NONE);/*XCHG ESI,EAX*/ CPU80386_internal_XCHG32(&REG_ESI,&REG_EAX,1); /*XCHG SI,AX*/ }
+void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHG EDI,EAX",0,0,PARAM_NONE);/*XCHG EDI,EAX*/ CPU80386_internal_XCHG32(&REG_EDI,&REG_EAX,1); /*XCHG DI,AX*/ }
+void CPU80386_OP98() {modrm_generateInstructionTEXT("CWDE",0,0,PARAM_NONE);/*CWDE : sign extend AX to EAX*/ CPU80386_internal_CWDE();/*CWDE : sign extend AX to EAX (80386+)*/ }
+void CPU80386_OP99() {modrm_generateInstructionTEXT("CDQ",0,0,PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CWQ : sign extend EAX to EDX::EAX (80386+)*/ }
+void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&CPU_EIPmask()); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */ } }
+
+//END OF BLOCK CONVERTED TO 80386 FROM 8086
+
 void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*PUSHFD*/ if (checkStackAccess(1,1,1)) return; uint_32 flags = REG_EFLAGS; if (FLAG_V8) flags &=~0x20000; /* VM is never pushed during Virtual 8086 mode! */ CPU_PUSH32(&flags); CPU[activeCPU].cycles_OP = 10; /*PUSHF timing!*/ }
 void CPU80386_OP9D_16() {
 	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) THROWDESCGP(0,0,0); //#GP fault!
