@@ -1520,7 +1520,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,0,0x00 }, //60 186+ PUSHA
 			{ 0,0,0,0,0,0,0,0x00 }, //61 186+ POPA
 			{ 0,1,1,0,0,1,0,0x00 }, //62 186+ BOUND
-			{ 1,1,1,0,0,1,0,0x00 }, //63 ARPL r/m16,r16 (286+)
+			{ 1,1,1,0,1,0,0,0x00 }, //63 ARPL r/m16,r16 (286+)
 			{ 0,0,0,0,0,0,1,0x00 }, //64/74 JXX
 			{ 0,0,0,0,0,0,1,0x00 }, //65/75 JXX
 			{ 0,0,0,0,0,0,1,0x00 }, //66/76 JXX
@@ -3496,8 +3496,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, from 80286 upwards!
 	{ //80286+
 		{ //16-bit
-			{ 1,1,1,0,0,1,0,0x00 }, //00 Various extended 286+ instructions GRP opcode.
-			{ 1,1,1,0,0,1,0,0x00 }, //01 Various extended 286+ instructions GRP opcode.
+			{ 1,1,1,0,1,0,0,0x00 }, //00 Various extended 286+ instructions GRP opcode.
+			{ 1,1,1,0,1,0,0,0x00 }, //01 Various extended 286+ instructions GRP opcode.
 			{ 1,1,1,0,0,1,0,0x00 }, //02 LAR /r
 			{ 1,1,1,0,0,1,0,0x00 }, //03 LSL /r
 			{ 0,0,0,0,0,0,1,0x04 }, //04
@@ -3507,7 +3507,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,1,0,0,1,0,0,0x01 }, //08
 			{ 0,1,1,0,1,0,0,0x01 }, //09
 			{ 0,1,0,0,0,0,0,0x01 }, //0A
-			{ 0,1,1,0,0,0,0,0x01 }, //0B Delibarate #UD! 286+
+			{ 0,1,1,0,0,0,0,0x01 }, //0B Deliberate #UD! 286+
 			{ 0,0,0,0,0,0,1,0x04 }, //0C
 			{ 0,0,0,0,0,0,2,0x04 }, //0D
 			{ 0,0,0,0,0,0,0,0x08 }, //0E
