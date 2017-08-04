@@ -65,6 +65,11 @@ extern byte custommem; //Custom memory address?
 extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
 extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
+OPTINLINE byte CPU80286_instructionstepPOPtimeout(byte base)
+{
+	return CPU8086_instructionstepdelayBIU(base,2);//Delay 2 cycles for POPs to start!
+}
+
 void CPU286_OP63() //ARPL r/m16,r16
 {
 	modrm_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
@@ -96,19 +101,21 @@ void CPU286_OP63() //ARPL r/m16,r16
 	CPUPROT2
 }
 
+//See opcodes_8086.c:
+#define EU_CYCLES_SUBSTRACT_ACCESSREAD 4
+
 void CPU286_OP9D() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
 	static word tempflags;
-	if (checkStackAccess(1,0,0)) return;
-	if (CPU8086_POPw(0,&tempflags)) return;
+	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
+	if (CPU80286_instructionstepPOPtimeout(0)) return; /*POP timeout*/
+	if (CPU8086_POPw(2,&tempflags)) return;
 	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
 	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles()==0) //Don't apply 80286+ cycles?
-	{
-		CPU[activeCPU].cycles_OP += 8; /*POPF timing!*/
-	}
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 }
 
 void CPU286_OPD6() //286+ SALC
