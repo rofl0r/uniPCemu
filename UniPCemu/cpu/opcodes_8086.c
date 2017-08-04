@@ -5240,7 +5240,6 @@ void op_grp3_16() {
 void op_grp5() {
 	MODRM_PTR info; //To contain the info!
 	static word destCS;
-	static word destIP;
 	switch (thereg) {
 	case 0: //INC Ev
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
