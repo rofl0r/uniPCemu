@@ -498,13 +498,13 @@ void CPU186_OPC0()
 
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
-	//if (CPU8086_instructionstepreadmodrmb(0,&oper1b,MODRM_src1)) return;
-	if (CPU[activeCPU].instructionstep==0) //Execution step?
+	if (CPU8086_instructionstepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
 		res8 = op_grp2_8(oper2b,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU8086_instructionstepwritemodrmb(1,res8,MODRM_src0)) return;
+	if (CPU8086_instructionstepwritemodrmb(3,res8,MODRM_src0)) return;
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
@@ -544,13 +544,13 @@ void CPU186_OPC1()
 	
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
-	if (CPU[activeCPU].instructionstep==0) //Execution step?
+	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
 		res16 = op_grp2_16((byte)oper2,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	//if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return;
-	if (CPU8086_instructionstepwritemodrmw(1,res16,1,0)) return;
+	if (CPU8086_instructionstepwritemodrmw(3,res16,MODRM_src0,0)) return;
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!
