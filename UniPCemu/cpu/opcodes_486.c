@@ -132,8 +132,8 @@ void CPU486_OP0F09() //WBINVD?
 }
 
 void CPU486_OP0FB0() {byte temp; if (modrm_check8(&params,1,1)) return; temp = modrm_read8(&params,1); if (REG_AL==temp) { if (modrm_check8(&params,1,0)) return; FLAGW_ZF(1); modrm_write8(&params,1,modrm_read8(&params,0)); /* r/m8=r8 */ } else { FLAGW_ZF(0); REG_AL = temp; /* AL=r/m8 */ }} //CMPXCHG r/m8,AL,r8
-void CPU486_OP0FB1_16() {word temp; if (modrm_check16(&params,1,1)) return; temp = modrm_read16(&params,1); if (REG_AX==temp) { if (modrm_check16(&params,1,0)) return; FLAGW_ZF(1); modrm_write16(&params,1,modrm_read16(&params,0),0); /* r/m16=r16 */ } else { FLAGW_ZF(0); REG_AX = temp; /* AX=r/m16 */ }} //CMPXCHG r/m16,AL,r16
-void CPU486_OP0FB1_32() {uint_32 temp; if (modrm_check32(&params,1,1)) return; temp = modrm_read32(&params,1); if (REG_EAX==temp) { if (modrm_check32(&params,1,0)) return; FLAGW_ZF(1); modrm_write32(&params,1,modrm_read32(&params,0)); /* r/m32=r32 */ } else { FLAGW_ZF(0); REG_EAX = temp; /* EAX=r/m32 */ }} //CMPXCHG r/m32,AL,r32
+void CPU486_OP0FB1_16() {word temp; if (modrm_check16(&params,1,1)) return; temp = modrm_read16(&params,1); if (REG_AX==temp) { if (modrm_check16(&params,1,0)) return; FLAGW_ZF(1); modrm_write16(&params,1,modrm_read16(&params,0),0); /* r/m16=r16 */ } else { FLAGW_ZF(0); REG_AX = temp; /* AX=r/m16 */ }} //CMPXCHG r/m16,AX,r16
+void CPU486_OP0FB1_32() {uint_32 temp; if (modrm_check32(&params,1,1)) return; temp = modrm_read32(&params,1); if (REG_EAX==temp) { if (modrm_check32(&params,1,0)) return; FLAGW_ZF(1); modrm_write32(&params,1,modrm_read32(&params,0)); /* r/m32=r32 */ } else { FLAGW_ZF(0); REG_EAX = temp; /* EAX=r/m32 */ }} //CMPXCHG r/m32,EAX,r32
 
 OPTINLINE void op_add8_486() {
 	res8 = oper1b + oper2b;
