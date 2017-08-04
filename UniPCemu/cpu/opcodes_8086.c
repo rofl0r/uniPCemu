@@ -3447,7 +3447,6 @@ OPTINLINE byte CPU8086_internal_INTO()
 		return 1; //Abort handling when needed!
 	}
 	busyEX4:
-	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	if ((CPU086_int(EXCEPTION_OVERFLOW)==0) && (!(EMULATED_CPU>=CPU_80286))) return 1; //Return to opcode!
 	exception_busy &= ~0x10; //Not busy anymore!
