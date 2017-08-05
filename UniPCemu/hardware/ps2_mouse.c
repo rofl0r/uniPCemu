@@ -47,7 +47,7 @@ struct
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
 	byte supported; //PS/2 mouse supported on this system?
-	double resetTimeout; //Timeout for reset commands!
+	double timeout; //Timeout for reset commands!
 } Mouse; //Ourselves!
 
 OPTINLINE void give_mouse_output(byte data)
@@ -169,20 +169,57 @@ void update_mouseTimer()
 	setMouseRate(HWmouse_getsamplerate()); //Start using this samplerate!
 }
 
+OPTINLINE void resetPS2Mouse()
+{
+	if (__HW_DISABLED) return; //Abort!
+	flushPackets(); //Flush all packets!
+	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
+	//No data reporting!
+	Mouse.resolution = 0x02; //4 pixel/mm resolution!
+}
+
 void updatePS2Mouse(double timepassed)
 {
-	if (Mouse.resetTimeout) //Gotten a timeout?
+	if (Mouse.timeout) //Gotten a timeout?
 	{
-		Mouse.resetTimeout -= timepassed; //Pass some time!
-		if (Mouse.resetTimeout <= 0.0) //Done?
+		Mouse.timeout -= timepassed; //Pass some time!
+		if (Mouse.timeout <= 0.0) //Done?
 		{
-			Mouse.resetTimeout = (double)0; //Finished!
-			give_mouse_output(0xAA); //Bat completion code!
+			Mouse.timeout = (double)0; //Finished!
+			switch (Mouse.command) //What command to execute?
+			{
+				case 0xFF:
+					switch (Mouse.command_step) //What step?
+					{
+					case 1: //First stage?
+						input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
+						give_mouse_output(0xFA); //Acnowledge!
+						resetPS2Mouse(); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
+						Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear!
+						Mouse.command_step = 2; //Step 2!
+						Mouse.command = 0xFF; //Restore the command byte, so that we can continue!
+						Mouse.has_command = 1; //We're stil executing a command!
+						Mouse.last_was_error = 0; //Last is OK!
+						break;
+					case 2: //Final stage?
+						give_keyboard_output(0xAA); //Give the result code!
+						Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear!
+						Mouse.command_step = 3; //Step 3! Give the ID next!
+						break;
+					case 3: //ID mode?
+						Mouse.timeout = (double)0; //Finished!
+						give_keyboard_output(0x00); //Give the ID code: PS/2 mouse!
+						Mouse.command_step = 0; //Finished!
+						Mouse.has_command = 0; //Finished command!
+						break;
+					}
+					break;
+			}
 		}
 	}
 }
 
-OPTINLINE void resetMouse()
+OPTINLINE void initPS2Mouse()
 {
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
@@ -190,10 +227,8 @@ OPTINLINE void resetMouse()
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 	
-	Mouse.resetTimeout = 100000.0; //
-
-	input_lastwrite_mouse(); //Force to user!
-	give_mouse_output(0x00); //We're a mouse!
+	Mouse.command = 0xFF; //Reset!
+	Mouse.timeout = 100000.0; //Start timing for our message!
 }
 
 OPTINLINE void mouse_handleinvalidcall()
@@ -251,13 +286,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 	switch (Mouse.command) //What command?
 	{
 		case 0xFF: //Reset?
-			Mouse.has_command = 0; //We don't have a command anymore: we ignore the mouse?
-			resetMouse(); //Reset the mouse!
-			give_mouse_output(0xFA); //Acnowledge!
-			input_lastwrite_mouse(); //Give byte to the user!
-			give_mouse_output(0xAA); //Reset!
-			loadMouseDefaults(); //Load our defaults!
-			Mouse.last_was_error = 0; //Last is OK!
+			Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 			break;
 		case 0xFE: //Resend?
 			Mouse.has_command = 0; //We're not a command anymore!
@@ -593,7 +622,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 
 		Mouse.buffer = allocfifobuffer(16,1); //Allocate a small mouse buffer!
 
-		resetMouse(); //Reset the mouse to power-on defaults!
+		initPS2Mouse(); //Reset the mouse to power-on defaults!
 
 		update_mouseTimer(); //(Re)set mouse timer!
 		Mouse.disabled = 1; //Default: disabled!

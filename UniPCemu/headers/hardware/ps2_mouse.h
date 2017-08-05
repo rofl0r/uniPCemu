@@ -3,6 +3,9 @@
 
 #include "headers/types.h" //Basic types!
 
+//Timeout between commands or parameters and results being buffered! Use 5ms timings!
+#define MOUSE_DEFAULTTIMEOUT 100000.0
+
 typedef struct MOUSE_PACKET
 {
 sbyte xmove;
