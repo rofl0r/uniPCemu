@@ -126,7 +126,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 						{
 							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
 							//Handle first port translation here, if needed!
-							if (PS2_FIRSTPORTTRANSLATION(Controller8042)) //Translating the first port?
+							if (PS2_FIRSTPORTTRANSLATION(Controller8042) && (!whatport)) //Translating the first port?
 							{
 								if (Controller8042.output_buffer == 0xF0) //Escaped data?
 								{
