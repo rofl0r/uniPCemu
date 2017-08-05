@@ -884,7 +884,7 @@ OPTINLINE byte coreHandler()
 
 		CPU_tickPendingReset();
 
-		if ((CPU[activeCPU].halt&3) && BIU_Ready()) //Halted normally? Don't count CGA wait states!
+		if ((CPU[activeCPU].halt&3) && (BIU_Ready() && CPU[activeCPU].resetPending==0)) //Halted normally with no reset pending? Don't count CGA wait states!
 		{
 			if (romsize) //Debug HLT?
 			{
