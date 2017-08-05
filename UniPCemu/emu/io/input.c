@@ -2505,7 +2505,14 @@ void keyboard_type_handler(double timepassed) //Handles keyboard typing: we're a
 
 void setMouseRate(float packetspersecond)
 {
-	mouse_interval = (1000000000.0/packetspersecond); //Handles mouse input: we're a normal timer!
+	if (packetspersecond) //Valid packets?
+	{
+		mouse_interval = (1000000000.0/packetspersecond); //Handles mouse input: we're a normal timer!
+	}
+	else
+	{
+		mouse_interval = (float)0; //Disabled timer!
+	}
 }
 
 int KEYBOARD_STARTED = 0; //Default not started yet!
