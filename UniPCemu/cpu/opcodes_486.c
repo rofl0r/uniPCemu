@@ -52,12 +52,19 @@ void CPU486_CPUID()
 	switch (REG_EAX)
 	{
 	case 0x00: //Highest function parameter!
-		REG_EAX = 0; //No function parameters supported!
+		REG_EAX = 1; //One function parameters supported!
 		//GenuineIntel!
 		REG_EBX = 0x756e6547;
 		REG_EDX = 0x49656e69;
 		REG_ECX = 0x6c65746e;
 		break;
+	case 0x01: //Standard level 1: Processor type/family/model/stepping and Feature flags
+		//Information based on http://www.hugi.scene.org/online/coding/hugi%2016%20-%20corawhd4.htm
+		REG_EAX = (0<<0xC); //Type: 00b=Primary processor
+		REG_EAX |= (4<<8); //Family: 80486/AMD 5x86/Cyrix 5x86
+		REG_EAX |= (2<<4); //Model: i80486SX
+		REG_EAX |= (0<<0); //Processor stepping: unknown with 80486SX!
+		REG_EDX = 0; //No extended functionality has been implemented!
 	default:
 		break;
 	}
