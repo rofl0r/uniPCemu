@@ -658,8 +658,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 		return;
 	}
 
-	//TODO: Load the data from the location specified!
-	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
+	if (CPU[activeCPU].internalmodrmstep==0) //First step? Start Request!
 	{	
 		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
 	}
@@ -702,6 +701,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
+	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
