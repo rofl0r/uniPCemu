@@ -1,5 +1,6 @@
 #include "headers/cpu/protecteddebugging.h" //Our typedefs!
 #include "headers/cpu/cpu.h" //CPU support!
+#include "headers/cpu/easyregs.h" //Easy register addressing support!
 
 byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte type, byte DR) //Check a single breakpoint. Return 0 for not triggered!
 {
@@ -62,7 +63,7 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 	byte DR;
 	if (CPU[activeCPU].faultraised==0) //No fault raised yet?
 	{
-		if (CPU[activeCPU].debuggerFaultRaised) //Debugger fault raised?
+		if (CPU[activeCPU].debuggerFaultRaised && (FLAG_RF==0)) //Debugger fault raised?
 		{
 			for (DR=0;DR<4;++DR) //Check any exception that's occurred!
 			{
@@ -70,12 +71,18 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 			}
 			CPU_INT(1,-1); //Call the interrupt, no error code!
 		}
+		else //Successful completion of an instruction?
+		{
+			CPU[activeCPU].debuggerFaultRaised = 0; //Clear the fault raised information: no fault is raised for this instruction, prevent the same fault from bubbling into the next instruction!
+			FLAGW_RF(0); //Successfull completion of an instruction clears the Resume Flag!
+		}
 	}
 }
 
 byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at memory/IO port?
 {
 	if (likely(getcpumode()==CPU_MODE_REAL)) return 0; //Not supported in real mode!
+	if (unlikely(FLAG_RF)) return 0; //Resume flag inhabits the exception!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,0)) return 1; //Break into the debugger on Breakpoint #0!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,1)) return 1; //Break into the debugger on Breakpoint #1!
 	if (checkProtectedModeDebuggerBreakpoint(linearaddress,type,2)) return 1; //Break into the debugger on Breakpoint #2!
