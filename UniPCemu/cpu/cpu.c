@@ -1079,7 +1079,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
 	{
-		if (modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags)) return 1; //Read the params!
+		if (modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags,*OP)) return 1; //Read the params!
 		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position again for new parameters!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?

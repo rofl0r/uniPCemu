@@ -2492,9 +2492,16 @@ specialflags:
 
 */
 
-byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags)
+byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP)
 {
 //Special data we already know:
+	if ((CPU[activeCPU].is0Fopcode) && (OP==0x1)) //Special case for 0x0F01 opcode?
+	{
+		if ((MODRM_REG(param->modrm)==4) || (MODRM_REG(param->modrm)==6)) //Always 16-bit ModR/M?
+		{
+			size = 1; //Force word size instead of DWORD size(LMSW/SMSW)!
+		}
+	}
 	if (param->instructionfetch.MODRM_instructionfetch==0) //To reset?
 	{
 		//Reset and initialize all our parameters!

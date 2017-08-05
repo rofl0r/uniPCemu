@@ -248,7 +248,7 @@ Slashr:
 7: Reg=>TRn(/r implied), R/M is General Purpose register!
 
 */
-byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags); //Read params for modr/m processing from CS:(E)IP
+byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP); //Read params for modr/m processing from CS:(E)IP
 
 //For fixing segment loads through MOV instructions.
 void modrm_updatedsegment(word *location, word value, byte isJMPorCALL); //Check for updated segment registers!

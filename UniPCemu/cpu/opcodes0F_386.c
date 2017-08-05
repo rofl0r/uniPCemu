@@ -13,6 +13,7 @@
 #include "headers/cpu/cpu_OP80386.h" //80386 support!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/protecteddebugging.h" //Protected mode debugger support for LOADALL!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 
@@ -44,6 +45,10 @@ extern word immw;
 extern uint_32 imm32;
 extern byte thereg; //For function number!
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+
+//Modr/m support, used when reg=NULL and custommem==0
+extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
+extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 /*
 
@@ -85,53 +90,57 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params, &info, 1); //Store the address for debugging!
+	modrm_decode32(&params, &info, MODRM_src0); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT
 		debugger_setcommand("SGDTD %s", info.text);
-		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
-			unkOP0F_286();
+			unkOP0F_386();
 			return; //Abort!
 		}
 		modrm_addoffset = 0;
-		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check32(&params,1,0)) return; //Abort on fault!
+		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		modrm_write16(&params, 1, CPU[activeCPU].registers->GDTR.limit, 0); //Store the limit first!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->GDTR.limit,MODRM_src0,0)) return; //Try and write it to the address specified!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write32(&params, 1, (CPU[activeCPU].registers->GDTR.base & 0xFFFFFFFF)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			if (CPU80386_instructionstepwritemodrmdw(2,CPU[activeCPU].registers->GDTR.base,MODRM_src0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 1: //SIDT
 		debugger_setcommand("SIDTD %s", info.text);
-		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
-			unkOP0F_286();
+			unkOP0F_386();
 			return; //Abort!
 		}
 
 		modrm_addoffset = 0;
-		if (modrm_check16(&params,1,0)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check32(&params,1,0)) return; //Abort on fault!
+		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		modrm_write16(&params, 1, CPU[activeCPU].registers->IDTR.limit, 0); //Store the limit first!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->IDTR.limit,MODRM_src0,0)) return; //Try and write it to the address specified!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			modrm_write32(&params, 1, (CPU[activeCPU].registers->IDTR.base & 0xFFFFFFFF)); //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			if (CPU80386_instructionstepwritemodrmdw(2,(CPU[activeCPU].registers->IDTR.base & 0xFFFFFFFF),MODRM_src0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
+			CPUPROT1
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
+			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 2: //LGDT
 		debugger_setcommand("LGDTD %s", info.text);
-		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
@@ -143,25 +152,26 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		}
 
 		modrm_addoffset = 0;
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
+		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		oper1 = modrm_read16(&params, 1); //Read the limit first!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read32(&params, 1)); //Lower part of the limit!
+			if (CPU80386_instructionstepreadmodrmdw(2,&oper1d,MODRM_src0)) return; //Read the limit first!
 			CPUPROT1
 				CPU[activeCPU].registers->GDTR.base = oper1d; //Load the base!
 				CPU[activeCPU].registers->GDTR.limit = oper1; //Load the limit!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 3: //LIDT
 		debugger_setcommand("LIDTD %s", info.text);
-		if (params.info[1].isreg==1) //We're storing to a register? Invalid!
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
 			unkOP0F_286();
 			return; //Abort!
@@ -173,46 +183,32 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		}
 
 		modrm_addoffset = 0;
-		if (modrm_check16(&params,1,1)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 		modrm_addoffset = 2;
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
+		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
-		oper1 = modrm_read16(&params, 1); //Read the limit first!
+		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the limit first!
 		CPUPROT1
 			modrm_addoffset = 2; //Add 2 bytes to the offset!
-			oper1d = ((uint_32)modrm_read32(&params, 1)); //Lower part of the limit!
+			if (CPU80386_instructionstepreadmodrmdw(2,&oper1d,MODRM_src0)) return; //Read the limit first!
 			CPUPROT1
 				CPU[activeCPU].registers->IDTR.base = oper1d; //Load the base!
 				CPU[activeCPU].registers->IDTR.limit = oper1; //Load the limit!
+				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
-	case 4: //SMSW: Same as 80286!
-		debugger_setcommand("SMSW %s", info.text);
-		if (modrm_check32(&params,1,0)) return; //Abort on fault!
-		modrm_write32(&params,1,(word)(CPU[activeCPU].registers->CR0&0xFFFF)); //Store the MSW into the specified location!
+	case 4: //SMSW
+		CPU286_OP0F01(); //Same as 80286!
 		break;
-	case 6: //LMSW: Same as 80286!
-		debugger_setcommand("LMSW %s", info.text);
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Privilege level isn't 0?
-		{
-			THROWDESCGP(0,0,0); //Throw #GP!
-			return; //Abort!
-		}
-		CPU[activeCPU].cycles_OP = 4*16; //Make sure we last long enough for the required JMP to be fully buffered!
-		oper1 = modrm_read16(&params,1); //Read the new register!
-		CPUPROT1
-		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
-		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
-		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
-		CPUPROT2
+	case 6: //LMSW
+		CPU286_OP0F01(); //Same as 80286!
 		break;
 	case 5: //--- Unknown Opcode!
 	case 7: //--- Unknown Opcode!
-		unkOP0F_286(); //Unknown opcode!
+		unkOP0F_386(); //Unknown opcode!
 		break;
 	default:
 		break;
@@ -254,6 +250,55 @@ void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = (DESC_32BITS(source->BASE)>>24); //Full 32-bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
+}
+
+byte LOADALL386_checkMMUaccess(word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Difference with normal checks: No segment is used for the access: it's a direct memory access!
+{
+	INLINEREGISTER uint_32 realaddress;
+	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
+
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&7) && (subbyte==0x20)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	{
+		CPU_AC(0); //Alignment DWORD check fault!
+		return 1; //Error out!
+	}
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0x10)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	{
+		CPU_AC(0); //Alignment DWORD check fault!
+		return 1; //Error out!
+	}
+	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&1) && (subbyte==0x8)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	{
+		CPU_AC(0); //Alignment WORD check fault!
+		return 1; //Error out!
+	}
+
+	//Check for paging and debugging next!
+	realaddress = (segment<<4)+offset; //Real adress, 80386 way!
+
+	switch (readflags) //What kind of flags?
+	{
+		case 0: //Data Write?
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE))) return 1; //Error out!
+			break;
+		case 1: //Data Read?
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD))) return 1; //Error out!
+			break;
+		case 3: //Opcode read?
+			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION))) return 1; //Error out!
+			break;
+		case 2: //Unknown?
+		default: //Unknown? Unsupported!
+			break;
+	}
+
+	if (checkDirectMMUaccess(realaddress,readflags,CPL)) //Failure in the Paging Unit?
+	{
+		return 1; //Error out!
+	}
+
+	//We're valid?
+	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
 void CPU386_OP0F07() //Undocumented LOADALL instruction
@@ -306,24 +351,33 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 		return;
 	}
 
-	//TODO: Load the data from the location specified!
-	memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+	if (CPU[activeCPU].internalmodrmstep==0) //First step? Start Request!
+	{	
+		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+	}
 
 	//Load the data from the used location!
 
+	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES for now!
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address)
 	{
-		if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,REG_EDI,0,getCPL(),1,0)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2),1,getCPL(),1,0|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+1,1,getCPL(),1,1|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+2,1,getCPL(),1,2|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+3,1,getCPL(),1,3|0x10)) return; //Abort on fault!
 	}
 
+	word readindex; //Our read index for all reads that are required!
+	readindex = 0; //Init read index to read all data in time through the BIU!
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address) //Load all remaining data in default byte order!
 	{
-		LOADALLDATA.datad[address] = DESC_32BITS(MMU_rdw(CPU_SEGMENT_ES,REG_ES,REG_EDI+(address<<2),0,1)); //Read the raw data to load from memory!
+		if (CPU80386_internal_stepreaddirectdw((byte)readindex,-1,REG_ES,(REG_EDI+(address<<2)),&LOADALLDATA.datad[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		readindex += 2; //Next read index!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
-	CPU[activeCPU].registers->CR0 = DESC_32BITS(LOADALLDATA.fields.CR0); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
+	CPU[activeCPU].registers->CR0 = DESC_32BITS(LOADALLDATA.fields.CR0); //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
 	CPU[activeCPU].registers->TR = DESC_16BITS(LOADALLDATA.fields.TR); //TR
 	CPU[activeCPU].registers->FLAGS = DESC_32BITS(LOADALLDATA.fields.EFLAGS); //FLAGS
 	CPU[activeCPU].registers->EIP = DESC_32BITS(LOADALLDATA.fields.EIP); //IP
@@ -340,7 +394,9 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->EDX = DESC_32BITS(LOADALLDATA.fields.ECX); //CX
 	CPU[activeCPU].registers->ECX = DESC_32BITS(LOADALLDATA.fields.EDX); //DX
 	CPU[activeCPU].registers->EAX = DESC_32BITS(LOADALLDATA.fields.EAX); //AX
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
+	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
