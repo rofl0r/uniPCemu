@@ -3814,24 +3814,25 @@ void op_grp5_32() {
 
 void CPU386_OP60()
 {
-	debugger_setcommand("PUSHA");
-	if (checkStackAccess(8,1,1)) return; //Abort on fault!
-	uint_32 oldESP = REG_ESP;    //PUSHA
-	CPU_PUSH32(&REG_EAX);
+	debugger_setcommand("PUSHAD");
+	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,1,1)) return; //Abort on fault!
+	static uint_32 oldESP;
+	oldESP = CPU[activeCPU].oldESP;    //PUSHA
+	if (CPU80386_PUSHdw(0,&REG_EAX)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_ECX);
+	if (CPU80386_PUSHdw(2,&REG_ECX)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_EDX);
+	if (CPU80386_PUSHdw(4,&REG_EDX)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_EBX);
+	if (CPU80386_PUSHdw(6,&REG_EBX)) return;
 	CPUPROT1
-	CPU_PUSH32(&oldESP);
+	if (CPU80386_PUSHdw(8,&oldESP)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_EBP);
+	if (CPU80386_PUSHdw(10,&REG_EBP)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_ESI);
+	if (CPU80386_PUSHdw(12,&REG_ESI)) return;
 	CPUPROT1
-	CPU_PUSH32(&REG_EDI);
+	if (CPU80386_PUSHdw(14,&REG_EDI)) return;
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -3839,27 +3840,29 @@ void CPU386_OP60()
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU386_OP61()
 {
-	debugger_setcommand("POPA");
-	if (checkStackAccess(8,0,1)) return; //Abort on fault!
-	REG_EDI = CPU_POP32();
+	uint_32 dummy;
+	debugger_setcommand("POPAD");
+	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,0,1)) return; //Abort on fault!
+	if (CPU80386_POPdw(0,&REG_EDI)) return;
 	CPUPROT1
-	REG_ESI = CPU_POP32();
+	if (CPU80386_POPdw(2,&REG_ESI)) return;
 	CPUPROT1
-	REG_EBP = CPU_POP32();
+	if (CPU80386_POPdw(4,&REG_EBP)) return;
 	CPUPROT1
-	CPU_POP32();
+	if (CPU80386_POPdw(6,&dummy)) return;
 	CPUPROT1
-	REG_EBX = CPU_POP32();
+	if (CPU80386_POPdw(8,&REG_EBX)) return;
 	CPUPROT1
-	REG_EDX = CPU_POP32();
+	if (CPU80386_POPdw(10,&REG_EDX)) return;
 	CPUPROT1
-	REG_ECX = CPU_POP32();
+	if (CPU80386_POPdw(12,&REG_ECX)) return;
 	CPUPROT1
-	REG_EAX = CPU_POP32();
+	if (CPU80386_POPdw(14,&REG_EAX)) return;
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -3867,6 +3870,7 @@ void CPU386_OP61()
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 extern byte modrm_addoffset; //Add this offset to ModR/M reads!
@@ -3874,8 +3878,8 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 //62 not implemented in fake86? Does this not exist?
 void CPU386_OP62()
 {
-	modrm_debugger32(&params,0,1); //Debug the location!
-	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
+	modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Debug the location!
+	debugger_setcommand("BOUNDD %s,%s",modrm_param1,modrm_param2); //Opcode!
 
 	if (modrm_isregister(params)) //ModR/M may only be referencing memory?
 	{
@@ -3883,76 +3887,93 @@ void CPU386_OP62()
 		return; //Abort!
 	}
 
-	uint_32 bound_min, bound_max;
-	uint_32 theval;
+	static uint_32 bound_min, bound_max;
+	static uint_32 theval;
 	modrm_addoffset = 0; //No offset!
-	if (modrm_check32(&params,0,1)) return; //Abort on fault!
-	if (modrm_check32(&params,1,1)) return; //Abort on fault!
+	if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
+	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	modrm_addoffset = 4; //Max offset!
-	if (modrm_check32(&params,1,1)) return; //Abort on fault!
+	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 
 	modrm_addoffset = 0; //No offset!
-	theval = modrm_read32(&params,0); //Read index!
-	bound_min=modrm_read32(&params,1); //Read min!
+	if (CPU80386_instructionstepreadmodrmdw(0,&theval,MODRM_src0)) return; //Read index!
+	if (CPU80386_instructionstepreadmodrmdw(2,&bound_min,MODRM_src1)) return; //Read min!
 	modrm_addoffset = 4; //Max offset!
-	bound_max=modrm_read32(&params,1); //Read max!
+	if (CPU80386_instructionstepreadmodrmdw(4,&bound_max,MODRM_src1)) return; //Read max!
 	modrm_addoffset = 0; //Reset offset!
 	if ((unsigned2signed32(theval)<unsigned2signed32(bound_min)) || (unsigned2signed32(theval)>unsigned2signed32(bound_max)))
 	{
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!
 	}
+	else //No exception?
+	{
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+	}
 }
 
 void CPU386_OP68()
 {
 	uint_32 val = imm32;    //PUSH Iz
-	debugger_setcommand("PUSH %08X",val);
+	debugger_setcommand("PUSHD %08X",val);
 	if (checkStackAccess(1,1,1)) return; //Abort on fault!
-	CPU_PUSH32(&val);
+	if (CPU80386_PUSHdw(0,&val)) return; //PUSH!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 extern MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL instructions)!
 
 void CPU386_OP69()
 {
-	modrm_decode32(&params,&info,0); //Reg!
-	modrm_decode32(&params,&info2,1); //Second parameter(R/M)!
+	modrm_decode32(&params,&info,MODRM_src0); //Reg!
+	modrm_decode32(&params,&info2,MODRM_src1); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULD %s,%04X",info.text,immw); //IMUL reg,imm16
+		debugger_setcommand("IMULD %s,%08X",info.text,imm32); //IMUL reg,imm16
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULD %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
+		debugger_setcommand("IMULD %s,%s,%08X",info.text,info2.text,imm32); //IMUL reg,r/m16,imm16
 	}
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
+		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+		{
+			if (modrm_check32(&params,1,1)) return; //Abort on fault!
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,1)) return; //Read R/M!
+			temp1.val32high = 0; //Clear high part by default!
+		}
+		else
+		{
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,0)) return; //Read reg instead! Word register = Word register * imm16!
+			temp1.val32high = 0; //Clear high part by default!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	else
+	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
-		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
+		temp2.val64 = imm32; //Immediate word is second/third parameter!
+		if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
+		if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
+		temp3.val64s = temp1.val64s; //Load and...
+		temp3.val64s *= temp2.val64s; //Signed multiplication!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+		//We're writing to the register always, so no normal writeback!
+		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	temp2.val64 = (uint_64)imm32; //Immediate word is second/third parameter!
-	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
-	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
-	temp3.val64s = temp1.val32s; //Load and...
-	temp3.val64s *= temp2.val32s; //Signed multiplication!
-	modrm_write32(&params,0,temp3.val32); //Write to the destination(register)!
-	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+	modrm_write32(&params,MODRM_src0,temp3.val32); //Write to the destination(register)!
+	if (((temp3.val64>>31)==0U) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF(((uint_64)temp3.val32&0x80000000U)>>31); //Sign!
+	FLAGW_SF((temp3.val32&0x80000000U)>>15); //Sign!
 	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
 
 void CPU386_OP6B()
 {
-	modrm_decode32(&params,&info,0); //Store the address!
-	modrm_decode32(&params,&info2,1); //Store the address(R/M)!
+	modrm_decode32(&params,&info,MODRM_src0); //Store the address!
+	modrm_decode32(&params,&info2,MODRM_src1); //Store the address(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULD %s,%02X",info.text,immb); //IMUL reg,imm8
@@ -3961,22 +3982,36 @@ void CPU386_OP6B()
 	{
 		debugger_setcommand("IMULD %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
-	if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
-	{
-		if (modrm_check32(&params,1,1)) return; //Abort on fault!
-		temp1.val64 = (uint_64)modrm_read32(&params,1); //Read R/M!
-	}
-	else
-	{
-		temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm8 sign extended!
-	}
-	temp2.val64 = (uint_64)immb; //Read unsigned parameter!
 
-	if (temp1.val64&0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;//Sign extend to 32 bits!
-	if (temp2.val64&0x80ULL) temp2.val64 |= 0xFFFFFFFFFFFFFF00ULL; //Sign extend to 32 bits!
-	temp3.val64s = temp1.val64s * temp2.val64s;
-	modrm_write32(&params,0,temp3.val32); //Write to register!
-	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+	if (CPU[activeCPU].instructionstep==0) //First step?
+	{
+		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+		{
+			if (modrm_check32(&params,1,1)) return; //Abort on fault!
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src1)) return; //Read R/M!
+			temp1.val32high = 0; //Clear high part by default!
+		}
+		else
+		{
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm16!
+			temp1.val32high = 0; //Clear high part by default!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	if (CPU[activeCPU].instructionstep==1) //Second step?
+	{
+		temp2.val64 = (uint_64)immb; //Read unsigned parameter!
+
+		if (temp1.val64&0x80000000) temp1.val64 |= 0xFFFFFFFF00000000LL;//Sign extend to 64 bits!
+		if (temp2.val64&0x80) temp2.val64 |= 0xFFFFFFFFFFFFFF00LL; //Sign extend to 64 bits!
+		temp3.val32s = temp1.val32s * temp2.val32s;
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+		//We're writing to the register always, so no normal writeback!
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+
+	modrm_write32(&params,MODRM_src0,temp3.val32); //Write to register!
+	if (((temp3.val64>>15)==0) || ((temp3.val64>>15)==0x1FFFFFFFFFFFFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
@@ -3988,18 +4023,18 @@ void CPU386_OP6D()
 {
 	debugger_setcommand("INSD");
 	if (blockREP) return; //Disabled REP!
-	uint_32 data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
+	static uint_32 data;
+	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+2,0,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+3,0,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
 	if (CPU_PORT_IN_D(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	MMU_wdw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_ES)),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU]);    //INSW
+	if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])		
+		if (CPU_Address_size[activeCPU])
 		{
 			REG_EDI -= 4;
 		}
@@ -4010,7 +4045,7 @@ void CPU386_OP6D()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])		
+		if (CPU_Address_size[activeCPU])
 		{
 			REG_EDI += 4;
 		}
@@ -4019,6 +4054,7 @@ void CPU386_OP6D()
 			REG_DI += 4;
 		}
 	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 	CPUPROT2
 }
@@ -4027,82 +4063,86 @@ void CPU386_OP6F()
 {
 	debugger_setcommand("OUTSD");
 	if (blockREP) return; //Disabled REP!
-	uint_32 data;
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
-	if (checkMMUaccess(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
-	data = MMU_rdw(get_segment_index(CPU_segment_ptr(CPU_SEGMENT_DS)), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), 0,!CPU_Address_size[activeCPU]);
+	static uint_32 data;
+	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
+	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
+	if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSD
 	CPUPROT1
 	if (CPU_PORT_OUT_D(0,REG_DX,data)) return;    //OUTS DX,Xz
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])		
+		if (CPU_Address_size[activeCPU])
 		{
-			REG_ESI -= 2;
+			REG_ESI -= 4;
 		}
 		else
 		{
-			REG_SI -= 2;
+			REG_SI -= 4;
 		}
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])		
+		if (CPU_Address_size[activeCPU])
 		{
-			REG_ESI += 2;
+			REG_ESI += 4;
 		}
 		else
 		{
-			REG_SI += 2;
+			REG_SI += 4;
 		}
 	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
 	CPUPROT2
 }
 
 void CPU386_OPC1()
 {
-	oper2d = (word)immb;
+	modrm_decode32(&params,&info,MODRM_src0); //Store the address for debugging!
+	oper2d = (uint_32)immb;
 	thereg = MODRM_REG(params.modrm);
-
-	modrm_decode32(&params,&info,1); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLD %s,%02X",info.text,oper2d);
+			debugger_setcommand("ROLD %s,%02X",info.text,oper2);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORD %s,%02X",info.text,oper2d);
+			debugger_setcommand("RORD %s,%02X",info.text,oper2);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLD %s,%02X",info.text,oper2d);
+			debugger_setcommand("RCLD %s,%02X",info.text,oper2);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRD %s,%02X",info.text,oper2d);
+			debugger_setcommand("RCRD %s,%02X",info.text,oper2);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHLD %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHLD %s,%02X",info.text,oper2);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRD %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHRD %s,%02X",info.text,oper2);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLD %s,%02X",info.text,oper2d);
+			debugger_setcommand("SHLD %s,%02X",info.text,oper2);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARD %s,%02X",info.text,oper2d);
+			debugger_setcommand("SARD %s,%02X",info.text,oper2);
 			break;
 		default:
 			break;
 	}
 	
-	if (modrm_check32(&params,1,1)) return; //Abort on error!
-	if (modrm_check32(&params,1,0)) return; //Abort on error!
-	oper1d = modrm_read32(&params,1);
-
-	modrm_write32(&params,1,op_grp2_32((byte)oper2d,2));
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
+	if (CPU[activeCPU].instructionstep==0) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
+	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	{
+		res32 = op_grp2_32((byte)oper2,2); //Execute!
+		++CPU[activeCPU].instructionstep; //Next step: writeback!
+	}
+	if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!
@@ -4111,59 +4151,79 @@ void CPU386_OPC8()
 	uint_32 temp16;    //ENTER Iw,Ib
 	word stacksize = immw;
 	byte nestlev = immb;
-	uint_32 bpdata;
-	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
+	uint_32 ebpdata;
+	debugger_setcommand("ENTERD %04X,%02X",stacksize,nestlev);
 	nestlev &= 0x1F; //MOD 32!
 	if (EMULATED_CPU>CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 	{
-		if (checkStackAccess(1+nestlev,1,1)) return; //Abort on error!
-		if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,1)) return; //Abort on error!
+		if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(1+nestlev,1,1)) return; //Abort on error!
+		if (CPU[activeCPU].instructionstep==0) if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,1)) return; //Abort on error!
 	}
 	ENTER_L = nestlev; //Set the nesting level used!
 	//according to http://www.felixcloutier.com/x86/ENTER.html
 	if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 	{
-		if (checkStackAccess(1,1,1)) return; //Abort on error!		
+		if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(1,1,1)) return; //Abort on error!		
 	}
 
 	/*
-	CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
-	CPU[activeCPU].oldESP = REG_ESP; //Back-up!
+	if (CPU[activeCPU].instructionstep==0) //Starting the instruction?
+	{
+		CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
+		CPU[activeCPU].oldESP = REG_ESP; //Back-up!
+	}
 	*/ //Done automatically at the start of an instruction!
 
-	CPU_PUSH32(&REG_EBP);
-	uint_32 frametemp = REG_ESP;
+	if (CPU80386_PUSHdw(0,&REG_EBP)) return; //Busy pushing?
+	uint_32 frametemp = CPU[activeCPU].oldESP; //Read the original value to start at(for stepping compatibility)!
+	uint_32 framestep,instructionstep;
+	instructionstep = 2; //We start at step 2 for the stack operations on instruction step!
+	framestep = 0; //We start at step 0 for the stack frame operations!
 	if (nestlev)
 	{
 		for (temp16=1; temp16<nestlev; ++temp16)
 		{
 			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 			{
-				if (checkENTERStackAccess(1,1)) return; //Abort on error!				
+				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
 			}
-			bpdata = MMU_rdw(CPU_SEGMENT_SS,REG_SS,REG_EBP-(temp16<<2),0,1); //Read the value to copy.
-			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+			if (CPU80386_internal_stepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,REG_BP-(temp16<<2),&ebpdata,1)) return; //Read data from memory to copy the stack!
+			framestep += 2; //We're adding 2 immediately!
+			if (CPU[activeCPU].internalinstructionstep==framestep) //At the write back phase?
 			{
-				if (checkStackAccess(1,1,1)) return; //Abort on error!
+				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+				{
+					if (checkStackAccess(1,1,1)) return; //Abort on error!
+				}
+				if (CPU80386_PUSHdw(instructionstep,&ebpdata)) return; //Write back!
 			}
-			CPU_PUSH32(&bpdata);
+			instructionstep += 2; //Next instruction step base to process!
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 		{
 			if (checkStackAccess(1,1,1)) return; //Abort on error!		
 		}
-		CPU_PUSH32(&frametemp); //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
+		if (CPU80386_PUSHdw(instructionstep,&frametemp)) return; //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
 	}
 	
 	REG_EBP = frametemp;
 	REG_ESP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
+
 void CPU386_OPC9()
 {
+	uint_32 oldESP;
 	debugger_setcommand("LEAVE");
 	if (checkStackAccess(1,0,1)) return; //Abort on fault!
+	oldESP = REG_ESP; //Backup SP!
 	REG_ESP = REG_EBP;    //LEAVE
-	REG_EBP = CPU_POP32();
+	if (CPU80386_POPdw(0,&REG_EBP)) //Not done yet?
+	{
+		REG_ESP = oldESP; //Restore ESP to retry later!
+		return; //Abort!
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 /*
