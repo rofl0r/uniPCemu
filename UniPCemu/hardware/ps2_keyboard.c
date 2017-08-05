@@ -119,7 +119,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
 			if (pressed&1) //Key pressed?
 			{
-				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2)) || (scancodeset!=3)) //Allowed typematic make codes? Also allow non-typematic always!
+				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2))) //Allowed typematic make codes? Also allow non-typematic always!
 				{
 					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
 					for (i=0;i<scancodesets[scancodeset][key].keypress_size;i++) //Process keypress!
@@ -130,7 +130,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			}
 			else //Released?
 			{
-				if (scancodeset_break[key] || (scancodeset!=3)) //Break codes allowed?
+				if (scancodeset_break[key]) //Break codes allowed?
 				{
 					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
 					for (i=0;i<scancodesets[scancodeset][key].keyrelease_size;i++) //Process keyrelease!
