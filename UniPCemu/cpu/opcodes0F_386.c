@@ -305,7 +305,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
 	word address;
 #include "headers/packed.h" //Packed!
-	union PACKED
+	static union PACKED
 	{
 		struct
 		{
