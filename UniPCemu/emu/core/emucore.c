@@ -454,7 +454,7 @@ void initEMU(int full) //Init!
 	BIOS_initKeyboard(); //Start up the keyboard!
 
 	debugrow("Initialising mouse...");
-	PS2_initMouse(BIOS_Settings.architecture>=ARCHITECTURE_PS2); //Start up the mouse!
+	PS2_initMouse(/*BIOS_Settings.architecture>=ARCHITECTURE_PS2*/ 0); //Start up the mouse! Not supported on the XT, AT, PS/2 and Compaq Deskpro 386!
 
 	//Load all BIOS presets!
 	debugrow("Initializing 8253...");
@@ -499,7 +499,7 @@ void initEMU(int full) //Init!
 	initUART(1); //Initialise the UART (COM ports)!
 
 	debugrow("Initialising serial mouse...");
-	initSERMouse(BIOS_Settings.architecture<=ARCHITECTURE_AT); //Initilialise the serial mouse for XT and AT!
+	initSERMouse(/*BIOS_Settings.architecture<=ARCHITECTURE_AT*/ 1); //Initilialise the serial mouse for all supported platforms not using PS/2 mouse!
 
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
