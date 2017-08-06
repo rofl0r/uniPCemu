@@ -362,9 +362,9 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address)
 	{
 		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2),1,getCPL(),1,0|0x10)) return; //Abort on fault!
-		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+1,1,getCPL(),1,1|0x10)) return; //Abort on fault!
-		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+2,1,getCPL(),1,2|0x10)) return; //Abort on fault!
-		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)+3,1,getCPL(),1,3|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)|1,1,getCPL(),1,1|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)|2,1,getCPL(),1,2|0x10)) return; //Abort on fault!
+		if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2)|3,1,getCPL(),1,3|0x10)) return; //Abort on fault!
 	}
 
 	word readindex; //Our read index for all reads that are required!
