@@ -295,7 +295,7 @@ SDL_Surface *getGPUSurface()
 		}
 	}
 #ifdef SDL2
-	if (SDL_getDisplayDPI(0,NULL,&GPU_xDTM,&GPU_yDTM)) //DPI retrieved?
+	if (SDL_GetDisplayDPI(0,NULL,&GPU_xDTM,&GPU_yDTM)) //DPI retrieved?
 	{
 		GPU_xDTM = (float)(1.0/((double)GPU_xDTM/25.4)); //Convert to dots/mm, then to factor!
 		GPU_yDTM = (float)(1.0/((double)GPU_yDTM/25.4)); //Convert to dots/mm, then to factor!
