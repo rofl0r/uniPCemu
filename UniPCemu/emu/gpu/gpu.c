@@ -143,6 +143,8 @@ void updateWindow(word xres, word yres, uint_32 flags)
 
 byte GPU_plotsetting = 0;
 
+float GPU_xDTM=1.0, GPU_yDTM=1.0; //INCH*25.4=mm
+
 SDL_Surface *getGPUSurface()
 {
 	uint_32 xres, yres; //Our determinated resolution!
@@ -292,6 +294,15 @@ SDL_Surface *getGPUSurface()
 #endif
 		}
 	}
+#ifdef SDL2
+	if (SDL_getDisplayDPI(0,NULL,&GPU_xDTM,&GPU_yDTM)) //DPI retrieved?
+	{
+		GPU_xDTM = (float)(1.0/((double)GPU_xDTM/25.4)); //Convert to dots/mm, then to factor!
+		GPU_yDTM = (float)(1.0/((double)GPU_yDTM/25.4)); //Convert to dots/mm, then to factor!
+	}
+	else GPU_xDTM = GPU_yDTM = 1.0; //Default value: no conversion!
+#endif
+			
 
 	return originalrenderer;
 }

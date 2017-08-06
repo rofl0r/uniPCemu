@@ -39,6 +39,8 @@
 //Log input and output to compare?
 //#define __DEBUG_INPUT
 
+extern float GPU_xDTM, GPU_yDTM;
+
 double keyboard_mouseinterval = 0.0; //Check mouse 30 times per second during mouse mode!
 
 float mouse_xmove = 0, mouse_ymove = 0; //Movement of the mouse not processed yet (in mm)!
@@ -1976,8 +1978,8 @@ void handleMouseMovement(double timepassed) //Handles mouse movement using the a
 	{
 		if (curstat.analogdirection_mouse_x || curstat.analogdirection_mouse_y) //Mouse analog direction trigger?
 		{
-			mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*10.0f); //Apply x movement in mm (reversed)!
-			mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*10.0f); //Apply y movement in mm (reversed)!
+			mouse_xmove += (int_64)((float)(curstat.analogdirection_mouse_x / 32767.0f)*5.0f); //Apply x movement in mm (reversed)!
+			mouse_ymove += (int_64)((float)(curstat.analogdirection_mouse_y / 32767.0f)*5.0f); //Apply y movement in mm (reversed)!
 		}
 		keyboard_mousetiming -= keyboard_mouseinterval; //Substract interval to next tick!
 	}
@@ -2955,8 +2957,8 @@ void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 		lock(LOCK_INPUT);
 		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
 		{
-			mouse_xmove += (relxfull-lastxy[fingerId][0])*(SAFEDIV(1.0f,getxres())*150.9f); //Move the mouse horizontally, in mm!
-			mouse_ymove += (relyfull-lastxy[fingerId][1])*(SAFEDIV(1.0f,getyres())*72.6f); //Move the mouse vertically, in mm!
+			mouse_xmove += (relxfull-lastxy[fingerId][0])*GPU_xDTM; //Move the mouse horizontally, in mm!
+			mouse_ymove += (relyfull-lastxy[fingerId][1])*GPU_yDTM; //Move the mouse vertically, in mm!
 		}
 		else //Not direct input?
 		{
@@ -3853,14 +3855,14 @@ void updateInput(SDL_Event *event) //Update all input!
 			#ifdef IS_WINDOWS
 				if (RDP) //Needs adjustment?
 				{
-					mouse_xmove += floorf((float)event->motion.xrel*(1.0f/34.0f)); //Move the mouse horizontally!
-					mouse_ymove += floorf((float)event->motion.yrel*(1.0f/60.0f)); //Move the mouse vertically!
+					mouse_xmove += floorf((float)event->motion.xrel*(1.0f/34.0f))*GPU_xDTM; //Move the mouse horizontally!
+					mouse_ymove += floorf((float)event->motion.yrel*(1.0f/60.0f))*GPU_yDTM; //Move the mouse vertically!
 				}
 				else //No adjustment?
 			#endif
 				{
-					mouse_xmove += (float)event->motion.xrel; //Move the mouse horizontally!
-					mouse_ymove += (float)event->motion.yrel; //Move the mouse vertically!
+					mouse_xmove += (float)event->motion.xrel*GPU_xDTM; //Move the mouse horizontally!
+					mouse_ymove += (float)event->motion.yrel*GPU_yDTM; //Move the mouse vertically!
 				}
 			}
 			else //Not direct input?
