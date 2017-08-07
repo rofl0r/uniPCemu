@@ -63,6 +63,10 @@ byte precisemousemovement = 0; //Precise mouse movement enabled?
 
 byte Settings_request = 0; //Requesting settings to be loaded?
 
+word firstsplitx=(GPU_TEXTSURFACE_WIDTH/3)+1; //End of the first horizontal area(left button becomes middle button)!
+word secondsplitx=((GPU_TEXTSURFACE_WIDTH/3)*2)+1; //End of the second horizontal area(middle button becomes right button)!
+word thirdsplity=(GPU_TEXTSURFACE_HEIGHT/3)+1; //End of the first vertical area(middle button becomes no button)!
+
 #ifdef SDL2
 extern SDL_Window *sdlWindow; //Our Window!
 #endif
@@ -1435,9 +1439,7 @@ void updateFingerOSK_mouse()
 	word x, y; //The position inside the key text!
 	byte screencharacter;
 	uint_32 screenfont, screenborder;
-	word firstsplitx=(GPU_TEXTSURFACE_WIDTH/3)+1; //End of the first horizontal area(left button becomes middle button)!
-	word secondsplitx=((GPU_TEXTSURFACE_WIDTH/3)*2)+1; //End of the second horizontal area(middle button becomes right button)!
-	word thirdsplity=(GPU_TEXTSURFACE_HEIGHT/3)+1; //End of the first vertical area(middle button becomes no button)!
+	
 	byte buttonarea;
 	byte newbutton;
 	byte buttonstatus=0; //Button status for all two buttons!
@@ -2919,6 +2921,8 @@ typedef int_64 SDL_FingerID; //Finger ID type!
 #endif
 
 sword lastxy[0x100][2]; //Last coordinates registered!
+byte ismovablexy[0x100]; //Movable?
+extern float render_xfactor, render_yfactor; //X and Y factor during rendering!
 
 void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
 {
@@ -2931,6 +2935,19 @@ void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
 		fingerId &= 0xFF; //Only use lower 8-bits to limit us to a good usable range!
 		lastxy[fingerId][0] = (sword)relxfull; //Save the last coordinate for getting movement!
 		lastxy[fingerId][1] = (sword)relyfull; //Save the last coordinate for getting movement!
+		byte buttonarea=0;
+		if ((relxfull>=keyboardsurface->xdelta) && (relyfull>=keyboardsurface->ydelta)) //Within range?
+		{
+			relxfull -= keyboardsurface->xdelta;
+			relyfull -= keyboardsurface->ydelta;
+			if ((relxfull<GPU_TEXTPIXELSX) && (relyfull<GPU_TEXTPIXELSY)) //Within range?
+			{
+				relxfull = (float)((word)((float)relxfull*render_xfactor)>>3); //X character!
+				relyfull = (float)((word)((float)relyfull*render_yfactor)>>3); //Y character!
+				buttonarea = ((word)relxfull<firstsplitx)?1:(((word)relxfull<secondsplitx)?(((word)relyfull<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
+			}
+		}
+		ismovablexy[fingerId] = (buttonarea==0); //Movable?
 		updateFingerOSK();
 		unlock(LOCK_INPUT);
 }
@@ -2957,8 +2974,11 @@ void touch_fingerMotion(float relx, float rely, SDL_FingerID fingerId)
 		lock(LOCK_INPUT);
 		if (Direct_Input) //Direct input? Move the mouse in the emulator itself!
 		{
-			mouse_xmove += (relxfull-lastxy[fingerId][0])*GPU_xDTM; //Move the mouse horizontally, in mm!
-			mouse_ymove += (relyfull-lastxy[fingerId][1])*GPU_yDTM; //Move the mouse vertically, in mm!
+			if (ismovablexy[fingerId]) //Movable finger?
+			{
+				mouse_xmove += (relxfull-lastxy[fingerId][0])*GPU_xDTM; //Move the mouse horizontally, in mm!
+				mouse_ymove += (relyfull-lastxy[fingerId][1])*GPU_yDTM; //Move the mouse vertically, in mm!
+			}
 		}
 		else //Not direct input?
 		{
