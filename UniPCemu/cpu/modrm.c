@@ -393,6 +393,8 @@ byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 	return 0; //Ignore invalid!
 }
 
+extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
+
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
 	uint_32 *result; //The result holder if needed!
@@ -412,6 +414,10 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				if (backupval&0x80000000) //Paging changed?
 				{
 					Paging_clearTLB(); //Clear the TLB!
+				}
+				if (((EMULATED_CPU==CPU_80386) && (CPU_databussize)) || (EMULATED_CPU==CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
+				{
+					*result |= 8; //Bit4 is hardwired to 1 on a 80386SX/CX/EX/CL.
 				}
 				updateCPUmode(); //Try to update the CPU mode, if needed!
 			}
