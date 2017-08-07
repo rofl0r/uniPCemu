@@ -32,55 +32,49 @@ byte Inboard_writeIO(word port, byte value)
 	switch (port)
 	{
 		case 0x60: //Special flags? Used for special functions on the Inboard 386!
-			if (EMULATED_CPU==CPU_80386) //Inboard 386 emulation?
+			switch (value) //Special Inboard 386 commands?
 			{
-				switch (value) //Special Inboard 386 commands?
-				{
-				case 0xDD: //Disable A20 line?
-				case 0xDF: //Enable A20 line?
-					SETBITS(Controller8042.outputport,1,1,GETBITS(value,0,1)); //Wrap arround: disable/enable A20 line!
-					refresh_outputport(); //Handle the new output port!
-					return 1;
-					break;
-				default: //Unsupported?
-					#ifdef INBOARD_DIAGNOSTICS
-					dolog("inboard","Unknown Inboard port 60h command: %02X",value);
-					#endif
-					break;
-				}
-				return 1; //Handled!
+			case 0xDD: //Disable A20 line?
+			case 0xDF: //Enable A20 line?
+				SETBITS(Controller8042.outputport,1,1,GETBITS(value,0,1)); //Wrap arround: disable/enable A20 line!
+				refresh_outputport(); //Handle the new output port!
+				return 1;
+				break;
+			default: //Unsupported?
+				#ifdef INBOARD_DIAGNOSTICS
+				dolog("inboard","Unknown Inboard port 60h command: %02X",value);
+				#endif
+				break;
 			}
+			return 1; //Handled!
 			break;
 		case 0x670: //Special flags 2? Used for special functions on the Inboard 386!
-			if (EMULATED_CPU==CPU_80386) //Inboard 386 emulation?
+			MoveLowMemoryHigh = 1; //Disable/enable the HMA memory or BIOS ROM! Move memory high now!
+			switch (value) //What command to execute?
 			{
-				MoveLowMemoryHigh = 1; //Disable/enable the HMA memory or BIOS ROM! Move memory high now!
-				switch (value) //What command to execute?
-				{
-					//case 0x1F: //Enable/disable the cache? Unknown result!
-						//MoveLowMemoryHigh = GETBITS(~value,0,1); //Disable/enable the HMA memory or BIOS ROM! Written values 1E/1F in default configuration!
-						//break;
-					case 0x00: //Level 1 speed? 30 Wait states!
-						inboard386_speed = 0; //Level 1!
-						break;
-					case 0x0E: //Level 2 speed? 16 Wait states!
-						inboard386_speed = 1; //Level 2!
-						break;
-					case 0x16: //Level 3 speed? 8 Wait States!
-						inboard386_speed = 2; //Level 3!
-						break;
-					case 0x1E: //Level 4 speed? 0 Wait States!
-						inboard386_speed = 3; //Level 4!
-						break;
-					default: //Unknown command?
-						#ifdef INBOARD_DIAGNOSTICS
-						dolog("inboard","Inboard: unknown port 670h command: %02X",value); //Set the speed level!
-						#endif
-						break;
-				}
-				updateInboardWaitStates(); //Update the 80386 Wait States!
-				return 1; //Handled!
+				//case 0x1F: //Enable/disable the cache? Unknown result!
+					//MoveLowMemoryHigh = GETBITS(~value,0,1); //Disable/enable the HMA memory or BIOS ROM! Written values 1E/1F in default configuration!
+					//break;
+				case 0x00: //Level 1 speed? 30 Wait states!
+					inboard386_speed = 0; //Level 1!
+					break;
+				case 0x0E: //Level 2 speed? 16 Wait states!
+					inboard386_speed = 1; //Level 2!
+					break;
+				case 0x16: //Level 3 speed? 8 Wait States!
+					inboard386_speed = 2; //Level 3!
+					break;
+				case 0x1E: //Level 4 speed? 0 Wait States!
+					inboard386_speed = 3; //Level 4!
+					break;
+				default: //Unknown command?
+					#ifdef INBOARD_DIAGNOSTICS
+					dolog("inboard","Inboard: unknown port 670h command: %02X",value); //Set the speed level!
+					#endif
+					break;
 			}
+			updateInboardWaitStates(); //Update the 80386 Wait States!
+			return 1; //Handled!
 			break;
 	}
 	return 0; //Unknown port!
@@ -99,7 +93,7 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 	}
 	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
-	if ((EMULATED_CPU==CPU_80386) && (is_Compaq==0)) //XT/AT 386? We're an Inboard 386!
+	if (((EMULATED_CPU==CPU_80386)||(EMULATED_CPU==CPU_80486)) && (is_Compaq==0)) //XT/AT 386/486? We're an Inboard 386!
 	{
 		MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 		if (MMU.size>=0x100000) //1MB+ detected?

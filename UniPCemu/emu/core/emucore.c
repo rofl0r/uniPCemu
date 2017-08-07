@@ -776,17 +776,17 @@ void updateSpeedLimit()
 				{
 					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
 				}
-				if ((EMULATED_CPU==CPU_80386) || (is_Compaq==1)) //80386 or Compaq?
+				if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU==CPU_80486)) || (is_Compaq==1)) //80386/80486 or Compaq?
 				{
-					if (!(is_Compaq) && (EMULATED_CPU==CPU_80386)) //XT/AT 386? 16MHz clock!
+					if (!(is_Compaq) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU==CPU_80486))) //XT/AT 386? 16MHz clock!
 					{
-						if (is_XT) //Inboard 386 XT?
+						if (is_XT) //Inboard 386/486 XT?
 						{
-							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386/80486 16MHz!
 						}
-						else //Inboard 386 AT?
+						else //Inboard 386/486 AT?
 						{
-							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386/80486 32MHz(Type 3 motherboard)!
 						}
 					}
 					else if (is_Compaq==1) //Compaq Deskpro 386+?
@@ -911,6 +911,7 @@ OPTINLINE byte coreHandler()
 					debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
 					debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
 				}
+				CPU[activeCPU].executed = 1; //For making the debugger execute correctly!
 				//Increase the instruction counter every cycle/HLT time!
 				debugger_step(); //Step debugger if needed, even during HLT state!
 			}
