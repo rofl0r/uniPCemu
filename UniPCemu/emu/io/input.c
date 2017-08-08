@@ -1460,7 +1460,7 @@ void updateFingerOSK_mouse()
 				{
 					buttonarea = (x<firstsplitx)?1:((x<secondsplitx)?((y<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
 					newbutton = 1; //We're a new button!
-					if ((x>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY)) && ((y>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMX)) //Might be a not to be used area?
+					if ((x>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY)) && (y>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMX))) //Might be a not to be used area?
 					{
 						byte buttoninfo;
 						buttoninfo = keyboard_special[KEYBOARD_NUMY-(GPU_TEXTSURFACE_HEIGHT-y)][KEYBOARD_NUMX-(GPU_TEXTSURFACE_WIDTH-x)]; //Get info!
