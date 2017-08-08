@@ -4105,6 +4105,9 @@ setaspectratiotext:
 	case 5:
 		strcat(menuoptions[advancedoptions++], "Force 4:3(SVGA 1080p)");
 		break;
+	case 6:
+		strcat(menuoptions[advancedoptions++], "Force 4K");
+		break;
 	default:
 		BIOS_Settings.aspectratio = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
