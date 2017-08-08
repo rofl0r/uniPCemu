@@ -1284,13 +1284,13 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	{
 		if (FINGEROSK) //Finger OSK enabled?
 		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
-			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'d':'O'; //OSK Input mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color active!		
 		}
 		#ifndef IS_PSP
 		else //No input enabled? Not used on the PSP(has no keyboard nor mouse capability to use it)!
 		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'d':'O'; //OSK Input mode!
 			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
 		}
 		#endif
