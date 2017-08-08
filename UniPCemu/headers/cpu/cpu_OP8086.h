@@ -340,4 +340,26 @@ byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uin
 byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
 byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
 
+byte CPU8086_instructionstepdelayBIU(byte base, byte cycles);
+byte CPU8086_internal_delayBIU(byte base, byte cycles);
+byte CPU8086_instructionstepdelayBIUidle(byte base, byte cycles);
+byte CPU8086_internal_delayBIUidle(byte base, byte cycles);
+
+
+/*
+
+Parameters:
+	val: The value to divide
+	divisor: The value to divide by
+	quotient: Quotient result container
+	remainder: Remainder result container
+	error: 1 on error(DIV0), 0 when valid.
+	resultbits: The amount of bits the result contains(16 or 8 on 8086) of quotient and remainder.
+	SHLcycle: The amount of cycles for each SHL.
+	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
+
+*/
+void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles);
+void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles);
+
 #endif

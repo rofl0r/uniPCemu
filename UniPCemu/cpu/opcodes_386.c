@@ -366,7 +366,7 @@ byte CPU80386_POPESP(byte base)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT?REG_ESP:REG_SP,1)==0) //Not ready?
+		if (BIU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,1)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -2494,13 +2494,13 @@ OPTINLINE byte CPU80386_internal_XLAT()
 	}
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,0,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size?REG_EBX:REG_BX)+REG_AL,&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL,&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1

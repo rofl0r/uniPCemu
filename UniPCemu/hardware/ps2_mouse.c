@@ -192,7 +192,7 @@ void updatePS2Mouse(double timepassed)
 					switch (Mouse.command_step) //What step?
 					{
 					case 1: //First stage?
-						input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
+						input_lastwrite_mouse(); //Force 0x00(dummy byte) to user!
 						give_mouse_output(0xFA); //Acnowledge!
 						resetPS2Mouse(); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 						Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear!
@@ -202,13 +202,13 @@ void updatePS2Mouse(double timepassed)
 						Mouse.last_was_error = 0; //Last is OK!
 						break;
 					case 2: //Final stage?
-						give_keyboard_output(0xAA); //Give the result code!
+						give_mouse_output(0xAA); //Give the result code!
 						Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear!
 						Mouse.command_step = 3; //Step 3! Give the ID next!
 						break;
 					case 3: //ID mode?
 						Mouse.timeout = (double)0; //Finished!
-						give_keyboard_output(0x00); //Give the ID code: PS/2 mouse!
+						give_mouse_output(0x00); //Give the ID code: PS/2 mouse!
 						Mouse.command_step = 0; //Finished!
 						Mouse.has_command = 0; //Finished command!
 						break;

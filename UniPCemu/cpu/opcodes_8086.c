@@ -429,7 +429,7 @@ byte CPU8086_POPSP(byte base)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT?REG_ESP:REG_SP,1)==0) //Not ready?
+		if (BIU_request_MMUrw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,1)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
