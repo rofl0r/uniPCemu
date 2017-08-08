@@ -1225,7 +1225,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	keyboard_display[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 'e'; //OSK Input mode!
 	keyboard_attribute[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
 	keyboard_special[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 3;
-	keyboard_display[KEYBOARD_NUMY - 9[KEYBOARD_NUMX - 1] = ' '; //OSK Input mode!
+	keyboard_display[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 1] = ' '; //OSK Input mode!
 	keyboard_attribute[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 	keyboard_special[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 1] = 3;
 	keyboard_display[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 1] = 't'; //OSK Input mode!
@@ -1413,7 +1413,6 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 
 	if (FINGEROSK) //Finger OSK enabled?
 	{
-		keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
 		keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color active!		
 	}
 	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
