@@ -295,14 +295,15 @@ SDL_Surface *getGPUSurface()
 		}
 	}
 #ifdef SDL2
-	if (SDL_GetDisplayDPI(0,NULL,&GPU_xDTM,&GPU_yDTM)) //DPI retrieved?
+	if (SDL_GetDisplayDPI(0,NULL,&GPU_xDTM,&GPU_yDTM)==0) //DPI retrieved?
 	{
-		GPU_xDTM = (float)(1.0/((double)GPU_xDTM/25.4)); //Convert to dots/mm, then to factor!
-		GPU_yDTM = (float)(1.0/((double)GPU_yDTM/25.4)); //Convert to dots/mm, then to factor!
+		GPU_xDTM = (float)(25.4/(double)GPU_xDTM); //Convert DPI to dots/mm!
+		GPU_yDTM = (float)(25.4/(double)GPU_yDTM); //Convert DPI to dots/mm!
 	}
-	else GPU_xDTM = GPU_yDTM = 1.0; //Default value: no conversion!
-#endif
-			
+	else GPU_xDTM = GPU_yDTM = (float)(25.4/96.0); //Default value: 96DPI is the default for Windows!
+#else
+	GPU_xDTM = GPU_yDTM = (float)(25.4/96.0); //Default value: 96DPI is the default for Windows!
+#endif			
 
 	return originalrenderer;
 }
