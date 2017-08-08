@@ -2940,10 +2940,12 @@ void touch_fingerDown(float x, float y, SDL_FingerID fingerId)
 		{
 			relxfull -= keyboardsurface->xdelta;
 			relyfull -= keyboardsurface->ydelta;
+			relxfull = (int_64)(((float)relxfull)*render_xfactor); //X pixel!
+			relyfull = (int_64)(((float)relyfull)*render_yfactor); //Y pixel!
 			if ((relxfull<GPU_TEXTPIXELSX) && (relyfull<GPU_TEXTPIXELSY)) //Within range?
 			{
-				relxfull = (float)((word)((float)relxfull*render_xfactor)>>3); //X character!
-				relyfull = (float)((word)((float)relyfull*render_yfactor)>>3); //Y character!
+				relxfull = (int_64)(((word)(relxfull))>>3); //X pixel!
+				relyfull = (int_64)(((word)(relyfull))>>3); //Y pixel!
 				buttonarea = ((word)relxfull<firstsplitx)?1:(((word)relxfull<secondsplitx)?(((word)relyfull<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
 			}
 		}
