@@ -983,7 +983,7 @@ void mouse_handler() //Mouse handler at current packet speed (MAX 255 packets/se
 }
 
 //Rows: 3, one for top, middle, bottom.
-#define KEYBOARD_NUMY 6
+#define KEYBOARD_NUMY 9
 //Columns: 21: 10 for left, 1 space, 10 for right
 #define KEYBOARD_NUMX 21
 
@@ -1176,70 +1176,6 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
 	memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
 
-	#ifndef IS_PSP
-	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 'S'; //OSK Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 3;
-	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 'e'; //OSK Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 3;
-	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 't'; //OSK Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 3;
-	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 'S'; //OSK sticky Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = Stickykeys?3:2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 4;
-	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 't'; //OSK sticky Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = Stickykeys?3:2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 4;
-	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 'i'; //OSK sticky Input mode!
-	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = Stickykeys?3:2; //Special shift color inactive!
-	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 4;
-	#endif
-
-	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
-	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 1; 
-	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
-	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 1;
-	keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
-	keyboard_special[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 1;
-
-	if (SCREEN_CAPTURE) //Screen capture status?
-	{
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
-	}
-	else
-	{
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
-		keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
-	}
-
-	if (!input_enabled) //Input disabled atm?
-	{
-		if (FINGEROSK) //Finger OSK enabled?
-		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
-			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
-		}
-		#ifndef IS_PSP
-		else //No input enabled? Not used on the PSP(has no keyboard nor mouse capability to use it)!
-		{
-			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
-			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
-		}
-		#endif
-		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		return; //Keyboard disabled: don't show!
-	}
-
 	//LEDs on keyboard are always visible!
 	
 	if (!curstat.gamingmode) //Not gaming mode (mouse, keyboard and direct mode)?
@@ -1274,17 +1210,110 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			keyboard_attribute[KEYBOARD_NUMY-2][KEYBOARD_NUMX-1] = 2; //Special shift color inactive!
 		}
 	}
+
+	#ifndef IS_PSP
+	//Set button
+	keyboard_display[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 3] = ' '; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY -9][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 3] = 3;
+	keyboard_display[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 3] = 'S'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 3] = 3;
+	keyboard_display[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 2] = ' '; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 2] = 3;
+	keyboard_display[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 'e'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 2] = 3;
+	keyboard_display[KEYBOARD_NUMY - 9[KEYBOARD_NUMX - 1] = ' '; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 9][KEYBOARD_NUMX - 1] = 3;
+	keyboard_display[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 1] = 't'; //OSK Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 8][KEYBOARD_NUMX - 1] = 3;
+
+	//Sti button
+	keyboard_display[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 3] = ' '; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 3] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 3] = 4;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 'S'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 3] = 4;
+	keyboard_display[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 2] = ' '; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 2] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 2] = 4;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 't'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 2] = 4;
+	keyboard_display[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 1] = ' '; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 1] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 7][KEYBOARD_NUMX - 1] = 4;
+	keyboard_display[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 'i'; //OSK sticky Input mode!
+	keyboard_attribute[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = Stickykeys?3:2; //Special shift color inactive!
+	keyboard_special[KEYBOARD_NUMY - 6][KEYBOARD_NUMX - 1] = 4;
+	#endif
+
+	//Cap button
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = ' '; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 3] = 1;
+	keyboard_display[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 3] = 'C'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 3] = 1;
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = ' '; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 2] = 1;
+	keyboard_display[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 2] = 'a'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 2] = 1;
+	keyboard_display[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = ' '; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 5][KEYBOARD_NUMX - 1] = 1;
+	keyboard_display[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 1] = 'p'; //Screen capture!
+	keyboard_special[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 1] = 1;
+
+	if (SCREEN_CAPTURE) //Screen capture status?
+	{
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+	}
+	else
+	{
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+		keyboard_attribute[KEYBOARD_NUMY - 4][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+	}
+
+	if (!input_enabled) //Input disabled atm?
+	{
+		if (FINGEROSK) //Finger OSK enabled?
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = Direct_Input?'D':'O'; //OSK Input mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 1; //Special shift color inactive!		
+		}
+		#ifndef IS_PSP
+		else //No input enabled? Not used on the PSP(has no keyboard nor mouse capability to use it)!
+		{
+			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'O'; //OSK Input mode!
+			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!		
+		}
+		#endif
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		return; //Keyboard disabled: don't show!
+	}
+
 	if (!Direct_Input) //Not direct input?
 	{
 		if (precisemousemovement)
 		{
-			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 'P';
-			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 3; //Special shift color active!
+			keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = 'P';
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = 3; //Special shift color active!
 		}
 		else
 		{
-			keyboard_display[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = ' ';
-			keyboard_attribute[KEYBOARD_NUMY-4][KEYBOARD_NUMX-1] = 0; //Special shift color active!
+			keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = ' ';
+			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = 0; //Special shift color active!
 		}
 		if (curstat.mode == 1 && !curstat.gamingmode) //Keyboard mode?
 		{
@@ -1335,34 +1364,34 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 
 		if (!curstat.gamingmode) //Not gaming mode?
 		{
-			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 'C'; //Ctrl!
+			keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 'C'; //Ctrl!
 			if (currentctrl)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 3; //Special shift color active!
 			}
 			else
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 3] = 2; //Special shift color inactive!
 			}
 
-			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 'A'; //Alt!
+			keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 'A'; //Alt!
 			if (currentalt)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 3; //Special shift color active!
 			}
 			else
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 2] = 2; //Special shift color inactive!
 			}
 
-			keyboard_display[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 'S'; //Shift!
+			keyboard_display[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 'S'; //Shift!
 			if (currentshift)
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 3; //Special shift color active!
 			}
 			else
 			{
-				keyboard_attribute[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
+				keyboard_attribute[KEYBOARD_NUMY - 3][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
 			}
 			if (curstat.mode) //Keyboard mode?
 			{
