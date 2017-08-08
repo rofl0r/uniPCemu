@@ -1233,8 +1233,10 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		#endif
 		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+		keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 		return; //Keyboard disabled: don't show!
 	}
 
@@ -1387,8 +1389,10 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 	}
 	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
-	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 1] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 2] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
+	keyboard_special[KEYBOARD_NUMY - 2][KEYBOARD_NUMX - 3] = 2; //Place a toggle for the M/K/G/D input modes to toggle the OSK!
 }
 
 uint_32 keyboard_rendertime; //Time for framerate rendering!
@@ -1456,6 +1460,19 @@ void updateFingerOSK_mouse()
 				{
 					buttonarea = (x<firstsplitx)?1:((x<secondsplitx)?((y<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
 					newbutton = 1; //We're a new button!
+					if ((x>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY)) && ((y>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMX)) //Might be a not to be used area?
+					{
+						byte buttoninfo;
+						buttoninfo = keyboard_special[KEYBOARD_NUMY-(GPU_TEXTSURFACE_HEIGHT-y)][KEYBOARD_NUMX-(GPU_TEXTSURFACE_WIDTH-x)]; //Get info!
+						if ((buttoninfo!=0) && (buttoninfo!=0xFF)) //Disallowed button?
+						{
+							buttonarea = newbutton = 0; //Disable the button functionality here!
+						}
+						else //Overlapping button on keyboard part? Register it with the keyboard!
+						{
+							keyboard_special[KEYBOARD_NUMY-(GPU_TEXTSURFACE_HEIGHT-y)][KEYBOARD_NUMX-(GPU_TEXTSURFACE_WIDTH-x)] = 0xFF; //Register OSK button!
+						}
+					}
 				}
 			}
 
