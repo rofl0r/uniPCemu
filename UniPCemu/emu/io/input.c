@@ -4136,8 +4136,15 @@ int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 }
 #endif
 
+byte input_notready = 1; //To init?
+
 void psp_input_init()
 {
+	if (input_notready)
+	{
+		memset(&input,0,sizeof(input)); //Init
+		input_notready = 0; //Ready!
+	}
 	#ifndef SDL2
 	uint_32 i;
 	#endif
