@@ -4179,9 +4179,6 @@ void psp_input_init()
 		SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH,"1",SDL_HINT_OVERRIDE); //We're forcing us to use seperate mouse and touch events!
 	#endif
 	#endif
-	#ifdef ANDROID
-		toggleDirectInput(1); //Toggle direct input by middle mouse button, capturing input!
-	#endif
 	//Apply joystick defaults!
 	enableJoystick(0,0); //Disable joystick 1!
 	enableJoystick(0,0); //Disable joystick 2!
@@ -4193,9 +4190,6 @@ void psp_input_init()
 
 void psp_input_done()
 {
-	#ifdef ANDROID
-		toggleDirectInput(1); //Toggle direct input by middle mouse button, releasing input!
-	#endif
 	if (joystick)
 	{
 		SDL_JoystickClose(joystick); //Close our joystick!

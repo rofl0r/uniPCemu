@@ -211,31 +211,11 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		EMU_RUNNING = 0; //We're not running atm!
 		unlock(LOCK_MAINTHREAD);
 
-		//Special Android support!
-		#ifdef ANDROID
-		lock(LOCK_INPUT);
-		toggleDirectInput(1);
-		unlock(LOCK_INPUT);
-		#endif
-
 		if (CheckBIOSMenu(3000000)) //Run BIOS Menu if needed for a short time!
 		{
 			resumeEMU(1); //Start the emulator back up again!
-			//Special Android support!
-			#ifdef ANDROID
-			lock(LOCK_INPUT);
-			toggleDirectInput(1);
-			unlock(LOCK_INPUT);
-			#endif
 			return 1; //Reset after the BIOS!
 		}
-
-		//Special Android support!
-		#ifdef ANDROID
-		lock(LOCK_INPUT);
-		toggleDirectInput(1);
-		unlock(LOCK_INPUT);
-		#endif
 
 		if (shuttingdown()) return 0; //Abort!
 	#endif
@@ -463,32 +443,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		startTimers(0); //Start EMU timers!
 		BIOS_ShowBIOS(); //Show BIOS information!
 		unlock(LOCK_MAINTHREAD);
-		//Special Android support!
-		#ifdef ANDROID
-		lock(LOCK_INPUT);
-		toggleDirectInput(1);
-		unlock(LOCK_INPUT);
-		#endif
 		if (CheckBIOSMenu(0)) //Run BIOS Menu if needed!
 		{
 			BIOS_enableCursor(1); //Re-enable the cursor!
 			resumeEMU(1); //Resume the emulator!
-
-			//Special Android support!
-			#ifdef ANDROID
-			lock(LOCK_INPUT);
-			toggleDirectInput(1);
-			unlock(LOCK_INPUT);
-			#endif
 			return 1; //Reset after the BIOS!
 		}
-
-		//Special Android support!
-		#ifdef ANDROID
-		lock(LOCK_INPUT);
-		toggleDirectInput(1);
-		unlock(LOCK_INPUT);
-		#endif
 #endif
 
 		lock(LOCK_MAINTHREAD);

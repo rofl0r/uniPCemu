@@ -706,23 +706,12 @@ void BIOSMenuResumeEMU()
 void BIOSMenuExecution()
 {
 	pauseEMU(); //Stop timers!
-	//Special Android support!
-	#ifdef ANDROID
-	lock(LOCK_INPUT);
-	toggleDirectInput(1);
-	unlock(LOCK_INPUT);
-	#endif
 	if (runBIOS(0)) //Run the emulator BIOS!
 	{
 		lock(LOCK_CPU); //We're updating the CPU!
 		reset = 1; //We're to reset!
 		unlock(LOCK_CPU);
 	}
-	#ifdef ANDROID
-	lock(LOCK_INPUT);
-	toggleDirectInput(1);
-	unlock(LOCK_INPUT);
-	#endif
 	resumeEMU(1); //Resume!
 	//Update CPU speed!
 	lock(LOCK_CPU); //We're updating the CPU!
