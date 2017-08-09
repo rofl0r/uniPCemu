@@ -1171,10 +1171,10 @@ byte Stickykeys = 0; //Use sticky keys?
 
 void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 {
-	memset(keyboard_display,0,sizeof(keyboard_display)); //Init keyboard display!
+	memset(&keyboard_display,0,sizeof(keyboard_display)); //Init keyboard display!
 	memcpy(&active_keyboard,&keyboards[keyboard_active],sizeof(active_keyboard)); //Set the active keyboard to the defined keyboard!
-	memset(keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
-	memset(keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
+	memset(&keyboard_attribute,0,sizeof(keyboard_attribute)); //Default attributes to font color!
+	memset(&keyboard_special,0,sizeof(keyboard_special)); //Default attributes to font color!
 
 	//LEDs on keyboard are always visible!
 	
@@ -1488,7 +1488,7 @@ void updateFingerOSK_mouse()
 				{
 					buttonarea = (x<firstsplitx)?1:((x<secondsplitx)?((y<thirdsplity)?3:0):2); //Are we a button? 0=None, 1=Left, 2=Right, 3=Middle
 					newbutton = 1; //We're a new button!
-					if ((x>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY)) && (y>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMX))) //Might be a not to be used area?
+					if ((x>=(GPU_TEXTSURFACE_WIDTH-KEYBOARD_NUMX)) && (y>=(GPU_TEXTSURFACE_HEIGHT-KEYBOARD_NUMY))) //Might be a not to be used area?
 					{
 						byte buttoninfo;
 						buttoninfo = keyboard_special[KEYBOARD_NUMY-(GPU_TEXTSURFACE_HEIGHT-y)][KEYBOARD_NUMX-(GPU_TEXTSURFACE_WIDTH-x)]; //Get info!
