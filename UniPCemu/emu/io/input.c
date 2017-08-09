@@ -3092,13 +3092,18 @@ void updateInput(SDL_Event *event) //Update all input!
 				input.Buttons &= ~BUTTON_HOLD; //Pressed!
 				break;
 			#ifndef ANDROID
-			case SDLK_BACKSPACE: //SELECT? Not used on Android!
+			case SDLK_BACKSPACE: //SELECT?
+			#else
+			case SDLK_EQUALS: //SELECT? Remapped on Android!
+			#endif
 				input.Buttons &= ~BUTTON_SELECT; //Pressed!
 				break;
-			#endif
 			#ifndef ANDROID
 			//Android doesn't have start, so it's ignored!
 			case SDLK_RETURN: //START?
+			#else
+			case SDLK_QUOTE: //Remapped on Android!
+			#endif
 				input.Buttons &= ~BUTTON_START; //Pressed!
 				if (RALT) //RALT pressed too? Doubles as emulator fullscreen toggle!
 				{
@@ -3106,7 +3111,6 @@ void updateInput(SDL_Event *event) //Update all input!
 					updateVideo(); //Force an update of video!
 				}
 				break;
-			#endif
 			case SDLK_UP: //UP?
 				input.Buttons &= ~BUTTON_UP; //Pressed!
 				break;
@@ -3312,11 +3316,16 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			#ifndef ANDROID
 			case SDLK_BACKSPACE: //SELECT? Not used on Android!
+			#else
+			case SDLK_EQUALS: //SELECT? Remapped on Android!
+			#endif
 				input.Buttons |= BUTTON_SELECT; //Pressed!
 				break;
-			#endif
 			#ifndef ANDROID
 			case SDLK_RETURN: //START?
+			#else
+			case SDLK_QUOTE: //Remapped on Android?
+			#endif
 				//Android already has this mapped!
 				if (RALT) //ALT-ENTER?
 				{
@@ -3325,7 +3334,6 @@ void updateInput(SDL_Event *event) //Update all input!
 				}
 				input.Buttons |= BUTTON_START; //Pressed!
 				break;
-			#endif
 			case SDLK_UP: //UP?
 				input.Buttons |= BUTTON_UP; //Pressed!
 				break;
