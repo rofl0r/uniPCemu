@@ -1315,7 +1315,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			keyboard_display[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = ' ';
 			keyboard_attribute[KEYBOARD_NUMY-3][KEYBOARD_NUMX-4] = 0; //Special shift color active!
 		}
-		if (curstat.mode == 1 && !curstat.gamingmode) //Keyboard mode?
+		if ((curstat.mode == 1) && (!curstat.gamingmode)) //Keyboard mode?
 		{
 			if (strcmp((char *)getkeyboard(0, currentset, sety, setx, 0), "enable") == 0) //Set enabled?
 			{
@@ -1356,7 +1356,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 			}
 		} //Keyboard mode?
 
-		if (!curstat.mode && !curstat.gamingmode) //Mouse mode?
+		if ((!curstat.mode) && (!curstat.gamingmode)) //Mouse mode?
 		{
 			keyboard_display[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 'M'; //Mouse mode!
 			keyboard_attribute[KEYBOARD_NUMY - 1][KEYBOARD_NUMX - 1] = 2; //Special shift color inactive!
