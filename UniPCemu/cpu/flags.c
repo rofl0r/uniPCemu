@@ -120,45 +120,51 @@ byte suboverflow[8] = {0,0,0,1,1,0,0,0};
 
 void flag_adcoa8(uint8_t v1, uint16_t add, uint16_t dst)
 {
-	FLAGW_CF((bcbitsa((uint16_t)v1,add)>>7)&1); //Carry?
+	uint16_t bba = bcbitsa((uint16_t)v1,add); //Get carry!
+	FLAGW_CF((bba>>8)&1); //Carry?
 	FLAGW_OF(addoverflow[((dst>>7)&1)|(((add>>6)&2))|((v1>>5)&4)]); //Overflow?
-	FLAGW_AF((bcbitsa((uint16_t)v1,add)&0x8)>>3); //Adjust?
+	FLAGW_AF((bba&0x10)>>4); //Adjust?
 }
 
 void flag_adcoa16(uint16_t v1, uint32_t add, uint32_t dst)
 {
-	FLAGW_CF((bcbitsa((uint32_t)v1,add)>>15)&1); //Carry?
+	uint32_t bba = bcbitsa((uint32_t)v1,add); //Get carry!
+	FLAGW_CF((bba>>16)&1); //Carry?
 	FLAGW_OF(addoverflow[((dst>>15)&1)|(((add>>14)&2))|((v1>>13)&4)]); //Overflow?
-	FLAGW_AF((bcbitsa((uint32_t)v1,add)&0x8)>>3); //Adjust?
+	FLAGW_AF((bba&0x10)>>4); //Adjust?
 }
 
 void flag_adcoa32(uint32_t v1, uint64_t add, uint64_t dst)
 {
-	FLAGW_CF((bcbitsa((uint64_t)v1,add)>>31)&1); //Carry?
+	uint64_t bba = bcbitsa((uint64_t)v1,add); //Get carry!
+	FLAGW_CF((bba>>32)&1); //Carry?
 	FLAGW_OF(addoverflow[((dst>>31)&1)|(((add>>30)&2))|((v1>>29)&4)]); //Overflow?
-	FLAGW_AF((bcbitsa((uint32_t)v1,add)&0x8)>>3); //Adjust?
+	FLAGW_AF((bba&0x10)>>4); //Adjust?
 }
 
 //Substract Carry, Overflow, Adjust logic
 void flag_subcoa8(uint8_t v1, uint16_t sub, uint16_t dst)
 {
-	FLAGW_CF((bcbitss((uint16_t)v1,sub)>>7)&1); //Carry?
+	uint16_t bbs = bcbitss((uint16_t)v1,sub); //Get carry!
+	FLAGW_CF((bbs>>8)&1); //Carry?
 	FLAGW_OF(suboverflow[((dst>>7)&1)|((sub>>6)&2)|((v1>>5)&4)]); //Overflow?
-	FLAGW_AF((bcbitss((uint16_t)v1,sub)&0x8)>>3); //Adjust?
+	FLAGW_AF((bbs&0x10)>>4); //Adjust?
 }
 
 void flag_subcoa16(uint16_t v1, uint32_t sub, uint32_t dst)
 {
-	FLAGW_CF((bcbitss((uint32_t)v1,sub)>>15)&1); //Carry?
+	uint32_t bbs = bcbitss((uint32_t)v1,sub); //Get carry!
+	FLAGW_CF((bbs>>16)&1); //Carry?
 	FLAGW_OF(suboverflow[((dst>>15)&1)|((sub>>14)&2)|((v1>>13)&4)]); //Overflow?
-	FLAGW_AF((bcbitss((uint32_t)v1,sub)&0x8)>>3); //Adjust?
+	FLAGW_AF((bbs&0x10)>>4); //Adjust?
 }
 
 void flag_subcoa32(uint32_t v1, uint64_t sub, uint64_t dst)
 {
-	FLAGW_CF((bcbitss((uint64_t)v1,sub)>>31)&1); //Carry?
+	uint64_t bbs = bcbitss((uint64_t)v1,sub); //Get carry!
+	FLAGW_CF((bbs>>32)&1); //Carry?
 	FLAGW_OF(suboverflow[((dst>>31)&1)|((sub>>30)&2)|((v1>>29)&4)]); //Overflow?
-	FLAGW_AF((bcbitss((uint64_t)v1,sub)&0x8)>>3); //Adjust?
+	FLAGW_AF((bbs&0x10)>>4); //Adjust?
 }
 
 //Start of the externally used calls to calculate flags!
