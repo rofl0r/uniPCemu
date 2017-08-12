@@ -100,71 +100,114 @@ void flag_log32(uint32_t value)
 	FLAGW_OF(0);
 }
 
-//Negate a variable!
-#define NEG(x) ((~(x))+1)
-
 //Addition Carry, Overflow, Adjust logic
 //Tables based on http://teaching.idallen.com/dat2343/10f/notes/040_overflow.txt
 //Index Bit0=sumsign, Bit1=num2sign(add or sub negated value), Bit2=num1sign(v1)
 byte addoverflow[8] = {0,1,0,0,0,0,1,0};
 byte suboverflow[8] = {0,0,0,1,1,0,0,0};
 
-//Flags(Aux/Carry):
-//ADD: ((op1)^(op2))^(((op1)^(result))&~((op1)^(op2)))^result
-//SUB: ((op1)^(op2))^(((op1)^(result))&((op1)^(op2)))^result
-//Auxiliary flag: ((op1^op2)^((op1^result)&(~(op1^op2))^result
-//Auxiliary flag: ((op1)^(op2))^(((op1)^(result))&~((op1)^(op2)))^result
-//borrow/carry bits
-#define bcbitsa(v1,v2) (((v1)^(v2))^(((v1)^(dst))&~((v1)^(v2)))^dst)
-#define bcbitss(v1,v2) (((v1)^(v2))^(((v1)^(dst))&((v1)^(v2)))^dst)
+byte addcarry[8] = {0,0,1,0,1,0,0,1};
+byte auxaddcarry[8] = {0,0,1,0,1,0,0,1};
+#define OVERFLOW_DSTMASK 1
+#define OVERFLOW_NUM2MASK 2
+#define OVERFLOW_NUM1MASK 4
+#define OVERFLOW8_DST 7
+#define OVERFLOW8_NUM2 6
+#define OVERFLOW8_NUM1 5
+#define OVERFLOW16_DST 15
+#define OVERFLOW16_NUM2 14
+#define OVERFLOW16_NUM1 13
+#define OVERFLOW32_DST 31
+#define OVERFLOW32_NUM2 30
+#define OVERFLOW32_NUM1 29
+
+#define CARRY_DSTMASK 1
+#define CARRY_NUM2MASK 2
+#define CARRY_NUM1MASK 4
+#define CARRY8_DST 7
+#define CARRY8_NUM2 6
+#define CARRY8_NUM1 5
+#define CARRY16_DST 15
+#define CARRY16_NUM2 14
+#define CARRY16_NUM1 13
+#define CARRY32_DST 31
+#define CARRY32_NUM2 30
+#define CARRY32_NUM1 29
+
+#define AUXCARRY_DSTMASK 1
+#define AUXCARRY_NUM2MASK 2
+#define AUXCARRY_NUM1MASK 4
+#define AUXCARRY8_DST 7
+#define AUXCARRY8_NUM2 6
+#define AUXCARRY8_NUM1 5
+#define AUXCARRY16_DST 15
+#define AUXCARRY16_NUM2 14
+#define AUXCARRY16_NUM1 13
+#define AUXCARRY32_DST 31
+#define AUXCARRY32_NUM2 30
+#define AUXCARRY32_NUM1 29
+
+//#define bcbitsxs bcbitss
+//What bits in the bcbits are the bit to give?
+
+#define NEG(x) ((~x)+1)
+
+//General macros defining add/sub carry!
+#define CARRYA8(v1,add,dst) (addcarry[((dst>>CARRY8_DST)&CARRY_DSTMASK)|(((add>>CARRY8_NUM2)&CARRY_NUM2MASK))|((v1>>CARRY8_NUM1)&CARRY_NUM1MASK)])
+#define CARRYA16(v1,add,dst) (addcarry[((dst>>CARRY16_DST)&CARRY_DSTMASK)|(((add>>CARRY16_NUM2)&CARRY_NUM2MASK))|((v1>>CARRY16_NUM1)&CARRY_NUM1MASK)])
+#define CARRYA32(v1,add,dst) (addcarry[((dst>>CARRY32_DST)&CARRY_DSTMASK)|(((add>>CARRY32_NUM2)&CARRY_NUM2MASK))|((v1>>CARRY32_NUM1)&CARRY_NUM1MASK)])
+#define CARRYS8(v1,sub,dst) (CARRYA8(v1,NEG(sub),dst)^1)
+#define CARRYS16(v1,sub,dst) (CARRYA16(v1,NEG(sub),dst)^1)
+#define CARRYS32(v1,sub,dst) (CARRYA32(v1,NEG(sub),dst)^1)
+//Aux variants:
+#define AUXA8(v1,add,dst) (auxaddcarry[((dst>>AUXCARRY8_DST)&AUXCARRY_DSTMASK)|(((add>>AUXCARRY8_NUM2)&AUXCARRY_NUM2MASK))|((v1>>AUXCARRY8_NUM1)&AUXCARRY_NUM1MASK)])
+#define AUXA16(v1,add,dst) (auxaddcarry[((dst>>AUXCARRY16_DST)&AUXCARRY_DSTMASK)|(((add>>AUXCARRY16_NUM2)&AUXCARRY_NUM2MASK))|((v1>>AUXCARRY16_NUM1)&AUXCARRY_NUM1MASK)])
+#define AUXA32(v1,add,dst) (auxaddcarry[((dst>>AUXCARRY32_DST)&AUXCARRY_DSTMASK)|(((add>>AUXCARRY32_NUM2)&AUXCARRY_NUM2MASK))|((v1>>AUXCARRY32_NUM1)&AUXCARRY_NUM1MASK)])
+#define AUXS8(v1,sub,dst) ((AUXA8(v1,NEG(sub),dst))^1)
+#define AUXS16(v1,sub,dst) ((AUXA16(v1,NEG(sub),dst))^1)
+#define AUXS32(v1,sub,dst) ((AUXA32(v1,NEG(sub),dst))^1)
 
 void flag_adcoa8(uint8_t v1, uint16_t add, uint16_t dst)
 {
-	uint16_t bba = bcbitsa((uint16_t)v1,add); //Get carry!
-	FLAGW_CF((bba>>8)&1); //Carry?
-	FLAGW_OF(addoverflow[((dst>>7)&1)|(((add>>6)&2))|((v1>>5)&4)]); //Overflow?
-	FLAGW_AF((bba&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYA8(v1,add,dst)); //Carry?
+	FLAGW_OF(addoverflow[((dst>>OVERFLOW8_DST)&OVERFLOW_DSTMASK)|(((add>>OVERFLOW8_NUM2)&OVERFLOW_NUM2MASK))|((v1>>OVERFLOW8_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXA8(v1,add,dst)); //Adjust?
 }
 
 void flag_adcoa16(uint16_t v1, uint32_t add, uint32_t dst)
 {
-	uint32_t bba = bcbitsa((uint32_t)v1,add); //Get carry!
-	FLAGW_CF((bba>>16)&1); //Carry?
-	FLAGW_OF(addoverflow[((dst>>15)&1)|(((add>>14)&2))|((v1>>13)&4)]); //Overflow?
-	FLAGW_AF((bba&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYA16(v1,add,dst)); //Carry?
+	FLAGW_OF(addoverflow[((dst>>OVERFLOW16_DST)&OVERFLOW_DSTMASK)|(((add>>OVERFLOW16_NUM2)&OVERFLOW_NUM2MASK))|((v1>>OVERFLOW16_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXA16(v1,add,dst)); //Adjust?
 }
 
 void flag_adcoa32(uint32_t v1, uint64_t add, uint64_t dst)
 {
-	uint64_t bba = bcbitsa((uint64_t)v1,add); //Get carry!
-	FLAGW_CF((bba>>32)&1); //Carry?
-	FLAGW_OF(addoverflow[((dst>>31)&1)|(((add>>30)&2))|((v1>>29)&4)]); //Overflow?
-	FLAGW_AF((bba&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYA32(v1,add,dst)); //Carry?
+	FLAGW_OF(addoverflow[((dst>>OVERFLOW32_DST)&OVERFLOW_DSTMASK)|(((add>>OVERFLOW32_NUM2)&OVERFLOW_NUM2MASK))|((v1>>OVERFLOW32_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXA32(v1,add,dst)); //Adjust?
 }
 
 //Substract Carry, Overflow, Adjust logic
 void flag_subcoa8(uint8_t v1, uint16_t sub, uint16_t dst)
 {
-	uint16_t bbs = bcbitss((uint16_t)v1,sub); //Get carry!
-	FLAGW_CF((bbs>>8)&1); //Carry?
-	FLAGW_OF(suboverflow[((dst>>7)&1)|((sub>>6)&2)|((v1>>5)&4)]); //Overflow?
-	FLAGW_AF((bbs&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYS8(v1,sub,dst)); //Carry?
+	FLAGW_OF(suboverflow[((dst>>OVERFLOW8_DST)&OVERFLOW_DSTMASK)|((sub>>OVERFLOW8_NUM2)&OVERFLOW_NUM2MASK)|((v1>>OVERFLOW8_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXS8(v1,sub,dst)); //Adjust?
 }
 
 void flag_subcoa16(uint16_t v1, uint32_t sub, uint32_t dst)
 {
-	uint32_t bbs = bcbitss((uint32_t)v1,sub); //Get carry!
-	FLAGW_CF((bbs>>16)&1); //Carry?
-	FLAGW_OF(suboverflow[((dst>>15)&1)|((sub>>14)&2)|((v1>>13)&4)]); //Overflow?
-	FLAGW_AF((bbs&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYS16(v1,sub,dst)); //Carry?
+	FLAGW_OF(suboverflow[((dst>>OVERFLOW16_DST)&OVERFLOW_DSTMASK)|((sub>>OVERFLOW16_NUM2)&OVERFLOW_NUM2MASK)|((v1>>OVERFLOW16_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXS16(v1,sub,dst)); //Adjust?
 }
 
 void flag_subcoa32(uint32_t v1, uint64_t sub, uint64_t dst)
 {
-	uint64_t bbs = bcbitss((uint64_t)v1,sub); //Get carry!
-	FLAGW_CF((bbs>>32)&1); //Carry?
-	FLAGW_OF(suboverflow[((dst>>31)&1)|((sub>>30)&2)|((v1>>29)&4)]); //Overflow?
-	FLAGW_AF((bbs&0x10)>>4); //Adjust?
+	FLAGW_CF(CARRYS32(v1,sub,dst)); //Carry?
+	FLAGW_OF(suboverflow[((dst>>OVERFLOW32_DST)&OVERFLOW_DSTMASK)|((sub>>OVERFLOW32_NUM2)&OVERFLOW_NUM2MASK)|((v1>>OVERFLOW32_NUM1)&OVERFLOW_NUM1MASK)]); //Overflow?
+	FLAGW_AF(AUXS32(v1,sub,dst)); //Adjust?
 }
 
 //Start of the externally used calls to calculate flags!
