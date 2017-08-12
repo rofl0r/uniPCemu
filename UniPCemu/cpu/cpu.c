@@ -987,6 +987,7 @@ byte CODE_SEGMENT_DESCRIPTOR_D_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 uint_32 CPU_InterruptReturn = 0;
 
 CPU_Timings *timing = NULL; //The timing used for the current instruction!
+Handler currentOP_handler = &CPU_unkOP;
 
 uint_32 last_eip;
 byte ismultiprefix = 0; //Are we multi-prefix?
@@ -1084,6 +1085,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?
 		{
+			currentOP_handler = &CPU_unkOP; //Unknown opcode/parameter!
 			CPU_unkOP(); //Execute the unknown opcode handler!
 			return 1; //Abort!
 		}
@@ -1218,6 +1220,8 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].lastopcode = OP; //Last OPcode for reference!
+	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	return 0; //We're done fetching the instruction!
 }
 
@@ -1590,11 +1594,10 @@ uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
-void CPU_OP(byte OP) //Normal CPU opcode execution!
+void CPU_OP() //Normal CPU opcode execution!
 {
 	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
-	CPU[activeCPU].lastopcode = OP; //Last OPcode for reference!
-	CurrentCPU_opcode_jmptbl[((word)OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]](); //Now go execute the OPcode once in the runtime!
+	currentOP_handler(); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
 }
 
@@ -2080,7 +2083,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU[activeCPU].executed = 1; //Executed by default!
-	CPU_OP(OP); //Now go execute the OPcode once!
+	CPU_OP(); //Now go execute the OPcode once!
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
