@@ -4365,13 +4365,11 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 			debugger_setcommand("RCRW %s,CL",&modrm_param1);
 			break;
 		case 4: //SHL
+		case 6: //--- Unknown Opcode! --- Undocumented opcode!
 			debugger_setcommand("SHLW %s,CL",&modrm_param1);
 			break;
 		case 5: //SHR
 			debugger_setcommand("SHRW %s,CL",&modrm_param1);
-			break;
-		case 6: //--- Unknown Opcode! ---
-			debugger_setcommand("<UNKNOWN MODR/M: GRP2(w) /6, CL>");
 			break;
 		case 7: //SAR
 			debugger_setcommand("SARW %s,CL",&modrm_param1);
@@ -4661,7 +4659,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = s << 1;
 			s = s | FLAG_CF;
 		}
-		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 7) & 1));
+		if (cnt==1) FLAGW_OF(((s >> 7) & 1)&FLAG_CF); else FLAGW_OF(0);
 		break;
 
 	case 1: //ROR r/m8
@@ -4698,11 +4696,11 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFF;
 		}
-		if (cnt==1) FLAGW_OF((FLAG_CF ^ (s >> 7)));
+		if (cnt==1) { if (FLAG_CF==(s>>7)) FLAGW_OF(0); else FLAGW_OF(1); }
 		flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
-		if (cnt == 1) FLAGW_OF((s & 0x80) ? 1 : 0); else FLAGW_OF(0);
+		if (cnt == 1) { if (s&0x80) FLAGW_OF(1); else FLAGW_OF(0); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
@@ -4788,7 +4786,6 @@ word op_grp2_16(byte cnt, byte varshift) {
 		break;
 
 	case 3: //RCR r/m16
-		if (cnt==1) FLAGW_OF(((s >> 15) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
 			FLAGW_CF(s & 1);
@@ -4807,11 +4804,11 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFF;
 		}
-		if ((cnt) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
+		if (cnt==1) { if (FLAG_CF == (s >> 15)) FLAGW_OF(0); else FLAGW_OF(1); }
 		flag_szp16(s); break;
 
 	case 5: //SHR r/m16
-		if (cnt) FLAGW_OF((s & 0x8000) ? 1 : 0);
+		if (cnt==1) { if (s&0x8000) FLAGW_OF(1); else FLAGW_OF(0); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);

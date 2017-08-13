@@ -3191,13 +3191,11 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 			debugger_setcommand("RCRD %s,CL",&modrm_param1);
 			break;
 		case 4: //SHL
+		case 6: //--- Unknown Opcode! --- Undocumented opcode!
 			debugger_setcommand("SHLD %s,CL",&modrm_param1);
 			break;
 		case 5: //SHR
 			debugger_setcommand("SHRD %s,CL",&modrm_param1);
-			break;
-		case 6: //--- Unknown Opcode! ---
-			debugger_setcommand("<UNKNOWN MODR/M: GRP2(w) /6, CL>");
 			break;
 		case 7: //SAR
 			debugger_setcommand("SARD %s,CL",&modrm_param1);
@@ -3427,7 +3425,6 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		break;
 
 	case 3: //RCR r/m32
-		if (cnt==1) FLAGW_OF(((s >> 31) & 1) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
 			oldCF = FLAG_CF;
 			FLAGW_CF(s & 1);
@@ -3446,11 +3443,11 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFFFFFF;
 			//FLAGW_AF(1); //Auxiliary carry?
 		}
-		if ((cnt==1) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
+		if (cnt==1) { if (FLAG_CF == (s >> 31)) FLAGW_OF(0); else FLAGW_OF(1); }
 		flag_szp32(s); break;
 
 	case 5: //SHR r/m32
-		if (cnt==1) FLAGW_OF((s & 0x80000000) ? 1 : 0);
+		if (cnt==1) { if (s&0x80000000) FLAGW_OF(1); else FLAGW_OF(0); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
@@ -4119,13 +4116,11 @@ void CPU386_OPC1()
 			debugger_setcommand("RCRD %s,%02X",info.text,oper2);
 			break;
 		case 4: //SHL
+		case 6: //--- Unknown Opcode! --- Undocumented opcode!
 			debugger_setcommand("SHLD %s,%02X",info.text,oper2);
 			break;
 		case 5: //SHR
 			debugger_setcommand("SHRD %s,%02X",info.text,oper2);
-			break;
-		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLD %s,%02X",info.text,oper2);
 			break;
 		case 7: //SAR
 			debugger_setcommand("SARD %s,%02X",info.text,oper2);
@@ -4139,7 +4134,7 @@ void CPU386_OPC1()
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
-		res32 = op_grp2_32((byte)oper2,2); //Execute!
+		res32 = op_grp2_32((byte)oper2d,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
 	if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;

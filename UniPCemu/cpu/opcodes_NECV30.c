@@ -481,13 +481,11 @@ void CPU186_OPC0()
 			debugger_setcommand("RCRB %s,%02X",info.text,oper2b);
 			break;
 		case 4: //SHL
+		case 6: //--- Unknown Opcode! --- Undocumented opcode!
 			debugger_setcommand("SHLB %s,%02X",info.text,oper2b);
 			break;
 		case 5: //SHR
 			debugger_setcommand("SHRB %s,%02X",info.text,oper2b);
-			break;
-		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLB %s,%02X",info.text,oper2b);
 			break;
 		case 7: //SAR
 			debugger_setcommand("SARB %s,%02X",info.text,oper2b);
