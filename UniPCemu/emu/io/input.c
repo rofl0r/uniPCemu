@@ -1756,8 +1756,8 @@ OPTINLINE static void updateFingerOSK()
 				releasingstickykeys = 1; //We're to release the sticky keys, while still pressed!
 				goto startreleasestickykeys; //Start releasing the sticky keys!
 			}
-			updateFingerOSK_mouse(); //Update our mouse handling!
 		}
+		updateFingerOSK_mouse(); //Update our mouse handling!
 
 		releasingstickykeys = (Stickykeys==0); //Default: not releasing any sticky keys now!
 		startreleasestickykeysdrawn: //To jump back here when releasing!
