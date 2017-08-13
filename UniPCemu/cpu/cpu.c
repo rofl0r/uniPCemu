@@ -988,6 +988,7 @@ uint_32 CPU_InterruptReturn = 0;
 
 CPU_Timings *timing = NULL; //The timing used for the current instruction!
 Handler currentOP_handler = &CPU_unkOP;
+extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
 uint_32 last_eip;
 byte ismultiprefix = 0; //Are we multi-prefix?
@@ -1220,8 +1221,8 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
-	CPU[activeCPU].lastopcode = OP; //Last OPcode for reference!
-	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
+	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
+	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	return 0; //We're done fetching the instruction!
 }
 
@@ -1591,8 +1592,6 @@ uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 
 word CPU_exec_lastCS=0; //OPCode CS
 uint_32 CPU_exec_lastEIP=0; //OPCode EIP
-
-extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
 void CPU_OP() //Normal CPU opcode execution!
 {
