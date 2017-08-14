@@ -124,7 +124,7 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 					{
 						if (Controller8042.portpeek[whatport](&Controller8042.output_buffer)) //Got something?
 						{
-							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
+ 							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
 							//Handle first port translation here, if needed!
 							if (PS2_FIRSTPORTTRANSLATION(Controller8042) && (!whatport)) //Translating the first port?
 							{
@@ -744,7 +744,7 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
-	Controller8042.RAM[0] = 0x50; //Init default status! Disable first port and enable translation!
+	Controller8042.RAM[0] = is_XT?0x01:0x50; //Init default status! Disable first port and enable translation!
 	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 	reset8042(); //First 8042 controller reset!
 	if (is_XT==0) //IBM AT? We're setting up the input port!

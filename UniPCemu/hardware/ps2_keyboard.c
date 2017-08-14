@@ -30,13 +30,15 @@ void input_lastwrite_keyboard()
 	fifobuffer_gotolast(Keyboard.buffer); //Goto last!
 }
 
+extern byte is_XT; //Are we emulating a XT class machine?
+
 OPTINLINE void loadKeyboardDefaults()
 {
 	//We set: rate/delay: 10.9cps/500ms; key types (all keys typematic/make/break) and scan code set (2)
 	memset(scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
 	memset(scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
 	Keyboard.typematic_rate_delay = 0x2B; //rate/delay: 10.9cps/500ms!
-	Keyboard.scancodeset = 1; //Scan code set 2!
+	Keyboard.scancodeset = is_XT?0:1; //Scan code set 2 or 1, depending on the hardware(XT uses XT-style keyboard instead)!
 }
 
 OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard controller!
@@ -584,7 +586,7 @@ void keyboardControllerInit(byte is_extern) //Part before the BIOS at computer b
 	}
 	fifobuffer_clear(Keyboard.buffer); //Clear our output buffer for compatibility!
 	resetKeyboard(0,1); //Reset us to a known state on AT PCs when needed!
-	Controller8042.RAM[0] |= 0x50; //Disable our input, enable translation!
+	Controller8042.RAM[0] |= is_XT?0x01:0x50; //Disable our input, enable translation on AT+!
 	skipcheck:
 	force8042 = 0; //Disable 8042 style init!
 }
@@ -607,10 +609,6 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
 	if (is_XT==0) keyboardControllerInit(0); //Initialise the basic keyboard controller when allowed!
-	else //IBM XT initialization required?
-	{
-		Controller8042.RAM[0] |= 0x40; //Enable translation!
-	}
 }
 
 void BIOS_doneKeyboard()
