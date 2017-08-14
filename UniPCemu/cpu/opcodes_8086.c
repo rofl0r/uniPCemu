@@ -2460,16 +2460,9 @@ byte CPU8086_internal_AAA()
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
-		if (EMULATED_CPU==CPU_8086) //8086/88?
-		{
-			REG_AL += 6;
-			REG_AL &= 0xF;
-			++REG_AH;
-		}
-		else
-		{
-			REG_AX += 0x0106;
-		}
+		REG_AL += 6;
+		REG_AL &= 0xF;
+		++REG_AH;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
 	}
@@ -2478,21 +2471,9 @@ byte CPU8086_internal_AAA()
 		FLAGW_AF(0);
 		FLAGW_CF(0);
 	}
-	if (EMULATED_CPU!=CPU_8086) //Newer CPU?
-	{
-		REG_AL &= 0xF; //AND always occurs on newer CPUs!
-	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
-	if (EMULATED_CPU<CPU_80286) //Before new CPU?
-	{
-		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	}
-	else
-	{
-		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-		FLAGW_SF(0); //Clear Sign!
-	}
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=p=o=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2506,16 +2487,9 @@ byte CPU8086_internal_AAS()
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
-		if (EMULATED_CPU==CPU_8086) //8086/88?
-		{
-			REG_AL -= 6;
-			REG_AL &= 0xF;
-			--REG_AH;
-		}
-		else
-		{
-			REG_AX -= 0x0106;
-		}
+		REG_AL -= 6;
+		REG_AL &= 0xF;
+		--REG_AH;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
 	}
@@ -2523,10 +2497,6 @@ byte CPU8086_internal_AAS()
 	{
 		FLAGW_AF(0);
 		FLAGW_CF(0);
-	}
-	if (EMULATED_CPU!=CPU_8086) //Newer CPU?
-	{
-		REG_AL &= 0xF; //AND always occurs on newer CPUs!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
@@ -2582,12 +2552,10 @@ OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
 	oper2b = REG_AL; //What to add!
-	REG_AL = (REG_AH*data);    //AAD
-	oper1b = REG_AL; //Load for addition!
+	oper1b = (REG_AH*data); //AAD base to work on, we're adding to this!
 	op_add8(); //Add, 8-bit, including flags!
 	REG_AL = res8; //The result to load!
 	REG_AH = 0; //AH is cleared!
-	//C=O=A=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{

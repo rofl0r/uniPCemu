@@ -369,7 +369,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //34h:
 		{NULL,NULL}, //35h:
 		{NULL,NULL}, //36h: Special
-		{NULL,NULL}, //37h:
+		{CPU186_OP37,NULL}, //37h:
 		{NULL,NULL}, //38h:
 		{NULL,NULL}, //39h:
 		{NULL,NULL}, //3Ah:
@@ -377,7 +377,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{NULL,NULL}, //3Ch:
 		{NULL,NULL}, //3Dh:
 		{NULL,NULL}, //3Eh: Special
-		{NULL,NULL}, //3Fh:
+		{CPU186_OP3F,NULL}, //3Fh:
 //0x40:
 		{NULL,NULL}, //40h:
 		{NULL,NULL}, //41h:
@@ -905,7 +905,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //24h:
 		{ NULL, CPU80386_OP25 }, //25h:
 		{ NULL, NULL }, //26h: Special
-		{ NULL, CPU80386_OP27 }, //27h:
+		{ NULL ,NULL }, //27h:
 		{ NULL, NULL }, //28h:
 		{ NULL, CPU80386_OP29 }, //29h:
 		{ NULL, NULL }, //2Ah:
@@ -913,7 +913,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //2Ch:
 		{ NULL, CPU80386_OP2D }, //2Dh:
 		{ NULL, NULL }, //2Eh: Special
-		{ NULL, CPU80386_OP2F }, //2Fh:
+		{ NULL, NULL }, //2Fh:
 		//0x30:
 		{ NULL, NULL }, //30h:
 		{ NULL, CPU80386_OP31 }, //31h:
@@ -922,7 +922,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //34h:
 		{ NULL, CPU80386_OP35 }, //35h:
 		{ NULL, NULL }, //36h: Special
-		{ NULL ,CPU80386_OP37 }, //37h:
+		{ NULL, NULL }, //37h:
 		{ NULL, NULL }, //38h:
 		{ NULL, CPU80386_OP39 }, //39h:
 		{ NULL, NULL }, //3Ah:
@@ -930,7 +930,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //3Ch:
 		{ NULL, CPU80386_OP3D }, //3Dh:
 		{ NULL, NULL }, //3Eh: Special
-		{ NULL, CPU80386_OP3F }, //3Fh:
+		{ NULL, NULL }, //3Fh:
 		//0x40:
 		{ NULL, CPU80386_OP40 }, //40h:
 		{ NULL, CPU80386_OP41 }, //41h:
@@ -1089,8 +1089,8 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, CPU80386_OPD1 }, //D1h:
 		{ NULL, NULL }, //D2h:
 		{ NULL, CPU80386_OPD3 }, //D3h:
-		{ NULL, CPU80386_OPD4 }, //D4h:
-		{ NULL, CPU80386_OPD5 }, //D5h:
+		{ NULL, NULL }, //D4h:
+		{ NULL, NULL }, //D5h:
 		{ NULL, CPU80386_OPD6 }, //D6h: UNK
 		{ CPU80386_OPD7, NULL }, //D7h: 32-bit extension of address size of XLAT!
 		{ NULL, NULL }, //D8h: UNK

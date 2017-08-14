@@ -1732,181 +1732,6 @@ Non-logarithmic opcodes for 80386+!
 
 */
 
-//BCD opcodes!
-OPTINLINE void CPU80386_internal_DAA()
-{
-	word ALVAL, oldCF;
-	CPUPROT1
-	oldCF = FLAG_CF; //Save old Carry!
-	ALVAL = (word)REG_AL;
-	if (((ALVAL&0xF)>9) || FLAG_AF)
-	{
-		oper1 = ALVAL+6;
-		ALVAL = (oper1&0xFF);
-		FLAGW_AF(1);
-	}
-	else FLAGW_AF(0);
-	if (((REG_AL)>0x99) || oldCF)
-	{
-		ALVAL += 0x60;
-		FLAGW_CF(1);
-	}
-	else
-	{
-		FLAGW_CF(0);
-	}
-	REG_AL = (byte)(ALVAL&0xFF); //Write the value back to AL!
-	flag_szp8(REG_AL);
-	//if (ALVAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
-}
-OPTINLINE void CPU80386_internal_DAS()
-{
-	INLINEREGISTER byte tempCF, tempAL;
-	INLINEREGISTER word bigAL;
-	bigAL = (word)(tempAL = REG_AL);
-	tempCF = FLAG_CF; //Save old values!
-	CPUPROT1
-	if (((bigAL&0xF)>9) || FLAG_AF)
-	{
-		oper1 = bigAL = REG_AL-6;
-		REG_AL = oper1&255;
-		FLAGW_CF(tempCF|((oper1&0xFF00)>0));
-		FLAGW_AF(1);
-	}
-	else FLAGW_AF(0);
-
-	if ((tempAL>0x99) || tempCF)
-	{
-		bigAL -= 0x60;
-		REG_AL = (byte)(bigAL&0xFF);
-		FLAGW_CF(1);
-	}
-	else
-	{
-		FLAGW_CF(0);
-	}
-	flag_szp8(REG_AL);
-	//if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
-}
-OPTINLINE void CPU80386_internal_AAA()
-{
-	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
-	{
-		REG_AX += 0x0106;
-		FLAGW_AF(1);
-		FLAGW_CF(1);
-	}
-	else
-	{
-		FLAGW_AF(0);
-		FLAGW_CF(0);
-	}
-	REG_AL &= 0xF;
-	//flag_szp8(REG_AL); //Basic flags!
-	flag_p8(REG_AL); //Parity is affected!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	FLAGW_SF(0); //Clear Sign!
-	//z=s=p=o=?
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
-}
-OPTINLINE void CPU80386_internal_AAS()
-{
-	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
-	{
-		REG_AX -= 0x0106;
-		FLAGW_AF(1);
-		FLAGW_CF(1);
-	}
-	else
-	{
-		FLAGW_AF(0);
-		FLAGW_CF(0);
-	}
-	REG_AL &= 0xF;
-	//flag_szp8(REG_AL); //Basic flags!
-	flag_p8(REG_AL); //Parity is affected!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	FLAGW_SF(0); //Sign is cleared!
-	//z=s=o=p=?
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
-}
-
-OPTINLINE byte CPU80386_internal_AAM(byte data)
-{
-	CPUPROT1
-	if ((!data) && (CPU[activeCPU].instructionstep==0)) //First step?
-	{
-		CPU[activeCPU].cycles_OP += 1; //Timings always!
-		++CPU[activeCPU].instructionstep; //Next step after we're done!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return 1;
-	}
-	word quotient, remainder;
-	byte error, applycycles;
-	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,2,6,&applycycles);
-	if (error) //Error occurred?
-	{
-		CPU_exDIV0(); //Raise error that's requested!
-		return 1;
-	}
-	else //Valid result?
-	{
-		REG_AH = (byte)(quotient&0xFF);
-		REG_AL = (byte)(remainder&0xFF);
-		//Flags are set on newer CPUs according to the MOD operation: Sign, Zero and Parity are set according to the mod operation(AL) and Overflow, Carry and Auxiliary carry are cleared.
-		flag_szp8(REG_AL); //Result of MOD instead!
-		FLAGW_OF(0); FLAGW_CF(0); FLAGW_AF(0); //Clear these!
-		//C=O=A=?
-	}
-	CPUPROT2
-	CPU[activeCPU].cycles_OP = 83; //Timings!
-	return 0;
-}
-
-OPTINLINE void op_add8_386() {
-	res8 = oper1b + oper2b;
-	flag_add8 (oper1b, oper2b);
-}
-
-OPTINLINE byte CPU80386_internal_AAD(byte data)
-{
-	CPUPROT1
-	oper2b = REG_AL; //What to add!
-	REG_AL = (REG_AH*data);    //AAD
-	oper1b = REG_AL; //Load for addition!
-	op_add8_386(); //Add, 8-bit, including flags!
-	REG_AL = res8; //The result to load!
-	REG_AH = 0; //AH is cleared!
-	//C=O=A=?
-	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 60; //Timings!
-	}
-	CPU[activeCPU].cycles_OP = 60; //Timings!
-	return 0;
-}
-
 OPTINLINE void CPU80386_internal_CWDE()
 {
 	CPUPROT1
@@ -2742,19 +2567,15 @@ void CPU80386_OP1D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstr
 void CPU80386_OP21() {modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP23() {modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP25() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("ANDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_AND32(&REG_EAX,theimm,1); }
-void CPU80386_OP27() {modrm_generateInstructionTEXT("DAA",0,0,PARAM_NONE);/*DAA?*/ CPU80386_internal_DAA();/*DAA?*/ }
 void CPU80386_OP29() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP2B() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP2D() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("SUBD EAX,",0,theimm,PARAM_IMM16);/*5=AX,imm16*/ CPU80386_internal_SUB32(&REG_EAX,theimm,1);/*5=AX,imm16*/ }
-void CPU80386_OP2F() {modrm_generateInstructionTEXT("DAS",0,0,PARAM_NONE);/*DAS?*/ CPU80386_internal_DAS();/*DAS?*/ }
 void CPU80386_OP31() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP33() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = immw; modrm_generateInstructionTEXT("XORD EAX,",0,theimm,PARAM_IMM16); CPU80386_internal_XOR32(&REG_EAX,theimm,1); }
-void CPU80386_OP37() {modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/ CPU80386_internal_AAA();/*AAA?*/ }
 void CPU80386_OP39() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP3B() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP3D() {INLINEREGISTER word theimm = immw; modrm_generateInstructionTEXT("CMPD EAX,",0,theimm,PARAM_IMM16);/*CMP AX, imm16*/ CMP_dw(REG_EAX,theimm,1);/*CMP AX, imm16*/ }
-void CPU80386_OP3F() {modrm_generateInstructionTEXT("AAS",0,0,PARAM_NONE);/*AAS?*/ CPU80386_internal_AAS();/*AAS?*/ }
 void CPU80386_OP40() {modrm_generateInstructionTEXT("INC EAX",0,0,PARAM_NONE);/*INC EAX*/ CPU80386_internal_INC32(&REG_EAX);/*INC EAX*/ }
 void CPU80386_OP41() {modrm_generateInstructionTEXT("INC ECX",0,0,PARAM_NONE);/*INC ECX*/ CPU80386_internal_INC32(&REG_ECX);/*INC ECX*/ }
 void CPU80386_OP42() {modrm_generateInstructionTEXT("INC EDX",0,0,PARAM_NONE);/*INC EDX*/ CPU80386_internal_INC32(&REG_EDX);/*INC EDX*/ }
@@ -2907,8 +2728,6 @@ void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*I
 void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_INTERNAL_int(theimm,0);/*INT imm8*/ }
 void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_internal_INTO();/*INTO*/ }
 void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
-void CPU80386_OPD4() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAM",0,theimm,PARAM_IMM8);/*AAM*/ CPU80386_internal_AAM(theimm);/*AAM*/ }
-void CPU80386_OPD5() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAD",0,theimm,PARAM_IMM8);/*AAD*/ CPU80386_internal_AAD(theimm);/*AAD*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } } //Special case on the 80386: SALC!
 void CPU80386_OPD7(){CPU80386_internal_XLAT();} //We depend on the address size instead!
 void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if ((--REG_ECX) && (!FLAG_ZF)){CPU_JMPrel(rel8); CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19; } /* Branch taken */} else { if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 5; } /* Branch not taken */}}

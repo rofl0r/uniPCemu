@@ -1,6 +1,10 @@
 #ifndef CPU_OPNECV30
 #define CPU_OPNECV30
+//Newer 8086+ opcodes!
+void CPU186_OP37();
+void CPU186_OP3F();
 
+//New 80186+ opcodes!
 void CPU186_OP60();//PUSHA
 void CPU186_OP61(); //POPA
 void CPU186_OP62(); //BOUND Gv,Ma

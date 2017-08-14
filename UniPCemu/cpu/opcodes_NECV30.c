@@ -93,6 +93,70 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 	CPUPROT2
 }
 
+//BCD opcodes!
+OPTINLINE void CPU186_internal_AAA()
+{
+	CPUPROT1
+	if (((REG_AL&0xF)>9) || FLAG_AF)
+	{
+		REG_AX += 0x0106;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+	}
+	else
+	{
+		FLAGW_AF(0);
+		FLAGW_CF(0);
+	}
+	REG_AL &= 0xF;
+	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	FLAGW_SF(0); //Clear Sign!
+	//z=s=p=o=?
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
+}
+OPTINLINE void CPU186_internal_AAS()
+{
+	CPUPROT1
+	if (((REG_AL&0xF)>9) || FLAG_AF)
+	{
+		REG_AX -= 0x0106;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+	}
+	else
+	{
+		FLAGW_AF(0);
+		FLAGW_CF(0);
+	}
+	REG_AL &= 0xF;
+	//flag_szp8(REG_AL); //Basic flags!
+	flag_p8(REG_AL); //Parity is affected!
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	FLAGW_SF(0); //Sign is cleared!
+	//z=s=o=p=?
+	CPUPROT2
+	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 4; //Timings!
+	}
+}
+
+//Newer versions of the BCD instructions!
+void CPU186_OP37() {modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/ CPU186_internal_AAA();/*AAA?*/ }
+void CPU186_OP3F() {modrm_generateInstructionTEXT("AAS",0,0,PARAM_NONE);/*AAS?*/ CPU186_internal_AAS();/*AAS?*/ }
+
+/*
+
+New opcodes for 80186+!
+
+*/
+
 void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
