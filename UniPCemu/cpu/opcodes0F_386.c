@@ -537,7 +537,7 @@ void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 			s = ((s << 1) & 0xFFFF)|((src>>15)&1);
 			src <<= 1; //Next bit to shift in!
 		}
-		if ((cnt==1) && (FLAG_CF == (s >> 15))) FLAGW_OF(0); else FLAGW_OF(1);
+		if (cnt==1) { if (FLAG_CF == (s >> 15)) FLAGW_OF(0); else FLAGW_OF(1); }
 		flag_szp16(s);
 		if (dest)
 		{
@@ -563,7 +563,7 @@ void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
 			s = ((s << 1) & 0xFFFFFFFF)|((src>>31)&1);
 			src <<= 1; //Next bit to shift in!
 		}
-		if ((cnt==1) && (FLAG_CF == (s >> 31))) FLAGW_OF(0); else FLAGW_OF(1);
+		if (cnt==1) { if (FLAG_CF == (s >> 31)) FLAGW_OF(0); else FLAGW_OF(1); }
 		flag_szp32(s);
 		if (dest)
 		{
