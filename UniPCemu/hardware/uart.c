@@ -20,6 +20,7 @@ struct
 	byte LineControlRegister;
 	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
+	byte activeModemStatus; //Bit0=CTS, 1=DSR, 2=Ring indicator, 3=Carrier detect
 	byte ModemStatusRegister; //Bit4=CTS, 5=DSR, 6=Ring indicator, 7=Carrier detect; Bits 0-3=Bits 4-6 changes, reset when read.
 	byte oldModemStatusRegister; //Last Modem status register values(high 4 bits)!
 	byte ScratchRegister;
@@ -32,6 +33,7 @@ struct
 
 	//The handlers for the device attached, if any!
 	UART_setmodemcontrol setmodemcontrol;
+	UART_getmodemstatus getmodemstatus;
 	UART_receivedata receivedata;
 	UART_senddata senddata;
 	UART_hasdata hasdata;
@@ -73,6 +75,13 @@ struct
 double UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
 
 byte numUARTports = 0; //How many ports?
+
+byte allocatedUARTs;
+byte allocUARTport()
+{
+	if (allocatedUARTs>=NUMITEMS(UART_port)) return 0xFF; //Port available?
+	return allocatedUARTs++; //Get an ascending UART number!
+}
 
 OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
@@ -294,6 +303,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					break;
 				}
 			}
+
+			UART_port[COMport].ModemStatusRegister = UART_port[COMport].activeModemStatus; //Retrieve the current modem status!
 			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
 			UART_port[COMport].ModemStatusRegister |= ((UART_port[COMport].ModemStatusRegister^UART_port[COMport].oldModemStatusRegister)>>4)&0xB; //Bits have changed? Ring has other indicators!
 			UART_port[COMport].ModemStatusRegister |= (((UART_port[COMport].oldModemStatusRegister&0x40)&((~UART_port[COMport].ModemStatusRegister)&0x40))>>4); //Only set the Ring lowered bit when the ring indicator is lowered!
@@ -390,6 +401,7 @@ byte PORT_writeUART(word port, byte value)
 void UART_handleInputs() //Handle any input to the UART!
 {
 	int i;
+	byte oldmodemstatus;
 
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
@@ -397,6 +409,15 @@ void UART_handleInputs() //Handle any input to the UART!
 		if (UART_port[i].havereceiveddata) //Have we received data?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
+		}
+		if (UART_port[i].getmodemstatus) //Modem status available?
+		{
+			oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
+			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
+			if (oldmodemstatus!=UART_port[i].activeModemStatus) //Status changed?
+			{
+				launchUARTIRQ(i, 0); //Modem status changed!
+			}
 		}
 	}
 }
@@ -440,7 +461,7 @@ void updateUART(double timepassed)
 	}
 }
 
-void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, UART_hasdata hasdata, UART_receivedata receivedata, UART_senddata senddata)
+void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, UART_getmodemstatus getmodemstatus, UART_hasdata hasdata, UART_receivedata receivedata, UART_senddata senddata)
 {
 	if (portnumber > 3) return; //Invalid port!
 	//Register the handlers!
@@ -449,6 +470,7 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].hasdata = hasdata;
 	UART_port[portnumber].receivedata = receivedata;
 	UART_port[portnumber].senddata = senddata;
+	UART_port[portnumber].getmodemstatus = getmodemstatus;
 }
 
 void initUART(byte numports) //Init software debugger!
@@ -467,4 +489,5 @@ void initUART(byte numports) //Init software debugger!
 	}
 	UART_clock = 0.0; //Init our clock!
 	UART_clocktick = 1000000000.0/1843200.0; //The clock of the UART ticking!
+	allocatedUARTs = 0; //Initialize the allocated UART number!
 }

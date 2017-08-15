@@ -12,6 +12,7 @@ struct
 	byte buttons; //Current button status!
 	byte movement; //Movement detection is powered on?
 	byte powered; //Are we powered on?
+	byte port;
 } SERMouse;
 
 byte useSERMouse() //Serial mouse enabled?
@@ -90,12 +91,19 @@ void initSERMouse(byte enabled)
 	SERMouse.supported = enabled; //Use serial mouse?
 	if (useSERMouse()) //Is this mouse enabled?
 	{
+		SERMouse.port = allocUARTport(); //Try to allocate a port to use!
+		if (SERMouse.port==0xFF) //Unable to allocate?
+		{
+			SERMouse.supported = 0; //Unsupported!
+			goto unsupportedUARTMouse;
+		}
 		SERMouse.buffer = allocfifobuffer(16,1); //Small input buffer!
-		UART_registerdevice(0,&SERmouse_setModemControl,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
+		UART_registerdevice(SERMouse.port,&SERmouse_setModemControl,NULL,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
 		setMouseRate(40.0f); //We run at 40 packets per second!
 	}
 	else
 	{
+		unsupportedUARTMouse:
 		SERMouse.buffer = NULL; //No buffer present!
 	}
 }
