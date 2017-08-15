@@ -119,7 +119,7 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem_cansend()?1:0):1)|(modem.datamode?1:0)|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
+	return (modem.datamode?(modem_cansend()?1:0):1)|(modem.linechanges&2)|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
 }
 
 byte modem_readData()
