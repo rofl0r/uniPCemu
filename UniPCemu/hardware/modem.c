@@ -31,6 +31,7 @@ struct
 	byte lastnumber[256]; //Last-dialed number!
 	byte currentregister; //What register is selected?
 	byte registers[256]; //All possible registers!
+	byte flowcontrol;
 	/*
 	0=Blind dial and no busy detect. CONNECT message when established.
 	1=Blind dial and no busy detect. Connection speed in BPS added to CONNECT string.
@@ -449,6 +450,30 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				storeregister:
 				modem.registers[modem.currentregister] = n0; //Set the register!
 				modem_updateRegister(modem.currentregister); //Update the register as needed!
+			}
+			else if (sscanf(modem.ATcommand,"AT&K%i\xD",&n0)) //Flow control?
+			{
+				if (n0<5) //Valid?
+				{
+					modem.flowcontrol = n0; //Set flow control!
+					modem_responseResult(MODEMRESULT_OK); //OK!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+			}
+			else if (sscanf(modem.ATcommand,"AT\\N%u\xD",&n0)) //Operating mode?
+			{
+				if (n0<5) //Valid?
+				{
+					//Unused!
+					modem_responseResult(MODEMRESULT_OK); //OK!
+				}
+				else //Error out?
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
 			}
 		}
 	}
