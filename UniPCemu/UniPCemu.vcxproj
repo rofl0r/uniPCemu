@@ -119,6 +119,7 @@
     <ClCompile Include="hardware\midi\midi.c" />
     <ClCompile Include="hardware\midi\mididevice.c" />
     <ClCompile Include="hardware\midi\mpu.c" />
+    <ClCompile Include="hardware\modem.c" />
     <ClCompile Include="hardware\parallel.c" />
     <ClCompile Include="hardware\pci.c" />
     <ClCompile Include="hardware\pic.c" />
@@ -261,6 +262,7 @@
     <ClInclude Include="headers\hardware\midi\adsr.h" />
     <ClInclude Include="headers\hardware\midi\midi.h" />
     <ClInclude Include="headers\hardware\midi\mididevice.h" />
+    <ClInclude Include="headers\hardware\modem.h" />
     <ClInclude Include="headers\hardware\parallel.h" />
     <ClInclude Include="headers\hardware\pci.h" />
     <ClInclude Include="headers\hardware\pic.h" />

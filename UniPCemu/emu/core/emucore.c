@@ -501,6 +501,9 @@ void initEMU(int full) //Init!
 	debugrow("Initialising serial mouse...");
 	initSERMouse(/*BIOS_Settings.architecture<=ARCHITECTURE_AT*/ 1); //Initilialise the serial mouse for all supported platforms not using PS/2 mouse!
 
+	debugrow("Initialising serial modem...");
+	initModem(1); //Initilialise the serial modem!
+
 	debugrow("Initialising Floppy Disk Controller...");
 	initFDC(); //Initialise the Floppy Disk Controller!
 
@@ -558,6 +561,8 @@ void doneEMU()
 		joystickDone();
 		debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
 		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
+		debugrow("doneEMU: Finishing serial modem...");
+		doneModem(); //Finish the serial modem, if present!
 		debugrow("doneEMU: Finishing serial mouse...");
 		doneSERMouse(); //Finish the serial mouse, if present!
 		debugrow("doneEMU: Saving CMOS...");
@@ -1039,6 +1044,7 @@ OPTINLINE byte coreHandler()
 		updateUART(instructiontime); //Update the UART timer!
 		if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime); //Update the VGA timer when running!
+		updateModem(instructiontime); //Update the modem!
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
 		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!
