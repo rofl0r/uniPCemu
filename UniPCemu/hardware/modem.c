@@ -47,6 +47,8 @@ struct
 	byte backspacecharacter;
 	double escapecodeguardtime;
 	byte port; //What port are we allocated to?
+	byte canrecvdata; //Can we start receiving data to the UART?
+	byte linechanges; //For detecting line changes!
 } modem;
 
 void modem_sendData(byte value) //Send data to the connected device!
@@ -93,17 +95,31 @@ byte useSERModem() //Serial mouse enabled?
 void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
+	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data)
+	modem.canrecvdata = (line&2); //Can we receive data?
+	if (((line&1)==0) && ((modem.linechanges^line)&1)) //Became not ready?
+	{
+		modem.connected = 0; //Disconnect?
+		modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
+	}
+	modem.linechanges = line; //Save for reference!
+}
+
+byte modem_cansend()
+{
+	return 0; //Outgoing isn't supported yet! Buffer always full!
 }
 
 byte modem_hasData() //Do we have data for input?
 {
 	byte temp;
-	return peekfifobuffer(modem.buffer, &temp); //Do we have data to receive?
+	return (peekfifobuffer(modem.buffer, &temp)&&modem.canrecvdata); //Do we have data to receive?
 }
 
 byte modem_getstatus()
 {
-	return 1|(modem_hasData()?2:0)|(modem.connected?8:0); //0=CTS, 1=DSR, 2=Ring, 3=Carrier detect!
+	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
+	return (modem.datamode?(modem_cansend()?1:0):1)|(modem.datamode?1:0)|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
 }
 
 byte modem_readData()
