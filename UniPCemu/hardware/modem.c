@@ -113,7 +113,7 @@ byte modem_cansend()
 byte modem_hasData() //Do we have data for input?
 {
 	byte temp;
-	return (peekfifobuffer(modem.buffer, &temp)&&modem.canrecvdata); //Do we have data to receive?
+	return (peekfifobuffer(modem.buffer, &temp)&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
 }
 
 byte modem_getstatus()
