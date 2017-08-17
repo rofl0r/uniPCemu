@@ -1595,7 +1595,6 @@ uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
 void CPU_OP() //Normal CPU opcode execution!
 {
-	protection_nextOP(); //Tell the protection exception handlers that we can give faults again!
 	currentOP_handler(); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
 }
@@ -1838,6 +1837,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
+		protection_nextOP(); //Prepare protection for the next instruction!
 
 		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
 
@@ -2268,8 +2268,6 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)
 {
-	CPU[activeCPU].faultraised = 0; //We don't have a fault anymore! Continue on!
-
 	if (FLAG_TF) //Trapped and to be trapped this instruction?
 	{
 		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].allowTF)) //Are we trapped and allowed to trap?

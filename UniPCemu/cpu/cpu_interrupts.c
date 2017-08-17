@@ -118,6 +118,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(-1); //We're jumping to another address!
+		CPU[activeCPU].executed = 1; //We've executed: process the next instruction!
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
 	}

@@ -27,20 +27,21 @@ uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
 
 void CPU_triplefault()
 {
+	CPU[activeCPU].faultraised_lasttype = 0xFF; //Full on reset has been raised!
 	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 }
 
 void CPU_doublefault()
 {
+	CPU[activeCPU].faultraised_lasttype = EXCEPTION_DOUBLEFAULT;
+	CPU[activeCPU].faultraised = 1; //Raising a fault!
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode only?
 	{
 		uint_64 zerovalue=0; //Zero value pushed!
 		++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
-		CPU[activeCPU].faultraised = 0; //Reset the fault level for the double fault(allow memory accesses again)!
 		call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
 	}
-	CPU[activeCPU].faultraised = 1; //We're ignoring any more errors occurring!
 }
 
 byte CPU_faultraised(byte type)
@@ -101,8 +102,8 @@ byte CPU_faultraised(byte type)
 	{
 		CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 	}
-	CPU[activeCPU].faultraised = 0; //We've raised a fault! Ignore more errors for now!
 	CPU[activeCPU].faultraised_lasttype = type; //Last type raised!
+	CPU[activeCPU].faultraised = 1; //We've raised a fault! Ignore more errors for now!
 	return 1; //Handle the fault normally!
 }
 
@@ -167,7 +168,6 @@ void CPU_GP(int_64 errorcode)
 		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
-		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -190,7 +190,6 @@ void CPU_AC(int_64 errorcode)
 		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_ALIGNMENTCHECK,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
-		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -213,7 +212,6 @@ void CPU_SegNotPresent(int_64 errorcode)
 		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
-		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -237,7 +235,6 @@ void CPU_StackFault(int_64 errorcode)
 		CPU_onResettingFault(); //Apply reset to fault!
 		call_soft_inthandler(EXCEPTION_STACKFAULT,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!
-		CPU[activeCPU].faultraised = 1; //Ignore more instructions!
 	}
 }
 
@@ -1501,6 +1498,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 					hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 				}
 			}
+			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 			return 1; //OK!
 		}
 		else
@@ -1543,8 +1541,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Check permission? TODO!
 			}
 
-			CPU[activeCPU].faultraised = 0; //No fault raised anymore, because we're at the new instruction to handle it!
-
 			uint_32 EFLAGSbackup;
 			EFLAGSbackup = REG_EFLAGS; //Back-up EFLAGS!
 
@@ -1571,7 +1567,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//We're back in protected mode now!
 
 				//Switch Stack segment first!
-				CPU[activeCPU].faultraised = 0; //Reset fault raised to try switching stacks!
 				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
@@ -1618,7 +1613,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Unlike the other case, we're still in protected mode!
 
 				//Switch Stack segment first!
-				CPU[activeCPU].faultraised = 0; //Reset fault raised to try switching stacks!
 				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
@@ -1704,6 +1698,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			{
 				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
 			}
+			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
+
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?

@@ -608,6 +608,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 	}
 
+	CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 	return 0; //Abort any running instruction operation!
 }
 
