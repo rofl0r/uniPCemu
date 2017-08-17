@@ -164,6 +164,9 @@ OBJS += hardware/parallel.o
 #Mouse
 OBJS += hardware/sermouse.o
 
+#Modem
+OBJS += hardware/modem.o
+
 #PCI
 OBJS += hardware/pci.o
 
