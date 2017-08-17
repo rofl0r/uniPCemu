@@ -237,7 +237,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	byte dialproperties=0;
 	memset(&number,0,sizeof(number)); //Init number!
 	//Read and execute the AT command, if it's valid!
-	if (modem.ATcommand=="A/") //Repeat last command?
+	if (strcmp(modem.ATcommand,"A/\xD")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
 	}
