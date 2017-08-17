@@ -3206,86 +3206,92 @@ OPTINLINE void op_grp2_cycles32(byte cnt, byte varshift)
 }
 
 uint_32 op_grp2_32(byte cnt, byte varshift) {
-	//uint32_t d,
-	INLINEREGISTER uint_32 s, shift, oldCF, msb;
-	//if (cnt>0x10) return(oper1d); //NEC V20/V30+ limits shift count
-	if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+	//word d,
+	INLINEREGISTER uint_64 s, shift, tempCF, msb;
+	//word backup;
+	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	s = oper1d;
-	oldCF = FLAG_CF;
 	switch (thereg) {
 	case 0: //ROL r/m32
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		if (EMULATED_CPU>=CPU_80386) cnt %= 32; //Operand size wrap!
 		for (shift = 1; shift <= cnt; shift++) {
-			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
-			s = s << 1;
-			s = s | FLAG_CF;
+			tempCF = ((s&0x80000000)>>31); //Save MSB!
+			s = (s << 1)|tempCF;
 		}
-		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 31) & 1));
+		FLAGW_CF(s&1); //Set carry flag!
+		if (cnt/*==1*/) FLAGW_OF(((s >> 31) & 1)^FLAG_CF);
 		break;
 
 	case 1: //ROR r/m32
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		if (EMULATED_CPU>=CPU_80386) cnt %= 32; //Operand size wrap!
 		for (shift = 1; shift <= cnt; shift++) {
-			FLAGW_CF(s & 1);
-			s = (s >> 1) | (FLAG_CF << 31);
+			tempCF = (s&1); //Save LSB!
+			s = (s >> 1) | (tempCF << 31);
+			FLAGW_CF(tempCF); //Set carry flag!
 		}
-		if (cnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
+		if (cnt/*==1*/) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 2: //RCL r/m32
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		if (EMULATED_CPU>=CPU_80386) cnt %= 32; //Operand size wrap!
 		for (shift = 1; shift <= cnt; shift++) {
-			oldCF = FLAG_CF;
-			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
-			s = s << 1;
-			s = s | oldCF;
-			//oldCF = ((s&0x8000)>>15)&1; //Save FLAG_CF!
-			//s = (s<<1)+FLAG_CF;
-			//FLAG_CF = oldCF;
+			tempCF = ((s&0x80000000)>>31); //Save MSB!
+			s = (s << 1)|FLAG_CF; //Shift and set CF!
+			FLAGW_CF(tempCF); //Set CF!
 		}
-		if (cnt==1) FLAGW_OF(FLAG_CF ^ ((s >> 31) & 1));
+		if (cnt/*==1*/) FLAGW_OF(((s >> 31) & 1)^FLAG_CF); //OF=MSB^CF
 		break;
 
 	case 3: //RCR r/m32
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		if (EMULATED_CPU>=CPU_80386) cnt %= 32; //Operand size wrap!
+		if (cnt/*==1*/) FLAGW_OF((s >> 31) ^ FLAG_CF);
 		for (shift = 1; shift <= cnt; shift++) {
-			oldCF = FLAG_CF;
-			FLAGW_CF(s & 1);
-			s = (s >> 1) | (oldCF << 31);
-			//oldCF = s&1;
-			//s = (s<<1)+(FLAG_CF<<32);
-			//FLAG_CF = oldCF;
+			tempCF = (s&1); //Save LSB!
+			s = (s >> 1) | (FLAG_CF << 31);
+			FLAGW_CF(tempCF);
 		}
-		if (cnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 4: case 6: //SHL r/m32
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
+			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFFFFFF;
-			//FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (cnt==1) { if (FLAG_CF == (s >> 31)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp32(s); break;
+		if (cnt/*==1*/) { if (FLAG_CF==(s>>31)) FLAGW_OF(0); else FLAGW_OF(1); }
+		flag_szp32((uint32_t)(s&0xFFFFFFFF)); break;
 
 	case 5: //SHR r/m32
-		if (cnt==1) { if (s&0x80000000) FLAGW_OF(1); else FLAGW_OF(0); }
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		if (cnt/*==1*/) { if (s&0x80000000) FLAGW_OF(1); else FLAGW_OF(0); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			//backup = s; //Save backup!
 			s = s >> 1;
-			//FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		flag_szp32(s); break;
+		flag_szp32((uint32_t)(s & 0xFFFFFFFF)); break;
 
 	case 7: //SAR r/m32
-		msb = s & 0x80000000; //Read the MSB!
+		if (EMULATED_CPU >= CPU_NECV30) cnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		msb = s & 0x80000000;
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= cnt; shift++) {
 			FLAGW_CF(s & 1);
+			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
-			//FLAGW_AF(1); //Auxiliary carry?
+			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
-		/*flag_szp32(s);*/
+		/*flag_szp8((uint8_t)(s & 0xFF));*/
 		//http://www.electronics.dit.ie/staff/tscarff/8086_instruction_set/8086_instruction_set.html#SAR says only C and O flags!
 		if (!cnt) //Nothing done?
 		{
@@ -3293,21 +3299,17 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		}
 		else if (cnt==1) //Overflow is cleared on all 1-bit shifts!
 		{
-			flag_s32(s); //Affect sign as well!
+			flag_szp32(s); //Affect sign as well!
 			FLAGW_OF(0); //Cleared!
 		}
 		else if (cnt) //Anything shifted at all?
 		{
-			flag_s32(s); //Affect sign as well!
-		}
-		if ((EMULATED_CPU>=CPU_NECV30) && cnt) //NECV20+ affected?
-		{
-			flag_p32(s); //Affect parity as well!
-			flag_s32(s); //Affect sign as well!
+			flag_szp32(s); //Affect sign as well!
+			FLAGW_OF(0); //Cleared with count as well?
 		}
 		break;
 	}
-	op_grp2_cycles32(cnt, varshift|4);
+	op_grp2_cycles32(cnt, varshift);
 	return(s & 0xFFFFFFFF);
 }
 
@@ -3781,7 +3783,7 @@ void CPU386_OP69()
 	if (((temp3.val64>>31)==0U) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF((temp3.val32&0x80000000U)>>15); //Sign!
+	FLAGW_SF((temp3.val32&0x80000000U)>>31); //Sign!
 	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
