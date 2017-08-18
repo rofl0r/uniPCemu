@@ -3816,7 +3816,7 @@ void CPU8086_OPA3() {INLINEREGISTER uint_32 theimm = immaddr32; debugger_setcomm
 void CPU8086_OPA4() {modrm_generateInstructionTEXT("MOVSB",0,0,PARAM_NONE);/*MOVSB*/ CPU8086_internal_MOVSB();/*MOVSB*/ }
 void CPU8086_OPA5() {modrm_generateInstructionTEXT("MOVSW",0,0,PARAM_NONE);/*MOVSW*/ CPU8086_internal_MOVSW();/*MOVSW*/ }
 void CPU8086_OPA6() {debugger_setcommand(CPU_Address_size[activeCPU]?"CMPSB [%s:ESI],[ES:EDI]":"CMPSB [%s:SI],[ES:DI]",CPU_textsegment(CPU_SEGMENT_DS));/*CMPSB*/ CPU8086_internal_CMPSB();/*CMPSB*/ }
-void CPU8086_OPA7() {debugger_setcommand(CPU_Address_size[activeCPU]?"CMPSW [%s:ESI],[ES:EDI]":"CMPSB [%s:SI],[ES:DI]",CPU_textsegment(CPU_SEGMENT_DS));/*CMPSW*/ CPU8086_internal_CMPSW();/*CMPSW*/ }
+void CPU8086_OPA7() {debugger_setcommand(CPU_Address_size[activeCPU]?"CMPSW [%s:ESI],[ES:EDI]":"CMPSW [%s:SI],[ES:DI]",CPU_textsegment(CPU_SEGMENT_DS));/*CMPSW*/ CPU8086_internal_CMPSW();/*CMPSW*/ }
 void CPU8086_OPA8() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("TESTB AL,",0,theimm,PARAM_IMM8);/*TEST AL,imm8*/ CPU8086_internal_TEST8(REG_AL,theimm,1);/*TEST AL,imm8*/ }
 void CPU8086_OPA9() {INLINEREGISTER word theimm = immw; modrm_generateInstructionTEXT("TESTW AX,",0,theimm,PARAM_IMM16);/*TEST AX,imm16*/ CPU8086_internal_TEST16(REG_AX,theimm,1);/*TEST AX,imm16*/ }
 void CPU8086_OPAA() {modrm_generateInstructionTEXT("STOSB",0,0,PARAM_NONE);/*STOSB*/ CPU8086_internal_STOSB();/*STOSB*/ }
