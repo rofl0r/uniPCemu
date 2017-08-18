@@ -91,11 +91,11 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	}
 	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
 	{
-		if ((MMU.wraparround&0x100000)==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
 		{
 			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
 			{
-				realaddress &= 0xFFFFF; //Wrap to below 1MB!
+				realaddress &= MMU.wraparround; //Apply A20!
 			}
 		}
 	}
@@ -436,6 +436,7 @@ uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte i
 //A20 bit enable/disable (80286+).
 void MMU_setA20(byte where, byte enabled) //To enable A20?
 {
-	MMU.wrapdisabled[where] = enabled; //Enabled?
-	MMU.wraparround = (MMU.wrapdisabled[0]|MMU.wrapdisabled[1])?(~0):BITOFF(~0, 0x100000); //Wrap arround mask for A20 line!
+	MMU.enableA20[where] = enabled?1:0; //Enabled?
+	MMU.A20LineEnabled = (MMU.enableA20[0]|MMU.enableA20[1]); //Line enabled?
+	MMU.wraparround = ((~0)^(((MMU.A20LineEnabled^1)&1)<<20)); //Clear A20 when both lines that specify it are disabled! Convert it to a simple mask to use!
 }

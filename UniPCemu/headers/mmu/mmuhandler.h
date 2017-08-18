@@ -10,7 +10,8 @@ typedef struct
 	byte *memory; //The memory itself!
 	int invaddr; //Invalid adress in memory with MMU_ptr?
 	uint_32 wraparround; //To wrap arround memory mask?
-	byte wrapdisabled[2];
+	byte enableA20[2];
+	byte A20LineEnabled; //Is the line enabled?
 } MMU_type;
 
 /*
