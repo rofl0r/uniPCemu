@@ -542,7 +542,7 @@ void refresh_outputport()
 	MMU_setA20(0,(Controller8042.outputport&2)); //Enable/disable wrap arround depending on bit 2 (1=Enable, 0=Disable)!
 }
 
-void datawritten_8042(byte iscommandregister) //Data has been written?
+void datawritten_8042(byte iscommandregister, byte data) //Data has been written?
 {
 	clocks8042 = 0; //We're resetting the clock to receive!
 
@@ -551,12 +551,17 @@ void datawritten_8042(byte iscommandregister) //Data has been written?
 		return; //Abort: a write is pending!
 	}
 
+	Controller8042.input_buffer = data; //Set the data/command to send!
+
 	if (iscommandregister) //Command register write?
 	{
+		Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
 		Controller8042.status_buffer |= 2; //We're pending data to write!
 		Controller8042.WritePending = 3; //This port is pending to write!
 		return; //We're redirecting to the 8042!
 	}
+
+	Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
 
 	if (Controller8042.port60toFirstPS2Output) //port 60 to first/second PS2 output?
 	{
@@ -619,10 +624,7 @@ byte write_8042(word port, byte value)
 				dolog("8042","Write port 0x60: %02X",value);
 			}
 			#endif
-			Controller8042.status_buffer &= ~0x8; //We've last sent a byte to the data port!
-			Controller8042.input_buffer = value; //Write to output buffer to process!
-
-			datawritten_8042(0); //Written handler for data!
+			datawritten_8042(0,value); //Written handler for data!
 			return 1;
 		}
 		break;
@@ -650,10 +652,7 @@ byte write_8042(word port, byte value)
 				dolog("8042", "Write port 0x64: %02X", value);
 			}
 			#endif
-			Controller8042.input_buffer = value; //Write to output buffer to process!
-
-			datawritten_8042(1); //Written handler for command!
-			Controller8042.status_buffer |= 0x8; //We've last sent a byte to the command port!
+			datawritten_8042(1,value); //Written handler for command!
 			return 1;
 		}
 		break;
