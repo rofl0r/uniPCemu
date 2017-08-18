@@ -378,6 +378,8 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	}
 }
 
+extern byte specialdebugger; //Enable special debugger input?
+
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
@@ -440,9 +442,9 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (MMU_logging) //To log?
+	if (MMU_logging || (specialdebugger && (originaladdress>=0x100000))) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_RAM); //Log it!
+		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAM); //Log it!
 	}
 	return result; //Give existant memory!
 }
@@ -481,9 +483,9 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
-	if (MMU_logging) //To log?
+	if (MMU_logging || (specialdebugger && (originaladdress>=0x100000))) //To log?
 	{
-		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM); //Log it!
+		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
