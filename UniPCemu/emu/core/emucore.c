@@ -496,7 +496,7 @@ void initEMU(int full) //Init!
 	initDRAM(); //Initialise the DRAM Refresh!
 
 	debugrow("Initialising UART...");
-	initUART(1); //Initialise the UART (COM ports)!
+	initUART(); //Initialise the UART (COM ports)!
 
 	debugrow("Initialising serial mouse...");
 	initSERMouse(/*BIOS_Settings.architecture<=ARCHITECTURE_AT*/ 1); //Initilialise the serial mouse for all supported platforms not using PS/2 mouse!

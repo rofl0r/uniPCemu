@@ -471,7 +471,7 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].getmodemstatus = getmodemstatus;
 }
 
-void initUART(byte numports) //Init software debugger!
+void initUART() //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
