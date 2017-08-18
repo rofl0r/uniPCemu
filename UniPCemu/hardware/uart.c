@@ -74,8 +74,6 @@ struct
 
 double UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
 
-byte numUARTports = 0; //How many ports?
-
 byte allocatedUARTs;
 byte allocUARTport()
 {
@@ -169,7 +167,7 @@ byte getCOMport(word port) //What COM port?
 			break;
 	}
 	
-	return ((result<numUARTports) && (result<4))?result:4; //Invalid by default!; //Give the COM port or 4 for unregistered COM port!
+	return ((result<allocatedUARTs) && (result<4))?result:4; //Invalid by default!; //Give the COM port or 4 for unregistered COM port!
 }
 
 /*
@@ -477,7 +475,6 @@ void initUART(byte numports) //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&UART_port,0,sizeof(UART_port)); //Clear memory used!
-	numUARTports = numports;
 	register_PORTOUT(&PORT_writeUART);
 	register_PORTIN(&PORT_readUART);
 	registerIRQ(3, &startUARTIRQ, NULL); //Register our IRQ finish!
