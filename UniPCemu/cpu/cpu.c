@@ -1919,7 +1919,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				{
 					memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Finished fetching!
 					CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
-					CPU[activeCPU].executed = 1; //We're counting as an finished instruction!
+					CPU[activeCPU].executed = 0; //We're counting as an unfinished instruction to handle the fault!
 				}
 				goto fetchinginstruction; //Process prefix(es) and read OPCode!
 			}

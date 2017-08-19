@@ -44,8 +44,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 {
 	char errorcodestr[256];
 	word destCS;
-	CPU_interruptraised = 1; //We've raised an interrupt!
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
+	CPU_interruptraised = 1; //We've raised an interrupt!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
 		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?

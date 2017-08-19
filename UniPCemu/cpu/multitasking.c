@@ -627,9 +627,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			hascallinterrupttaken_type = OTHERGATE_NORMALTSS; //Normal TSS direct call!
 		}
 	}
-
-	CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
-	return 0; //Abort any running instruction operation!
+	return 0; //Abort any running instruction operation, finish up!
 }
 
 void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
