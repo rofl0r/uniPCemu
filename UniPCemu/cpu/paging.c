@@ -75,7 +75,7 @@ void raisePF(uint_32 address, word flags)
 	CPU_onResettingFault(); //Set the fault data!
 	if (CPU_faultraised(EXCEPTION_PAGEFAULT)) //Fault raising exception!
 	{
-		call_soft_inthandler(EXCEPTION_PAGEFAULT,(int_64)flags); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_PAGEFAULT,0,(int_64)flags); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 		CPU[activeCPU].faultraised = 1; //We have a fault raised, so don't raise any more!
 	}

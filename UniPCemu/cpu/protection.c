@@ -9,6 +9,7 @@
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution flow support!
 
 /*
 
@@ -40,7 +41,7 @@ void CPU_doublefault()
 	{
 		uint_64 zerovalue=0; //Zero value pushed!
 		++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
-		call_soft_inthandler(EXCEPTION_DOUBLEFAULT,zerovalue); //Execute the double fault handler!
+		CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,0,zerovalue); //Execute the double fault handler!
 	}
 }
 
@@ -166,7 +167,7 @@ void CPU_GP(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		call_soft_inthandler(EXCEPTION_GENERALPROTECTIONFAULT,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_GENERALPROTECTIONFAULT,0,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -188,7 +189,7 @@ void CPU_AC(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		call_soft_inthandler(EXCEPTION_ALIGNMENTCHECK,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_ALIGNMENTCHECK,0,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -210,7 +211,7 @@ void CPU_SegNotPresent(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		call_soft_inthandler(EXCEPTION_SEGMENTNOTPRESENT,errorcode); //Call IVT entry #11 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_SEGMENTNOTPRESENT,0,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -233,7 +234,7 @@ void CPU_StackFault(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		call_soft_inthandler(EXCEPTION_STACKFAULT,errorcode); //Call IVT entry #12 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_STACKFAULT,0,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!
 	}
 }

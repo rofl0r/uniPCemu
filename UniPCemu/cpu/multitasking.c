@@ -7,6 +7,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugging support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution flow support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
@@ -643,6 +644,6 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 	
 	if (CPU_faultraised(EXCEPTION_INVALIDTSSSEGMENT)) //We're raising a fault!
 	{
-		call_soft_inthandler(EXCEPTION_INVALIDTSSSEGMENT,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDTSSSEGMENT,0,errorcode); //Call IVT entry #13 decimal!
 	}
 }
