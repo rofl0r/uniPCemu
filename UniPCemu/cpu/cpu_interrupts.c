@@ -10,6 +10,7 @@
 #include "headers/support/log.h" //Logging support for debugging!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_OP8086.h" //8086 support!
+#include "headers/cpu/cpu_execution.h" //Execution phase support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -340,7 +341,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		{
 			if (CPU_faultraised(EXCEPTION_NMI))
 			{
-				CPU_customint(EXCEPTION_NMI, CPU_exec_CS, CPU_exec_EIP,0); //Return to opcode!
+				CPU_executionphase_startinterrupt(EXCEPTION_NMI,0,-1); //Return to opcode!
 			}
 			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 			return 0; //We're handled!

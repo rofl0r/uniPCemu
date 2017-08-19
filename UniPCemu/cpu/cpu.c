@@ -637,7 +637,7 @@ byte call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
 	CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
-	return 0; //Call interrupt!
+	return 1; //Call interrupt, not handling anymore!
 }
 
 void CPU_8086_RETI() //Not from CPU!
