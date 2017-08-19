@@ -66,6 +66,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
 	CPU_executionphaseinterrupt_type3 = type3; //Are we a type-3 interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
+	CPU_OP(); //Execute right away for simple timing compatility!
 }
 
 void CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
@@ -80,6 +81,7 @@ void CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOA
 	TASKSWITCH_INFO.gated = gated;
 	TASKSWITCH_INFO.errorcode = errorcode;
 	CPU[activeCPU].executed = 0; //Not executed yet!
+	CPU_OP(); //Execute right away for simple timing compatility!
 }
 
 byte CPU_executionphase_busy() //Are we busy?
