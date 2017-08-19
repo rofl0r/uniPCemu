@@ -14,6 +14,7 @@
 #include "headers/cpu/cpu_OPNECV30.h" //186+ #UD support!
 #include "headers/mmu/mmuhandler.h" //Direct memory access support for LOADALL!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution support!
 
 //Reading of the 16-bit entries within descriptors!
 #define DESC_16BITS(x) SDL_SwapLE16(x)
@@ -746,7 +747,7 @@ void CPU286_OP0FB9() //#UD instruction
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 {
 	debugger_setcommand("ICEBP");
-	CPU_INT(1,-1); //ICEBP!
+	CPU_executionphase_startinterrupt(1,0,-1); //ICEBP!
 }
 
 //FPU non-existant Coprocessor support!

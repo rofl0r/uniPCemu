@@ -636,7 +636,8 @@ byte call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 //Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	return CPU_INT(intnr,-1); //Call interrupt!
+	CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
+	return 0; //Call interrupt!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -1889,7 +1890,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-					if (CPU_INT(1,-1)) return; //Call the interrupt, no error code!
+					CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
 				}
 			}
 		}
