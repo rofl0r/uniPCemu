@@ -71,7 +71,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 
 void CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
-	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
+	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
 	memcpy(&TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
 	TASKSWITCH_INFO.whatsegment = whatsegment;
