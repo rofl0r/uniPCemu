@@ -596,6 +596,25 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		dolog("debugger","New task ready for execution.");
 	}
 
+	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
+	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
+
+	if ((errorcode!=-1) && (CPU[activeCPU].faultraised==0)) //Error code to be pushed on the stack?
+	{
+		if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
+		{
+			CPU_PUSH32(&errorcode32); //Push the error on the stack!
+		}
+		else
+		{
+			CPU_PUSH16(&errorcode16); //Push the error on the stack!
+		}
+		if (CPU[activeCPU].faultraised==0) //OK?
+		{
+			hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+		}
+	}
+
 	if (hascallinterrupttaken_type==0xFF) //Not set yet?
 	{
 		if (gated) //Different CPL?

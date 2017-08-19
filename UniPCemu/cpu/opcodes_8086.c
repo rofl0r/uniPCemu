@@ -15,6 +15,7 @@
 #include "headers/cpu/protection.h"
 #include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -90,39 +91,6 @@ Start of help for opcode processing
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 uint_32 wordaddress; //Word address used during memory access!
-
-OPTINLINE byte CPU8086_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
-{
-	return call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
-}
-
-OPTINLINE byte CPU8086_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
-{
-	byte result = 1; //Result!
-	CPUPROT1
-		if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
-		{
-			result = CPU8086_software_int(interrupt,-1);
-			if (result) //Final stage?
-			{
-				CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-			}
-		}
-		else //Unsupported CPU? Use plain general interrupt handling instead!
-		{
-			CPU8086_software_int(interrupt,-1);
-			if (CPU_apply286cycles()) return 1; //80286+ cycles instead?
-			result = 1; //Always 1!
-		}
-		return result; //Finished!
-	CPUPROT2
-	return result; //Finished!
-}
-
-byte CPU086_int(byte interrupt) //Software interrupt (external call)!
-{
-	return CPU8086_int(interrupt,0); //Direct call!
-}
 
 OPTINLINE void CPU8086_IRET()
 {
@@ -2551,11 +2519,10 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
-	oper2b = REG_AL; //What to add!
-	oper1b = (REG_AH*data); //AAD base to work on, we're adding to this!
-	op_add8(); //Add, 8-bit, including flags!
-	REG_AL = res8; //The result to load!
-	REG_AH = 0; //AH is cleared!
+	oper2 = (word)REG_AL; //What to add!
+	oper1 = ((word)REG_AH*(word)data); //AAD base to work on, we're adding to this!
+	op_add16(); //Add, 16-bit, including flags!
+	REG_AX = (res16&0xFF); //The result to load!
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
@@ -3401,26 +3368,14 @@ void external8086RETF(word popbytes)
 	CPU8086_internal_RETF(popbytes,1); //Return immediate variant!
 }
 
-extern uint_32 exception_busy; //Exception is busy?
-extern byte tempcycles;
-
 OPTINLINE byte CPU8086_internal_INTO()
 {
-	if (exception_busy&0x10) goto busyEX4;
 	if (FLAG_OF==0) goto finishINTO; //Finish?
-	exception_busy |= 0x10; //We're busy!
 	if (CPU_faultraised(EXCEPTION_OVERFLOW)==0) //Fault raised?
 	{
-		exception_busy &= ~0x10; //Not busy anymore!
 		return 1; //Abort handling when needed!
 	}
-	busyEX4:
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if ((CPU086_int(EXCEPTION_OVERFLOW)==0) && (!(EMULATED_CPU>=CPU_80286))) return 1; //Return to opcode!
-	exception_busy &= ~0x10; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
-	return 0; //Finished: OK!
+	CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-1); //Return to opcode!
 	finishINTO:
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -3849,8 +3804,8 @@ void CPU8086_OPC6() {byte val = immb; modrm_debugger8(&params,MODRM_src0,MODRM_s
 void CPU8086_OPC7() {word val = immw; modrm_debugger16(&params,MODRM_src0,MODRM_src1); debugger_setcommand("MOVW %s,%04x",modrm_param1,val); if (modrm_check16(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmw(0,val,MODRM_src0,0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /* Imm->Mem */ } else CPU[activeCPU].cycles_OP += 4; /* Imm->Reg */ } }
 void CPU8086_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes,1); }
 void CPU8086_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU8086_internal_RETF(0,0); }
-void CPU8086_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU8086_int(EXCEPTION_CPUBREAKPOINT,1); } /*INT 3*/ }
-void CPU8086_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger8086(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU8086_int(theimm,0);/*INT imm8*/ }
+void CPU8086_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-1); } /*INT 3*/ }
+void CPU8086_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger8086(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU_executionphase_startinterrupt(theimm,0,-1); /*INT imm8*/ }
 void CPU8086_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ CPU8086_internal_INTO();/*INTO*/ }
 void CPU8086_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ CPU8086_IRET();/*IRET : also restore interrupt flag!*/ }
 void CPU8086_OPD4() {INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("AAM",0,theimm,PARAM_IMM8);/*AAM*/ CPU8086_internal_AAM(theimm);/*AAM*/ }

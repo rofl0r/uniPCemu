@@ -20,6 +20,7 @@
 #include "headers/cpu/memory_adressing.h" //CPU_MMU_start support!
 #include "headers/cpu/protecteddebugging.h" //Protected debugging support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution support!
 
 //ALL INTERRUPTS
 
@@ -1000,6 +1001,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	{
 		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) //Reading new opcode?
 		{
+			currentOP_handler = &CPU_unkOP; //Default the current opcode handler to unknown stage!
 			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 			CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
@@ -1223,6 +1225,7 @@ skiptimings: //Skip all timings and parameters(invalid instruction)!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
+	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!
 }
 
@@ -1593,12 +1596,6 @@ uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 word CPU_exec_lastCS=0; //OPCode CS
 uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
-void CPU_OP() //Normal CPU opcode execution!
-{
-	currentOP_handler(); //Now go execute the OPcode once in the runtime!
-	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
-}
-
 void CPU_beforeexec()
 {
 	//This applies to all processors:
@@ -1826,6 +1823,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
+	}
+	if (CPU_executionphase_busy()) //Busy during execution?
+	{
+		goto executionphase_running; //Continue an running instruction!
 	}
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
 	{
@@ -2079,6 +2080,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
 	}
+	executionphase_running:
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU[activeCPU].executed = 1; //Executed by default!
@@ -2300,90 +2302,59 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 
 byte tempcycles;
 
-uint_32 exception_busy; //Exception is busy?
 void CPU_exDIV0() //Division by 0!
 {
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (exception_busy&1) goto busyEX0;
-	exception_busy |= 1; //We're busy!
 	if (CPU_faultraised(EXCEPTION_DIVIDEERROR)==0)
 	{
-		exception_busy &= ~1; //Not busy anymore!
 		return; //Abort handling when needed!
 	}
-	busyEX0:
 	if (EMULATED_CPU > CPU_8086) //We don't point to the instruction following the division?
 	{
 		CPU_resetOP(); //Return to the instruction instead!
 	}
 	//Else: Points to next opcode!
 
-	if (CPU086_int(EXCEPTION_DIVIDEERROR)==0) return; //Execute INT0 normally using current CS:(E)IP!
-	exception_busy &= ~1; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_DIVIDEERROR,0,-1); //Execute INT0 normally using current CS:(E)IP!
 }
 
 extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
-	if (exception_busy&2) goto busyEX1;
-	exception_busy |= 2; //We're busy!
 	if (CPU_faultraised(EXCEPTION_DEBUG)==0)
 	{
-		exception_busy &= ~2; //Not busy anymore!
 		return; //Abort handling when needed!
 	}
-	busyEX1:
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if ((CPU086_int(EXCEPTION_DEBUG)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Execute INT1 normally using current CS:(E)IP!
-	exception_busy &= ~2; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Execute INT1 normally using current CS:(E)IP!
 	CPU[activeCPU].trapped = 0; //We're not trapped anymore: we're handling the single-step!
 }
 
 void CPU_BoundException() //Bound exception!
 {
 	//Point to opcode origins!
-	if (exception_busy&4) goto busyEX2;
-	exception_busy |= 4; //We're busy!
 	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)==0)
 	{
-		exception_busy &= ~4; //Not busy anymore!
 		return; //Abort handling when needed!
 	}
-	busyEX2:
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if ((CPU086_int(EXCEPTION_BOUNDSCHECK)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
-	exception_busy &= ~4; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_BOUNDSCHECK,0,-1); //Execute INT1 normally using current CS:(E)IP!
 }
 
 void CPU_COOP_notavailable() //COProcessor not available!
 {
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//Point to opcode origins!
-	if (exception_busy&4) goto busyEX2;
-	exception_busy |= 8; //We're busy!
 	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE)==0)
 	{
-		exception_busy &= ~8; //Not busy anymore!
 		return; //Abort handling when needed!
 	}
-	busyEX2:
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if ((CPU086_int(EXCEPTION_COPROCESSORNOTAVAILABLE)==0) && (!(EMULATED_CPU>=CPU_80286))) return; //Return to opcode!
-	exception_busy &= ~8; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,0,-1); //Execute INT1 normally using current CS:(E)IP!
 }
 
 void CPU_unkOP() //General unknown OPcode handler!

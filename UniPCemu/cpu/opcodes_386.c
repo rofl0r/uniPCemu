@@ -107,41 +107,6 @@ Start of help for opcode processing
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 extern uint_32 wordaddress; //Word address used during memory access!
 
-OPTINLINE byte CPU80386_software_int(byte interrupt, int_64 errorcode) //See int, but for hardware interrupts (IRQs)!
-{
-	return call_soft_inthandler(interrupt,errorcode); //Save adress to stack (We're going soft int!)!
-}
-
-OPTINLINE byte CPU80386_INTERNAL_int(byte interrupt, byte type3) //Software interrupt from us(internal call)!
-{
-	byte result = 1; //Result!
-	CPUPROT1
-		/*
-		if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
-		{
-			result = CPU8086_software_int(interrupt,-1);
-			if (result) //Final stage?
-			{
-				CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /Stall the BIU completely now!/
-			}
-		}
-		else
-		*/ //Unsupported CPU? Use plain general interrupt handling instead!
-		{
-			CPU80386_software_int(interrupt,-1);
-			if (CPU_apply286cycles()) return 1; //80286+ cycles instead?
-			result = 1; //Always 1!
-		}
-		return result; //Finished!
-	CPUPROT2
-	return result; //Finished!
-}
-
-void CPU80386_int(byte interrupt) //Software interrupt (external call)!
-{
-	CPU80386_INTERNAL_int(interrupt,0); //Direct call!
-}
-
 OPTINLINE void CPU80386_IRET()
 {
 	CPUPROT1
@@ -2279,25 +2244,14 @@ void external80386RETF(word popbytes)
 	CPU80386_internal_RETF(popbytes,1); //Return immediate variant!
 }
 
-extern uint_32 exception_busy; //Exception is busy?
-extern byte tempcycles;
-
 OPTINLINE byte CPU80386_internal_INTO()
 {
-	if (exception_busy&0x10) goto busyEX4;
 	if (FLAG_OF==0) goto finishINTO; //Finish?
-	exception_busy |= 0x10; //We're busy!
 	if (CPU_faultraised(EXCEPTION_OVERFLOW)==0) //Fault raised?
 	{
-		exception_busy &= ~0x10; //Not busy anymore!
 		return 1; //Abort handling when needed!
 	}
-	busyEX4:
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if ((CPU086_int(EXCEPTION_OVERFLOW)==0) && (!(EMULATED_CPU>=CPU_80286))) return 1; //Return to opcode!
-	exception_busy &= ~0x10; //Not busy anymore!
-	CPU[activeCPU].cycles_Exception += CPU[activeCPU].cycles_OP; //Our cycles are counted as a hardware interrupt's cycles instead!
-	CPU[activeCPU].cycles_OP = tempcycles; //Restore cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-1); //Return to opcode!
 	return 0; //Finished: OK!
 	finishINTO:
 	{
@@ -2724,8 +2678,8 @@ void CPU80386_OPC5() /*LDS modr/m*/ {modrm_generateInstructionTEXT("LDS",0,0,PAR
 void CPU80386_OPC7() {uint_32 val = immw; modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("MOVD %s,%08x",modrm_param1,val); if (modrm_check32(&params,MODRM_src0,0)) return; if (CPU80386_instructionstepwritemodrmdw(0,val,MODRM_src0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /* Imm->Mem */ } else CPU[activeCPU].cycles_OP += 4; /* Imm->Reg */ } }
 void CPU80386_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm16 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
 void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
-void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU80386_INTERNAL_int(EXCEPTION_CPUBREAKPOINT,1); } /*INT 3*/ }
-void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_INTERNAL_int(theimm,0);/*INT imm8*/ }
+void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-1); } /*INT 3*/ }
+void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU_executionphase_startinterrupt(theimm,0,-1);/*INT imm8*/ }
 void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_internal_INTO();/*INTO*/ }
 void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } } //Special case on the 80386: SALC!

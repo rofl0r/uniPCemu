@@ -58,6 +58,7 @@
     <ClCompile Include="cpu\biu.c" />
     <ClCompile Include="cpu\cb_manager.c" />
     <ClCompile Include="cpu\cpu.c" />
+    <ClCompile Include="cpu\cpu_execution.c" />
     <ClCompile Include="cpu\cpu_interrupts.c" />
     <ClCompile Include="cpu\cpu_jmptbls.c" />
     <ClCompile Include="cpu\cpu_jmptbls0f.c" />
@@ -201,6 +202,7 @@
     <ClInclude Include="headers\cpu\biu.h" />
     <ClInclude Include="headers\cpu\cb_manager.h" />
     <ClInclude Include="headers\cpu\cpu.h" />
+    <ClInclude Include="headers\cpu\cpu_execution.h" />
     <ClInclude Include="headers\cpu\cpu_OP80286.h" />
     <ClInclude Include="headers\cpu\cpu_OP80386.h" />
     <ClInclude Include="headers\cpu\cpu_OP80486.h" />

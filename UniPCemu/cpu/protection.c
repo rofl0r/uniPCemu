@@ -855,7 +855,6 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	byte TSSSize, isDifferentCPL;
 	word tempSS;
 	uint_32 tempesp;
-	if (CPU[activeCPU].faultraised) return; //Abort if already an fault has been raised!
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
 		isDifferentCPL = 0; //Default: same CPL!
@@ -889,6 +888,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						{
 							TSS_StackPos += 4; //Take SS position!
 						}
+						CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 						segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()),0); //Read SS!
 						if (CPU[activeCPU].faultraised) return; //Abort on fault!
 						if (TSSSize) //32-bit?
@@ -975,6 +975,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					tempSS = CPU_POP16();
+					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
 					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
@@ -993,6 +994,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
 					tempSS = CPU_POP16();
+					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
 					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
@@ -1481,30 +1483,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			THROWDESCGP(desttask,((errorcode!=-1)&&(errorcode&1)?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 			return 0; //Error, by specified reason!
 		}
-		if (CPU_switchtask(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode)) //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!
-		{
-			if ((errorcode!=-1) && (CPU[activeCPU].faultraised==0)) //Error code to be pushed on the stack?
-			{
-				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
-				{
-					CPU_PUSH32(&errorcode32); //Push the error on the stack!
-				}
-				else
-				{
-					CPU_PUSH16(&errorcode16); //Push the error on the stack!
-				}
-				if (CPU[activeCPU].faultraised==0) //OK?
-				{
-					hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-				}
-			}
-			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
-			return 1; //OK!
-		}
-		else
-		{
-			return 0; //Abort!
-		}
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!
 		break;
 	default: //All other cases?
 		is32bit = IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG; //Enable 32-bit gate?
@@ -1709,4 +1688,5 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		}
 		break;
 	}
+	return 0; //Default: Errored out!
 }

@@ -11,6 +11,7 @@
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Fault raising support!
+#include "headers/cpu/cpu_execution.h" //Execution interrupt support!
 
 //Shutdown the application when an unknown instruction is executed?
 //#define UNKOP_SHUTDOWN
@@ -64,7 +65,7 @@ void unkOP_186() //Unknown opcode on 186+?
 	CPU_resetOP(); //Go back to the opcode itself!
 	if (CPU_faultraised(EXCEPTION_INVALIDOPCODE))
 	{
-		CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt with return addres of the OPcode!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDOPCODE,0,-1); //Call interrupt with return addres of the OPcode!
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
@@ -84,7 +85,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 	CPU_resetOP(); //Go back to the opcode itself!
 	if (CPU_faultraised(EXCEPTION_INVALIDOPCODE))
 	{
-		CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDOPCODE,0,-1); //Call interrupt!
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
@@ -104,7 +105,7 @@ void unkOP0F_386() //0F unknown opcode handler on 386+?
 	CPU_resetOP(); //Go back to the opcode itself!
 	if (CPU_faultraised(EXCEPTION_INVALIDOPCODE))
 	{
-		CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDOPCODE,0,-1); //Call interrupt!
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
@@ -123,7 +124,7 @@ void unkOP0F_486() //0F unknown opcode handler on 486+?
 	CPU_resetOP(); //Go back to the opcode itself!
 	if (CPU_faultraised(EXCEPTION_INVALIDOPCODE))
 	{
-		CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDOPCODE,0,-1); //Call interrupt!
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
@@ -142,7 +143,7 @@ void unkOP0F_586() //0F unknown opcode handler on 586+?
 	CPU_resetOP(); //Go back to the opcode itself!
 	if (CPU_faultraised(EXCEPTION_INVALIDOPCODE))
 	{
-		CPU086_int(EXCEPTION_INVALIDOPCODE); //Call interrupt!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDOPCODE,0,-1); //Call interrupt!
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
