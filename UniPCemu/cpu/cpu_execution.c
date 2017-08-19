@@ -23,7 +23,6 @@ int_64 errorcode;
 
 void CPU_executionphase_taskswitch() //Are we to switch tasks?
 {
-	//TODO: Execute task switch!
 	if (CPU_switchtask(TASKSWITCH_INFO.whatsegment, &TASKSWITCH_INFO.LOADEDDESCRIPTOR,TASKSWITCH_INFO.segment, TASKSWITCH_INFO.destinationtask, TASKSWITCH_INFO.isJMPorCALL, TASKSWITCH_INFO.gated, TASKSWITCH_INFO.errorcode)!=0) //Unfinished task switch?
 	{
 		CPU[activeCPU].executed = 0; //Finished and ready for execution!
