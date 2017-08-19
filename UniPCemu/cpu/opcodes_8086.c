@@ -3376,6 +3376,7 @@ OPTINLINE byte CPU8086_internal_INTO()
 		return 1; //Abort handling when needed!
 	}
 	CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-1); //Return to opcode!
+	return 0; //Finished: OK!
 	finishINTO:
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
