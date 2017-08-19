@@ -1426,6 +1426,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
+	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	byte oldCPL;
 	oldCPL = getCPL(); //Save the CPL!
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
@@ -1679,7 +1680,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
 			}
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
-
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
