@@ -20,10 +20,12 @@ byte isJMPorCALL;
 byte gated;
 int_64 errorcode;
 } TASKSWITCH_INFO;
+byte taskswitch_result;
 
 void CPU_executionphase_taskswitch() //Are we to switch tasks?
 {
-	if (CPU_switchtask(TASKSWITCH_INFO.whatsegment, &TASKSWITCH_INFO.LOADEDDESCRIPTOR,TASKSWITCH_INFO.segment, TASKSWITCH_INFO.destinationtask, TASKSWITCH_INFO.isJMPorCALL, TASKSWITCH_INFO.gated, TASKSWITCH_INFO.errorcode)!=0) //Unfinished task switch?
+	taskswitch_result = CPU_switchtask(TASKSWITCH_INFO.whatsegment, &TASKSWITCH_INFO.LOADEDDESCRIPTOR,TASKSWITCH_INFO.segment, TASKSWITCH_INFO.destinationtask, TASKSWITCH_INFO.isJMPorCALL, TASKSWITCH_INFO.gated, TASKSWITCH_INFO.errorcode); //Execute a task switch?
+	if (taskswitch_result) //Unfinished task switch?
 	{
 		CPU[activeCPU].executed = 0; //Finished and ready for execution!
 	}
@@ -32,21 +34,22 @@ void CPU_executionphase_taskswitch() //Are we to switch tasks?
 byte CPU_executionphaseinterrupt_nr = 0x00; //What interrupt to execute?
 byte CPU_executionphaseinterrupt_type3 = 0; //Are we a type3 interrupt?
 int_64 CPU_executionphaseinterrupt_errorcode = -1; //What code to push afterwards?
+byte interrupt_result;
 
 void CPU_executionphase_interrupt() //Executing an interrupt?
 {
-	byte result;
 	if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
 	{
-		result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
-		if (result) //Final stage?
+		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
+		if (interrupt_result) //Final stage?
 		{
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
 	}
 	else //Unsupported CPU? Use plain general interrupt handling instead!
 	{
-		if (call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode)==0) return; //Execute the interupt!
+		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
+		if (interrupt_result==0) return; //Execute the interupt!
 		if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	}
 }
@@ -60,7 +63,7 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 
 byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
 {
-	return call_soft_inthandler(vectornr,errorcode); //Use old method instead!
+	//return call_soft_inthandler(vectornr,errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
 	//Copy all parameters used!
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
@@ -68,11 +71,12 @@ byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 	CPU_executionphaseinterrupt_type3 = type3; //Are we a type-3 interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	CPU_OP(); //Execute right away for simple timing compatility!
+	return interrupt_result; //Don't continue executing any instruction!
 }
 
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
-	return CPU_switchtask(whatsegment, LOADEDDESCRIPTOR,segment, destinationtask, isJMPorCALL, gated, errorcode); //Use old method instead!
+	//return CPU_switchtask(whatsegment, LOADEDDESCRIPTOR,segment, destinationtask, isJMPorCALL, gated, errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
 	memcpy(&TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
@@ -84,6 +88,7 @@ byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOA
 	TASKSWITCH_INFO.errorcode = errorcode;
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	CPU_OP(); //Execute right away for simple timing compatility!
+	return taskswitch_result; //Default to an abort of the current instruction!
 }
 
 byte CPU_executionphase_busy() //Are we busy?
