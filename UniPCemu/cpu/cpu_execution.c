@@ -61,16 +61,22 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 	currentEUphasehandler = &CPU_executionphase_normal; //Starting a opcode phase handler!
 }
 
-byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
+
+
+extern word INTreturn_CS; //Return CS
+extern uint_32 INTreturn_EIP; //Return EIP
+void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
 {
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
+	CPU[activeCPU].internalinterruptstep = 0; //Reset the interrupt step!
 	//Copy all parameters used!
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
 	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
 	CPU_executionphaseinterrupt_type3 = type3; //Are we a type-3 interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
+	INTreturn_CS = CPU[activeCPU].registers->CS; //Return segment!
+	INTreturn_EIP = CPU[activeCPU].registers->EIP; //Save the return offset!
 	CPU_OP(); //Execute right away for simple timing compatility!
-	return interrupt_result; //Don't continue executing any instruction!
 }
 
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
@@ -91,7 +97,7 @@ byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOA
 
 byte CPU_executionphase_busy() //Are we busy?
 {
-	return (currentEUphasehandler!=NULL); //Are we ready to operate on something?
+	return ((currentEUphasehandler!=&CPU_executionphase_normal)&&currentEUphasehandler); //Are we operating on something other than a (new) instruction?
 }
 
 //Actual phase handler that transfers to the current phase!

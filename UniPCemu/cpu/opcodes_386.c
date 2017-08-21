@@ -2251,7 +2251,7 @@ OPTINLINE byte CPU80386_internal_INTO()
 	{
 		return 1; //Abort handling when needed!
 	}
-	if (CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-1)==0) return 1; //Return to opcode!
+	CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-1); //Return to opcode!
 	return 0; //Finished: OK!
 	finishINTO:
 	{

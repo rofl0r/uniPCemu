@@ -147,24 +147,27 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		if (shuttingdown()) goto doshutdown;
 		if (useHWInterrupts) //HW interrupts enabled for this ROM?
 		{
-			if (!CPU[activeCPU].trapped && CPU[activeCPU].registers) //Only check for hardware interrupts when not trapped!
+			if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //We're starting a new instruction?
 			{
-				if (FLAG_IF) //Interrupts available?
+				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (PICInterrupt()) //We have a hardware interrupt ready?
+					if (FLAG_IF) //Interrupts available?
 					{
-						HWINT_nr = nextintr(); //Get the HW interrupt nr!
-						HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-						if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+						if (PICInterrupt()) //We have a hardware interrupt ready?
 						{
-							CPU_8086REPPending(); //Process pending REPs normally as documented!
+							HWINT_nr = nextintr(); //Get the HW interrupt nr!
+							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+							if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+							{
+								CPU_8086REPPending(); //Process pending REPs normally as documented!
+							}
+							else //Execute the CPU bug!
+							{
+								CPU_8086REPPending(); //Process pending REPs normally as documented!
+								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+							}
+							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}
-						else //Execute the CPU bug!
-						{
-							CPU_8086REPPending(); //Process pending REPs normally as documented!
-							CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
-						}
-						call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 					}
 				}
 			}

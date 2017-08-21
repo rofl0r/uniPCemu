@@ -46,8 +46,6 @@ byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/801
 
 extern byte cpudebugger; //To debug the CPU?
 
-byte CPUhardinthandling;
-
 void CPU_initBIU()
 {
 	if (BIU[activeCPU].ready) //Are we ready?
@@ -983,7 +981,7 @@ void CPU_tickBIU()
 
 byte BIU_Ready() //Are we ready to continue execution?
 {
-	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0) && (CPUhardinthandling==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
+	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
 }
 
 byte BIU_resetRequested()

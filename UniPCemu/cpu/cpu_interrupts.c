@@ -42,6 +42,7 @@ word oldCS, oldIP, waitingforiret=0;
 word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
+	byte checkinterruptstep;
 	char errorcodestr[256];
 	word destCS;
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
@@ -52,7 +53,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		{
 			if (CPU_faultraised(8)) //Able to fault?
 			{
-				return CPU_executionphase_startinterrupt(8,0,-1); //IVT limit problem or double fault redirect!
+				CPU_executionphase_startinterrupt(8,0,-1); //IVT limit problem or double fault redirect!
+				return 0; //Abort!
 			}
 			else return 0; //Abort on triple fault!
 		}
@@ -73,10 +75,14 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		else //Cycle-accurate way?
 		{
-			if (CPU8086_internal_interruptPUSHw(0,&REG_FLAGS)) return 0; //Busy pushing flags!
-			if (CPU8086_internal_interruptPUSHw(2,&retsegment)) return 0; //Busy pushing return segment!
+			checkinterruptstep = 0; //Init!
+			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS)) return 0; //Busy pushing flags!
+			checkinterruptstep += 2;
+			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment)) return 0; //Busy pushing return segment!
+			checkinterruptstep += 2;
 			word retoffset16 = (retoffset&0xFFFF);
-			if (CPU8086_internal_interruptPUSHw(4,&retoffset16)) return 0; //Busy pushing return offset!
+			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retoffset16)) return 0; //Busy pushing return offset!
+			checkinterruptstep += 2;
 		}
 		//Now, jump to it!
 		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
@@ -86,7 +92,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		else //Cycle-accurate way?
 		{
-			if (CPU[activeCPU].internalinterruptstep==6) //Handle specific EU timings here?
+			if (CPU[activeCPU].internalinterruptstep==checkinterruptstep) //Handle specific EU timings here?
 			{
 				if (EMULATED_CPU==CPU_8086) //Known timings in between?
 				{
@@ -97,8 +103,11 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 				}
 				else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
 			}
-			if (CPU8086_internal_stepreadinterruptw(7,-2,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
-			if (CPU8086_internal_stepreadinterruptw(9,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
+			++checkinterruptstep;
+			if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-2,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
+			checkinterruptstep += 2;
+			if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
+			checkinterruptstep += 2;
 		}
 
 		FLAGW_IF(0); //We're calling the interrupt!
@@ -123,6 +132,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		CPU[activeCPU].executed = 1; //We've executed: process the next instruction!
+
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!
 	}
@@ -130,11 +140,13 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode); //Execute the protected mode interrupt!
 }
 
+word INTreturn_CS=0xCCCC;
+uint_32 INTreturn_EIP=0xCCCCCCCC;
 
 byte CPU_INT(byte intnr, int_64 errorcode) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	return CPU_customint(intnr,REG_CS,REG_EIP,errorcode); //Execute real interrupt, returning to current address!
+	return CPU_customint(intnr,INTreturn_CS,INTreturn_EIP,errorcode); //Execute real interrupt, returning to current address!
 }
 
 byte NMIMasked = 0; //Are NMI masked?

@@ -631,12 +631,12 @@ byte call_soft_inthandler(byte intnr, int_64 errorcode)
 	return CPU_INT(intnr,errorcode); //Call interrupt!
 }
 
-byte call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
+void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardware only, or int>=0x20 for software call)!
 {
 //Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	return CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
+	CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -1001,7 +1001,6 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	{
 		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) //Reading new opcode?
 		{
-			currentOP_handler = &CPU_unkOP; //Default the current opcode handler to unknown stage!
 			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
 			CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
@@ -1889,7 +1888,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-					if (CPU_executionphase_startinterrupt(1,0,-1)) return; //Call the interrupt, no error code!
+					CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
+					return; //Abort!
 				}
 			}
 		}
@@ -2080,9 +2080,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
 	}
-	executionphase_running:
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
+	executionphase_running:
 	CPU[activeCPU].executed = 1; //Executed by default!
 	CPU_OP(); //Now go execute the OPcode once!
 	skipexecutionOPfault: //Instruction fetch fault?
