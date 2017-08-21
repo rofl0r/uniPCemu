@@ -78,8 +78,6 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			word retoffset16 = (retoffset&0xFFFF);
 			if (CPU8086_internal_interruptPUSHw(4,&retoffset16)) return 0; //Busy pushing return offset!
 		}
-		FLAGW_IF(0); //We're calling the interrupt!
-		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
 		//Now, jump to it!
 		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
 		{
@@ -102,6 +100,10 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			if (CPU8086_internal_stepreadinterruptw(7,-2,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
 			if (CPU8086_internal_stepreadinterruptw(9,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
 		}
+
+		FLAGW_IF(0); //We're calling the interrupt!
+		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
+
 		//Load EIP and CS destination to use from the original 16-bit data!
 		destEIP = (uint_32)destINTIP;
 		destCS = destINTCS;
