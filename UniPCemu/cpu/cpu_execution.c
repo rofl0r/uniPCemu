@@ -58,8 +58,9 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 	currentEUphasehandler = &CPU_executionphase_normal; //Starting a opcode phase handler!
 }
 
-void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
+byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
 {
+	return call_soft_inthandler(vectornr,errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
 	//Copy all parameters used!
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
@@ -69,8 +70,9 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 	CPU_OP(); //Execute right away for simple timing compatility!
 }
 
-void CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
+byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
+	return CPU_switchtask(whatsegment, LOADEDDESCRIPTOR,segment, destinationtask, isJMPorCALL, gated, errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
 	memcpy(&TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
