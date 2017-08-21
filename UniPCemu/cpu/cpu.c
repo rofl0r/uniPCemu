@@ -636,8 +636,7 @@ byte call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 //Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
-	return 1; //Call interrupt, not handling anymore!
+	return CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -1890,7 +1889,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-					CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
+					if (CPU_executionphase_startinterrupt(1,0,-1)) return; //Call the interrupt, no error code!
 				}
 			}
 		}
@@ -1919,7 +1918,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				{
 					memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Finished fetching!
 					CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
-					CPU[activeCPU].executed = 0; //We're counting as an unfinished instruction to handle the fault!
+					CPU[activeCPU].executed = 1; //We're counting as an finished instruction to handle the fault!
 				}
 				goto fetchinginstruction; //Process prefix(es) and read OPCode!
 			}

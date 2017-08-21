@@ -52,8 +52,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		{
 			if (CPU_faultraised(8)) //Able to fault?
 			{
-				CPU_executionphase_startinterrupt(8,0,-1); //IVT limit problem or double fault redirect!
-				return 0; //Abort: we're still busy!
+				return CPU_executionphase_startinterrupt(8,0,-1); //IVT limit problem or double fault redirect!
 			}
 			else return 0; //Abort on triple fault!
 		}
