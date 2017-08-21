@@ -63,7 +63,6 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 
 byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
 {
-	//return call_soft_inthandler(vectornr,errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
 	//Copy all parameters used!
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
@@ -76,7 +75,6 @@ byte CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
-	//return CPU_switchtask(whatsegment, LOADEDDESCRIPTOR,segment, destinationtask, isJMPorCALL, gated, errorcode); //Use old method instead!
 	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
 	memcpy(&TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
@@ -99,7 +97,7 @@ byte CPU_executionphase_busy() //Are we busy?
 //Actual phase handler that transfers to the current phase!
 void CPU_OP() //Normal CPU opcode execution!
 {
-	if (unlikely(currentEUphasehandler==NULL)) return; //Abort when invalid!
+	if (unlikely(currentEUphasehandler==NULL)) { dolog("cpu","Warning: nothing to do?"); return; } //Abort when invalid!
 	currentEUphasehandler(); //Start execution of the current phase in the EU!
 	if (unlikely(CPU[activeCPU].executed))
 	{
