@@ -78,7 +78,14 @@ void CPU_doneBIU()
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	BIU[activeCPU].PIQ_Address = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,(destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP,0,0); //Save the PIQ Address to the current address to start fetching from!
+	if (EMULATED_CPU>=CPU_80286) //Protected mode-able CPU?
+	{
+		BIU[activeCPU].PIQ_Address = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,(destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP,0,0); //Save the PIQ Address to the current address to start fetching from!
+	}
+	else //Simulate real mode actually!
+	{
+		BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
+	}
 	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 }
@@ -351,11 +358,19 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,0x10|3,getCPL())) return; //Fault on fetching?
-	realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
-	if (is_paging()) //Are we paging?
+	if (EMULATED_CPU<=CPU_NECV30) //Wrapping needs to be applied?
 	{
-		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
+		realaddress = BIU[activeCPU].PIQ_Address++; //Next address to fetch!
+		realaddress = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0,1); //Generate actual address directly!
+	}
+	else //80286+ prefetch?
+	{
+		if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,0x10|3,getCPL())) return; //Fault on fetching?
+		realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
+		if (is_paging()) //Are we paging?
+		{
+			realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
+		}
 	}
 	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(realaddress,0)); //Add the next byte from memory into the buffer!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
