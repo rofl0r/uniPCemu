@@ -9,6 +9,7 @@
 #include "headers/mmu/mmuhandler.h" //MMU direct access support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
+#include "headers/mmu/mmuhandler.h" //MMU handling support!
 
 //16-bits compatibility for reading parameters!
 #define LE_16BITS(x) SDL_SwapLE16(x)
@@ -288,9 +289,27 @@ OPTINLINE byte BIU_isfulltransfer()
 
 //Linear memory access for the CPU through the Memory Unit!
 extern byte MMU_logging; //Are we logging?
+extern MMU_type MMU; //MMU support!
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
 byte BIU_directrb(uint_32 realaddress, byte index)
 {
 	byte result;
+	
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
+	}
+		
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
@@ -304,6 +323,21 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 
 void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical memory dir
 {
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
+	}
+
 	if (MMU_logging) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!

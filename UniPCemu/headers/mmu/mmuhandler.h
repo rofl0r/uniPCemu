@@ -43,7 +43,7 @@ void bufferMMU(); //Start buffering MMU writes!
 
 //Memory access for fake86 compatibility and testing our CPU.
 void MMU_directwb_realaddr(uint_32 realaddress, byte val); //Write without segment/offset translation&protection (from system/interrupt)!
-byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode); //Read without segment/offset translation&protection (from system/interrupt)!
+byte MMU_directrb_realaddr(uint_32 realaddress); //Read without segment/offset translation&protection (from system/interrupt)!
 
 //Memory handler support!
 void MMU_resetHandlers(char *module); //Initialise/reset handlers, no module (""/NULL) for all.
