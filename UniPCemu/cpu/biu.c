@@ -349,8 +349,15 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
+	uint_32 realaddress;
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(BIU[activeCPU].PIQ_Address++,0)); //Add the next byte from memory into the buffer!
+	if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,3,getCPL())) return; //Fault on fetching?
+	realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
+	if (is_paging()) //Are we paging?
+	{
+		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
+	}
+	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(realaddress,0)); //Add the next byte from memory into the buffer!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 }
 
