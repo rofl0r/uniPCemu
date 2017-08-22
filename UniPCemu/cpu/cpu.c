@@ -1863,11 +1863,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 		if (!CPU[activeCPU].repeating) //Not repeating instructions?
 		{
-			#ifdef CPU_SAVELAST
 			//Save the last coordinates!
 			CPU_exec_lastCS = CPU_exec_CS;
-			CPU_exec_lastEIP = CPU_exec_lastEIP;
-			#endif
+			CPU_exec_lastEIP = CPU_exec_EIP;
+			//Save the current coordinates!
 			CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
 			CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
 		}

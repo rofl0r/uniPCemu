@@ -933,6 +933,9 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 word debuggerrow; //Debugger row after the final row!
 
+extern word CPU_exec_lastCS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP; //OPCode EIP
+
 OPTINLINE void debugger_screen() //Show debugger info on-screen!
 {
 	if (frameratesurface) //We can show?
@@ -972,6 +975,25 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
 				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", debuggerregisters.CS, debuggerregisters.IP); //Debug IP!
+			}
+		}
+
+		if ((((debuggerregisters.CR0&1)==0) || (debuggerregisters.EFLAGS&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
+		{
+			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 18, debuggerrow++); //Second debug row!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug CS:IP!
+		}
+		else //386+?
+		{
+			if (EMULATED_CPU>=CPU_80386) //32-bit CPU?
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 23, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:EIP %04X:%08X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug IP!
+			}
+			else //286-?
+			{
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 19, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug IP!
 			}
 		}
 
