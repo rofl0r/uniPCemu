@@ -351,7 +351,7 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,3,getCPL())) return; //Fault on fetching?
+	if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,0x10|3,getCPL())) return; //Fault on fetching?
 	realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
 	if (is_paging()) //Are we paging?
 	{
@@ -381,12 +381,13 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 		PIQ_retry: //Retry after refilling PIQ!
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		//Execution can start on any cycle!
+		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
+		if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
 		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
 			if (cpudebugger) //We're an OPcode retrieval and debugging?
 			{
 				MMU_addOP(*result); //Add to the opcode cache!
