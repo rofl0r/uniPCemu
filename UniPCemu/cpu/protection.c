@@ -31,6 +31,7 @@ void CPU_triplefault()
 	CPU[activeCPU].faultraised_lasttype = 0xFF; //Full on reset has been raised!
 	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
+	CPU[activeCPU].executed = 1; //We're finishing to execute!
 }
 
 void CPU_doublefault()
