@@ -1395,7 +1395,7 @@ byte CPU_PUSH16_BIU(word *val) //Push Word!
 			stack_push(0); //We're pushing a 16-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
-		if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+		if (CPU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 		{
 			CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 			return 1;
@@ -1412,7 +1412,7 @@ byte CPU_PUSH16_BIU(word *val) //Push Word!
 		}
 		if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 		{
-			if (BIU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -1420,7 +1420,7 @@ byte CPU_PUSH16_BIU(word *val) //Push Word!
 		}
 		else
 		{
-			if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -1451,11 +1451,11 @@ byte CPU_POP16_BIU() //Pop Word!
 	byte result;
 	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 	{
-		result = BIU_request_MMUrdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+		result = CPU_request_MMUrdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 	}
 	else //16-bit?
 	{
-		 result = BIU_request_MMUrw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+		 result = CPU_request_MMUrw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 	}
 	if (result) //Requested?
 	{
@@ -1473,7 +1473,7 @@ byte CPU_PUSH32_BIU(uint_32 *val) //Push DWord!
 			stack_push(0); //We're pushing a 16-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
-		if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+		if (CPU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),*val,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 		{
 			CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 			return 1;
@@ -1490,7 +1490,7 @@ byte CPU_PUSH32_BIU(uint_32 *val) //Push DWord!
 		}
 		if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 		{
-			if (BIU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -1498,7 +1498,7 @@ byte CPU_PUSH32_BIU(uint_32 *val) //Push DWord!
 		}
 		else
 		{
-			if (BIU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),(word)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),(word)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -1551,11 +1551,11 @@ byte CPU_POP32_BIU() //Full stack used!
 	byte result;
 	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 	{
-		result = BIU_request_MMUrdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+		result = CPU_request_MMUrdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 	}
 	else //16-bit?
 	{
-		result = BIU_request_MMUrw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
+		result = CPU_request_MMUrw(CPU_SEGMENT_SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 	}
 	if (result) //Requested?
 	{

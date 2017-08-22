@@ -1290,4 +1290,12 @@ byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to a
 
 void CPU_tickPendingReset(); //Tick a pending CPU reset!
 byte BIU_resetRequested(); //Reset requested?
+
+//Memory access functionality, supporting Paging, Direct access and Segmented access!
+byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16);
+byte CPU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16);
+byte CPU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16);
+byte CPU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16);
+byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16);
+byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16);
 #endif

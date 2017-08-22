@@ -519,7 +519,7 @@ void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
 }
 
 //Direct memory access with Memory mapped I/O (for the CPU).
-byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte opcode, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
+byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
 	byte data;
 	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
