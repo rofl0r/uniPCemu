@@ -1159,15 +1159,22 @@ void debuggerThread()
 			{
 				skipopcodes_destEIP &= 0xFFFF; //Wrap around, like we need to!
 			}
-			if (CPU[activeCPU].repeating) //Are we repeating?
+			if (psp_keypressed(BUTTON_CIRCLE) && (CPU[activeCPU].repeating==0)) //Wait for the jump to be taken from the current address?
 			{
-				skipstep = 1; //Skip all REP additional opcodes!
+				skipopcodes_destEIP = debuggerregisters.EIP; //We're jumping from this address!
+				skipstep = 4;
 			}
-			else //Use the supplied EIP!
+			else //Normal behaviour?
 			{
-				skipstep = 2; //Simply skip until the next instruction is reached after this address!
+				if (CPU[activeCPU].repeating) //Are we repeating?
+				{
+					skipstep = 1; //Skip all REP additional opcodes!
+				}
+				else //Use the supplied EIP!
+				{
+					skipstep = 2; //Simply skip until the next instruction is reached after this address!
+				}
 			}
-			singlestep = 0; //If single stepping, stop doing so!
 			break;
 		}
 		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
@@ -1175,7 +1182,10 @@ void debuggerThread()
 			while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
 			{
 			}
-			MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
+			if (psp_keypressed(BUTTON_TRIANGLE)) //Memory dump?
+			{
+				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
+			}
 		}
 		openBIOS = 0; //Init!
 		lock(LOCK_MAINTHREAD); //We're checking some input!
@@ -1221,6 +1231,8 @@ void debuggerThread()
 
 ThreadParams_p debugger_thread = NULL; //The debugger thread, if any!
 
+extern byte didJump; //Did we jump this instruction?
+
 void debugger_step() //Processes the debugging step!
 {
 	if (debugger_thread) //Debugger not running yet?
@@ -1246,7 +1258,14 @@ void debugger_step() //Processes the debugging step!
 				}
 				else if (debuggerregisters.EIP == skipopcodes_destEIP) //We've reached the destination address?
 				{
-					skipstep = 0; //We're finished!
+					if ((skipstep==4) && didJump) //Jumped at our specified step?
+					{
+						skipstep = 0; //We're finished!
+					}
+					else if (skipstep!=4) //Normal finish not requiring Jump to be executed?
+					{
+						skipstep = 0; //We're finished!
+					}
 				}
 				else if (skipstep==3) //Stop immediately?
 				{
