@@ -1261,11 +1261,13 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			CPU_MMU_checkrights_cause = 0x80; //What cause?
 			return 0; //Enable: we're an emulator call!
 		}
+		/*
 		if (CPU[activeCPU].faultraised)
 		{
 			CPU_MMU_checkrights_cause = 0x81; //What cause?
 			return 1; //Abort if already an fault has been raised!
 		}
+		*/
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!
 		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16)) //What rights resulting? Test the address itself too!
@@ -1622,6 +1624,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				if (checkStackAccess(3+((errorcode!=-1)?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 			}
 
+			CPU[activeCPU].faultraised = 0; //Reset fault detection algorithm!
 			if (is32bit)
 			{
 				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
@@ -1668,7 +1671,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (errorcode!=-1) //Error code specified?
 			{
-				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
+				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask) //32-bit task?
 				{
 					CPU_PUSH32(&errorcode32); //Push the error on the stack!
 				}
