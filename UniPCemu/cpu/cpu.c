@@ -1827,13 +1827,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		goto executionphase_running; //Continue an running instruction!
 	}
-	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) && (!CPU[activeCPU].repeating)) //Starting a new instruction and not repeating an instruction?
+	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction(or repeating one)?
 	{
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
 		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 		bufferMMU(); //Buffer the MMU writes for us!
-		MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache)!
+		if (!CPU[activeCPU].repeating) MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
 		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
