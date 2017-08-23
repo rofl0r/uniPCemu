@@ -151,6 +151,8 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 		{
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
+		if (interrupt_result==0) return; //Execute the interupt!
+		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
 	}
 	else //Unsupported CPU? Use plain general interrupt handling instead!
 	{
