@@ -1827,7 +1827,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		goto executionphase_running; //Continue an running instruction!
 	}
-	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
+	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1) && (!CPU[activeCPU].repeating)) //Starting a new instruction and not repeating an instruction?
 	{
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
@@ -2087,8 +2087,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
-		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
-		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault has been raised and we're executing?
+		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
@@ -2114,6 +2113,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 		}
+		if (CPU[activeCPU].repeating==0) CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 		blockREP = 0; //Don't block REP anymore!
 	}
 	fetchinginstruction: //We're still fetching the instruction in some way?

@@ -58,6 +58,8 @@
 #include "headers/hardware/soundblaster.h" //Sound blaster support!
 #include "headers/cpu/easyregs.h" //Flag support!
 #include "headers/cpu/protection.h" //Save fault data support!
+#include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution support!
 
 #include "headers/cpu/memory_adressing.h" //Internal MMU call support! For CPU_MMU_start functionality!
 #include "headers/support/mid.h" //MIDI player support!
@@ -937,7 +939,7 @@ OPTINLINE byte coreHandler()
 
 				HWINT_saved = 0; //No HW interrupt by default!
 				CPU_beforeexec(); //Everything before the execution!
-				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
+				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
 					if (FLAG_IF) //Interrupts available?
 					{

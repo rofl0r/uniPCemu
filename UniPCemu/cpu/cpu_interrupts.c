@@ -18,7 +18,7 @@
 //Log the INT10h call to set 640x480x256 color mode.
 //#define LOG_ET34K640480256_SET
 //Log the INT calls and IRETs when defined.
-//#define LOG_INTS
+#define LOG_INTS
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
@@ -39,6 +39,9 @@ extern byte CPU_interruptraised; //Interrupt raised flag?
 
 word oldCS, oldIP, waitingforiret=0;
 
+extern byte singlestep; //Enable EMU-driven single step!
+extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
+
 word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
@@ -53,7 +56,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		{
 			if (CPU_faultraised(8)) //Able to fault?
 			{
-				CPU_executionphase_startinterrupt(8,0,-1); //IVT limit problem or double fault redirect!
+				CPU_executionphase_startinterrupt(8,0,0); //IVT limit problem or double fault redirect!
 				return 0; //Abort!
 			}
 			else return 0; //Abort on triple fault!
@@ -66,49 +69,30 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			oldCS = retsegment; //Backup the return position!
 		}
 		#endif
-		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
+		checkinterruptstep = 0; //Init!
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS)) return 0; //Busy pushing flags!
+		checkinterruptstep += 2;
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment)) return 0; //Busy pushing return segment!
+		checkinterruptstep += 2;
+		word retoffset16 = (retoffset&0xFFFF);
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retoffset16)) return 0; //Busy pushing return offset!
+		checkinterruptstep += 2;
+		if (CPU[activeCPU].internalinterruptstep==checkinterruptstep) //Handle specific EU timings here?
 		{
-			CPU_PUSH16(&REG_FLAGS); //Push flags!
-			CPU_PUSH16(&retsegment); //Push segment!
-			word retoffset16 = (retoffset&0xFFFF);
-			CPU_PUSH16(&retoffset16);
-		}
-		else //Cycle-accurate way?
-		{
-			checkinterruptstep = 0; //Init!
-			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS)) return 0; //Busy pushing flags!
-			checkinterruptstep += 2;
-			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment)) return 0; //Busy pushing return segment!
-			checkinterruptstep += 2;
-			word retoffset16 = (retoffset&0xFFFF);
-			if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retoffset16)) return 0; //Busy pushing return offset!
-			checkinterruptstep += 2;
-		}
-		//Now, jump to it!
-		if (EMULATED_CPU>=CPU_80286) //80286+ CPU?
-		{
-			destINTIP = memory_directrw((intnr<<2)+CPU[activeCPU].registers->IDTR.base); //JUMP to position CS:EIP/CS:IP in table.
-			destINTCS = memory_directrw(((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base); //Destination CS!
-		}
-		else //Cycle-accurate way?
-		{
-			if (CPU[activeCPU].internalinterruptstep==checkinterruptstep) //Handle specific EU timings here?
+			if (EMULATED_CPU==CPU_8086) //Known timings in between?
 			{
-				if (EMULATED_CPU==CPU_8086) //Known timings in between?
-				{
-					CPU[activeCPU].cycles_OP += 36; //We take 20 cycles to execute on a 8086/8088 EU!
-					++CPU[activeCPU].internalinterruptstep; //Next step to be taken!
-					CPU[activeCPU].executed = 0; //We haven't executed!
-					return 0; //Waiting to complete!
-				}
-				else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
+				CPU[activeCPU].cycles_OP += 36; //We take 20 cycles to execute on a 8086/8088 EU!
+				++CPU[activeCPU].internalinterruptstep; //Next step to be taken!
+				CPU[activeCPU].executed = 0; //We haven't executed!
+				return 0; //Waiting to complete!
 			}
-			++checkinterruptstep;
-			if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-2,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
-			checkinterruptstep += 2;
-			if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-2,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
-			checkinterruptstep += 2;
+			else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
 		}
+		++checkinterruptstep;
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
+		checkinterruptstep += 2;
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
+		checkinterruptstep += 2;
 
 		FLAGW_IF(0); //We're calling the interrupt!
 		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
@@ -126,7 +110,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			sprintf(errorcodestr,"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
 		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
@@ -151,6 +135,9 @@ byte CPU_INT(byte intnr, int_64 errorcode) //Call an software interrupt; WARNING
 
 byte NMIMasked = 0; //Are NMI masked?
 
+extern word CPU_exec_CS; //OPCode CS
+extern uint_32 CPU_exec_EIP; //OPCode EIP
+
 void CPU_IRET()
 {
 	word V86SegRegs[5]; //All V86 mode segment registers!
@@ -169,7 +156,7 @@ void CPU_IRET()
 			REG_FLAGS = CPU_POP16(); //Pop flags!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","IRET to %04X:%04X",CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP); //Log the current info of the call!
+		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
 		#ifdef LOG_ET34K640480256_SET
 		if (waitingforiret) //Waiting for IRET?

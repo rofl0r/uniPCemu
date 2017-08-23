@@ -1241,6 +1241,7 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 		{
 			buffer->readpos = buffer->writepos-1; //Last write!
 		}
+		buffer->laststatus = LASTSTATUS_READ; //We're a read operation last!
 		PostSem(buffer->lock)
 	}
 	else
@@ -1258,6 +1259,7 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 		{
 			buffer->readpos = buffer->writepos - 1; //Last write!
 		}
+		buffer->laststatus = LASTSTATUS_READ; //We're a read operation last!
 	}
 }
 

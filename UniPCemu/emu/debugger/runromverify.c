@@ -38,6 +38,9 @@ extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
 
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
+extern word CPU_exec_lastCS, CPU_exec_CS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP, CPU_exec_EIP; //OPCode EIP
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
 	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
@@ -166,6 +169,11 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
+							CPU_exec_lastCS = CPU_exec_CS;
+							CPU_exec_lastEIP = CPU_exec_EIP;
+							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+							CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+							CPU_saveFaultData(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}
 					}

@@ -156,6 +156,7 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 	{
 		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
 		if (interrupt_result==0) return; //Execute the interupt!
+		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
 		if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	}
 }
