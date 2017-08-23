@@ -85,21 +85,6 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	}
 	realaddress += CPU_MMU_start(segdesc, segment);
 
-	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
-	{
-		realaddress &= MMU.wraparround; //Apply A20!
-	}
-	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
-	{
-		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
-		{
-			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
-			{
-				realaddress &= MMU.wraparround; //Apply A20!
-			}
-		}
-	}
-
 	if (is_XT && (EMULATED_CPU<CPU_80286)) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT without newer CPU!
 	else if (EMULATED_CPU==CPU_80286) realaddress &= 0xFFFFFF; //Only 24-bits is available on a AT!
 
@@ -227,8 +212,23 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		}
 	}
 
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
+	}
+
 	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,opcode,index); //Read from MMU/hardware!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
 	if (MMU_logging) //To log?
 	{
@@ -256,6 +256,21 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 	if (MMU_logging) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
+	}
+
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
 	}
 
 	//Normal memory access!
@@ -349,10 +364,6 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 	INLINEREGISTER uint_32 realaddress;
 	byte writewordbackup = writeword; //Save the old value first!
 	if (MMU.invaddr) return; //Abort!
-	if (CPU[activeCPU].faultraised && EMU_RUNNING) //Fault has been raised while emulator is running?
-	{
-		return; //Disable writes to memory when a fault has been raised!
-	}
 	if ((MMU.memory==NULL) || !MMU.size) //No mem?
 	{
 		//dolog("MMU","W:No memory present!");
@@ -396,9 +407,9 @@ OPTINLINE void MMU_INTERNAL_wdw(sword segdesc, word segment, uint_32 offset, uin
 }
 
 //Routines used by CPU!
-byte MMU_directrb_realaddr(uint_32 realaddress, byte opcode) //Read without segment/offset translation&protection (from system/interrupt)!
+byte MMU_directrb_realaddr(uint_32 realaddress) //Read without segment/offset translation&protection (from system/interrupt)!
 {
-	return MMU_INTERNAL_directrb_realaddr(realaddress,opcode,0);
+	return MMU_INTERNAL_directrb_realaddr(realaddress,0);
 }
 void MMU_directwb_realaddr(uint_32 realaddress, byte val) //Read without segment/offset translation&protection (from system/interrupt)!
 {

@@ -31,6 +31,7 @@ void CPU_triplefault()
 	CPU[activeCPU].faultraised_lasttype = 0xFF; //Full on reset has been raised!
 	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
+	CPU[activeCPU].executed = 1; //We're finishing to execute!
 }
 
 void CPU_doublefault()
@@ -1548,6 +1549,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//We're back in protected mode now!
 
 				//Switch Stack segment first!
+				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
 				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
@@ -1594,6 +1596,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Unlike the other case, we're still in protected mode!
 
 				//Switch Stack segment first!
+				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
 				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!

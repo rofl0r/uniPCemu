@@ -7,6 +7,9 @@
 #include "headers/support/signedness.h" //Unsigned and signed support!
 #include "headers/cpu/paging.h" //Paging support for paging access!
 #include "headers/mmu/mmuhandler.h" //MMU direct access support!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/mmu/mmu_internals.h" //Internal MMU call support!
+#include "headers/mmu/mmuhandler.h" //MMU handling support!
 
 //16-bits compatibility for reading parameters!
 #define LE_16BITS(x) SDL_SwapLE16(x)
@@ -75,104 +78,16 @@ void CPU_doneBIU()
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	BIU[activeCPU].PIQ_EIP = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Save the PIQ EIP to the current address!
+	if (EMULATED_CPU>=CPU_80286) //Protected mode-able CPU?
+	{
+		BIU[activeCPU].PIQ_Address = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,(destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP,0,0); //Save the PIQ Address to the current address to start fetching from!
+	}
+	else //Simulate real mode actually!
+	{
+		BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
+	}
+	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
-}
-
-void CPU_fillPIQ() //Fill the PIQ until it's full!
-{
-	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	writefifobuffer(BIU[activeCPU].PIQ, MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, BIU[activeCPU].PIQ_EIP++, 3,(CODE_SEGMENT_DESCRIPTOR_D_BIT()==0))); //Add the next byte from memory into the buffer!
-	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-}
-
-void BIU_dosboxTick()
-{
-	if (BIU[activeCPU].PIQ) //Prefetching?
-	{
-		for (;fifobuffer_freesize(BIU[activeCPU].PIQ);)
-		{
-			CPU_fillPIQ(); //Keep the FIFO fully filled!
-		}
-	}
-}
-
-byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
-{
-	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
-	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
-	if (BIU[activeCPU].PIQ) //PIQ present?
-	{
-		PIQ_retry: //Retry after refilling PIQ!
-		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
-		//Execution can start on any cycle!
-		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
-		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (cpudebugger) //We're an OPcode retrieval and debugging?
-			{
-				MMU_addOP(*result); //Add to the opcode cache!
-			}
-			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
-			++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
-			return 0; //Give the prefetched data!
-		}
-		//Not enough data in the PIQ? Refill for the next data!
-		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
-		CPU_fillPIQ(); //Fill instruction cache with next data!
-		goto PIQ_retry; //Read again!
-	}
-	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-	{
-		return 1; //Abort on fault!
-	}
-	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
-	if (cpudebugger) //We're an OPcode retrieval and debugging?
-	{
-		MMU_addOP(*result); //Add to the opcode cache!
-	}
-	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
-	++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
-	return 0; //Give the result!
-}
-
-byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
-{
-	static byte temp, temp2;
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
-	{
-		if (CPU_readOP(&temp)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
-	}
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
-	{
-		if (CPU_readOP(&temp2)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
-		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
-	}
-	return 0; //We're fetched!
-}
-
-byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned integer) at CS:EIP
-{
-	static word resultw1, resultw2;
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
-	{
-		if (CPU_readOPw(&resultw1)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-	}
-	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
-	{
-		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
-	}
-	return 0; //We're fetched!
 }
 
 //Internal helper functions for requests and responses!
@@ -244,76 +159,34 @@ OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from t
 //Actual requesting something from the BIU, for the CPU module to call!
 //MMU accesses
 
-byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
+byte BIU_request_Memoryrb(uint_32 address)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<17))); //Request a read!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUREAD,offset,(signed2unsigned16(segdesc)|((is_offset16&1)<<16)|(0<<17))); //Request a read!
-	}
+	return BIU_request(REQUEST_MMUREAD,address,0); //Request a read!
 }
 
-byte BIU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
+byte BIU_request_Memoryrw(uint_32 address)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,address,0); //Request a read!
 }
 
-byte BIU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
+byte BIU_request_Memoryrdw(uint_32 address)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,offset,((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
+	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,address,0); //Request a read!
 }
 
-byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16)
+byte BIU_request_Memorywb(uint_32 address, byte val)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUWRITE,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUWRITE,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a read!
-	}
+	return BIU_request(REQUEST_MMUWRITE,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
 }
 
-byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16)
+byte BIU_request_Memoryww(uint_32 address, word val)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
-	}
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
 }
 
-byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16)
+byte BIU_request_Memorywdw(uint_32 address, uint_32 val)
 {
-	if (segdesc>=0)
-	{
-		return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)*CPU[activeCPU].SEGMENT_REGISTERS[segdesc]<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
-	}
-	else
-	{
-		return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)offset|((uint_64)val<<32)),((uint_64)signed2unsigned16(segdesc)|((uint_64)0<<16)|((uint_64)(is_offset16&1)<<32))); //Request a write!
-	}
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
 }
 
 //BUS(I/O address space) accesses for the Execution Unit to make, and their results!
@@ -421,12 +294,181 @@ OPTINLINE byte BIU_isfulltransfer()
 	return result; //Give the result!
 }
 
+//Linear memory access for the CPU through the Memory Unit!
+extern byte MMU_logging; //Are we logging?
+extern MMU_type MMU; //MMU support!
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
+byte BIU_directrb(uint_32 realaddress, byte index)
+{
+	byte result;
+	
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
+	}
+		
+	//Normal memory access!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
+
+	if (MMU_logging) //To log?
+	{
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_PAGED); //Log it!
+	}
+
+	return result; //Give the result!
+}
+
+void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical memory dir
+{
+	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
+	{
+		realaddress &= MMU.wraparround; //Apply A20!
+	}
+	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
+	{
+		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
+		{
+			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
+			{
+				realaddress &= MMU.wraparround; //Apply A20!
+			}
+		}
+	}
+
+	if (MMU_logging) //To log?
+	{
+		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
+	}
+
+	//Normal memory access!
+	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+}
+
+void CPU_fillPIQ() //Fill the PIQ until it's full!
+{
+	uint_32 realaddress;
+	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
+	if (EMULATED_CPU<=CPU_NECV30) //Wrapping needs to be applied?
+	{
+		realaddress = BIU[activeCPU].PIQ_Address++; //Next address to fetch!
+		realaddress = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0,1); //Generate actual address directly!
+	}
+	else //80286+ prefetch?
+	{
+		if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,0x10|3,getCPL())) return; //Fault on fetching?
+		realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
+		if (is_paging()) //Are we paging?
+		{
+			realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
+		}
+	}
+	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(realaddress,0)); //Add the next byte from memory into the buffer!
+	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+}
+
+void BIU_dosboxTick()
+{
+	if (BIU[activeCPU].PIQ) //Prefetching?
+	{
+		for (;fifobuffer_freesize(BIU[activeCPU].PIQ);)
+		{
+			CPU_fillPIQ(); //Keep the FIFO fully filled!
+		}
+	}
+}
+
+byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
+{
+	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
+	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
+	if (BIU[activeCPU].PIQ) //PIQ present?
+	{
+		PIQ_retry: //Retry after refilling PIQ!
+		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
+		//Execution can start on any cycle!
+		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
+		if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
+		{
+			if (cpudebugger) //We're an OPcode retrieval and debugging?
+			{
+				MMU_addOP(*result); //Add to the opcode cache!
+			}
+			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
+			++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
+			return 0; //Give the prefetched data!
+		}
+		//Not enough data in the PIQ? Refill for the next data!
+		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
+		CPU_fillPIQ(); //Fill instruction cache with next data!
+		goto PIQ_retry; //Read again!
+	}
+	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+	{
+		return 1; //Abort on fault!
+	}
+	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
+	if (cpudebugger) //We're an OPcode retrieval and debugging?
+	{
+		MMU_addOP(*result); //Add to the opcode cache!
+	}
+	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
+	++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
+	return 0; //Give the result!
+}
+
+byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
+{
+	static byte temp, temp2;
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
+	{
+		if (CPU_readOP(&temp)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+	}
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
+	{
+		if (CPU_readOP(&temp2)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
+	}
+	return 0; //We're fetched!
+}
+
+byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned integer) at CS:EIP
+{
+	static word resultw1, resultw2;
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
+	{
+		if (CPU_readOPw(&resultw1)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+	}
+	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
+	{
+		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
+	}
+	return 0; //We're fetched!
+}
+
 byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 {
-	sword segdesc;
-	word segdescval;
-	byte is_offset16;
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
@@ -436,21 +478,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 			case REQUEST_MMUREAD:
 				fulltransferMMUread:
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
-				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
-				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
-				is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-				if (segdesc==-1) //Direct access?
-				{
-					BIU[activeCPU].currentresult |= (memory_directrb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
-				}
-				else if (segdesc==-2) //Paging access?
-				{
-					BIU[activeCPU].currentresult |= (Paging_directrb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,0,0)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
-				}
-				else //Normal access?
-				{
-					BIU[activeCPU].currentresult |= (MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
-				}
+				BIU[activeCPU].currentresult |= (BIU_directrb((BIU[activeCPU].currentaddress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
 				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
@@ -470,21 +498,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				break;
 			case REQUEST_MMUWRITE:
 				fulltransferMMUwrite:
-				segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
-				segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
-				is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-				if (segdesc==-1) //Direct access?
-				{
-					memory_directwb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF)); //Write directly to memory now!
-				}
-				else if (segdesc==-2) //Paging access?
-				{
-					Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),0,0,0); //Write to memory now!
-				}
-				else //Normal access?
-				{
-					MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),is_offset16); //Write to memory now!
-				}
+				BIU_directwb((BIU[activeCPU].currentaddress),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)); //Write directly to memory now!
 				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
@@ -560,21 +574,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
 					}
 					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
-					segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
-					segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
-					is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
-					if (segdesc==-1) //Direct access?
-					{
-						BIU[activeCPU].currentresult = ((memory_directrb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF))))<<BIU_access_readshift[0]); //Read first byte!
-					}
-					else if (segdesc==-2) //Paging access?
-					{
-						BIU[activeCPU].currentresult = ((Paging_directrb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,0,0))<<BIU_access_readshift[0]); //Read first byte!
-					}
-					else //Normal access?
-					{
-						BIU[activeCPU].currentresult = ((MMU_rb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),0,is_offset16))<<BIU_access_readshift[0]); //Read first byte!
-					}
+					BIU[activeCPU].currentresult = ((BIU_directrb((BIU[activeCPU].currentaddress),0))<<BIU_access_readshift[0]); //Read first byte!
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -596,9 +596,6 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					break;
 				case REQUEST_MMUWRITE:
 					CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
-					segdesc = unsigned2signed16(BIU[activeCPU].currentpayload[1]&0xFFFF); //Segment descriptor!
-					segdescval = ((BIU[activeCPU].currentpayload[1]>>16)&0xFFFF); //Descriptor value!
-					is_offset16 = ((BIU[activeCPU].currentpayload[1]>>32)&1); //16-bit offset?
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
@@ -608,18 +605,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
-							if (segdesc==-1) //Direct access?
-							{
-								memory_directwb((BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
-							}
-							else if (segdesc==-2) //Paging access?
-							{
-								Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0,0,0); //Write to memory now!
-							}
-							else //Normal access?
-							{
-								MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
-							}
+							BIU_directwb((BIU[activeCPU].currentaddress),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed? Try again!
@@ -629,18 +615,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else //Busy request?
 					{
-						if (segdesc==-1) //Direct access?
-						{
-							memory_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)); //Write directly to memory now!
-						}
-						else if (segdesc==-2) //Paging access?
-						{
-							Paging_directwb(-1,(BIU[activeCPU].currentaddress&(is_offset16?0xFFFFFFFF:0xFFFF)),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0,0,0); //Write to memory now!
-						}
-						else //Normal access?
-						{
-							MMU_wb(segdesc,segdescval,(BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),is_offset16); //Write to memory now!
-						}
+						BIU_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
 						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (fulltransfer) goto fulltransferMMUwrite; //Start Full transfer, when available?

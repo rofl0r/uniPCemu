@@ -397,7 +397,7 @@ byte CPU8086_POPSP(byte base)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,1)==0) //Not ready?
+		if (CPU_request_MMUrw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,1)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -716,7 +716,7 @@ byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, ui
 	byte dummy;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUwb(segment,offset,val,is_offset16)==0) //Not ready?
+		if (CPU_request_MMUwb(segment,offset,val,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -742,7 +742,7 @@ byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, ui
 	word dummy;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUww(segment,offset,val,is_offset16)==0) //Not ready?
+		if (CPU_request_MMUww(segment,offset,val,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -767,7 +767,7 @@ byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uin
 {
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrb(segment,offset,is_offset16)==0) //Not ready?
+		if (CPU_request_MMUrb(segment,offset,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -792,7 +792,7 @@ byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uin
 {
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
+		if (CPU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -817,7 +817,7 @@ byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, 
 {
 	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
 	{
-		if (BIU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
+		if (CPU_request_MMUrw(segment,offset,is_offset16)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!

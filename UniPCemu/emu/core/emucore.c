@@ -973,7 +973,7 @@ OPTINLINE byte coreHandler()
 			
 				for (;addr_left;++curaddr) //Test all addresses!
 				{
-					if (MMU_directrb_realaddr(addr_start+curaddr,3)) //Try to read the opcode! Anything found(not 0000h instruction)?
+					if (MMU_directrb_realaddr(addr_start+curaddr)) //Try to read the opcode! Anything found(not 0000h instruction)?
 					{
 						break; //Stop searching!
 					}

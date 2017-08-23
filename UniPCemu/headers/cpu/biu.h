@@ -21,7 +21,7 @@ typedef struct
 
 	//PIQ support!
 	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
-	uint_32 PIQ_EIP; //EIP of the current PIQ data!
+	uint_32 PIQ_Address; //EIP of the current PIQ data!
 
 	uint_32 currentrequest; //Current request!
 	uint_64 currentpayload[2]; //Current payload!
@@ -50,13 +50,13 @@ byte CPU_readOPdw(uint_32 *result); //Reads the operation (32-bit unsigned integ
 void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 
 //BIU request/responses!
-//Requests for memory accesses!
-byte BIU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16);
-byte BIU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16);
-byte BIU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16);
-byte BIU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16);
-byte BIU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16);
-byte BIU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16);
+//Requests for memory accesses, physical memory only!
+byte BIU_request_Memoryrb(uint_32 offset);
+byte BIU_request_Memoryrw(uint_32 offset);
+byte BIU_request_Memoryrdw(uint_32 offset);
+byte BIU_request_Memorywb(uint_32 offset, byte val);
+byte BIU_request_Memoryww(uint_32 offset, word val);
+byte BIU_request_Memorywdw(uint_32 offset, uint_32 val);
 //Requests for BUS(I/O address space) accesses!
 byte BIU_request_BUSrb(uint_32 addr);
 byte BIU_request_BUSrw(uint_32 addr);

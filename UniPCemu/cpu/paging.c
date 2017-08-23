@@ -106,7 +106,7 @@ OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, b
 	return 1; //OK: verified!
 }
 
-int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging without error? userlevel=CPL usually.
+int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0; //Not update!
@@ -129,7 +129,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 	{
 		return 1; //Valid!
 	}
-
+	if (isPrefetch) return 0; //Stop the prefetch when not in the TLB!
 	//Check PDE
 	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
 	if (!(PDE&PXE_P)) //Not present?
@@ -179,7 +179,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL) //Do we have paging wit
 
 byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 {
-	return (isvalidpage(address,(readflags==0),CPL)==0); //Are we an invalid page? We've raised an error!
+	return (isvalidpage(address,(readflags==0),CPL,(readflags&0x10))==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
 }
 
 uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
@@ -201,7 +201,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	}
 	else
 	{
-		if (isvalidpage(address,iswrite,CPL))
+		if (isvalidpage(address,iswrite,CPL,0))
 		{
 			goto retrymapping;
 		}
