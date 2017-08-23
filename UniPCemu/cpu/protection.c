@@ -1159,7 +1159,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			case 2: //Data(expand down), read-only
 			case 5: //Code, execute/read
 			case 7: //Code, execute/read, conforming
-				if (forreading==0) //Writing?
+				if ((forreading&~0x10)==0) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
@@ -1170,7 +1170,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				break; //Allow!
 			case 4: //Code, execute-only
 			case 6: //Code, execute-only, conforming
-				if (forreading!=3) //Writing or reading normally?
+				if ((forreading&~0x10)!=3) //Writing or reading normally?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
@@ -1274,15 +1274,15 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			break; //OK!
 		default: //Unknown status? Count #GP by default!
 		case 1: //#GP?
-			THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw fault!
+			if ((forreading&0x10)==0) THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw fault when not prefetching!
 			return 1; //Error out!
 			break;
 		case 2: //#NP?
-			THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor!
+			if ((forreading&0x10)==0) THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor when not prefetching!
 			return 1; //Error out!
 			break;
 		case 3: //#SS?
-			THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			if ((forreading&0x10)==0) THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error when not prefetching!
 			return 1; //Error out!
 			break;
 		}

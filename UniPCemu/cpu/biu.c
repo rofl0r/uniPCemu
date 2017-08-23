@@ -358,21 +358,15 @@ void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
-	if (EMULATED_CPU<=CPU_NECV30) //Wrapping needs to be applied?
+	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
+	if (checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0)) return; //Abort on fault!
+	realaddress = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0,1); //Generate actual address directly!
+	if (is_paging()) //Are we paging?
 	{
-		realaddress = BIU[activeCPU].PIQ_Address++; //Next address to fetch!
-		realaddress = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0,1); //Generate actual address directly!
-	}
-	else //80286+ prefetch?
-	{
-		if (checkDirectMMUaccess(BIU[activeCPU].PIQ_Address,0x10|3,getCPL())) return; //Fault on fetching?
-		realaddress = BIU[activeCPU].PIQ_Address++; //Address to read the opcode from!
-		if (is_paging()) //Are we paging?
-		{
-			realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
-		}
+		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
 	}
 	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(realaddress,0)); //Add the next byte from memory into the buffer!
+	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 }
 
