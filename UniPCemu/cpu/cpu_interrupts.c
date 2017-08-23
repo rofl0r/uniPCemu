@@ -18,7 +18,7 @@
 //Log the INT10h call to set 640x480x256 color mode.
 //#define LOG_ET34K640480256_SET
 //Log the INT calls and IRETs when defined.
-#define LOG_INTS
+//#define LOG_INTS
 
 void CPU_setint(byte intnr, word segment, word offset) //Set real mode IVT entry!
 {
