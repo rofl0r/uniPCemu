@@ -41,6 +41,8 @@ word oldCS, oldIP, waitingforiret=0;
 
 extern byte singlestep; //Enable EMU-driven single step!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
+
+word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
 {
 	byte checkinterruptstep;
