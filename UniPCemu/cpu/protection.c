@@ -1619,7 +1619,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else
 			{
-				if (checkStackAccess(3+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
+				if (checkStackAccess(3+((errorcode!=-1)?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 			}
 
 			if (is32bit)
