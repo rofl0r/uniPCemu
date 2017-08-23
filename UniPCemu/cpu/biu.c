@@ -78,14 +78,7 @@ void CPU_doneBIU()
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	if (EMULATED_CPU>=CPU_80286) //Protected mode-able CPU?
-	{
-		BIU[activeCPU].PIQ_Address = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,(destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP,0,0); //Save the PIQ Address to the current address to start fetching from!
-	}
-	else //Simulate real mode actually!
-	{
-		BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
-	}
+	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
 	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 }
