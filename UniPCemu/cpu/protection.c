@@ -1628,27 +1628,22 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			if (is32bit)
 			{
 				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else
 			{
 				word temp2 = (word)(EFLAGSbackup&0xFFFF);
 				CPU_PUSH16(&temp2); //Push FLAGS!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 
 			CPU_PUSH16(&CPU[activeCPU].registers->CS); //Push CS!
-			if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 
 			if (is32bit)
 			{
 				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else
 			{
 				CPU_PUSH16(&CPU[activeCPU].registers->IP); //Push IP!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
@@ -1671,7 +1666,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (errorcode!=-1) //Error code specified?
 			{
-				if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask) //32-bit task?
+				if (/*SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask*/ is32bit) //32-bit task?
 				{
 					CPU_PUSH32(&errorcode32); //Push the error on the stack!
 				}
