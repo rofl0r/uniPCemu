@@ -1091,18 +1091,19 @@ void sound_stopRecording() //Stop sound recording!
 }
 
 char recordingfilename[256];
+extern char capturepath[256];
 char *get_soundrecording_filename() //Filename for a screen capture!
 {
-	domkdir("captures"); //Captures directory!
+	domkdir(capturepath); //Captures directory!
 	uint_32 i = 0; //For the number!
 	char filename2[256];
 	memset(&filename2, 0, sizeof(filename2)); //Init filename!
 	memset(&recordingfilename, 0, sizeof(recordingfilename)); //Init filename!
 	do
 	{
-		sprintf(filename2, "captures/recording_%u.wav", ++i); //Next bitmap file!
+		sprintf(filename2, "%s/recording_%u.wav",capturepath,++i); //Next bitmap file!
 	} while (file_exists(filename2)); //Still exists?
-	sprintf(recordingfilename, "captures/recording_%u.wav", i); //The capture filename!
+	sprintf(recordingfilename, "%s/recording_%u.wav",capturepath,i); //The capture filename!
 	return &recordingfilename[0]; //Give the filename for quick reference!
 }
 
