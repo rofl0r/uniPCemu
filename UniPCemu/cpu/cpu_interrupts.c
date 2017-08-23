@@ -147,6 +147,8 @@ void CPU_IRET()
 	uint_32 tempEFLAGS;
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
+		tempSS = REG_SS;
+		uint_32 backupESP = REG_ESP;
 		if (checkStackAccess(3,0,0)) return; //3 Word POPs!
 		destEIP = CPU_POP16(); //POP IP!
 		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
@@ -156,7 +158,7 @@ void CPU_IRET()
 			REG_FLAGS = CPU_POP16(); //Pop flags!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,REG_SS,REG_ESP); //Log the current info of the call!
+		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
 		#ifdef LOG_ET34K640480256_SET
 		if (waitingforiret) //Waiting for IRET?
