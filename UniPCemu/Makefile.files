@@ -142,7 +142,7 @@ OBJS += cpu/multitasking.o
 #finally CPU module itself and flag support (global)
 OBJS += cpu/flags.o cpu/cpu.o cpu/biu.o
 #CPU MMU part
-OBJS += cpu/mmu.o cpu/paging.o
+OBJS += cpu/mmu.o cpu/paging.o cpu/cpu_execution.o
 #Debugger
 OBJS += emu/debugger/debugger.o
 #Signed VS unsigned conversion support!
