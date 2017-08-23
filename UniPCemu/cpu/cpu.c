@@ -991,6 +991,12 @@ CPU_Timings *timing = NULL; //The timing used for the current instruction!
 Handler currentOP_handler = &CPU_unkOP;
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
+OPTINLINE void CPU_resetInstructionSteps()
+{
+	//Prepare for a (repeated) instruction to execute!
+	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+}
+
 uint_32 last_eip;
 byte ismultiprefix = 0; //Are we multi-prefix?
 OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
@@ -1221,7 +1227,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	}
 
 skiptimings: //Skip all timings and parameters(invalid instruction)!
-	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU_resetInstructionSteps(); //Reset the current instruction steps!
 	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
@@ -1904,6 +1910,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!
 		newREP = 0; //Not a new repeating instruction!
+		if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //New instruction to start?
+		{
+			CPU_resetInstructionSteps(); //Reset all timing that's still running!
+		}
+		memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Not fetching anything anymore, we're ready to use!
 	}
 	else //Not a repeating instruction?
 	{
@@ -2087,6 +2098,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
+		//Prepare for the next (fetched or repeated) instruction to start executing!
+		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
+		//Handle REP instructions post-instruction next!
 		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
@@ -2113,7 +2127,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 		}
-		if (CPU[activeCPU].repeating==0) CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 		blockREP = 0; //Don't block REP anymore!
 	}
 	fetchinginstruction: //We're still fetching the instruction in some way?
