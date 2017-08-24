@@ -331,6 +331,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		//NOTE: Are we to send the finishing carriage return character as well?
 		modem_responseString(&modem.ATcommand[0],3); //Send the string back!
 	}
+
+	if (modem.ATcommand[0]==0) //Empty line? Stop dialing and autoanswer!
+	{
+		modem.registers[0] = 0; //Autoanswer off!
+		modem_updateRegister(0); //Register has been updated!
+		return;
+	}
+
 	if ((modem.ATcommand[0] != 'A') || (modem.ATcommand[1] != 'T')) {
 		modem_responseResult(MODEMRESULT_ERROR); //Error out!
 		return;
@@ -629,7 +637,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				n0 = 0;
 				doATX:
 				modem.datamode = 0; //Mode not data!
-				if (n0<1) //OK and supported by our emulation?
+				if (n0<5) //OK and supported by our emulation?
 				{
 					modem_responseResult(MODEMRESULT_OK); //Accept!
 					modem.callprogressmethod = n0; //Set the speaker control!
