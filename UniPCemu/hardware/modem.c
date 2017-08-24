@@ -246,6 +246,24 @@ byte resetModem(byte state)
 		modem_updateRegister(reg); //This register has been updated!
 	}
 
+	modem.communicationstandard = 0; //Default communication standard!
+
+	//Result defaults
+	modem.echomode = 0; //Default!
+	modem.verbosemode = 1; //Text-mode verbose!
+
+	modem.flowcontrol = 0; //Default flow control!
+	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
+	modem.offhook = 0; //On-hook!
+	modem.connected = 0; //Disconnect!
+
+	//Misc data
+	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
+
+	//Speaker controls
+	modem.speakercontrol = 0; //Disabled speaker!
+	modem.speakervolume = 0; //Muted speaker!
+
 	if (loadModemProfile(state)) //Loaded?
 	{
 		return 0; //Invalid!
@@ -421,7 +439,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<2)
 				{
 					modem_responseResult(MODEMRESULT_OK); //OK!
-					modem.verbosemode = n0?2:modem.verbosemode; //Quiet mode!
+					modem.verbosemode = (n0<<1)|(modem.verbosemode&1); //Quiet mode!
 				}
 				else
 				{
@@ -562,7 +580,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<2) //OK?
 				{
 					modem_responseResult(MODEMRESULT_OK); //Accept!
-					modem.verbosemode = n0; //Set the speaker control!
+					modem.verbosemode = ((modem.verbosemode&~1)|n0); //Set the verbose mode to numeric(0) or English(1)!
 				}
 				else
 				{
@@ -579,6 +597,15 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			{
 			case '1':
 				n0 = 1;
+				goto doATX;
+			case '2':
+				n0 = 2;
+				goto doATX;
+			case '3':
+				n0 = 3;
+				goto doATX;
+			case '4':
+				n0 = 4;
 				goto doATX;
 			case 0:
 				--pos; //Retry analyzing!
@@ -705,6 +732,9 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //EOS?
 				--pos; //Let us handle it!
 				break;
+			case 'F': //Load defaults?
+				n0 = 0; //Defautl configuration!
+				goto doATZ; //Execute ATZ!
 			case 'K': //Flow control?
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
