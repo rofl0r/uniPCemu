@@ -155,6 +155,9 @@ OBJS += support/mid.o
 #DRO file support
 OBJS += support/dro.o
 
+#TCP connection support!
+OBJS += support/tcphelper.o
+
 #UART
 OBJS += hardware/uart.o
 

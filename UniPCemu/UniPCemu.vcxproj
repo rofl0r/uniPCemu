@@ -183,6 +183,7 @@
     <ClCompile Include="support\signedness.c" />
     <ClCompile Include="support\sounddoublebuffer.c" />
     <ClCompile Include="support\state.c" />
+    <ClCompile Include="support\tcphelper.c" />
     <ClCompile Include="support\timers.c" />
     <ClCompile Include="support\wave.c" />
     <ClCompile Include="support\zalloc.c" />
@@ -324,6 +325,7 @@
     <ClInclude Include="headers\support\sf2.h" />
     <ClInclude Include="headers\support\signedness.h" />
     <ClInclude Include="headers\support\sounddoublebuffer.h" />
+    <ClInclude Include="headers\support\tcphelper.h" />
     <ClInclude Include="headers\support\wave.h" />
     <ClInclude Include="headers\support\zalloc.h" />
     <ClInclude Include="headers\types.h" />

@@ -537,6 +537,9 @@
     <ClCompile Include="cpu\cpu_execution.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="support\tcphelper.c">
+      <Filter>Source Files\support</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h">
@@ -970,6 +973,9 @@
     </ClInclude>
     <ClInclude Include="headers\cpu\cpu_execution.h">
       <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\support\tcphelper.h">
+      <Filter>Header Files\support</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
