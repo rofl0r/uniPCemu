@@ -56,6 +56,11 @@ void modem_sendData(byte value) //Send data to the connected device!
 	//Handle sent data!
 }
 
+byte modem_connect(char *phonenumber)
+{
+	return 0; //We cannot connect yet!
+}
+
 void modem_updateRegister(byte reg)
 {
 	switch (reg) //What reserved reg to emulate?
@@ -119,7 +124,7 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem_cansend()?1:0):1)|(modem.linechanges&2)|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
+	return (modem.datamode?(modem_cansend()?1:0):1)|/*(modem.linechanges&2)*/2|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
 }
 
 byte modem_readData()
@@ -136,25 +141,42 @@ byte modem_readData()
 	return 0; //Nothing to give!
 }
 
-byte ATresultsString[3][256] = {"ERROR","OK","CONNECT"}; //All possible results!
-byte ATresultsCode[3]; //Code version!
+byte ATresultsString[6][256] = {"ERROR","OK","CONNECT","RING","NO DIALTONE","NO CARRIER"}; //All possible results!
+byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
 #define MODEMRESULT_ERROR 0
 #define MODEMRESULT_OK 1
 #define MODEMRESULT_CONNECT 2
+#define MODEMRESULT_RING 3
+#define MODEMRESULT_NODIALTONE 4
+#define MODEMRESULT_NOCARRIER 5
 
 void modem_responseString(byte *s, byte usecarriagereturn)
 {
 	word i, lengthtosend;
 	lengthtosend = strlen(s); //How long to send!
+	if (usecarriagereturn&1)
+	{
+		writefifobuffer(modem.buffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.buffer,modem.linefeedcharacter); //Termination character!
+	}
 	for (i=0;i<lengthtosend;) //Process all data to send!
 	{
 		writefifobuffer(modem.buffer,s[i]); //Send the character!
 	}
-	if (usecarriagereturn) writefifobuffer(modem.buffer,modem.carriagereturncharacter); //Termination character!
+	if (usecarriagereturn&2)
+	{
+		writefifobuffer(modem.buffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.buffer,modem.linefeedcharacter); //Termination character!
+	}
 }
-
+void modem_nrcpy(char *s, word size, word nr)
+{
+	memset(s,0,size);
+	sprintf(s,"%i%i%i%i",(nr%10000)/1000,(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
+}
 void modem_responseResult(byte result) //What result to give!
 {
+	byte s[256];
 	if (result>=MIN(NUMITEMS(ATresultsString),NUMITEMS(ATresultsCode))) //Out of range of results to give?
 	{
 		result = MODEMRESULT_ERROR; //Error!
@@ -162,15 +184,16 @@ void modem_responseResult(byte result) //What result to give!
 	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
 	if (modem.verbosemode&1) //Code format result?
 	{
-		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))); //Send the string to the user!
-		if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
-		{
-			modem_responseString(" 12000",1); //End the command properly with a speed indication in bps!
-		}
+		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2); //Send the string to the user!
 	}
 	else
 	{
-		writefifobuffer(modem.buffer,ATresultsCode[result]); //Code variant instead!
+		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
+		modem_responseString(&s[0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2);
+	}
+	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
+	{
+		modem_responseString(" 12000",1); //End the command properly with a speed indication in bps!
 	}
 }
 
@@ -296,11 +319,18 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				case 'W': //Wait for second dial tone?
 				case '@': //Wait for up to	30 seconds for one or more ringbacks
 					actondial: //Start dialing?
+					if (modem_connect(&number[0]))
+					{
 					modem_responseResult(MODEMRESULT_CONNECT); //Accept!
 					modem.offhook = 2; //On-hook(connect)!
 					if (dialproperties!=2) //Not to remain in command mode?
 					{
 						modem.datamode = 2; //Enter data mode pending!
+					}
+					}
+					else //Dial failed?
+					{
+						modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
 					}
 					break;
 				default: //Unsupported?
@@ -490,6 +520,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
 				}
+			}
+			else //Unknown?
+			{
+				modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
 			}
 		}
 	}
