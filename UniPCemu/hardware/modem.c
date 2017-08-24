@@ -278,476 +278,512 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	char number[256];
 	byte dialproperties=0;
 	memset(&number,0,sizeof(number)); //Init number!
+	char *temp;
+	temp = &modem.ATcommand[0]; //Parse the entire string!
+	for (;*temp;)
+	{
+		*temp = toupper(*temp); //Convert to upper case!
+		++temp; //Next character!
+	}
 	//Read and execute the AT command, if it's valid!
 	if (strcmp(modem.ATcommand,"A/\xD")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
 	}
 	//Check for a command to send!
-	if ((modem.ATcommand[0]=='A') && (modem.ATcommand[1]=='T')) //AT command?
+	//Parse the AT command!
+	if (modem.echomode) //Echo every command back to the user?
 	{
-		memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
-		//Parse the AT command!
-		if (sscanf(modem.ATcommand,"ATE%u\xD",&n0)) //Select local echo?
+		//NOTE: Are we to send the finishing carriage return character as well?
+		modem_responseString(&modem.ATcommand[0],3); //Send the string back!
+	}
+	if ((modem.ATcommand[0] != 'A') || (modem.ATcommand[1] != 'T')) {
+		modem_responseResult(MODEMRESULT_ERROR); //Error out!
+		return;
+	}
+	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
+	word pos=2; //Position to read!
+	for (;;) //Parse the command!
+	{
+		switch (modem.ATcommand[pos++]) //What command?
 		{
-			modem.datamode = 0; //Mode not data!
-			if (n0<2) //OK?
+		case 0: //EOS?
+			return; //Finished processing the command!
+		case 'E': //Select local echo?
+			switch (modem.ATcommand[pos++]) //What type?
 			{
-				modem.echomode = n0; //Set the communication standard!
-				modem_responseResult(MODEMRESULT_OK); //Accept!
-			}
-			else
-			{
-				modem_responseResult(MODEMRESULT_ERROR); //Error!
-			}
-		}
-		else
-		{
-			word pos=3; //Position to read!
-			if (modem.echomode) //Echo every command back to the user?
-			{
-				//NOTE: Are we to send the finishing carriage return character as well?
-				modem_responseString(&modem.ATcommand[0],3); //Send the string back!
-			}
-			else
-			{
-				for (;;)
+			case '1':
+				n0 = 1;
+				goto doATE;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0': //Off hook?
+				n0 = 0;
+				doATE:
+				if (n0<2) //OK?
 				{
-					switch (modem.ATcommand[pos++]) //What command?
-					{
-					case 0: //EOS?
-						return; //Finished processing the command!
-					case 'D': //Dial?
-						switch (modem.ATcommand[pos++]) //What dial command?
-						{
-						case 0: //EOS?
-							--pos; //Retry analyzing!
-							break;
-						case 'L':
-							diallast:
-							memcpy(&number,&modem.lastnumber,(strlen(modem.lastnumber)+1)); //Set the new number to roll!
-							goto actondial;
-						case 'A': //Reverse to answer mode after dialing?
-							goto unsupporteddial; //Unsupported for now!
-							dialproperties = 1; //Reverse to answer mode!
-							goto actondial;
-						case ';': //Remain in command mode after dialing
-							dialproperties = 2; //Remain in command mode!
-							goto actondial;
-						case ',': //Pause for the time specified in register S8(usually 2 seconds)
-						case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
-							goto unsupporteddial;
-						case 'T': //Tone dial?
-						case 'P': //Pulse dial?
-						case 'W': //Wait for second dial tone?
-						case '@': //Wait for up to	30 seconds for one or more ringbacks
-							strcpy((char *)&number,&modem.ATcommand[pos]); //Set the number to dial!
-							actondial: //Start dialing?
-							if (modem_connect(&number[0]))
-							{
-								modem_responseResult(MODEMRESULT_CONNECT); //Accept!
-								modem.offhook = 2; //On-hook(connect)!
-								if (dialproperties!=2) //Not to remain in command mode?
-								{
-									modem.datamode = 2; //Enter data mode pending!
-								}
-							}
-							else //Dial failed?
-							{
-								modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
-							}
-							break;
-						default: //Unsupported?
-							--pos; //Retry analyzing!
-							unsupporteddial: //Unsupported dial function?
-							modem_responseResult(MODEMRESULT_ERROR); //Error!
-							break;
-						}
-						break; //Dial?
-					case 'A': //Answer?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case 0: //EOS?
-							--pos; //Retry analyzing!
-						case '0': //Answer?
-							if (modem_connect(NULL)) //Answered?
-							{
-								modem_responseResult(MODEMRESULT_CONNECT); //Connected!
-								modem.datamode = 2; //Enter data mode pending!
-								modem.offhook = 2; //Off-hook(connect)!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Not Connected!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'Q': //Quiet mode?
-						modem_responseResult(MODEMRESULT_OK); //OK!
-						modem.verbosemode = 2; //Quiet mode!
-						break;
-					case 'H': //Select communication standard?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATH;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0': //Off hook?
-							n0 = 0;
-							doATH:
-							if (n0<2) //OK?
-							{
-								//if ((n0==0) && modem.offhook)
-								modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'B': //Select communication standard?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATB;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATB:
-							if (n0<2) //OK?
-							{
-								modem.communicationstandard = n0; //Set the communication standard!
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'L': //Select speaker volume?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATL;
-						case '2':
-							n0 = 2;
-							goto doATL;
-						case '3':
-							n0 = 3;
-							goto doATL;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATL:
-							if (n0<4) //OK?
-							{
-								modem.speakervolume = n0; //Set the speaker volume!
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'M': //Speaker control?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATM;
-						case '2':
-							n0 = 2;
-							goto doATM;
-						case '3':
-							n0 = 3;
-							goto doATM;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATM:
-							if (n0<4) //OK?
-							{
-								modem.speakercontrol = n0; //Set the speaker control!
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'V': //Verbose mode?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATV;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATV:
-							if (n0<2) //OK?
-							{
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-								modem.verbosemode = n0; //Set the speaker control!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'X': //Select call progress method?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATX;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATX:
-							modem.datamode = 0; //Mode not data!
-							if (n0<1) //OK and supported by our emulation?
-							{
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-								modem.callprogressmethod = n0; //Set the speaker control!
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'Z': //Reset modem?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATZ;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATZ:
-							if (n0<2) //OK and supported by our emulation?
-							{
-								if (resetModem(n0)) //Reset to the given state!
-								{
-									modem_responseResult(MODEMRESULT_OK); //Accept!
-								}
-								else
-								{
-									modem_responseResult(MODEMRESULT_ERROR); //Error!
-								}
-							}
-							else
-							{
-								modem_responseResult(MODEMRESULT_ERROR); //Error!
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'I': //Inquiry, Information, or Interrogation?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATI;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATI:
-							/*
-							if (n0<2) //OK?
-							{
-								modem.communicationstandard = n0; //Set the communication standard!
-								modem_responseResult(MODEMRESULT_OK); //Accept!
-							}
-							else
-							{
-							*/
-								modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
-							//}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case 'O': //Return online?
-						switch (modem.ATcommand[pos++]) //What type?
-						{
-						case '1':
-							n0 = 1;
-							goto doATO;
-						case 0:
-							--pos; //Retry analyzing!
-						case '0':
-							n0 = 0;
-							doATO:
-							if (modem.connected) //Cpnnected?
-								modem.datamode = 1; //Return to data mode!
-							else
-								modem_responseResult(MODEMRESULT_ERROR);
-							break;
-						default: //Unknown?
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case '?': //Query current register?
-						queryregister: //Query a register!
-						modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
-						break;
-					case '=': //Set current register?
-						if (modemcommand_readNumber(&pos,&n0)) //Read the number?
-						{
-							modem.registers[modem.currentregister] = n0; //Set the register!
-							modem_updateRegister(modem.currentregister); //Update the register as needed!
-						}
-						break;
-					case 'S': //Select register n as current register?
-						if (modemcommand_readNumber(&pos,&n0)) //Read the number?
-						{
-							modem.currentregister = n0; //Select the register!
-						}
-						break;
-					case '&': //Extension 1?
-						switch (modem.ATcommand[pos++])
-						{
-						case 0: //EOS?
-							--pos; //Let us handle it!
-							break;
-						case 'K': //Flow control?
-							switch (modem.ATcommand[pos++]) //What flow control?
-							{
-							case '0':
-								n0 = 0;
-								goto setAT_K;
-							case '1':
-								n0 = 1;
-								goto setAT_K;
-							case '2':
-								n0 = 2;
-								goto setAT_K;
-							case '3':
-								n0 = 3;
-								goto setAT_K;
-							case '4':
-								n0 = 4;
-								setAT_K:
-								if (n0<5) //Valid?
-								{
-									modem.flowcontrol = n0; //Set flow control!
-									modem_responseResult(MODEMRESULT_OK); //OK!
-								}
-								else
-								{
-									modem_responseResult(MODEMRESULT_ERROR); //Error!
-								}
-								break;
-							default:
-								--pos; //Retry analyzing!
-								break;
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;
-						}
-						break;
-					case '\\': //Extension 2?
-						switch (modem.ATcommand[pos++])
-						{
-						case 0: //EOS?
-							--pos; //Let us handle it!
-							return;
-						case 'N': //Flow control?
-							switch (modem.ATcommand[pos++]) //What flow control?
-							{
-							case '0':
-								n0 = 0;
-								goto setAT_N;
-							case '1':
-								n0 = 1;
-								goto setAT_N;
-							case '2':
-								n0 = 2;
-								goto setAT_N;
-							case '3':
-								n0 = 3;
-								goto setAT_N;
-							case '4':
-								n0 = 4;
-								setAT_N:
-								if (n0<5) //Valid?
-								{
-									//Unused!
-									modem_responseResult(MODEMRESULT_OK); //OK!
-								}
-								else //Error out?
-								{
-									modem_responseResult(MODEMRESULT_ERROR); //Error!
-								}
-								break;
-							}
-							break;
-						default:
-							--pos; //Retry analyzing!
-							break;							
-						}
-					default: //Unknown?
-						modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
-						break;
-					} //Switch!
+					modem.echomode = n0; //Set the communication standard!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
 			}
-		}
+			break;
+		case 'D': //Dial?
+			switch (modem.ATcommand[pos++]) //What dial command?
+			{
+			case 0: //EOS?
+				--pos; //Retry analyzing!
+				break;
+			case 'L':
+				diallast:
+				memcpy(&number,&modem.lastnumber,(strlen(modem.lastnumber)+1)); //Set the new number to roll!
+				goto actondial;
+			case 'A': //Reverse to answer mode after dialing?
+				goto unsupporteddial; //Unsupported for now!
+				dialproperties = 1; //Reverse to answer mode!
+				goto actondial;
+			case ';': //Remain in command mode after dialing
+				dialproperties = 2; //Remain in command mode!
+				goto actondial;
+			case ',': //Pause for the time specified in register S8(usually 2 seconds)
+			case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
+				goto unsupporteddial;
+			case 'T': //Tone dial?
+			case 'P': //Pulse dial?
+			case 'W': //Wait for second dial tone?
+			case '@': //Wait for up to	30 seconds for one or more ringbacks
+				strcpy((char *)&number,&modem.ATcommand[pos]); //Set the number to dial!
+				actondial: //Start dialing?
+				if (modem_connect(&number[0]))
+				{
+					modem_responseResult(MODEMRESULT_CONNECT); //Accept!
+					modem.offhook = 2; //On-hook(connect)!
+					if (dialproperties!=2) //Not to remain in command mode?
+					{
+						modem.datamode = 2; //Enter data mode pending!
+					}
+				}
+				else //Dial failed?
+				{
+					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
+				}
+				break;
+			default: //Unsupported?
+				--pos; //Retry analyzing!
+				unsupporteddial: //Unsupported dial function?
+				modem_responseResult(MODEMRESULT_ERROR); //Error!
+				break;
+			}
+			break; //Dial?
+		case 'A': //Answer?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case 0: //EOS?
+				--pos; //Retry analyzing!
+			case '0': //Answer?
+				if (modem_connect(NULL)) //Answered?
+				{
+					modem_responseResult(MODEMRESULT_CONNECT); //Connected!
+					modem.datamode = 2; //Enter data mode pending!
+					modem.offhook = 2; //Off-hook(connect)!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Not Connected!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'Q': //Quiet mode?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case 0: //EOS?
+				--pos; //Retry analyzing!
+			case '0': //Answer?
+				n0 = 0;
+				goto doATQ;
+			case '1':
+				n0 = 1;
+				doATQ:
+				if (n0<2)
+				{
+					modem_responseResult(MODEMRESULT_OK); //OK!
+					modem.verbosemode = n0?2:modem.verbosemode; //Quiet mode!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //ERROR!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+		case 'H': //Select communication standard?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATH;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0': //Off hook?
+				n0 = 0;
+				doATH:
+				if (n0<2) //OK?
+				{
+					//if ((n0==0) && modem.offhook)
+					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'B': //Select communication standard?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATB;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATB:
+				if (n0<2) //OK?
+				{
+					modem.communicationstandard = n0; //Set the communication standard!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'L': //Select speaker volume?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATL;
+			case '2':
+				n0 = 2;
+				goto doATL;
+			case '3':
+				n0 = 3;
+				goto doATL;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATL:
+				if (n0<4) //OK?
+				{
+					modem.speakervolume = n0; //Set the speaker volume!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'M': //Speaker control?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATM;
+			case '2':
+				n0 = 2;
+				goto doATM;
+			case '3':
+				n0 = 3;
+				goto doATM;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATM:
+				if (n0<4) //OK?
+				{
+					modem.speakercontrol = n0; //Set the speaker control!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'V': //Verbose mode?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATV;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATV:
+				if (n0<2) //OK?
+				{
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+					modem.verbosemode = n0; //Set the speaker control!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'X': //Select call progress method?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATX;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATX:
+				modem.datamode = 0; //Mode not data!
+				if (n0<1) //OK and supported by our emulation?
+				{
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+					modem.callprogressmethod = n0; //Set the speaker control!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'Z': //Reset modem?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATZ;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATZ:
+				if (n0<2) //OK and supported by our emulation?
+				{
+					if (resetModem(n0)) //Reset to the given state!
+					{
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'I': //Inquiry, Information, or Interrogation?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATI;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATI:
+				/*
+				if (n0<2) //OK?
+				{
+					modem.communicationstandard = n0; //Set the communication standard!
+					modem_responseResult(MODEMRESULT_OK); //Accept!
+				}
+				else
+				{
+				*/
+					modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
+				//}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case 'O': //Return online?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATO;
+			case 0:
+				--pos; //Retry analyzing!
+			case '0':
+				n0 = 0;
+				doATO:
+				if (modem.connected) //Cpnnected?
+					modem.datamode = 1; //Return to data mode!
+				else
+					modem_responseResult(MODEMRESULT_ERROR);
+				break;
+			default: //Unknown?
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case '?': //Query current register?
+			queryregister: //Query a register!
+			modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
+			break;
+		case '=': //Set current register?
+			if (modemcommand_readNumber(&pos,&n0)) //Read the number?
+			{
+				modem.registers[modem.currentregister] = n0; //Set the register!
+				modem_updateRegister(modem.currentregister); //Update the register as needed!
+			}
+			break;
+		case 'S': //Select register n as current register?
+			if (modemcommand_readNumber(&pos,&n0)) //Read the number?
+			{
+				modem.currentregister = n0; //Select the register!
+			}
+			break;
+		case '&': //Extension 1?
+			switch (modem.ATcommand[pos++])
+			{
+			case 0: //EOS?
+				--pos; //Let us handle it!
+				break;
+			case 'K': //Flow control?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0;
+					goto setAT_K;
+				case '1':
+					n0 = 1;
+					goto setAT_K;
+				case '2':
+					n0 = 2;
+					goto setAT_K;
+				case '3':
+					n0 = 3;
+					goto setAT_K;
+				case '4':
+					n0 = 4;
+					setAT_K:
+					if (n0<5) //Valid?
+					{
+						modem.flowcontrol = n0; //Set flow control!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				default:
+					--pos; //Retry analyzing!
+					break;
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;
+			}
+			break;
+		case '\\': //Extension 2?
+			switch (modem.ATcommand[pos++])
+			{
+			case 0: //EOS?
+				--pos; //Let us handle it!
+				return;
+			case 'N': //Flow control?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0;
+					goto setAT_N;
+				case '1':
+					n0 = 1;
+					goto setAT_N;
+				case '2':
+					n0 = 2;
+					goto setAT_N;
+				case '3':
+					n0 = 3;
+					goto setAT_N;
+				case '4':
+					n0 = 4;
+					setAT_N:
+					if (n0<5) //Valid?
+					{
+						//Unused!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else //Error out?
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				break;							
+			}
+		default: //Unknown?
+			modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
+			break;
+		} //Switch!
 	}
 }
 
