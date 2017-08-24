@@ -531,7 +531,7 @@ void modem_writeData(byte value)
 				modem.ATcommandsize = 0; //Start the new command!
 				modem_executeCommand();
 			}
-			else
+			else if (value!=0x20) //Not space? Command byte!
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
 			}
