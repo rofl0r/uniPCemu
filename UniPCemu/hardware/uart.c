@@ -428,7 +428,7 @@ void UART_handleInputs() //Handle any input to the UART!
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
-		if (((UART_port[i].LineStatusRegister&1)==0) || (UART_port[i].interrupt_causes[2])) //Have we received data or required to be raised?
+		if ((UART_port[i].LineStatusRegister&1) || (UART_port[i].interrupt_causes[2])) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
@@ -477,7 +477,7 @@ void updateUART(double timepassed)
 						if ((UART_port[UART].LineStatusRegister&1)==0) //No data received yet?
 						{
 							UART_port[UART].DataHoldingRegister = UART_port[UART].receivedata(); //Read the data to receive!
-							UART_port[UART].LineStatusRegister |= ~0x01; //We've received data!
+							UART_port[UART].LineStatusRegister |= 1; //We've received data!
 						}
 					}
 					else if (UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister&0x60)==0))
