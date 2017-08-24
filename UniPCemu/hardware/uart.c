@@ -316,7 +316,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				}
 			}
 
-			UART_port[COMport].ModemStatusRegister = UART_port[COMport].activeModemStatus; //Retrieve the current modem status!
+			UART_port[COMport].ModemStatusRegister = (UART_port[COMport].activeModemStatus<<4); //Retrieve the current modem status!
 			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
 			UART_port[COMport].ModemStatusRegister |= ((UART_port[COMport].ModemStatusRegister^UART_port[COMport].oldModemStatusRegister)>>4)&0xB; //Bits have changed? Ring has other indicators!
 			UART_port[COMport].ModemStatusRegister |= (((UART_port[COMport].oldModemStatusRegister&0x40)&((~UART_port[COMport].ModemStatusRegister)&0x40))>>4); //Only set the Ring lowered bit when the ring indicator is lowered!
