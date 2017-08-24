@@ -849,6 +849,13 @@ void modem_writeData(byte value)
 			{
 				//Ignore this time?
 			}
+			else if (value==modem.backspacecharacter) //Backspace?
+			{
+				if (modem.ATcommandsize) //Valid to backspace?
+				{
+					--modem.ATcommandsize; //Remove last entered value!
+				}
+			}
 			else if (value==modem.carriagereturncharacter) //Carriage return? Execute the command!
 			{
 				modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
