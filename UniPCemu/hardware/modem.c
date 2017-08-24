@@ -249,7 +249,7 @@ byte resetModem(byte state)
 	modem.communicationstandard = 0; //Default communication standard!
 
 	//Result defaults
-	modem.echomode = 0; //Default!
+	modem.echomode = 1; //Default: echo back!
 	modem.verbosemode = 1; //Text-mode verbose!
 
 	modem.flowcontrol = 0; //Default flow control!
@@ -304,7 +304,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		++temp; //Next character!
 	}
 	//Read and execute the AT command, if it's valid!
-	if (strcmp(modem.ATcommand,"A/\xD")==0) //Repeat last command?
+	if (strcmp(modem.ATcommand,"A/")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
 	}
@@ -335,7 +335,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				goto doATE;
 			case 0:
 				--pos; //Retry analyzing!
-			case '0': //Off hook?
+			case '0': //Off?
 				n0 = 0;
 				doATE:
 				if (n0<2) //OK?
