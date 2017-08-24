@@ -161,7 +161,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	}
 	for (i=0;i<lengthtosend;) //Process all data to send!
 	{
-		writefifobuffer(modem.buffer,s[i]); //Send the character!
+		writefifobuffer(modem.buffer,s[i++]); //Send the character!
 	}
 	if (usecarriagereturn&2)
 	{
@@ -359,9 +359,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'P': //Pulse dial?
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
-				strcpy((char *)&number,&modem.ATcommand[pos]); //Set the number to dial!
+				strcpy((char *)&number[0],&modem.ATcommand[pos]); //Set the number to dial!
+				memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //Init last number!
+				strcpy((char *)&modem.lastnumber,(char *)&number[0]); //Set the last number!
 				actondial: //Start dialing?
-				if (modem_connect(&number[0]))
+				if (modem_connect(number))
 				{
 					modem_responseResult(MODEMRESULT_CONNECT); //Accept!
 					modem.offhook = 2; //On-hook(connect)!
@@ -374,6 +376,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
 				}
+				return; //Nothing follows the phone number!
 				break;
 			default: //Unsupported?
 				--pos; //Retry analyzing!
@@ -810,7 +813,7 @@ void modem_writeData(byte value)
 	}
 	else //Command mode?
 	{
-		if (modem.ATcommandsize<sizeof(modem.ATcommand)) //Valid to input(leave 1 byte for the terminal character)?
+		if (modem.ATcommandsize<(sizeof(modem.ATcommand)-1)) //Valid to input(leave 1 byte for the terminal character)?
 		{
 			if (value=='~') //Pause stream for half a second?
 			{
