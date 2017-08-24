@@ -20,16 +20,17 @@ struct
 	byte LineControlRegister;
 	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
+	byte oldLineStatusRegister; //Old line status register to compare!
 	byte activeModemStatus; //Bit0=CTS, 1=DSR, 2=Ring indicator, 3=Carrier detect
 	byte ModemStatusRegister; //Bit4=CTS, 5=DSR, 6=Ring indicator, 7=Carrier detect; Bits 0-3=Bits 4-6 changes, reset when read.
 	byte oldModemStatusRegister; //Last Modem status register values(high 4 bits)!
 	byte ScratchRegister;
 	//Seperate register alternative
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
+	byte TransmitterHoldingRegister; //Data to be written to the device!
+	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
 
-	byte havereceiveddata; //Have we received data?
-	byte receiveddata; //The data that's received (the buffer for the software to read when filled)!
 
 	//The handlers for the device attached, if any!
 	UART_setmodemcontrol setmodemcontrol;
@@ -89,10 +90,10 @@ OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	case 0: //Modem status changed?
 		if (!(UART_port[COMport].InterruptEnableRegister & 8)) return; //Don't trigger if it's disabled!
 		break;
-	case 1: //Ready to send?
+	case 1: //Ready to send? (Transmitter Register Holder Register became empty)
 		if (!(UART_port[COMport].InterruptEnableRegister & 2)) return; //Don't trigger if it's disabled!
 		break;
-	case 2: //Received data?
+	case 2: //Received data is available?
 		if (!(UART_port[COMport].InterruptEnableRegister & 1)) return; //Don't trigger if it's disabled!
 		break;
 	case 3: //Receiver line status changed?
@@ -225,11 +226,11 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				}
 				//return value with bits toggled by Line Control Register!
 				*result = 0x00; //Invalid input by default!
-				if (UART_port[COMport].havereceiveddata)
+				if (UART_port[COMport].LineStatusRegister&1) //Buffer full?
 				{
-					*result = UART_port[COMport].receiveddata; //Receive the data!
-					UART_port[COMport].receiveddata = 0x00; //Clear the received data in the buffer!
-					UART_port[COMport].havereceiveddata = 0; //We don't have any data anymore!
+					*result = UART_port[COMport].DataHoldingRegister; //Receive the data!
+					UART_port[COMport].DataHoldingRegister = 0x00; //Clear the received data in the buffer!
+					UART_port[COMport].LineStatusRegister &= ~1; //We don't have any data anymore!
 				}
 			}
 			break;
@@ -248,7 +249,25 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			}
 			break;
 		case 2: //Interrupt ID registers?
-			*result = UART_port[COMport].InterruptIdentificationRegister; //Give the register!
+			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xE0); //Give the register! Indicate no FIFO!
+			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) //We're to clear?
+			{
+				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
+				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
+				switch (COMport) //What port?
+				{
+				case 0:
+				case 2:
+					lowerirq(4); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(4); //Acnowledge!
+					break;
+				case 1:
+				case 3:
+					lowerirq(3); //Lower our IRQ if it's raised!
+					acnowledgeIRQrequest(3); //Acnowledge!
+					break;
+				}
+			}
 			break;
 		case 3: //Line Control Register?
 			*result = UART_port[COMport].LineControlRegister; //Give the register!
@@ -274,11 +293,6 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					acnowledgeIRQrequest(3); //Acnowledge!
 					break;
 				}
-			}
-			UART_port[COMport].LineStatusRegister &= ~1; //No data ready!
-			if (UART_port[COMport].havereceiveddata) //Data buffer full?
-			{
-				UART_port[COMport].LineStatusRegister |= 1; //Data is ready!
 			}
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
@@ -341,13 +355,23 @@ byte PORT_writeUART(word port, byte value)
 				{
 					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 					UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
+					switch (COMport) //What port?
+					{
+					case 0:
+					case 2:
+						lowerirq(4); //Lower our IRQ if it's raised!
+						acnowledgeIRQrequest(4); //Acnowledge!
+						break;
+					case 1:
+					case 3:
+						lowerirq(3); //Lower our IRQ if it's raised!
+						acnowledgeIRQrequest(3); //Acnowledge!
+						break;
+					}
 				}
 				//Write to output buffer, toggling bits by Line Control Register!
-				if (UART_port[COMport].senddata)
-				{
-					UART_port[COMport].senddata(value); //Send the data!
-				}
-
+				UART_port[COMport].TransmitterHoldingRegister = value;
+				UART_port[COMport].LineStatusRegister &= ~0x60; //We're full, ready to transmit!
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -367,7 +391,7 @@ byte PORT_writeUART(word port, byte value)
 			}
 			break;
 		case 2: //FIFO control register?
-			UART_port[COMport].FIFOControlRegister = value; //Set the register!
+			UART_port[COMport].FIFOControlRegister = value; //Set the register! Prevent bits from being set to indicate we don't have a FIFO!
 			//Not used in the original 8250 UART.
 			break;
 		case 3: //Line Control Register?
@@ -404,7 +428,7 @@ void UART_handleInputs() //Handle any input to the UART!
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
-		if (UART_port[i].havereceiveddata) //Have we received data?
+		if (((UART_port[i].LineStatusRegister&1)==0) || (UART_port[i].interrupt_causes[2])) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
@@ -412,11 +436,20 @@ void UART_handleInputs() //Handle any input to the UART!
 		{
 			oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
 			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
-			if (oldmodemstatus!=UART_port[i].activeModemStatus) //Status changed?
+			if ((oldmodemstatus!=UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0])) //Status changed or required to be raised?
 			{
 				launchUARTIRQ(i, 0); //Modem status changed!
 			}
 		}
+		if ((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister)&0x60) || (UART_port[i].interrupt_causes[1])) //Sent a byte of data(full becomes empty)?
+		{
+			launchUARTIRQ(i, 1); //We've sent data!
+		}
+		if (((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) || (UART_port[i].interrupt_causes[3])) //Sent a byte of data(full becomes empty)?
+		{
+			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
+		}
+		UART_port[i].oldLineStatusRegister = UART_port[i].LineStatusRegister; //Save for difference checking!
 	}
 }
 
@@ -441,12 +474,18 @@ void updateUART(double timepassed)
 					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
 					if (UART_port[UART].hasdata()) //Do we have data?
 					{
-						if (UART_port[UART].havereceiveddata==0) //No data received yet?
+						if ((UART_port[UART].LineStatusRegister&1)==0) //No data received yet?
 						{
-							UART_port[UART].receiveddata = UART_port[UART].receivedata(); //Read the data to receive!
-							UART_port[UART].havereceiveddata = 1; //We've received data!
+							UART_port[UART].DataHoldingRegister = UART_port[UART].receivedata(); //Read the data to receive!
+							UART_port[UART].LineStatusRegister |= ~0x01; //We've received data!
 						}
 					}
+					else if (UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister&0x60)==0))
+					{
+						UART_port[UART].senddata(UART_port[UART].TransmitterHoldingRegister); //Send the data!
+						UART_port[UART].LineStatusRegister |= 0x60; //The Data Holding Register is empty!
+					}
+
 				}
 				else if (UART_port[UART].UART_bytereceivetiming == 0) //Nothing to process?
 				{
