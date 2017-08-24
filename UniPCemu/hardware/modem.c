@@ -284,162 +284,90 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		}
 		else
 		{
+			word pos=3; //Position to read!
 			if (modem.echomode) //Echo every command back to the user?
 			{
 				//NOTE: Are we to send the finishing carriage return character as well?
-				modem_responseString(&modem.ATcommand[0],1); //Send the string back!
+				modem_responseString(&modem.ATcommand[0],3); //Send the string back!
 			}
-			else if (strcmp(modem.ATcommand,"ATDL\xD")) //Dial last number?
+			else
 			{
-				diallast:
-				n0 = 'T'; //Dialing!
-				memcpy(&number,&modem.lastnumber,(strlen(modem.lastnumber)+1)); //Set the new number to roll!
-				goto dial;
-			}
-			else if (sscanf(modem.ATcommand,"ATD%c%s\xD",(char *)&n0,&number[0])) //Dial?
-			{
-				dial: //Start dialing?
-				modem.datamode = 0; //Mode not data!
-				switch (n0) //OK?
+				if (strcmp(modem.ATcommand,"ATDL\xD")) //Dial last number?
 				{
-				case 'L': //Dial last number
-					goto diallast;
-				case 'A': //Reverse to answer mode after dialing?
-					goto unsupporteddial; //Unsupported for now!
-					dialproperties = 1; //Reverse to answer mode!
-					goto actondial;
-				case ';': //Remain in command mode after dialing
-					dialproperties = 2; //Remain in command mode!
-					goto actondial;
-				case ',': //Pause for the time specified in register S8(usually 2 seconds)
-				case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
-					goto unsupporteddial;
-				case 'T': //Tone dial?
-				case 'P': //Pulse dial?
-				case 'W': //Wait for second dial tone?
-				case '@': //Wait for up to	30 seconds for one or more ringbacks
-					actondial: //Start dialing?
-					if (modem_connect(&number[0]))
+					diallast:
+					n0 = 'T'; //Dialing tone!
+					memcpy(&number,&modem.lastnumber,(strlen(modem.lastnumber)+1)); //Set the new number to roll!
+					goto dial;
+				}
+				else if (sscanf(modem.ATcommand,"ATD%c%s\xD",(char *)&n0,&number[0])) //Dial?
+				{
+					dial: //Start dialing?
+					modem.datamode = 0; //Mode not data!
+					switch (n0) //OK?
 					{
-					modem_responseResult(MODEMRESULT_CONNECT); //Accept!
-					modem.offhook = 2; //On-hook(connect)!
-					if (dialproperties!=2) //Not to remain in command mode?
+						case 'L': //Dial last number
+							goto diallast;
+						case 'A': //Reverse to answer mode after dialing?
+							goto unsupporteddial; //Unsupported for now!
+							dialproperties = 1; //Reverse to answer mode!
+							goto actondial;
+						case ';': //Remain in command mode after dialing
+							dialproperties = 2; //Remain in command mode!
+							goto actondial;
+						case ',': //Pause for the time specified in register S8(usually 2 seconds)
+						case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
+							goto unsupporteddial;
+						case 'T': //Tone dial?
+						case 'P': //Pulse dial?
+						case 'W': //Wait for second dial tone?
+						case '@': //Wait for up to	30 seconds for one or more ringbacks
+							actondial: //Start dialing?
+							if (modem_connect(&number[0]))
+							{
+								modem_responseResult(MODEMRESULT_CONNECT); //Accept!
+								modem.offhook = 2; //On-hook(connect)!
+								if (dialproperties!=2) //Not to remain in command mode?
+								{
+									modem.datamode = 2; //Enter data mode pending!
+								}
+							}
+							else //Dial failed?
+							{
+								modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
+							}
+							break;
+						default: //Unsupported?
+							unsupporteddial: //Unsupported dial function?
+							modem_responseResult(MODEMRESULT_ERROR); //Error!
+							break;
+						}
+					}
+				else if ((strcmp(modem.ATcommand,"ATA\xD")==0) || strcmp(modem.ATcommand,"ATA0\xD")==0) //ATA?
+				{
+					if (modem_connect(NULL)) //Answered?
 					{
+						modem_responseResult(MODEMRESULT_CONNECT); //Connected!
 						modem.datamode = 2; //Enter data mode pending!
+						modem.offhook = 2; //Off-hook(connect)!
 					}
-					}
-					else //Dial failed?
+					else
 					{
-						modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
+						modem_responseResult(MODEMRESULT_ERROR); //Not Connected!
 					}
-					break;
-				default: //Unsupported?
-					unsupporteddial: //Unsupported dial function?
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-					break;
 				}
-			}
-			else if ((strcmp(modem.ATcommand,"ATA\xD")==0) || strcmp(modem.ATcommand,"ATA0\xD")==0) //ATA?
-			{
-				modem_responseResult(MODEMRESULT_CONNECT); //Connected!
-				modem.datamode = 2; //Enter data mode pending!
-				modem.offhook = 2; //Off-hook(connect)!
-			}
-			else if (strcmp(modem.ATcommand,"ATH\xD")==0) //ATH?
-			{
-				modem_responseResult(MODEMRESULT_OK); //OK!
-				modem.offhook = 0; //On-hook(disconnect)!
-			}
-			else if (strcmp(modem.ATcommand,"ATQ\xD")==0) //Quiet mode?
-			{
-				modem_responseResult(MODEMRESULT_OK); //OK!
-				modem.verbosemode = 2; //Quiet mode!
-			}
-			else if (sscanf(modem.ATcommand,"ATH%u\xD",&n0)) //Select communication standard?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<2) //OK?
+				else if (strcmp(modem.ATcommand,"ATQ\xD")==0) //Quiet mode?
 				{
-					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
+					modem_responseResult(MODEMRESULT_OK); //OK!
+					modem.verbosemode = 2; //Quiet mode!
 				}
-				else
+				else if (sscanf(modem.ATcommand,"ATH%u\xD",&n0)) //Select communication standard?
 				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATB%u\xD",&n0)) //Select communication standard?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<2) //OK?
-				{
-					modem.communicationstandard = n0; //Set the communication standard!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-				}
-				else
-				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATL%u\xD",&n0)) //Select speaker volume?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<4) //OK?
-				{
-					modem.speakervolume = n0; //Set the speaker volume!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-				}
-				else
-				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATM%u\xD",&n0)) //Speaker control?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<4) //OK?
-				{
-					modem.speakercontrol = n0; //Set the speaker control!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-				}
-				else
-				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATV%u\xD",&n0)) //Verbose mode?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<2) //OK?
-				{
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-					modem.verbosemode = n0; //Set the speaker control!
-				}
-				else
-				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATX%u\xD",&n0)) //Select call progress method?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<1) //OK and supported by our emulation?
-				{
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-					modem.callprogressmethod = n0; //Set the speaker control!
-				}
-				else
-				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
-				}
-			}
-			else if (sscanf(modem.ATcommand,"ATZ%u\xD",&n0)) //Reset modem?
-			{
-				modem.datamode = 0; //Mode not data!
-				if (n0<2) //OK and supported by our emulation?
-				{
-					if (resetModem(n0)) //Reset to the given state!
+					doATH:
+					modem.datamode = 0; //Mode not data!
+					if (n0<2) //OK?
 					{
+						//if ((n0==0) && modem.offhook)
+						modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
 						modem_responseResult(MODEMRESULT_OK); //Accept!
 					}
 					else
@@ -447,83 +375,166 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
 					}
 				}
-				else
+				else if (sscanf(modem.ATcommand,"ATB%u\xD",&n0)) //Select communication standard?
 				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					modem.datamode = 0; //Mode not data!
+					if (n0<2) //OK?
+					{
+						modem.communicationstandard = n0; //Set the communication standard!
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-			}
-			else if (sscanf(modem.ATcommand,"ATI%u\xD",&n0)) //Inquiry, Information, or Interrogation?
-			{
-				modem.datamode = 0; //Mode not data!
-				/*
-				if (n0<2) //OK?
+				else if (sscanf(modem.ATcommand,"ATL%u\xD",&n0)) //Select speaker volume?
 				{
-					modem.communicationstandard = n0; //Set the communication standard!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
+					modem.datamode = 0; //Mode not data!
+					if (n0<4) //OK?
+					{
+						modem.speakervolume = n0; //Set the speaker volume!
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-				else
+				else if (sscanf(modem.ATcommand,"ATM%u\xD",&n0)) //Speaker control?
 				{
-				*/
-					modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
-				//}
-			}
-			else if (strcmp(modem.ATcommand,"ATO\xD")) //Return online?
-			{
-				modem.datamode = 1; //Return to data mode!
-			}
-			else if (sscanf(modem.ATcommand,"ATS%u\xD",&n0)) //Select register n as current register?
-			{
-				modem.currentregister = n0; //Select the register!
-			}
-			else if (sscanf(modem.ATcommand,"ATS%u?\xD",&n0)) //Select and query register n as current register?
-			{
-				modem.currentregister = n0; //Select the register!
-				goto queryregister;
-			}
-			else if (sscanf(modem.ATcommand,"ATS%u=%u?\xD",&n0,&n1)) //Select and query register n as current register?
-			{
-				modem.currentregister = n0; //Select the register!
-				n0 = n1; //The register value to set to n0!
-				goto storeregister; //Store n0 in the current register!
-			}
-			else if (strcmp(modem.ATcommand,"AT?\xD")==0) //Query current register?
-			{
-				queryregister: //Query a register!
-				modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
-			}
-			else if (sscanf(modem.ATcommand,"AT=%u\xD",&n0)) //Set current register?
-			{
-				storeregister:
-				modem.registers[modem.currentregister] = n0; //Set the register!
-				modem_updateRegister(modem.currentregister); //Update the register as needed!
-			}
-			else if (sscanf(modem.ATcommand,"AT&K%i\xD",&n0)) //Flow control?
-			{
-				if (n0<5) //Valid?
-				{
-					modem.flowcontrol = n0; //Set flow control!
-					modem_responseResult(MODEMRESULT_OK); //OK!
+					modem.datamode = 0; //Mode not data!
+					if (n0<4) //OK?
+					{
+						modem.speakercontrol = n0; //Set the speaker control!
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-				else
+				else if (sscanf(modem.ATcommand,"ATV%u\xD",&n0)) //Verbose mode?
 				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					modem.datamode = 0; //Mode not data!
+					if (n0<2) //OK?
+					{
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+						modem.verbosemode = n0; //Set the speaker control!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-			}
-			else if (sscanf(modem.ATcommand,"AT\\N%u\xD",&n0)) //Operating mode?
-			{
-				if (n0<5) //Valid?
+				else if (sscanf(modem.ATcommand,"ATX%u\xD",&n0)) //Select call progress method?
 				{
-					//Unused!
-					modem_responseResult(MODEMRESULT_OK); //OK!
+					modem.datamode = 0; //Mode not data!
+					if (n0<1) //OK and supported by our emulation?
+					{
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+						modem.callprogressmethod = n0; //Set the speaker control!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-				else //Error out?
+				else if (sscanf(modem.ATcommand,"ATZ%u\xD",&n0)) //Reset modem?
 				{
-					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					modem.datamode = 0; //Mode not data!
+					if (n0<2) //OK and supported by our emulation?
+					{
+						if (resetModem(n0)) //Reset to the given state!
+						{
+							modem_responseResult(MODEMRESULT_OK); //Accept!
+						}
+						else
+						{
+							modem_responseResult(MODEMRESULT_ERROR); //Error!
+						}
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
-			}
-			else //Unknown?
-			{
-				modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
+				else if (sscanf(modem.ATcommand,"ATI%u\xD",&n0)) //Inquiry, Information, or Interrogation?
+				{
+					modem.datamode = 0; //Mode not data!
+					/*
+					if (n0<2) //OK?
+					{
+						modem.communicationstandard = n0; //Set the communication standard!
+						modem_responseResult(MODEMRESULT_OK); //Accept!
+					}
+					else
+					{
+					*/
+						modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
+					//}
+				}
+				else if (strcmp(modem.ATcommand,"ATO\xD")) //Return online?
+				{
+					if (modem.connected) //Cpnnected?
+						modem.datamode = 1; //Return to data mode!
+					else
+						modem_responseResult(MODEMRESULT_ERROR);
+				}
+				else if (sscanf(modem.ATcommand,"ATS%u\xD",&n0)) //Select register n as current register?
+				{
+					modem.currentregister = n0; //Select the register!
+				}
+				else if (sscanf(modem.ATcommand,"ATS%u?\xD",&n0)) //Select and query register n as current register?
+				{
+					modem.currentregister = n0; //Select the register!
+					goto queryregister;
+				}
+				else if (sscanf(modem.ATcommand,"ATS%u=%u?\xD",&n0,&n1)) //Select and query register n as current register?
+				{
+					modem.currentregister = n0; //Select the register!
+					n0 = n1; //The register value to set to n0!
+					goto storeregister; //Store n0 in the current register!
+				}
+				else if (strcmp(modem.ATcommand,"AT?\xD")==0) //Query current register?
+				{
+					queryregister: //Query a register!
+					modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
+				}
+				else if (sscanf(modem.ATcommand,"AT=%u\xD",&n0)) //Set current register?
+				{
+					storeregister:
+					modem.registers[modem.currentregister] = n0; //Set the register!
+					modem_updateRegister(modem.currentregister); //Update the register as needed!
+				}
+				else if (sscanf(modem.ATcommand,"AT&K%i\xD",&n0)) //Flow control?
+				{
+					if (n0<5) //Valid?
+					{
+						modem.flowcontrol = n0; //Set flow control!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+				}
+				else if (sscanf(modem.ATcommand,"AT\\N%u\xD",&n0)) //Operating mode?
+				{
+					if (n0<5) //Valid?
+					{
+						//Unused!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else //Error out?
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+				}
+				else //Unknown?
+				{
+					modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
+				}
 			}
 		}
 	}
