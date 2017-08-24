@@ -41,6 +41,12 @@ struct
 	*/
 
 	//Active status emulated for the modem!
+	byte ringing; //Are we ringing?
+	byte DTROffResponse; //Default: full reset!
+	byte DSRisConnectionEstablished; //Default: assert high always!
+	byte DCDisCarrier;
+	byte CTSAlwaysActive; //Default: always active!
+
 	byte escapecharacter;
 	byte carriagereturncharacter;
 	byte linefeedcharacter;
@@ -97,6 +103,71 @@ byte useSERModem() //Serial mouse enabled?
 	return modem.supported; //Are we supported?
 }
 
+byte loadModemProfile(byte state)
+{
+	return 0; //Default: no states stored yet!
+}
+
+byte resetModem(byte state)
+{
+	word reg;
+	memset(&modem.registers,0,sizeof(modem.registers)); //Initialize the registers!
+	//Load general default state!
+	modem.registers[0] = 0; //Number of rings before auto-answer
+	modem.registers[1] = 0; //Ring counter
+	modem.registers[2] = 43; //Escape character(+, ASCII)
+	modem.registers[3] = 0xD; //Carriage return character(ASCII)
+	modem.registers[4] = 0xA; //Line feed character(ASCII)
+	modem.registers[5] = 0x8; //Back space character(ASCII)
+	modem.registers[6] = 2; //Wait time before blind dialing(seconds).
+	modem.registers[7] = 50; //Wait for carrier after dial(seconds(+1))
+	modem.registers[8] = 2; //Pause time for ,(dial delay, seconds)
+	modem.registers[9] = 6; //Carrier detect response time(tenths of a seconds(+1)) 
+	modem.registers[10] = 14; //Delay between Loss of Carrier and Hang-up(tenths of a second)
+	modem.registers[11] = 95; //DTMF Tone duration(50-255 milliseconds)
+	modem.registers[12] = 50; //Escape code guard time(fiftieths of a second)
+	modem.registers[18] = 0; //Test timer(seconds)
+	modem.registers[25] = 5; //Delay to DTR(seconds in synchronous mode, hundredths of a second in all other modes)
+	modem.registers[26] = 1; //RTC to CTS Delay Interval(hundredths of a second)
+	modem.registers[30] = 0; //Inactivity disconnect timer(tens of seconds). 0=Disabled
+	modem.registers[37] = 0; //Desired Telco line speed(0-10. 0=Auto, otherwise, speed)
+	modem.registers[38] = 20; //Delay before Force Disconnect(seconds)
+	for (reg=0;reg<256;++reg)
+	{
+		modem_updateRegister(reg); //This register has been updated!
+	}
+
+	modem.communicationstandard = 0; //Default communication standard!
+
+	//Result defaults
+	modem.echomode = 1; //Default: echo back!
+	modem.verbosemode = 1; //Text-mode verbose!
+
+	modem.flowcontrol = 0; //Default flow control!
+	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
+	modem.offhook = 0; //On-hook!
+	modem.connected = 0; //Disconnect!
+
+	//Default handling of the Hardware lines is also loaded:
+	modem.DTROffResponse = 2; //Default: full reset!
+	modem.DSRisConnectionEstablished = 0; //Default: assert high always!
+	modem.DCDisCarrier = 1; //Default: DCD=Carrier detected.
+	modem.CTSAlwaysActive = 1; //Default: always active!
+
+	//Misc data
+	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
+
+	//Speaker controls
+	modem.speakercontrol = 0; //Disabled speaker!
+	modem.speakervolume = 0; //Muted speaker!
+
+	if (loadModemProfile(state)) //Loaded?
+	{
+		return 0; //Invalid!
+	}
+	return 0; //Invalid profile!
+}
+
 void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
@@ -104,15 +175,19 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	modem.canrecvdata = (line&2); //Can we receive data?
 	if (((line&1)==0) && ((modem.linechanges^line)&1)) //Became not ready?
 	{
-		modem.connected = 0; //Disconnect?
-		modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
+		switch (modem.DTROffResponse) //What reponse?
+		{
+			case 0: //Ignore the line?
+				break;
+			case 2: //Full reset, hangup?
+				resetModem(0); //Reset!
+				modem.connected = 0; //Disconnect?
+			case 1: //Goto AT command mode?
+				modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
+				break;
+		}
 	}
 	modem.linechanges = line; //Save for reference!
-}
-
-byte modem_cansend()
-{
-	return 0; //Outgoing isn't supported yet! Buffer always full!
 }
 
 byte modem_hasData() //Do we have data for input?
@@ -124,7 +199,7 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem_cansend()?1:0):1)|/*(modem.linechanges&2)*/2|(modem.connected?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
+	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?(modem.connected?2:0):2)|(modem.ringing?4:0)|((modem.connected||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
 }
 
 byte modem_readData()
@@ -210,65 +285,6 @@ void modem_responseNumber(byte x)
 	{
 		writefifobuffer(modem.buffer,x); //Code variant instead!
 	}
-}
-
-byte loadModemProfile(byte state)
-{
-	return 0; //Default: no states stored yet!
-}
-
-byte resetModem(byte state)
-{
-	word reg;
-	memset(&modem.registers,0,sizeof(modem.registers)); //Initialize the registers!
-	//Load general default state!
-	modem.registers[0] = 0; //Number of rings before auto-answer
-	modem.registers[1] = 0; //Ring counter
-	modem.registers[2] = 43; //Escape character(+, ASCII)
-	modem.registers[3] = 0xD; //Carriage return character(ASCII)
-	modem.registers[4] = 0xA; //Line feed character(ASCII)
-	modem.registers[5] = 0x8; //Back space character(ASCII)
-	modem.registers[6] = 2; //Wait time before blind dialing(seconds).
-	modem.registers[7] = 50; //Wait for carrier after dial(seconds(+1))
-	modem.registers[8] = 2; //Pause time for ,(dial delay, seconds)
-	modem.registers[9] = 6; //Carrier detect response time(tenths of a seconds(+1)) 
-	modem.registers[10] = 14; //Delay between Loss of Carrier and Hang-up(tenths of a second)
-	modem.registers[11] = 95; //DTMF Tone duration(50-255 milliseconds)
-	modem.registers[12] = 50; //Escape code guard time(fiftieths of a second)
-	modem.registers[18] = 0; //Test timer(seconds)
-	modem.registers[25] = 5; //Delay to DTR(seconds in synchronous mode, hundredths of a second in all other modes)
-	modem.registers[26] = 1; //RTC to CTS Delay Interval(hundredths of a second)
-	modem.registers[30] = 0; //Inactivity disconnect timer(tens of seconds). 0=Disabled
-	modem.registers[37] = 0; //Desired Telco line speed(0-10. 0=Auto, otherwise, speed)
-	modem.registers[38] = 20; //Delay before Force Disconnect(seconds)
-	for (reg=0;reg<256;++reg)
-	{
-		modem_updateRegister(reg); //This register has been updated!
-	}
-
-	modem.communicationstandard = 0; //Default communication standard!
-
-	//Result defaults
-	modem.echomode = 1; //Default: echo back!
-	modem.verbosemode = 1; //Text-mode verbose!
-
-	modem.flowcontrol = 0; //Default flow control!
-	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
-	modem.offhook = 0; //On-hook!
-	modem.connected = 0; //Disconnect!
-
-	//Misc data
-	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
-
-	//Speaker controls
-	modem.speakercontrol = 0; //Disabled speaker!
-	modem.speakervolume = 0; //Muted speaker!
-
-	if (loadModemProfile(state)) //Loaded?
-	{
-		return 0; //Invalid!
-	}
-	return 0; //Invalid profile!
 }
 
 byte modemcommand_readNumber(word *pos, int *result)
@@ -731,6 +747,93 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			{
 			case 0: //EOS?
 				--pos; //Let us handle it!
+				break;
+			case 'R': //Force CTS high option?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0; //Ignore RTS in command mode, CTS=RTS in data mode.
+					goto setAT_R;
+				case '1':
+					n0 = 1; //Force CTS active
+					setAT_R:
+					if (n0<2) //Valid?
+					{
+						modem.CTSAlwaysActive = n0; //Set flow control!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				}
+				break;
+			case 'C': //Force DCD to be carrier option?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0; //DCD is always high
+					goto setAT_C;
+				case '1':
+					n0 = 1; //DCD is Carrier detect
+					setAT_C:
+					if (n0<2) //Valid?
+					{
+						modem.DCDisCarrier = n0; //Set flow control!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				}
+				break;
+			case 'S': //Force DSR high option?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0; //DSR=Always high.
+					goto setAT_S;
+				case '1':
+					n0 = 1; //DSR=Connection established.
+					setAT_S:
+					if (n0<2) //Valid?
+					{
+						modem.DSRisConnectionEstablished = n0; //Set flow control!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				}
+				break;
+			case 'D': //DTR reponse option?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '0':
+					n0 = 0; //Ignore DTR line from computer
+					goto setAT_D;
+				case '1':
+					n0 = 1; //Goto AT command state when DTR On->Off
+					goto setAT_D;
+				case '2':
+					n0 = 2; //Full reset when DTR On->Off
+					setAT_D:
+					if (n0<2) //Valid?
+					{
+						modem.DTROffResponse = n0; //Set DTR off response!
+						modem_responseResult(MODEMRESULT_OK); //OK!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
+					break;
+				}
 				break;
 			case 'F': //Load defaults?
 				n0 = 0; //Defautl configuration!
