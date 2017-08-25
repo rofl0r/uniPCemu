@@ -35,7 +35,7 @@ int_64 get_private_profile_int64(char *section,
     char buff[MAX_LINE_LENGTH];
     char *ep;
     char t_section[MAX_LINE_LENGTH];
-    char value[6];
+    char value[MAX_LINE_LENGTH];
     int len = strlen(entry);
     int i;
     if( !fp ) return(0);
@@ -96,7 +96,7 @@ uint_64 get_private_profile_uint64(char *section,
     char buff[MAX_LINE_LENGTH];
     char *ep;
     char t_section[MAX_LINE_LENGTH];
-    char value[6];
+    char value[MAX_LINE_LENGTH];
     int len = strlen(entry);
     int i;
     if( !fp ) return(0);
@@ -202,7 +202,7 @@ int write_private_profile_string(char *section,
     char *entry, char *buffer, char *file_name)
 
 {   FILE *rfp, *wfp;
-    char tmp_name[15];
+    char tmp_name[256];
     char buff[MAX_LINE_LENGTH];
     char t_section[MAX_LINE_LENGTH];
     int len = strlen(entry);
