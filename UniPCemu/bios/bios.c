@@ -14,6 +14,7 @@
 #include "headers/emu/sound.h" //Volume support!
 #include "headers/hardware/midi/mididevice.h" //MIDI support!
 #include "headers/hardware/ps2_keyboard.h" //For timeout support!
+#include "headers/support/iniparser.h" //INI file parsing for our settings storage!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -29,7 +30,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
 //What file to use for saving the BIOS!
-#define DEFAULT_SETTINGS_FILE "SETTINGS.DAT"
+#define DEFAULT_SETTINGS_FILE "SETTINGS.INI"
 #define DEFAULT_ROOT_PATH "."
 
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
@@ -487,6 +488,26 @@ uint_32 BIOS_getChecksum() //Get the BIOS checksum!
 	return result; //Give the simple checksum of the loaded settings!
 }
 
+void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
+{
+	word index;
+	char field[256];
+	CMOS->timedivergeance = get_private_profile_int64(section,"TimeDivergeance_seconds",0,BIOS_Settings_file);
+	CMOS->timedivergeance2 = get_private_profile_int64(section,"TimeDivergeance_microseconds",0,BIOS_Settings_file);
+	CMOS->s100 = (byte)get_private_profile_uint64(section,"s100",0,BIOS_Settings_file);
+	CMOS->s10000 = (byte)get_private_profile_uint64(section,"s10000",0,BIOS_Settings_file);
+	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
+	{
+		sprintf(field,"RAM%02X",index); //The field!
+		CMOS->DATA80.data[index] = (byte)get_private_profile_uint64(section,&field[0],0,BIOS_Settings_file);
+	}
+	for (index=0;index<NUMITEMS(CMOS->extraRAMdata);++index) //Process extra RAM data!
+	{
+		sprintf(field,"extraRAM%02X",index); //The field!
+		CMOS->extraRAMdata[index] = (byte)get_private_profile_uint64(section,&field[0],0,BIOS_Settings_file);
+	}
+}
+
 void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -503,46 +524,108 @@ void BIOS_LoadData() //Load BIOS settings!
 		return; //We've loaded the defaults!
 	}
 
-	bytesread = fread(&CheckSum,1,sizeof(CheckSum),f); //Read Checksum!
-	if (bytesread!=sizeof(CheckSum) || feof(f)) //Not read?
+	fclose(f); //Close the settings file!
+
+	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Init settings to their defaults!
+
+	//General
+	BIOS_Settings.version = (byte)get_private_profile_uint64("general","version",BIOS_VERSION,BIOS_Settings_file);
+	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general","firstrun",1,BIOS_Settings_file); //Is this the first run of this BIOS?
+	BIOS_Settings.BIOSmenu_font = (byte)get_private_profile_uint64("general","settingsmenufont",0,BIOS_Settings_file); //The selected font for the BIOS menu!
+
+	//Machine
+	BIOS_Settings.emulated_CPU = (byte)get_private_profile_uint64("machine","cpu",DEFAULT_CPU,BIOS_Settings_file);
+	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine","databussize",0,BIOS_Settings_file); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	BIOS_Settings.memory = (uint_32)get_private_profile_uint64("machine","memory",0,BIOS_Settings_file);
+	BIOS_Settings.architecture = (byte)get_private_profile_uint64("machine","architecture",ARCHITECTURE_XT,BIOS_Settings_file); //Are we using the XT/AT/PS/2 architecture?
+	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine","executionmode",DEFAULT_EXECUTIONMODE,BIOS_Settings_file); //What mode to execute in during runtime?
+	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine","cpuspeed",0,BIOS_Settings_file);
+	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine","showcpuspeed",0,BIOS_Settings_file); //Show the relative CPU speed together with the framerate?
+	BIOS_Settings.TurboCPUSpeed = (uint_32)get_private_profile_uint64("machine","turbocpuspeed",0,BIOS_Settings_file);
+	BIOS_Settings.useTurboSpeed = (byte)get_private_profile_uint64("machine","useturbocpuspeed",0,BIOS_Settings_file); //Are we to use Turbo CPU speed?
+	BIOS_Settings.BIOSROMmode = (byte)get_private_profile_uint64("machine","BIOSROMmode",DEFAULT_BIOSROMMODE,BIOS_Settings_file); //BIOS ROM mode.
+	BIOS_Settings.InboardInitialWaitstates = (byte)get_private_profile_uint64("machine","inboardinitialwaitstates",DEFAULT_INBOARDINITIALWAITSTATES,BIOS_Settings_file); //Inboard 386 initial delay used?
+
+	//Debugger
+	BIOS_Settings.debugmode = (byte)get_private_profile_uint64("debugger","debugmode",DEFAULT_DEBUGMODE,BIOS_Settings_file);
+	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger","debuggerlog",DEFAULT_DEBUGGERLOG,BIOS_Settings_file);
+	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger","logstates",DEFAULT_DEBUGGERSTATELOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
+	BIOS_Settings.breakpoint = (byte)get_private_profile_uint64("debugger","breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
+	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
+
+	//Video
+	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",0,BIOS_Settings_file); //Enable VGA NMI on precursors?
+	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video","CGAmodel",0,BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	BIOS_Settings.VRAM_size = (byte)get_private_profile_uint64("video","VRAM",0,BIOS_Settings_file); //(S)VGA VRAM size!
+	BIOS_Settings.VGASynchronization = (byte)get_private_profile_uint64("video","synchronization",DEFAULT_VGASYNCHRONIZATION,BIOS_Settings_file); //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
+	BIOS_Settings.VGA_AllowDirectPlot = (byte)get_private_profile_uint64("video","directplot",DEFAULT_DIRECTPLOT,BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video","aspectratio",DEFAULT_BWMONITOR,BIOS_Settings_file); //The aspect ratio to use?
+	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video","bwmonitor",DEFAULT_BWMONITOR,BIOS_Settings_file); //Are we a b/w monitor?
+	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video","showframerate",DEFAULT_FRAMERATE,BIOS_Settings_file); //Show the frame rate?
+
+	//Sound
+	BIOS_Settings.usePCSpeaker = (byte)get_private_profile_uint64("sound","speaker",1,BIOS_Settings_file); //Emulate PC Speaker sound?
+	BIOS_Settings.useAdlib = (byte)get_private_profile_uint64("sound","adlib",1,BIOS_Settings_file); //Emulate Adlib?
+	BIOS_Settings.useLPTDAC = (byte)get_private_profile_uint64("sound","LPTDAC",1,BIOS_Settings_file); //Emulate Covox/Disney Sound Source?
+	get_private_profile_string("sound","soundfont","",&BIOS_Settings.SoundFont[0],sizeof(BIOS_Settings.SoundFont)-1,BIOS_Settings_file); //Read entry!
+	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound","directmidi",DEFAULT_DIRECTMIDIMODE,BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
+	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound","gameblaster",1,BIOS_Settings_file); //Emulate Game Blaster?
+	BIOS_Settings.GameBlaster_Volume = (byte)get_private_profile_uint64("sound","gameblastervolume",100,BIOS_Settings_file); //The Game Blaster volume knob!
+	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",0,BIOS_Settings_file); //Emulate Sound Blaster?
+	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound","soundsource_volume",DEFAULT_SSOURCEVOL,BIOS_Settings_file); //The sound source volume knob!
+
+	//Disks
+	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0)-1,BIOS_Settings_file); //Read entry!
+	BIOS_Settings.floppy0_readonly = (byte)get_private_profile_uint64("disks","floppy0_readonly",0,BIOS_Settings_file);
+	get_private_profile_string("disks","floppy1","",&BIOS_Settings.floppy1[0],sizeof(BIOS_Settings.floppy1)-1,BIOS_Settings_file); //Read entry!
+	BIOS_Settings.floppy1_readonly = (byte)get_private_profile_uint64("disks","floppy1_readonly",0,BIOS_Settings_file);
+	get_private_profile_string("disks","hdd0","",&BIOS_Settings.hdd0[0],sizeof(BIOS_Settings.hdd0)-1,BIOS_Settings_file); //Read entry!
+	BIOS_Settings.hdd0_readonly = (byte)get_private_profile_uint64("disks","hdd0_readonly",0,BIOS_Settings_file);
+	get_private_profile_string("disks","hdd1","",&BIOS_Settings.hdd1[0],sizeof(BIOS_Settings.hdd1)-1,BIOS_Settings_file); //Read entry!
+	BIOS_Settings.hdd1_readonly = (byte)get_private_profile_uint64("disks","hdd1_readonly",0,BIOS_Settings_file);
+	get_private_profile_string("disks","cdrom0","",&BIOS_Settings.cdrom0[0],sizeof(BIOS_Settings.cdrom0)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","cdrom1","",&BIOS_Settings.cdrom1[0],sizeof(BIOS_Settings.cdrom1)-1,BIOS_Settings_file); //Read entry!
+
+
+	//BIOS
+	BIOS_Settings.bootorder = (byte)get_private_profile_uint64("bios","bootorder",DEFAULT_BOOT_ORDER,BIOS_Settings_file);
+
+	//Input
+	BIOS_Settings.input_settings.analog_minrange = (byte)get_private_profile_uint64("input","analog_minrange",0,BIOS_Settings_file); //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
+	BIOS_Settings.input_settings.fontcolor = (byte)get_private_profile_uint64("input","keyboard_fontcolor",0,BIOS_Settings_file);
+	BIOS_Settings.input_settings.bordercolor = (byte)get_private_profile_uint64("input","keyboard_bordercolor",0,BIOS_Settings_file);
+	BIOS_Settings.input_settings.activecolor = (byte)get_private_profile_uint64("input","keyboard_activecolor",0,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0,BIOS_Settings_file);
+	
+	//Gamingmode
+	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
+	byte button;
+	char buttonstr[256];
+	memset(&buttonstr,0,sizeof(buttonstr)); //Init button string!
+	for (button=0;button<15;++button) //Process all buttons!
 	{
-		fclose(f); //Close!
-		dolog("Settings","Error reading settings checksum.");
-		BIOS_LoadDefaults(1); //Load the defaults, save!
-		return; //We've loaded the defaults!
+		sprintf(buttonstr,"gamingmode_map_%s_key",buttons[button]);
+		BIOS_Settings.input_settings.keyboard_gamemodemappings[button] = (sword)get_private_profile_int64("gamingmode",buttonstr,-1,BIOS_Settings_file);
+		sprintf(buttonstr,"gamingmode_map_%s_shiftstate",buttons[button]);
+		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[button] = (byte)get_private_profile_uint64("gamingmode",buttonstr,0,BIOS_Settings_file);
+		sprintf(buttonstr,"gamingmode_map_%s_mousebuttons",buttons[button]);
+		BIOS_Settings.input_settings.mouse_gamemodemappings[button] = (byte)get_private_profile_uint64("gamingmode",buttonstr,0,BIOS_Settings_file);
 	}
 
-	fseek(f, 0, SEEK_END); //Goto EOF!
-	bytestoread = ftell(f); //How many bytes to read!
-	bytestoread -= sizeof(CheckSum); //Without the checksum!
+	BIOS_Settings.input_settings.gamingmode_joystick = (byte)get_private_profile_uint64("gamingmode","joystick",0,BIOS_Settings_file); //Use the joystick input instead of mapped input during gaming mode?
 
-	if (bytestoread > sizeof(BIOS_Settings)) //Incompatible BIOS: we're newer than what we have?
-	{
-		dolog("Settings","Error: Settings data is too large (Maximum: %i bytes, Actually: %i bytes).",sizeof(BIOS_Settings),bytestoread);
-		BIOS_LoadDefaults(1); //Load the defaults, save!
-		return; //We've loaded the defaults because 
-	}
-	fseek(f, sizeof(CheckSum), SEEK_SET); //Goto start of settings!
+	//PrimaryCMOS
+	BIOS_Settings.got_CMOS = (byte)get_private_profile_uint64("primaryCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS"); //Load the CMOS from the file!
 
-	memset(&BIOS_Settings, 0, sizeof(BIOS_Settings)); //Clear all settings we have: we want to start older BIOSes empty!
-	bytesread = fread(&BIOS_Settings,1,bytestoread,f); //Read settings!
-	fclose(f); //Close!
+	//CompaqCMOS
+	BIOS_Settings.got_CompaqCMOS = (byte)get_private_profile_uint64("CompaqCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS"); //The full saved CMOS!
 
-//Verify the checksum!
-	if (bytesread != bytestoread) //Error reading data?
-	{
-		dolog("Settings","Error: Settings data to read doesn't match bytes read.");
-		BIOS_LoadDefaults(1); //Load the defaults, save!
-		return; //We've loaded the defaults!
-	}
-
-	if (CheckSum!=BIOS_getChecksum()) //Checksum fault?
-	{
-		dolog("Settings","Error: Invalid settings checksum.");
-		BIOS_LoadDefaults(1); //Load the defaults, save!
-		return; //We've loaded the defaults!
-	}
-//BIOS has been loaded.
+	//BIOS settings have been loaded.
 
 	if (BIOS_Settings.version!=BIOS_VERSION) //Not compatible with our version?
 	{
@@ -551,68 +634,134 @@ void BIOS_LoadData() //Load BIOS settings!
 		return; //We've loaded the defaults because 
 	}
 
-	if (bytesread < sizeof(BIOS_Settings)) //Less read than we need? Set some defaults, if needed!
-	{
-		if (bytesread < ((((ptrnum)&BIOS_Settings.GameBlaster_Volume)+sizeof(BIOS_Settings.GameBlaster_Volume)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
-		{
-			BIOS_Settings.GameBlaster_Volume = DEFAULT_BLASTERVOL;
-			defaultsapplied = 1; //We've been applied!
-		}
-		if (bytesread < ((((ptrnum)&BIOS_Settings.diagnosticsportoutput_breakpoint) + sizeof(BIOS_Settings.diagnosticsportoutput_breakpoint)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
-		{
-			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT;
-			defaultsapplied = 1; //We've been applied!
-		}
-		if (bytesread < ((((ptrnum)&BIOS_Settings.useDirectMIDI) + sizeof(BIOS_Settings.useDirectMIDI)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
-		{
-			BIOS_Settings.diagnosticsportoutput_breakpoint = DEFAULT_DIRECTMIDIMODE;
-			defaultsapplied = 1; //We've been applied!
-		}
-		if (bytesread < ((((ptrnum)&BIOS_Settings.BIOSROMmode) + sizeof(BIOS_Settings.BIOSROMmode)) - ((ptrnum)&BIOS_Settings))) //Needs defaults?
-		{
-			BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE;
-			defaultsapplied = 1; //We've been applied!
-		}
-	}
-
 	if (defaultsapplied) //To save, because defaults have been applied?
 	{
 		BIOS_SaveData(); //Save our Settings data!
 	}
 }
 
-
-
-
+byte saveBIOSCMOS(CMOSDATA *CMOS, char *section)
+{
+	word index;
+	char field[256];
+	if (!write_private_profile_int64(section,"TimeDivergeance_seconds",CMOS->timedivergeance,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_int64(section,"TimeDivergeance_microseconds",CMOS->timedivergeance2,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section,"s100",CMOS->s100,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section,"s10000",CMOS->s10000,BIOS_Settings_file)) return 0;
+	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
+	{
+		sprintf(field,"RAM%02X",index); //The field!
+		if (!write_private_profile_uint64(section,&field[0],CMOS->DATA80.data[index],BIOS_Settings_file)) return 0;
+	}
+	for (index=0;index<NUMITEMS(CMOS->extraRAMdata);++index) //Process extra RAM data!
+	{
+		sprintf(field,"extraRAM%02X",index); //The field!
+		if (!write_private_profile_uint64(section,&field[0],CMOS->extraRAMdata[index],BIOS_Settings_file)) return 0;
+	}
+	return 1; //Successfully written!
+}
 
 int BIOS_SaveData() //Save BIOS settings!
 {
 	if (__HW_DISABLED) return 1; //Abort!
-	uint_32 CheckSum = BIOS_getChecksum(); //CRC is over all but checksum!
 
-	size_t byteswritten;
-	FILE *f;
-	f = fopen(BIOS_Settings_file,"wb"); //Open for saving!
-	if (!f) //Not able to open?
-	{
-		return 0; //Failed to write!
-	}
+//General
+	if (!write_private_profile_uint64("general","version",BIOS_VERSION,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("general","firstrun",BIOS_Settings.firstrun,BIOS_Settings_file)) return 0; //Is this the first run of this BIOS?
+	if (!write_private_profile_uint64("general","settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
+
+	//Machine
+	if (!write_private_profile_uint64("machine","cpu",BIOS_Settings.emulated_CPU,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine","databussize",BIOS_Settings.DataBusSize,BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	if (!write_private_profile_uint64("machine","memory",BIOS_Settings.memory,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine","architecture",BIOS_Settings.architecture,BIOS_Settings_file)) return 0; //Are we using the XT/AT/PS/2 architecture?
+	if (!write_private_profile_uint64("machine","executionmode",BIOS_Settings.executionmode,BIOS_Settings_file)) return 0; //What mode to execute in during runtime?
+	if (!write_private_profile_uint64("machine","cpuspeed",BIOS_Settings.CPUSpeed,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine","showcpuspeed",BIOS_Settings.ShowCPUSpeed,BIOS_Settings_file)) return 0; //Show the relative CPU speed together with the framerate?
+	if (!write_private_profile_uint64("machine","turbocpuspeed",BIOS_Settings.TurboCPUSpeed,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine","useturbocpuspeed",BIOS_Settings.useTurboSpeed,BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
+	if (!write_private_profile_uint64("machine","BIOSROMmode",BIOS_Settings.BIOSROMmode,BIOS_Settings_file)) return 0; //BIOS ROM mode.
+	if (!write_private_profile_uint64("machine","inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
+
+	//Debugger
+	if (!write_private_profile_uint64("debugger","debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("debugger","debuggerlog",BIOS_Settings.debugger_log,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("debugger","logstates",BIOS_Settings.debugger_logstates,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
+	if (!write_private_profile_uint64("debugger","breakpoint",BIOS_Settings.breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_int64("debugger","diagnosticsport_breakpoint",BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
+	if (!write_private_profile_uint64("debugger","diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
+
+	//Video
+	if (!write_private_profile_uint64("video","videocard",BIOS_Settings.VGA_Mode,BIOS_Settings_file)) return 0; //Enable VGA NMI on precursors?
+	if (!write_private_profile_uint64("video","CGAmodel",BIOS_Settings.CGAModel,BIOS_Settings_file)) return 0; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	if (!write_private_profile_uint64("video","VRAM",BIOS_Settings.VRAM_size,BIOS_Settings_file)) return 0; //(S)VGA VRAM size!
+	if (!write_private_profile_uint64("video","synchronization",BIOS_Settings.VGASynchronization,BIOS_Settings_file)) return 0; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
+	if (!write_private_profile_uint64("video","directplot",BIOS_Settings.VGA_AllowDirectPlot,BIOS_Settings_file)) return 0; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	if (!write_private_profile_uint64("video","aspectratio",BIOS_Settings.aspectratio,BIOS_Settings_file)) return 0; //The aspect ratio to use?
+	if (!write_private_profile_uint64("video","bwmonitor",BIOS_Settings.bwmonitor,BIOS_Settings_file)) return 0; //Are we a b/w monitor?
+	if (!write_private_profile_uint64("video","showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?
+
+	//Sound
+	if (!write_private_profile_uint64("sound","speaker",BIOS_Settings.usePCSpeaker,BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
+	if (!write_private_profile_uint64("sound","adlib",BIOS_Settings.useAdlib,BIOS_Settings_file)) return 0; //Emulate Adlib?
+	if (!write_private_profile_uint64("sound","LPTDAC",BIOS_Settings.useLPTDAC,BIOS_Settings_file)) return 0; //Emulate Covox/Disney Sound Source?
+	if (!write_private_profile_string("sound","soundfont",&BIOS_Settings.SoundFont[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("sound","directmidi",BIOS_Settings.useDirectMIDI,BIOS_Settings_file)); //Use Direct MIDI synthesis by using a passthrough to the OS?
+	if (!write_private_profile_uint64("sound","gameblaster",BIOS_Settings.useGameBlaster,BIOS_Settings_file)) return 0; //Emulate Game Blaster?
+	if (!write_private_profile_uint64("sound","gameblastervolume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
+	if (!write_private_profile_uint64("sound","soundblaster",BIOS_Settings.useSoundBlaster,BIOS_Settings_file)) return 0; //Emulate Sound Blaster?
+	if (!write_private_profile_uint64("sound","soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
+
+	//Disks
+	if (!write_private_profile_string("disks","floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("disks","floppy0_readonly",BIOS_Settings.floppy0_readonly,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_string("disks","floppy1",&BIOS_Settings.floppy1[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("disks","floppy1_readonly",BIOS_Settings.floppy1_readonly,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_string("disks","hdd0",&BIOS_Settings.hdd0[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("disks","hdd0_readonly",BIOS_Settings.hdd0_readonly,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_string("disks","hdd1",&BIOS_Settings.hdd1[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("disks","hdd1_readonly",BIOS_Settings.hdd1_readonly,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_string("disks","cdrom0",&BIOS_Settings.cdrom0[0],BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_string("disks","cdrom1",&BIOS_Settings.cdrom1[0],BIOS_Settings_file)) return 0; //Read entry!
+
+	//BIOS
+	if (!write_private_profile_uint64("bios","bootorder",BIOS_Settings.bootorder,BIOS_Settings_file)) return 0;
+
+	//Input
+	if (!write_private_profile_uint64("input","analog_minrange",BIOS_Settings.input_settings.analog_minrange,BIOS_Settings_file)) return 0; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
+	if (!write_private_profile_uint64("input","keyboard_fontcolor",BIOS_Settings.input_settings.fontcolor,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input","keyboard_bordercolor",BIOS_Settings.input_settings.bordercolor,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input","keyboard_activecolor",BIOS_Settings.input_settings.activecolor,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input","keyboard_specialcolor",BIOS_Settings.input_settings.specialcolor,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input","keyboard_specialbordercolor",BIOS_Settings.input_settings.specialbordercolor,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input","keyboard_specialactivecolor",BIOS_Settings.input_settings.specialactivecolor,BIOS_Settings_file)) return 0;
 	
-	byteswritten = fwrite(&CheckSum,1,sizeof(CheckSum),f); //Write checksum for error checking!
-	if (byteswritten!=sizeof(CheckSum)) //Failed to save?
+	//Gamingmode
+	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
+	byte button;
+	char buttonstr[256];
+	memset(&buttonstr,0,sizeof(buttonstr)); //Init button string!
+	for (button=0;button<15;++button) //Process all buttons!
 	{
-		fclose(f); //Close!
-		return 0; //Failed to write!
+		sprintf(buttonstr,"gamingmode_map_%s_key",buttons[button]);
+		if (!write_private_profile_int64("gamingmode",buttonstr,BIOS_Settings.input_settings.keyboard_gamemodemappings[button],BIOS_Settings_file)) return 0;
+		sprintf(buttonstr,"gamingmode_map_%s_shiftstate",buttons[button]);
+		if (!write_private_profile_uint64("gamingmode",buttonstr,BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[button],BIOS_Settings_file)) return 0;
+		sprintf(buttonstr,"gamingmode_map_%s_mousebuttons",buttons[button]);
+		if (!write_private_profile_uint64("gamingmode",buttonstr,BIOS_Settings.input_settings.mouse_gamemodemappings[button],BIOS_Settings_file)) return 0;
 	}
 
-	byteswritten = fwrite(&BIOS_Settings,1,sizeof(BIOS_Settings),f); //Write data!
-	if (byteswritten!=sizeof(BIOS_Settings)) //Failed to save?
-	{
-		fclose(f); //Close!
-		return 0; //Failed to write!
-	}
+	if (!write_private_profile_uint64("gamingmode","joystick",BIOS_Settings.input_settings.gamingmode_joystick,BIOS_Settings_file)) return 0; //Use the joystick input instead of mapped input during gaming mode?
 
-	fclose(f); //Close!
+	//PrimaryCMOS
+	if (!write_private_profile_uint64("primaryCMOS","gotCMOS",BIOS_Settings.got_CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS")) return 0; //Load the CMOS from the file!
+
+	//CompaqCMOS
+	if (!write_private_profile_uint64("CompaqCMOS","gotCMOS",BIOS_Settings.got_CompaqCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS")) return 0; //The full saved CMOS!
+
+	//Fully written!
 	return 1; //BIOS Written & saved successfully!
 }
 
