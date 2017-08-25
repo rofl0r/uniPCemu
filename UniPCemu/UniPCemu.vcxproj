@@ -174,6 +174,7 @@
     <ClCompile Include="support\fifobuffer.c" />
     <ClCompile Include="support\filters.c" />
     <ClCompile Include="support\highrestimer.c" />
+    <ClCompile Include="support\iniparser.c" />
     <ClCompile Include="support\isoreader.c" />
     <ClCompile Include="support\lba.c" />
     <ClCompile Include="support\locks.c" />
@@ -316,6 +317,7 @@
     <ClInclude Include="headers\support\fifobuffer.h" />
     <ClInclude Include="headers\support\filters.h" />
     <ClInclude Include="headers\support\highrestimer.h" />
+    <ClInclude Include="headers\support\iniparser.h" />
     <ClInclude Include="headers\support\isoreader.h" />
     <ClInclude Include="headers\support\keyboard.h" />
     <ClInclude Include="headers\support\lba.h" />

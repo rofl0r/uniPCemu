@@ -158,6 +158,9 @@ OBJS += support/dro.o
 #TCP connection support!
 OBJS += support/tcphelper.o
 
+#INI file support!
+OBJS += support/iniparser.o
+
 #UART
 OBJS += hardware/uart.o
 
