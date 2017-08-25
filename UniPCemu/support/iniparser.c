@@ -10,13 +10,14 @@
 * Returns:      TRUE if successful FALSE otherwise
 ******************************************************************/
 int read_line(FILE *fp, char *bp)
-{   int c = (int)'\0';
+{
+	int c = (int)'\0';
     int i = 0;
     /* Read one line from the source file */
     while( (c = getc(fp)) != '\n' )
     {   if( c == EOF )         /* return FALSE on unexpected EOF */
             return(0);
-        bp[i++] = (char)c;
+		bp[i++] = (char)c;
     }
     bp[i] = '\0';
     return(1);
