@@ -1084,7 +1084,7 @@ void cleanModem()
 	//Nothing to do!
 }
 
-void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
+void updateModem(double timepassed) //Sound tick. Executes every instruction.
 {
 	byte datatotransmit;
 	modem.timer += timepassed; //Add time to the timer!
