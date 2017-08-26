@@ -48,7 +48,7 @@ void initTCP() //Initialize us!
 	*/
 }
 
-byte TCP_ConnectServer()
+byte TCP_ConnectServer(word port)
 {
 #ifdef GOTNET
 	Server_READY = 0; //Not ready by default!
@@ -57,6 +57,7 @@ byte TCP_ConnectServer()
 		return 0; //Fail automatically!
 	}
 	IPaddress ip;
+	SERVER_PORT = port;
 	if(SDLNet_ResolveHost(&ip, NULL, SERVER_PORT) == -1) {
 		//fprintf(stderr, "ER: SDLNet_ResolveHost: %s\n", SDLNet_GetError());
 		return 0; //Failed!

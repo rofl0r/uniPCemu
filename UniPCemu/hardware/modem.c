@@ -5,20 +5,25 @@
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/bios/bios.h" //BIOS support!
+#include "headers/support/tcphelper.h" //TCP support!
 
 #define MODEM_BUFFERSIZE 256
 
 struct
 {
 	byte supported; //Are we supported?
-	FIFOBUFFER *buffer; //The input buffer!
+	FIFOBUFFER *inputbuffer; //The input buffer!
+	FIFOBUFFER *inputdatabuffer; //The input buffer, data mode only!
+	FIFOBUFFER *outputbuffer; //The output buffer!
 	byte datamode; //1=Data mode, 0=Command mode!
 	byte connected; //Are we connected?
+	word connectionport; //What port to connect to by default?
 	byte previousATCommand[256]; //Copy of the command for use with "A/" command!
 	byte ATcommand[256];
 	word ATcommandsize; //The amount of data sent!
 	byte escaping; //Are we trying to escape?
 	double timer; //A timer for detecting timeout!
+	double ringtimer; //Ringing timer!
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -57,14 +62,28 @@ struct
 	byte linechanges; //For detecting line changes!
 } modem;
 
-void modem_sendData(byte value) //Send data to the connected device!
+byte modem_sendData(byte value) //Send data to the connected device!
 {
 	//Handle sent data!
+	return writefifobuffer(modem.outputbuffer,value); //Try to write to the output buffer!
 }
 
 byte modem_connect(char *phonenumber)
 {
-	return 0; //We cannot connect yet!
+	if (modem.ringing && (phonenumber==NULL)) //Are we ringing and accepting it?
+	{
+		modem.ringing = 0; //Not ringing anymore!
+		return 1; //Accepted!
+	}
+	else if (phonenumber==NULL) //Not ringing, but accepting?
+	{
+		return 0; //Not connected!
+	}
+	if (TCP_ConnectClient(phonenumber,modem.connectionport)) //Connected on the port specified?
+	{
+		return 1; //We're connected!
+	}
+	return 0; //We've failed to connect!
 }
 
 void modem_updateRegister(byte reg)
@@ -193,7 +212,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 byte modem_hasData() //Do we have data for input?
 {
 	byte temp;
-	return (peekfifobuffer(modem.buffer, &temp)&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
+	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer,&temp) && (modem.datamode==1)))&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
 }
 
 byte modem_getstatus()
@@ -205,13 +224,23 @@ byte modem_getstatus()
 byte modem_readData()
 {
 	byte result,emptycheck;
-	if (readfifobuffer(modem.buffer, &result))
+	if (modem.datamode!=1) //Not data mode?
 	{
-		if ((modem.datamode==2) && (!peekfifobuffer(modem.buffer,&emptycheck))) //Became ready to transfer data?
+		if (readfifobuffer(modem.inputbuffer, &result))
 		{
-			modem.datamode = 1; //Become ready to send!
+			if ((modem.datamode==2) && (!peekfifobuffer(modem.inputbuffer,&emptycheck))) //Became ready to transfer data?
+			{
+				modem.datamode = 1; //Become ready to send!
+			}
+			return result; //Give the data!
 		}
-		return result; //Give the data!
+	}
+	if (modem.datamode==1) //Data mode?
+	{
+		if (readfifobuffer(modem.inputdatabuffer, &result))
+		{
+			return result; //Give the data!
+		}
 	}
 	return 0; //Nothing to give!
 }
@@ -231,17 +260,17 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	lengthtosend = strlen(s); //How long to send!
 	if (usecarriagereturn&1)
 	{
-		writefifobuffer(modem.buffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.buffer,modem.linefeedcharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 	for (i=0;i<lengthtosend;) //Process all data to send!
 	{
-		writefifobuffer(modem.buffer,s[i++]); //Send the character!
+		writefifobuffer(modem.inputbuffer,s[i++]); //Send the character!
 	}
 	if (usecarriagereturn&2)
 	{
-		writefifobuffer(modem.buffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.buffer,modem.linefeedcharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 }
 void modem_nrcpy(char *s, word size, word nr)
@@ -283,7 +312,7 @@ void modem_responseNumber(byte x)
 	}
 	else
 	{
-		writefifobuffer(modem.buffer,x); //Code variant instead!
+		writefifobuffer(modem.inputbuffer,x); //Code variant instead!
 	}
 }
 
@@ -489,6 +518,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					//if ((n0==0) && modem.offhook)
 					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
+					if (modem.connected) //Disconnected?
+					{
+						TCP_DisconnectClientServer(); //Disconnect!
+						modem.connected = 0; //Not connected anymore!
+					}
 					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
 				else
@@ -995,23 +1029,40 @@ void initModem(byte enabled) //Initialise modem!
 			modem.supported = 0; //Unsupported!
 			goto unsupportedUARTModem;
 		}
-		modem.buffer = allocfifobuffer(256,1); //Small input buffer!
-		UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
-		resetModem(0); //Reset the modem to the default state!
+		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
+		modem.outputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
+		if (modem.inputbuffer && modem.outputbuffer) //Gotten buffers?
+		{
+			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
+			resetModem(0); //Reset the modem to the default state!
+			modem.connectionport = 23; //Default port to connect to if unspecified!
+			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
+		}
+		else
+		{
+			if (modem.inputbuffer) free_fifobuffer(&modem.inputbuffer);
+			if (modem.outputbuffer) free_fifobuffer(&modem.outputbuffer);
+		}
 	}
 	else
 	{
 		unsupportedUARTModem: //Unsupported!
-		modem.buffer = NULL; //No buffer present!
+		modem.inputbuffer = NULL; //No buffer present!
+		modem.outputbuffer = NULL; //No buffer present!
 	}
 }
 
 void doneModem() //Finish modem!
 {
-	if (modem.buffer) //Allocated?
+	if (modem.inputbuffer) //Allocated?
 	{
-		free_fifobuffer(&modem.buffer); //Free our buffer!
+		free_fifobuffer(&modem.inputbuffer); //Free our buffer!
 	}
+	if (modem.outputbuffer) //Allocated?
+	{
+		free_fifobuffer(&modem.outputbuffer); //Free our buffer!
+	}
+	TCP_DisconnectClientServer(); //Disconnect, if needed!
 }
 
 void cleanModem()
@@ -1043,6 +1094,78 @@ void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
 					--modem.escaping;
 					modem_sendData(modem.escapecharacter); //Send the escaped data!
 				}
+			}
+		}
+	}
+
+	if (acceptTCPServer()) //Are we connected to?
+	{
+		if ((modem.linechanges&1)==0) //Not able to accept?
+		{
+			TCP_DisconnectClientServer(); //Disconnect: don't accept!
+		}
+		else //Able to accept?
+		{
+			modem.ringing = 1; //We start ringing!
+			modem.registers[1] = 0; //Reset ring counter!
+			modem.ringtimer = 3000000000.0; //3s timer!
+		}
+	}
+
+	if (modem.ringing) //Are we ringing?
+	{
+		modem.ringtimer -= timepassed; //Time!
+		if (modem.ringtimer<=0.0) //Timed out?
+		{
+			++modem.registers[1]; //Increase timer!
+			if ((modem.registers[0]>0) && (modem.registers[0]>modem.registers[1])) //Autoanswer?
+			{
+				if (modem_connect(NULL)) //Accept incoming call?
+				{
+					return; //Abort: not ringing anymore!
+				}
+			}
+			modem_responseResult(MODEMRESULT_RING); //We're ringing!
+			modem.ringing = 0; //We're not ringing anymore!
+			modem.ringtimer += 3000000000.0; //3s timer!
+		}
+	}
+
+	if (modem.connected) //Are we connected?
+	{
+		byte datatotransmit;
+		if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
+		{
+			switch (TCP_SendData(datatotransmit)) //Send the data?
+			{
+				case 0: //Failed to send?
+					break; //Abort!
+				case 1: //Sent?
+					readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
+					break;
+				case -1: //Disconnected?
+					modem.connected = 0; //Not connected anymore!
+					TCP_DisconnectClientServer(); //Disconnect us!
+					TCP_ConnectServer(modem.connectionport); //Restart server!
+					break;
+			}
+		}
+		if (fifobuffer_freesize(modem.inputdatabuffer)) //Free to receive?
+		{
+			switch (TCP_ReceiveData(&datatotransmit))
+			{
+				case 0: //Nothing received?
+					break;
+				case 1: //Something received?
+					writefifobuffer(modem.inputdatabuffer,datatotransmit); //Add the transmitted data to the input buffer!
+					break;
+				case -1: //Disconnected?
+					modem.connected = 0; //Not connected anymore!
+					TCP_DisconnectClientServer(); //Disconnect us!
+					TCP_ConnectServer(modem.connectionport); //Restart server!
+					break;
+				default: //Unknown function?
+					break;
 			}
 		}
 	}
