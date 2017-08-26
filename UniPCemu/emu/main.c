@@ -30,6 +30,8 @@
 
 #include "headers/mmu/mmuhandler.h" //hasmemory support!
 
+#include "headers/support/tcphelper.h" //TCP support!
+
 #ifdef IS_PSP
 #include <psppower.h> //PSP power support for clock speed!
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER); //Make sure we're user mode!
@@ -323,6 +325,8 @@ int main(int argc, char * argv[])
 	{
 		exit(1); //Just to be sure
 	}
+
+	initTCP(); //Initialize TCP support!
 
 	RDP = 0; //Default: normal!
 
