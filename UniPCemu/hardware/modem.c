@@ -1139,14 +1139,14 @@ void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
 			switch (TCP_SendData(datatotransmit)) //Send the data?
 			{
 				case 0: //Failed to send?
+					modem.connected = 0; //Not connected anymore!
+					TCP_DisconnectClientServer(); //Disconnect us!
+					TCP_ConnectServer(modem.connectionport); //Restart server!
 					break; //Abort!
 				case 1: //Sent?
 					readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
 					break;
-				case -1: //Disconnected?
-					modem.connected = 0; //Not connected anymore!
-					TCP_DisconnectClientServer(); //Disconnect us!
-					TCP_ConnectServer(modem.connectionport); //Restart server!
+				default: //Unknown function?
 					break;
 			}
 		}
