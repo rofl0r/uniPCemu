@@ -5,11 +5,14 @@
 #define NET_LOGFILE "net"
 
 #if defined(SDL_NET) || defined(SDL2_NET)
+#if defined(SDL2) && defined(SDL2_NET)
 #define GOTNET
-#ifdef SDL2
 #include "SDL_net.h" //SDL2 NET support!
 #else
+#ifdef SDL_NET
+#define GOTNET
 #include "SDL_net.h"
+#endif
 #endif
 #endif
 
@@ -107,7 +110,7 @@ byte acceptTCPServer() //Update anything needed on the TCP server!
 	if (Server_READY==0) return 0; //Not ready!
 	if (TCP_connected) return 0; //Don't allow incoming connections if we're already connected!
 	TCPsocket new_tcpsock;
-	new_tcpsock=SDLNet_TCP_Accept(mysock);
+	new_tcpsock=SDLNet_TCP_Accept(server_socket);
 	if(!new_tcpsock) {
 		//printf("SDLNet_TCP_Accept: %s\n", SDLNet_GetError());
 		return 0;
