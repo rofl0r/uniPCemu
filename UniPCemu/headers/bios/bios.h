@@ -79,6 +79,7 @@ typedef struct PACKED
 	CMOSDATA CompaqCMOS; //The full saved CMOS!
 	byte got_CompaqCMOS; //Gotten an CMOS?
 	byte InboardInitialWaitstates; //Inboard 386 initial delay used?
+	word modemlistenport; //What port does the modem need to listen on?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -185,6 +186,7 @@ enum BIOSROMMode {
 #define DEFAULT_BREAKPOINT 0
 #define DEFAULT_BIOSROMMODE BIOSROMMODE_NORMAL
 #define DEFAULT_INBOARDINITIALWAITSTATES 0
+#define DEFAULT_MODEMLISTENPORT 23
 
 //Breakpoint helper constants
 //2-bit mode(0=Disabled, 1=Real, 2=Protected, 3=Virtual 8086)

@@ -79,7 +79,7 @@ byte modem_connect(char *phonenumber)
 	{
 		return 0; //Not connected!
 	}
-	if (TCP_ConnectClient(phonenumber,modem.connectionport)) //Connected on the port specified?
+	if (TCP_ConnectClient(phonenumber,modem.connectionport)) //Connected on the port specified(use the server port by default)?
 	{
 		return 1; //We're connected!
 	}
@@ -1015,7 +1015,7 @@ void modem_writeData(byte value)
 	}
 }
 
-
+extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 
 void initModem(byte enabled) //Initialise modem!
 {
@@ -1035,7 +1035,11 @@ void initModem(byte enabled) //Initialise modem!
 		{
 			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
 			resetModem(0); //Reset the modem to the default state!
-			modem.connectionport = 23; //Default port to connect to if unspecified!
+			modem.connectionport = BIOS_Settings.modemlistenport; //Default port to connect to if unspecified!
+			if (modem.connectionport==0) //Invalid?
+			{
+				modem.connectionport = 23; //Telnet port by default!
+			}
 			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
 		}
 		else

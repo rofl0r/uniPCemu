@@ -444,6 +444,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.diagnosticsportoutput_timeout = DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT; //Default breakpoint setting!
 	BIOS_Settings.useDirectMIDI = DEFAULT_DIRECTMIDIMODE; //Default breakpoint setting!
 	BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE; //Default BIOS ROM mode setting!
+	BIOS_Settings.modemlistenport = DEFAULT_MODEMLISTENPORT; //Default modem listen port!
 	
 	BIOS_Settings.version = BIOS_VERSION; //Current version loaded!
 	keyboard_loadDefaults(); //Load the defaults for the keyboard!
@@ -574,6 +575,9 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound","gameblaster_volume",100,BIOS_Settings_file); //The Game Blaster volume knob!
 	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",0,BIOS_Settings_file); //Emulate Sound Blaster?
 	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound","soundsource_volume",DEFAULT_SSOURCEVOL,BIOS_Settings_file); //The sound source volume knob!
+
+	//Modem
+	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem","listenport",DEFAULT_MODEMLISTENPORT,BIOS_Settings_file); //Modem listen port!
 
 	//Disks
 	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0)-1,BIOS_Settings_file); //Read entry!
@@ -766,6 +770,13 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster_volume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundblaster",BIOS_Settings.useSoundBlaster,BIOS_Settings_file)) return 0; //Emulate Sound Blaster?
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
+
+	//Modem
+	char modem_comment[4096] = ""; //Sound comment!
+	strcat(modem_comment,"listenport: listen port to listen on when not connected(defaults to 23)\n");
+	char *modem_commentused=NULL;
+	if (modem_comment[0]) modem_commentused = &modem_comment[0];
+	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
 
 	//Disks
 	char disks_comment[4096] = ""; //Disks comment!
