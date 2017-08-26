@@ -169,6 +169,7 @@ byte TCP_SendData(byte data)
 sbyte TCP_ReceiveData(byte *result)
 {
 #ifdef GOTNET
+	if (!TCP_connected) return -1; //Not connected?
 	if(SDLNet_CheckSockets(listensocketset,0))
 	{
 		byte retval=0;
