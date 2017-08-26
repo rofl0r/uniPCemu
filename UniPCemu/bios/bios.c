@@ -571,7 +571,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	get_private_profile_string("sound","soundfont","",&BIOS_Settings.SoundFont[0],sizeof(BIOS_Settings.SoundFont)-1,BIOS_Settings_file); //Read entry!
 	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound","directmidi",DEFAULT_DIRECTMIDIMODE,BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
 	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound","gameblaster",1,BIOS_Settings_file); //Emulate Game Blaster?
-	BIOS_Settings.GameBlaster_Volume = (byte)get_private_profile_uint64("sound","gameblastervolume",100,BIOS_Settings_file); //The Game Blaster volume knob!
+	BIOS_Settings.GameBlaster_Volume = (byte)get_private_profile_uint64("sound","gameblaster_volume",100,BIOS_Settings_file); //The Game Blaster volume knob!
 	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",0,BIOS_Settings_file); //Emulate Sound Blaster?
 	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound","soundsource_volume",DEFAULT_SSOURCEVOL,BIOS_Settings_file); //The sound source volume knob!
 
@@ -661,6 +661,10 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	return 1; //Successfully written!
 }
 
+extern char BOOT_ORDER_STRING[15][30]; //Boot order, string values!
+
+extern char colors[0x10][15]; //All 16 colors!
+
 int BIOS_SaveData() //Save BIOS settings!
 {
 	if (__HW_DISABLED) return 1; //Abort!
@@ -668,7 +672,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	unlink(BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
 
 	//General
-	char general_comment[256] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
+	char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
 	char *general_commentused=NULL;
 	if (general_comment[0]) general_commentused = &general_comment[0];
 	if (!write_private_profile_uint64("general",general_commentused,"version",BIOS_VERSION,BIOS_Settings_file)) return 0;
@@ -676,7 +680,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("general",general_commentused,"settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 
 	//Machine
-	char machine_comment[256] = ""; //Machine comment!
+	char machine_comment[4096] = ""; //Machine comment!
 	strcat(machine_comment,"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486\n");
 	strcat(machine_comment,"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
 	strcat(machine_comment,"memory: memory size in bytes\n");
@@ -703,7 +707,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("machine",machine_commentused,"inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 
 	//Debugger
-	char debugger_comment[256] = ""; //Debugger comment!
+	char debugger_comment[4096] = ""; //Debugger comment!
 	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
 	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified\n");
 	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
@@ -720,7 +724,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
 
 	//Video
-	char video_comment[256] = ""; //Video comment!
+	char video_comment[4096] = ""; //Video comment!
 	strcat(video_comment,"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
 	strcat(video_comment,"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
 	strcat(video_comment,"VRAM: Ammount of VRAM installed, in bytes\n");
@@ -741,7 +745,16 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("video",video_commentused,"showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?
 
 	//Sound
-	char sound_comment[256] = ""; //Sound comment!
+	char sound_comment[4096] = ""; //Sound comment!
+	strcat(sound_comment,"speaker: 0=Disabled, 1=Enabled\n");
+	strcat(sound_comment,"adlib: 0=Disabled, 1=Enabled\n");
+	strcat(sound_comment,"LPTDAC: 0=Disabled, 1=Enabled\n");
+	strcat(sound_comment,"soundfont: The path to the soundfont file. Empty for none.\n");
+	strcat(sound_comment,"directmidi: 0=Disabled, 1=Enabled\n");
+	strcat(sound_comment,"gameblaster: 0=Disabled, 1=Enabled\n");
+	strcat(sound_comment,"gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
+	strcat(sound_comment,"soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
+	strcat(sound_comment,"soundsource_volume: Volume of the sound source, in percent(>=0)");
 	char *sound_commentused=NULL;
 	if (sound_comment[0]) sound_commentused = &sound_comment[0];
 	if (!write_private_profile_uint64("sound",sound_commentused,"speaker",BIOS_Settings.usePCSpeaker,BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
@@ -750,12 +763,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_string("sound",sound_commentused,"soundfont",&BIOS_Settings.SoundFont[0],BIOS_Settings_file)) return 0; //Read entry!
 	if (!write_private_profile_uint64("sound",sound_commentused,"directmidi",BIOS_Settings.useDirectMIDI,BIOS_Settings_file)); //Use Direct MIDI synthesis by using a passthrough to the OS?
 	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster",BIOS_Settings.useGameBlaster,BIOS_Settings_file)) return 0; //Emulate Game Blaster?
-	if (!write_private_profile_uint64("sound",sound_commentused,"gameblastervolume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
+	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster_volume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundblaster",BIOS_Settings.useSoundBlaster,BIOS_Settings_file)) return 0; //Emulate Sound Blaster?
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
 
 	//Disks
-	char disks_comment[256] = ""; //Disks comment!
+	char disks_comment[4096] = ""; //Disks comment!
+	strcat(disks_comment,"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
+	strcat(disks_comment,"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only");
 	char *disks_commentused=NULL;
 	if (disks_comment[0]) disks_commentused = &disks_comment[0];
 	if (!write_private_profile_string("disks",disks_commentused,"floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
@@ -770,13 +785,35 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_string("disks",disks_commentused,"cdrom1",&BIOS_Settings.cdrom1[0],BIOS_Settings_file)) return 0; //Read entry!
 
 	//BIOS
-	char bios_comment[256] = ""; //BIOS comment!
+	char bios_comment[4096] = ""; //BIOS comment!
+	char currentstr[4096] = ""; //Current boot order to dump!
+	strcat(bios_comment,"bootorder: The boot order of the internal BIOS:\n");
+	byte currentitem;
+	for (currentitem=0;currentitem<NUMITEMS(BOOT_ORDER_STRING);++currentitem)
+	{
+		sprintf(currentstr,"%i=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
+		strcat(bios_comment,currentstr); //Add the string!
+	}
 	char *bios_commentused=NULL;
 	if (bios_comment[0]) bios_commentused = &bios_comment[0];
 	if (!write_private_profile_uint64("bios",bios_commentused,"bootorder",BIOS_Settings.bootorder,BIOS_Settings_file)) return 0;
 
 	//Input
-	char input_comment[256] = ""; //Input comment!
+	char input_comment[4096] = ""; //Input comment!
+	strcat(input_comment,"analog_minrange: Minimum range for the analog stick to repond. 0-255\n");
+	strcat(input_comment,"Color codes are as follows:");
+	for (currentitem=0;currentitem<0x10;++currentitem)
+	{
+		sprintf(currentstr,"\n%i=%s",currentitem,colors[currentitem]); //A description of all colors!
+		strcat(input_comment,currentstr); //Add the string!
+	}
+	strcat(input_comment,"\n\n"); //Empty line!
+	strcat(input_comment,"keyboard_fontcolor: font color for the (PSP) OSK.\n");
+	strcat(input_comment,"keyboard_bordercolor: border color for the (PSP) OSK.\n");
+	strcat(input_comment,"keyboard_activecolor: active color for the (PSP) OSK. Also color of pressed keys on the touch OSK.\n");
+	strcat(input_comment,"keyboard_specialcolor: font color for the LEDs.\n");
+	strcat(input_comment,"keyboard_specialbordercolor: border color for the LEDs.\n");
+	strcat(input_comment,"keyboard_specialactivecolor: active color for the LEDs.\n");
 	char *input_commentused=NULL;
 	if (input_comment[0]) input_commentused = &input_comment[0];
 	if (!write_private_profile_uint64("input",input_commentused,"analog_minrange",BIOS_Settings.input_settings.analog_minrange,BIOS_Settings_file)) return 0; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
@@ -788,7 +825,24 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialactivecolor",BIOS_Settings.input_settings.specialactivecolor,BIOS_Settings_file)) return 0;
 	
 	//Gamingmode
-	char gamingmode_comment[256] = ""; //Gamingmode comment!
+	char gamingmode_comment[4096] = ""; //Gamingmode comment!
+	char currentkey[4096] = "";
+	memset(&currentkey,0,sizeof(currentkey)); //Init!
+	for (currentitem=0;currentitem<104;++currentitem) //Give translations for all keys!
+	{
+		strcpy(currentstr,""); //Init current string!
+		strcpy(currentkey,""); //Init current string!
+		if (EMU_keyboard_handler_idtoname(currentitem,&currentkey[0])) //Name retrieved?
+		{
+			sprintf(currentstr,"Key number %i is %s\n",currentitem,currentkey); //Generate a key row!
+			strcat(gamingmode_comment,currentstr); //Add the key to the list!
+		}
+	}
+	strcat(gamingmode_comment,"gamingmode_map_[key]_key: The key to be mapped. -1 for unmapped. Otherwise, the key number(0-103)\n");
+	sprintf(currentstr,"gamingmode_map_[key]_shiftstate: The summed state of ctrl/alt/shift keys to be pressed. %i=Ctrl, %i=Alt, %i=Shift. 0/empty=None.\n",SHIFTSTATUS_CTRL,SHIFTSTATUS_ALT,SHIFTSTATUS_SHIFT);
+	strcat(gamingmode_comment,currentstr);
+	strcat(gamingmode_comment,"gamingmode_map_[key]_mousebuttons: The summed state of mouse buttons to be pressed(0=None pressed, 1=Left, 2=Right, 4=Middle).\n");
+	strcat(gamingmode_comment,"joystick: 0=Normal gaming mode mapped input, 1=Joystick, Cross=Button 1, Circle=Button 2, 2=Joystick, Cross=Button 2, Circle=Button 1, 3=Joystick, Gravis Gamepad, 4=Joystick, Gravis Analog Pro, 5=Joystick, Logitech WingMan Extreme Digital");
 	char *gamingmode_commentused=NULL;
 	if (gamingmode_comment[0]) gamingmode_commentused = &gamingmode_comment[0];
 	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
@@ -808,18 +862,22 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,"joystick",BIOS_Settings.input_settings.gamingmode_joystick,BIOS_Settings_file)) return 0; //Use the joystick input instead of mapped input during gaming mode?
 
 	//PrimaryCMOS
-	char primarycmos_comment[256] = ""; //PrimaryCMOS comment!
-	char *primarycmos_commentused=NULL;
-	if (primarycmos_comment[0]) primarycmos_commentused = &primarycmos_comment[0];
-	if (!write_private_profile_uint64("primaryCMOS",primarycmos_commentused,"gotCMOS",BIOS_Settings.got_CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
-	if (!saveBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS",primarycmos_commentused)) return 0; //Load the CMOS from the file!
+	char cmos_comment[4096] = ""; //PrimaryCMOS comment!
+	strcat(cmos_comment,"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
+	strcat(cmos_comment,"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
+	strcat(cmos_comment,"TimeDivergeance_microseconds: Time to be added to get the emulated time, in microseconds.\n");
+	strcat(cmos_comment,"s100: 100th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
+	strcat(cmos_comment,"s10000: 10000th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
+	strcat(cmos_comment,"RAM[hexnumber]: The contents of the CMOS RAM location(0-255)\n");
+	strcat(cmos_comment,"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
+	char *cmos_commentused=NULL;
+	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
+	if (!write_private_profile_uint64("primaryCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
 
 	//CompaqCMOS
-	char compaqcmos_comment[256] = ""; //CompaqCMOS comment!
-	char *compaqcmos_commentused=NULL;
-	if (compaqcmos_comment[0]) compaqcmos_commentused = &compaqcmos_comment[0];
-	if (!write_private_profile_uint64("CompaqCMOS",compaqcmos_commentused,"gotCMOS",BIOS_Settings.got_CompaqCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
-	if (!saveBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS",primarycmos_commentused)) return 0; //The full saved CMOS!
+	if (!write_private_profile_uint64("CompaqCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_CompaqCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS",cmos_commentused)) return 0; //The full saved CMOS!
 
 	//Fully written!
 	return 1; //BIOS Written & saved successfully!
