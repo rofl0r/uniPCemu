@@ -108,7 +108,7 @@ int_64 get_private_profile_int64(char *section,
 		}
     value[length] = '\0';
 	LONG64SPRINTF result;
-	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
+	if (sscanf(&value[0],LONGLONGSPRINTF,&result)==1) //Convert to our result!
 	{
 		return result*(isnegative?-1:1); //Give the result!
 	}
@@ -133,7 +133,7 @@ uint_64 get_private_profile_uint64(char *section,
     for(i = 0; isdigit(value[i]); i++ ); //Scan until invalid characters!
     value[i] = '\0';
 	LONG64SPRINTF result;
-	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
+	if (sscanf(&value[0],LONGLONGSPRINTF,&result)==1) //Convert to our result!
 	{
 		return result; //Give the result!
 	}
