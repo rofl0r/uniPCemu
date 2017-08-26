@@ -7,7 +7,7 @@
  Header file containing prototypes and compile-time configuration.
 ***************************************************************************/
 
-#define MAX_LINE_LENGTH    256
+#define MAX_LINE_LENGTH    4096
 
 int_64 get_private_profile_int64(char *section,
     char *entry, int_64 def, char *file_name);

@@ -15,7 +15,9 @@ int read_line(FILE *fp, char *bp)
     int i = 0;
     /* Read one line from the source file */
     while( (c = getc(fp)) != '\n' )
-    {   if( c == EOF )         /* return FALSE on unexpected EOF */
+    {
+		if (i>(MAX_LINE_LENGTH-1)) return (-1); //Overflow detected!
+		if( c == EOF )         /* return FALSE on unexpected EOF */
             return(0);
 		bp[i++] = (char)c;
     }
@@ -46,7 +48,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
     do
     {
 		commentline: //Skip a comment line!
-		if( !read_line(fp,buff) )
+		if( (read_line(fp,buff)<=0) )
         {   fclose(fp);
             strncpy(buffer,def,buffer_len);
             return(strlen(buffer));
@@ -60,7 +62,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
     /* Now that the section has been found, find the entry.
      * Stop searching upon leaving the section's area. */
     do
-    {   if( !read_line(fp,buff) || buff[0] == '\0' )
+    {   if( (read_line(fp,buff)<=0) || buff[0] == '\0' )
         {   fclose(fp);
             strncpy(buffer,def,buffer_len);
             return(strlen(buffer));
@@ -206,7 +208,7 @@ int write_private_profile_string(char *section, char *section_comment,
      * matched or until EOF. Copy to temp file as it is read. */
 
     do
-    {   if( !read_line(rfp,buff) )
+    {   if( (read_line(rfp,buff)<=0) )
         {   /* Failed to find section, so add one to the end */
             fprintf(wfp,"\n%s\n",t_section);
 			writesectioncomment(section_comment,wfp); //Write the comment!
@@ -224,9 +226,11 @@ int write_private_profile_string(char *section, char *section_comment,
     /* Now that the section has been found, find the entry. Stop searching
      * upon leaving the section's area. Copy the file as it is read
      * and create an entry if one is not found.  */
-    while( 1 )
-    {   if( !read_line(rfp,buff) )
-        {   /* EOF without an entry so make one */
+    for (;;)
+    { 
+		if( (read_line(rfp,buff)<=0) )
+        {
+		    /* EOF without an entry so make one */
             fprintf(wfp,"%s=%s\n",entry,buffer);
             /* Clean up and rename */
             fclose(rfp);
@@ -247,11 +251,11 @@ int write_private_profile_string(char *section, char *section_comment,
         do
         {
             fprintf(wfp,"%s\n",buff);
-        } while( read_line(rfp,buff) );
+        } while( (read_line(rfp,buff)>0) );
     }
     else
     {   fprintf(wfp,"%s=%s\n",entry,buffer);
-        while( read_line(rfp,buff) )
+        while( (read_line(rfp,buff)>0) )
         {
              fprintf(wfp,"%s\n",buff);
         }
