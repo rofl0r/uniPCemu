@@ -9,6 +9,9 @@
 
 #define MODEM_BUFFERSIZE 256
 
+#define MODEM_SERVERPOLLFREQUENCY 1000
+#define MODEM_DATATRANSFERFREQUENCY 12000
+
 struct
 {
 	byte supported; //Are we supported?
@@ -24,6 +27,11 @@ struct
 	byte escaping; //Are we trying to escape?
 	double timer; //A timer for detecting timeout!
 	double ringtimer; //Ringing timer!
+	double serverpolltimer; //Network connection request timer!
+	double networkdatatimer; //Network connection request timer!
+
+	double serverpolltick; //How long it takes!
+	double networkpolltick;
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -1041,6 +1049,8 @@ void initModem(byte enabled) //Initialise modem!
 				modem.connectionport = 23; //Telnet port by default!
 			}
 			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
+			modem.serverpolltick = (1000000000.0/(double)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
+			modem.networkpolltick = (1000000000.0/(double)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
 		}
 		else
 		{
@@ -1076,6 +1086,7 @@ void cleanModem()
 
 void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
 {
+	byte datatotransmit;
 	modem.timer += timepassed; //Add time to the timer!
 	if (modem.datamode && modem.escaping) //Data mode and escapes buffered?
 	{
@@ -1102,17 +1113,22 @@ void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
 		}
 	}
 
-	if (acceptTCPServer()) //Are we connected to?
+	modem.serverpolltimer += timepassed;
+	if ((modem.serverpolltimer>=modem.serverpolltick) && modem.serverpolltick) //To poll?
 	{
-		if ((modem.linechanges&1)==0) //Not able to accept?
+		modem.serverpolltimer = fmod(modem.serverpolltimer,modem.serverpolltick); //Polling once every turn!
+		if (acceptTCPServer()) //Are we connected to?
 		{
-			TCP_DisconnectClientServer(); //Disconnect: don't accept!
-		}
-		else //Able to accept?
-		{
-			modem.ringing = 1; //We start ringing!
-			modem.registers[1] = 0; //Reset ring counter!
-			modem.ringtimer = 3000000000.0; //3s timer!
+			if ((modem.linechanges&1)==0) //Not able to accept?
+			{
+				TCP_DisconnectClientServer(); //Disconnect: don't accept!
+			}
+			else //Able to accept?
+			{
+				modem.ringing = 1; //We start ringing!
+				modem.registers[1] = 0; //Reset ring counter!
+				modem.ringtimer = 3000000000.0; //3s timer!
+			}
 		}
 	}
 
@@ -1135,41 +1151,48 @@ void updateModem(uint_32 timepassed) //Sound tick. Executes every instruction.
 		}
 	}
 
-	if (modem.connected) //Are we connected?
+	modem.networkdatatimer += timepassed;
+	if ((modem.networkdatatimer>=modem.networkpolltick) && modem.networkpolltick) //To poll?
 	{
-		byte datatotransmit;
-		if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
+		for (;modem.networkdatatimer>=modem.networkpolltick;) //While polling!
 		{
-			switch (TCP_SendData(datatotransmit)) //Send the data?
+			modem.networkdatatimer -= modem.networkpolltick; //Timing this byte by byte!
+			if (modem.connected) //Are we connected?
 			{
-				case 0: //Failed to send?
-					modem.connected = 0; //Not connected anymore!
-					TCP_DisconnectClientServer(); //Disconnect us!
-					TCP_ConnectServer(modem.connectionport); //Restart server!
-					break; //Abort!
-				case 1: //Sent?
-					readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
-					break;
-				default: //Unknown function?
-					break;
-			}
-		}
-		if (fifobuffer_freesize(modem.inputdatabuffer)) //Free to receive?
-		{
-			switch (TCP_ReceiveData(&datatotransmit))
-			{
-				case 0: //Nothing received?
-					break;
-				case 1: //Something received?
-					writefifobuffer(modem.inputdatabuffer,datatotransmit); //Add the transmitted data to the input buffer!
-					break;
-				case -1: //Disconnected?
-					modem.connected = 0; //Not connected anymore!
-					TCP_DisconnectClientServer(); //Disconnect us!
-					TCP_ConnectServer(modem.connectionport); //Restart server!
-					break;
-				default: //Unknown function?
-					break;
+				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
+				{
+					switch (TCP_SendData(datatotransmit)) //Send the data?
+					{
+					case 0: //Failed to send?
+						modem.connected = 0; //Not connected anymore!
+						TCP_DisconnectClientServer(); //Disconnect us!
+						TCP_ConnectServer(modem.connectionport); //Restart server!
+						break; //Abort!
+					case 1: //Sent?
+						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
+						break;
+					default: //Unknown function?
+						break;
+					}
+				}
+				if (fifobuffer_freesize(modem.inputdatabuffer)) //Free to receive?
+				{
+					switch (TCP_ReceiveData(&datatotransmit))
+					{
+					case 0: //Nothing received?
+						break;
+					case 1: //Something received?
+						writefifobuffer(modem.inputdatabuffer,datatotransmit); //Add the transmitted data to the input buffer!
+						break;
+					case -1: //Disconnected?
+						modem.connected = 0; //Not connected anymore!
+						TCP_DisconnectClientServer(); //Disconnect us!
+						TCP_ConnectServer(modem.connectionport); //Restart server!
+						break;
+					default: //Unknown function?
+						break;
+					}
+				}
 			}
 		}
 	}
