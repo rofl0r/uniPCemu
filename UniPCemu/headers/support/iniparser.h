@@ -15,13 +15,13 @@ uint_64 get_private_profile_uint64(char *section,
     char *entry, uint_64 def, char *file_name);
 int get_private_profile_string(char *section, char *entry, char *def,
     char *buffer, int buffer_len, char *file_name);
-int write_private_profile_string(char *section,
+int write_private_profile_string(char *section, char *section_comment,
 	char *entry, char *buffer, char *file_name);
 
 //Additions by superfury:
-int write_private_profile_int64(char *section,
+int write_private_profile_int64(char *section, char *section_comment,
     char *entry, int_64 value, char *file_name);
-int write_private_profile_uint64(char *section,
+int write_private_profile_uint64(char *section, char *section_comment,
     char *entry, uint_64 value, char *file_name);
 
 #endif

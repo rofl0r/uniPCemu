@@ -22,118 +22,6 @@ int read_line(FILE *fp, char *bp)
     bp[i] = '\0';
     return(1);
 }
-/************************************************************************
-* Function:     get_private_profile_int()
-* Arguments:    <char *> section - the name of the section to search for
-*               <char *> entry - the name of the entry to find the value of
-*               <int> def - the default value in the event of a failed read
-*               <char *> file_name - the name of the .ini file to read from
-* Returns:      the value located at entry
-*************************************************************************/
-int_64 get_private_profile_int64(char *section,
-    char *entry, int_64 def, char *file_name)
-{   FILE *fp = fopen(file_name,"r");
-    char buff[MAX_LINE_LENGTH];
-    char *ep;
-    char t_section[MAX_LINE_LENGTH];
-    char value[MAX_LINE_LENGTH];
-    int len = strlen(entry);
-    int i;
-    if( !fp ) return(0);
-    sprintf(t_section,"[%s]",section); /* Format the section name */
-    /*  Move through file 1 line at a time until a section is matched or EOF */
-    do
-    {   if( !read_line(fp,buff) )
-        {   fclose(fp);
-            return(def);
-        }
-    } while( strcmp(buff,t_section) );
-    /* Now that the section has been found, find the entry.
-     * Stop searching upon leaving the section's area. */
-    do
-    {   if( !read_line(fp,buff) || buff[0] == '\0' )
-        {   fclose(fp);
-            return(def);
-        }
-    }  while( strncmp(buff,entry,len) );
-    ep = strrchr(buff,'=');    /* Parse out the equal sign */
-    ep++;
-    if( !strlen(ep) )          /* No setting? */
-        return(def);
-    /* Copy only numbers fail on characters */
-
-	byte isnegative=0;
-	byte length = 0;
-    for(i = 0; (isdigit(ep[i]) || ((ep[i]=='-') && (!i))); i++ )
-		if (ep[i]=='-') //Negative sign?
-		{
-			isnegative = 1; //Negative sign!
-		}
-		else
-		{
-	        value[length++] = ep[i];
-		}
-    value[length] = '\0';
-    fclose(fp);                /* Clean up and return the value */
-	LONG64SPRINTF result;
-	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
-	{
-		return result*(isnegative?-1:1); //Give the result!
-	}
-	else return def; //Default otherwise!
-}
-
-/************************************************************************
-* Function:     get_private_profile_int()
-* Arguments:    <char *> section - the name of the section to search for
-*               <char *> entry - the name of the entry to find the value of
-*               <int> def - the default value in the event of a failed read
-*               <char *> file_name - the name of the .ini file to read from
-* Returns:      the value located at entry
-*************************************************************************/
-uint_64 get_private_profile_uint64(char *section,
-    char *entry, uint_64 def, char *file_name)
-{   FILE *fp = fopen(file_name,"r");
-    char buff[MAX_LINE_LENGTH];
-    char *ep;
-    char t_section[MAX_LINE_LENGTH];
-    char value[MAX_LINE_LENGTH];
-    int len = strlen(entry);
-    int i;
-    if( !fp ) return(0);
-    sprintf(t_section,"[%s]",section); /* Format the section name */
-    /*  Move through file 1 line at a time until a section is matched or EOF */
-    do
-    {   if( !read_line(fp,buff) )
-        {   fclose(fp);
-            return(def);
-        }
-    } while( strcmp(buff,t_section) );
-    /* Now that the section has been found, find the entry.
-     * Stop searching upon leaving the section's area. */
-    do
-    {   if( !read_line(fp,buff) || buff[0] == '\0' )
-        {   fclose(fp);
-            return(def);
-        }
-    }  while( strncmp(buff,entry,len) );
-    ep = strrchr(buff,'=');    /* Parse out the equal sign */
-    ep++;
-    if( !strlen(ep) )          /* No setting? */
-        return(def);
-    /* Copy only numbers fail on characters */
-
-    for(i = 0; isdigit(ep[i]); i++ )
-        value[i] = ep[i];
-    value[i] = '\0';
-    fclose(fp);                /* Clean up and return the value */
-	LONG64SPRINTF result;
-	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
-	{
-		return result; //Give the result!
-	}
-	else return def; //Return default!
-}
 
 /**************************************************************************
 * Function:     get_private_profile_string()
@@ -156,11 +44,17 @@ int get_private_profile_string(char *section, char *entry, char *def,
     sprintf(t_section,"[%s]",section);    /* Format the section name */
     /*  Move through file 1 line at a time until a section is matched or EOF */
     do
-    {   if( !read_line(fp,buff) )
+    {
+		commentline: //Skip a comment line!
+		if( !read_line(fp,buff) )
         {   fclose(fp);
             strncpy(buffer,def,buffer_len);
             return(strlen(buffer));
         }
+		if (buff[0]==';') //Comment?
+		{
+			goto commentline;
+		}
     }
     while( strcmp(buff,t_section) );
     /* Now that the section has been found, find the entry.
@@ -182,6 +76,68 @@ int get_private_profile_string(char *section, char *entry, char *def,
     return(strlen(buffer));
 }
 
+/************************************************************************
+* Function:     get_private_profile_int()
+* Arguments:    <char *> section - the name of the section to search for
+*               <char *> entry - the name of the entry to find the value of
+*               <int> def - the default value in the event of a failed read
+*               <char *> file_name - the name of the .ini file to read from
+* Returns:      the value located at entry
+*************************************************************************/
+int_64 get_private_profile_int64(char *section,
+    char *entry, int_64 def, char *file_name)
+{
+    char value[MAX_LINE_LENGTH];
+    char ep[MAX_LINE_LENGTH];
+	memset(&value,0,sizeof(value));
+	memset(&ep,0,sizeof(ep));
+	int i;
+	byte isnegative=0;
+	byte length = 0;
+	get_private_profile_string(section,entry,"",&ep[0],sizeof(ep)-1,file_name); //Read the entry, with default being empty!
+    for(i = 0; (isdigit(ep[i]) || ((ep[i]=='-') && (!i))); i++ )
+		if (ep[i]=='-') //Negative sign?
+		{
+			isnegative = 1; //Negative sign!
+		}
+		else
+		{
+	        value[length++] = ep[i];
+		}
+    value[length] = '\0';
+	LONG64SPRINTF result;
+	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
+	{
+		return result*(isnegative?-1:1); //Give the result!
+	}
+	else return def; //Default otherwise!
+}
+
+/************************************************************************
+* Function:     get_private_profile_int()
+* Arguments:    <char *> section - the name of the section to search for
+*               <char *> entry - the name of the entry to find the value of
+*               <int> def - the default value in the event of a failed read
+*               <char *> file_name - the name of the .ini file to read from
+* Returns:      the value located at entry
+*************************************************************************/
+uint_64 get_private_profile_uint64(char *section,
+    char *entry, uint_64 def, char *file_name)
+{
+    char value[MAX_LINE_LENGTH];
+	memset(&value,0,sizeof(value));
+	int i;
+	get_private_profile_string(section,entry,"",&value[0],sizeof(value)-1,file_name); //Read the entry, with default being empty!
+    for(i = 0; isdigit(value[i]); i++ ); //Scan until invalid characters!
+    value[i] = '\0';
+	LONG64SPRINTF result;
+	if (sscanf(&value[0],LONGLONGSPRINTF,&result)) //Convert to our result!
+	{
+		return result; //Give the result!
+	}
+	else return def; //Return default!
+}
+
 void createTempFileName(char *dst,uint_32 dstsize, char *file_name)
 {
 	memset(dst,0,dstsize); //init!
@@ -189,17 +145,39 @@ void createTempFileName(char *dst,uint_32 dstsize, char *file_name)
 	strcat(dst,".tmp"); //Temporary filename!
 }
 
+void writesectioncomment(char *comment, FILE *wfp)
+{
+	if (comment!=NULL) //Gotten a comment to create as well?
+	{
+		fprintf(wfp,"; "); //Start a comment!
+		for (;*comment;) //Process the comment!
+		{
+			if (*comment=='\n') //Newline?
+			{
+				++comment; //Skip the newline!
+				fprintf(wfp,"\n; "); //Newline in the comment!
+			}
+			else
+			{
+				fprintf(wfp,"%c",*comment++); //Write the character!
+			}
+		}
+		fprintf(wfp,"\n"); //End with a newline!
+	}
+}
+
 /***** Routine for writing private profile strings --- by Joseph J. Graf *****/
 
 /*************************************************************************
  * Function:    write_private_profile_string()
  * Arguments:   <char *> section - the name of the section to search for
+ *			    <char *> section_comment - the comment for use with the section. NULL for none.
  *              <char *> entry - the name of the entry to find the value of
  *              <char *> buffer - pointer to the buffer that holds the string
  *              <char *> file_name - the name of the .ini file to read from
  * Returns:     TRUE if successful, otherwise FALSE
  *************************************************************************/
-int write_private_profile_string(char *section,
+int write_private_profile_string(char *section, char *section_comment,
     char *entry, char *buffer, char *file_name)
 
 {   FILE *rfp, *wfp;
@@ -207,12 +185,14 @@ int write_private_profile_string(char *section,
     char buff[MAX_LINE_LENGTH];
     char t_section[MAX_LINE_LENGTH];
     int len = strlen(entry);
+	char *comment = section_comment;
     createTempFileName(tmp_name,sizeof(tmp_name),file_name); /* Get a temporary file name to copy to */
     sprintf(t_section,"[%s]",section);/* Format the section name */
     if( !(rfp = fopen(file_name,"r")) )  /* If the .ini file doesn't exist */
     {   if( !(wfp = fopen(file_name,"w")) ) /*  then make one */
         {   return(0);   }
         fprintf(wfp,"%s\n",t_section);
+		writesectioncomment(section_comment,wfp); //Write the comment!
         fprintf(wfp,"%s=%s\n",entry,buffer);
         fclose(wfp);
         return(1);
@@ -229,6 +209,7 @@ int write_private_profile_string(char *section,
     {   if( !read_line(rfp,buff) )
         {   /* Failed to find section, so add one to the end */
             fprintf(wfp,"\n%s\n",t_section);
+			writesectioncomment(section_comment,wfp); //Write the comment!
             fprintf(wfp,"%s=%s\n",entry,buffer);
             /* Clean up and rename */
             fclose(rfp);
@@ -256,7 +237,7 @@ int write_private_profile_string(char *section,
 
         }
 
-        if( !strncmp(buff,entry,len) || buff[0] == '\0' )
+        if((!strncmp(buff,entry,len) || buff[0] == '\0') && (buff[0]!=';')) //Found or empty file and not a comment?
             break;
         fprintf(wfp,"%s\n",buff);
     }
@@ -284,7 +265,7 @@ int write_private_profile_string(char *section,
     return(1);
 }
 
-int write_private_profile_int64(char *section,
+int write_private_profile_int64(char *section, char *section_comment,
     char *entry, int_64 value, char *file_name)
 {
 	uint_64 datasigned;
@@ -300,14 +281,14 @@ int write_private_profile_int64(char *section,
 	{
 		sprintf(&s[0],LONGLONGSPRINTF,(LONG64SPRINTF)datasigned);
 	}
-	return write_private_profile_string(section,entry,&s[0],file_name); //Write to the file, give the result!
+	return write_private_profile_string(section,section_comment,entry,&s[0],file_name); //Write to the file, give the result!
 }
 
-int write_private_profile_uint64(char *section,
+int write_private_profile_uint64(char *section, char *section_comment,
     char *entry, uint_64 value, char *file_name)
 {
 	char s[256];
 	memset(&s,0,sizeof(s)); //Init!
 	sprintf(&s[0],LONGLONGSPRINTF,(LONG64SPRINTF)value);
-	return write_private_profile_string(section,entry,&s[0],file_name); //Write to the file, give the result!
+	return write_private_profile_string(section,section_comment,entry,&s[0],file_name); //Write to the file, give the result!
 }
