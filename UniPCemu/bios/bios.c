@@ -676,7 +676,18 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("general",general_commentused,"settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 
 	//Machine
-	char machine_comment[256] = ""; //General comment!
+	char machine_comment[256] = ""; //Machine comment!
+	strcat(machine_comment,"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486\n");
+	strcat(machine_comment,"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
+	strcat(machine_comment,"memory: memory size in bytes\n");
+	strcat(machine_comment,"architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=PS/2\n");
+	strcat(machine_comment,"executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
+	strcat(machine_comment,"cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
+	strcat(machine_comment,"showcpuspeed: 0=Don't show, 1=Show\n");
+	strcat(machine_comment,"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
+	strcat(machine_comment,"useturbocpuspeed: 0=Don't use, 1=Use\n");
+	strcat(machine_comment,"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM\n");
+	strcat(machine_comment,"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
 	char *machine_commentused=NULL;
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];
 	if (!write_private_profile_uint64("machine",machine_commentused,"cpu",BIOS_Settings.emulated_CPU,BIOS_Settings_file)) return 0;
@@ -692,7 +703,13 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("machine",machine_commentused,"inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 
 	//Debugger
-	char debugger_comment[256] = ""; //General comment!
+	char debugger_comment[256] = ""; //Debugger comment!
+	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
+	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified\n");
+	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
+	strcat(debugger_comment,"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
+	strcat(debugger_comment,"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
+	strcat(debugger_comment,"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
 	char *debugger_commentused=NULL;
 	if (debugger_comment[0]) debugger_commentused = &debugger_comment[0];
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
@@ -703,7 +720,15 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
 
 	//Video
-	char video_comment[256] = ""; //General comment!
+	char video_comment[256] = ""; //Video comment!
+	strcat(video_comment,"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
+	strcat(video_comment,"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
+	strcat(video_comment,"VRAM: Ammount of VRAM installed, in bytes\n");
+	strcat(video_comment,"synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
+	strcat(video_comment,"directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
+	strcat(video_comment,"aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
+	strcat(video_comment,"bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
+	strcat(video_comment,"showframerate: 0=Disabled, otherwise Enabled");
 	char *video_commentused=NULL;
 	if (video_comment[0]) video_commentused = &video_comment[0];
 	if (!write_private_profile_uint64("video",video_commentused,"videocard",BIOS_Settings.VGA_Mode,BIOS_Settings_file)) return 0; //Enable VGA NMI on precursors?
@@ -716,7 +741,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("video",video_commentused,"showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?
 
 	//Sound
-	char sound_comment[256] = ""; //General comment!
+	char sound_comment[256] = ""; //Sound comment!
 	char *sound_commentused=NULL;
 	if (sound_comment[0]) sound_commentused = &sound_comment[0];
 	if (!write_private_profile_uint64("sound",sound_commentused,"speaker",BIOS_Settings.usePCSpeaker,BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
@@ -730,7 +755,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
 
 	//Disks
-	char disks_comment[256] = ""; //General comment!
+	char disks_comment[256] = ""; //Disks comment!
 	char *disks_commentused=NULL;
 	if (disks_comment[0]) disks_commentused = &disks_comment[0];
 	if (!write_private_profile_string("disks",disks_commentused,"floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
@@ -745,13 +770,13 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_string("disks",disks_commentused,"cdrom1",&BIOS_Settings.cdrom1[0],BIOS_Settings_file)) return 0; //Read entry!
 
 	//BIOS
-	char bios_comment[256] = ""; //General comment!
+	char bios_comment[256] = ""; //BIOS comment!
 	char *bios_commentused=NULL;
 	if (bios_comment[0]) bios_commentused = &bios_comment[0];
 	if (!write_private_profile_uint64("bios",bios_commentused,"bootorder",BIOS_Settings.bootorder,BIOS_Settings_file)) return 0;
 
 	//Input
-	char input_comment[256] = ""; //General comment!
+	char input_comment[256] = ""; //Input comment!
 	char *input_commentused=NULL;
 	if (input_comment[0]) input_commentused = &input_comment[0];
 	if (!write_private_profile_uint64("input",input_commentused,"analog_minrange",BIOS_Settings.input_settings.analog_minrange,BIOS_Settings_file)) return 0; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
@@ -763,7 +788,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialactivecolor",BIOS_Settings.input_settings.specialactivecolor,BIOS_Settings_file)) return 0;
 	
 	//Gamingmode
-	char gamingmode_comment[256] = ""; //General comment!
+	char gamingmode_comment[256] = ""; //Gamingmode comment!
 	char *gamingmode_commentused=NULL;
 	if (gamingmode_comment[0]) gamingmode_commentused = &gamingmode_comment[0];
 	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
@@ -783,14 +808,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,"joystick",BIOS_Settings.input_settings.gamingmode_joystick,BIOS_Settings_file)) return 0; //Use the joystick input instead of mapped input during gaming mode?
 
 	//PrimaryCMOS
-	char primarycmos_comment[256] = ""; //General comment!
+	char primarycmos_comment[256] = ""; //PrimaryCMOS comment!
 	char *primarycmos_commentused=NULL;
 	if (primarycmos_comment[0]) primarycmos_commentused = &primarycmos_comment[0];
 	if (!write_private_profile_uint64("primaryCMOS",primarycmos_commentused,"gotCMOS",BIOS_Settings.got_CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS",primarycmos_commentused)) return 0; //Load the CMOS from the file!
 
 	//CompaqCMOS
-	char compaqcmos_comment[256] = ""; //General comment!
+	char compaqcmos_comment[256] = ""; //CompaqCMOS comment!
 	char *compaqcmos_commentused=NULL;
 	if (compaqcmos_comment[0]) compaqcmos_commentused = &compaqcmos_comment[0];
 	if (!write_private_profile_uint64("CompaqCMOS",compaqcmos_commentused,"gotCMOS",BIOS_Settings.got_CompaqCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
