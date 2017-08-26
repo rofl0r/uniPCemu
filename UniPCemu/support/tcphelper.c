@@ -1,12 +1,13 @@
 #include "headers/types.h" //Basic type support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/support/tcphelper.h" //TCP module support!
 
 #define NET_LOGFILE "net"
 
 #if defined(SDL_NET) || defined(SDL2_NET)
 #define GOTNET
 #ifdef SDL2
-#include "SDL2_net.h" //SDL2 NET support!
+#include "SDL_net.h" //SDL2 NET support!
 #else
 #include "SDL_net.h"
 #endif
@@ -18,6 +19,7 @@ TCPsocket server_socket;
 TCPsocket mysock;
 SDLNet_SocketSet listensocketset;
 byte TCP_connected = 0; //Are we connected to a client(from a server or client)?
+word SERVER_PORT = 23; //What server port to apply?
 #endif
 
 byte NET_READY = 0; //Are we ready to be used?
@@ -78,20 +80,21 @@ return 0; //Cannot connect!
 #endif
 }
 #ifdef GOTNET
-byte TCP_ConnectClientFromServer(TCPsocket source)
+byte TCP_connectClientFromServer(TCPsocket source)
 {
 	//Accept a client as a new server?
-	TCP_connected = false;
+	TCP_connected = 0;
 	
 	mysock=0;
 	listensocketset=0;
 	if(source!=0) {
 		mysock = source;
 		listensocketset = SDLNet_AllocSocketSet(1);
-		if(!listensocketset) return;
+		if(!listensocketset) return 0;
 		SDLNet_TCP_AddSocket(listensocketset, source);
 
 		TCP_connected=2; //Connected as a server!
+		return 1; //Connected!
 	}
 	return 0; //Accepting calls aren't supported yet!
 }
@@ -100,8 +103,8 @@ byte TCP_ConnectClientFromServer(TCPsocket source)
 byte acceptTCPServer() //Update anything needed on the TCP server!
 {
 #ifdef GOTNET
-	if (NET_READY==0) return; //Not ready!
-	if (Server_READY==0) return; //Not ready!
+	if (NET_READY==0) return 0; //Not ready!
+	if (Server_READY==0) return 0; //Not ready!
 	if (TCP_connected) return 0; //Don't allow incoming connections if we're already connected!
 	TCPsocket new_tcpsock;
 	new_tcpsock=SDLNet_TCP_Accept(mysock);
@@ -130,16 +133,17 @@ void stopTCPServer()
 byte TCP_ConnectClient(const char *destination, word port)
 {
 #ifdef GOTNET
-	if (TCP_Connected) return 0; //Can't connect: already connected!
+	if (TCP_connected) return 0; //Can't connect: already connected!
 	IPaddress openip;
 	//Ancient versions of SDL_net had this as char*. People still appear to be using this one.
 	if (!SDLNet_ResolveHost(&openip,destination,port)) {
 		listensocketset = SDLNet_AllocSocketSet(1);
-		if(!listensocketset) return;
+		if(!listensocketset) return 0;
 		mysock = SDLNet_TCP_Open(&openip);
-		if(!mysock) return;
+		if(!mysock) return 0;
 		SDLNet_TCP_AddSocket(listensocketset, mysock);
 		TCP_connected=1; //Connected as a client!
+		return 1; //Successfully connected!
 	}
 	return 0; //Failed to connect!
 #endif
@@ -149,7 +153,7 @@ byte TCP_ConnectClient(const char *destination, word port)
 byte TCP_SendData(byte data)
 {
 #ifdef GOTNET
-	if (!TCP_Connected) return 0; //Not connected?
+	if (!TCP_connected) return 0; //Not connected?
 	if(SDLNet_TCP_Send(mysock, &data, 1)!=1) {
 		TCP_connected=0; //Not connected anymore!
 		return 0;
@@ -166,7 +170,7 @@ sbyte TCP_ReceiveData(byte *result)
 	{
 		byte retval=0;
 		if(SDLNet_TCP_Recv(mysock, &retval, 1)!=1) {
-			TCP_Connected=0;
+			TCP_connected=0;
 			return -1; //Socket closed
 		} else
 		{
