@@ -23,6 +23,7 @@ TCPsocket mysock;
 SDLNet_SocketSet listensocketset;
 byte TCP_connected = 0; //Are we connected to a client(from a server or client)?
 word SERVER_PORT = 23; //What server port to apply?
+byte TCP_BlockIncoming = 0; //Block incoming connections while connected?
 #endif
 
 byte NET_READY = 0; //Are we ready to be used?
@@ -56,6 +57,7 @@ void initTCP() //Initialize us!
 byte TCP_ConnectServer(word port)
 {
 #ifdef GOTNET
+	if (Server_READY==1) return 1; //Already started!
 	Server_READY = 0; //Not ready by default!
 	if (!NET_READY)
 	{
@@ -108,7 +110,7 @@ byte acceptTCPServer() //Update anything needed on the TCP server!
 #ifdef GOTNET
 	if (NET_READY==0) return 0; //Not ready!
 	if (Server_READY==0) return 0; //Not ready!
-	if (TCP_connected) return 0; //Don't allow incoming connections if we're already connected!
+	if (TCP_connected || TCP_BlockIncoming) return 0; //Don't allow incoming connections if we're already connected!
 	TCPsocket new_tcpsock;
 	new_tcpsock=SDLNet_TCP_Accept(server_socket);
 	if(!new_tcpsock) {
@@ -124,9 +126,10 @@ void stopTCPServer()
 {
 #ifdef GOTNET
 	if (!NET_READY) return; //Abort when not running properly!
-	if (Server_READY>=1) //Partially loaded?
+	if (Server_READY>=1) //Loaded the server?
 	{
 		SDLNet_TCP_Close(server_socket);
+		server_socket = NULL; //Nothing anymore!
 		--Server_READY; //Layer destroyed!
 	}
 	Server_READY = 0; //Not ready anymore! 
@@ -138,16 +141,19 @@ byte TCP_ConnectClient(const char *destination, word port)
 #ifdef GOTNET
 	if (TCP_connected) return 0; //Can't connect: already connected!
 	IPaddress openip;
+	TCP_BlockIncoming |= 2; //Block incoming connections now!
 	//Ancient versions of SDL_net had this as char*. People still appear to be using this one.
 	if (!SDLNet_ResolveHost(&openip,destination,port)) {
 		listensocketset = SDLNet_AllocSocketSet(1);
-		if(!listensocketset) return 0;
+		if(!listensocketset) { TCP_BlockIncoming &= ~2; return 0; }
 		mysock = SDLNet_TCP_Open(&openip);
-		if(!mysock) return 0;
+		if(!mysock) { TCP_BlockIncoming &= ~2; return 0; }
 		SDLNet_TCP_AddSocket(listensocketset, mysock);
 		TCP_connected=1; //Connected as a client!
+		TCP_BlockIncoming &= ~2; //Don't block incoming connections anymore!
 		return 1; //Successfully connected!
 	}
+	TCP_BlockIncoming &= ~2; //Don't block incoming connections anymore!
 	return 0; //Failed to connect!
 #endif
 	return 0; //Not supported!
@@ -190,15 +196,37 @@ sbyte TCP_ReceiveData(byte *result)
 byte TCP_DisconnectClientServer()
 {
 #ifdef GOTNET
+	if (!TCP_connected) return 0; //Can't disconnect!
 	if(mysock) {
 		if(listensocketset) SDLNet_TCP_DelSocket(listensocketset,mysock);
 		SDLNet_TCP_Close(mysock);
 	}
 
 	if(listensocketset) SDLNet_FreeSocketSet(listensocketset);
+	TCP_connected = 0; //Not connected anymore!
+	Client_READY = 0; //Client has become not ready!
 	return 1; //Disconnected!
 #endif
 	return 0; //Error: not connected!
+}
+
+void TCPServer_pause()
+{
+	TCP_BlockIncoming |= 1; //Block incoming connections!
+}
+
+void TCPServer_restart()
+{
+	if (TCP_BlockIncoming&1) //Paused before?
+	{
+		TCP_BlockIncoming &= ~1; //Not blocked anymore!
+		return; //Just unblock, nothing more!
+	}
+
+	//Not blocked? Actually restart the entire server from scratch while connected.
+	TCP_DisconnectClientServer(); //Disconnect if connected: don't accept!
+	stopTCPServer(); //Stop the TCP server!
+	TCP_ConnectServer(SERVER_PORT); //Reconnect to the TCP server!
 }
 
 void doneTCP(void) //Finish us!

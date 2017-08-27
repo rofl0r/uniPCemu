@@ -76,19 +76,114 @@ byte modem_sendData(byte value) //Send data to the connected device!
 	return writefifobuffer(modem.outputbuffer,value); //Try to write to the output buffer!
 }
 
+byte readIPnumber(char **x, byte *number)
+{
+	byte size=0;
+	word result=0;
+	for (;(isdigit(*(*x)) && (size<3));) //Scan digits!
+	{
+		result = (result*10)+(*(*x)-'0'); //Convert to a number!
+		++(*x); //Next digit!
+		++size; //Size has been read!
+	}
+	if ((size==3) && (result<256)) //Valid IP part?
+	{
+		*number = result; //Give the result!
+		return 1; //Read!
+	}
+	return 0; //Not a valid IP section!
+}
+
 byte modem_connect(char *phonenumber)
 {
+	char ipaddress[256];
+	byte a,b,c,d;
+	char *p; //For normal port resolving!
+	unsigned int port;
 	if (modem.ringing && (phonenumber==NULL)) //Are we ringing and accepting it?
 	{
 		modem.ringing = 0; //Not ringing anymore!
+		modem.connected = 1; //We're connected!
 		return 1; //Accepted!
 	}
 	else if (phonenumber==NULL) //Not ringing, but accepting?
 	{
 		return 0; //Not connected!
 	}
-	if (TCP_ConnectClient(phonenumber,modem.connectionport)) //Connected on the port specified(use the server port by default)?
+	memset(&ipaddress,0,sizeof(ipaddress)); //Init IP address to translate!
+	if (strlen(phonenumber)>=9) //Valid length to convert IP addresses?
 	{
+		p = phonenumber; //For scanning the phonenumber!
+		if (readIPnumber(&p,&a))
+		{
+			if (readIPnumber(&p,&b))
+			{
+				if (readIPnumber(&p,&c))
+				{
+					if (readIPnumber(&p,&d))
+					{
+						if (*p=='\0') //EOS?
+						{
+							//Automatic port?
+							sprintf(ipaddress,"%i.%i.%i.%i",a,b,c,d); //Formulate the address!
+							port = modem.connectionport; //Use the default port as specified!
+						}
+						else if (*p==':') //Port might follow?
+						{
+							++p; //Skip character!
+							if (sscanf(p,"%u",&port)==0) //Port incorrectly read?
+							{
+								return 0; //Fail: invalid port has been specified!
+							}
+							sprintf(ipaddress,"%i.%i.%i.%i",a,b,c,d);
+						}
+						else //Invalid?
+						{
+							goto plainaddress; //Plain address inputted?
+						}
+					}
+					else
+					{
+						goto plainaddress; //Take as plain address!
+					}
+				}
+				else
+				{
+					goto plainaddress; //Take as plain address!
+				}
+			}
+			else
+			{
+				goto plainaddress; //Take as plain address!
+			}
+		}
+		else
+		{
+			goto plainaddress; //Take as plain address!
+		}
+	}
+	else
+	{
+		plainaddress: //A plain address after all?
+		if (p = strrchr(phonenumber,':')) //Port is specified?
+		{
+			strcpy(ipaddress,phonenumber); //Raw IP with port!
+			ipaddress[(ptrnum)p-(ptrnum)phonenumber] = '\0'; //Cut off the port part!
+			++p; //Take the port itself!
+			if (sscanf(p,"%u",&port)==0) //Port incorrectly read?
+			{
+				return 0; //Fail: invalid port has been specified!
+			}
+		}
+		else //Raw address?
+		{
+			strcpy(ipaddress,phonenumber); //Use t
+			port = modem.connectionport; //Use the default port as specified!
+		}
+	}
+	if (TCP_ConnectClient(ipaddress,port)) //Connected on the port specified(use the server port by default)?
+	{
+		modem.connected = 1; //We're connected!
 		return 1; //We're connected!
 	}
 	return 0; //We've failed to connect!
@@ -174,6 +269,7 @@ byte resetModem(byte state)
 	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
 	modem.offhook = 0; //On-hook!
 	modem.connected = 0; //Disconnect!
+	TCPServer_restart(); //Start into the server mode!
 
 	//Default handling of the Hardware lines is also loaded:
 	modem.DTROffResponse = 2; //Default: full reset!
@@ -208,6 +304,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 			case 2: //Full reset, hangup?
 				resetModem(0); //Reset!
+				TCPServer_restart(); //Start into the server mode!
 				modem.connected = 0; //Disconnect?
 			case 1: //Goto AT command mode?
 				modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
@@ -528,7 +625,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
 					if (modem.connected) //Disconnected?
 					{
-						TCP_DisconnectClientServer(); //Disconnect!
+						TCPServer_restart(); //Start into the server mode!
 						modem.connected = 0; //Not connected anymore!
 					}
 					modem_responseResult(MODEMRESULT_OK); //Accept!
@@ -1038,17 +1135,18 @@ void initModem(byte enabled) //Initialise modem!
 			goto unsupportedUARTModem;
 		}
 		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
+		modem.inputdatabuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
 		modem.outputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
-		if (modem.inputbuffer && modem.outputbuffer) //Gotten buffers?
+		if (modem.inputbuffer && modem.inputdatabuffer && modem.outputbuffer) //Gotten buffers?
 		{
 			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
-			resetModem(0); //Reset the modem to the default state!
 			modem.connectionport = BIOS_Settings.modemlistenport; //Default port to connect to if unspecified!
 			if (modem.connectionport==0) //Invalid?
 			{
 				modem.connectionport = 23; //Telnet port by default!
 			}
 			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
+			resetModem(0); //Reset the modem to the default state!
 			modem.serverpolltick = (1000000000.0/(double)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
 			modem.networkpolltick = (1000000000.0/(double)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
 		}
@@ -1077,6 +1175,7 @@ void doneModem() //Finish modem!
 		free_fifobuffer(&modem.outputbuffer); //Free our buffer!
 	}
 	TCP_DisconnectClientServer(); //Disconnect, if needed!
+	stopTCPServer(); //Stop the TCP server!
 }
 
 void cleanModem()
@@ -1121,7 +1220,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 		{
 			if ((modem.linechanges&1)==0) //Not able to accept?
 			{
-				TCP_DisconnectClientServer(); //Disconnect: don't accept!
+				TCPServer_restart(modem.connectionport); //Restart into the TCP server!
 			}
 			else //Able to accept?
 			{
@@ -1165,8 +1264,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 					{
 					case 0: //Failed to send?
 						modem.connected = 0; //Not connected anymore!
-						TCP_DisconnectClientServer(); //Disconnect us!
-						TCP_ConnectServer(modem.connectionport); //Restart server!
+						TCPServer_restart(modem.connectionport); //Restart the server!
 						break; //Abort!
 					case 1: //Sent?
 						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
@@ -1186,8 +1284,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 						break;
 					case -1: //Disconnected?
 						modem.connected = 0; //Not connected anymore!
-						TCP_DisconnectClientServer(); //Disconnect us!
-						TCP_ConnectServer(modem.connectionport); //Restart server!
+						TCPServer_restart(modem.connectionport); //Restart server!
 						break;
 					default: //Unknown function?
 						break;

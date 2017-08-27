@@ -21,4 +21,7 @@ byte TCP_SendData(byte data); //Send data to the other side(both from server and
 sbyte TCP_ReceiveData(byte *result); //Receive data, if available. 0=No data, 1=Received data, -1=Not connected anymore!
 byte TCP_DisconnectClientServer(); //Disconnect either the client or server, whatever state we're currently using.
 
+void TCPServer_pause(); //Block all incoming connections until done!
+void TCPServer_restart(); //Restart the server after being paused!
+
 #endif
