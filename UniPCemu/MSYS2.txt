@@ -30,10 +30,18 @@ Now, either when a new SDL2 version comes out, or when first installing, we need
 16. Extract the folders from the archive into your toolchains. The archive contains a .tar file(which is the actual archive itself). Within this tar file is a folder named SDL2-2.0.5. Open this directory.
 16.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder, replacing the folder of the same name that's already there.
 16.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
-17. Make sure to have this repository in a folder in the home directory of msys2(C:\msys64\home\<yourusername>). For example: msys2\home\<yourusername>\unipcemu contains androidprompt.bat when properly set up(the androidprompt.bat that's in the root of the cloned repository).
+
+SDL2_net(for networking support, optional):
+17. Download the SDL2_net mingw development library from the SDL_net website. The current version is https://www.libsdl.org/projects/SDL_net/release/SDL2_net-devel-2.0.1-mingw.tar.gz .
+18. Extract the folders from the archive into your toolchains. The archive contains a .tar file(which is the actual archive itself). Within this tar file is a folder named SDL2_net-2.0.1. Open this directory.
+18.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder, replacing the folder of the same name that's already there.
+18.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
+
+
+19. Make sure to have this repository in a folder in the home directory of msys2(C:\msys64\home\<yourusername>). For example: msys2\home\<yourusername>\unipcemu contains androidprompt.bat when properly set up(the androidprompt.bat that's in the root of the cloned repository).
 
 Finally, building UniPCemu or updating it to the latest version(after pulling the changes from the repository).
 
-18. Open the 32-bit or 64-bit MSys2(MSYS MinGW 32-bit or MSYS MinGW 64-bit), depending on what version you want to compile.
-19. Change into the repository's unipcemu directories from the home (~) directory, e.g. "cd unipcemu\unipcemu" when using the folder name as described above. The first unipcemu can be replaced with the name you've given the folder of the repository(it's the repository folder itself).
-19. Compile the project using "make win build SDL2 mingw32" for 32-bit versions and "make win build SDL2 mingw64 x64" for 64-bit versions. The compiled program(UniPCemu_x86/64.exe and required SDL2.dll will appear in the projects_build/unipcemu directory in the home folder of msys(so at C:\msys64\home\<yourusername>\projects_build\unipcemu, when using the default installation path of MSYS2).
+20. Open the 32-bit or 64-bit MSys2(MSYS MinGW 32-bit or MSYS MinGW 64-bit), depending on what version you want to compile.
+21. Change into the repository's unipcemu directories from the home (~) directory, e.g. "cd unipcemu\unipcemu" when using the folder name as described above. The first unipcemu can be replaced with the name you've given the folder of the repository(it's the repository folder itself).
+22. Compile the project using "make win build SDL2 mingw32" for 32-bit versions and "make win build SDL2 mingw64 x64" for 64-bit versions. The compiled program(UniPCemu_x86/64.exe and required SDL2.dll will appear in the projects_build/unipcemu directory in the home folder of msys(so at C:\msys64\home\<yourusername>\projects_build\unipcemu, when using the default installation path of MSYS2). Add " SDL2_net" after SDL2 to compile with networking support.

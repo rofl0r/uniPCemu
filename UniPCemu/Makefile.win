@@ -147,14 +147,29 @@ ifneq (,$(findstring x64,$(MAKECMDGOALS)))
 CFLAGS = -std=c99 ${WARNS} -mno-ms-bitfields
 endif
 
+ifneq (,$(findstring SDL2_net,$(MAKECMDGOALS)))
+ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
+SDLNET = -lSDL2_net
+endif
+endif
+
+ifneq (,$(findstring SDL_net,$(MAKECMDGOALS)))
+ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
+SDLNET = -lSDL_net
+endif
+endif
+
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions&libs instead! Link statically?
 ifneq (,$(findstring SDL2static,$(MAKECMDGOALS)))
-LDFLAGS = -static -lmingw32 -lSDL2main -lSDL2 -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
+LDFLAGS = -static -lmingw32 $(SDLNET) -lSDL2main -lSDL2 -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
 endif
 ifeq (,$(findstring SDL2static,$(MAKECMDGOALS)))
 #Link dynamically?
-LDFLAGS = -lmingw32 -lSDL2main -lSDL2
+LDFLAGS = -lmingw32 $(SDLNET) -lSDL2main -lSDL2
+endif
+ifneq (,$(findstring SDL2_net,$(MAKECMDGOALS)))
+CFLAGS := $(CFLAGS) -DSDL2_net
 endif
 #Flags always set for compiling with SDL2(for the code compilation itself)!
 CFLAGS := $(CFLAGS) -DSDL2
@@ -162,7 +177,10 @@ endif
 
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
-LDFLAGS = -lmingw32 -lSDLmain -lSDL
+ifneq (,$(findstring SDL_net,$(MAKECMDGOALS)))
+CFLAGS := $(CFLAGS) -DSDL_net
+endif
+LDFLAGS = -lmingw32 $(SDLNET) -lSDLmain -lSDL
 endif
 
 #Required library to run on Windows. Also, apply DEP
@@ -246,6 +264,14 @@ endif
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
 	@cp $(dllloc)/SDL.dll $(dir $@)
+endif
+ifneq (,$(findstring SDL2_net,$(MAKECMDGOALS)))
+#SDL2 functions instead!
+	@cp $(dllloc)/SDL2_net.dll $(dir $@)
+endif
+ifneq (,$(findstring SDL_net,$(MAKECMDGOALS)))
+#SDL1 functions instead!
+	@cp $(dllloc)/SDL_net.dll $(dir $@)
 endif
 
 
