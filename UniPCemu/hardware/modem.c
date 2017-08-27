@@ -486,11 +486,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	}
 	//Check for a command to send!
 	//Parse the AT command!
-	if (modem.echomode) //Echo every command back to the user?
-	{
-		//NOTE: Are we to send the finishing carriage return character as well?
-		modem_responseString(&modem.ATcommand[0],3); //Send the string back!
-	}
 
 	if (modem.ATcommand[0]==0) //Empty line? Stop dialing and autoanswer!
 	{
@@ -1123,6 +1118,10 @@ void modem_writeData(byte value)
 	}
 	else //Command mode?
 	{
+		if (modem.echomode) //Echo enabled?
+		{
+			writefifobuffer(modem.inputbuffer,value); //Echo the value back to the terminal!
+		}
 		if (modem.ATcommandsize<(sizeof(modem.ATcommand)-1)) //Valid to input(leave 1 byte for the terminal character)?
 		{
 			if (value=='~') //Pause stream for half a second?
