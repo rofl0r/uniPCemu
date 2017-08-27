@@ -212,11 +212,14 @@ byte TCP_DisconnectClientServer()
 
 void TCPServer_pause()
 {
+#ifdef GOTNET
 	TCP_BlockIncoming |= 1; //Block incoming connections!
+#endif
 }
 
 void TCPServer_restart()
 {
+#ifdef GOTNET
 	if (TCP_BlockIncoming&1) //Paused before?
 	{
 		TCP_BlockIncoming &= ~1; //Not blocked anymore!
@@ -227,6 +230,7 @@ void TCPServer_restart()
 	TCP_DisconnectClientServer(); //Disconnect if connected: don't accept!
 	stopTCPServer(); //Stop the TCP server!
 	TCP_ConnectServer(SERVER_PORT); //Reconnect to the TCP server!
+#endif
 }
 
 void doneTCP(void) //Finish us!
