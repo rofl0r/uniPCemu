@@ -348,4 +348,5 @@ gen-external-apklibs
 *.app
 *.etl
 android-project/jni/SDL2/
+android-project/jni/SDL2_net/
 android-project/src/org/libsdl/app/
