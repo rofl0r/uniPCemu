@@ -7,10 +7,10 @@ APP_OPTIM := release
 LOCAL_MODULE := main
 
 SDL_PATH := ../SDL2
+SDL_net_PATH := ../SDL2_net
+
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include ../UniPCemu
-
-LOCAL_CFLAGS := -DSDL2
 
 ROOTPATH = ../UniPCemu
 
@@ -21,6 +21,13 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	$(patsubst %.o,../../../UniPCemu/%.c,$(OBJS))
 
 LOCAL_STATIC_LIBRARIES := SDL2_static
+
+LOCAL_CFLAGS := -DSDL2
+ifneq (,$(findstring useSDL2_net,$(MAKECMDGOALS)))
+LOCAL_CFLAGS := $(LOCAL_CFLAGS) -DSDL2_net
+LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) SDL2_net
+LOCAL_C_INCLUDES := $(LOCAL_C_INCLUDES) $(LOCAL_PATH)/$(SDL_net_PATH)
+endif
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
@@ -63,6 +70,8 @@ endif
 
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,SDL)
+$(call import-module,SDL2_gfx)
+
 LOCAL_PATH := $(call my-dir)
 
 #Apply profile support!
