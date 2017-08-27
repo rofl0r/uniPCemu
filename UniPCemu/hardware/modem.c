@@ -1265,6 +1265,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 					case 0: //Failed to send?
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart the server!
+						modem_responseResult(MODEMRESULT_NOCARRIER);
 						break; //Abort!
 					case 1: //Sent?
 						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
@@ -1285,6 +1286,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 					case -1: //Disconnected?
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart server!
+						modem_responseResult(MODEMRESULT_NOCARRIER);
 						break;
 					default: //Unknown function?
 						break;
