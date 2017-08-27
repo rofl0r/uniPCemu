@@ -86,7 +86,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	if (usecarriagereturn&1)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+		if ((usecarriagereturn&4)==0) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 	for (i=0;i<lengthtosend;) //Process all data to send!
 	{
@@ -95,7 +95,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	if (usecarriagereturn&2)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+		if ((usecarriagereturn&4)==0) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 }
 void modem_nrcpy(char *s, word size, word nr)
@@ -113,16 +113,16 @@ void modem_responseResult(byte result) //What result to give!
 	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
 	if (modem.verbosemode&1) //Code format result?
 	{
-		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?2:0); //Send the string to the user!
+		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1); //Send the string to the user!
 	}
 	else
 	{
 		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
-		modem_responseString(&s[0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2);
+		modem_responseString(&s[0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4);
 	}
 	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
 	{
-		modem_responseString(" 12000",2); //End the command properly with a speed indication in bps!
+		modem_responseString(" 12000",2|((modem.verbosemode&1)<<2)); //End the command properly with a speed indication in bps!
 	}
 }
 
