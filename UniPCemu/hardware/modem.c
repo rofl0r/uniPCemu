@@ -260,6 +260,14 @@ byte modem_connect(char *phonenumber)
 	return 0; //We've failed to connect!
 }
 
+void modem_hangup() //Hang up, if possible!
+{
+	TCPServer_restart(); //Start into the server mode!
+	modem.connected = 0; //Not connected anymore!
+	modem.ringing = 0; //Not ringing anymore!
+	modem.offhook = 0; //We're on-hook!
+}
+
 void modem_updateRegister(byte reg)
 {
 	switch (reg) //What reserved reg to emulate?
@@ -383,11 +391,10 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 			case 2: //Full reset, hangup?
 				resetModem(0); //Reset!
-				if (modem.connected) //Are we connected?
+				if (modem.connected || modem.ringing) //Are we connected?
 				{
 					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
-					TCPServer_restart(); //Start into the server mode!
-					modem.connected = 0; //Disconnect?
+					modem_hangup(); //Hang up!
 				}
 			case 1: //Goto AT command mode?
 				modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
@@ -456,7 +463,7 @@ void modem_Answered()
 {
 	modem_responseResult(MODEMRESULT_CONNECT); //Connected!
 	modem.datamode = 2; //Enter data mode pending!
-	modem.offhook = 2; //Off-hook(connect)!
+	modem.offhook = 1; //Off-hook(connect)!
 }
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
@@ -639,12 +646,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<2) //OK?
 				{
 					//if ((n0==0) && modem.offhook)
-					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
-					if (modem.connected) //Disconnected?
+					modem.offhook = n0?1:0; //Set the hook status or hang up!
+					if (((modem.connected || modem.ringing)&&(!modem.offhook)) || (modem.offhook && (!(modem.connected||modem.ringing)))) //Disconnected or still ringing/connected?
 					{
 						modem_responseResult(MODEMRESULT_OK); //Accept!
-						TCPServer_restart(); //Start into the server mode!
-						modem.connected = 0; //Not connected anymore!
+						if (modem.offhook==0) //On-hook?
+						{
+							modem_hangup(); //Hang up, if required!
+						}
 					}
 					else
 					{
@@ -1085,7 +1094,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;							
 			}
 		default: //Unknown?
-			modem_responseResult(MODEMRESULT_OK); //Just OK unknown commands, according to Dosbox!
+			modem_responseResult(MODEMRESULT_ERROR); //Just ERROR unknown commands!
 			break;
 		} //Switch!
 	}
@@ -1252,7 +1261,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 			{
 				modem.ringing = 1; //We start ringing!
 				modem.registers[1] = 0; //Reset ring counter!
-				modem.ringtimer = 3000000000.0; //3s timer!
+				modem.ringtimer = timepassed; //Automatic time timer, start immediately!
 			}
 		}
 	}
@@ -1272,8 +1281,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 				}
 			}
 			modem_responseResult(MODEMRESULT_RING); //We're ringing!
-			modem.ringing = 0; //We're not ringing anymore!
-			modem.ringtimer += 3000000000.0; //3s timer!
+			modem.ringtimer += 3000000000.0; //3s timer for every ring!
 		}
 	}
 
@@ -1283,7 +1291,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 		for (;modem.networkdatatimer>=modem.networkpolltick;) //While polling!
 		{
 			modem.networkdatatimer -= modem.networkpolltick; //Timing this byte by byte!
-			if (modem.connected) //Are we connected?
+			if (modem.connected || modem.ringing) //Are we connected?
 			{
 				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
 				{
@@ -1294,6 +1302,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 						TCPServer_restart(modem.connectionport); //Restart the server!
 						modem_responseResult(MODEMRESULT_NOCARRIER);
 						modem.datamode = 0; //Drop out of data mode!
+						modem.ringing = 0; //Not ringing anymore!
 						break; //Abort!
 					case 1: //Sent?
 						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
@@ -1316,6 +1325,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 						TCPServer_restart(modem.connectionport); //Restart server!
 						modem_responseResult(MODEMRESULT_NOCARRIER);
 						modem.datamode = 0; //Drop out of data mode!
+						modem.ringing = 0; //Not ringing anymore!
 						break;
 					default: //Unknown function?
 						break;
