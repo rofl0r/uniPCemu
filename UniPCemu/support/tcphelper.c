@@ -122,6 +122,11 @@ byte acceptTCPServer() //Update anything needed on the TCP server!
 	return 0; //Not supported!
 }
 
+byte TCPServerRunning()
+{
+	return Server_READY; //Is the server running?
+}
+
 void stopTCPServer()
 {
 #ifdef GOTNET

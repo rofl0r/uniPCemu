@@ -1238,6 +1238,10 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 	if ((modem.serverpolltimer>=modem.serverpolltick) && modem.serverpolltick) //To poll?
 	{
 		modem.serverpolltimer = fmod(modem.serverpolltimer,modem.serverpolltick); //Polling once every turn!
+		if ((!TCPServerRunning()) && (!modem.connected)) //Server isn't running when need to be?
+		{
+			TCPServer_restart(modem.connectionport); //Try to restart the TCP server!
+		}
 		if (acceptTCPServer()) //Are we connected to?
 		{
 			if ((modem.linechanges&1)==0) //Not able to accept?

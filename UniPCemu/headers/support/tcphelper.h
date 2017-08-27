@@ -12,6 +12,7 @@ void doneTCP(void); //Finish us!
 
 //Server side
 byte TCP_ConnectServer(word port); //Try to connect as a server. 1 when successful, 0 otherwise(not ready).
+byte TCPServerRunning(); //Is the server running?
 byte acceptTCPServer(); //Accept and connect when asked of on the TCP server! 1=Connected to a client, 0=Not connected.
 void stopTCPServer(); //Stop the TCP server!
 
