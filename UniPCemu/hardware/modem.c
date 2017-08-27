@@ -70,6 +70,77 @@ struct
 	byte linechanges; //For detecting line changes!
 } modem;
 
+byte ATresultsString[6][256] = {"ERROR","OK","CONNECT","RING","NO DIALTONE","NO CARRIER"}; //All possible results!
+byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
+#define MODEMRESULT_ERROR 0
+#define MODEMRESULT_OK 1
+#define MODEMRESULT_CONNECT 2
+#define MODEMRESULT_RING 3
+#define MODEMRESULT_NODIALTONE 4
+#define MODEMRESULT_NOCARRIER 5
+
+void modem_responseString(byte *s, byte usecarriagereturn)
+{
+	word i, lengthtosend;
+	lengthtosend = strlen(s); //How long to send!
+	if (usecarriagereturn&1)
+	{
+		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+	}
+	for (i=0;i<lengthtosend;) //Process all data to send!
+	{
+		writefifobuffer(modem.inputbuffer,s[i++]); //Send the character!
+	}
+	if (usecarriagereturn&2)
+	{
+		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
+		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+	}
+}
+void modem_nrcpy(char *s, word size, word nr)
+{
+	memset(s,0,size);
+	sprintf(s,"%i%i%i",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
+}
+void modem_responseResult(byte result) //What result to give!
+{
+	byte s[256];
+	if (result>=MIN(NUMITEMS(ATresultsString),NUMITEMS(ATresultsCode))) //Out of range of results to give?
+	{
+		result = MODEMRESULT_ERROR; //Error!
+	}
+	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
+	if (modem.verbosemode&1) //Code format result?
+	{
+		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?2:0); //Send the string to the user!
+	}
+	else
+	{
+		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
+		modem_responseString(&s[0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2);
+	}
+	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
+	{
+		modem_responseString(" 12000",2); //End the command properly with a speed indication in bps!
+	}
+}
+
+void modem_responseNumber(byte x)
+{
+	char s[256];
+	if (modem.verbosemode&1) //Code format result?
+	{
+		memset(&s,0,sizeof(s));
+		sprintf(s,"%04u",x); //Convert to a string!
+		modem_responseString((byte *)&s,1); //Send the string to the user!
+	}
+	else
+	{
+		writefifobuffer(modem.inputbuffer,x); //Code variant instead!
+	}
+}
+
 byte modem_sendData(byte value) //Send data to the connected device!
 {
 	//Handle sent data!
@@ -227,6 +298,10 @@ byte useSERModem() //Serial mouse enabled?
 
 byte loadModemProfile(byte state)
 {
+	if (state==0) //OK?
+	{
+		return 1; //OK: loaded state!
+	}
 	return 0; //Default: no states stored yet!
 }
 
@@ -268,8 +343,12 @@ byte resetModem(byte state)
 	modem.flowcontrol = 0; //Default flow control!
 	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
 	modem.offhook = 0; //On-hook!
-	modem.connected = 0; //Disconnect!
-	TCPServer_restart(); //Start into the server mode!
+	if (modem.connected) //Are we still connected?
+	{
+		modem.connected = 0; //Disconnect!
+		modem_responseResult(MODEMRESULT_NOCARRIER); //Report no carrier!
+		TCPServer_restart(); //Start into the server mode!
+	}
 
 	//Default handling of the Hardware lines is also loaded:
 	modem.DTROffResponse = 2; //Default: full reset!
@@ -286,7 +365,7 @@ byte resetModem(byte state)
 
 	if (loadModemProfile(state)) //Loaded?
 	{
-		return 0; //Invalid!
+		return 1; //OK!
 	}
 	return 0; //Invalid profile!
 }
@@ -304,8 +383,12 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 			case 2: //Full reset, hangup?
 				resetModem(0); //Reset!
-				TCPServer_restart(); //Start into the server mode!
-				modem.connected = 0; //Disconnect?
+				if (modem.connected) //Are we connected?
+				{
+					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
+					TCPServer_restart(); //Start into the server mode!
+					modem.connected = 0; //Disconnect?
+				}
 			case 1: //Goto AT command mode?
 				modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
 				break;
@@ -350,77 +433,6 @@ byte modem_readData()
 	return 0; //Nothing to give!
 }
 
-byte ATresultsString[6][256] = {"ERROR","OK","CONNECT","RING","NO DIALTONE","NO CARRIER"}; //All possible results!
-byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
-#define MODEMRESULT_ERROR 0
-#define MODEMRESULT_OK 1
-#define MODEMRESULT_CONNECT 2
-#define MODEMRESULT_RING 3
-#define MODEMRESULT_NODIALTONE 4
-#define MODEMRESULT_NOCARRIER 5
-
-void modem_responseString(byte *s, byte usecarriagereturn)
-{
-	word i, lengthtosend;
-	lengthtosend = strlen(s); //How long to send!
-	if (usecarriagereturn&1)
-	{
-		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
-	}
-	for (i=0;i<lengthtosend;) //Process all data to send!
-	{
-		writefifobuffer(modem.inputbuffer,s[i++]); //Send the character!
-	}
-	if (usecarriagereturn&2)
-	{
-		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
-	}
-}
-void modem_nrcpy(char *s, word size, word nr)
-{
-	memset(s,0,size);
-	sprintf(s,"%i%i%i",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
-}
-void modem_responseResult(byte result) //What result to give!
-{
-	byte s[256];
-	if (result>=MIN(NUMITEMS(ATresultsString),NUMITEMS(ATresultsCode))) //Out of range of results to give?
-	{
-		result = MODEMRESULT_ERROR; //Error!
-	}
-	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
-	if (modem.verbosemode&1) //Code format result?
-	{
-		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2); //Send the string to the user!
-	}
-	else
-	{
-		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
-		modem_responseString(&s[0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2);
-	}
-	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
-	{
-		modem_responseString(" 12000",2); //End the command properly with a speed indication in bps!
-	}
-}
-
-void modem_responseNumber(byte x)
-{
-	char s[256];
-	if (modem.verbosemode&1) //Code format result?
-	{
-		memset(&s,0,sizeof(s));
-		sprintf(s,"%04u",x); //Convert to a string!
-		modem_responseString((byte *)&s,1); //Send the string to the user!
-	}
-	else
-	{
-		writefifobuffer(modem.inputbuffer,x); //Code variant instead!
-	}
-}
-
 byte modemcommand_readNumber(word *pos, int *result)
 {
 	byte valid = 0;
@@ -438,6 +450,13 @@ byte modemcommand_readNumber(word *pos, int *result)
 		break;
 	}
 	return valid; //Is the result valid?
+}
+
+void modem_Answered()
+{
+	modem_responseResult(MODEMRESULT_CONNECT); //Connected!
+	modem.datamode = 2; //Enter data mode pending!
+	modem.offhook = 2; //Off-hook(connect)!
 }
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
@@ -569,9 +588,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case '0': //Answer?
 				if (modem_connect(NULL)) //Answered?
 				{
-					modem_responseResult(MODEMRESULT_CONNECT); //Connected!
-					modem.datamode = 2; //Enter data mode pending!
-					modem.offhook = 2; //Off-hook(connect)!
+					modem_Answered(); //Answer!
 				}
 				else
 				{
@@ -625,10 +642,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					modem.offhook = n0?((modem.offhook==2)?2:1):0; //Set the hook status or hang up!
 					if (modem.connected) //Disconnected?
 					{
+						modem_responseResult(MODEMRESULT_OK); //Accept!
 						TCPServer_restart(); //Start into the server mode!
 						modem.connected = 0; //Not connected anymore!
 					}
-					modem_responseResult(MODEMRESULT_OK); //Accept!
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+					}
 				}
 				else
 				{
@@ -1200,6 +1221,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 				}
 				modem.escaping = 0; //Stop escaping!
 				modem.datamode = 0; //Return to command mode!
+				modem_responseResult(MODEMRESULT_OK); //OK message to escape!
 			}
 			else //Less than 3 escapes buffered to be sent?
 			{
@@ -1241,6 +1263,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 			{
 				if (modem_connect(NULL)) //Accept incoming call?
 				{
+					modem_Answered(); //We've answered!
 					return; //Abort: not ringing anymore!
 				}
 			}
@@ -1266,6 +1289,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart the server!
 						modem_responseResult(MODEMRESULT_NOCARRIER);
+						modem.datamode = 0; //Drop out of data mode!
 						break; //Abort!
 					case 1: //Sent?
 						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
@@ -1287,6 +1311,7 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart server!
 						modem_responseResult(MODEMRESULT_NOCARRIER);
+						modem.datamode = 0; //Drop out of data mode!
 						break;
 					default: //Unknown function?
 						break;
