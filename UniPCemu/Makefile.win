@@ -169,7 +169,7 @@ ifeq (,$(findstring SDL2static,$(MAKECMDGOALS)))
 LDFLAGS = -lmingw32 $(SDLNET) -lSDL2main -lSDL2
 endif
 ifneq (,$(findstring SDL2_net,$(MAKECMDGOALS)))
-CFLAGS := $(CFLAGS) -DSDL2_net
+CFLAGS := $(CFLAGS) -DSDL2_NET
 endif
 #Flags always set for compiling with SDL2(for the code compilation itself)!
 CFLAGS := $(CFLAGS) -DSDL2
@@ -178,7 +178,7 @@ endif
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
 ifneq (,$(findstring SDL_net,$(MAKECMDGOALS)))
-CFLAGS := $(CFLAGS) -DSDL_net
+CFLAGS := $(CFLAGS) -DSDL_NET
 endif
 LDFLAGS = -lmingw32 $(SDLNET) -lSDLmain -lSDL
 endif
