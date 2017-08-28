@@ -66,6 +66,7 @@
 
 #include "headers/hardware/inboard.h" //Inboard support!
 #include "headers/cpu/biu.h" //For checking if we're able to HLT!
+#include "headers/hardware/modem.h" //Modem support!
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1

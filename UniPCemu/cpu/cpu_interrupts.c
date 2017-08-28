@@ -148,7 +148,7 @@ void CPU_IRET()
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		tempSS = REG_SS;
-		uint_32 backupESP = REG_ESP;
+		//uint_32 backupESP = REG_ESP;
 		if (checkStackAccess(3,0,0)) return; //3 Word POPs!
 		destEIP = CPU_POP16(); //POP IP!
 		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!

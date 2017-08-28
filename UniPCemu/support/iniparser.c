@@ -187,7 +187,6 @@ int write_private_profile_string(char *section, char *section_comment,
     char buff[MAX_LINE_LENGTH];
     char t_section[MAX_LINE_LENGTH];
     int len = strlen(entry);
-	char *comment = section_comment;
     createTempFileName(tmp_name,sizeof(tmp_name),file_name); /* Get a temporary file name to copy to */
     sprintf(t_section,"[%s]",section);/* Format the section name */
     if( !(rfp = fopen(file_name,"r")) )  /* If the .ini file doesn't exist */

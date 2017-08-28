@@ -82,7 +82,7 @@ byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
 void modem_responseString(byte *s, byte usecarriagereturn)
 {
 	word i, lengthtosend;
-	lengthtosend = strlen(s); //How long to send!
+	lengthtosend = strlen((char *)s); //How long to send!
 	if (usecarriagereturn&1)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
@@ -106,6 +106,7 @@ void modem_nrcpy(char *s, word size, word nr)
 void modem_responseResult(byte result) //What result to give!
 {
 	byte s[256];
+	byte connectionspeed[256] = " 12000"; //Connection speed!
 	if (result>=MIN(NUMITEMS(ATresultsString),NUMITEMS(ATresultsCode))) //Out of range of results to give?
 	{
 		result = MODEMRESULT_ERROR; //Error!
@@ -122,7 +123,7 @@ void modem_responseResult(byte result) //What result to give!
 	}
 	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
 	{
-		modem_responseString(" 12000",2|((modem.verbosemode&1)<<2)); //End the command properly with a speed indication in bps!
+		modem_responseString(&connectionspeed[0],2|((modem.verbosemode&1)<<2)); //End the command properly with a speed indication in bps!
 	}
 }
 
@@ -236,7 +237,7 @@ byte modem_connect(char *phonenumber)
 	else
 	{
 		plainaddress: //A plain address after all?
-		if (p = strrchr(phonenumber,':')) //Port is specified?
+		if ((p = strrchr(phonenumber,':'))!=NULL) //Port is specified?
 		{
 			strcpy(ipaddress,phonenumber); //Raw IP with port!
 			ipaddress[(ptrnum)p-(ptrnum)phonenumber] = '\0'; //Cut off the port part!
@@ -468,19 +469,19 @@ void modem_Answered()
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
 {
-	int n0, n1;
+	int n0;
 	char number[256];
 	byte dialproperties=0;
 	memset(&number,0,sizeof(number)); //Init number!
-	char *temp;
+	byte *temp;
 	temp = &modem.ATcommand[0]; //Parse the entire string!
 	for (;*temp;)
 	{
-		*temp = toupper(*temp); //Convert to upper case!
+		*temp = (byte)toupper((int)*temp); //Convert to upper case!
 		++temp; //Next character!
 	}
 	//Read and execute the AT command, if it's valid!
-	if (strcmp(modem.ATcommand,"A/")==0) //Repeat last command?
+	if (strcmp((char *)&modem.ATcommand[0],"A/")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
 	}
@@ -539,8 +540,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				--pos; //Retry analyzing!
 				break;
 			case 'L':
-				diallast:
-				memcpy(&number,&modem.lastnumber,(strlen(modem.lastnumber)+1)); //Set the new number to roll!
+				memcpy(&number,&modem.lastnumber,(strlen((char *)&modem.lastnumber[0])+1)); //Set the new number to roll!
 				goto actondial;
 			case 'A': //Reverse to answer mode after dialing?
 				goto unsupporteddial; //Unsupported for now!
@@ -556,7 +556,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'P': //Pulse dial?
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
-				strcpy((char *)&number[0],&modem.ATcommand[pos]); //Set the number to dial!
+				strcpy((char *)&number[0],(char *)&modem.ATcommand[pos]); //Set the number to dial!
 				memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //Init last number!
 				strcpy((char *)&modem.lastnumber,(char *)&number[0]); //Set the last number!
 				actondial: //Start dialing?
@@ -898,7 +898,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			}
 			break;
 		case '?': //Query current register?
-			queryregister: //Query a register!
 			modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
 			break;
 		case '=': //Set current register?

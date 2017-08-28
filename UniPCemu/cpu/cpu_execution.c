@@ -3,6 +3,7 @@
 #include "headers/cpu/interrupts.h" //Interrupt support!
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/cpu/biu.h" //BIU support for making direct memory requests!
+#include "headers/support/log.h" //To log invalids!
 
 //Memory access functionality with Paging!
 byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)

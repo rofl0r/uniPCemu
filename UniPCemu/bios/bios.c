@@ -513,8 +513,6 @@ void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FILE *f;
-	size_t bytesread, bytestoread;
-	uint_32 CheckSum = 0; //Read checksum!
 	byte defaultsapplied = 0; //Defaults have been applied?
 
 	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!

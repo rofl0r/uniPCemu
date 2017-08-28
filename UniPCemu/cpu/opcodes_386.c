@@ -17,6 +17,7 @@
 #include "headers/cpu/cpu_OPNECV30.h" //80186+ support!
 #include "headers/cpu/cpu_OP80286.h" //80286+ support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution phase support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

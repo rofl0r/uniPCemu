@@ -6,6 +6,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/protection.h" //Fault raising support!
+#include "headers/cpu/cpu_execution.h" //Execution phase support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 

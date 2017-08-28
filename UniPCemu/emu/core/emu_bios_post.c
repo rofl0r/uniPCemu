@@ -44,6 +44,7 @@
 #include "headers/bios/bios.h" //Keyboard setup support!
 #include "headers/emu/emu_vga_bios.h" //VGA BIOS support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/cpu_execution.h" //Execution phase support!
 
 
 extern byte reset; //To fully reset emu?
