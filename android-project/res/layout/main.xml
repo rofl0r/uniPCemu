@@ -7,6 +7,6 @@
 <TextView  
     android:layout_width="fill_parent" 
     android:layout_height="wrap_content" 
-    android:text="UniPCemu, UniPCemuActivity"
+    android:text="UniPCemu, UniPCemuActivity"
     />
 </LinearLayout>

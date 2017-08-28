@@ -142,12 +142,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
 			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
-			strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.sdl/files");
+			strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
 		#else
 			if (environment = SDL_getenv("SDCARD")) //Autodetected?
 			{
 				strcpy(UniPCEmu_root_dir, environment); //path!
-				strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.sdl/files");
+				strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
 			}
 			else if (SDL_AndroidGetExternalStorageState() == (SDL_ANDROID_EXTERNAL_STORAGE_WRITE | SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 			{
