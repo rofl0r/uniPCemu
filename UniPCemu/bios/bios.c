@@ -142,12 +142,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
 			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
-			strcat(UniPCEmu_root_dir, "/Android/data/superfury.unipcemu.sdl/files");
+			strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.sdl/files");
 		#else
 			if (environment = SDL_getenv("SDCARD")) //Autodetected?
 			{
 				strcpy(UniPCEmu_root_dir, environment); //path!
-				strcat(UniPCEmu_root_dir, "/Android/data/superfury.unipcemu.sdl/files");
+				strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.sdl/files");
 			}
 			else if (SDL_AndroidGetExternalStorageState() == (SDL_ANDROID_EXTERNAL_STORAGE_WRITE | SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 			{
@@ -353,7 +353,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		if ((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW)>=MEMORY_BLOCKSIZE_AT_HIGH) //Able to divide in big blocks?
 		{
 			memoryblocks = SAFEDIV((memoryblocks*MEMORY_BLOCKSIZE_AT_LOW),MEMORY_BLOCKSIZE_AT_HIGH); //Convert to high memory blocks!
-			AThighblocks = 1; //Weré using high blocks instead!
+			AThighblocks = 1; //Werï¿½ using high blocks instead!
 		}
 	}
 	if (memoryblocks<0) memoryblocks = 0; //No memory left?
