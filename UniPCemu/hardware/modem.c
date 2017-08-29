@@ -474,6 +474,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	byte dialproperties=0;
 	memset(&number,0,sizeof(number)); //Init number!
 	byte *temp;
+	byte verbosemodepending; //Pending verbose mode!
 	temp = &modem.ATcommand[0]; //Parse the entire string!
 	for (;*temp;)
 	{
@@ -500,12 +501,15 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		return;
 	}
 	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
+	verbosemodepending = modem.verbosemode; //Save the old verbose mode, to detect and apply changes after the command is successfully completed!
 	word pos=2; //Position to read!
 	for (;;) //Parse the command!
 	{
 		switch (modem.ATcommand[pos++]) //What command?
 		{
 		case 0: //EOS?
+			modem_responseResult(MODEMRESULT_OK); //OK
+			modem.verbosemode = verbosemodepending; //New verbose mode, if set!
 			return; //Finished processing the command!
 		case 'E': //Select local echo?
 			switch (modem.ATcommand[pos++]) //What type?
@@ -521,11 +525,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<2) //OK?
 				{
 					modem.echomode = n0; //Set the communication standard!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -573,12 +577,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
 				}
+				modem.verbosemode = verbosemodepending; //New verbose mode, if set!
 				return; //Nothing follows the phone number!
 				break;
 			default: //Unsupported?
 				--pos; //Retry analyzing!
 				unsupporteddial: //Unsupported dial function?
 				modem_responseResult(MODEMRESULT_ERROR); //Error!
+				return; //Abort!
 				break;
 			}
 			break; //Dial?
@@ -595,6 +601,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Not Connected!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -615,12 +622,12 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				doATQ:
 				if (n0<2)
 				{
-					modem_responseResult(MODEMRESULT_OK); //OK!
-					modem.verbosemode = (n0<<1)|(modem.verbosemode&1); //Quiet mode!
+					verbosemodepending = (n0<<1)|(verbosemodepending&1); //Quiet mode!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //ERROR!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -644,7 +651,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					modem.offhook = n0?1:0; //Set the hook status or hang up!
 					if (((modem.connected || modem.ringing)&&(!modem.offhook)) || (modem.offhook && (!(modem.connected||modem.ringing)))) //Disconnected or still ringing/connected?
 					{
-						modem_responseResult(MODEMRESULT_OK); //Accept!
 						if (modem.offhook==0) //On-hook?
 						{
 							modem_hangup(); //Hang up, if required!
@@ -653,11 +659,13 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -679,11 +687,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<2) //OK?
 				{
 					modem.communicationstandard = n0; //Set the communication standard!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -711,11 +719,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<4) //OK?
 				{
 					modem.speakervolume = n0; //Set the speaker volume!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -743,11 +751,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (n0<4) //OK?
 				{
 					modem.speakercontrol = n0; //Set the speaker control!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 			default:
 				--pos; //Retry analyzing!
@@ -767,12 +775,12 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				doATV:
 				if (n0<2) //OK?
 				{
-					modem_responseResult(MODEMRESULT_OK); //Accept!
-					modem.verbosemode = ((modem.verbosemode&~1)|n0); //Set the verbose mode to numeric(0) or English(1)!
+					verbosemodepending = ((verbosemodepending&~1)|n0); //Set the verbose mode to numeric(0) or English(1)!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -803,12 +811,12 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				modem.datamode = 0; //Mode not data!
 				if (n0<5) //OK and supported by our emulation?
 				{
-					modem_responseResult(MODEMRESULT_OK); //Accept!
 					modem.callprogressmethod = n0; //Set the speaker control!
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -831,16 +839,18 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					if (resetModem(n0)) //Reset to the given state!
 					{
-						modem_responseResult(MODEMRESULT_OK); //Accept!
+						//Do nothing when succeeded! Give OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
 				}
 				break;
 			default:
@@ -869,6 +879,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 				*/
 					modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
+					return; //Abort!
 				//}
 				break;
 			default:
@@ -890,7 +901,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				if (modem.connected) //Cpnnected?
 					modem.datamode = 1; //Return to data mode!
 				else
+				{
 					modem_responseResult(MODEMRESULT_ERROR);
+					return; //Abort!
+				}
 				break;
 			default: //Unknown?
 				--pos; //Retry analyzing!
@@ -899,6 +913,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			break;
 		case '?': //Query current register?
 			modem_responseNumber(modem.registers[modem.currentregister]); //Give the register value!
+			modem.verbosemode = verbosemodepending; //New verbose mode, if set!
+			return; //Abort!
 			break;
 		case '=': //Set current register?
 			if (modemcommand_readNumber(&pos,&n0)) //Read the number?
@@ -906,11 +922,21 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				modem.registers[modem.currentregister] = n0; //Set the register!
 				modem_updateRegister(modem.currentregister); //Update the register as needed!
 			}
+			else
+			{
+				modem_responseResult(MODEMRESULT_ERROR);
+				return; //Abort!
+			}
 			break;
 		case 'S': //Select register n as current register?
 			if (modemcommand_readNumber(&pos,&n0)) //Read the number?
 			{
 				modem.currentregister = n0; //Select the register!
+			}
+			else
+			{
+				modem_responseResult(MODEMRESULT_ERROR);
+				return; //Abort!
 			}
 			break;
 		case '&': //Extension 1?
@@ -931,11 +957,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<2) //Valid?
 					{
 						modem.CTSAlwaysActive = n0; //Set flow control!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				}
@@ -952,11 +978,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<2) //Valid?
 					{
 						modem.DCDisCarrier = n0; //Set flow control!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				}
@@ -973,11 +999,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<2) //Valid?
 					{
 						modem.DSRisConnectionEstablished = n0; //Set flow control!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				}
@@ -997,11 +1023,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<2) //Valid?
 					{
 						modem.DTROffResponse = n0; //Set DTR off response!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				}
@@ -1030,11 +1056,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<5) //Valid?
 					{
 						modem.flowcontrol = n0; //Set flow control!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				default:
@@ -1052,7 +1078,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			{
 			case 0: //EOS?
 				--pos; //Let us handle it!
-				return;
+				break;
 			case 'N': //Flow control?
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
@@ -1074,11 +1100,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0<5) //Valid?
 					{
 						//Unused!
-						modem_responseResult(MODEMRESULT_OK); //OK!
 					}
 					else //Error out?
 					{
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
 					}
 					break;
 				}
@@ -1089,6 +1115,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			}
 		default: //Unknown?
 			modem_responseResult(MODEMRESULT_ERROR); //Just ERROR unknown commands!
+			return; //Abort!
 			break;
 		} //Switch!
 	}
@@ -1269,8 +1296,8 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 		modem.ringtimer -= timepassed; //Time!
 		if (modem.ringtimer<=0.0) //Timed out?
 		{
-			++modem.registers[1]; //Increase timer!
-			if ((modem.registers[0]>0) && (modem.registers[0]>modem.registers[1])) //Autoanswer?
+			++modem.registers[1]; //Increase numbr of rings!
+			if ((modem.registers[0]>0) && (modem.registers[1]>=modem.registers[0])) //Autoanswer?
 			{
 				if (modem_connect(NULL)) //Accept incoming call?
 				{
