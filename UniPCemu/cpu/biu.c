@@ -884,9 +884,9 @@ void CPU_tickBIU()
 							BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
 							if (CPU[activeCPU].BUSactive==1) //We're active?
 							{
-								if ((BIU[activeCPU].prefetchclock&3)!=0) //Not T1 yet?
+								if ((BIU[activeCPU].prefetchclock&1)!=0) //Not T1 yet?
 								{
-									if ((++BIU[activeCPU].prefetchclock&3)==0) //From T4 to T1?
+									if ((++BIU[activeCPU].prefetchclock&1)==0) //From T2 to T1?
 									{
 										CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 									}
@@ -927,13 +927,13 @@ void CPU_tickBIU()
 						{
 							++BIU[activeCPU].prefetchclock; //Tick running transfer T-cycle!
 						}
+						if ((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1) && (CPU[activeCPU].BUSactive==1)) //Finishing transfer on T1?
+						{
+							CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+							BIU[activeCPU].requestready = 1; //The request is ready to be served!
+						}
+						if (cycleinfo->cycles && BIU_active) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 					}
-					if ((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1) && (CPU[activeCPU].BUSactive==1)) //Finishing transfer on T1?
-					{
-						CPU[activeCPU].BUSactive = 0; //Inactive BUS!
-						BIU[activeCPU].requestready = 1; //The request is ready to be served!
-					}
-					if (cycleinfo->cycles && BIU_active) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 				}
 			}
 		}
