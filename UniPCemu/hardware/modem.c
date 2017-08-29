@@ -899,7 +899,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				n0 = 0;
 				doATO:
 				if (modem.connected) //Cpnnected?
-					modem.datamode = 1; //Return to data mode!
+					modem.datamode = 2; //Return to data mode!
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR);
