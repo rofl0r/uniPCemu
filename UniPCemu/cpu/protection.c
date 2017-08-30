@@ -389,37 +389,51 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 			return 0; //Not present: limit exceeded!
 		}
 	
-		if ((!getDescriptorIndex(descriptor_index)) && ((segment==CPU_SEGMENT_CS) || ((segment==CPU_SEGMENT_SS))) && ((segmentval&4)==0)) //NULL segment loaded into CS or SS?
+		isNULLdescriptor = 0; //Default: not a NULL descriptor!
+		if ((segmentval&~3)==0) //NULL descriptor?
 		{
-			return 0; //Not present: limit exceeded!	
+			isNULLdescriptor = 1; //NULL descriptor!
+			if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS)) //NULL segment loaded into CS or SS?
+			{
+				return 0; //Not present: limit exceeded!	
+			}
+			//Otherwise, don't load the descriptor from memory, just clear valid bit!
 		}
 	
 		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
-		int i;
-		for (i=0;i<(int)sizeof(container->descdata);++i)
+		if (isNULLdescriptor==0) //Not special NULL descriptor handling?
 		{
-			if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+			int i;
+			for (i=0;i<(int)sizeof(container->descdata);++i)
 			{
-				return 0; //Error out!
+				if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+				{
+					return 0; //Error out!
+				}
+			}
+			descriptor_address -= sizeof(container->descdata); //Restore start address!
+			for (i=0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
+			{
+				if (memory_readlinear(descriptor_address++,&container->descdata[i++])) //Read a descriptor byte directly from flat memory!
+				{
+					return 0; //Failed to load the descriptor!
+				}
+			}
+
+			container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+			container->desc.base_low = DESC_16BITS(container->desc.base_low);
+
+			if (EMULATED_CPU == CPU_80286) //80286 has less options?
+			{
+				container->desc.base_high = 0; //No high byte is present!
+				container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 			}
 		}
-		descriptor_address -= sizeof(container->descdata); //Restore start address!
-		for (i=0;i<(int)sizeof(container->descdata);) //Process the descriptor data!
+		else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory!
 		{
-			if (memory_readlinear(descriptor_address++,&container->descdata[i++])) //Read a descriptor byte directly from flat memory!
-			{
-				return 0; //Failed to load the descriptor!
-			}
-		}
-
-		container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
-		container->desc.base_low = DESC_16BITS(container->desc.base_low);
-
-		if (EMULATED_CPU == CPU_80286) //80286 has less options?
-		{
-			container->desc.base_high = 0; //No high byte is present!
-			container->desc.noncallgate_info &= ~0xF; //No high limit is present!
+			memcpy(&container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
+			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
 		}
 	}
 
@@ -547,7 +561,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
 
-	if (((segmentval&~3)==0)) //NULL GDT segment?
+	if (((segmentval&~3)==0) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_SS))) //NULL GDT segment when not allowed?
 	{
 		if (segment==CPU_SEGMENT_LDTR) //in LDTR? We're valid!
 		{
@@ -560,7 +574,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 	}
 
-	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
+	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (segmentval&~3) || (isGateDescriptor(&LOADEDDESCRIPTOR)))) //Not present loaded into non-data segment register?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
@@ -701,7 +715,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		//Handle the task switch normally! We're allowed to use the TSS!
 	}
 
-	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present?
+	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (segmentval&~3))) //Not present loaded into non-data register?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
