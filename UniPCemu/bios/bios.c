@@ -713,7 +713,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
 	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified\n");
 	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
-	strcat(debugger_comment,"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
+	strcat(debugger_comment,"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
 	strcat(debugger_comment,"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
 	strcat(debugger_comment,"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
 	char *debugger_commentused=NULL;

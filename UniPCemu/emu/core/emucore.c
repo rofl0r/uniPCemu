@@ -163,12 +163,12 @@ void updateEMUSingleStep() //Update our single-step address!
 			{
 				case CPU_MODE_REAL: //Real mode?
 					//High 16 bits are CS, low 16 bits are IP
-					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<16) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //Single step address!
+					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<16) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //Single step address!
 					break;
 				case CPU_MODE_PROTECTED: //Protected mode?
 				case CPU_MODE_8086: //Virtual 8086 mode?
 					//High 16 bits are CS, low 32 bits are EIP
-					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFFFFFF)); //Single step address!
+					singlestepaddress = ((((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFFFFFF)); //Single step address!
 					break;
 				default: //Just to be sure!
 					goto unknownmode; //Count as unknown/unset!
@@ -926,11 +926,11 @@ OPTINLINE byte coreHandler()
 						switch (getcpumode()) //What CPU mode are we to debug?
 						{
 						case CPU_MODE_REAL: //Real mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000))); //Single step enabled?
+							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000)))||(singlestepaddress&0x2000000000000)); //Single step enabled?
 							break;
 						case CPU_MODE_PROTECTED: //Protected mode?
 						case CPU_MODE_8086: //Virtual 8086 mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000))); //Single step enabled?
+							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000)))||(singlestepaddress&0x2000000000000)); //Single step enabled?
 							break;
 						default: //Invalid mode?
 							break;

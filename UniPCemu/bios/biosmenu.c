@@ -4931,35 +4931,35 @@ setShowCPUSpeed:
 			break;
 		case 1: //Real mode?
 			sprintf(menuoptions[advancedoptions],"%s%04X:%04X",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
 			}
 			break;
 		case 2: //Protected mode?
 			sprintf(menuoptions[advancedoptions],"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
 			sprintf(menuoptions[advancedoptions],"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
 			}
 			break;
 		default: //Just in case!
@@ -6536,46 +6536,46 @@ void BIOS_breakpoint()
 	{
 		case 0: //No breakpoint?
 			sprintf(breakpointstr,"%04X:%04X",0,0); //seg16:offs16 default!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(breakpointstr,"M"); //Ignore mode!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(breakpointstr,"I"); //Ignore EIP!
 			}
 			break;
 		case 1: //Real mode?
 			sprintf(breakpointstr,"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(breakpointstr,"M"); //Ignore mode!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(breakpointstr,"I"); //Ignore EIP!
 			}
 			break;
 		case 2: //Protected mode?
 			sprintf(breakpointstr,"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(breakpointstr,"M"); //Ignore mode!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(breakpointstr,"I"); //Ignore EIP!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
 			sprintf(breakpointstr,"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
-			}
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				strcat(breakpointstr,"M"); //Ignore mode!
+			}
+			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			{
+				strcat(breakpointstr,"I"); //Ignore EIP!
 			}
 			break;
 		default: //Just in case!
