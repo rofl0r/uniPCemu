@@ -72,7 +72,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
 
-	if (likely(segdesc!=-1)) //valid segment descriptor?
+	/*if (likely(segdesc!=-1)) //valid segment descriptor?
 	{
 		descriptor = &CPU[activeCPU].SEG_DESCRIPTOR[segdesc]; //Get our using descriptor!
 		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
@@ -82,7 +82,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 				realaddress |= 0xFFFF0000; //Convert to 32-bits for adding correctly!
 			}
 		}
-	}
+	}*/
 	realaddress += CPU_MMU_start(segdesc, segment);
 
 	if (is_XT && (EMULATED_CPU<CPU_80286)) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT without newer CPU!
