@@ -1,6 +1,5 @@
-/***** Routines to read profile strings --  by Joseph J. Graf ******/
-#include <stdio.h>
-#include <string.h>
+/***** Routines to read profile strings --  by Joseph J. Graf, modified by Superfury ******/
+#include "headers/types.h" //Basic support!
 #include "headers/support/iniparser.h"   /* function prototypes in here */
 
 /*****************************************************************
@@ -215,7 +214,7 @@ int write_private_profile_string(char *section, char *section_comment,
             /* Clean up and rename */
             fclose(rfp);
             fclose(wfp);
-            unlink(file_name);
+            delete_file(NULL,file_name);
             rename(tmp_name,file_name);
             return(1);
         }
@@ -234,7 +233,7 @@ int write_private_profile_string(char *section, char *section_comment,
             /* Clean up and rename */
             fclose(rfp);
             fclose(wfp);
-            unlink(file_name);
+            delete_file(NULL,file_name);
             rename(tmp_name,file_name);
             return(1);
 
@@ -263,7 +262,7 @@ int write_private_profile_string(char *section, char *section_comment,
     /* Clean up and rename */
     fclose(wfp);
     fclose(rfp);
-    unlink(file_name);
+    delete_file(NULL,file_name);
     rename(tmp_name,file_name);
     return(1);
 }

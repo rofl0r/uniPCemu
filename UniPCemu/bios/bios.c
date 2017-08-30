@@ -671,7 +671,7 @@ int BIOS_SaveData() //Save BIOS settings!
 {
 	if (__HW_DISABLED) return 1; //Abort!
 
-	unlink(BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
+	delete_file(NULL,BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
 
 	//General
 	char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
