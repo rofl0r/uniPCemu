@@ -1303,12 +1303,6 @@ byte isV86()
 
 //PUSH and POP values!
 
-byte topdown_stack() //Top-down stack?
-{
-	//We're a 286+, so detect it! Older processors are always in real mode!
-	return !(GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]) & 4); //Real mode=8086; Other=SS segment, bit 4 (off=Topdown stack!)
-}
-
 //Memory is the same as PSP: 1234h is 34h 12h, in stack terms reversed, because of top-down stack!
 
 //Use below functions for the STACK!
