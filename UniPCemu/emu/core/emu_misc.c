@@ -73,9 +73,10 @@ char *substr(char *s,int startpos) //Simple substr function, with string and sta
 
 void delete_file(char *directory, char *filename)
 {
-	if (!filename || !directory) return; // Not a file?
+	if (!filename) return; // Not a file?
 	if (*filename=='*') //Wildcarding?
 	{
+		if (!directory) return; //Not a directory?
 		char *f2 = substr(filename,1); //Take off the *!
 
 		char direntry[256];
@@ -102,8 +103,15 @@ void delete_file(char *directory, char *filename)
 	//Compose the full path!
 	char fullpath[256];
 	memset(fullpath,0,sizeof(fullpath)); //Clear the directory!
-	strcpy(fullpath,directory);
-	strcat(fullpath,"/");
+	if (directory) //Directory specified?
+	{
+		strcpy(fullpath,directory);
+		strcat(fullpath,"/");
+	}
+	else
+	{
+		strcpy(fullpath,""); //Start without directory, used by the filename itself!
+	}
 	strcat(fullpath,filename); //Full filename!
 
 	FILE *f = fopen(fullpath,"r"); //Try to open!
