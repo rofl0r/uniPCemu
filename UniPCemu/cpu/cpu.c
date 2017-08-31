@@ -831,6 +831,23 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 }
 
 void CPU_initLookupTables(); //Initialize the CPU timing lookup tables! Prototype!
+extern byte is_XT; //Are we an XT?
+
+uint_32 effectivecpuaddresspins = 0xFFFFFFFF;
+uint_32 cpuaddresspins[12] = { //Bit0=XT, Bit1+=CPU
+							0xFFFFF, //8086 AT+
+							0xFFFFF, //8086 XT
+							0xFFFFF, //80186 AT+
+							0xFFFFF, //80186 XT
+							0xFFFFFF, //80286 AT+
+							0xFFFFFF, //80286 XT
+							0xFFFFFFFF, //80386 AT+
+							0xFFFFFFFF, //80386 XT
+							0xFFFFFFFF, //80486 AT+
+							0xFFFFFFFF, //80486 XT
+							0xFFFFFFFF, //80586 AT+
+							0xFFFFFFFF, //80586 XT
+							}; //CPU address wrapping lookup table!
 
 void resetCPU() //Initialises the currently selected CPU!
 {
@@ -866,6 +883,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase =  1; //We're starting to fetch!
 	CPU_initBIU(); //Initialize the BIU for use!
 	Paging_clearTLB(); //Clear the TLB when resetting!
+	effectivecpuaddresspins = cpuaddresspins[((EMULATED_CPU<<1)|is_XT)]; //What pins are supported for the current CPU/architecture?
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!

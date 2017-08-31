@@ -18,7 +18,7 @@ byte is_paging()
 {
 	if (likely(CPU[activeCPU].registers)) //Gotten registers?
 	{
-		return ((getcpumode()!=CPU_MODE_REAL) && (CPU[activeCPU].registers->CR0&CR0_PG))?1:0; //Are we paging in protected mode!
+		return ((getcpumode()!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
 	}
 	return 0; //Not paging: we don't have registers!
 }

@@ -55,22 +55,34 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 	return MMU_directptr(realaddr, size); //Direct pointer!
 }
 
-extern byte is_XT; //Are we an XT?
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
+
+uint_32 addresswrapping[12] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations! index: Bit0=Address 0x10000, Bit1+=Emulated CPU
+							0xFFFF, //8086
+							0xFFFF, //8086 0x10000
+							0xFFFF, //80186
+							0x1FFFF, //80186 0x10000
+							0xFFFFFFFF, //80286+
+							0xFFFFFFFF, //80286+
+							0xFFFFFFFF, //80386+
+							0xFFFFFFFF, //80386+
+							0xFFFFFFFF, //80486+
+							0xFFFFFFFF, //80486+
+							0xFFFFFFFF, //80586+
+							0xFFFFFFFF //80586+
+							}; //Address wrapping lookup table!
 
 //Address translation routine.
 uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
 {
-	SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
+	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
+
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
-	realaddress = offset; //Load the address!
-	if ((EMULATED_CPU==CPU_8086) || (EMULATED_CPU==CPU_NECV30 && !((realaddress==0x10000) && wordop))) //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations!
-	{
-		realaddress &= 0xFFFF; //Wrap arround!
-	}
 	writeword = 0; //Reset word-write flag for checking next bytes!
+	realaddress = offset; //Load the address!
+	realaddress &= addresswrapping[(EMULATED_CPU<<1)|(((realaddress==0x10000) && wordop)&1)]; //Apply address wrapping for the CPU offset, when needed!
 
 	/*if (likely(segdesc!=-1)) //valid segment descriptor?
 	{
@@ -84,9 +96,6 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 		}
 	}*/
 	realaddress += CPU_MMU_start(segdesc, segment);
-
-	if (is_XT && (EMULATED_CPU<CPU_80286)) realaddress &= 0xFFFFF; //Only 20-bits address is available on a XT without newer CPU!
-	else if (EMULATED_CPU==CPU_80286) realaddress &= 0xFFFFFF; //Only 24-bits is available on a AT!
 
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
@@ -128,39 +137,35 @@ extern uint_32 wordaddress; //Word address used during memory access!
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 {
 	//Check for Page Faults!
-	if (is_paging()) //Are we paging?
+	if (likely(is_paging()==0)) //Are we not paging?
 	{
-		if (CPU_Paging_checkPage(realaddress,readflags,CPL)) //Map it using the paging mechanism! Errored out?
-		{
-			return 1; //Error out!
-		}
+		return 0; //OK
+	}
+	if (unlikely(CPU_Paging_checkPage(realaddress,readflags,CPL))) //Map it using the paging mechanism! Errored out?
+	{
+		return 1; //Error out!
 	}
 	return 0; //OK!	
 }
 
+uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 //readflags = 1|(opcode<<1) for reads! 0 for writes!
 byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
+	static byte debuggertype[4] = {PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION};
+	INLINEREGISTER byte dt;
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&7) && (subbyte==0x20) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (segdesc!=-1) && (
+			((offset&7) && (subbyte==0x20))||((offset&3) && (subbyte==0x10))||((offset&1) && (subbyte==0x8))
+			))) //Aligment enforced and wrong? Don't apply on internal accesses!
 	{
-		CPU_AC(0); //Alignment DWORD check fault!
-		return 1; //Error out!
-	}
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0x10) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
-	{
-		CPU_AC(0); //Alignment DWORD check fault!
-		return 1; //Error out!
-	}
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&1) && (subbyte==0x8) && (segdesc!=-1)) //Aligment enforced and wrong? Don't apply on internal accesses!
-	{
-		CPU_AC(0); //Alignment WORD check fault!
+		CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
 		return 1; //Error out!
 	}
 
-	if (CPU_MMU_checklimit(segdesc,segment,offset,readflags,is_offset16)) //Disallowed?
+	if (unlikely(CPU_MMU_checklimit(segdesc,segment,offset,readflags,is_offset16))) //Disallowed?
 	{
 		MMU.invaddr = 2; //Invalid address signaling!
 		return 1; //Not found.
@@ -169,36 +174,27 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	//Check for paging and debugging next!
 	realaddress = MMU_realaddr(segdesc, segment, offset, 0,is_offset16); //Real adress!
 
-	switch (readflags) //What kind of flags?
-	{
-		case 0: //Data Write?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE))) return 1; //Error out!
-			break;
-		case 1: //Data Read?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD))) return 1; //Error out!
-			break;
-		case 3: //Opcode read?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION))) return 1; //Error out!
-			break;
-		case 2: //Unknown?
-		default: //Unknown? Unsupported!
-			break;
-	}
+	dt = debuggertype[readflags&3]; //Load debugger type!
+	if (unlikely(dt==0xFF)) goto skipdebugger; //No debugger supported for this type?
+	if (unlikely(checkProtectedModeDebugger(realaddress,dt))) return 1; //Error out!
+	skipdebugger:
 
-	if (checkDirectMMUaccess(realaddress,readflags,CPL)) //Failure in the Paging Unit?
+	if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
 	{
 		return 1; //Error out!
 	}
-
+	checkMMUaccess_linearaddr = realaddress; //Save the last valid access for the BIU to use(we're not erroring out after all)!
 	//We're valid?
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
 extern byte MMU_logging; //Are we logging?
-
+extern uint_32 wrapaddr[2]; //What wrap to apply!
+extern uint_32 effectivecpuaddresspins; //What address pins are supported?
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
 {
 	byte result;
+	uint_32 originaladdr;
 	if (is_paging()) //Are we paging?
 	{
 		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!
@@ -212,27 +208,18 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		}
 	}
 
-	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
-	{
-		realaddress &= MMU.wraparround; //Apply A20!
-	}
-	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
-	{
-		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
-		{
-			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
-			{
-				realaddress &= MMU.wraparround; //Apply A20!
-			}
-		}
-	}
+	//Apply A20!
+	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
+	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
+	originaladdr = realaddress;
+	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
 	if (MMU_logging) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_PAGED); //Log it!
+		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
 	return result; //Give the result!
@@ -258,20 +245,10 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
-	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
-	{
-		realaddress &= MMU.wraparround; //Apply A20!
-	}
-	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
-	{
-		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
-		{
-			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
-			{
-				realaddress &= MMU.wraparround; //Apply A20!
-			}
-		}
-	}
+	//Apply A20!
+	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
+	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
+	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
@@ -294,6 +271,7 @@ void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcod
 	{
 		realaddress = mappage(realaddress,(opcode==0),getCPL()); //Map it using the paging mechanism!
 	}
+	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 	writeword = writewordbackup; //Restore the word address backup!
 }
 

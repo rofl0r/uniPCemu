@@ -291,31 +291,24 @@ OPTINLINE byte BIU_isfulltransfer()
 extern byte MMU_logging; //Are we logging?
 extern MMU_type MMU; //MMU support!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
+uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
+extern uint_32 effectivecpuaddresspins; //What address pins are supported?
 byte BIU_directrb(uint_32 realaddress, byte index)
 {
+	uint_32 originaladdr;
 	byte result;
-	
-	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
-	{
-		realaddress &= MMU.wraparround; //Apply A20!
-	}
-	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
-	{
-		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
-		{
-			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
-			{
-				realaddress &= MMU.wraparround; //Apply A20!
-			}
-		}
-	}
-		
+	//Apply A20!
+	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
+	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
+	originaladdr = realaddress; //Save the address before the A20 is modified!
+	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
+
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging)) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_PAGED); //Log it!
+		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
 	return result; //Give the result!
@@ -323,42 +316,33 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 
 void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical memory dir
 {
-	if (is_Compaq!=1) //Non-Compaq has normal wraparround?
-	{
-		realaddress &= MMU.wraparround; //Apply A20!
-	}
-	else //Compaq: Only 1MB-2MB range is converted to 0MB-1MB range!
-	{
-		if (MMU.A20LineEnabled==0) //Wrap enabled? It's for the 1MB-2MB range only!
-		{
-			if ((realaddress&~0xFFFFF)==0x100000) //Are we in the 1MB-2MB range?
-			{
-				realaddress &= MMU.wraparround; //Apply A20!
-			}
-		}
-	}
+	//Apply A20!
+	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
+	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
+
+	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
 
+extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
 	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
-	if (checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0)) return; //Abort on fault!
-	realaddress = MMU_realaddr(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0,1); //Generate actual address directly!
-	if (is_paging()) //Are we paging?
+	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0))) return; //Abort on fault!
+	if (unlikely(is_paging())) //Are we paging?
 	{
-		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!		
+		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism!		
 	}
-	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(realaddress,0)); //Add the next byte from memory into the buffer!
+	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0)); //Add the next byte from memory into the buffer!
 	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 }

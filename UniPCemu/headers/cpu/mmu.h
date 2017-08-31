@@ -33,6 +33,9 @@ typedef struct
 #define MEM_FACTOR 16
 //Factor is 16 at 8086, 16/4K at 386.
 
+//Determine the Base always, even in real mode(which automatically loads the base when loading the segment registers)!
+#define CPU_MMU_start(segment,segmentval) (unlikely(segment == -1)?(segmentval<<4):CPU[activeCPU].SEG_base[segment])
+
 void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint_32 size); //Gives direct memory pointer!
 byte MMU_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16); //Get adress!
 word MMU_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16); //Get adress (word)!

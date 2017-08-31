@@ -2,7 +2,6 @@
 #define MEMORY_ADRESSING_H
 
 #include "headers/types.h"
-
-uint_32 CPU_MMU_start(sword segment, word segmentval); //Determines the start of the segment!
+#include "headers/cpu/mmu.h" //MMU itself!
 
 #endif

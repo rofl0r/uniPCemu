@@ -1120,24 +1120,6 @@ int checkPrivilegedInstruction() //Allowed to run a privileged instruction?
 
 /*
 
-MMU: memory start!
-
-*/
-
-uint_32 CPU_MMU_start(sword segment, word segmentval) //Determines the start of the segment!
-{
-	//Determine the Base always, even in real mode(which automatically loads the base when loading the segment registers)!
-	if (unlikely(segment == -1)) //Forced 8086 mode by the emulators?
-	{
-		return (segmentval << 4); //Behave like a 8086!
-	}
-	
-	//Protected mode addressing!
-	return CPU[activeCPU].SEG_base[segment]; //Base!
-}
-
-/*
-
 MMU: Memory limit!
 
 */
@@ -1146,34 +1128,30 @@ byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
-	//byte isconforming;
-
-	if (getcpumode() == CPU_MODE_PROTECTED) //Not real mode? Check rights for zero descriptors!
-	{
-		if ((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && (!getDescriptorIndex(segmentval)) && ((segmentval&4)==0)) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
-		{
-			CPU_MMU_checkrights_cause = 1; //What cause?
-			return 1; //Error!
-		}
-	}
-
+	INLINEREGISTER uint_32 limit; //The limit!
+	INLINEREGISTER byte isvalid;
 	//First: type checking!
 
-	if (GENERALSEGMENTPTR_P(descriptor)==0) //Not present(invalid in the cache)?
+	if (unlikely(GENERALSEGMENTPTR_P(descriptor)==0)) //Not present(invalid in the cache)?
 	{
 		CPU_MMU_checkrights_cause = 2; //What cause?
 		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
 	}
 
-	if (getcpumode()==CPU_MODE_PROTECTED) //Not real mode? Check rights!
+	if (unlikely(getcpumode()==CPU_MODE_PROTECTED)) //Not real mode? Check rights!
 	{
+		if (unlikely((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && (!getDescriptorIndex(segmentval)) && ((segmentval&4)==0))) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
+		{
+			CPU_MMU_checkrights_cause = 1; //What cause?
+			return 1; //Error!
+		}
 		switch (((descriptor->AccessRights>>1)&0x7)) //What type of descriptor?
 		{
 			case 0: //Data, read-only
 			case 2: //Data(expand down), read-only
 			case 5: //Code, execute/read
 			case 7: //Code, execute/read, conforming
-				if ((forreading&~0x10)==0) //Writing?
+				if (unlikely((forreading&~0x10)==0)) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
@@ -1184,7 +1162,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				break; //Allow!
 			case 4: //Code, execute-only
 			case 6: //Code, execute-only, conforming
-				if ((forreading&~0x10)!=3) //Writing or reading normally?
+				if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
@@ -1194,39 +1172,34 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	}
 
 	//Next: limit checking!
-
-	uint_32 limit; //The limit!
-	byte isvalid;
-
-	limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
-
-	if ((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)) //Granularity?
+	if (likely(addrtest)) //Execute address test?
 	{
-		limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-	}
+		limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
 
-	if ((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor)) //Data segment that's expand-down?
-	{
-		if (is_offset16) //16-bits offset? Set the high bits for compatibility!
+		if (unlikely(SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask)) //Granularity?
 		{
-			if (((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386))) //Large granularity?
+			limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+		}
+
+		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
+		{
+			if (unlikely(is_offset16)) //16-bits offset? Set the high bits for compatibility!
 			{
-				offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly in 32-bit cases!
+				if (unlikely(((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)))) //Large granularity?
+				{
+					offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly in 32-bit cases!
+				}
 			}
 		}
-	}
-
-	if (addrtest) //Execute address test?
-	{
 		isvalid = (offset<=limit); //Valid address range!
-		if ((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0)) //Data segment?
+		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0))) //Data segment?
 		{
-			if (DATASEGMENTPTR_E(descriptor)) //Expand-down data segment?
+			if (unlikely(DATASEGMENTPTR_E(descriptor))) //Expand-down data segment?
 			{
 				isvalid = !isvalid; //Reversed valid!
 			}
 		}
-		if (!isvalid) //Not valid?
+		if (unlikely(isvalid==0)) //Not valid?
 		{
 			CPU_MMU_checkrights_cause = 6; //What cause?
 			if (segment==CPU_SEGMENT_SS) //Stack fault?
@@ -1242,21 +1215,6 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	//Third: privilege levels & Restrict access to data!
 
-	/*
-	switch (descriptor->AccessRights) //What type?
-	{
-	case AVL_CODE_EXECUTEONLY_CONFORMING:
-	case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
-	case AVL_CODE_EXECUTE_READONLY_CONFORMING:
-	case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
-		isconforming = 1;
-		break;
-	default: //Not conforming?
-		isconforming = 0;
-		break;
-	}
-	*/
-
 	//Don't perform rights checks: This is done when loading the segment register only!
 
 	//Fifth: Accessing data in Code segments?
@@ -1267,40 +1225,36 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 //Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
 int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
+	byte rights;
 	//Determine the Limit!
-	if (EMULATED_CPU >= CPU_80286) //Handle like a 80286+?
+	if (likely(EMULATED_CPU >= CPU_80286)) //Handle like a 80286+?
 	{
-		if (segment==-1)
+		if (unlikely(segment==-1))
 		{
 			CPU_MMU_checkrights_cause = 0x80; //What cause?
 			return 0; //Enable: we're an emulator call!
 		}
-		/*
-		if (CPU[activeCPU].faultraised)
-		{
-			CPU_MMU_checkrights_cause = 0x81; //What cause?
-			return 1; //Abort if already an fault has been raised!
-		}
-		*/
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!
-		switch (CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16)) //What rights resulting? Test the address itself too!
+		rights = CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16); //What rights resulting? Test the address itself too!
+		if (unlikely(rights)) //Error?
 		{
-		case 0: //OK?
-			break; //OK!
-		default: //Unknown status? Count #GP by default!
-		case 1: //#GP?
-			if ((forreading&0x10)==0) THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw fault when not prefetching!
-			return 1; //Error out!
-			break;
-		case 2: //#NP?
-			if ((forreading&0x10)==0) THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor when not prefetching!
-			return 1; //Error out!
-			break;
-		case 3: //#SS?
-			if ((forreading&0x10)==0) THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error when not prefetching!
-			return 1; //Error out!
-			break;
+			switch (rights)
+			{
+			default: //Unknown status? Count #GP by default!
+			case 1: //#GP?
+				if (unlikely((forreading&0x10)==0)) THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw fault when not prefetching!
+				return 1; //Error out!
+				break;
+			case 2: //#NP?
+				if (unlikely((forreading&0x10)==0)) THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor when not prefetching!
+				return 1; //Error out!
+				break;
+			case 3: //#SS?
+				if (unlikely((forreading&0x10)==0)) THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error when not prefetching!
+				return 1; //Error out!
+				break;
+			}
 		}
 		return 0; //OK!
 	}

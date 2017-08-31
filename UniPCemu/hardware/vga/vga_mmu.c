@@ -415,7 +415,7 @@ void applyCGAMDAOffset(uint_32 *offset)
 
 byte VGAmemIO_rb(uint_32 offset, byte *value)
 {
-	if (is_A000VRAM(offset)) //VRAM and within range?
+	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
 		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
@@ -428,7 +428,7 @@ byte VGAmemIO_rb(uint_32 offset, byte *value)
 
 byte VGAmemIO_wb(uint_32 offset, byte value)
 {
-	if (is_A000VRAM(offset)) //VRAM and within range?
+	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
 		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!

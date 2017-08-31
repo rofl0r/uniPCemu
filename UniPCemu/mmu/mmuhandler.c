@@ -386,7 +386,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
+	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
 		//Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)).
 		//Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
@@ -422,7 +422,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
-	if ((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
+	if (unlikely((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3)))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
@@ -437,12 +437,12 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	result = MMU.memory[realaddress]; //Get data from memory!
 	specialreadcycle:
 	DRAM_access(realaddress); //Tick the DRAM!
-	if (index != 0xFF) //Don't ignore BUS?
+	if (likely(index != 0xFF)) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (MMU_logging || (specialdebugger && (originaladdress>=0x100000))) //To log?
+	if (unlikely(MMU_logging || (specialdebugger && (originaladdress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAM); //Log it!
 	}
@@ -452,13 +452,13 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
-	if (LOG_MMU_WRITES) //Data debugging?
+	if (unlikely(LOG_MMU_WRITES)) //Data debugging?
 	{
 		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL);
 	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if ((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1)) //Compaq special register?
+	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
 		memoryprotect_FE0000 = ((~value)&2); //Write-protect 128KB RAM at 0xFE0000?
 		if (value&1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
@@ -473,23 +473,23 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
-	if (index != 0xFF) //Don't ignore BUS?
+	if (likely(index != 0xFF)) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if ((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3))) //Overflow/invalid location?
+	if (unlikely((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3)))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
-	if (MMU_logging || (specialdebugger && (originaladdress>=0x100000))) //To log?
+	if (unlikely(MMU_logging || (specialdebugger && (originaladdress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
-	if (realaddress>user_memory_used) //More written than present in memory (first write to addr)?
+	if (unlikely(realaddress>user_memory_used)) //More written than present in memory (first write to addr)?
 	{
 		user_memory_used = realaddress; //Update max memory used!
 	}
@@ -526,7 +526,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
@@ -557,7 +557,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 			return;
 		}
 	}
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}

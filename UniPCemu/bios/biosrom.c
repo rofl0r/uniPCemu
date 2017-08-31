@@ -15,12 +15,6 @@
 #define dolog(...)
 #endif
 
-//Patch ET3000 ROM to:
-// Use Sequencer Memory Mode register value 0E instead of 06 with mode 2Eh.
-//Other patches: TODO
-
-#define ET3000_PATCH
-
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 byte EMU_VGAROM[0x10000]; //Maximum size custom BIOS VGA ROM!
 
@@ -547,26 +541,26 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	uint_32 ROMsize;
 	INLINEREGISTER uint_64 basepos, currentpos, temppos; //Current position!
 	basepos = currentpos = offset; //Load the offset!
-	if ((basepos >= 0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	if (unlikely((basepos >= 0xC0000) && (basepos<0xF0000))) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((basepos >= 0xC0000000) && (basepos < 0xF0000000)) basepos = 0xC0000000; //Our base reference position!
+		if (unlikely((basepos >= 0xC0000000) && (basepos < 0xF0000000))) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
 	currentpos -= basepos; //Calculate from the base position!
-	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
+	if (unlikely((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory))) return 0; //Disabled for Compaq RAM!
 	basepos = currentpos; //Save a backup!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
-	if (!numOPT_ROMS) goto noOPTROMSR;
+	if (unlikely(!numOPT_ROMS)) goto noOPTROMSR;
 	do //Check OPT ROMS!
 	{
 		currentpos = OPTROM_location[i]; //Load the current location for analysis and usage!
 		ROMsize = (currentpos>>32); //Save ROM end location!
-		if (OPT_ROMS[i] && (ROMsize>basepos)) //Before the end location and valid rom?
+		if (likely(OPT_ROMS[i] && (ROMsize>basepos))) //Before the end location and valid rom?
 		{
 			currentpos &= 0xFFFFFFFF; //The location of the ROM itself!
 			ROMsize -= (uint_32)currentpos; //Convert ROMsize to the actual ROM size to use!
-			if (currentpos <= basepos) //At/after the start location? We've found the ROM!
+			if (likely(currentpos <= basepos)) //At/after the start location? We've found the ROM!
 			{
 				temppos = basepos-currentpos; //Calculate the offset within the ROM!
 				if ((VGAROM_mapping!=0xFF) && (i==0)) //Special mapping for the VGA-reserved ROM?
@@ -602,7 +596,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	noOPTROMSR:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (basepos < BIOS_custom_VGAROM_size) //OK?
+		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
 			*value = BIOS_custom_VGAROM[basepos]; //Give the value!
 			return 1;
@@ -614,15 +608,15 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 void BIOSROM_updateTimers(double timepassed)
 {
 	byte i, timersleft;
-	if (OPTROM_timeoutused)
+	if (unlikely(OPTROM_timeoutused))
 	{
 		timersleft = 0; //Default: finished!
 		for (i=0;i<numOPT_ROMS;++i)
 		{
-			if (OPTROM_writetimeout[i]) //Timing?
+			if (unlikely(OPTROM_writetimeout[i])) //Timing?
 			{
 				OPTROM_writetimeout[i] -= timepassed; //Time passed!
-				if (OPTROM_writetimeout[i]<=0.0) //Expired?
+				if (unlikely(OPTROM_writetimeout[i]<=0.0)) //Expired?
 				{
 					OPTROM_writetimeout[i] = (double)0; //Finish state!
 					OPTROM_writeenabled[i] = 0; //Disable writes!
@@ -638,27 +632,27 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 {
 	INLINEREGISTER uint_32 basepos, currentpos;
 	basepos = currentpos = offset; //Load the offset!
-	if ((basepos>=0xC0000) && (basepos<0xF0000)) basepos = 0xC0000; //Our base reference position!
+	if (unlikely((basepos>=0xC0000) && (basepos<0xF0000))) basepos = 0xC0000; //Our base reference position!
 	else //Out of range (16-bit)?
 	{
-		if ((basepos>=0xC0000000) && (basepos<0xF0000000)) basepos = 0xC0000000; //Our base reference position!
+		if (unlikely((basepos>=0xC0000000) && (basepos<0xF0000000))) basepos = 0xC0000000; //Our base reference position!
 		else return 0; //Our of range (32-bit)?
 	}
 	currentpos -= basepos; //Calculate from the base position!
-	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
+	if (unlikely((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory))) return 0; //Disabled for Compaq RAM!
 	basepos = currentpos; //Write back!
 	INLINEREGISTER uint_64 OPTROM_address, OPTROM_loc; //The address calculated in the EEPROM!
 	INLINEREGISTER byte i=0,j=numOPT_ROMS;
-	if (!numOPT_ROMS) goto noOPTROMSW;
+	if (unlikely(!numOPT_ROMS)) goto noOPTROMSW;
 	do //Check OPT ROMS!
 	{
-		if (OPT_ROMS[i]) //Enabled?
+		if (likely(OPT_ROMS[i])) //Enabled?
 		{
 			OPTROM_loc = OPTROM_location[i]; //Load the current location!
-			if ((OPTROM_loc>>32)>basepos) //Before the end of the ROM?
+			if (likely((OPTROM_loc>>32)>basepos)) //Before the end of the ROM?
 			{
 				OPTROM_loc &= 0xFFFFFFFF;
-				if (OPTROM_loc <= basepos) //After the start of the ROM?
+				if (likely(OPTROM_loc <= basepos)) //After the start of the ROM?
 				{
 					OPTROM_address = basepos;
 					OPTROM_address -= OPTROM_loc; //The location within the OPTROM!
@@ -819,7 +813,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	noOPTROMSW:
 	if (BIOS_custom_VGAROM_size) //Custom VGA ROM mounted?
 	{
-		if (basepos < BIOS_custom_VGAROM_size) //OK?
+		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
 			return 1; //Ignore writes!
 		}
@@ -844,11 +838,11 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
 	basepos = tempoffset; //Save for easy reference!
 
-	if (BIOS_custom_ROM) //Custom/system ROM loaded?
+	if (unlikely(BIOS_custom_ROM)) //Custom/system ROM loaded?
 	{
-		if (BIOS_custom_ROM_size == 0x10000)
+		if (likely(BIOS_custom_ROM_size == 0x10000))
 		{
-			if (tempoffset<0x10000) //Within range?
+			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
 				return 1; //Ignore writes!
@@ -856,12 +850,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		}
 		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
 		{
-			if (tempoffset>=BIOS_custom_ROM_size) //Doubled copy?
+			if (unlikely(tempoffset>=BIOS_custom_ROM_size)) //Doubled copy?
 			{
 				tempoffset -= BIOS_custom_ROM_size; //Double in memory!
 			}
 		}
-		if (tempoffset<BIOS_custom_ROM_size) //Within range?
+		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
 			return 1; //Ignore writes!
 		}
@@ -879,32 +873,32 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		{
 		case BIOSROMTYPE_U18_19: //U18&19 combo?
 			originaloffset = basepos; //Save the original offset for reference!
-			if (basepos>=0x10000) return 0; //Not us!
+			if (unlikely(basepos>=0x10000)) return 0; //Not us!
 			basepos &= 0x7FFF; //Our offset within the ROM!
 			if (originaloffset&0x8000) //u18?
 			{
-				if (BIOS_ROMS[18]) //Set?
+				if (likely(BIOS_ROMS[18])) //Set?
 				{
-					if (BIOS_ROM_size[18]>basepos) //Within range?
+					if (likely(BIOS_ROM_size[18]>basepos)) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
 				}
 			}
-			else if (BIOS_ROMS[19]) //u19?
+			else if (likely(BIOS_ROMS[19])) //u19?
 			{
-				if (BIOS_ROM_size[19]>basepos) //Within range?
+				if (likely(BIOS_ROM_size[19]>basepos)) //Within range?
 				{
 					return 1; //Ignore writes!
 				}
 			}
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
-			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			if (likely(BIOS_ROMS[15] && BIOS_ROMS[13])) //Compaq?
 			{
-				if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
+				if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 				{
-					if (tempoffset>=(BIOS_ROM_U13_15_double>>1)) //Second copy?
+					if (likely(tempoffset>=(BIOS_ROM_U13_15_double>>1))) //Second copy?
 					{
 						tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
 					}
@@ -914,17 +908,17 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
 			{
-				if (BIOS_ROMS[15]) //u13/u15 combination?
+				if (likely(BIOS_ROMS[15])) //u13/u15 combination?
 				{
-					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
 					{
 						return 1; //Ignore writes!
 					}					
 				}
 			}
-			else if (BIOS_ROMS[13]) //u13/u15 combination?
+			else if (likely(BIOS_ROMS[13])) //u13/u15 combination?
 			{
-				if (BIOS_ROM_size[13]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
 				{
 					return 1; //Ignore writes!
 				}
@@ -935,17 +929,17 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (BIOS_ROMS[35]) //u34/u35 combination?
+				if (likely(BIOS_ROMS[35])) //u34/u35 combination?
 				{
-					if (BIOS_ROM_size[35]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
 				}
 			}
-			else if (BIOS_ROMS[34]) //u34/u35 combination?
+			else if (likely(BIOS_ROMS[34])) //u34/u35 combination?
 			{
-				if (BIOS_ROM_size[34]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
 				{
 					return 1; //Ignore writes!
 				}
@@ -956,17 +950,17 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //Normal AT BIOS ROM?
 			{
-				if (BIOS_ROMS[47]) //Loaded?
+				if (likely(BIOS_ROMS[47])) //Loaded?
 				{
-					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
 					{
 						return 1; //Ignore writes!
 					}
 				}
 			}
-			else if (BIOS_ROMS[27]) //Loaded?
+			else if (likely(BIOS_ROMS[27])) //Loaded?
 			{
-				if (BIOS_ROM_size[27]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
 				{
 					return 1; //Ignore writes!
 				}
@@ -999,7 +993,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		if (BIOS_custom_ROM_size == 0x10000)
 		{
-			if (tempoffset<0x10000) //Within range?
+			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
 				*value = BIOS_custom_ROM[tempoffset]; //Give the value!
@@ -1014,7 +1008,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			}
 		}
 		tempoffset = BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup)); //Patch to the end block of the ROM instead of the start.
-		if (tempoffset<BIOS_custom_ROM_size) //Within range?
+		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
@@ -1037,18 +1031,18 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
 			if (basepos&0x8000) //u18?
 			{
-				if (BIOS_ROMS[18]) //Set?
+				if (likely(BIOS_ROMS[18])) //Set?
 				{
-					if (BIOS_ROM_size[18]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[18]>tempoffset)) //Within range?
 					{
 						*value = BIOS_ROMS[18][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
 			}
-			else if (BIOS_ROMS[19]) //u19?
+			else if (likely(BIOS_ROMS[19])) //u19?
 			{
-				if (BIOS_ROM_size[19]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[19]>tempoffset)) //Within range?
 				{
 					*value = BIOS_ROMS[19][tempoffset]; //Give the value!
 					return 1;
@@ -1057,9 +1051,9 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
 			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
-			if (BIOS_ROMS[15] && BIOS_ROMS[13]) //Compaq?
+			if (likely(BIOS_ROMS[15] && BIOS_ROMS[13])) //Compaq?
 			{
-				if (tempoffset<BIOS_ROM_U13_15_double) //This is doubled in ROM!
+				if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 				{
 					if (tempoffset>=BIOS_ROM_U13_15_single) //Second copy?
 					{
@@ -1071,18 +1065,18 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
 			{
-				if (BIOS_ROMS[15]) //u34/u35 combination?
+				if (likely(BIOS_ROMS[15])) //u34/u35 combination?
 				{
-					if (BIOS_ROM_size[15]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
 					{
 						*value = BIOS_ROMS[15][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
 			}
-			else if (BIOS_ROMS[13]) //u34/u35 combination?
+			else if (likely(BIOS_ROMS[13])) //u34/u35 combination?
 			{
-				if (BIOS_ROM_size[13]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
 				{
 					*value = BIOS_ROMS[13][tempoffset]; //Give the value!
 					return 1;
@@ -1095,18 +1089,18 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (BIOS_ROMS[47]) //Loaded?
+				if (likely(BIOS_ROMS[47])) //Loaded?
 				{
-					if (BIOS_ROM_size[47]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
 					{
 						*value = BIOS_ROMS[47][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
 			}
-			else if (BIOS_ROMS[27]) //Loaded?
+			else if (likely(BIOS_ROMS[27])) //Loaded?
 			{
-				if (BIOS_ROM_size[27]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
 				{
 					*value = BIOS_ROMS[27][tempoffset]; //Give the value!
 					return 1;
@@ -1119,18 +1113,18 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (BIOS_ROMS[35]) //u34/u35 combination?
+				if (likely(BIOS_ROMS[35])) //u34/u35 combination?
 				{
-					if (BIOS_ROM_size[35]>tempoffset) //Within range?
+					if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
 					{
 						*value = BIOS_ROMS[35][tempoffset]; //Give the value!
 						return 1;
 					}
 				}
 			}
-			else if (BIOS_ROMS[34]) //u34/u35 combination?
+			else if (likely(BIOS_ROMS[34])) //u34/u35 combination?
 			{
-				if (BIOS_ROM_size[34]>tempoffset) //Within range?
+				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
 				{
 					*value = BIOS_ROMS[34][tempoffset]; //Give the value!
 					return 1;
