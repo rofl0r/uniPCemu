@@ -335,8 +335,9 @@ extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to 
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
-	if (BIU[activeCPU].PIQ==0) return; //Not gotten a PIQ? Abort!
+	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
+	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_base[CPU_SEGMENT_CS]+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
 	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0))) return; //Abort on fault!
 	if (unlikely(is_paging())) //Are we paging?
 	{
