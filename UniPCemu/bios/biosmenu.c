@@ -6493,7 +6493,7 @@ void BIOS_useDirectMIDIPassthrough()
 	BIOS_Menu = 31; //Goto Sound menu!
 }
 
-uint_32 hex2int(char *s)
+uint_32 converthex2int(char *s)
 {
 	uint_32 result=0; //The result!
 	char *temp;
@@ -6527,9 +6527,11 @@ uint_32 hex2int(char *s)
 	return result; //Give the result we calculated!
 }
 
+void BIOS_setBreakpoint(char *breakpointstr, byte semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress);
+
 void BIOS_breakpoint()
 {
-	char breakpointstr[8+1+4+1+1+1]; //32-bits offset, colon, 16-bits segment, mode if required, Ignore EIP/Ignore address and final character(always zero)!
+	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required, Ignore EIP/Ignore address and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
@@ -6594,16 +6596,14 @@ void BIOS_breakpoint()
 	char *temp;
 	word maxsegmentsize = 4;
 	word maxoffsetsize = 4;
-	word segment; //The segment buffer to load!
-	uint_32 offset; //The offset buffer to load!
+	byte ignoreEIP = 0;
+	byte ignoreAddress = 0;
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1)) //Input text confirmed?
 	{
 		if (strcmp(breakpointstr, "") != 0) //Got valid input?
 		{
 			//Convert the string back into our valid numbers for storage!
 			mode = 1; //Default to real mode!
-			byte ignoreEIP = 0;
-			byte ignoreAddress = 0;
 			ignoreEIP = (breakpointstr[strlen(breakpointstr)-1]=='I'); //Ignore EIP?
 			if (ignoreEIP) breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
 			ignoreAddress = (breakpointstr[strlen(breakpointstr)-1]=='M'); //Ignore address?
@@ -6620,35 +6620,28 @@ void BIOS_breakpoint()
 					breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
 				default: //Real mode?
 					handlemode: //Handle the other modes!
-						temp = &breakpointstr[0]; //First character!
-						for (;(*temp && *temp!=':');++temp); //No seperator yet?
-						if (*temp!=':') //No seperator found?
-						{
-							goto abortcoloninput; //Invalid: can't handle!
-						}
-						if (*(temp+1)=='\0') //Invalid ending?
-						{
-							goto abortcoloninput; //Invalid: can't handle colon at the end!							
-						}
-						//Temp points to the colon!
-						semicolonpos = temp-&breakpointstr[0]; //length up to the semicolon, which should be valid!
-						if ((semicolonpos==0) || (semicolonpos>maxsegmentsize)) //Too long segment?
-						{
-							goto abortcoloninput; //Invalid: can't handle segment length!							
-						}
-						if (((strlen(breakpointstr)-semicolonpos)-1)>maxoffsetsize) //Too long segment?
-						{
-							goto abortcoloninput; //Invalid: can't handle segment length!							
-						}
-
-						breakpointstr[semicolonpos] = '\0'; //Convert the semicolon into an EOS character to apply the string length!
-						segment = hex2int(&breakpointstr[0]); //Convert the number to our usable format!
-						offset = hex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
-
-						//Apply the new breakpoint!
-						BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT))|(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT))|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
-						BIOS_Changed = 1; //We've changed!			
-					break;
+					temp = &breakpointstr[0]; //First character!
+					for (;(*temp && *temp!=':');++temp); //No seperator yet?
+					if (*temp!=':') //No seperator found?
+					{
+						goto abortcoloninput; //Invalid: can't handle!
+					}
+					if (*(temp+1)=='\0') //Invalid ending?
+					{
+						goto abortcoloninput; //Invalid: can't handle colon at the end!							
+					}
+					//Temp points to the colon!
+					semicolonpos = temp-&breakpointstr[0]; //length up to the semicolon, which should be valid!
+					if ((semicolonpos==0) || (semicolonpos>maxsegmentsize)) //Too long segment?
+					{
+						goto abortcoloninput; //Invalid: can't handle segment length!							
+					}
+					if (((safe_strlen(&breakpointstr[0],sizeof(breakpointstr))-semicolonpos)-1)<=maxoffsetsize) //Offset OK?
+					{
+						BIOS_setBreakpoint(&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress);
+						break;													
+					}
+					goto abortcoloninput; //Invalid: can't handle segment length!
 			}
 		}
 		else //Unset?
@@ -6659,6 +6652,23 @@ void BIOS_breakpoint()
 	}
 	abortcoloninput:
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_setBreakpoint(char *breakpointstr, byte semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress)
+{
+	word segment;
+	uint_32 offset;
+	breakpointstr[semicolonpos] = '\0'; //Convert the semicolon into an EOS character to apply the string length!
+	segment = converthex2int(&breakpointstr[0]); //Convert the number to our usable format!
+	offset = converthex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
+
+	//Apply the new breakpoint!
+	BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT);
+	BIOS_Settings.breakpoint |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT));
+	BIOS_Settings.breakpoint |=	(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT));
+	BIOS_Settings.breakpoint |= (((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT);
+	BIOS_Settings.breakpoint |= ((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
+	BIOS_Changed = 1; //We've changed!
 }
 
 void BIOS_ROMMode()
