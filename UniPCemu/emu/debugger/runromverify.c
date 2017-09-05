@@ -144,7 +144,10 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 			break; //Continue, but keep our warning!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
-		cpudebugger = needdebugger(); //Debugging?
+		if (unlikely(CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1))) //We're starting a new instruction?
+		{
+			cpudebugger = needdebugger(); //Debugging?
+		}
 		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!
 		if (shuttingdown()) goto doshutdown;
