@@ -955,8 +955,8 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textgotoxy(frameratesurface, 0, GPU_TEXT_DEBUGGERROW);
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Command: %s%s", debugger_prefix, debugger_command_text); //Show our command!
 		debuggerrow = GPU_TEXT_DEBUGGERROW; //The debug row we're writing to!	
-		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 14, debuggerrow++); //First debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "OP:%02X; ROP: %02X", MMU_rb(-1, debuggerregisters.CS, debuggerregisters.IP, 1,1), CPU[activeCPU].lastopcode); //Debug opcode!
+		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 21, debuggerrow++); //First debug row!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Prefix(0):%02X; ROP: %02X", OPbuffer[0], CPU[activeCPU].lastopcode); //Debug opcode and executed opcode!
 
 		//First: location!
 		if ((((debuggerregisters.CR0&1)==0) || (debuggerregisters.EFLAGS&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
