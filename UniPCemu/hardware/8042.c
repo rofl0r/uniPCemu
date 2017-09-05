@@ -513,12 +513,9 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 			CPU[activeCPU].resetPending = 1; //Start pending reset!
 		}
 		break;
-	case 0xDD: //Disable A20 line?
-		Controller8042.outputport = Controller8042.outputport&(~0x2); //Wrap arround: disable A20 line!
-		refresh_outputport(); //Handle the new output port!
-		break;
-	case 0xDF: //Enable A20 line?
-		Controller8042.outputport = Controller8042.outputport|(0x2); //Wrap arround: enable A20 line!
+	case 0xDD: //Enable A20 line?
+	case 0xDF: //Disable A20 line?
+		Controller8042.outputport = (Controller8042.outputport&(~2))|((Controller8042.command&2)^2); //Wrap arround: enable A20 line when bit 2 isn't set!
 		refresh_outputport(); //Handle the new output port!
 		break;
 	case 0xA1: //Compaq. Unknown speedfunction?
