@@ -147,6 +147,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		if (unlikely(CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1))) //We're starting a new instruction?
 		{
 			cpudebugger = needdebugger(); //Debugging?
+			MMU_logging = debugger_logging(); //Are we logging?
 		}
 		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!
@@ -183,8 +184,6 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 				}
 			}
 		}
-		cpudebugger = needdebugger(); //Debugging?
-		MMU_logging = debugger_logging(); //Are we logging?
 		CPU_exec(); //Run CPU!
 		debugger_step(); //Step debugger if needed!
 		CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
