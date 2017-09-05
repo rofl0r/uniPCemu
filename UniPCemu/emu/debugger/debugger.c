@@ -741,7 +741,7 @@ OPTINLINE static void debugger_autolog()
 					dolog("debugger", "The CPU has raised an exception.");
 				}
 			}
-			char fullcmd[256];
+			char fullcmd[65536];
 			cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
 			int i; //A counter for opcode data dump!
 			if (!debugger_set) //No debugger set?
