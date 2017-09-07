@@ -60,10 +60,7 @@ void raisePF(uint_32 address, word flags)
 	{
 		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
 	}
-	if (!(flags&1) && CPU[activeCPU].registers) //Not present?
-	{
-		CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
-	}
+	CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
 	/*
