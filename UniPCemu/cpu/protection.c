@@ -38,12 +38,9 @@ void CPU_doublefault()
 {
 	CPU[activeCPU].faultraised_lasttype = EXCEPTION_DOUBLEFAULT;
 	CPU[activeCPU].faultraised = 1; //Raising a fault!
-	if (getcpumode()!=CPU_MODE_REAL) //Protected mode only?
-	{
-		uint_64 zerovalue=0; //Zero value pushed!
-		++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
-		CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,0,zerovalue); //Execute the double fault handler!
-	}
+	uint_64 zerovalue=0; //Zero value pushed!
+	++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
+	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,0,zerovalue); //Execute the double fault handler!
 }
 
 byte CPU_faultraised(byte type)
@@ -95,6 +92,12 @@ byte CPU_faultraised(byte type)
 							break;
 					}
 					break;
+				case EXCEPTION_DOUBLEFAULT: //Special case to prevent breakdown?
+					if (type==EXCEPTION_DOUBLEFAULT) //We're a double fault raising a double fault?
+					{
+						CPU_doublefault(); //Double fault!
+						return 0; //Don't do anything anymore(partial shutdown)!
+					}
 				default: //No double fault!
 					break;
 			}
