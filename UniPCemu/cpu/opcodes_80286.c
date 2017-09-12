@@ -573,9 +573,9 @@ void CPU286_OP0F03() //LSL /r
 }
 
 #include "headers/packed.h" //Packed!
-typedef struct PACKED
+typedef union PACKED
 {
-	struct PACKED
+	struct
 	{
 		word baselow; //First word
 		word basehighaccessrights; //Second word low bits=base high, high=access rights!
@@ -586,9 +586,9 @@ typedef struct PACKED
 #include "headers/endpacked.h" //Finished!
 
 #include "headers/packed.h" //Packed!
-typedef struct PACKED
+typedef union PACKED
 {
-	struct PACKED
+	struct
 	{
 		word baselow; //First word
 		word basehigh; //Second word low bits, high=zeroed!
@@ -615,7 +615,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 #include "headers/packed.h" //Packed!
 	static union PACKED
 	{
-		struct PACKED
+		struct
 		{
 			word unused[3];
 			word MSW;
