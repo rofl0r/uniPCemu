@@ -95,7 +95,14 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 			}
 		}
 	}*/
-	realaddress += CPU_MMU_start(segdesc, segment);
+	if (segdesc!=-3) //Not using the actual literal value?
+	{
+		realaddress += CPU_MMU_start(segdesc, segment);
+	}
+	else
+	{
+		realaddress += (CPU[activeCPU].registers->ES<<4); //Apply literal address!
+	}
 
 	//We work!
 	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!

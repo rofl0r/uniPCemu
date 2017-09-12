@@ -379,7 +379,7 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{0,0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //VERR
 	//215 items at this point!
 	//Undocumented instruction: LOADALL
-	,{0,0,1,0x05,0xFF,0x00,{{{{195-51,0,0},{195-51,0,0}}},{{{195-51,0,0},{195-51,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
+	,{0,0,1,0x05,0xFF,0x00,{{{{195-102,0,0},{195-102,0,0}}},{{{195-102,0,0},{195-102,0,0}}}}} //LOADALL uses 195 clocks and performs 51 word bus cycles.
 
 	/*
 	
@@ -758,7 +758,7 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,1,0x00,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{14,0,0},{16-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //VERR
 	//215 items at this point!
 	//Undocumented instruction: LOADALL
-	,{1,0,1,0x05,0xFF,0x00,{{{{195-51,0,0},{195-51,0,0}}},{{{195-51,0,0},{195-51,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
+	,{1,0,1,0x05,0xFF,0x00,{{{{195-102,0,0},{195-102,0,0}}},{{{195-102,0,0},{195-102,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles.
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {

@@ -578,11 +578,10 @@ typedef struct PACKED
 	struct
 	{
 		word baselow; //First word
-		byte basehigh; //Second word low bits
-		byte accessrights; //Present bit is valid bit instead! Second word high bits!
+		word basehighaccessrights; //Second word low bits=base high, high=access rights!
 		word limit; //Third word
 	};
-	byte data[6]; //All our descriptor cache data!
+	word data[3]; //All our descriptor cache data!
 } DESCRIPTORCACHE286;
 #include "headers/endpacked.h" //Finished!
 
@@ -592,12 +591,11 @@ typedef struct PACKED
 	struct
 	{
 		word baselow; //First word
-		byte basehigh; //Second word low bits
-		byte shouldbezeroed; //Second word high bits
+		word basehigh; //Second word low bits, high=zeroed!
 		word limit; //Third word
 	};
-	byte data[6];
-} DTRdata;
+	word data[3];
+} DTRdata286;
 #include "headers/endpacked.h" //Finished!
 
 void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
@@ -605,24 +603,23 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = DESC_16BITS(source->limit);
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info &= ~0xF; //No high limit!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = DESC_16BITS(source->baselow);
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = source->basehigh; //Mid is High base in the descriptor(286 only)!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = (source->basehighaccessrights&0xFF); //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0; //Only 24 bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->accessrights; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = (source->basehighaccessrights>>8); //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!	
 }
 
 void CPU286_OP0F05() //Undocumented LOADALL instruction
 {
-	word address;
 #include "headers/packed.h" //Packed!
 	static union PACKED
 	{
 		struct
 		{
-			byte unused[6];
+			word unused[3];
 			word MSW;
-			byte unused2[14];
+			word unused2[4];
 			word TR;
 			word flags;
 			word IP;
@@ -643,25 +640,24 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 			DESCRIPTORCACHE286 CSdescriptor;
 			DESCRIPTORCACHE286 SSdescriptor;
 			DESCRIPTORCACHE286 DSdescriptor;
-			DTRdata GDTR;
+			DTRdata286 GDTR;
 			DESCRIPTORCACHE286 LDTdescriptor;
-			DTRdata IDTR;
+			DTRdata286 IDTR;
 			DESCRIPTORCACHE286 TSSdescriptor;
 		} fields; //Fields
-		byte data[0x66]; //All data to be loaded!
 		word dataw[0x33]; //Word-sized data to be loaded, if any!
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
-	if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Start Request!
 	{
-		unkOP0F_286(); //Raise an error!
-		return;
-	}
-
-	if (CPU[activeCPU].internalmodrmstep==0) //First step? Start Request!
-	{	
+		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
+		{
+			unkOP0F_286(); //Raise an error!
+			return;
+		}
 		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+		++CPU[activeCPU].internalinstructionstep; //Finished check!
 	}
 
 	//Load the data from the used location!
@@ -669,16 +665,9 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	word readindex; //Our read index for all reads that are required!
 	readindex = 0; //Init read index to read all data in time through the BIU!
 
-	for (address=0;address<27;++address) //Load all registers in the correct format!
+	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.dataw);++readindex) //Load all registers in the correct format!
 	{
-		if (CPU8086_internal_stepreaddirectw((byte)readindex,-1,0,(0x800|(address<<1)),&LOADALLDATA.dataw[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
-		readindex += 2; //Next read index!
-	}
-
-	for (address=54;address<sizeof(LOADALLDATA.data);++address) //Load all remaining data in default byte order!
-	{
-		if (CPU8086_internal_stepreaddirectb((byte)readindex,-1,0,(0x800|address),&LOADALLDATA.data[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
-		readindex += 2; //Next read index!
+		if (CPU8086_internal_stepreaddirectw((byte)(readindex<<1),-1,REG_ES,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
@@ -700,9 +689,8 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->DX = DESC_16BITS(LOADALLDATA.fields.CX); //CX
 	CPU[activeCPU].registers->CX = DESC_16BITS(LOADALLDATA.fields.DX); //DX
 	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
-	CPU_apply286cycles(); //Apply the 80286+ cycles!
-	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
+	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
@@ -718,6 +706,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TSSdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 void CPU286_OP0F06() //CLTS

@@ -216,7 +216,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 }
 
 #include "headers/packed.h" //Packed!
-typedef struct PACKED
+typedef union PACKED
 {
 	struct
 	{
@@ -224,12 +224,12 @@ typedef struct PACKED
 		uint_32 BASE;
 		uint_32 LIMIT;
 	};
-	byte data[8]; //All our descriptor cache data!
+	uint_32 data[3]; //All our descriptor cache data!
 } DESCRIPTORCACHE386;
 #include "headers/endpacked.h" //Finished!
 
 #include "headers/packed.h" //Packed!
-typedef struct PACKED
+typedef union PACKED
 {
 	struct
 	{
@@ -237,8 +237,8 @@ typedef struct PACKED
 		uint_32 BASE;
 		uint_32 LIMIT;
 	};
-	byte data[12];
-} DTRdata;
+	uint_32 data[3];
+} DTRdata386;
 #include "headers/endpacked.h" //Finished!
 
 void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
@@ -303,7 +303,7 @@ byte LOADALL386_checkMMUaccess(word segment, uint_32 offset, byte readflags, byt
 
 void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
-	word address;
+	word readindex; //Our read index for all reads that are required!
 #include "headers/packed.h" //Packed!
 	static union PACKED
 	{
@@ -331,8 +331,8 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 			uint_32 CS;
 			uint_32 ES;
 			DESCRIPTORCACHE386 TRdescriptor;
-			DTRdata IDTR;
-			DTRdata GDTR;
+			DTRdata386 IDTR;
+			DTRdata386 GDTR;
 			DESCRIPTORCACHE386 LDTRdescriptor;
 			DESCRIPTORCACHE386 GSdescriptor;
 			DESCRIPTORCACHE386 FSdescriptor;
@@ -345,33 +345,30 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
-	if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
-	{
-		unkOP0F_286(); //Raise an error!
-		return;
-	}
-
-	if (CPU[activeCPU].internalmodrmstep==0) //First step? Start Request!
+	if (CPU[activeCPU].internalinstructionstep==0) //First step? Start Request!
 	{	
-		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
-		for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address)
+		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
 		{
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(address<<2),1,getCPL(),1,0|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((address<<2)|1),1,getCPL(),1,1|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((address<<2)|2),1,getCPL(),1,2|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((address<<2)|3),1,getCPL(),1,3|0x10)) return; //Abort on fault!
+			unkOP0F_286(); //Raise an error!
+			return;
 		}
+		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+		for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex)
+		{
+			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(readindex<<2),1,getCPL(),1,0|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|1),1,getCPL(),1,1|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|2),1,getCPL(),1,2|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|3),1,getCPL(),1,3|0x10)) return; //Abort on fault!
+		}
+		++CPU[activeCPU].internalinstructionstep; //Finished check!
 	}
 
 	//Load the data from the used location!
 
-	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES for now!
-	word readindex; //Our read index for all reads that are required!
-	readindex = 0; //Init read index to read all data in time through the BIU!
-	for (address=0;address<NUMITEMS(LOADALLDATA.datad);++address) //Load all remaining data in default byte order!
+	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES literal for now!
+	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex) //Load all remaining data in default byte order!
 	{
-		if (CPU80386_internal_stepreaddirectdw((byte)readindex,-1,REG_ES,(REG_EDI+(address<<2)),&LOADALLDATA.datad[address],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
-		readindex += 2; //Next read index!
+		if (CPU80386_internal_stepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALLDATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
@@ -393,7 +390,6 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->EDX = DESC_32BITS(LOADALLDATA.fields.ECX); //CX
 	CPU[activeCPU].registers->ECX = DESC_32BITS(LOADALLDATA.fields.EDX); //DX
 	CPU[activeCPU].registers->EAX = DESC_32BITS(LOADALLDATA.fields.EAX); //AX
-	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 	CPU_flushPIQ(-1); //We're jumping to another address!
@@ -411,6 +407,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
 	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTRdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
 	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TRdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
 extern byte didJump; //Did we jump?
