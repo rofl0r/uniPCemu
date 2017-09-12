@@ -8,7 +8,7 @@
 //Memory access functionality with Paging!
 byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?
@@ -25,7 +25,7 @@ byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 
 byte CPU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?
@@ -42,7 +42,7 @@ byte CPU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 
 byte CPU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?
@@ -59,7 +59,7 @@ byte CPU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 
 byte CPU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?
@@ -76,7 +76,7 @@ byte CPU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16
 
 byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?
@@ -93,7 +93,7 @@ byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16
 
 byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16)
 {
-	if (segdesc>=0)
+	if ((segdesc>=0) || (segdesc==-4))
 	{
 		offset = MMU_realaddr(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc], offset, 0, is_offset16); //Real adress translated through the MMU!
 		if (is_paging()) //Are we paging?

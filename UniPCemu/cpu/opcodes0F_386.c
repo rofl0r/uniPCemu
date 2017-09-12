@@ -243,11 +243,11 @@ typedef union PACKED
 
 void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 {
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = (DESC_32BITS(source->LIMIT)&0xFFFF);
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info = ((DESC_32BITS(source->AR)&0xF00>>4)|((DESC_32BITS(source->LIMIT)>>16)&0xF)); //Full high limit information and remaining rights data!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (DESC_32BITS(source->BASE)&0xFFFF);
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((DESC_32BITS(source->BASE)>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = (DESC_32BITS(source->BASE)>>24); //Full 32-bits are used for the base!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = (source->LIMIT&0xFFFF);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info = ((source->AR&0xF00>>4)|((source->LIMIT>>16)&0xF)); //Full high limit information and remaining rights data!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (source->BASE&0xFFFF);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((source->BASE>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = (source->BASE>>24); //Full 32-bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 }
@@ -341,7 +341,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 			DESCRIPTORCACHE386 CSdescriptor;
 			DESCRIPTORCACHE386 ESdescriptor;
 		} fields; //Fields
-		uint_32 datad[51]; //Our data size!
+		uint_32 datad[0x33]; //Our data size!
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
@@ -373,32 +373,32 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
-	CPU[activeCPU].registers->CR0 = DESC_32BITS(LOADALLDATA.fields.CR0); //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
-	CPU[activeCPU].registers->TR = DESC_16BITS(LOADALLDATA.fields.TR); //TR
-	CPU[activeCPU].registers->FLAGS = DESC_32BITS(LOADALLDATA.fields.EFLAGS); //FLAGS
-	CPU[activeCPU].registers->EIP = DESC_32BITS(LOADALLDATA.fields.EIP); //IP
-	CPU[activeCPU].registers->LDTR = DESC_16BITS(LOADALLDATA.fields.LDTR); //LDT
-	CPU[activeCPU].registers->DS = DESC_16BITS(LOADALLDATA.fields.DS); //DS
-	CPU[activeCPU].registers->SS = DESC_16BITS(LOADALLDATA.fields.SS); //SS
-	CPU[activeCPU].registers->CS = DESC_16BITS(LOADALLDATA.fields.CS); //CS
-	CPU[activeCPU].registers->ES = DESC_16BITS(LOADALLDATA.fields.ES); //ES
-	CPU[activeCPU].registers->EDI = DESC_32BITS(LOADALLDATA.fields.EDI); //DI
-	CPU[activeCPU].registers->ESI = DESC_32BITS(LOADALLDATA.fields.ESI); //SI
-	CPU[activeCPU].registers->EBP = DESC_32BITS(LOADALLDATA.fields.EBP); //BP
-	CPU[activeCPU].registers->ESP = DESC_32BITS(LOADALLDATA.fields.ESP); //SP
-	CPU[activeCPU].registers->EBX = DESC_32BITS(LOADALLDATA.fields.EBX); //BX
-	CPU[activeCPU].registers->EDX = DESC_32BITS(LOADALLDATA.fields.ECX); //CX
-	CPU[activeCPU].registers->ECX = DESC_32BITS(LOADALLDATA.fields.EDX); //DX
-	CPU[activeCPU].registers->EAX = DESC_32BITS(LOADALLDATA.fields.EAX); //AX
+	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
+	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
+	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
+	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.EIP; //IP
+	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDTR; //LDT
+	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
+	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
+	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
+	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
+	CPU[activeCPU].registers->EDI = LOADALLDATA.fields.EDI; //DI
+	CPU[activeCPU].registers->ESI = LOADALLDATA.fields.ESI; //SI
+	CPU[activeCPU].registers->EBP = LOADALLDATA.fields.EBP; //BP
+	CPU[activeCPU].registers->ESP = LOADALLDATA.fields.ESP; //SP
+	CPU[activeCPU].registers->EBX = LOADALLDATA.fields.EBX; //BX
+	CPU[activeCPU].registers->EDX = LOADALLDATA.fields.ECX; //CX
+	CPU[activeCPU].registers->ECX = LOADALLDATA.fields.EDX; //DX
+	CPU[activeCPU].registers->EAX = LOADALLDATA.fields.EAX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
-	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 	CPU_flushPIQ(-1); //We're jumping to another address!
+	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = DESC_32BITS(LOADALLDATA.fields.GDTR.BASE); //Base!
-	CPU[activeCPU].registers->GDTR.limit = DESC_32BITS(LOADALLDATA.fields.GDTR.LIMIT); //Limit
-	CPU[activeCPU].registers->IDTR.base = DESC_32BITS(LOADALLDATA.fields.IDTR.BASE); //Base!
-	CPU[activeCPU].registers->IDTR.limit = DESC_32BITS(LOADALLDATA.fields.IDTR.LIMIT); //Limit
+	CPU[activeCPU].registers->GDTR.base = LOADALLDATA.fields.GDTR.BASE; //Base!
+	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.LIMIT; //Limit
+	CPU[activeCPU].registers->IDTR.base = LOADALLDATA.fields.IDTR.BASE; //Base!
+	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.LIMIT; //Limit
 
 	//Load all descriptors directly without checks!
 	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!

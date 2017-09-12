@@ -575,7 +575,7 @@ void CPU286_OP0F03() //LSL /r
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
 {
-	struct
+	struct PACKED
 	{
 		word baselow; //First word
 		word basehighaccessrights; //Second word low bits=base high, high=access rights!
@@ -588,7 +588,7 @@ typedef struct PACKED
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
 {
-	struct
+	struct PACKED
 	{
 		word baselow; //First word
 		word basehigh; //Second word low bits, high=zeroed!
@@ -600,9 +600,9 @@ typedef struct PACKED
 
 void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 {
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = DESC_16BITS(source->limit);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = source->limit;
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info &= ~0xF; //No high limit!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = DESC_16BITS(source->baselow);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = source->baselow;
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = (source->basehighaccessrights&0xFF); //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = 0; //Only 24 bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
@@ -615,11 +615,11 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 #include "headers/packed.h" //Packed!
 	static union PACKED
 	{
-		struct
+		struct PACKED
 		{
 			word unused[3];
 			word MSW;
-			word unused2[4];
+			word unused2[7];
 			word TR;
 			word flags;
 			word IP;
@@ -667,7 +667,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.dataw);++readindex) //Load all registers in the correct format!
 	{
-		if (CPU8086_internal_stepreaddirectw((byte)(readindex<<1),-1,REG_ES,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_internal_stepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
@@ -677,27 +677,27 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
 	CPU[activeCPU].registers->EIP = (uint_32)LOADALLDATA.fields.IP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDT; //LDT
-	CPU[activeCPU].registers->DS = DESC_16BITS(LOADALLDATA.fields.DS); //DS
-	CPU[activeCPU].registers->SS = DESC_16BITS(LOADALLDATA.fields.SS); //SS
-	CPU[activeCPU].registers->CS = DESC_16BITS(LOADALLDATA.fields.CS); //CS
-	CPU[activeCPU].registers->ES = DESC_16BITS(LOADALLDATA.fields.ES); //ES
-	CPU[activeCPU].registers->DI = DESC_16BITS(LOADALLDATA.fields.DI); //DI
-	CPU[activeCPU].registers->SI = DESC_16BITS(LOADALLDATA.fields.SI); //SI
-	CPU[activeCPU].registers->BP = DESC_16BITS(LOADALLDATA.fields.BP); //BP
-	CPU[activeCPU].registers->SP = DESC_16BITS(LOADALLDATA.fields.SP); //SP
-	CPU[activeCPU].registers->BX = DESC_16BITS(LOADALLDATA.fields.BX); //BX
-	CPU[activeCPU].registers->DX = DESC_16BITS(LOADALLDATA.fields.CX); //CX
-	CPU[activeCPU].registers->CX = DESC_16BITS(LOADALLDATA.fields.DX); //DX
-	CPU[activeCPU].registers->AX = DESC_16BITS(LOADALLDATA.fields.AX); //AX
-	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
+	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
+	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
+	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
+	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
+	CPU[activeCPU].registers->DI = LOADALLDATA.fields.DI; //DI
+	CPU[activeCPU].registers->SI = LOADALLDATA.fields.SI; //SI
+	CPU[activeCPU].registers->BP = LOADALLDATA.fields.BP; //BP
+	CPU[activeCPU].registers->SP = LOADALLDATA.fields.SP; //SP
+	CPU[activeCPU].registers->BX = LOADALLDATA.fields.BX; //BX
+	CPU[activeCPU].registers->DX = LOADALLDATA.fields.CX; //CX
+	CPU[activeCPU].registers->CX = LOADALLDATA.fields.DX; //DX
+	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!
+	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|DESC_16BITS(LOADALLDATA.fields.GDTR.baselow); //Base!
-	CPU[activeCPU].registers->GDTR.limit = DESC_16BITS(LOADALLDATA.fields.GDTR.limit); //Limit
-	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|DESC_16BITS(LOADALLDATA.fields.IDTR.baselow); //Base!
-	CPU[activeCPU].registers->IDTR.limit = DESC_16BITS(LOADALLDATA.fields.IDTR.limit); //Limit
+	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|LOADALLDATA.fields.GDTR.baselow; //Base!
+	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.limit; //Limit
+	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|LOADALLDATA.fields.IDTR.baselow; //Base!
+	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.limit; //Limit
 
 	//Load all descriptors directly without checks!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!

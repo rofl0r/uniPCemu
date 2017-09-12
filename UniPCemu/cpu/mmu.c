@@ -95,11 +95,11 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 			}
 		}
 	}*/
-	if (segdesc!=-3) //Not using the actual literal value?
+	if ((segdesc!=-3) && (segdesc>=0)) //Not using the actual literal value?
 	{
 		realaddress += CPU_MMU_start(segdesc, segment);
 	}
-	else
+	else if (segdesc==-3) //Special?
 	{
 		realaddress += (CPU[activeCPU].registers->ES<<4); //Apply literal address!
 	}
