@@ -475,8 +475,8 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,0,0x00,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Reg/memory with register to either
 	,{1,0,0,0x02,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Reg/memory with register to either
 	,{1,1,0,0x03,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Reg/memory with register to either
-	,{1,0,0,0x80,0xFC,0x01,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Immediate to register/memory
-	,{1,1,0,0x81,0xFF,0x01,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Immediate to register/memory
+	,{1,0,0,0x80,0xFD,0x01,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Immediate to register/memory
+	,{1,1,0,0x81,0xFD,0x01,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADD Immediate to register/memory
 	,{1,0,0,0x04,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADD Immediate to accumulator
 	,{1,0,0,0x05,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADD Immediate to accumulator
 	,{1,1,0,0x05,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADD Immediate to accumulator
@@ -484,8 +484,8 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,0,0x10,0xFC,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Reg/memory with register to either
 	,{1,0,0,0x12,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Reg/memory with register to either
 	,{1,1,0,0x13,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Reg/memory with register to either
-	,{1,0,0,0x80,0xFC,0x03,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Immediate to register/memory
-	,{1,1,0,0x81,0xFF,0x03,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Immediate to register/memory
+	,{1,0,0,0x80,0xFD,0x03,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Immediate to register/memory
+	,{1,1,0,0x81,0xFD,0x03,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //ADC Immediate to register/memory
 	,{1,0,0,0x14,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADC Immediate to accumulator
 	,{1,0,0,0x15,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADC Immediate to accumulator
 	,{1,1,0,0x15,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //ADC Immediate to accumulator
@@ -498,8 +498,8 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,0,0x29,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Reg/memory and register to either
 	,{1,0,0,0x2A,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Reg/memory and register to either
 	,{1,1,0,0x2B,0xFF,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Reg/memory and register to either
-	,{1,0,0,0x80,0xFC,0x06,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Immediate from register/memory
-	,{1,1,0,0x81,0xFF,0x06,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Immediate from register/memory
+	,{1,0,0,0x80,0xFD,0x06,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Immediate from register/memory
+	,{1,1,0,0x81,0xFD,0x06,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SUB Immediate from register/memory
 	,{1,0,0,0x2C,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SUB Immediate from accumulator
 	,{1,1,0,0x2D,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SUB Immediate from accumulator
 	//SBB
@@ -507,8 +507,8 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,0,0x19,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Reg/memory and register to either
 	,{1,0,0,0x1A,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Reg/memory and register to either
 	,{1,1,0,0x1B,0xFF,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Reg/memory and register to either
-	,{1,0,0,0x80,0xFC,0x04,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Immediate from register/memory
-	,{1,1,0,0x81,0xFF,0x04,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Immediate from register/memory
+	,{1,0,0,0x80,0xFD,0x04,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Immediate from register/memory
+	,{1,1,0,0x81,0xFD,0x04,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //SBB Immediate from register/memory
 	,{1,0,0,0x1C,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SBB Immediate from accumulator
 	,{1,1,0,0x1D,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //SBB Immediate from accumulator
 	//DEC
@@ -521,7 +521,7 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,0,0x3B,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Register/memory with register
 	,{1,0,0,0x38,0xFE,0x00,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Register with register/memory
 	,{1,1,0,0x39,0xFF,0x00,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Register with register/memory
-	,{1,0,0,0x80,0xFC,0x08,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Immediate with register/memory
+	,{1,0,0,0x80,0xFD,0x08,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Immediate with register/memory
 	,{1,1,0,0x81,0xFD,0x08,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CMP Immediate with register/memory
 	,{1,0,0,0x3C,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CMP Immediate with accumulator
 	,{1,1,0,0x3D,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //CMP Immediate with accumulator
@@ -595,25 +595,45 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	//158 80386 entries up to this point. Total of 300 80386+ records so far(84 added records, excluding the TODO on IN/OUT instructions)!
 	//Page 3-50
 	//AND
-	,{1,0,0,0x20,0xFC,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //AND Reg/memory and register to either
-	,{1,0,0,0x80,0xFE,0x05,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //AND Immediate to register/memory
-	,{1,0,0,0x24,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //AND Immediate to accumulator
+	,{1,0,0,0x20,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Reg/memory and register to either
+	,{1,1,0,0x21,0xFF,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Reg/memory and register to either
+	,{1,0,0,0x22,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Reg/memory and register to either
+	,{1,1,0,0x23,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Reg/memory and register to either
+	,{1,0,0,0x80,0xFD,0x05,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Immediate to register/memory
+	,{1,1,0,0x81,0xFD,0x05,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Immediate to register/memory
+	,{1,0,0,0x24,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //AND Immediate to accumulator
+	,{1,1,0,0x25,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //AND Immediate to accumulator
 	//TEST
-	,{1,0,0,0x84,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //TEST Register/memory and register
-	,{1,0,0,0xF6,0xFE,0x01,{{{{3,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}},{{{3,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //TEST Immediate data and register/memory
-	,{1,0,0,0xA8,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //TEST Immediate data and accumulator
+	,{1,0,0,0x84,0xFE,0x00,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //TEST Register/memory and register
+	,{1,1,0,0x85,0xFF,0x00,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //TEST Register/memory and register
+	,{1,0,0,0xF6,0xFE,0x01,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //TEST Immediate data and register/memory
+	,{1,1,0,0xF7,0xFF,0x01,{{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{2,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //TEST Immediate data and register/memory
+	,{1,0,0,0xA8,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //TEST Immediate data and accumulator
+	,{1,1,0,0xA9,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //TEST Immediate data and accumulator
 	//OR
-	,{1,0,0,0x08,0xFC,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //OR Reg/memory and register to either
-	,{1,0,0,0x80,0xFE,0x02,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //OR Immediate to register/memory
-	,{1,0,0,0x0C,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //OR Immediate to accumulator
+	,{1,0,0,0x08,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Reg/memory and register to either
+	,{1,1,0,0x09,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Reg/memory and register to either
+	,{1,0,0,0x0A,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Reg/memory and register to either
+	,{1,1,0,0x0B,0xFF,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Reg/memory and register to either
+	,{1,0,0,0x80,0xFD,0x02,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Immediate to register/memory
+	,{1,1,0,0x81,0xFD,0x02,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //OR Immediate to register/memory
+	,{1,0,0,0x0C,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //OR Immediate to accumulator
+	,{1,1,0,0x0D,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //OR Immediate to accumulator
 	//XOR
-	,{1,0,0,0x30,0xFC,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //XOR Reg/memory and register to either
-	,{1,0,0,0x80,0xFE,0x07,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //XOR Immediate to register/memory
-	,{1,0,0,0x34,0xFE,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XOR Immediate to accumulator
+	,{1,0,0,0x30,0xFE,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Reg/memory and register to either
+	,{1,1,0,0x31,0xFF,0x00,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Reg/memory and register to either
+	,{1,0,0,0x32,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Reg/memory and register to either
+	,{1,1,0,0x33,0xFF,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Reg/memory and register to either
+	,{1,0,0,0x80,0xFC,0x07,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Immediate to register/memory
+	,{1,1,0,0x81,0xFD,0x07,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //XOR Immediate to register/memory
+	,{1,0,0,0x34,0xFE,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //XOR Immediate to accumulator
+	,{1,1,0,0x35,0xFF,0x00,{{{{2,0,0},{2,0,0}}},{{{2,0,0},{2,0,0}}}}} //XOR Immediate to accumulator
 	//NOT
-	,{1,0,0,0xF6,0xFE,0x03,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,1}}}}} //NOT
+	,{1,0,0,0xF6,0xFE,0x03,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //NOT
+	,{1,1,0,0xF7,0xFF,0x03,{{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{6-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //NOT
 
 	//String instructions without REP((N)Z)
+	//TODO
 	//MOVS
 	,{1,0,0,0xA4,0xFE,0x00,{{{{5-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //MOVS
 	//CMPS
