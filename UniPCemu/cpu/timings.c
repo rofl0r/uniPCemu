@@ -263,7 +263,7 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	//JNLE/JG
 	,{0,0,0,0x7F,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNLE Not taken!
 	,{0,0,0,0x7F,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNLE taken!
-	////JNB/JAE
+	//JNB/JAE
 	,{0,0,0,0x73,0xFF,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //JNB Not taken!
 	,{0,0,0,0x73,0xFF,0x00,{{{{7,0,8},{7,0,8}}},{{{7,0,8},{7,0,8}}}}} //JNB taken!
 	//JNBE/JA
