@@ -43,7 +43,6 @@ int BIOS_load_VGAROM(); //Prototype: Load custom ROM from emulator itself!
 byte ISVGA = 0; //VGA that's loaded!
 
 char ROMpath[256] = "ROM";
-char originalROMpath[256] = "ROM"; //Original ROM path!
 
 extern byte is_XT; //Are we emulating an XT architecture?
 
@@ -69,7 +68,6 @@ void scanROM(char *device, char *filename)
 
 byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 {
-	strcpy(originalROMpath,ROMpath); //Save the original ROM path for deallocation!
 	numOPT_ROMS = 0; //Initialise the number of OPTROMS!
 	memset(&OPTROM_writeenabled, 0, sizeof(OPTROM_writeenabled)); //Disable all write enable flags by default!
 	memset(&OPTROM_writeSequence, 0, sizeof(OPTROM_writeSequence)); //Disable all write enable flags by default!
@@ -276,11 +274,11 @@ int BIOS_load_ROM(byte nr)
 	{
 		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-			sprintf(filename,"%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+			sprintf(filename,"%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!		
 		}
 		else //Normal mode?
 		{
-			sprintf(filename,"%s/BIOSROM.32.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!		
+			sprintf(filename,"%s/BIOSROM.32.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!		
 		}
 		tryext = 1; //We're trying an extension!
 	}
@@ -288,11 +286,11 @@ int BIOS_load_ROM(byte nr)
 	{
 		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-			sprintf(filename,"%s/BIOSROM.U%u.DIAGNOSTICS.BIN",originalROMpath,nr); //Create the filename for the ROM!
+			sprintf(filename,"%s/BIOSROM.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!
 		}
 		else
 		{
-			sprintf(filename,"%s/BIOSROM.U%u.BIN",originalROMpath,nr); //Create the filename for the ROM!
+			sprintf(filename,"%s/BIOSROM.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!
 		}
 	}
 	f = fopen(filename,"rb");
