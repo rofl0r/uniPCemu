@@ -332,7 +332,7 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 }
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
-void CPU_fillPIQ() //Fill the PIQ until it's full!
+OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!

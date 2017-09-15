@@ -14,15 +14,6 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define PDBR CPU[activeCPU].registers->CR3
 //#define PDBR ((CPU[activeCPU].registers->CR3>>12)&0xFFFFF)
 
-byte is_paging()
-{
-	if (likely(CPU[activeCPU].registers)) //Gotten registers?
-	{
-		return ((getcpumode()!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
-	}
-	return 0; //Not paging: we don't have registers!
-}
-
 //Present: 1 when below is used, 0 is invalid: not present (below not used/to be trusted).
 #define PXE_P 0x00000001
 //Write allowed? Else read-only.

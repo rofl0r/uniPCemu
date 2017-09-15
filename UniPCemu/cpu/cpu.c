@@ -1302,6 +1302,7 @@ void updateCPUmode() //Update the CPU mode!
 		CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
 	}
 	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
+	CPU[activeCPU].is_paging = ((CPUmode!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
 }
 
 byte getcpumode() //Retrieves the current mode!

@@ -3,7 +3,7 @@
 
 #include "headers/types.h"
 
-byte is_paging();
+#define is_paging() CPU[activeCPU].is_paging
 uint_32 mappage(uint_32 address, byte iswrite, byte CPL); //Maps a page to real memory when needed!
 byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL); //Do we have paging without error? userlevel=CPL usually.
 

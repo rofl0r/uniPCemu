@@ -922,6 +922,7 @@ typedef struct PACKED
 	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
 	byte resetPending; //Is a CPU reset pending?
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
+	byte is_paging; //Are we paging?
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

@@ -1131,6 +1131,7 @@ byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
+	uint_32 limits[2]; //What limit to apply?
 	INLINEREGISTER uint_32 limit; //The limit!
 	INLINEREGISTER byte isvalid;
 	//First: type checking!
@@ -1148,23 +1149,23 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 			CPU_MMU_checkrights_cause = 1; //What cause?
 			return 1; //Error!
 		}
-		switch (((descriptor->AccessRights>>1)&0x7)) //What type of descriptor?
+		switch ((descriptor->AccessRights&0xE)) //What type of descriptor?
 		{
 			case 0: //Data, read-only
-			case 2: //Data(expand down), read-only
-			case 5: //Code, execute/read
-			case 7: //Code, execute/read, conforming
+			case 4: //Data(expand down), read-only
+			case 10: //Code, execute/read
+			case 14: //Code, execute/read, conforming
 				if (unlikely((forreading&~0x10)==0)) //Writing?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
 					return 1; //Error!
 				}
 				break; //Allow!
-			case 1: //Data, read/write
-			case 3: //Data(expand down), read/write
+			case 2: //Data, read/write
+			case 6: //Data(expand down), read/write
 				break; //Allow!
-			case 4: //Code, execute-only
-			case 6: //Code, execute-only, conforming
+			case 8: //Code, execute-only
+			case 12: //Code, execute-only, conforming
 				if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
 				{
 					CPU_MMU_checkrights_cause = 3; //What cause?
@@ -1175,15 +1176,15 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	}
 
 	//Next: limit checking!
-	if (likely(addrtest)) //Execute address test?
+	if (unlikely(addrtest==0)) return 0; //No address test is to be performed!
+
+	//Execute address test?
 	{
-		limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
+		limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
+		limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+		limit = limits[SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask]; //Use the appropriate granularity!
 
-		if (unlikely(SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask)) //Granularity?
-		{
-			limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-		}
-
+		/*
 		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
 		{
 			if (unlikely(is_offset16)) //16-bits offset? Set the high bits for compatibility!
@@ -1194,15 +1195,13 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 				}
 			}
 		}
+		*/ //16-bit access on a wrong granularity isn't special?
+
 		isvalid = (offset<=limit); //Valid address range!
-		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0))) //Data segment?
-		{
-			if (unlikely(DATASEGMENTPTR_E(descriptor))) //Expand-down data segment?
-			{
-				isvalid = !isvalid; //Reversed valid!
-			}
-		}
-		if (unlikely(isvalid==0)) //Not valid?
+		isvalid ^= ((descriptor->AccessRights&0x1C)==0x14); //Apply expand-down data segment, if required, which reverses valid!
+		isvalid &= 1; //Only 1-bit testing!
+		if (likely(isvalid)) return 0; //OK? We're finished!
+		//Not valid?
 		{
 			CPU_MMU_checkrights_cause = 6; //What cause?
 			if (segment==CPU_SEGMENT_SS) //Stack fault?
