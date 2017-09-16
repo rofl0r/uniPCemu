@@ -42,8 +42,10 @@
                  android:hardwareAccelerated="true" >
         <activity android:name="UniPCemuActivity"
                   android:label="@string/app_name"
-                  android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|fontScale|uiMode|screenSize|smallestScreenSize"
+                  android:configChanges="keyboardHidden|orientation"
                   android:screenOrientation="sensorLandscape"
+                  android:alwaysRetainTaskState="true"
+                  android:launchMode="singleInstance"
                   >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
