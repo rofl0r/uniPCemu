@@ -312,6 +312,11 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{0,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
 	,{0,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{167,INTERRUPTGATE_TASKGATE,4},{167,INTERRUPTGATE_TASKGATE,4}}}}} //INT Via Task Gate
 
+	//IRET
+	,{0,0,0,0xCF,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{31,0,0},{31,0,0}}}}} //IRET
+	,{0,0,0,0xCF,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{55,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //IRET to different privilege level
+	,{0,0,0,0xCF,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{169,INTERRUPTGATE_TASKGATE,4},{169,INTERRUPTGATE_TASKGATE,4}}}}} //IRET to Different Task
+
 	//BOUND
 	,{0,0,0,0x62,0xFF,0x00,{{{{13-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{13-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,1}}},{{{13-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{13-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,1}}}}} //BOUND
 
@@ -679,67 +684,91 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,0,0x6E,0xFE,0x00,{{{{5-EU_CYCLES_SUBSTRACT_ACCESSRW,4,2},{5-EU_CYCLES_SUBSTRACT_ACCESSRW,4,2}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSRW,4,2},{5-EU_CYCLES_SUBSTRACT_ACCESSRW,4,2}}}}} //OUTS
 
 	//Page 3-51
-	//We don't use the m value: this is done by the prefetch unit itself.
+	//We don't use the m value: this is done by the prefetch unit itself(amount of components loaded from the next instruction is the amount of cycles???).
 	//CALL Direct Intersegment
-	//TODO
 	,{1,0,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
-	,{1,0,0,0xFF,0xFF,0x03,{{{{7,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}},{{{7,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //CALL Register/memory indirect within segment
-	,{1,0,0,0x9A,0xFF,0x00,{{{{13,0,0},{26,0,0}}},{{{13,0,0},{26,0,0}}}}} //CALL Direct Intersegment
+	,{1,1,0,0xE8,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //CALL Direct within segment
+	,{1,0,0,0xFF,0xFF,0x03,{{{{7,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{7,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CALL Register/memory indirect within segment
+	,{1,1,0,0xFF,0xFF,0x03,{{{{7,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{7,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CALL Register/memory indirect within segment
+	,{1,0,0,0x9A,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{34,0,0},{34,0,0}}}}} //CALL Direct Intersegment
+	,{1,1,0,0x9A,0xFF,0x00,{{{{17,0,0},{17,0,0}}},{{{34,0,0},{34,0,0}}}}} //CALL Direct Intersegment
 
 	//Protected mode variants
-	//TODO
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,4},{41,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{82,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{177,OTHERGATE_NORMALTSS,4},{177,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{182,OTHERGATE_NORMALTASKGATE,4},{182,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{52,CALLGATE_SAMELEVEL,4},{52,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{52,CALLGATE_SAMELEVEL,4},{52,CALLGATE_SAMELEVEL,4}}}}} //CALL Via call gate to same privilege level
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{86,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4},{86,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{94,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{94,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters(times 4 cycles)
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{94,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4},{94,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,4}}}}} //CALL VIa call gate to different privilege level, X parameters(times 4 cycles)
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTSS,4},{0,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTSS,4},{0,OTHERGATE_NORMALTSS,4}}}}} //CALL Via TSS
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTASKGATE,4},{0,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTASKGATE,4},{0,OTHERGATE_NORMALTASKGATE,4}}}}} //CALL Via task gate
+	//TODO: Task switch
 
 	//CALL Indirect Intersegment
-	//TODO
-	,{1,0,0,0xFF,0xFF,0x04,{{{{16,0,0},{16-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{29,0,1},{29-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,1}}}}} //CALL Register/memory indirect within segment
+	,{1,0,0,0xFF,0xFF,0x04,{{{{22,0,0},{38-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{22,0,0},{38-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //CALL Register/memory indirect within segment
 
 	//Protected mode variants
-	//TODO
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{44,CALLGATE_SAMELEVEL,5},{44,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{83,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTSS,5},{180,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS
-	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{185,OTHERGATE_NORMALTASKGATE,5},{185,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{56,CALLGATE_SAMELEVEL,5},{56,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{56,CALLGATE_SAMELEVEL,5},{56,CALLGATE_SAMELEVEL,5}}}}} //CALL Via call gate to same privilege level
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{90,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5},{90,CALLGATE_DIFFERENTLEVEL_NOPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, no parameters
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{98,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{98,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters(times 4 cycles)
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{98,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5},{98,CALLGATE_DIFFERENTLEVEL_XPARAMETERS,5}}}}} //CALL VIa call gate to different privilege level, X parameters(times 4 cycles)
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTSS,5},{5,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS(5+ts)
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTSS,5},{5,OTHERGATE_NORMALTSS,5}}}}} //CALL Via TSS(5+ts)
+	,{1,0,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTASKGATE,5},{5,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate(5+ts)
+	,{1,1,0,0x9A,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTASKGATE,5},{5,OTHERGATE_NORMALTASKGATE,5}}}}} //CALL Via task gate(5+ts)
+	//TODO: Task switch
 
 	//JMP
-	//TODO
 	,{1,0,0,0xEB,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Short/long
 	,{1,0,0,0xE9,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
-	,{1,0,0,0xFF,0xFF,0x05,{{{{7,0,0},{11-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{7,0,0},{11-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //JMP Register/memory indirect within segment
-	,{1,0,0,0xEA,0xFF,0x00,{{{{11,0,0},{11,0,0}}},{{{23,0,0},{23,0,0}}}}} //JMP Direct intersegment
+	,{1,1,0,0xE9,0xFF,0x00,{{{{7,0,0},{7,0,0}}},{{{7,0,0},{7,0,0}}}}} //JMP Direct within segment
+	,{1,0,0,0xFF,0xFF,0x05,{{{{7,0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{7,0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //JMP Register/memory indirect within segment
+	,{1,1,0,0xFF,0xFF,0x05,{{{{7,0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{7,0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //JMP Register/memory indirect within segment
+	,{1,0,0,0xEA,0xFF,0x00,{{{{12,0,0},{12,0,0}}},{{{27,0,0},{27,0,0}}}}} //JMP Direct intersegment
 	
 	//Protected mode variants(Direct Intersegment)
-	//TODO
-	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{38,CALLGATE_SAMELEVEL,5},{38,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
-	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{175,OTHERGATE_NORMALTSS,5},{175,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
-	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{180,OTHERGATE_NORMALTASKGATE,5},{180,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{45,CALLGATE_SAMELEVEL,5},{45,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{1,1,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{45,CALLGATE_SAMELEVEL,5},{45,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTSS,5},{0,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{1,1,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTSS,5},{0,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
+	,{1,0,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTASKGATE,5},{0,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	,{1,1,0,0xEA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,OTHERGATE_NORMALTASKGATE,5},{0,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	//TODO: Task switch
 
 	//JMP Indirect Intersegment
-	//TODO
-	,{1,0,0,0xFF,0xFF,0x06,{{{{15,0,1},{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,1}}},{{{26,0,1},{26-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,1}}}}} //JMP Indirect intersegment
+	,{1,0,0,0xFF,0xFF,0x06,{{{{43,0,0},{43-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{31,0,0},{31-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //JMP Indirect intersegment
+	,{1,1,0,0xFF,0xFF,0x06,{{{{43,0,0},{43-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{31,0,0},{31-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //JMP Indirect intersegment
 
 	//Protected mode variants (Indirect Intersegment)
-	//TODO
-	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{41,CALLGATE_SAMELEVEL,5},{41,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
-	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{178,OTHERGATE_NORMALTSS,5},{178,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS
-	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{183,OTHERGATE_NORMALTASKGATE,5},{183,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate
+	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{49,CALLGATE_SAMELEVEL,5},{49,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{1,1,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{49,CALLGATE_SAMELEVEL,5},{49,CALLGATE_SAMELEVEL,5}}}}} //JMP Via call gate to same privilege level
+	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTSS,5},{5,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS(5+ts)
+	,{1,1,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTSS,5},{5,OTHERGATE_NORMALTSS,5}}}}} //JMP Via TSS(5+ts)
+	,{1,0,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTASKGATE,5},{5,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate(5+ts)
+	,{1,1,0,0xFF,0xFF,0x06,{{{{0,0,0},{0,0,0}}},{{{5,OTHERGATE_NORMALTASKGATE,5},{5,OTHERGATE_NORMALTASKGATE,5}}}}} //JMP Via task gate(5+ts)
+	//TODO: Task switch
 
 	//RET
 	//TODO
-	,{1,0,0,0xC3,0xFF,0x00,{{{{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within segment
-	,{1,0,0,0xC2,0xFF,0x00,{{{{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{11-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within seg adding immed to SP
-	,{1,0,0,0xCB,0xFF,0x00,{{{{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{25-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{25-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment
-	,{1,0,0,0xCA,0xFF,0x00,{{{{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{15-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment adding immediate to SP
+	,{1,0,0,0xC3,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within segment
+	,{1,1,0,0xC3,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within segment
+	,{1,0,0,0xC2,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within seg adding immed to SP
+	,{1,1,0,0xC2,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //RET Within seg adding immed to SP
+	,{1,0,0,0xCB,0xFF,0x00,{{{{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment
+	,{1,1,0,0xCB,0xFF,0x00,{{{{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment
+	,{1,0,0,0xCA,0xFF,0x00,{{{{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment adding immediate to SP
+	,{1,1,0,0xCA,0xFF,0x00,{{{{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{32-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //RET Intersegment adding immediate to SP
 
 	//Protected mode variants (Intersegment)
 	//TODO
-	,{1,0,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{55-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
-	,{1,0,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{55-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{55-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
+	,{1,0,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
+	,{1,1,0,0xCB,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment
+	,{1,0,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
+	,{1,1,0,0xCA,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4},{68-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),RET_DIFFERENTLEVEL,4}}}}} //RET Intersegment adding immediate to SP
 
 	//Page 3-52
 
@@ -902,6 +931,12 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{99,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{78,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //INT Via INterrupt or Trap Gate to different privilege level
 	,{1,0,0,0xCE,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,/*INTERRUPTGATE_TASKGATE*/0,4},{0,/*INTERRUPTGATE_TASKGATE*/0,4}}}}} //INT Via Task Gate
 	//TODO: INT&INTO From V86 mode to PL 0, as well as through task gate!
+
+	//IRET
+	,{0,0,0,0xCF,0xFF,0x00,{{{{22,0,0},{22,0,0}}},{{{38,0,0},{38,0,0}}}}} //IRET
+	,{0,0,0,0xCF,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{82,INTERRUPTGATETIMING_DIFFERENTLEVEL,4},{82,INTERRUPTGATETIMING_DIFFERENTLEVEL,4}}}}} //IRET to different privilege level
+	,{0,0,0,0xCF,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{0,INTERRUPTGATE_TASKGATE,4},{0,INTERRUPTGATE_TASKGATE,4}}}}} //IRET to Different Task(ts)
+	//TODO: IRET to V86 mode
 
 	//BOUND
 	,{1,0,0,0x62,0xFF,0x00,{{{{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}},{{{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0},{10-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2),0,0}}}}} //BOUND
