@@ -3965,6 +3965,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	#endif
 	#endif
 		quitting:
+		dolog("Android","quitting");
 		lock(LOCK_INPUT);
 		if (joystick) //Gotten a joystick connected?
 		{
@@ -4033,15 +4034,21 @@ void updateInput(SDL_Event *event) //Update all input!
 		}
 		break;
 	case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
+		dolog("Android","didenterbackground");
+		goto willenterbackground;
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
+		dolog("Android","willenterbackground");
+		willenterbackground:
 		lock(LOCK_INPUT);
 		haswindowactive &= ~6; //We're iconified! This also prevents drawing and audio output! This is critical!
 		haswindowactive |= 0x8; //Discard any future time!
 		unlock(LOCK_INPUT);
 		break;
 	case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
+		dolog("Android","willenterforeground");
 		break; //Unhandled!
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
+		dolog("Android","didenterforeground");
 		lock(LOCK_INPUT);
 		haswindowactive |= 6; //We're not iconified! This also enables drawing and audio output!
 		lock(LOCK_GPU);

@@ -437,13 +437,19 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,0,0x90,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XCHG Register with accumulator
 	,{1,1,0,0x90,0xF8,0x00,{{{{3,0,0},{3,0,0}}},{{{3,0,0},{3,0,0}}}}} //XCHG Register with accumulator
 	//IN
-	//TODO
-	,{1,0,0,0xE4,0xFE,0x00,{{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //IN Fixed port
-	,{1,0,0,0xEC,0xFE,0x00,{{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //IN Variable port
+	,{1,0,0,0xE4,0xFE,0x00,{{{{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80},{6-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //IN Fixed port
+	,{1,0,0,0xE4,0xFE,0x00,{{{{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Fixed port
+	,{1,1,0,0xE5,0xFF,0x00,{{{{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{12-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Fixed port
+	,{1,0,0,0xEC,0xFE,0x00,{{{{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{7-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{7-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //IN Variable port
+	,{1,0,0,0xEC,0xFE,0x00,{{{{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{27-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{27-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Variable port
+	,{1,1,0,0xED,0xFF,0x00,{{{{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{13-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{27-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{27-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Variable port
 	//OUT
-	//TODO
-	,{1,0,0,0xE6,0xFE,0x00,{{{{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0},{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}},{{{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0},{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}}}} //OUT Fixed port
-	,{1,0,0,0xEE,0xFE,0x00,{{{{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0},{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}},{{{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0},{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}}}} //OUT Variable port
+	,{1,0,0,0xE6,0xFE,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{4-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80},{4-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //IN Fixed port
+	,{1,0,0,0xE6,0xFE,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{24-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{24-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Fixed port
+	,{1,1,0,0xE7,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{24-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{24-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Fixed port
+	,{1,0,0,0xEE,0xFE,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //IN Variable port
+	,{1,0,0,0xEE,0xFE,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{25-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{25-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Variable port
+	,{1,1,0,0xEF,0xFF,0x00,{{{{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{25-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80},{25-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //IN Variable port
 	//XLAT
 	,{1,0,0,0xD7,0xFF,0x00,{{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}},{{{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{5-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //XLAT
 	//LEA
@@ -1000,11 +1006,12 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,0,1,0x01,0xFF,0x05,{{{{2,0,0},{3-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}},{{{2,0,0},{2-EU_CYCLES_SUBSTRACT_ACCESSWRITE,0,0}}}}} //SMSW
 	//LAR
 	,{1,0,1,0x02,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{15,0,0},{16-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //LAR
+	,{1,1,1,0x02,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{15,0,0},{16-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //LAR
 	//LSL
-	//TODO
-	//LSL is 20(reg)/21(mem) when byte granular, 25(reg)/26(mem) when page granular
-	,{1,0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{25,0,0},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //LSL
-	,{1,1,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{25,0,0},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //LSL
+	,{1,0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{20,0,0},{21-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //LSL(byte granular)
+	,{1,1,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{20,0,0},{21-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0x80}}}}} //LSL(byte granular)
+	,{1,0,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{25,0,0},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //LSL(page granular)
+	,{1,1,1,0x03,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{25,0,0},{26-EU_CYCLES_SUBSTRACT_ACCESSREAD,0x80,0x80}}}}} //LSL(page granular)
 	//ARPL
 	,{1,0,0,0x63,0xFF,0x00,{{{{0,0,0},{0,0,0}}},{{{20-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0},{21-EU_CYCLES_SUBSTRACT_ACCESSREAD,0,0}}}}} //ARPL
 	//VERR
@@ -1014,6 +1021,79 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	//294 80386+ items at this point!
 	//Undocumented instruction: LOADALL
 	,{1,0,1,0x05,0xFF,0x00,{{{{195-102,0,0},{195-102,0,0}}},{{{195-102,0,0},{195-102,0,0}}}}} //LOADALL uses 195 clocks and performs 51 bus cycles(actually transfers, so x2).
+
+	//New 80386+ instructions:
+	//MOVSX
+	,{1,0,1,0xBE,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVSX r16,r/m8
+	,{1,1,1,0xBE,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVSX r32,r/m8
+	,{1,0,1,0xBF,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVSX r32,r/m16
+
+	//MOVZX
+	,{1,0,1,0xB6,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVZX r16,r/m8
+	,{1,1,1,0xB6,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVZX r32,r/m8
+	,{1,0,1,0xB7,0xFF,0x00,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //MOVZX r32,r/m16
+
+	//SHLD
+	,{1,0,1,0xA4,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHLD r/m16,r16,imm8
+	,{1,1,1,0xA4,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHLD r/m32,r32,imm8
+	,{1,0,1,0xA5,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHLD r/m16,r16,CL
+	,{1,1,1,0xA5,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHLD r/m32,r32,CL
+
+	//SHRD
+	,{1,0,1,0xAC,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHRD r/m16,r16,imm8
+	,{1,1,1,0xAC,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHRD r/m32,r32,imm8
+	,{1,0,1,0xAD,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHRD r/m16,r16,CL
+	,{1,1,1,0xAD,0xFF,0x00,{{{{3,0,0},{7,0,0}}},{{{3,0,0},{7,0,0}}}}} //SHRD r/m32,r32,CL
+
+	//SETcc
+	,{1,0,1,0x90,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETO
+	,{1,0,1,0x91,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNO
+	,{1,0,1,0x92,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETC
+	,{1,0,1,0x93,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNC
+	,{1,0,1,0x94,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETZ
+	,{1,0,1,0x95,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNZ
+	,{1,0,1,0x96,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNA
+	,{1,0,1,0x97,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETA
+	,{1,0,1,0x98,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETS
+	,{1,0,1,0x99,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNS
+	,{1,0,1,0x9A,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETP
+	,{1,0,1,0x9B,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETNP
+	,{1,0,1,0x9C,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETL
+	,{1,0,1,0x9D,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETGE
+	,{1,0,1,0x9E,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETLE
+	,{1,0,1,0x9F,0xFF,0x00,{{{{4,0,0},{5,0,0}}},{{{4,0,0},{5,0,0}}}}} //SETG
+
+	//BSF
+	,{1,0,1,0xBC,0xFF,0x00,{{{{10,3,0x40},{10,3,0x40}}},{{{10,3,0x40},{10,3,0x40}}}}} //BSF r16,r/m16
+	,{1,1,1,0xBC,0xFF,0x00,{{{{10,3,0x40},{10,3,0x40}}},{{{10,3,0x40},{10,3,0x40}}}}} //BSF r32,r/m32
+
+	//BSR
+	,{1,0,1,0xBD,0xFF,0x00,{{{{10,3,0x40},{10,3,0x40}}},{{{10,3,0x40},{10,3,0x40}}}}} //BSR r16,r/m16
+	,{1,1,1,0xBD,0xFF,0x00,{{{{10,3,0x40},{10,3,0x40}}},{{{10,3,0x40},{10,3,0x40}}}}} //BSR r32,r/m32
+
+	//BT
+	,{1,0,1,0xA3,0xFF,0x00,{{{{3,0,0},{12,0,0}}},{{{3,0,0},{12,0,0}}}}} //BT r/m16,r16
+	,{1,1,1,0xA3,0xFF,0x00,{{{{3,0,0},{12,0,0}}},{{{3,0,0},{12,0,0}}}}} //BT r/m32,r32
+	,{1,0,1,0xBA,0xFF,0x05,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //BT r/m16,imm8
+	,{1,1,1,0xBA,0xFF,0x05,{{{{3,0,0},{6,0,0}}},{{{3,0,0},{6,0,0}}}}} //BT r/m32,imm8
+
+	//BTC
+	,{1,0,1,0xBB,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTC r/m16,r16
+	,{1,1,1,0xBB,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTC r/m32,r32
+	,{1,0,1,0xBA,0xFF,0x08,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTC r/m16,imm8
+	,{1,1,1,0xBA,0xFF,0x08,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTC r/m32,imm8
+
+	//BTR
+	,{1,0,1,0xB3,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTR r/m16,r16
+	,{1,1,1,0xB3,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTR r/m32,r32
+	,{1,0,1,0xBA,0xFF,0x07,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTR r/m16,imm8
+	,{1,1,1,0xBA,0xFF,0x07,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTR r/m32,imm8
+
+	//BTS
+	,{1,0,1,0xAB,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTS r/m16,r16
+	,{1,1,1,0xAB,0xFF,0x00,{{{{6,0,0},{13,0,0}}},{{{6,0,0},{13,0,0}}}}} //BTS r/m32,r32
+	,{1,0,1,0xBA,0xFF,0x06,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTS r/m16,imm8
+	,{1,1,1,0xBA,0xFF,0x06,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTS r/m32,imm8
 };
 
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
@@ -4908,8 +4988,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 		{ //32-bit
 			{ 0,1,0,0,1,0,0,0x01 }, //00 ADD
 			{ 1,1,2,0,0,1,0,0x00 }, //01 various instructions, 32-bit operand size.
-			{ 0,1,0,0,0,0,0,0x01 }, //02
-			{ 0,1,2,0,0,0,0,0x01 }, //03
+			{ 1,1,2,0,0,1,0,0x00 }, //02 LAR /r
+			{ 1,1,2,0,0,1,0,0x00 }, //03 LSL /r
 			{ 0,0,0,0,0,0,1,0x04 }, //04
 			{ 0,0,0,0,0,0,2,0x04 }, //05
 			{ 0,0,0,0,0,0,0,0x08 }, //06 PUSH ES

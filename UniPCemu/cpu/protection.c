@@ -243,10 +243,13 @@ void CPU_StackFault(int_64 errorcode)
 	}
 }
 
+extern byte protection_PortRightsLookedup; //Are the port rights looked up?
+
 void protection_nextOP() //We're executing the next OPcode?
 {
 	CPU[activeCPU].faultraised = 0; //We don't have a fault raised anymore, so we can raise again!
 	CPU[activeCPU].faultlevel = 0; //Reset the current fault level!
+	protection_PortRightsLookedup = 0; //Are the port rights looked up, to be reset?
 }
 
 word CPU_segment(byte defaultsegment) //Plain segment to use!
@@ -1273,6 +1276,16 @@ byte checkSpecialRights() //Check special rights, common by any rights instructi
 	return 0; //Priviledged!
 }
 
+byte checkSpecialPortRights() //Check special rights, common by any rights instructions!
+{
+	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
+	if ((getCPL()>FLAG_PL)||isV86()) //We're to check when not priviledged or Virtual 8086 mode!
+	{
+		return 1; //Not priviledged!
+	}
+	return 0; //Priviledged!
+}
+
 byte checkSTICLI() //Check STI/CLI rights!
 {
 	if (checkSpecialRights()) //Not priviledged?
@@ -1290,8 +1303,9 @@ byte disallowPOPFI() //Allow POPF to change interrupt flag?
 
 byte checkPortRights(word port) //Are we allowed to not use this port?
 {
-	if (checkSpecialRights()) //We're to check the I/O permission bitmap! 286+ only!
+	if (checkSpecialPortRights()) //We're to check the I/O permission bitmap! 286+ only!
 	{
+		protection_PortRightsLookedup = 1; //The port rights are looked up!
 		uint_32 maplocation;
 		byte mappos;
 		byte mapvalue;

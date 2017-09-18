@@ -181,6 +181,8 @@ No 80286 normal extensions exist.
 */
 
 void CPU386_OP0F01(); //Various extended 286+ instruction GRP opcode.
+void CPU386_OP0F02(); //LAR /r
+void CPU386_OP0F03(); //LSL /r
 void CPU386_OP0F07(); //Undocumented LOADALL instruction
 
 //New: 16-bit and 32-bit variants of OP70-7F as a 0F opcode!

@@ -501,6 +501,7 @@ void CPU286_OP0F02() //LAR /r
 	CPUPROT2
 }
 
+extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 void CPU286_OP0F03() //LSL /r
 {
 	uint_32 limit;
@@ -517,6 +518,7 @@ void CPU286_OP0F03() //LSL /r
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
 		{
+			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask); //What granularity are we?
 			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?

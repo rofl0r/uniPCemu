@@ -215,6 +215,142 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 	}
 }
 
+void CPU386_OP0F02() //LAR /r
+{
+	byte isconforming = 1;
+	SEGDESCRIPTOR_TYPE verdescriptor;
+	if (getcpumode() == CPU_MODE_REAL)
+	{
+		unkOP0F_286(); //We're not recognized in real mode!
+		return;
+	}
+	modrm_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
+	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
+	CPUPROT1
+		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor)) //Load the descriptor!
+		{
+			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
+			{
+			case AVL_SYSTEM_RESERVED_0: //Invalid type?
+			case AVL_SYSTEM_INTERRUPTGATE16BIT:
+			case AVL_SYSTEM_TRAPGATE16BIT:
+			case AVL_SYSTEM_RESERVED_1:
+			case AVL_SYSTEM_RESERVED_2:
+			case AVL_SYSTEM_RESERVED_3:
+			case AVL_SYSTEM_INTERRUPTGATE32BIT:
+			case AVL_SYSTEM_TRAPGATE32BIT:
+				FLAGW_ZF(0); //Invalid descriptor type!
+				break;
+			default: //Valid type?
+				switch (verdescriptor.desc.AccessRights) //What type?
+				{
+				case AVL_CODE_EXECUTEONLY_CONFORMING:
+				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+					isconforming = 1;
+					break;
+				default: //Not conforming?
+					isconforming = 0;
+					break;
+				}
+				if ((MAX(getCPL(), getRPL(oper1d)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
+				{
+					if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!
+					CPUPROT1
+						FLAGW_ZF(1); //We're valid!
+					CPUPROT2
+				}
+				else
+				{
+					FLAGW_ZF(0); //Not valid!
+				}
+				break;
+			}
+		}
+		else //Couldn't be loaded?
+		{
+			FLAGW_ZF(0); //Default: not loaded!
+		}
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPUPROT2
+}
+
+extern byte protection_PortRightsLookedup; //Are the port rights looked up?
+void CPU386_OP0F03() //LSL /r
+{
+	uint_32 limit;
+	byte isconforming = 1;
+	SEGDESCRIPTOR_TYPE verdescriptor;
+	if (getcpumode() == CPU_MODE_REAL)
+	{
+		unkOP0F_286(); //We're not recognized in real mode!
+		return;
+	}
+	modrm_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
+	if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
+	CPUPROT1
+		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor)) //Load the descriptor!
+		{
+			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask); //What granularity are we?
+			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
+			{
+			case AVL_SYSTEM_RESERVED_0: //Invalid type?
+			case AVL_SYSTEM_INTERRUPTGATE16BIT:
+			case AVL_SYSTEM_TRAPGATE16BIT:
+			case AVL_SYSTEM_RESERVED_1:
+			case AVL_SYSTEM_RESERVED_2:
+			case AVL_SYSTEM_RESERVED_3:
+			case AVL_SYSTEM_INTERRUPTGATE32BIT:
+			case AVL_SYSTEM_TRAPGATE32BIT:
+				FLAGW_ZF(0); //Invalid descriptor type!
+				break;
+			default: //Valid type?
+				switch (verdescriptor.desc.AccessRights) //What type?
+				{
+				case AVL_CODE_EXECUTEONLY_CONFORMING:
+				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+					isconforming = 1;
+					break;
+				default: //Not conforming?
+					isconforming = 0;
+					break;
+				}
+
+				limit = verdescriptor.desc.limit_low|(SEGDESC_NONCALLGATE_LIMIT_HIGH(verdescriptor.desc)<<16); //Limit!
+				if ((SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask) && (EMULATED_CPU >= CPU_80386)) //Granularity?
+				{
+					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+				}
+
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
+				{
+					if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
+					CPUPROT1
+						FLAGW_ZF(1); //We're valid!
+					CPUPROT2
+				}
+				else
+				{
+					FLAGW_ZF(0); //Not valid!
+				}
+				break;
+			}
+		}
+		else //Couldn't be loaded?
+		{
+			FLAGW_ZF(0); //Default: not loaded!
+		}
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPUPROT2
+}
+
 #include "headers/packed.h" //Packed!
 typedef union PACKED
 {
@@ -507,13 +643,17 @@ void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM1); 
 void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (checkStackAccess(1,1,0)) return; CPU_PUSH16(&REG_FS);/*PUSH FS*/} //PUSH FS
 void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/ if (checkStackAccess(1,0,0)) return; segmentWritten(CPU_SEGMENT_FS,CPU_POP16(),0);} //POP FS
 
+extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
+
 void CPU80386_BT16(word val, word bit)
 {
+	BST_cnt = (bit&0xF); //Count!
 	FLAGW_CF(val>>(bit&0xF));
 }
 
 void CPU80386_BT32(uint_32 val, uint_32 bit)
 {
+	BST_cnt = (bit&0x1F); //Count!
 	FLAGW_CF(val>>(bit&0x1F));
 }
 
@@ -523,10 +663,12 @@ void CPU80386_OP0FA3_32() {modrm_generateInstructionTEXT("BTD",32,0,PARAM_MODRM1
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
 	byte shift;
+	BST_cnt = 0; //Count!
 	if (cnt) //To actually shift?
 	{
 		word s = dest?*dest:modrm_read16(&params,1);
 		cnt &= 0x1F;
+		BST_cnt = cnt; //Count!
 		for (shift = 1; shift <= cnt; shift++)
 		{
 			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
@@ -551,8 +693,10 @@ void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
 	byte shift;
 	uint_32 s = dest?*dest:modrm_read32(&params,1);
 	cnt &= 0x1F;
+	BST_cnt = 0; //Count!
 	if (cnt)
 	{
+		BST_cnt = cnt; //Count!
 		for (shift = 1; shift <= cnt; shift++)
 		{
 			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
@@ -585,12 +729,14 @@ void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/
 
 void CPU80386_BTS16(word *val, word bit)
 {
+	BST_cnt = (bit&0xF); //Count!
 	FLAGW_CF(*val>>(bit&0xF));
 	*val |= (1<<(bit&0xF)); //Set!
 }
 
 void CPU80386_BTS32(uint_32 *val, uint_32 bit)
 {
+	BST_cnt = (bit&0x1F); //Count!
 	FLAGW_CF(*val>>(bit&0x1F));
 	*val |= (1<<(bit&0x1F)); //Set!
 }
@@ -603,9 +749,11 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 	byte shift;
 	word s = dest?*dest:modrm_read16(&params,1);
 	cnt &= 0x1F;
+	BST_cnt = 0; //Count!
 	if (cnt)
 	{
 		if (cnt==1) FLAGW_OF((s & 0x8000) ? 1 : 0);
+		BST_cnt = cnt; //Count!
 		for (shift = 1; shift <= cnt; shift++)
 		{
 			FLAGW_CF(s & 1);
@@ -630,9 +778,11 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 	byte shift;
 	uint_32 s = dest?*dest:modrm_read32(&params,1);
 	cnt &= 0x1F;
+	BST_cnt = 0; //Count!
 	if (cnt)
 	{
 		if (cnt==1) FLAGW_OF((s & 0x80000000) ? 1 : 0);
+		BST_cnt = cnt; //Count!
 		for (shift = 1; shift <= cnt; shift++)
 		{
 			FLAGW_CF(s & 1);
@@ -695,12 +845,14 @@ void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_debugger32(&params,0,1); modrm_g
 
 void CPU80386_BTR16(word *val, word bit)
 {
+	BST_cnt = (bit&0xF); //Count!
 	FLAGW_CF(*val>>(bit&0xF));
 	*val &= ~(1<<(bit&0xF)); //Reset!
 }
 
 void CPU80386_BTR32(uint_32 *val, uint_32 bit)
 {
+	BST_cnt = (bit&0x1F); //Count!
 	FLAGW_CF(*val>>(bit&0x1F));
 	*val &= ~(1<<(bit&0x1F)); //Reset!
 }
@@ -781,12 +933,14 @@ void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZXD"); if (modrm_check16(&par
 
 void CPU80386_BTC16(word *val, word bit)
 {
+	BST_cnt = (bit&0xF); //Count!
 	FLAGW_CF(*val>>(bit&0xF));
 	*val ^= (1<<(bit&0xF)); //Complement!
 }
 
 void CPU80386_BTC32(uint_32 *val, uint_32 bit)
 {
+	BST_cnt = (bit&0x1F); //Count!
 	FLAGW_CF(*val>>(bit&0x1F));
 	*val ^= (1<<(bit&0x1F)); //Complement!
 }
@@ -945,17 +1099,21 @@ void CPU80386_OP0FBC_16() {
 	if (src==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
+		BST_cnt = 0; //No count!
 	}
 	else
 	{
 		dest = modrm_read16(&params,0); //Read dest!
 		FLAGW_ZF(0);
 		temp = 0;
+		BST_cnt = 0; //Init counter!
 		for (;(((src>>temp)&1)==0) && (temp<16);) //Still searching?
 		{
 			++temp;
 			dest = temp;
+			++BST_cnt; //Increase counter!
 		}
+		++BST_cnt; //Increase counter!
 		modrm_write16(&params,0,dest,0); //Write the result!
 	}
 } //BSF /r r16,r/m16
@@ -968,17 +1126,21 @@ void CPU80386_OP0FBC_32() {
 	if (src==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
+		BST_cnt = 0; //Init counter!
 	}
 	else
 	{
 		dest = modrm_read32(&params,0); //Read dest!
 		FLAGW_ZF(0);
 		temp = 0;
+		BST_cnt = 0; //Init counter!
 		for (;(((src>>temp)&1)==0) && (temp<32);) //Still searching?
 		{
 			++temp;
 			dest = temp; //Store temporary result!
+			++BST_cnt; //Increase counter!
 		}
+		++BST_cnt; //Increase counter!
 		modrm_write32(&params,0,dest); //Write the result!
 	}
 } //BSF /r r32,r/m32
@@ -992,12 +1154,14 @@ void CPU80386_OP0FBD_16() {
 	if (src==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
+		BST_cnt = 0; //No count!
 	}
 	else
 	{
 		dest = modrm_read16(&params,0); //Read dest!
 		FLAGW_ZF(0);
 		temp = 15;
+		BST_cnt = 0;
 		for (;(((src>>temp)&1)==0) && (temp!=0xFFFF);) //Still searching?
 		{
 			--temp;
@@ -1015,6 +1179,7 @@ void CPU80386_OP0FBD_32() {
 	if (src==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
+		BST_cnt = 0; //No count!
 	}
 	else
 	{

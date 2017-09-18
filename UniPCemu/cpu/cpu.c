@@ -1725,6 +1725,8 @@ void CPU_resetTimings()
 
 byte REPZ = 0; //Default to REP!
 byte didNewREP = 0, didRepeating=0; //Did we do a REP?
+byte BST_cnt = 0; //How many of bit scan/test (forward) times are taken?
+byte protection_PortRightsLookedup = 0; //Are the port rights looked up?
 
 byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
 {
@@ -1759,7 +1761,32 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 			if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU])].ismemory[ismemory].basetiming) //Do we have valid timing to use?
 			{
 				currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU]<<1)].ismemory[ismemory]; //Our current info to check!
-				if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
+				if (currenttimingcheck->addclock&0x80) //Multiply BST_cnt and add to this to get the correct timing?
+				{
+					if ((currenttimingcheck->n&0x80)==((protection_PortRightsLookedup&1)<<7)) //Match case?
+					{
+						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
+						//REP support!
+						if (didNewREP) //Including the REP, first instruction?
+						{
+							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
+						}
+						else //Already repeating instruction continued?
+						{
+							CPU[activeCPU].cycles_OP += (currenttimingcheck->n&0x7F); //Simply cycle count added each REPeated instruction!
+						}
+						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
+						return 1; //Apply the cycles!
+					}
+				}
+				else if (currenttimingcheck->addclock&0x40) //Multiply BST_cnt and add to this to get the correct timing?
+				{
+					CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
+					CPU[activeCPU].cycles_OP += currenttimingcheck->n*BST_cnt; //This adds the n value for each level linearly!
+					if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
+					return 1; //Apply the cycles!									
+				}
+				else if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
 				{
 					if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
 					{
