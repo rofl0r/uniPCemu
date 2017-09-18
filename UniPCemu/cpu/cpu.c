@@ -1765,9 +1765,8 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				{
 					if ((currenttimingcheck->n&0x80)==((protection_PortRightsLookedup&1)<<7)) //Match case?
 					{
-						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-						//REP support!
-						if (didNewREP) //Including the REP, first instruction?
+						//REP support added for string instructions!
+						if (didNewREP || ((currenttimingcheck->addclock&2)==0)) //Including the REP, first instruction?
 						{
 							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
 						}
