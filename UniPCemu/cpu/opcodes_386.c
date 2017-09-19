@@ -3999,7 +3999,7 @@ void CPU386_OPC9()
 
 /*
 
-80286 32-bit extensions aren't needed: they're 0F opcodes and 16-bit instructions only.
+80286 32-bit extensions aren't needed: they're 0F opcodes and 16-bit/32-bit instructions extensions only.
 
 */
 
