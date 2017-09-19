@@ -622,22 +622,22 @@ G: (!FLAG_ZF && (FLAG_SF==FLAG_OF))
 
 */
 
-void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_OF); CPU_apply286cycles(); /* Apply cycles */ } //SETO r/m8
-void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_OF?0:1); CPU_apply286cycles(); /* Apply cycles */ } //SETNO r/m8
-void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_CF); CPU_apply286cycles(); /* Apply cycles */ } //SETC r/m8
-void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_CF?0:1); CPU_apply286cycles(); /* Apply cycles */ } //SETAE r/m8
-void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_ZF); CPU_apply286cycles(); /* Apply cycles */ } //SETE r/m8
-void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_ZF?0:1); CPU_apply286cycles(); /* Apply cycles */ } //SETNE r/m8
-void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETNA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_CF||FLAG_ZF)?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETNA r/m8
-void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(!FLAG_CF && !FLAG_ZF)?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETA r/m8
-void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_SF); CPU_apply286cycles(); /* Apply cycles */ } //SETS r/m8
-void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_SF?0:1); CPU_apply286cycles(); /* Apply cycles */ } //SETNS r/m8
-void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_PF); CPU_apply286cycles(); /* Apply cycles */ } //SETP r/m8
-void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,FLAG_PF?0:1); CPU_apply286cycles(); /* Apply cycles */ } //SETNP r/m8
-void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_SF!=FLAG_OF)?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETL r/m8
-void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(FLAG_SF==FLAG_OF)?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETGE r/m8
-void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,((FLAG_SF!=FLAG_OF) || FLAG_ZF)?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETLE r/m8
-void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; modrm_write8(&params,1,(!FLAG_ZF && (FLAG_SF==FLAG_OF))?1:0); CPU_apply286cycles(); /* Apply cycles */ } //SETG r/m8
+void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_OF,1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETO r/m8
+void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_OF^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNO r/m8
+void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_CF,1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETC r/m8
+void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETAE r/m8
+void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_ZF,1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETE r/m8
+void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_ZF^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNE r/m8
+void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETNA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF|FLAG_ZF),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNA r/m8
+void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETA",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_CF|FLAG_ZF)^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETA r/m8
+void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_SF,1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETS r/m8
+void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNS r/m8
+void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_PF,1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETP r/m8
+void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_PF^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNP r/m8
+void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^FLAG_OF),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETL r/m8
+void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)^1),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETGE r/m8
+void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)|FLAG_ZF),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETLE r/m8
+void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM1); if (modrm_check8(&params,1,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(((FLAG_SF^FLAG_OF)^1)&(FLAG_ZF^1)),1)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETG r/m8
 
 //Push/pop FS
 void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (checkStackAccess(1,1,0)) return; CPU_PUSH16(&REG_FS);/*PUSH FS*/CPU_apply286cycles(); /* Apply cycles */ } //PUSH FS
