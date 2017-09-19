@@ -4129,18 +4129,21 @@ int SDLCALL myEventFilter(void *userdata, SDL_Event * event)
 	//Emergency calls! Immediately update!
 	switch (event->type) //Emergency event?
 	{
+		#ifdef ANDROID
 		case SDL_APP_TERMINATING: //Terminating the application by the OS?
-	
 		case SDL_APP_LOWMEMORY: //Low on memory?
 		case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
 		case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
 		case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
 		case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
 			updateInput(event); //Handle this immediately!
-		return 1; //Drop the event, as this is handled already!
+			return 0; //Drop the event, as this is handled already!
+		#endif
+		default:
+			break; //Handle normally!
 	}
 	// etc
-	return 0; //Handle normally, as a normal event!
+	return 1; //Handle normally, as a normal event!
 }
 #endif
 
