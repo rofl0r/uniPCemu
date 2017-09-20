@@ -1219,6 +1219,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	}
 
 	result->isreg = 2; //Memory!
+	result->memorymask = ~0; //No memory mask!
+	result->is16bit = 0; //32-bit!
 
 	switch (MODRM_MOD(params->modrm)) //Which mod?
 	{
