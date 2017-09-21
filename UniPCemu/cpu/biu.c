@@ -306,7 +306,7 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
-	if (unlikely(MMU_logging)) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED); //Log it!
 	}
@@ -320,7 +320,7 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 
-	if (unlikely(MMU_logging)) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}

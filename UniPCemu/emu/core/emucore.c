@@ -1016,7 +1016,7 @@ OPTINLINE byte coreHandler()
 			MHZ14_ticktiming -= MHZ14tick*(float)MHZ14passed; //Rest the time passed!
 		}
 
-		MMU_logging = 0; //Are we logging hardware memory accesses(DMA etc)?
+		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
 		if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
 		updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
@@ -1040,6 +1040,7 @@ OPTINLINE byte coreHandler()
 		updateJoystick(instructiontime); //Update the Joystick!
 		updateAudio(instructiontime); //Update the general audio processing!
 		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!
+		MMU_logging &= ~2; //Are we logging hardware memory accesses again?
 		if (--timeout==0) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!

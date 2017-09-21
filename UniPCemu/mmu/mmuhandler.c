@@ -442,7 +442,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (unlikely(MMU_logging || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAM); //Log it!
 	}
@@ -483,7 +483,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
-	if (unlikely(MMU_logging || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM); //Log it!
 	}
@@ -526,7 +526,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
-	if (unlikely(MMU_logging)) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
@@ -557,7 +557,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 			return;
 		}
 	}
-	if (unlikely(MMU_logging)) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}

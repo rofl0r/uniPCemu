@@ -224,7 +224,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED); //Log it!
 	}
@@ -247,7 +247,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		}
 	}
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
@@ -299,7 +299,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
 	processBUS(realaddress, index, result); //Process us on the BUS!
 
-	if (unlikely(MMU_logging)) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
@@ -363,7 +363,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
-	if (MMU_logging) //To log?
+	if (unlikely(MMU_logging==1)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
