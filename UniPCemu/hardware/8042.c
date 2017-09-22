@@ -664,18 +664,14 @@ byte read_8042(word port, byte *result)
 	{
 	case 0x60: //Data port: Read input buffer?
 		
+		*result = Controller8042.output_buffer; //Read output buffer, whether or not it's present(last value is reread)!
 		if (Controller8042.status_buffer&1) //Gotten data?
 		{
-			*result = Controller8042.output_buffer; //Read output buffer!
 			if ((is_XT==0) || force8042) //We're an AT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
 			}
 			Controller8042.status_buffermask = ~0; //Make the buffer respond normally again, resuming normal operation!
-		}
-		else
-		{
-			*result = 0; //Nothing to give: input buffer is empty!
 		}
 		if (is_XT == 0) //We're an AT?
 		{
