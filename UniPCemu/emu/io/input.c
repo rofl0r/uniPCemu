@@ -1595,11 +1595,19 @@ OPTINLINE byte isStickyKey(byte index)
 		case SDLK_LCTRL:
 		case SDLK_LALT:
 		case SDLK_LSHIFT:
+		#ifndef SDL2
+		case SDLK_LSUPER:
+		#else
 		case SDLK_LGUI:
+		#endif
 		case SDLK_RCTRL:
 		case SDLK_RALT:
 		case SDLK_RSHIFT:
+		#ifndef SDL2
+		case SDLK_RSUPER:
+		#else
 		case SDLK_RGUI:
+		#endif
 			return 1; //Sticky!
 			break;
 		default: //Not sticky?

@@ -923,11 +923,11 @@ OPTINLINE byte coreHandler()
 						switch (getcpumode()) //What CPU mode are we to debug?
 						{
 						case CPU_MODE_REAL: //Real mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000)))||(singlestepaddress&0x2000000000000)); //Single step enabled?
+							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
 							break;
 						case CPU_MODE_PROTECTED: //Protected mode?
 						case CPU_MODE_8086: //Virtual 8086 mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000)))||(singlestepaddress&0x2000000000000)); //Single step enabled?
+							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
 							break;
 						default: //Invalid mode?
 							break;

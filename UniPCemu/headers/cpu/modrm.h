@@ -224,16 +224,6 @@ void halt_modrm(char *message, ...); //Modr/m error?
 
 void reset_modrm(); //Resets the modrm info for the current opcode!
 
-//For converting unsigned text to signed text!
-char *unsigned2signedtext8(byte c);
-char *unsigned2signedtext16(word c);
-char *unsigned2signedtext32(uint_32 c);
-
-//For NECV30+
-void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
-//For 80386+
-void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
-
 //For CPU itself:
 /*
 

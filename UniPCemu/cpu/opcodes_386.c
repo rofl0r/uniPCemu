@@ -3474,7 +3474,7 @@ void op_grp5_32() {
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
-		modrm_decode32(&params, &info, 1); //Get data!
+		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
 		modrm_addoffset = 0; //First IP!
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
@@ -3523,7 +3523,7 @@ void op_grp5_32() {
 		}
 		break;
 	case 5: //JMP Mp
-		modrm_decode32(&params, &info, MODRM_src0); //Get data!
+		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
@@ -3698,8 +3698,8 @@ extern MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL ins
 
 void CPU386_OP69()
 {
-	modrm_decode32(&params,&info,MODRM_src0); //Reg!
-	modrm_decode32(&params,&info2,MODRM_src1); //Second parameter(R/M)!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
+	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULD %s,%08X",info.text,imm32); //IMUL reg,imm16
@@ -3745,8 +3745,8 @@ void CPU386_OP69()
 
 void CPU386_OP6B()
 {
-	modrm_decode32(&params,&info,MODRM_src0); //Store the address!
-	modrm_decode32(&params,&info2,MODRM_src1); //Store the address(R/M)!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
+	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULD %s,%02X",info.text,immb); //IMUL reg,imm8
@@ -3784,7 +3784,7 @@ void CPU386_OP6B()
 	}
 
 	modrm_write32(&params,MODRM_src0,temp3.val32); //Write to register!
-	if (((temp3.val64>>15)==0) || ((temp3.val64>>15)==0x1FFFFFFFFFFFFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
+	if (((temp3.val64>>15)==0ULL) || ((temp3.val64>>15)==0x1FFFFFFFFFFFFFFULL)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
@@ -3874,7 +3874,7 @@ void CPU386_OP6F()
 
 void CPU386_OPC1()
 {
-	modrm_decode32(&params,&info,MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	oper2d = (uint_32)immb;
 	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?

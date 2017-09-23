@@ -9,7 +9,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 	const uint_32 triggersizes[4] = {1,2,8,4}; //How many bytes to watch?
 	uint_32 breakpointposition[2], endposition[2]; //Two breakpoint positions to support overflow locations!
 	byte typematched=0; //Type matched?
-	if (likely(CPU[activeCPU].registers->DR7&((3<<(DR<<1)))==0)) return 0; //Disabled? Both global and local are applied!
+	if (likely((CPU[activeCPU].registers->DR7&(3<<(DR<<1)))==0)) return 0; //Disabled? Both global and local are applied!
 	{
 		breakpointinfo = CPU[activeCPU].registers->DR7; //Get the info to process!
 		breakpointinfo >>= (0x10|(DR<<2)); //Shift our information required to the low bits!

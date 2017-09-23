@@ -44,7 +44,7 @@
 //Use the equalizer functionality?
 //#define __USE_EQUALIZER
 //Define RECORD_TESTWAVE to make it record a test sine wave instead.
-#define RECORD_TESTWAVE 1.0
+//#define RECORD_TESTWAVE 1.0
 
 //What frequency to filter our sound for (higher than 0Hz!) Currently the high pass filter disturbs sound too much, so it's disabled. Low pass is set to half the rendering frequency!
 #define SOUND_HIGHPASS 18.2f
@@ -1018,10 +1018,12 @@ OPTINLINE static void HW_recordaudio(sample_stereo_p buffer, uint_32 length) //M
 	currentsample = length; //Init samples to give!
 	for (;;)
 	{
+		#ifdef SDL2
 		#ifdef RECORD_TESTWAVE
 		buffer->r = buffer->l = (sword)(sinf(2.0f*PI*RECORD_TESTWAVE*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
 		recordtime += (1.0f/SW_RECORDRATE); //Tick time!
 		recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
+		#endif
 		#endif
 		mixersample = signed2unsigned16(buffer->r); //Right output!
 		mixersample <<= 16; //Shift high!

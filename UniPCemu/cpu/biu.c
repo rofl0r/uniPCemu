@@ -12,7 +12,11 @@
 #include "headers/mmu/mmuhandler.h" //MMU handling support!
 
 //16-bits compatibility for reading parameters!
+#ifndef IS_PSP
 #define LE_16BITS(x) SDL_SwapLE16(x)
+#else
+#define LE_16BITS(x) (x)
+#endif
 //32-bits compatibility for reading parameters!
 #define LE_32BITS(x) SDL_SwapLE32((LE_16BITS((x)&0xFFFF))|(uint_32)((LE_16BITS(((x)>>16)&0xFFFF))<<16))
 

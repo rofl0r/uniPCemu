@@ -152,7 +152,7 @@ byte readIPnumber(char **x, byte *number)
 {
 	byte size=0;
 	word result=0;
-	for (;(isdigit(*(*x)) && (size<3));) //Scan digits!
+	for (;(isdigit((int)*(*x)) && (size<3));) //Scan digits!
 	{
 		result = (result*10)+(*(*x)-'0'); //Convert to a number!
 		++(*x); //Next digit!

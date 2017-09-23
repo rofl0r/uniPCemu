@@ -90,7 +90,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode32(&params, &info, MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT
@@ -978,7 +978,8 @@ void CPU80386_OP0FBA_16() {
 	word val;
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params, &info, 1); //Store the address for debugging!
+	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
+	memcpy(&info,&params.info[1],sizeof(info)); //Store the address for debugging!
 	switch (thereg)
 	{
 		case 4: //BT r/m16,imm8
@@ -1049,7 +1050,8 @@ void CPU80386_OP0FBA_32() {
 	uint_32 val;
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode32(&params, &info, 1); //Store the address for debugging!
+	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
+	memcpy(&info,&params.info[1],sizeof(info)); //Store the address for debugging!
 	switch (thereg)
 	{
 		case 4: //BT r/m32,imm8

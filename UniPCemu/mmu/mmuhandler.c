@@ -293,7 +293,7 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 #define MID_MEMORYHOLE_START 0xF00000
 #define MID_MEMORYHOLE_END 0x1000000
 #define HIGH_MEMORYHOLE_START 0xC0000000
-#define HIGH_MEMORYHOLE_END 0x100000000
+#define HIGH_MEMORYHOLE_END 0x100000000ULL
 
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte iswrite)
 {

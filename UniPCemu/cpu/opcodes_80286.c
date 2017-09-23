@@ -134,7 +134,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 {
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params, &info, MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 	case 0: //SLDT
@@ -270,7 +270,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
 	thereg = MODRM_REG(params.modrm);
 
-	modrm_decode16(&params, &info, MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT

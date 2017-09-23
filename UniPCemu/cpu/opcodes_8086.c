@@ -5182,7 +5182,7 @@ void op_grp5() {
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
-		modrm_decode16(&params, &info, 1); //Get data!
+		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
 		modrm_addoffset = 0; //First IP!
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
@@ -5231,7 +5231,7 @@ void op_grp5() {
 		}
 		break;
 	case 5: //JMP Mp
-		modrm_decode16(&params, &info, MODRM_src0); //Get data!
+		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+2,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!

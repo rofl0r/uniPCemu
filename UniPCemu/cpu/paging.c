@@ -205,7 +205,7 @@ byte Paging_TLBSet(uint_32 logicaladdress)
 
 byte Paging_oldestTLB(byte set) //Find a TLB to be used/overwritten!
 {
-	byte x,oldest;
+	byte x,oldest=0;
 	for (x=0;x<8;++x) //Check all TLBs!
 	{
 		if ((CPU[activeCPU].Paging_TLB.TLB[set][x].TAG&1)==0) //Unused?

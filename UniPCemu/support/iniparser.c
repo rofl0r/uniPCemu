@@ -96,7 +96,7 @@ int_64 get_private_profile_int64(char *section,
 	byte isnegative=0;
 	byte length = 0;
 	get_private_profile_string(section,entry,"",&ep[0],sizeof(ep)-1,file_name); //Read the entry, with default being empty!
-    for(i = 0; (isdigit(ep[i]) || ((ep[i]=='-') && (!i))); i++ )
+    for(i = 0; (isdigit((int)ep[i]) || ((ep[i]=='-') && (!i))); i++ )
 		if (ep[i]=='-') //Negative sign?
 		{
 			isnegative = 1; //Negative sign!
@@ -129,7 +129,7 @@ uint_64 get_private_profile_uint64(char *section,
 	memset(&value,0,sizeof(value));
 	int i;
 	get_private_profile_string(section,entry,"",&value[0],sizeof(value)-1,file_name); //Read the entry, with default being empty!
-    for(i = 0; isdigit(value[i]); i++ ); //Scan until invalid characters!
+    for(i = 0; isdigit((int)value[i]); i++ ); //Scan until invalid characters!
     value[i] = '\0';
 	LONG64SPRINTF result;
 	if (sscanf(&value[0],LONGLONGSPRINTF,&result)==1) //Convert to our result!

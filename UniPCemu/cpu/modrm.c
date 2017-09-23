@@ -19,11 +19,6 @@
 
 //First write 8-bits, 16-bits and 32-bits!
 
-//Pres for our functions calling them (read/write functions):
-void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister);
-void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
-void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //32-bit address/reg decoder!
-
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
@@ -1040,6 +1035,9 @@ OPTINLINE static uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_
 	return 0; //Unknown register!
 }
 
+//Prototype for 32-bit decoding redirecting to 16-bit!
+void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
+
 void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //32-bit address/reg decoder!
 {
 	INLINEREGISTER byte curreg;
@@ -1442,7 +1440,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
-OPTINLINE void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
+void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //16-bit address/reg decoder!
 {
 	INLINEREGISTER byte curreg;
 	INLINEREGISTER byte reg;

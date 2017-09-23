@@ -20,7 +20,11 @@ Basic CPU active segment value retrieval.
 //Exceptions, 286+ only!
 
 //Reading of the 16-bit entries within descriptors!
+#ifndef IS_PSP
 #define DESC_16BITS(x) SDL_SwapLE16(x)
+#else
+#define DESC_16BITS(x) (x)
+#endif
 
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 

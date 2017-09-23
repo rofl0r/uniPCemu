@@ -5,8 +5,13 @@
 #include "headers/support/signedness.h" //For converting between signed/unsigned samples!
 
 //Makes sure the format is 16-bit little endian what's read!
+#ifndef IS_PSP
 #define LE16(x) SDL_SwapLE16(x)
 #define LE32(x) SDL_SwapLE32(x)
+#else
+#define LE16(x) (x)
+#define LE32(x) (x)
+#endif
 
 /*
 

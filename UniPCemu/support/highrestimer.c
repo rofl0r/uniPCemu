@@ -58,7 +58,6 @@ int getUniversalTimeOfDay(UniversalTimeOfDay *result)
 #else
 	//PSP and Linux already have proper gettimeofday support built into the compiler!
 	struct timeval tp;
-	struct timezone tzp;
 	int temp;
 	temp = gettimeofday(&tp,NULL); //Get the time of the day!
 	if (temp==0) //Success?

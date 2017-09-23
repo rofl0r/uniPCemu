@@ -436,7 +436,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 	if (__HW_DISABLED) return 0; //Disabled!
 	if (!memprotect(surface,sizeof(GPU_TEXTSURFACE),"GPU_TEXTSURFACE")) return 0; //Abort without surface!
 	if (!rendersurface) return 0; //No rendering surface used yet?
-	uint_32 color;
+	uint_32 color=0;
 	INLINEREGISTER int x,y;
 	INLINEREGISTER uint_32 notbackground; //We're a pixel to render, 32-bits for each 32 pixels!
 	INLINEREGISTER byte isnottransparent=0; //Are we not a transparent pixel(drawable)?

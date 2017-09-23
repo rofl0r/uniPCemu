@@ -269,8 +269,8 @@ void CPU186_OP68()
 
 void CPU186_OP69()
 {
-	modrm_decode16(&params,&info,MODRM_src0); //Reg!
-	modrm_decode16(&params,&info2,MODRM_src1); //Second parameter(R/M)!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
+	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULW %s,%04X",info.text,immw); //IMUL reg,imm16
@@ -325,8 +325,8 @@ void CPU186_OP6A()
 
 void CPU186_OP6B()
 {
-	modrm_decode16(&params,&info,MODRM_src0); //Store the address!
-	modrm_decode16(&params,&info2,MODRM_src1); //Store the address(R/M)!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
+	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMULW %s,%02X",info.text,immb); //IMUL reg,imm8
@@ -529,7 +529,7 @@ void CPU186_OPC0()
 {
 	oper2b = immb;
 
-	modrm_decode16(&params,&info,MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
@@ -572,7 +572,7 @@ void CPU186_OPC0()
 
 void CPU186_OPC1()
 {
-	modrm_decode16(&params,&info,MODRM_src0); //Store the address for debugging!
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	oper2 = (word)immb;
 	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?

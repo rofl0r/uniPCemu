@@ -60,7 +60,9 @@ SDL_Texture *sdlTexture = NULL;
 
 void updateWindow(word xres, word yres, uint_32 flags)
 {
+	#ifdef SDL2
 	byte useFullscreen; //Are we to use fullscreen?
+	#endif
 	if ((xres!=window_xres) || (yres!=window_yres) || (flags!=window_flags) || !originalrenderer) //Do we need to update the Window?
 	{
 #include "headers/emu/icon.h" //We need our icon!

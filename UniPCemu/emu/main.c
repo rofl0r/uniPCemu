@@ -122,7 +122,7 @@ int exit_callback(int arg1, int arg2, void *common)
 	
 	if (SDL_WasInit(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_JOYSTICK)) //Video and/or audio and joystick loaded?
 	{
-		exit(); //Quit SDL, releasing everything still left!
+		exit(0); //Quit SDL, releasing everything still left!
 	}
 	quitemu(0); //The emu has shut down!
 	return 0; //Never arriving here!

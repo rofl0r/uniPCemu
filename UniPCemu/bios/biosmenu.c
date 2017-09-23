@@ -5148,7 +5148,10 @@ void BIOS_CPU() //CPU menu!
 		case 13: //Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
+				#ifndef IS_PSP
+				//This option fails to compile on the PSP for some unknown reason.
 				BIOS_Menu = 60; //Timeout to be used for breakpoints?
+				#endif
 			}
 			else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //SQUARE=Set current address&mode as the breakpoint!
 			{
@@ -6636,12 +6639,13 @@ void BIOS_breakpoint()
 					{
 						goto abortcoloninput; //Invalid: can't handle segment length!							
 					}
+					#ifndef IS_PSP
+					//This won't compile on the PSP for some unknown reason, crashing the compiler!
 					if (((safe_strlen(&breakpointstr[0],sizeof(breakpointstr))-semicolonpos)-1)<=maxoffsetsize) //Offset OK?
 					{
 						BIOS_setBreakpoint(&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress);
-						break;													
 					}
-					goto abortcoloninput; //Invalid: can't handle segment length!
+					#endif
 			}
 		}
 		else //Unset?

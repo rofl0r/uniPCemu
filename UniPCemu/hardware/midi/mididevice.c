@@ -56,8 +56,13 @@ byte direct_midi = 0; //Enable direct MIDI synthesis?
 #define CHORUS_LFO_CENTS 10.0f
 
 //16/32 bit quantities from the SoundFont loaded in memory!
+#ifndef IS_PSP
 #define LE16(x) SDL_SwapLE16(x)
 #define LE32(x) SDL_SwapLE32(x)
+#else
+#define LE16(x) (x)
+#define LE32(x) (x)
+#endif
 #define LE16S(x) = unsigned2signed16(LE16(signed2unsigned16(x)))
 #define LE32S(x) = unsigned2signed32(LE32(signed2unsigned32(x)))
 
