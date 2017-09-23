@@ -486,7 +486,7 @@ int main(int argc, char * argv[])
 			dolog("zalloc_debug","Multiple deallocation (shuffled) failed.");
 		}
 		
-		dolog("zalloc_debug","All checks passed. Free memory: %i bytes Total memory: %i bytes",freemem(),f1);
+		dolog("zalloc_debug","All checks passed. Free memory: %u bytes Total memory: %u bytes",freemem(),f1);
 		quitemu(0); //Quit!
 	}
 	#endif

@@ -118,7 +118,7 @@ byte writeBMP(char *thefilename, uint_32 *image, int w, int h, byte doublexres, 
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!w || !h)
 	{
-		//dolog("BMP","Error writing BMP: %s@%ix%i pixels",thefilename,w,h); //Log our error!
+		//dolog("BMP","Error writing BMP: %s@%ux%u pixels",thefilename,w,h); //Log our error!
 		return 0; //Can't write: empty height/width!
 	}
 

@@ -869,7 +869,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
-		FLOPPY_LOGD("FLOPPY: Start transfer of data (DMA: %i)...",FLOPPY_useDMA())
+		FLOPPY_LOGD("FLOPPY: Start transfer of data (DMA: %u)...",FLOPPY_useDMA())
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY_useDMA()) //DMA mode?
@@ -979,10 +979,10 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]); //The start position, in sectors!
-	FLOPPY_LOGD("FLOPPY: Read sector #%i", FLOPPY.disk_startpos) //We're reading this sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
+	FLOPPY_LOGD("FLOPPY: Read sector #%u", FLOPPY.disk_startpos) //We're reading this sector!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %u bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %u bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
@@ -1073,7 +1073,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 
 	if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read only drive?
 	{
-		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
@@ -1177,12 +1177,12 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 		FLOPPY.databuffersize = FLOPPY.commandbuffer[8]; //Use data length!
 	}
 	FLOPPY.disk_startpos = floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4]); //The start position, in sectors!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector #%i", FLOPPY.disk_startpos) } //We're reading this sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %i bytes", FLOPPY.databuffersize) }
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector #%u", FLOPPY.disk_startpos) } //We're reading this sector!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Sector size: %u bytes", FLOPPY.databuffersize) }
 	FLOPPY.disk_startpos *= FLOPPY.databuffersize; //Calculate the start sector!
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %i bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Requesting transfer for %u bytes.", FLOPPY.databuffersize) } //Transfer this many sectors!
 
-	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector: CHS=%i,%i,%i; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
+	if (FLOPPY.commandstep != 2) { FLOPPY_LOGD("FLOPPY: Write sector: CHS=%u,%u,%u; Params: %02X%02X%02x%02x%02x%02x%02x%02x", FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[1], FLOPPY.commandbuffer[2], FLOPPY.commandbuffer[3], FLOPPY.commandbuffer[4], FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[6], FLOPPY.commandbuffer[7], FLOPPY.commandbuffer[8]) } //Log our request!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
@@ -1251,7 +1251,7 @@ OPTINLINE void floppy_executeWriteData()
 			FLOPPY_ST0_NOTREADYW(0); //We're ready!
 			break;
 		}
-		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
@@ -1301,7 +1301,7 @@ OPTINLINE void floppy_executeWriteData()
 						FLOPPY_ST0_NOTREADYW(0); //We're ready!
 						break;
 					}
-					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.commandbuffer[3] & 1) << 2); //Abnormal termination! ST0!
@@ -1350,7 +1350,7 @@ OPTINLINE void floppy_executeReadData()
 	FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 	FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 	FLOPPY.commandstep = 3; //Move to result phrase and give the result!
-	FLOPPY_LOGD("FLOPPY: Finished transfer of data (%i sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+	FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sectors).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 	FLOPPY_raiseIRQ(); //Entering result phase!
 }
 
@@ -1468,7 +1468,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				byte reset_drive;
 				reset_drive = FLOPPY.reset_pending_size - (FLOPPY.reset_pending--); //We're pending this drive!
-				FLOPPY_LOGD("FLOPPY: Reset Sense Interrupt, pending drive %i/%i...",reset_drive,FLOPPY.reset_pending_size)
+				FLOPPY_LOGD("FLOPPY: Reset Sense Interrupt, pending drive %u/%u...",reset_drive,FLOPPY.reset_pending_size)
 				FLOPPY.ST0 &= 0xF8; //Clear low 3 bits!
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
@@ -1722,7 +1722,7 @@ OPTINLINE void floppy_writeData(byte value)
 			}
 			break;
 		case 1: //Parameters
-			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%i/%i)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0]]) //Log the parameter!
+			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%u/%u)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0]]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
 			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0]])) //All parameters have been processed?
 			{
@@ -1746,7 +1746,7 @@ OPTINLINE void floppy_writeData(byte value)
 						FLOPPY_dataReady(); //We have data ready to transfer!
 						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
 						{
-							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %i/%i bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
+							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %u/%u bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
 							floppy_executeData(); //Execute the command with the given data!
 						}
 					}
@@ -1830,7 +1830,7 @@ OPTINLINE byte floppy_readData()
 						FLOPPY_dataReady(); //We have data ready to transfer!
 						if (FLOPPY_useDMA() && FLOPPY.TC) //DMA mode, Terminal count and not completed? We're ending too soon!
 						{
-							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %i/%i bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
+							FLOPPY_LOGD("FLOPPY: Terminal count reached in the middle of a data transfer! Position: %u/%u bytes",FLOPPY.databufferposition,FLOPPY.databuffersize)
 							floppy_executeData(); //Execute the command with the given data!
 						}
 					}
@@ -1859,7 +1859,7 @@ OPTINLINE byte floppy_readData()
 				case SEEK: //Seek/park head
 				case VERSION: //Version information!
 				case LOCK: //Lock command?
-					FLOPPY_LOGD("FLOPPY: Reading result byte %i/%i=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
+					FLOPPY_LOGD("FLOPPY: Reading result byte %u/%u=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
 						FLOPPY.commandstep = 0; //Reset step!

@@ -258,7 +258,7 @@ void debug_threads()
 			}
 		}
 		GPU_textgotoxy(frameratesurface,0,30);
-		GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),"Number of threads: %i",numthreads); //Debug the ammount of threads used!
+		GPU_textprintf(frameratesurface,RGB(0xFF,0x00,0x00),RGB(0x00,0xFF,0x00),"Number of threads: %u",numthreads); //Debug the ammount of threads used!
 		GPU_text_releasesurface(frameratesurface);
 		delay(100000); //Wait 100ms!
 	}

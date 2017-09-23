@@ -984,7 +984,7 @@ OPTINLINE byte coreHandler()
 				}
 				if (addr_left==0) //Bogus memory detected?
 				{
-					dolog("bogus","Bogus exection memory detected(%i 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%i)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
+					dolog("bogus","Bogus exection memory detected(%u 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%u)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
 				}
 				#endif
 			}

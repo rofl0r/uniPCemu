@@ -101,7 +101,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 void modem_nrcpy(char *s, word size, word nr)
 {
 	memset(s,0,size);
-	sprintf(s,"%i%i%i",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
+	sprintf(s,"%u%u%u",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
 }
 void modem_responseResult(byte result) //What result to give!
 {
@@ -197,7 +197,7 @@ byte modem_connect(char *phonenumber)
 						if (*p=='\0') //EOS?
 						{
 							//Automatic port?
-							sprintf(ipaddress,"%i.%i.%i.%i",a,b,c,d); //Formulate the address!
+							sprintf(ipaddress,"%u.%u.%u.%u",a,b,c,d); //Formulate the address!
 							port = modem.connectionport; //Use the default port as specified!
 						}
 						else if (*p==':') //Port might follow?
@@ -207,7 +207,7 @@ byte modem_connect(char *phonenumber)
 							{
 								return 0; //Fail: invalid port has been specified!
 							}
-							sprintf(ipaddress,"%i.%i.%i.%i",a,b,c,d);
+							sprintf(ipaddress,"%u.%u.%u.%u",a,b,c,d);
 						}
 						else //Invalid?
 						{

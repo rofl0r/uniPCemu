@@ -622,7 +622,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 			if ((row_start+use_rowsize)>get_pixelrow_pitch(surface) && ((!(center&3)) && (!(center&4)))) //More than we can handle?
 			{
 				use_rowsize -= ((row_start+use_rowsize)-get_pixelrow_pitch(surface)); //Make it no larger than the surface can handle (no overflow protection)!
-				//dolog("SDL_putpixelrow","Use rowsize: %i; Max pitch: %i, Requested size: %i",use_rowsize,get_pixelrow_pitch(surface),rowsize);
+				//dolog("SDL_putpixelrow","Use rowsize: %u; Max pitch: %u, Requested size: %u",use_rowsize,get_pixelrow_pitch(surface),rowsize);
 			}
 			if (use_rowsize>0) //Gotten row size to copy?
 			{
@@ -699,7 +699,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 				else
 				{
 #ifdef PPRLOG
-					dolog("PPR", "Invalid surface row:%i!", y);
+					dolog("PPR", "Invalid surface row:%u!", y);
 #endif
 				}
 			}
@@ -707,7 +707,7 @@ void put_pixel_row(GPU_SDL_Surface *surface, const int y, uint_32 rowsize, uint_
 #ifdef PPRLOG
 		else
 		{
-			dolog("PPR","Invalid row size: Surface: %i, Specified: %i",get_pixelrow_pitch(surface),rowsize); //Log it!
+			dolog("PPR","Invalid row size: Surface: %u, Specified: %u",get_pixelrow_pitch(surface),rowsize); //Log it!
 		}
 #endif
 	}

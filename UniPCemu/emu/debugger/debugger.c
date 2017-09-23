@@ -663,13 +663,13 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	strcpy(buffer,""); //Clear the buffer!
 	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 	{
-		sprintf(buffer,"%s%i",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		sprintf(buffer,"%s%u",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
 	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
 	if (getActiveVGA() && debugger_logtimings) //Gotten an active VGA?
 	{
-		dolog(filename,"VGA@%i,%i(CRT:%i,%i)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
-		dolog(filename,"Display=%i,%i",GPU.xres,GPU.yres);
+		dolog(filename,"VGA@%u,%u(CRT:%u,%u)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
+		dolog(filename,"Display=%u,%u",GPU.xres,GPU.yres);
 	}
 }
 
@@ -815,13 +815,13 @@ OPTINLINE static void debugger_autolog()
 				{
 					if (debugger_simplifiedlog) //Simplified log?
 					{
-						sprintf(statelog,"BIU T%i",
+						sprintf(statelog,"BIU T%u",
 							(BIU[activeCPU].TState+1) //Current T-state!
 							);
 					}
 					else //Normal full log?
 					{
-						sprintf(statelog,"BIU T%i: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+						sprintf(statelog,"BIU T%u: EU&BIU cycles: %u, Operation cycles: %u, HW interrupt cycles: %u, Prefix cycles: %u, Exception cycles: %u, Prefetching cycles: %u, BIU prefetching cycles(1 each): %u, BIU DMA cycles: %u",
 							(BIU[activeCPU].TState+1), //Current T-state!
 							CPU[activeCPU].cycles, //Cycles executed by the BIU!
 							CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
@@ -848,7 +848,7 @@ OPTINLINE static void debugger_autolog()
 							}
 							else //Normal full log?
 							{
-								sprintf(statelog,"DMA %s: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+								sprintf(statelog,"DMA %s: EU&BIU cycles: %u, Operation cycles: %u, HW interrupt cycles: %u, Prefix cycles: %u, Exception cycles: %u, Prefetching cycles: %u, BIU prefetching cycles(1 each): %u, BIU DMA cycles: %u",
 									DMA_States_text[DMA_S], //Current S-state!
 									CPU[activeCPU].cycles, //Cycles executed by the BIU!
 									CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
@@ -869,7 +869,7 @@ OPTINLINE static void debugger_autolog()
 							}
 							else //Normal full log?
 							{
-								sprintf(statelog,"BIU W: EU&BIU cycles: %i, Operation cycles: %i, HW interrupt cycles: %i, Prefix cycles: %i, Exception cycles: %i, Prefetching cycles: %i, BIU prefetching cycles(1 each): %i, BIU DMA cycles: %i",
+								sprintf(statelog,"BIU W: EU&BIU cycles: %u, Operation cycles: %u, HW interrupt cycles: %u, Prefix cycles: %u, Exception cycles: %u, Prefetching cycles: %u, BIU prefetching cycles(1 each): %u, BIU DMA cycles: %u",
 									CPU[activeCPU].cycles, //Cycles executed by the BIU!
 									CPU[activeCPU].cycles_OP, //Total number of cycles for an operation!
 									CPU[activeCPU].cycles_HWOP, //Total number of cycles for an hardware interrupt!
@@ -1106,7 +1106,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!
 		for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 		{
-			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%i",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%u",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 		}
 
 		if (memprotect(getActiveVGA(),sizeof(VGA_Type),"VGA_Struct")) //Gotten an active VGA?

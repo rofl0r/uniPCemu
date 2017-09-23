@@ -301,7 +301,7 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 
 	finishupr: //Early stop: we cannot write any further!
 	
-	dolog("debugger","Read %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i, Destination: ES:BX=%04X:%08X",
+	dolog("debugger","Read %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u, Destination: ES:BX=%04X:%08X",
 					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
 	return (byte)sector; //Give the ammount of sectors read!
 }
@@ -344,7 +344,7 @@ OPTINLINE byte writediskdata(uint_32 startpos)
 	}
 	
 	finishupw:
-	dolog("debugger","Written %i/%i sectors from drive %02X, start %i. Requested: Head: %i, Track: %i, Sector: %i. Start sector: %i",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
+	dolog("debugger","Written %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
 	return (byte)sector; //Ammount of sectors read!
 }
 

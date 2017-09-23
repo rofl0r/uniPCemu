@@ -2891,7 +2891,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 	default: //Unknown opcode or special?
 		if (cpudebugger) //Debugger on?
 		{
-			debugger_setcommand("Unknown opcode: 8F /%i",MODRM_REG(params.modrm)); //Error!
+			debugger_setcommand("Unknown opcode: 8F /%u",MODRM_REG(params.modrm)); //Error!
 		}
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;

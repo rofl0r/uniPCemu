@@ -873,7 +873,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 				} //Else 0!
 			}
 		}
-		//dolog("VGA","VTotal after pixelboost: %i",VGA->precalcs.verticaltotal); //Log it!
+		//dolog("VGA","VTotal after pixelboost: %u",VGA->precalcs.verticaltotal); //Log it!
 		VGA->precalcs.recalcScanline |= (VGA->precalcs.pixelshiftcount!=pixelboost); //Recalc scanline data when needed!
 		VGA->precalcs.pixelshiftcount = pixelboost; //Save our precalculated value!
 	}
@@ -1072,8 +1072,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		tempdata <<= et34kdata->doublehorizontaltimings;
 		++tempdata; //Stop after this character!
 		tempdata *= VGA->precalcs.characterwidth; //Original!
-		//dolog("VGA","HDispEnd updated: %i",hdispend);
-		//dolog("VGA","VTotal after: %i",VGA->precalcs.verticaltotal); //Log it!
+		//dolog("VGA","HDispEnd updated: %u",hdispend);
+		//dolog("VGA","VTotal after: %u",VGA->precalcs.verticaltotal); //Log it!
 		if (VGA->precalcs.horizontaldisplayend != tempdata) adjustVGASpeed(); //Update our speed!
 		updateCRTC |= (VGA->precalcs.horizontaldisplayend != tempdata); //Update!
 		VGA->precalcs.horizontaldisplayend = tempdata; //Load!

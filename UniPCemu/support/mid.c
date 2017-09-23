@@ -369,7 +369,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			{
 				case 0x2F: //EOT?
 					#ifdef MID_LOG
-					dolog("MID", "channel %i: EOT!", channel); //EOT reached!
+					dolog("MID", "channel %u: EOT!", channel); //EOT reached!
 					#endif
 					return 0; //End of track reached: done!
 				case 0x51: //Set tempo?
@@ -386,12 +386,12 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 					updateMIDTimer(header);
 
 					#ifdef MID_LOG
-					dolog("MID", "channel %i: Set Tempo:%06X!", channel, activetempo);
+					dolog("MID", "channel %u: Set Tempo:%06X!", channel, activetempo);
 					#endif
 					break;
 				default: //Unrecognised meta event? Skip it!
 					#ifdef MID_LOG
-					dolog("MID", "Unrecognised meta type: %02X@Channel %i; Data length: %i", meta_type, channel, length); //Log the unrecognised metadata type!
+					dolog("MID", "Unrecognised meta type: %02X@Channel %u; Data length: %u", meta_type, channel, length); //Log the unrecognised metadata type!
 					#endif
 					for (; length--;) //Process length bytes!
 					{
@@ -405,7 +405,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			if (curdata & 0x80) //Starting a new command?
 			{
 				#ifdef MID_LOG
-				dolog("MID", "Status@Channel %i=%02X", channel, curdata);
+				dolog("MID", "Status@Channel %u=%02X", channel, curdata);
 				#endif
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(1) //EOS!
 				*last_channel_command = curdata; //Save the last command!
@@ -417,7 +417,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			else
 			{
 				#ifdef MID_LOG
-				dolog("MID", "Continued status@Channel %i: %02X=>%02X",channel, last_channel_command, curdata);
+				dolog("MID", "Continued status@Channel %u: %02X=>%02X",channel, last_channel_command, curdata);
 				#endif
 				if (*last_channel_command != 0xF7) //Escaped continue isn't used last?
 				{
@@ -479,7 +479,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 				break;
 			default: //Unknown data? We're sending directly to the hardware! We shouldn't be here!
 				if (!consumeStream(midi_stream, track, &curdata)) MIDI_ERROR(2) //EOS!
-				dolog("MID", "Warning: Unknown data detected@channel %i: passthrough to MIDI device: %02X!", channel, curdata);
+				dolog("MID", "Warning: Unknown data detected@channel %u: passthrough to MIDI device: %02X!", channel, curdata);
 				//Can't process: ignore the data, since it's invalid!
 				break;
 			}
@@ -488,7 +488,7 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 			if (error)
 			{
 				PORT_OUT_B(0x330, 0xFF); //Reset the synthesizer!
-				dolog("MID", "channel %i: Error @position %i during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, *last_channel_command, curdata);
+				dolog("MID", "channel %u: Error @position %u during MID processing! Unexpected EOS? Last command: %02X, Current data: %02X", channel, error, *last_channel_command, curdata);
 				return 0; //Abort on error!
 			}
 			//Finish: prepare for next command!

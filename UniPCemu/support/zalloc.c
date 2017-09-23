@@ -57,13 +57,13 @@ void logpointers(char *cause) //Logs any changes in memory usage!
 		{
 			if (strlen(registeredpointers[current].name)>0) //Valid name?
 			{
-				dolog("zalloc","- %s with %i bytes@%p",registeredpointers[current].name,registeredpointers[current].size,registeredpointers[current].pointer); //Add the name!
+				dolog("zalloc","- %s with %u bytes@%p",registeredpointers[current].name,registeredpointers[current].size,registeredpointers[current].pointer); //Add the name!
 				total_memory += registeredpointers[current].size; //Add to total memory!
 			}
 		}
 	}
 	dolog("zalloc","End dump of allocated pointers.");
-	dolog("zalloc","Total memory allocated: %i bytes",total_memory); //We're a full log!
+	dolog("zalloc","Total memory allocated: %u bytes",total_memory); //We're a full log!
 }
 
 //(un)Registration and lookup of pointers.
@@ -123,7 +123,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem
 	if (!ptr)
 	{
 		#ifdef DEBUG_ALLOCDEALLOC
-		if (allow_zallocfaillog) dolog("zalloc","WARNING: RegisterPointer %s with size %i has invalid pointer!",name,size);
+		if (allow_zallocfaillog) dolog("zalloc","WARNING: RegisterPointer %s with size %u has invalid pointer!",name,size);
 		#endif
 		return 0; //Not a pointer?
 	}
@@ -152,7 +152,7 @@ byte registerptr(void *ptr,uint_32 size, char *name,DEALLOCFUNC dealloc, SDL_sem
 			registeredpointers[current].ptrend = ptrend; //End address of the pointer for fast checking!
 			registeredpointers[current].lock = lock; //Register the lock too!
 			#ifdef DEBUG_ALLOCDEALLOC
-			if (allow_zallocfaillog) dolog("zalloc","Memory has been allocated. Size: %i. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
+			if (allow_zallocfaillog) dolog("zalloc","Memory has been allocated. Size: %u. name: %s, location: %p",size,name,ptr); //Log our allocated memory!
 			#endif
 			return 1; //Registered!
 		}
@@ -170,7 +170,7 @@ byte unregisterptr(void *ptr, uint_32 size) //Remove pointer from registration (
 		if (registeredpointers[index].pointer==ptr && registeredpointers[index].size==size) //Fully matched (parents only)?
 		{
 			#ifdef DEBUG_ALLOCDEALLOC
-			if (allow_zallocfaillog) dolog("zalloc","Freeing pointer %s with size %i bytes...",registeredpointers[index].name,size); //Show we're freeing this!
+			if (allow_zallocfaillog) dolog("zalloc","Freeing pointer %s with size %u bytes...",registeredpointers[index].name,size); //Show we're freeing this!
 			#endif
 			memset(&registeredpointers[index],0,sizeof(registeredpointers[index])); //Clear the pointer entry to it's defaults!
 			return 1; //Safely unregistered!
@@ -234,7 +234,7 @@ void *nzalloc(uint_32 size, char *name, SDL_sem *lock) //Allocates memory, NULL 
 			return ptr; //Give the original pointer, cleared to 0!
 		}
 		#ifdef DEBUG_ALLOCDEALLOC
-		if (allow_zallocfaillog) dolog("zalloc","Ran out of registrations while allocating %i bytes of data for block %s.",size,name);
+		if (allow_zallocfaillog) dolog("zalloc","Ran out of registrations while allocating %u bytes of data for block %s.",size,name);
 		#endif
 		free(ptr); //Free it, can't generate any more!
 	}
@@ -243,11 +243,11 @@ void *nzalloc(uint_32 size, char *name, SDL_sem *lock) //Allocates memory, NULL 
 	{
 		if (freemem()>=size) //Enough memory after all?
 		{
-			dolog("zalloc","Error while allocating %i bytes of data for block \"%s\" with enough free memory(%i bytes).",size,name,freemem());
+			dolog("zalloc","Error while allocating %u bytes of data for block \"%s\" with enough free memory(%i bytes).",size,name,freemem());
 		}
 		else
 		{
-			dolog("zalloc","Ran out of memory while allocating %i bytes of data for block \"%s\".",size,name);
+			dolog("zalloc","Ran out of memory while allocating %u bytes of data for block \"%s\".",size,name);
 		}
 	}
 	#endif
@@ -346,7 +346,7 @@ uint_32 freemem() //Largest Free memory block left to allocate!
 			{
 				free(buffer); //Release memory for next try!
 				curalloc = (uint_32)lastzalloc; //Set detected memory!
-				//dolog("zalloc","Free memory step: %i",curalloc); //Show our step! WE WORK!
+				//dolog("zalloc","Free memory step: %u",curalloc); //Show our step! WE WORK!
 			}
 		}
 		multiplier >>= 1; //Shift to the next bit position to check!

@@ -830,7 +830,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
-		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
+		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
@@ -886,7 +886,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
-		dolog("ATA", "Write Sector out of range:%i,%i=%08X/%08X!",channel,ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address,disk_size);
+		dolog("ATA", "Write Sector out of range:%u,%u=%08X/%08X!",channel,ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address,disk_size);
 #endif
 		ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
@@ -898,7 +898,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 	}
 
 #ifdef ATA_LOG
-	dolog("ATA", "Writing sector #%i!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
+	dolog("ATA", "Writing sector #%u!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
 #endif
 
 	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred<<9))) //Write the data to the disk?
@@ -1027,7 +1027,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
-		dolog("ATA", "Read Sector out of range:%i,%i=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
+		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
 #endif
 		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
@@ -2089,7 +2089,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	{
 	case 0x90: //Execute drive diagnostic (Mandatory)?
 #ifdef ATA_LOG
-		dolog("ATA", "DIAGNOSTICS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "DIAGNOSTICS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		ATA[channel].Drive[0].ERRORREGISTER = 0x1; //OK!
 		ATA[channel].Drive[1].ERRORREGISTER = 0x1; //OK!
@@ -2113,7 +2113,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xDB: //Acnowledge media change?
 #ifdef ATA_LOG
-		dolog("ATA", "ACNMEDIACHANGE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "ACNMEDIACHANGE:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		switch (ATA_Drives[channel][ATA_activeDrive(channel)]) //What kind of drive?
@@ -2144,7 +2144,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x1E:
 	case 0x1F: //Recalibrate?
 #ifdef ATA_LOG
-		dolog("ATA", "RECALIBRATE:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "RECALIBRATE:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //Default to no error!
@@ -2186,7 +2186,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x7E:
 	case 0x7F: //Seek?
 #ifdef ATA_LOG
-		dolog("ATA", "SEEK:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "SEEK:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		temp = (command & 0xF); //The head to select!
@@ -2221,7 +2221,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x20: //Read sector(s) (w/retry, ATAPI Mandatory)?
 	case 0x21: //Read sector(s) (w/o retry, ATAPI Mandatory)?
 #ifdef ATA_LOG
-		dolog("ATA", "READ(long:%i):%i,%i=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "READ(long:%u):%u,%u=%02X", ATA[channel].longop,channel, ATA_activeDrive(channel), command);
 #endif
 		readsectors:
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
@@ -2280,7 +2280,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	case 0x31: //Write sectors (w/o retry)?
 		writesectors:
 #ifdef ATA_LOG
-		dolog("ATA", "WRITE(LONG:%i):%i,%i=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
+		dolog("ATA", "WRITE(LONG:%u):%u,%u=%02X; Length=%02X", ATA[channel].longop, channel, ATA_activeDrive(channel), command, ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
@@ -2306,7 +2306,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0x91: //Initialise device parameters?
 #ifdef ATA_LOG
-		dolog("ATA", "INITDRVPARAMS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "INITDRVPARAMS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Requesting command again!
@@ -2324,7 +2324,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		goto invalidcommand; //We're an invalid command: we're not a CDROM drive!
 	case 0xEC: //Identify device (Mandatory)?
 #ifdef ATA_LOG
-		dolog("ATA", "IDENTIFY:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "IDENTIFY:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if (!ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //No drive errors out!
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //Special action for CD-ROM drives?
@@ -2362,7 +2362,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xDA: //Get media status?
 #ifdef ATA_LOG
-		dolog("ATA", "GETMEDIASTATUS:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "GETMEDIASTATUS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Not a CD-ROM drive?
 		{
@@ -2383,7 +2383,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xEF: //Set features (Mandatory)?
 #ifdef ATA_LOG
-		dolog("ATA", "Set features:%i,%i=%02X", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features); //Set these features!
+		dolog("ATA", "Set features:%u,%u=%02X", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features); //Set these features!
 #endif
 		switch (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features) //What features to set?
 		{
@@ -2464,7 +2464,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		//Invalid command?
 		invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 #ifdef ATA_LOG
-		dolog("ATA", "INVALIDCOMMAND:%i,%i=%02X", channel, ATA_activeDrive(channel), command);
+		dolog("ATA", "INVALIDCOMMAND:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		//Present ABRT error! BSY=0 in status, ERR=1 in status, ABRT(4) in error register.
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
@@ -2577,14 +2577,14 @@ byte outATA8(word port, byte value)
 		break;
 	case 1: //Features?
 #ifdef ATA_LOG
-		dolog("ATA", "Feature register write: %02X %i.%i", value,channel,ATA_activeDrive(channel));
+		dolog("ATA", "Feature register write: %02X %u.%u", value,channel,ATA_activeDrive(channel));
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features = value; //Use the set data! Ignore!
 		return 1; //OK!
 		break;
 	case 2: //Sector count?
 #ifdef ATA_LOG
-		dolog("ATA", "Sector count write: %02X %i.%i", value,channel, ATA_activeDrive(channel));
+		dolog("ATA", "Sector count write: %02X %u.%u", value,channel, ATA_activeDrive(channel));
 #endif
 		if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Not a CD-ROM drive? Sector count field does exist and is writable!
 		{
@@ -2594,28 +2594,28 @@ byte outATA8(word port, byte value)
 		break;
 	case 3: //Sector number?
 #ifdef ATA_LOG
-		dolog("ATA", "Sector number write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Sector number write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = value; //Set sector number!
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
 #ifdef ATA_LOG
-		dolog("ATA", "Cylinder low write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Cylinder low write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = value; //Set cylinder low!
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
 #ifdef ATA_LOG
-		dolog("ATA", "Cylinder high write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Cylinder high write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = value; //Set cylinder high!
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
 #ifdef ATA_LOG
-		dolog("ATA", "Drive/head write: %02X %i.%i", value, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Drive/head write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
@@ -2641,7 +2641,7 @@ port3_write: //Special port #3?
 	{
 	case 0: //Control register?
 #ifdef ATA_LOG
-		dolog("ATA", "Control register write: %02X %i.%i",value, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Control register write: %02X %u.%u",value, channel, ATA_activeDrive(channel));
 #endif
 		if (DRIVECONTROLREGISTER_SRSTR(channel)==0) pendingreset = 1; //We're pending reset!
 		ATA[channel].DriveControlRegister = value; //Set the data!
@@ -2735,14 +2735,14 @@ byte inATA8(word port, byte *result)
 	case 1: //Error register?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER; //Error register!
 #ifdef ATA_LOG
-		dolog("ATA", "Error register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Error register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1;
 		break;
 	case 2: //Sector count?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Get sector count!
 #ifdef ATA_LOG
-		dolog("ATA", "Sector count register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Sector count register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET==4) //Reading the result phase final result at the end of an ATAPI command?
 		{
@@ -2754,28 +2754,28 @@ byte inATA8(word port, byte *result)
 	case 3: //Sector number?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber; //Get sector number!
 #ifdef ATA_LOG
-		dolog("ATA", "Sector number register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Sector number register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow; //Get cylinder low!
 #ifdef ATA_LOG
-		dolog("ATA", "Cylinder low read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Cylinder low read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh; //Get cylinder high!
 #ifdef ATA_LOG
-		dolog("ATA", "Cylinder high read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Cylinder high read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead; //Get drive/head!
 #ifdef ATA_LOG
-		dolog("ATA", "Drive/head register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Drive/head register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
@@ -2785,7 +2785,7 @@ byte inATA8(word port, byte *result)
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER; //Get status!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //Reset write fault flag!
 #ifdef ATA_LOG
-		dolog("ATA", "Status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Status register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
@@ -2806,14 +2806,14 @@ port3_read: //Special port #3?
 		ATA_updateStatus(channel); //Update the status register if needed!
 		*result = ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER; //Get status!
 #ifdef ATA_LOG
-		dolog("ATA", "Alternate status register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Alternate status register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
 		*result = (ATA[channel].DriveAddressRegister&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
 #ifdef ATA_LOG
-		dolog("ATA", "Drive address register read: %02X %i.%i", *result, channel, ATA_activeDrive(channel));
+		dolog("ATA", "Drive address register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
 		return 1; //OK!
 		break;

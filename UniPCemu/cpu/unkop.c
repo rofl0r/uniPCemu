@@ -50,7 +50,7 @@ void unkOP_8086() //Unknown opcode on 8086?
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
 	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown 8086 opcode detected: %02X@%04X:%04X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%04X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown 8086 opcode detected: %02X@%04X:%04X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%04X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
@@ -69,7 +69,7 @@ void unkOP_186() //Unknown opcode on 186+?
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
@@ -89,7 +89,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
@@ -109,7 +109,7 @@ void unkOP0F_386() //0F unknown opcode handler on 386+?
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown 386+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown 386+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
@@ -128,7 +128,7 @@ void unkOP0F_486() //0F unknown opcode handler on 486+?
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown 486+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown 486+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif
@@ -147,7 +147,7 @@ void unkOP0F_586() //0F unknown opcode handler on 586+?
 	}
 	CPU[activeCPU].faultraised = 1; //We've raised a fault!
 	#ifdef UNKOP_SHUTDOWN
-	dolog("unkOP","Unknown 586+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%i)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
+	dolog("unkOP","Unknown 586+ 0F opcode detected: %02X@%04X:%08X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%08X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
 	EMU_Shutdown(1); //Request to shut down!
 	#endif

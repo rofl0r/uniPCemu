@@ -2456,7 +2456,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
+					GPU_EMU_printscreen(12, 5, "%uMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
 					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 					FILEPOS sectornr;
@@ -2631,7 +2631,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 				GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-				GPU_EMU_printscreen(12, 5, "%iMB", (size / MBMEMORY)); //Image size
+				GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
 				FILEPOS sectornr;
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
@@ -2825,7 +2825,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					EMU_locktext();
 					GPU_EMU_printscreen(21, 6, "      "); //Clear the creation process!
 					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%iMB", (sizecreated / MBMEMORY)); //Image size
+					GPU_EMU_printscreen(12, 5, "%uMB", (sizecreated / MBMEMORY)); //Image size
 					EMU_unlocktext();
 					uint_32 sectornr,destsectornr,previoussectornr=0,previousdestsectornr=0;
 					byte error = 0;
@@ -4404,11 +4404,11 @@ void BIOS_InitSoundText()
 	}
 
 	optioninfo[advancedoptions] = 7; //Sound Source Volume!
-	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %i",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
+	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %u",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	optioninfo[advancedoptions] = 8; //Game Blaster Volume!
-	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %i",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
+	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %u",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
 	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
 
 	if (!EMU_RUNNING)
@@ -5369,7 +5369,7 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 	{
 		EMU_locktext();
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
-		GPU_EMU_printscreen(x, y, "%i%%                                                      ", result); //Show current percentage!
+		GPU_EMU_printscreen(x, y, "%u%%                                                      ", result); //Show current percentage!
 		EMU_unlocktext();
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
 												  //1GB steps!

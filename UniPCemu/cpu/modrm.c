@@ -1031,7 +1031,7 @@ OPTINLINE static uint_32 modrm_SIB_reg(int reg, int mod, uint_32 disp32, int is_
 		}
 		break;
 	}
-	halt_modrm("Unknown modr/mSIB16: reg: %i",reg);
+	halt_modrm("Unknown modr/mSIB16: reg: %u",reg);
 	return 0; //Unknown register!
 }
 
@@ -1158,7 +1158,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			break;
 		} //register?
 
-		halt_modrm("Unknown modr/m16REG: MOD:%i, REG: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
+		halt_modrm("Unknown modr/m16REG: MOD:%u, REG: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 	}
 
 	uint_32 index; //Going to contain the values for SIB!
@@ -1256,7 +1256,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		default:
-			halt_modrm("Unknown modr/m32(mem): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
+			halt_modrm("Unknown modr/m32(mem): MOD:%u, RM: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 			break;
 		}
 		break;
@@ -1342,7 +1342,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		default:
-			halt_modrm("Unknown modr/m32(8-bit): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
+			halt_modrm("Unknown modr/m32(8-bit): MOD:%u, RM: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 			result->isreg = 0; //Unknown modr/m!
 			return;
 			break;
@@ -1423,7 +1423,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		default:
-			halt_modrm("Unknown modr/m32(32-bit): MOD:%i, RM: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
+			halt_modrm("Unknown modr/m32(32-bit): MOD:%u, RM: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 			result->isreg = 0; //Unknown modr/m!
 			return;
 			break;
@@ -1570,7 +1570,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		result->isreg = 0; //Unknown!
 		if (cpudebugger) strcpy(result->text,"<UNKREG>"); //Unknown!
 
-		halt_modrm("Unknown modr/m16REG: MOD:%i, REG: %i, operand size: %i", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
+		halt_modrm("Unknown modr/m16REG: MOD:%u, REG: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 		return;
 	}
 
@@ -1665,7 +1665,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		default:
-			halt_modrm("Unknown modr/m16(mem): MOD:%i, RM: %i, operand size: %i",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
+			halt_modrm("Unknown modr/m16(mem): MOD:%u, RM: %u, operand size: %u",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
 			result->isreg = 0; //Unknown modr/m!
 			return;
 			break;
@@ -1761,7 +1761,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		default:
-			halt_modrm("Unknown modr/m16(8-bit): MOD:%i, RM: %i, operand size: %i",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
+			halt_modrm("Unknown modr/m16(8-bit): MOD:%u, RM: %u, operand size: %u",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
 			result->isreg = 0; //Unknown modr/m!
 			return;
 			break;
@@ -1850,7 +1850,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		default:
-			halt_modrm("Unknown modr/m16(16-bit): MOD:%i, RM: %i, operand size: %i",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
+			halt_modrm("Unknown modr/m16(16-bit): MOD:%u, RM: %u, operand size: %u",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
 			result->isreg = 0; //Unknown modr/m!
 			return;
 			break;
@@ -1990,7 +1990,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		}
 		result->isreg = 0; //Unknown register!
 
-		halt_modrm("Unknown modr/m8Reg: %02x; MOD:%i, reg: %i, operand size: %i",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
+		halt_modrm("Unknown modr/m8Reg: %02x; MOD:%u, reg: %u, operand size: %u",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
 		return; //Stop decoding!
 	}
 
@@ -2006,7 +2006,7 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		halt_modrm("Reg MODRM when shouldn't be!");
 		return;
 	} //Which MOD?
-	halt_modrm("Unknown modr/m8: %02x; MOD:%i, reg: %i, operand size: %i",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
+	halt_modrm("Unknown modr/m8: %02x; MOD:%u, reg: %u, operand size: %u",MODRM_MOD(params->modrm),reg,CPU_Operand_size);
 	result->isreg = 0; //Unknown modr/m!
 }
 
@@ -2393,7 +2393,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		modrm_decode32(param, &param->info[1], 1); //#0 modr/m!
 		break;
 	default:
-		halt_modrm("Unknown decoder size: %i",size); //Unknown size!
+		halt_modrm("Unknown decoder size: %u",size); //Unknown size!
 	}
 
 	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register specified?

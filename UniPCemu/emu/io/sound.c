@@ -336,7 +336,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 	}
 
 	#ifdef DEBUG_SOUNDALLOC
-	dolog("soundservice","Request: Adding channel at %fHz, buffer every %i samples, Stereo: %i",samplerate,samples,stereo);
+	dolog("soundservice","Request: Adding channel at %fHz, buffer every %u samples, Stereo: %u",samplerate,samples,stereo);
 	#endif
 
 	if (!samplerate) //Autodetect?
@@ -347,7 +347,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 	if (!samples) //Autodetect?
 	{
 		samples = (uint_32)((float)samplerate*((float)(SAMPLESIZE)/(float)SW_SAMPLERATE)); //Calculate samples based on samplesize samples out of hardware samplerate!
-		//dolog("soundservice","Autodetect: %i samples buffer!",samples);
+		//dolog("soundservice","Autodetect: %u samples buffer!",samples);
 	}
 
 	//Check for existant update!
@@ -356,9 +356,9 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 		//dolog("soundservice","Sample rate changed to %f",samplerate);
 		if (setStereo(handler,extradata,stereo)) //Set?
 		{
-			//dolog("soundservice","Stereo changed to %i",stereo);
+			//dolog("soundservice","Stereo changed to %u",stereo);
 			#ifdef DEBUG_SOUNDALLOC
-			dolog("soundservice","Channel changed and ready to run: handler: %p, extra data: %p, samplerate: %i, stereo: %i",handler,extradata,samplerate,stereo);
+			dolog("soundservice","Channel changed and ready to run: handler: %p, extra data: %p, samplerate: %u, stereo: %u",handler,extradata,samplerate,stereo);
 			dolog("soundservice",""); //Empty row!
 			#endif
 			return 1; //Already added and updated!
@@ -372,7 +372,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 		if (!soundchannels[n].soundhandler) //Unused entry?
 		{
 			#ifdef DEBUG_SOUNDALLOC
-			dolog("soundservice","Adding channel %s at %f samples/s, buffer every %i samples, Stereo: %i",name,samplerate,samples,stereo);
+			dolog("soundservice","Adding channel %s at %f samples/s, buffer every %u samples, Stereo: %u",name,samplerate,samples,stereo);
 			#endif
 			soundchannels[n].soundhandler = handler; //Set handler!
 			soundchannels[n].fillbuffer = &fillbuffer_new; //Our fillbuffer call to start with!
@@ -411,7 +411,7 @@ byte addchannel(SOUNDHANDLER handler, void *extradata, char *name, float sampler
 			soundchannels[n].sound.samples = zalloc(soundchannels[n].sound.length,"SW_Samples",NULL);
 			
 			#ifdef DEBUG_SOUNDALLOC
-			dolog("soundservice","Channel allocated and ready to run: handler: %p, extra data: %p, samplerate: %f, sample buffer size: %i, stereo: %i",soundchannels[n].soundhandler,soundchannels[n].extradata,soundchannels[n].samplerate,soundchannels[n].sound.numsamples,soundchannels[n].stereo);
+			dolog("soundservice","Channel allocated and ready to run: handler: %p, extra data: %p, samplerate: %f, sample buffer size: %u, stereo: %u",soundchannels[n].soundhandler,soundchannels[n].extradata,soundchannels[n].samplerate,soundchannels[n].sound.numsamples,soundchannels[n].stereo);
 			dolog("soundservice",""); //Empty row!
 			#endif
 			unlockaudio(); //Unlock audio and start playing!
@@ -605,7 +605,7 @@ uint_32 fillbuffer_existing(playing_p currentchannel, uint_32 *relsample, uint_3
 	{
 		#ifdef DEBUG_SOUNDBUFFER
 		buffering = 1; //We're buffering!
-		dolog("soundservice","Buffering @ %i/%i samples; extra data: %p; name: %s",*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
+		dolog("soundservice","Buffering @ %u/%u samples; extra data: %p; name: %s",*relsample,C_BUFFERSIZE(currentchannel),currentchannel->extradata,currentchannel->name);
 		#endif
 		//Buffer and update buffer position!
 		currentchannel->bufferflags = currentchannel->soundhandler(currentchannel->sound.samples,C_BUFFERSIZE(currentchannel),C_STEREO(currentchannel),currentchannel->extradata); // Request next sample for this channel, also give our channel extra information!
@@ -630,7 +630,7 @@ uint_32 fillbuffer_new(playing_p currentchannel, uint_32 *relsample, uint_32 cur
 	*relsample = 0; //Reset relative sample!
 #ifdef DEBUG_SOUNDBUFFER
 	dolog("soundservice", "Initialising sound buffer...");
-	dolog("soundservice", "Buffering @ 0/%i samples; extra data: %p; name: %s", C_BUFFERSIZE(currentchannel), currentchannel->extradata, currentchannel->name);
+	dolog("soundservice", "Buffering @ 0/%u samples; extra data: %p; name: %s", C_BUFFERSIZE(currentchannel), currentchannel->extradata, currentchannel->name);
 #endif
 	//Buffer and update buffer position!
 	currentchannel->bufferflags = currentchannel->soundhandler(currentchannel->sound.samples,C_BUFFERSIZE(currentchannel),C_STEREO(currentchannel),currentchannel->extradata); // Request next sample for this channel, also give our channel extra information!
@@ -1153,7 +1153,7 @@ void Sound_AudioCallback(void *user_data, Uint8 *audio, int length)
 	convertTime(totaltime_audio_avg,&time2[0]); //Total time passed!
 	if (soundchannels_used) //Any channels out there?
 	{
-		dolog("soundservice","Mixing %i samples took: %s, average: %s",length/sizeof(ubuf[0]),time1,time2); //Log it!
+		dolog("soundservice","Mixing %u samples took: %s, average: %s",length/sizeof(ubuf[0]),time1,time2); //Log it!
 	}
 	#endif
 }
@@ -1183,7 +1183,7 @@ void Sound_RecordCallback(void *user_data, Uint8 *audio, int length)
 	convertTime(totaltime_audio_avg, &time2[0]); //Total time passed!
 	if (soundchannels_used) //Any channels out there?
 	{
-		dolog("soundservice", "Recording %i samples took: %s, average: %s", length / sizeof(ubuf[0]), time1, time2); //Log it!
+		dolog("soundservice", "Recording %u samples took: %s, average: %s", length / sizeof(ubuf[0]), time1, time2); //Log it!
 	}
 #endif
 }

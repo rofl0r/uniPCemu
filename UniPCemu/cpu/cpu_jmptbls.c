@@ -1694,7 +1694,7 @@ Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal opcode jmptbl!
 
 void unhandled_CPUjmptblitem()
 {
-	raiseError("CPU", "Unhandled instruction JMPTBL, ROP: %02X, Operand size: %i!", CPU[activeCPU].lastopcode, CPU_Operand_size[activeCPU]); //Log the opcode we're executing!
+	raiseError("CPU", "Unhandled instruction JMPTBL, ROP: %02X, Operand size: %u!", CPU[activeCPU].lastopcode, CPU_Operand_size[activeCPU]); //Log the opcode we're executing!
 }
 
 void generate_opcode_jmptbl()

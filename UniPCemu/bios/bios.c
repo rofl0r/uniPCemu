@@ -375,10 +375,10 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	}
 	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
-		raiseError("Settings","Ran out of enough memory to use! Free memory: %i bytes",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
+		raiseError("Settings","Ran out of enough memory to use! Free memory: %u bytes",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
 		sleep(); //Wait forever!
 	}
-	//dolog("BIOS","Detected memory: %i bytes",BIOS_Settings.memory);
+	//dolog("BIOS","Detected memory: %u bytes",BIOS_Settings.memory);
 
 	if ((uint_64)BIOS_Settings.memory>=((uint_64)4096<<20)) //Past 4G?
 	{
@@ -800,7 +800,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	byte currentitem;
 	for (currentitem=0;currentitem<NUMITEMS(BOOT_ORDER_STRING);++currentitem)
 	{
-		sprintf(currentstr,"%i=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
+		sprintf(currentstr,"%u=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
 		strcat(bios_comment,currentstr); //Add the string!
 	}
 	char *bios_commentused=NULL;
@@ -813,7 +813,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(input_comment,"Color codes are as follows:");
 	for (currentitem=0;currentitem<0x10;++currentitem)
 	{
-		sprintf(currentstr,"\n%i=%s",currentitem,colors[currentitem]); //A description of all colors!
+		sprintf(currentstr,"\n%u=%s",currentitem,colors[currentitem]); //A description of all colors!
 		strcat(input_comment,currentstr); //Add the string!
 	}
 	strcat(input_comment,"\n\n"); //Empty line!
@@ -843,12 +843,12 @@ int BIOS_SaveData() //Save BIOS settings!
 		strcpy(currentkey,""); //Init current string!
 		if (EMU_keyboard_handler_idtoname(currentitem,&currentkey[0])) //Name retrieved?
 		{
-			sprintf(currentstr,"Key number %i is %s\n",currentitem,currentkey); //Generate a key row!
+			sprintf(currentstr,"Key number %u is %s\n",currentitem,currentkey); //Generate a key row!
 			strcat(gamingmode_comment,currentstr); //Add the key to the list!
 		}
 	}
 	strcat(gamingmode_comment,"gamingmode_map_[key]_key: The key to be mapped. -1 for unmapped. Otherwise, the key number(0-103)\n");
-	sprintf(currentstr,"gamingmode_map_[key]_shiftstate: The summed state of ctrl/alt/shift keys to be pressed. %i=Ctrl, %i=Alt, %i=Shift. 0/empty=None.\n",SHIFTSTATUS_CTRL,SHIFTSTATUS_ALT,SHIFTSTATUS_SHIFT);
+	sprintf(currentstr,"gamingmode_map_[key]_shiftstate: The summed state of ctrl/alt/shift keys to be pressed. %u=Ctrl, %u=Alt, %u=Shift. 0/empty=None.\n",SHIFTSTATUS_CTRL,SHIFTSTATUS_ALT,SHIFTSTATUS_SHIFT);
 	strcat(gamingmode_comment,currentstr);
 	strcat(gamingmode_comment,"gamingmode_map_[key]_mousebuttons: The summed state of mouse buttons to be pressed(0=None pressed, 1=Left, 2=Right, 4=Middle).\n");
 	strcat(gamingmode_comment,"joystick: 0=Normal gaming mode mapped input, 1=Joystick, Cross=Button 1, Circle=Button 2, 2=Joystick, Cross=Button 2, Circle=Button 1, 3=Joystick, Gravis Gamepad, 4=Joystick, Gravis Analog Pro, 5=Joystick, Logitech WingMan Extreme Digital");
@@ -1028,7 +1028,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	BIOS_ValidateData(); //Validate all data before continuing!
 
 	printmsg(0xF,"Memory installed: ");
-	printmsg(0xE,"%i blocks (%iKB / %iMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(is_XT)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT_LOW),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
+	printmsg(0xE,"%u blocks (%uKB / %uMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(is_XT)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT_LOW),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
 
 	printmsg(0xF,"\r\n"); //A bit of space between memory and disks!
 	int numdrives = 0;

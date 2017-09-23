@@ -276,7 +276,7 @@ uint_32 MEMsize() //Total size of memory in use?
 OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress, byte iswrite, byte writevalue, byte index, byte ismemoryhole)
 {
 	#ifdef LOG_INVALID_MEMORY
-	dolog("MMU","Invalid memory location addressed: %08X(=>%08X), Is write: %i, value on write: %02X index:%i, Memory hole: %i",originaladdress,realaddress,iswrite,writevalue,index,ismemoryhole);
+	dolog("MMU","Invalid memory location addressed: %08X(=>%08X), Is write: %u, value on write: %02X index:%u, Memory hole: %u",originaladdress,realaddress,iswrite,writevalue,index,ismemoryhole);
 	#endif
 	return; //Don't ever give NMI's from memory!
 	/*

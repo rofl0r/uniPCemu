@@ -253,7 +253,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	detectedsize = (getRIFFChunkSize(RIFF->rootentry)+RIFF_entryheadersize(RIFF->rootentry));
 	if (detectedsize!=filesize) //Not the entire file? (we have multiple entries?)
 	{
-		dolog("SF2","validateSF: File has multiple entries: size detected: %i bytes, total: %i bytes; header: %i bytes!",detectedsize,filesize,RIFF_entryheadersize(RIFF->rootentry));
+		dolog("SF2","validateSF: File has multiple entries: size detected: %u bytes, total: %u bytes; header: %u bytes!",detectedsize,filesize,RIFF_entryheadersize(RIFF->rootentry));
 		return 0; //Not validated: invalid soundfont header (multiple headers not allowed)!
 	}
 	//Global OK!
@@ -293,12 +293,12 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	}
 	if (versiontag.wMajor>2) //Too high major version?
 	{
-		dolog("SF2","validateSF: Invalid major version: %i!",versiontag.wMajor);
+		dolog("SF2","validateSF: Invalid major version: %u!",versiontag.wMajor);
 		return 0; //Invalid version!
 	}
 	if (versiontag.wMajor==2 && versiontag.wMinor>4) //Too high?
 	{
-		dolog("SF2","validateSF: Invalid minor version: %i!",versiontag.wMinor);
+		dolog("SF2","validateSF: Invalid minor version: %u!",versiontag.wMinor);
 		return 0; //Invalid version!
 	}
 	//We're build arround the 2.04 specification!
@@ -377,7 +377,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 	}
 	if (getRIFFChunkSize(pgen)!=(uint_32)((LE16(finalpbag.wGenNdx)<<2)+4)) //Invalid PGEN size?
 	{
-		dolog("SF2","validateSF: Invalid PGEN chunk size: %i; Expected %i!",getRIFFChunkSize(pgen),((LE16(finalpbag.wGenNdx)<<2)+4));
+		dolog("SF2","validateSF: Invalid PGEN chunk size: %u; Expected %u!",getRIFFChunkSize(pgen),((LE16(finalpbag.wGenNdx)<<2)+4));
 		return 0;
 	}
 	if (SAFEMOD(getRIFFChunkSize(pgen),4)) //Not a multiple of 4?

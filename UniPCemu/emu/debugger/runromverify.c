@@ -242,7 +242,7 @@ doshutdown:
 	BIOS_free_custom(filename); //Free the custom BIOS ROM!
 	unlock(LOCK_MAINTHREAD); //Unlock us!
 	lock(LOCK_CPU);
-	dolog("ROM_log","ROM Success: %i...",verified);
+	dolog("ROM_log","ROM Success: %u...",verified);
 	if (!verified && erroraddr!=0xFFFFFFFF) //Error address specified?
 	{
 		dolog("ROM_log","Error address: %08X, Possible cause: %08X; Real mode address: %04X:%04X",erroraddr,lastaddr,((erroraddr16>>16)&0xFFFF),(erroraddr&0xFFFF)); //Log the error address!

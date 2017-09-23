@@ -160,7 +160,7 @@ void renderFramerate()
 					Sequencer = (SEQ_DATA *)VGA->Sequencer; //Sequencer!
 					if (memprotect(Sequencer, sizeof(SEQ_DATA), NULL)) //Readable?
 					{
-						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nVGA@Scanline: %i               ", Sequencer->Scanline); //Log the time taken per pixel AVG!
+						GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nVGA@Scanline: %u               ", Sequencer->Scanline); //Log the time taken per pixel AVG!
 					}
 				}
 			#endif
@@ -178,7 +178,7 @@ void renderFramerate()
 					framerateupdated = 0; //Not anymore!
 					CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "\nCPU speed: %u%%  ", CPUspeed); //Current CPU speed percentage!
 				#ifdef SHOWCYCLESSPEED
 				if (CPU_speed_cycle)
 				{
@@ -198,7 +198,7 @@ void renderFramerate()
 					CPUspeed = getCPUSpeedPercentage(); //Current CPU speed percentage (how much the current time is compared to required time)!
 				}
 				GPU_textgotoxy(frameratesurface, 0, 0); //For output!
-				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %i%%  ", CPUspeed); //Current CPU speed percentage!
+				GPU_textprintf(frameratesurface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "CPU speed: %u%%  ", CPUspeed); //Current CPU speed percentage!
 				#ifdef SHOWCYCLESSPEED
 				if (CPU_speed_cycle)
 				{

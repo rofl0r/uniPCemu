@@ -231,11 +231,11 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
-				dolog("IO","io.c: Couldn't read dynamic image %s sector %i",dev,sector);
+				dolog("IO","io.c: Couldn't read dynamic image %s sector %u",dev,sector);
 			}
 			else //Static?
 			{
-				dolog("IO","io.c: Couldn't read static image %s sector %i",dev,sector);
+				dolog("IO","io.c: Couldn't read static image %s sector %u",dev,sector);
 			}
 			return FALSE; //Error!
 		}
@@ -331,11 +331,11 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 		{
 			if (disks[device].dynamicimage) //Dynamic?
 			{
-				dolog("IO", "io.c: Couldn't read dynamic image %s sector %i to overwrite", dev, sector);
+				dolog("IO", "io.c: Couldn't read dynamic image %s sector %u to overwrite", dev, sector);
 			}
 			else //Static?
 			{
-				dolog("IO", "io.c: Couldn't read static image %s sector %i to overwrite", dev, sector);
+				dolog("IO", "io.c: Couldn't read static image %s sector %u to overwrite", dev, sector);
 			}
 			return FALSE; //Error!
 		}
@@ -355,11 +355,11 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 			{
 				if (disks[device].dynamicimage) //Dynamic?
 				{
-					dolog("IO", "io.c: Couldn't write dynamic image %s sector %i to overwrite", dev, sector);
+					dolog("IO", "io.c: Couldn't write dynamic image %s sector %u to overwrite", dev, sector);
 				}
 				else //Static?
 				{
-					dolog("IO", "io.c: Couldn't write static image %s sector %i to overwrite", dev, sector);
+					dolog("IO", "io.c: Couldn't write static image %s sector %u to overwrite", dev, sector);
 				}
 				return FALSE; //Error!
 			}
