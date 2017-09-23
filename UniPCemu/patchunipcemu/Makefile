@@ -1,6 +1,6 @@
 # This Makefile will build the MinGW Win32 application to convert the emulator into a proper executable (Windows executable).
 
-OBJS = patchUniPCemu.o
+OBJS = patchunipcemu.o
 INCLUDE_DIRS = 
 BUILD_DIR = ../../../projects_build/UniPCemu
 TARGET = UniPCemuWindowFix.exe
