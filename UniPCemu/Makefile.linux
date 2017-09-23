@@ -95,7 +95,7 @@ BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
 #Make sure the objects to compile are sorted!
 OBJS := $(sort $(OBJS))
 
-OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
+OBJS := $(patsubst %.o,$(BUILD_DIR)/linux/%.o,$(OBJS))
 
 #Rules themselves!
 #Build,debug and analyze(profile subcommand) command support!
@@ -140,7 +140,7 @@ $(BUILD_RELEASE): ${OBJS}
 	@${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
 
 #Patch for dependancy output using incorrect .o file paths is right below the CC lines!
-$(BUILD_DIR)/%.o:%.c
+$(BUILD_DIR)/linux/%.o:%.c
 	$(info Compiling $<)
 	@$(MKDIR) -p $(dir $@)
 	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@

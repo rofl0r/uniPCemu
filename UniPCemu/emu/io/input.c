@@ -4048,7 +4048,11 @@ void updateInput(SDL_Event *event) //Update all input!
 		break;
 	case SDL_APP_DIDENTERBACKGROUND: //Are we pushed to the background?
 	case SDL_APP_WILLENTERBACKGROUND: //Are we pushing to the background?
+		#ifdef ANDROID
+		#ifdef SDL2
 		didenterbackground: //For focus gain/lost!
+		#endif
+		#endif
 		lock(LOCK_INPUT);
 		haswindowactive &= ~6; //We're iconified! This also prevents drawing and audio output! This is critical!
 		haswindowactive |= 0x8; //Discard any future time!
@@ -4057,7 +4061,11 @@ void updateInput(SDL_Event *event) //Update all input!
 	case SDL_APP_WILLENTERFOREGROUND: //Are we pushing to the foreground?
 		break; //Unhandled!
 	case SDL_APP_DIDENTERFOREGROUND: //Are we pushed to the foreground?
+		#ifdef ANDROID
+		#ifdef SDL2
 		didenterforeground: //For focus gain/lost!
+		#endif
+		#endif
 		lock(LOCK_INPUT);
 		haswindowactive |= 6; //We're not iconified! This also enables drawing and audio output!
 		lock(LOCK_GPU);

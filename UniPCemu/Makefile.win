@@ -2,15 +2,27 @@
 
 BUILD_DIR = ../../projects_build/$(BUILD_NAME)
 
+BUILD_INTERMEDIATE = windows
+
 #Name of the destination application!
 ifneq (,$(findstring x64,$(MAKECMDGOALS)))
 #64-bit version
 $(info Using 64-bit executable)
 TARGET = $(BUILD_NAME)_x64.exe
+ifneq (,$(findstring mingw64,$(MAKECMDGOALS)))
+BUILD_INTERMEDIATE = msys64
+else
+BUILD_INTERMEDIATE = mingw64
+endif
 else
 #32-bit version
 $(info Using 32-bit executable)
 TARGET = $(BUILD_NAME)_x86.exe
+ifneq (,$(findstring mingw32,$(MAKECMDGOALS)))
+BUILD_INTERMEDIATE = msys32
+else
+BUILD_INTERMEDIATE = mingw32
+endif
 endif
 
 TARGET_PROFILE_TXT = profiler.txt
@@ -193,12 +205,12 @@ BUILD_PROFILE = $(BUILD_DIR)/$(TARGET_PROFILE)
 BUILD_PROFILE_GMON = $(BUILD_DIR)/gmon.out
 BUILD_PROFILE_GMON_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_TXT)
 BUILD_PROFILE_GMON_CMP_TXT = $(BUILD_DIR)/$(TARGET_PROFILE_CMP_TXT)
-BUILD_RESOURCES := $(patsubst %.res,$(BUILD_DIR)/%.res,$(RESOURCES))
+BUILD_RESOURCES := $(patsubst %.res,$(BUILD_DIR)/$(BUILD_INTERMEDIATE)/%.res,$(RESOURCES))
 
 #Make sure the objects to compile are sorted!
 OBJS := $(sort $(OBJS))
 
-OBJS := $(patsubst %.o,$(BUILD_DIR)/%.o,$(OBJS))
+OBJS := $(patsubst %.o,$(BUILD_DIR)/$(BUILD_INTERMEDIATE)/%.o,$(OBJS))
 
 #Rules themselves!
 #Build,debug and analyze(profile subcommand) command support!
@@ -257,33 +269,42 @@ $(BUILD_RELEASE): ${OBJS} $(BUILD_RESOURCES)
 	$(info Creating release executable $@...)
 	@$(MKDIR) -p $(dir $@)
 	@${CC} -o "$@" ${OBJS} $(BUILD_RESOURCES) $(STRIP) ${LDFLAGS}
+	$(info Creating release executable copy of $@...)
+	@$(MKDIR) -p $(dir $@)/$(BUILD_INTERMEDIATE)
+	@cp $@ $(dir $@)/$(BUILD_INTERMEDIATE)
+	
+	$(info Creating library requirements...)
 ifneq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL2 functions instead!
 	@cp $(dllloc)/SDL2.dll $(dir $@)
+	@cp $(dllloc)/SDL2.dll $(dir $@)/$(BUILD_INTERMEDIATE)
 endif
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
 	@cp $(dllloc)/SDL.dll $(dir $@)
+	@cp $(dllloc)/SDL.dll $(dir $@)/$(BUILD_INTERMEDIATE)
 endif
 ifneq (,$(findstring SDL2_net,$(MAKECMDGOALS)))
 #SDL2 functions instead!
 	@cp $(dllloc)/SDL2_net.dll $(dir $@)
+	@cp $(dllloc)/SDL2_net.dll $(dir $@)/$(BUILD_INTERMEDIATE)
 endif
 ifneq (,$(findstring SDL_net,$(MAKECMDGOALS)))
 #SDL1 functions instead!
 	@cp $(dllloc)/SDL_net.dll $(dir $@)
+	@cp $(dllloc)/SDL_net.dll $(dir $@)/$(BUILD_INTERMEDIATE)
 endif
 
 
 
 #Normal compilation of seperate modules!
-$(BUILD_DIR)/%.res:%.rc
+$(BUILD_DIR)/$(BUILD_INTERMEDIATE)/%.res:%.rc
 	$(info Creating resources...)
 	@$(MKDIR) -p $(dir $@)
 	@${WINDRES} $< -O coff -o $@
 
 #Patch for dependancy output using incorrect .o file paths is right below the CC lines!
-$(BUILD_DIR)/%.o:%.c
+$(BUILD_DIR)/$(BUILD_INTERMEDIATE)/%.o:%.c
 	$(info Compiling $<)
 	@$(MKDIR) -p $(dir $@)
 	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
