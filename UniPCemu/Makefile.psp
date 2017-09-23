@@ -1,5 +1,5 @@
 #Define our building directory for all output files!
-BUILD_DIR = ../../projects_build/$(BUILD_NAME)
+BUILD_DIR = ../../projects_build/$(BUILD_NAME)/PSP
 
 TARGET = eboot
 
