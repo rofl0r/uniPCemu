@@ -29,7 +29,7 @@ ASFLAGS = $(CFLAGS)
 
 LIBDIR = $(shell $(PSPBIN)/psp-config --psp-prefix)/lib
 LIBS = $(shell $(PSPBIN)/sdl-config --libs)
-LIBS += -lpsppower -lstdc++ -lpspirkeyb
+LIBS += -lpspirkeyb -lpsppower -lstdc++
 LDFLAGS = 
 
 EXTRA_TARGETS = EBOOT.PBP
