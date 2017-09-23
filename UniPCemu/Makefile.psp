@@ -17,23 +17,24 @@ OPTIMIZATIONFLAG = -O3
 
 #Finally, everything PSP!
 
-PSPSDK=$(shell psp-config --pspsdk-path)
+#Basic compiler stuff and paths
+PSPSDK = $(shell psp-config --pspsdk-path)
+PSPDEV = $(shell psp-config -d)
+PSPBIN = $(PSPDEV)/bin
+SDL_CONFIG = $(PSPBIN)/sdl-config
 
 CFLAGS = $(OPTIMIZATIONFLAG) -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
-LIBDIR = $(PSPSDK)\..\lib
-LIBS = -lSDL -lPSPirkeyb -lGL -lGLU -lglut -lz \
-         -lpspvfpu -lpsphprm -lpspsdk -lpspctrl -lpspumd -lpsprtc -lpsppower -lpspgum -lpspgu -lpspaudiolib -lpspaudio -lpsphttp -lpspssl -lpspwlan \
-         -lpspnet_adhocmatching -lpspnet_adhoc -lpspnet_adhocctl -lpspvram \
-         -lm -lstdc++ -lpspirkeyb -lpsppower -lSDLmain -lpsprtc -lpsppower
+LIBDIR = $(shell $(PSPBIN)/psp-config --psp-prefix)/lib
+LIBS = $(shell $(PSPBIN)/sdl-config --libs)
+LIBS += -lpsppower -lstdc++ -lpspirkeyb
 LDFLAGS = 
 
 EXTRA_TARGETS = EBOOT.PBP
 
-PSPBIN = $(shell psp-config -d)
-CFLAGS += $(shell $(PSPBIN)/bin/sdl-config --cflags)
+CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
 
 PSP_EBOOT_TITLE = $(BUILD_NAME)
 
