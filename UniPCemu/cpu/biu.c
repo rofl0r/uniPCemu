@@ -336,9 +336,11 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 }
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
+byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
+	if (PIQ_block==1) { PIQ_block = 0; return; /* Blocked access: only fetch one byte instead of a full word! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
 	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_base[CPU_SEGMENT_CS]+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
@@ -348,6 +350,10 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism!		
 	}
 	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0)); //Add the next byte from memory into the buffer!
+	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
+	{
+		PIQ_block &= 1; //Start blocking when it's 3(byte fetch instead of word fetch). Otherwise, continue as normally!		
+	}
 	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 }
@@ -795,6 +801,7 @@ void CPU_tickBIU()
 								else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize)) //Prefetch cycle when not requests are handled? Else, NOP cycle!
 								{
 									CPU[activeCPU].BUSactive = 1; //Start memory cycles!
+									PIQ_block = 0; //We're never blocking(only 1 access)!
 									CPU_fillPIQ(); //Add a byte to the prefetch!
 									if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
 									++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
@@ -900,6 +907,7 @@ void CPU_tickBIU()
 								else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>1) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 								{
 									CPU[activeCPU].BUSactive = 1; //Start memory cycles!
+									PIQ_block = 3; //We're blocking after 1 byte access when at an odd address!
 									CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
 									++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 									BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
