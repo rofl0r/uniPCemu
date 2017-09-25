@@ -9,13 +9,15 @@
       android:installLocation="auto">
 
     <!-- Android 2.3.3 -->
-    <uses-sdk android:minSdkVersion="15" android:targetSdkVersion="15" />
+    <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="12" />
 
     <!-- OpenGL ES 2.0 -->
     <uses-feature android:glEsVersion="0x00020000" />
 
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Allow access to the vibrator -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Allow reading from external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Allow stuff concering TCP Server and clients -->
