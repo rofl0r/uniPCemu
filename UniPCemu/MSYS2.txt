@@ -26,8 +26,8 @@ That concludes the setting up of the development environment(the compiler) itsel
 
 Now, either when a new SDL2 version comes out, or when first installing, we need to install the library required to compile and run UniPCemu.
 
-15. Download the SDL2 mingw development library from http://libsdl.org/download-2.0.php . The current version is http://libsdl.org/release/SDL2-devel-2.0.5-mingw.tar.gz .
-16. Extract the folders from the archive into your toolchains. The archive contains a .tar file(which is the actual archive itself). Within this tar file is a folder named SDL2-2.0.5. Open this directory.
+15. Download the SDL2 mingw development library from http://libsdl.org/download-2.0.php . The current version is https://libsdl.org/release/SDL2-devel-2.0.6-mingw.tar.gz .
+16. Extract the folders from the archive into your toolchains. The archive contains a .tar file(which is the actual archive itself). Within this tar file is a folder named SDL2-2.0.6. Open this directory.
 16.1. x86 building: Copy the i686-w64-mingw32 directory to the msys2\mingw32 folder, replacing the folder of the same name that's already there.
 16.2. x64 building: Copy the x86_64-mingw32 directory to the msys2\mingw64 folder.
 
