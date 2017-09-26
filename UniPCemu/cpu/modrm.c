@@ -907,15 +907,15 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 	{
 		case 0: //Mem? 32-bit size!
 			disprel = disp32; //Same!
-			format[3] = '8'; //DWord!
+			format[2] = '8'; //DWord!
 			break;
 		case 1: //8-bit? Needs sign-extending!
 			disprel = (byte)disp32;
-			format[3] = '2'; //Byte!
+			format[2] = '2'; //Byte!
 			break;
 		case 2: //32-bit?
 			disprel = disp32; //Sign is included!
-			format[3] = '8'; //DWord!
+			format[2] = '8'; //DWord!
 			break;
 		default: //Unknown?
 			//Don't apply!
