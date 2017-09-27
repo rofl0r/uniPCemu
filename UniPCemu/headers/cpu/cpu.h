@@ -170,12 +170,14 @@ typedef struct PACKED
 #define SEGDESC_NONCALLGATE_AVL(desc) ((desc.noncallgate_info>>4)&1)
 #define SEGDESC_NONCALLGATE_D_B(desc) ((desc.noncallgate_info>>6)&1)
 #define SEGDESC_NONCALLGATE_G(desc) ((desc.noncallgate_info>>7)&1)
+#define SEGDESC_GRANULARITY(desc) (SEGDESC_NONCALLGATE_G(desc)&CPU[activeCPU].G_Mask)
 
 //Pointer versions!
 #define SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(desc) (desc->noncallgate_info&0xF)
 #define SEGDESCPTR_NONCALLGATE_AVL(desc) ((desc->noncallgate_info>>4)&1)
 #define SEGDESCPTR_NONCALLGATE_D_B(desc) ((desc->noncallgate_info>>6)&1)
 #define SEGDESCPTR_NONCALLGATE_G(desc) ((desc->noncallgate_info>>7)&1)
+#define SEGDESCPTR_GRANULARITY(desc) (SEGDESCPTR_NONCALLGATE_G(desc)&CPU[activeCPU].G_Mask)
 
 #include "headers/packed.h" //Packed type!
 typedef union PACKED

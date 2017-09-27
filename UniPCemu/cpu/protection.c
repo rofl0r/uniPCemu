@@ -1138,7 +1138,6 @@ byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
-	uint_32 limits[2]; //What limit to apply?
 	INLINEREGISTER uint_32 limit; //The limit!
 	INLINEREGISTER byte isvalid;
 	//First: type checking!
@@ -1187,9 +1186,10 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 
 	//Execute address test?
 	{
+		uint_32 limits[2]; //What limit to apply?
 		limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
 		limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-		limit = limits[SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask]; //Use the appropriate granularity!
+		limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
 
 		/*
 		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?

@@ -157,11 +157,8 @@ byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 void CPU_JMPrel(int_32 reladdr)
 {
 	REG_EIP += reladdr; //Apply to EIP!
-	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
-	{
-		REG_EIP &= 0xFFFF; //Only 16-bits!
-	}
-	if (REG_EIP>=(uint_32)(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
+	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
+	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	} 
@@ -170,11 +167,8 @@ void CPU_JMPrel(int_32 reladdr)
 void CPU_JMPabs(uint_32 addr)
 {
 	REG_EIP = addr; //Apply to EIP!
-	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
-	{
-		REG_EIP &= 0xFFFF; //Only 16-bits!
-	}
-	if (REG_EIP>=(uint_32)(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].limit_low|SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //Limit broken?
+	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
+	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	} 
