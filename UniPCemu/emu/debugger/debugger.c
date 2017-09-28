@@ -666,6 +666,12 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 		sprintf(buffer,"%s%u",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
 	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
+	strcpy(buffer,""); //Clear the buffer!
+	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
+	{
+		sprintf(buffer,"%s%u",buffer,(i8259.imr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+	}
+	dolog(filename,"Interrupt mask: %s",buffer); //Log the interrupt status!
 	if (getActiveVGA() && debugger_logtimings) //Gotten an active VGA?
 	{
 		dolog(filename,"VGA@%u,%u(CRT:%u,%u)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
@@ -1103,10 +1109,17 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "%s%c", theflags, decodeHLTreset(debuggerHLT,debuggerReset)); //All flags, seperated!
 
 		//Full interrupt status!
-		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-16,debuggerrow++); //Interrupt status!
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-18,debuggerrow++); //Interrupt status!
+		GPU_textprintf(frameratesurface,fontcolor,backcolor,"R:"); //Show the interrupt request status!
 		for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 		{
 			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%u",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		}
+		GPU_textgotoxy(frameratesurface,GPU_TEXTSURFACE_WIDTH-18,debuggerrow++); //Interrupt status!
+		GPU_textprintf(frameratesurface,fontcolor,backcolor,"M:"); //Show the interrupt mask!
+		for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
+		{
+			GPU_textprintf(frameratesurface,fontcolor,backcolor,"%u",(i8259.imr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 		}
 
 		if (memprotect(getActiveVGA(),sizeof(VGA_Type),"VGA_Struct")) //Gotten an active VGA?
