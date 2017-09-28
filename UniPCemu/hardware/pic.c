@@ -16,6 +16,8 @@
 PIC i8259;
 
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered!
+//i8259.irr2 is the live status of each of the parallel interrupt lines!
+//i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
 byte defaultIROrder[16] = { 0,1,2,8,9,10,11,12,13,14,15,3,4,5,6,7 }; //The order of IRQs!
 
@@ -143,9 +145,10 @@ byte lastinterrupt = 0; //Last interrupt requested!
 OPTINLINE byte enablePIC(byte PIC)
 {
 	if (!PIC) return 1; //PIC0 always enabled!
-	return !((i8259.icw[0][0] & 2) || //Only one PIC?
+	return ((!((i8259.icw[0][0] & 2) || //Only one PIC?
 		(i8259.icw[0][2] != 4) || //Wrong IR to connect?
-		(i8259.icw[1][2] != 2)); //Wrong IR to connect?
+		(i8259.icw[1][2] != 2))) //Wrong IR to connect?
+		&& ((i8259.isr[0]&4)==0)); //ISR on PIC0 is keeping the second PIC functioning sending status!
 }
 
 OPTINLINE byte getunprocessedinterrupt(byte PIC)
@@ -199,6 +202,10 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	{
 		EOI(PIC,source); //Send an EOI!
 	}
+	if (PIC) //Second PIC?
+	{
+		ACNIR(0,2,source); //Acnowledging request on first PIC too! This keeps us from firing until acnowledged properly!
+	}
 }
 
 OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
@@ -210,10 +217,6 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 
 byte nextintr()
 {
-	if (interruptsaved) //Re-requested?
-	{
-		return lastinterrupt; //Give the same as the last time!
-	}
 	if (__HW_DISABLED) return 0; //Abort!
 	byte i;
 
@@ -288,7 +291,12 @@ void lowerirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
+	if (i8259.irr2[PIC][requestingindex]) //Were we raised? We're lowered!
+	{
+		i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+	}
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the IRQ to request!
+	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 }
 
 void acnowledgeIRQrequest(byte irqnum)
