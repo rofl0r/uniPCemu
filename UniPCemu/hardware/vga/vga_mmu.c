@@ -5,7 +5,7 @@
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 #include "headers/cpu/cpu.h" //Emulator cpu support for waitstates!
 
-#define ENABLE_SPECIALDEBUGGER
+//#define ENABLE_SPECIALDEBUGGER
 
 uint_32 VGA_VRAM_START = 0xA0000; //VRAM start address default!
 uint_32 VGA_VRAM_END = 0xC0000; //VRAM end address default!
