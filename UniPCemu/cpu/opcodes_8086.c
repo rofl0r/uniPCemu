@@ -4362,7 +4362,7 @@ void CPU8086_OPF7() //GRP3b Ev
 		{
 		case 0: //TEST modrm16, imm16
 		case 1: //--- Undocumented opcode, same as above!
-			debugger_setcommand("TESTW %s,%02x",&modrm_param1,immw);
+			debugger_setcommand("TESTW %s,%04x",&modrm_param1,immw);
 			break;
 		case 2: //NOT
 			modrm_generateInstructionTEXT("NOTW",16,0,PARAM_MODRM_0);
