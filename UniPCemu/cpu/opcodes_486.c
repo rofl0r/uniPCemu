@@ -6,6 +6,7 @@
 #include "headers/cpu/protection.h" //Protection fault support!
 #include "headers/cpu/paging.h" //Paging support for clearing TLB!
 #include "headers/cpu/flags.h" //Flags support for adding!
+#include "headers/emu/debugger/debugger.h" //Debugger support!
 
 extern MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -75,6 +76,7 @@ void CPU486_OP0F01_32()
 	uint_32 linearaddr;
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
+		modrm_generateInstructionTEXT("INVLPG",16,0,PARAM_MODRM2);
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
 			if (getCPL())
@@ -97,6 +99,7 @@ void CPU486_OP0F01_16()
 	uint_32 linearaddr;
 	if (MODRM_REG(params.modrm)==7) //INVLPG?
 	{
+		modrm_generateInstructionTEXT("INVLPG",32,0,PARAM_MODRM2);
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
 			if (getCPL())
@@ -116,6 +119,7 @@ void CPU486_OP0F01_16()
 
 void CPU486_OP0F08() //INVD?
 {
+	modrm_generateInstructionTEXT("INVD",0,0,PARAM_NONE);
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 	{
 		if (getCPL())
@@ -128,6 +132,7 @@ void CPU486_OP0F08() //INVD?
 
 void CPU486_OP0F09() //WBINVD?
 {
+	modrm_generateInstructionTEXT("INVD",0,0,PARAM_NONE);
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 	{
 		if (getCPL())
@@ -157,9 +162,9 @@ OPTINLINE void op_add32_486() {
 	flag_add32 (oper1d, oper2d);
 }
 
-void CPU486_OP0FC0() {if (modrm_check8(&params,1,0)) return; oper1b = modrm_read8(&params,0); oper2b = modrm_read8(&params,1); op_add8_486(); modrm_write8(&params,0,oper2b); modrm_write8(&params,1,res8);} //XADD r/m8,r8
-void CPU486_OP0FC1_16() {if (modrm_check16(&params,1,0)) return; oper1 = modrm_read16(&params,0); oper2 = modrm_read16(&params,1); op_add16_486(); modrm_write16(&params,0,oper2,0); modrm_write16(&params,1,res16,0);} //XADD r/m16,r16
-void CPU486_OP0FC1_32() {if (modrm_check32(&params,1,0)) return; oper1d = modrm_read32(&params,0); oper2d = modrm_read32(&params,1); op_add32_486(); modrm_write32(&params,0,oper2d); modrm_write32(&params,1,res32);} //XADD r/m32,r32
+void CPU486_OP0FC0() {modrm_generateInstructionTEXT("XADD",8,0,PARAM_MODRM21); if (modrm_check8(&params,1,0)) return; oper1b = modrm_read8(&params,0); oper2b = modrm_read8(&params,1); op_add8_486(); modrm_write8(&params,0,oper2b); modrm_write8(&params,1,res8);} //XADD r/m8,r8
+void CPU486_OP0FC1_16() {modrm_generateInstructionTEXT("XADD",16,0,PARAM_MODRM21); if (modrm_check16(&params,1,0)) return; oper1 = modrm_read16(&params,0); oper2 = modrm_read16(&params,1); op_add16_486(); modrm_write16(&params,0,oper2,0); modrm_write16(&params,1,res16,0);} //XADD r/m16,r16
+void CPU486_OP0FC1_32() {modrm_generateInstructionTEXT("XADD",32,0,PARAM_MODRM21); if (modrm_check32(&params,1,0)) return; oper1d = modrm_read32(&params,0); oper2d = modrm_read32(&params,1); op_add32_486(); modrm_write32(&params,0,oper2d); modrm_write32(&params,1,res32);} //XADD r/m32,r32
 
 //BSWAP on 16-bit registers is undefined!
 void CPU486_BSWAP16(word *reg)
@@ -181,19 +186,19 @@ void CPU486_BSWAP32(uint_32 *reg)
 	*reg = buf; //Save the result!
 }
 
-void CPU486_OP0FC8_16() {CPU486_BSWAP16(&REG_AX);} //BSWAP AX
-void CPU486_OP0FC8_32() {CPU486_BSWAP32(&REG_EAX);} //BSWAP EAX
-void CPU486_OP0FC9_16() {CPU486_BSWAP16(&REG_CX);} //BSWAP CX
-void CPU486_OP0FC9_32() {CPU486_BSWAP32(&REG_ECX);} //BSWAP ECX
-void CPU486_OP0FCA_16() {CPU486_BSWAP16(&REG_DX);} //BSWAP DX
-void CPU486_OP0FCA_32() {CPU486_BSWAP32(&REG_EDX);} //BSWAP EDX
-void CPU486_OP0FCB_16() {CPU486_BSWAP16(&REG_BX);} //BSWAP BX
-void CPU486_OP0FCB_32() {CPU486_BSWAP32(&REG_EBX);} //BSWAP EBX
-void CPU486_OP0FCC_16() {CPU486_BSWAP16(&REG_SP);} //BSWAP SP
-void CPU486_OP0FCC_32() {CPU486_BSWAP32(&REG_ESP);} //BSWAP ESP
-void CPU486_OP0FCD_16() {CPU486_BSWAP16(&REG_BP);} //BSWAP BP
-void CPU486_OP0FCD_32() {CPU486_BSWAP32(&REG_EBP);} //BSWAP EBP
-void CPU486_OP0FCE_16() {CPU486_BSWAP16(&REG_SI);} //BSWAP SI
-void CPU486_OP0FCE_32() {CPU486_BSWAP32(&REG_ESI);} //BSWAP ESI
-void CPU486_OP0FCF_16() {CPU486_BSWAP16(&REG_DI);} //BSWAP DI
-void CPU486_OP0FCF_32() {CPU486_BSWAP32(&REG_EDI);} //BSWAP EDI
+void CPU486_OP0FC8_16() {debugger_setcommand("BSWAP AX"); CPU486_BSWAP16(&REG_AX);} //BSWAP AX
+void CPU486_OP0FC8_32() {debugger_setcommand("BSWAP EAX"); CPU486_BSWAP32(&REG_EAX);} //BSWAP EAX
+void CPU486_OP0FC9_16() {debugger_setcommand("BSWAP CX"); CPU486_BSWAP16(&REG_CX);} //BSWAP CX
+void CPU486_OP0FC9_32() {debugger_setcommand("BSWAP ECX"); CPU486_BSWAP32(&REG_ECX);} //BSWAP ECX
+void CPU486_OP0FCA_16() {debugger_setcommand("BSWAP DX"); CPU486_BSWAP16(&REG_DX);} //BSWAP DX
+void CPU486_OP0FCA_32() {debugger_setcommand("BSWAP EDX"); CPU486_BSWAP32(&REG_EDX);} //BSWAP EDX
+void CPU486_OP0FCB_16() {debugger_setcommand("BSWAP BX"); CPU486_BSWAP16(&REG_BX);} //BSWAP BX
+void CPU486_OP0FCB_32() {debugger_setcommand("BSWAP EBX"); CPU486_BSWAP32(&REG_EBX);} //BSWAP EBX
+void CPU486_OP0FCC_16() {debugger_setcommand("BSWAP SP"); CPU486_BSWAP16(&REG_SP);} //BSWAP SP
+void CPU486_OP0FCC_32() {debugger_setcommand("BSWAP ESP"); CPU486_BSWAP32(&REG_ESP);} //BSWAP ESP
+void CPU486_OP0FCD_16() {debugger_setcommand("BSWAP BP"); CPU486_BSWAP16(&REG_BP);} //BSWAP BP
+void CPU486_OP0FCD_32() {debugger_setcommand("BSWAP EBP"); CPU486_BSWAP32(&REG_EBP);} //BSWAP EBP
+void CPU486_OP0FCE_16() {debugger_setcommand("BSWAP SI"); CPU486_BSWAP16(&REG_SI);} //BSWAP SI
+void CPU486_OP0FCE_32() {debugger_setcommand("BSWAP ESI"); CPU486_BSWAP32(&REG_ESI);} //BSWAP ESI
+void CPU486_OP0FCF_16() {debugger_setcommand("BSWAP DI"); CPU486_BSWAP16(&REG_DI);} //BSWAP DI
+void CPU486_OP0FCF_32() {debugger_setcommand("BSWAP EDI"); CPU486_BSWAP32(&REG_EDI);} //BSWAP EDI
