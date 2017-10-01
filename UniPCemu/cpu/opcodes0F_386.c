@@ -591,12 +591,12 @@ OPTINLINE byte allowCRDRaccess()
 	return ((getCPL()==0) || (getcpumode()==CPU_MODE_REAL)); //Do we allow access?
 }
 
-void CPU80386_OP0F20() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,CRn
-void CPU80386_OP0F21() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,DRn
-void CPU80386_OP0F22() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} uint_32 val=modrm_read32(&params,1); if ((val&(CR0_PE|CR0_PG))==CR0_PG) {THROWDESCGP(0,0,0); return;/* Enabling Paging whilst disabling protection is forbidden! */} modrm_write32(&params,0,val); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r CRn,r32
-void CPU80386_OP0F23() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r DRn,r32
-void CPU80386_OP0F24() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,TRn
-void CPU80386_OP0F26() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r TRn,r32
+void CPU80386_OP0F20() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,CRn
+void CPU80386_OP0F21() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,DRn
+void CPU80386_OP0F22() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} uint_32 val=modrm_read32(&params,1); if ((val&(CR0_PE|CR0_PG))==CR0_PG) {THROWDESCGP(0,0,0); return;/* Enabling Paging whilst disabling protection is forbidden! */} modrm_write32(&params,0,val); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r CRn,r32
+void CPU80386_OP0F23() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r DRn,r32
+void CPU80386_OP0F24() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM21); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,1,modrm_read32(&params,0)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r r32,TRn
+void CPU80386_OP0F26() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM12); if (!allowCRDRaccess()) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,0,modrm_read32(&params,1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r TRn,r32
 
 //SETCC instructions
 
@@ -649,13 +649,13 @@ void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/
 //L*S instructions
 
 void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16
-void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
+void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LSSD",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
 
 void CPU80386_OP0FB4_16() /*LFS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r16,m16:16
-void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
+void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LFSD",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
 
 void CPU80386_OP0FB5_16() /*LGS modr/m*/ {modrm_debugger16(&params,0,1); modrm_generateInstructionTEXT("LGS",0,0,PARAM_MODRM12); CPU8086_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r16,m16:16
-void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LGS",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r32,m16:32
+void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_debugger32(&params,0,1); modrm_generateInstructionTEXT("LGSD",0,0,PARAM_MODRM12); CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r32,m16:32
 
 //Special debugger support for the following MOV[S/Z]X instructions.
 
@@ -853,16 +853,16 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
-void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLD",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHLD /r r/m16,r16,imm8
-void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHLD /r r/m32,r32,imm8
+void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLDW",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLDD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHLD /r r/m32,r32,imm8
 
-void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLD",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHLD /r r/m16,r16,CL
-void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHLD /r r/m32,r32,CL
+void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLDW",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLDD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHLD /r r/m32,r32,CL
 
-void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRD",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHRD /r r/m16,r16,imm8
-void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHRD /r r/m32,r32,imm8
-void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRD",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHRD /r r/m16,r16,CL
-void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRDW",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRDD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRDW",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRDD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHRD /r r/m32,r32,CL
 
 //IMUL instruction
 

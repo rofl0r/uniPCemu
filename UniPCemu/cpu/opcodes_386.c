@@ -2531,54 +2531,54 @@ void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstr
 void CPU80386_OP39() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP3B() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP3D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("CMPD EAX,",0,theimm,PARAM_IMM16);/*CMP AX, imm16*/ CMP_dw(REG_EAX,theimm,1);/*CMP EAX, imm32*/ }
-void CPU80386_OP40() {modrm_generateInstructionTEXT("INC EAX",0,0,PARAM_NONE);/*INC EAX*/ CPU80386_internal_INC32(&REG_EAX);/*INC EAX*/ }
-void CPU80386_OP41() {modrm_generateInstructionTEXT("INC ECX",0,0,PARAM_NONE);/*INC ECX*/ CPU80386_internal_INC32(&REG_ECX);/*INC ECX*/ }
-void CPU80386_OP42() {modrm_generateInstructionTEXT("INC EDX",0,0,PARAM_NONE);/*INC EDX*/ CPU80386_internal_INC32(&REG_EDX);/*INC EDX*/ }
-void CPU80386_OP43() {modrm_generateInstructionTEXT("INC EBX",0,0,PARAM_NONE);/*INC EBX*/ CPU80386_internal_INC32(&REG_EBX);/*INC EBX*/ }
-void CPU80386_OP44() {modrm_generateInstructionTEXT("INC ESP",0,0,PARAM_NONE);/*INC ESP*/ CPU80386_internal_INC32(&REG_ESP);/*INC ESP*/ }
-void CPU80386_OP45() {modrm_generateInstructionTEXT("INC EBP",0,0,PARAM_NONE);/*INC EBP*/ CPU80386_internal_INC32(&REG_EBP);/*INC EBP*/ }
-void CPU80386_OP46() {modrm_generateInstructionTEXT("INC ESI",0,0,PARAM_NONE);/*INC ESI*/ CPU80386_internal_INC32(&REG_ESI);/*INC ESI*/ }
-void CPU80386_OP47() {modrm_generateInstructionTEXT("INC EDI",0,0,PARAM_NONE);/*INC EDI*/ CPU80386_internal_INC32(&REG_EDI);/*INC EDI*/ }
-void CPU80386_OP48() {modrm_generateInstructionTEXT("DEC EAX",0,0,PARAM_NONE);/*DEC EAX*/ CPU80386_internal_DEC32(&REG_EAX);/*DEC EAX*/ }
-void CPU80386_OP49() {modrm_generateInstructionTEXT("DEC ECX",0,0,PARAM_NONE);/*DEC ECX*/ CPU80386_internal_DEC32(&REG_ECX);/*DEC ECX*/ }
-void CPU80386_OP4A() {modrm_generateInstructionTEXT("DEC EDX",0,0,PARAM_NONE);/*DEC EDX*/ CPU80386_internal_DEC32(&REG_EDX);/*DEC EDX*/ }
-void CPU80386_OP4B() {modrm_generateInstructionTEXT("DEC EBX",0,0,PARAM_NONE);/*DEC EBX*/ CPU80386_internal_DEC32(&REG_EBX);/*DEC EBX*/ }
-void CPU80386_OP4C() {modrm_generateInstructionTEXT("DEC ESP",0,0,PARAM_NONE);/*DEC ESP*/ CPU80386_internal_DEC32(&REG_ESP);/*DEC ESP*/ }
-void CPU80386_OP4D() {modrm_generateInstructionTEXT("DEC EBP",0,0,PARAM_NONE);/*DEC EBP*/ CPU80386_internal_DEC32(&REG_EBP);/*DEC EBP*/ }
-void CPU80386_OP4E() {modrm_generateInstructionTEXT("DEC ESI",0,0,PARAM_NONE);/*DEC ESI*/ CPU80386_internal_DEC32(&REG_ESI);/*DEC ESI*/ }
-void CPU80386_OP4F() {modrm_generateInstructionTEXT("DEC EDI",0,0,PARAM_NONE);/*DEC EDI*/ CPU80386_internal_DEC32(&REG_EDI);/*DEC EDI*/ }
-void CPU80386_OP50() {modrm_generateInstructionTEXT("PUSH EAX",0,0,PARAM_NONE);/*PUSH EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EAX)) return; /*PUSH AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP51() {modrm_generateInstructionTEXT("PUSH ECX",0,0,PARAM_NONE);/*PUSH ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ECX)) return; /*PUSH CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP52() {modrm_generateInstructionTEXT("PUSH EDX",0,0,PARAM_NONE);/*PUSH EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDX)) return; /*PUSH DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP53() {modrm_generateInstructionTEXT("PUSH EBX",0,0,PARAM_NONE);/*PUSH EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBX)) return; /*PUSH BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP54() {modrm_generateInstructionTEXT("PUSH ESP",0,0,PARAM_NONE);/*PUSH ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESP)) return; /*PUSH SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP55() {modrm_generateInstructionTEXT("PUSH EBP",0,0,PARAM_NONE);/*PUSH EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBP)) return; /*PUSH BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP56() {modrm_generateInstructionTEXT("PUSH ESI",0,0,PARAM_NONE);/*PUSH ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESI)) return; /*PUSH SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP57() {modrm_generateInstructionTEXT("PUSH EDI",0,0,PARAM_NONE);/*PUSH EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDI)) return; /*PUSH DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
-void CPU80386_OP58() {modrm_generateInstructionTEXT("POP EAX",0,0,PARAM_NONE);/*POP EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EAX)) return; /*POP AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP59() {modrm_generateInstructionTEXT("POP ECX",0,0,PARAM_NONE);/*POP ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ECX)) return; /*POP CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5A() {modrm_generateInstructionTEXT("POP EDX",0,0,PARAM_NONE);/*POP EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDX)) return; /*POP DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5B() {modrm_generateInstructionTEXT("POP EBX",0,0,PARAM_NONE);/*POP EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBX)) return; /*POP BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5C() {modrm_generateInstructionTEXT("POP ESP",0,0,PARAM_NONE);/*POP ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPESP(2)) return; /*POP SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5D() {modrm_generateInstructionTEXT("POP EBP",0,0,PARAM_NONE);/*POP EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBP)) return; /*POP BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5E() {modrm_generateInstructionTEXT("POP ESI",0,0,PARAM_NONE);/*POP ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ESI)) return;/*POP SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
-void CPU80386_OP5F() {modrm_generateInstructionTEXT("POP EDI",0,0,PARAM_NONE);/*POP EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDI)) return;/*POP DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP40() {modrm_generateInstructionTEXT("INCD EAX",0,0,PARAM_NONE);/*INC EAX*/ CPU80386_internal_INC32(&REG_EAX);/*INC EAX*/ }
+void CPU80386_OP41() {modrm_generateInstructionTEXT("INCD ECX",0,0,PARAM_NONE);/*INC ECX*/ CPU80386_internal_INC32(&REG_ECX);/*INC ECX*/ }
+void CPU80386_OP42() {modrm_generateInstructionTEXT("INCD EDX",0,0,PARAM_NONE);/*INC EDX*/ CPU80386_internal_INC32(&REG_EDX);/*INC EDX*/ }
+void CPU80386_OP43() {modrm_generateInstructionTEXT("INCD EBX",0,0,PARAM_NONE);/*INC EBX*/ CPU80386_internal_INC32(&REG_EBX);/*INC EBX*/ }
+void CPU80386_OP44() {modrm_generateInstructionTEXT("INCD ESP",0,0,PARAM_NONE);/*INC ESP*/ CPU80386_internal_INC32(&REG_ESP);/*INC ESP*/ }
+void CPU80386_OP45() {modrm_generateInstructionTEXT("INCD EBP",0,0,PARAM_NONE);/*INC EBP*/ CPU80386_internal_INC32(&REG_EBP);/*INC EBP*/ }
+void CPU80386_OP46() {modrm_generateInstructionTEXT("INCD ESI",0,0,PARAM_NONE);/*INC ESI*/ CPU80386_internal_INC32(&REG_ESI);/*INC ESI*/ }
+void CPU80386_OP47() {modrm_generateInstructionTEXT("INCD EDI",0,0,PARAM_NONE);/*INC EDI*/ CPU80386_internal_INC32(&REG_EDI);/*INC EDI*/ }
+void CPU80386_OP48() {modrm_generateInstructionTEXT("DECD EAX",0,0,PARAM_NONE);/*DEC EAX*/ CPU80386_internal_DEC32(&REG_EAX);/*DEC EAX*/ }
+void CPU80386_OP49() {modrm_generateInstructionTEXT("DECD ECX",0,0,PARAM_NONE);/*DEC ECX*/ CPU80386_internal_DEC32(&REG_ECX);/*DEC ECX*/ }
+void CPU80386_OP4A() {modrm_generateInstructionTEXT("DECD EDX",0,0,PARAM_NONE);/*DEC EDX*/ CPU80386_internal_DEC32(&REG_EDX);/*DEC EDX*/ }
+void CPU80386_OP4B() {modrm_generateInstructionTEXT("DECD EBX",0,0,PARAM_NONE);/*DEC EBX*/ CPU80386_internal_DEC32(&REG_EBX);/*DEC EBX*/ }
+void CPU80386_OP4C() {modrm_generateInstructionTEXT("DECD ESP",0,0,PARAM_NONE);/*DEC ESP*/ CPU80386_internal_DEC32(&REG_ESP);/*DEC ESP*/ }
+void CPU80386_OP4D() {modrm_generateInstructionTEXT("DECD EBP",0,0,PARAM_NONE);/*DEC EBP*/ CPU80386_internal_DEC32(&REG_EBP);/*DEC EBP*/ }
+void CPU80386_OP4E() {modrm_generateInstructionTEXT("DECD ESI",0,0,PARAM_NONE);/*DEC ESI*/ CPU80386_internal_DEC32(&REG_ESI);/*DEC ESI*/ }
+void CPU80386_OP4F() {modrm_generateInstructionTEXT("DECD EDI",0,0,PARAM_NONE);/*DEC EDI*/ CPU80386_internal_DEC32(&REG_EDI);/*DEC EDI*/ }
+void CPU80386_OP50() {modrm_generateInstructionTEXT("PUSHD EAX",0,0,PARAM_NONE);/*PUSH EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EAX)) return; /*PUSH AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP51() {modrm_generateInstructionTEXT("PUSHD ECX",0,0,PARAM_NONE);/*PUSH ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ECX)) return; /*PUSH CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP52() {modrm_generateInstructionTEXT("PUSHD EDX",0,0,PARAM_NONE);/*PUSH EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDX)) return; /*PUSH DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP53() {modrm_generateInstructionTEXT("PUSHD EBX",0,0,PARAM_NONE);/*PUSH EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBX)) return; /*PUSH BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP54() {modrm_generateInstructionTEXT("PUSHD ESP",0,0,PARAM_NONE);/*PUSH ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESP)) return; /*PUSH SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP55() {modrm_generateInstructionTEXT("PUSHD EBP",0,0,PARAM_NONE);/*PUSH EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EBP)) return; /*PUSH BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP56() {modrm_generateInstructionTEXT("PUSHD ESI",0,0,PARAM_NONE);/*PUSH ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_ESI)) return; /*PUSH SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP57() {modrm_generateInstructionTEXT("PUSHD EDI",0,0,PARAM_NONE);/*PUSH EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EDI)) return; /*PUSH DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/ } }
+void CPU80386_OP58() {modrm_generateInstructionTEXT("POPD EAX",0,0,PARAM_NONE);/*POP EAX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EAX)) return; /*POP AX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP59() {modrm_generateInstructionTEXT("POPD ECX",0,0,PARAM_NONE);/*POP ECX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ECX)) return; /*POP CX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5A() {modrm_generateInstructionTEXT("POPD EDX",0,0,PARAM_NONE);/*POP EDX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDX)) return; /*POP DX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5B() {modrm_generateInstructionTEXT("POPD EBX",0,0,PARAM_NONE);/*POP EBX*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBX)) return; /*POP BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5C() {modrm_generateInstructionTEXT("POPD ESP",0,0,PARAM_NONE);/*POP ESP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPESP(2)) return; /*POP SP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5D() {modrm_generateInstructionTEXT("POPD EBP",0,0,PARAM_NONE);/*POP EBP*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EBP)) return; /*POP BP*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5E() {modrm_generateInstructionTEXT("POPD ESI",0,0,PARAM_NONE);/*POP ESI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_ESI)) return;/*POP SI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
+void CPU80386_OP5F() {modrm_generateInstructionTEXT("POPD EDI",0,0,PARAM_NONE);/*POP EDI*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/ if (CPU80386_POPdw(2,&REG_EDI)) return;/*POP DI*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/ } }
 void CPU80386_OP85() {modrm_generateInstructionTEXT("TESTD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CPU80386_internal_TEST32(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP87() {modrm_generateInstructionTEXT("XCHGD",32,0,PARAM_MODRM_01); CPU80386_internal_XCHG32(modrm_addr32(&params,MODRM_src0,0),modrm_addr32(&params,MODRM_src1,0),2); /*XCHG reg32,r/m32*/ }
 void CPU80386_OP89() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP8B() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP8D() {modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("LEAD %s,%s",modrm_param1,getLEAtext32(&params)); if (CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),getLEA32(&params),0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 2; /* Load effective address */ } }
 void CPU80386_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG EAX,EAX)*/ if (CPU80386_internal_XCHG32(&REG_EAX,&REG_EAX,1)) return; /* NOP */}
-void CPU80386_OP91() {modrm_generateInstructionTEXT("XCHG ECX,EAX",0,0,PARAM_NONE);/*XCHG ECX,EAX*/ CPU80386_internal_XCHG32(&REG_ECX,&REG_EAX,1); /*XCHG CX,AX*/ }
-void CPU80386_OP92() {modrm_generateInstructionTEXT("XCHG EDX,EAX",0,0,PARAM_NONE);/*XCHG EDX,EAX*/ CPU80386_internal_XCHG32(&REG_EDX,&REG_EAX,1); /*XCHG DX,AX*/ }
-void CPU80386_OP93() {modrm_generateInstructionTEXT("XCHG EBX,EAX",0,0,PARAM_NONE);/*XCHG EBX,EAX*/ CPU80386_internal_XCHG32(&REG_EBX,&REG_EAX,1); /*XCHG BX,AX*/ }
-void CPU80386_OP94() {modrm_generateInstructionTEXT("XCHG ESP,EAX",0,0,PARAM_NONE);/*XCHG ESP,EAX*/ CPU80386_internal_XCHG32(&REG_ESP,&REG_EAX,1); /*XCHG SP,AX*/ }
-void CPU80386_OP95() {modrm_generateInstructionTEXT("XCHG EBP,EAX",0,0,PARAM_NONE);/*XCHG EBP,EAX*/ CPU80386_internal_XCHG32(&REG_EBP,&REG_EAX,1); /*XCHG BP,AX*/ }
-void CPU80386_OP96() {modrm_generateInstructionTEXT("XCHG ESI,EAX",0,0,PARAM_NONE);/*XCHG ESI,EAX*/ CPU80386_internal_XCHG32(&REG_ESI,&REG_EAX,1); /*XCHG SI,AX*/ }
-void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHG EDI,EAX",0,0,PARAM_NONE);/*XCHG EDI,EAX*/ CPU80386_internal_XCHG32(&REG_EDI,&REG_EAX,1); /*XCHG DI,AX*/ }
+void CPU80386_OP91() {modrm_generateInstructionTEXT("XCHGD ECX,EAX",0,0,PARAM_NONE);/*XCHG ECX,EAX*/ CPU80386_internal_XCHG32(&REG_ECX,&REG_EAX,1); /*XCHG CX,AX*/ }
+void CPU80386_OP92() {modrm_generateInstructionTEXT("XCHGD EDX,EAX",0,0,PARAM_NONE);/*XCHG EDX,EAX*/ CPU80386_internal_XCHG32(&REG_EDX,&REG_EAX,1); /*XCHG DX,AX*/ }
+void CPU80386_OP93() {modrm_generateInstructionTEXT("XCHGD EBX,EAX",0,0,PARAM_NONE);/*XCHG EBX,EAX*/ CPU80386_internal_XCHG32(&REG_EBX,&REG_EAX,1); /*XCHG BX,AX*/ }
+void CPU80386_OP94() {modrm_generateInstructionTEXT("XCHGD ESP,EAX",0,0,PARAM_NONE);/*XCHG ESP,EAX*/ CPU80386_internal_XCHG32(&REG_ESP,&REG_EAX,1); /*XCHG SP,AX*/ }
+void CPU80386_OP95() {modrm_generateInstructionTEXT("XCHGD EBP,EAX",0,0,PARAM_NONE);/*XCHG EBP,EAX*/ CPU80386_internal_XCHG32(&REG_EBP,&REG_EAX,1); /*XCHG BP,AX*/ }
+void CPU80386_OP96() {modrm_generateInstructionTEXT("XCHGD ESI,EAX",0,0,PARAM_NONE);/*XCHG ESI,EAX*/ CPU80386_internal_XCHG32(&REG_ESI,&REG_EAX,1); /*XCHG SI,AX*/ }
+void CPU80386_OP97() {modrm_generateInstructionTEXT("XCHGD EDI,EAX",0,0,PARAM_NONE);/*XCHG EDI,EAX*/ CPU80386_internal_XCHG32(&REG_EDI,&REG_EAX,1); /*XCHG DI,AX*/ }
 void CPU80386_OP98() {modrm_generateInstructionTEXT("CWDE",0,0,PARAM_NONE);/*CWDE : sign extend AX to EAX*/ CPU80386_internal_CWDE();/*CWDE : sign extend AX to EAX (80386+)*/ }
 void CPU80386_OP99() {modrm_generateInstructionTEXT("CDQ",0,0,PARAM_NONE);/*CDQ : sign extend EAX to EDX::EAX*/ CPU80386_internal_CDQ();/*CWQ : sign extend EAX to EDX::EAX (80386+)*/ }
-void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALL %04x:%08x", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&CPU_EIPmask()); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */ } }
+void CPU80386_OP9A() {/*CALL Ap*/ INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("CALLD %04x:%08x", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); CPU80386_CALLF((segmentoffset>>32)&0xFFFF,segmentoffset&CPU_EIPmask()); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */ } }
 
 void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*PUSHF*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } uint_32 flags = REG_EFLAGS; if (FLAG_V8) flags &=~0x20000; /* VM is never pushed during Virtual 8086 mode! */ if (CPU80386_PUSHdw(0,&flags)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/ } }
 
@@ -2672,17 +2672,17 @@ void CPU80386_OPBC() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstr
 void CPU80386_OPBD() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EBP,",0,theimm,PARAM_IMM32);/*MOV BP,imm32*/ CPU80386_internal_MOV32(&REG_EBP,theimm,4);/*MOV BP,imm32*/ }
 void CPU80386_OPBE() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD ESI,",0,theimm,PARAM_IMM32);/*MOV SI,imm32*/ CPU80386_internal_MOV32(&REG_ESI,theimm,4);/*MOV SI,imm32*/ }
 void CPU80386_OPBF() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EDI,",0,theimm,PARAM_IMM32);/*MOV DI,imm32*/ CPU80386_internal_MOV32(&REG_EDI,theimm,4);/*MOV DI,imm32*/ }
-void CPU80386_OPC2() {INLINEREGISTER int_32 popbytes = imm32();/*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ modrm_generateInstructionTEXT("RET",0,popbytes,PARAM_IMM8); /*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ CPU80386_internal_RET(popbytes,1); }
-void CPU80386_OPC3() {modrm_generateInstructionTEXT("RET",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU80386_internal_RET(0,0); }
-void CPU80386_OPC4() /*LES modr/m*/ {modrm_generateInstructionTEXT("LES",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
-void CPU80386_OPC5() /*LDS modr/m*/ {modrm_generateInstructionTEXT("LDS",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
+void CPU80386_OPC2() {INLINEREGISTER int_32 popbytes = imm32();/*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ modrm_generateInstructionTEXT("RETD",0,popbytes,PARAM_IMM8); /*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ CPU80386_internal_RET(popbytes,1); }
+void CPU80386_OPC3() {modrm_generateInstructionTEXT("RETD",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU80386_internal_RET(0,0); }
+void CPU80386_OPC4() /*LES modr/m*/ {modrm_generateInstructionTEXT("LESD",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
+void CPU80386_OPC5() /*LDS modr/m*/ {modrm_generateInstructionTEXT("LDSD",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
 void CPU80386_OPC7() {uint_32 val = imm32; modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("MOVD %s,%08x",modrm_param1,val); if (modrm_check32(&params,MODRM_src0,0)) return; if (CPU80386_instructionstepwritemodrmdw(0,val,MODRM_src0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /* Imm->Mem */ } else CPU[activeCPU].cycles_OP += 4; /* Imm->Reg */ } }
-void CPU80386_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm16 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
-void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
+void CPU80386_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETFD",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm16 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
+void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETFD",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
 void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-1); } /*INT 3*/ }
 void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU_executionphase_startinterrupt(theimm,0,-1);/*INT imm8*/ }
 void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_internal_INTO();/*INTO*/ }
-void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
+void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRETD",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } } //Special case on the 80386: SALC!
 void CPU80386_OPD7(){CPU80386_internal_XLAT();} //We depend on the address size instead!
 void CPU80386_OPE0(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if ((--REG_ECX) && (!FLAG_ZF)){CPU_JMPrel(rel8); CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19; } /* Branch taken */} else { if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 5; } /* Branch not taken */}}
@@ -2691,10 +2691,10 @@ void CPU80386_OPE2(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateIns
 void CPU80386_OPE3(){INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JECXZ",0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if (!REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 18; }  /* Branch taken */} else { if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 6; } /* Branch not taken */}}
 void CPU80386_OPE5(){INLINEREGISTER byte theimm = immb;modrm_generateInstructionTEXT("IN EAX,",0,theimm,PARAM_IMM8); if (CPU_PORT_IN_D(0,theimm,&REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/ } }
 void CPU80386_OPE7(){INLINEREGISTER byte theimm = immb; debugger_setcommand("OUT %02X,EAX",theimm); if (CPU_PORT_OUT_D(0,theimm,REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/ } }
-void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EIP)) return; CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19-EU_CYCLES_SUBSTRACT_ACCESSREAD; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
-void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
-void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMP %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); destEIP = (segmentoffset&CPU_EIPmask()); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(-1); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; } /* Intersegment direct */}
-void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += 6; /*Stall the BIU partly now!*/ } /* Intrasegment direct short */}
+void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALLD",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EIP)) return; CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19-EU_CYCLES_SUBSTRACT_ACCESSREAD; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
+void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMPD",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
+void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMPD %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); destEIP = (segmentoffset&CPU_EIPmask()); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(-1); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; } /* Intersegment direct */}
+void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMPD",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += 6; /*Stall the BIU partly now!*/ } /* Intrasegment direct short */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); if (CPU_PORT_IN_D(0,REG_DX,&REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/ } }
 void CPU80386_OPEF(){modrm_generateInstructionTEXT("OUT DX,EAX",0,0,PARAM_NONE); if (CPU_PORT_OUT_D(0,REG_DX,REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/ } /*To memory?*/}
 void CPU80386_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
@@ -2867,7 +2867,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		//Cycle-accurate emulation of the instruction!
 		if (cpudebugger) //Debugger on?
 		{
-			modrm_generateInstructionTEXT("POPW",16,0,PARAM_MODRM_0); //POPW Ew
+			modrm_generateInstructionTEXT("POPD",16,0,PARAM_MODRM_0); //POPW Ew
 		}
 		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
 		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
@@ -3065,17 +3065,17 @@ void CPU80386_OPFF() //GRP5 Ev
 			modrm_generateInstructionTEXT("DECD",32,0,PARAM_MODRM_0); //DEC!
 			break;
 		case 2: //CALL
-			modrm_generateInstructionTEXT("CALL",32,0,PARAM_MODRM_0); //CALL!
+			modrm_generateInstructionTEXT("CALLD",32,0,PARAM_MODRM_0); //CALL!
 			break;
 		case 3: //CALL Mp (Read address word and jump there)
-			modrm_generateInstructionTEXT("CALL",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT("CALLD",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
 			//debugger_setcommand("CALL %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //Based on CALL Ap
 			break;
 		case 4: //JMP
-			modrm_generateInstructionTEXT("JMP",32,0,PARAM_MODRM_0); //JMP to the register!
+			modrm_generateInstructionTEXT("JMPD",32,0,PARAM_MODRM_0); //JMP to the register!
 			break;
 		case 5: //JMP Mp
-			modrm_generateInstructionTEXT("JMP",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT("JMPD",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
 			//debugger_setcommand("JMP %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //JMP to destination!
 			break;
 		case 6: //PUSH
@@ -3880,26 +3880,26 @@ void CPU386_OPC1()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLD %s,%02X",info.text,oper2);
+			debugger_setcommand("ROLD %s,%02X",info.text,oper2d);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORD %s,%02X",info.text,oper2);
+			debugger_setcommand("RORD %s,%02X",info.text,oper2d);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLD %s,%02X",info.text,oper2);
+			debugger_setcommand("RCLD %s,%02X",info.text,oper2d);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRD %s,%02X",info.text,oper2);
+			debugger_setcommand("RCRD %s,%02X",info.text,oper2d);
 			break;
 		case 4: //SHL
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLD %s,%02X",info.text,oper2);
+			debugger_setcommand("SHLD %s,%02X",info.text,oper2d);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRD %s,%02X",info.text,oper2);
+			debugger_setcommand("SHRD %s,%02X",info.text,oper2d);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARD %s,%02X",info.text,oper2);
+			debugger_setcommand("SARD %s,%02X",info.text,oper2d);
 			break;
 		default:
 			break;
