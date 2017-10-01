@@ -674,8 +674,8 @@ OPTINLINE void modrm_debugger16_8(char *instruction)
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text16(&params,1,&modrm_param1[0]);
-		modrm_text8(&params,0,&modrm_param2[0]);
+		modrm_text16(&params,0,&modrm_param1[0]);
+		modrm_text8(&params,1,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
 	}
 }
@@ -686,8 +686,8 @@ OPTINLINE void modrm_debugger32_8(char *instruction)
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text32(&params,1,&modrm_param1[0]);
-		modrm_text16(&params,0,&modrm_param2[0]);
+		modrm_text32(&params,0,&modrm_param1[0]);
+		modrm_text8(&params,1,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
 	}
 }
@@ -698,8 +698,8 @@ OPTINLINE void modrm_debugger16_16(char *instruction)
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text16(&params,1,&modrm_param1[0]);
-		modrm_text16(&params,0,&modrm_param2[0]);
+		modrm_text16(&params,0,&modrm_param1[0]);
+		modrm_text16(&params,1,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
 	}
 }
@@ -710,8 +710,8 @@ OPTINLINE void modrm_debugger32_16(char *instruction)
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text32(&params,1,&modrm_param1[0]);
-		modrm_text16(&params,0,&modrm_param2[0]);
+		modrm_text32(&params,0,&modrm_param1[0]);
+		modrm_text16(&params,1,&modrm_param2[0]);
 		modrm_actualdebuggerSZX(instruction); //Actual debugger call!
 	}
 }
