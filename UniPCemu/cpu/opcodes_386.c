@@ -3532,7 +3532,7 @@ void op_grp5_32() {
 		if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+5,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
 
 		CPUPROT1
-		destEIP = (uint_32)oper1; //Convert to EIP!
+		destEIP = oper1d; //Convert to EIP!
 		modrm_addoffset = 4; //Then destination CS!
 		if (CPU8086_internal_stepreadmodrmw(0,&destCS,MODRM_src0)) return; //Get destination CS!
 		modrm_addoffset = 0;
