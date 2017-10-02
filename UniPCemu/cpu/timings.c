@@ -3110,7 +3110,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,0,0,0,0,0,3,0x00 }, //BF MOV REG,imm32
 			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
 			{ 1,1,2,0,1,0,1,0x00 }, //C1 386+ GRP opcode 32-bit address
-			{ 1,0,0,0,0,0,3,0x00 }, //C2 RET imm32
+			{ 1,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 1,1,2,0,0,1,0,0x00 }, //C4 LES
 			{ 1,1,2,0,0,1,0,0x00 }, //C5 LDS
@@ -3118,7 +3118,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,2,0,1,0,3,0x00 }, //C7 MOV Mem/reg,imm16
 			{ 0,0,0,0,0,0,8,0x00 }, //C8 186+ ENTER imm16,imm8
 			{ 0,0,0,0,0,0,0,0x00 }, //C9 186+ LEAVE
-			{ 0,0,0,0,0,0,3,0x00 }, //CA RETF imm16
+			{ 0,0,0,0,0,0,2,0x00 }, //CA RETF imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //CB RETF
 			{ 0,0,0,0,0,0,0,0x00 }, //CC INT3
 			{ 0,0,0,0,0,0,1,0x00 }, //CD INT
@@ -5185,7 +5185,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 1,1,1,6,0,1,0,0x01 }, //BF MOVSX /r r32,r/m16
 			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
 			{ 0,1,2,0,0,0,1,0x00 }, //C1 186+ GRP opcode
-			{ 0,0,0,0,0,0,3,0x00 }, //C2 RET imm32
+			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,2,0,0,0,0,0x00 }, //C4 LES
 			{ 0,1,2,0,0,0,0,0x00 }, //C5 LDS
@@ -5193,7 +5193,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,1,2,0,0,0,2,0x00 }, //C7 MOV Mem/reg,imm16
 			{ 0,0,0,0,0,0,8,0x00 }, //C8 186+ ENTER imm16,imm8
 			{ 0,0,0,0,0,0,0,0x00 }, //C9 186+ LEAVE
-			{ 0,0,0,0,0,0,3,0x00 }, //CA RETF imm32
+			{ 0,0,0,0,0,0,2,0x00 }, //CA RETF imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //CB RETF
 			{ 0,0,0,0,0,0,0,0x00 }, //CC INT3
 			{ 0,0,0,0,0,0,1,0x00 }, //CD INT

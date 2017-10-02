@@ -2524,13 +2524,13 @@ void CPU80386_OP23() {modrm_generateInstructionTEXT("ANDD",32,0,PARAM_MODRM_01);
 void CPU80386_OP25() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("ANDD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_AND32(&REG_EAX,theimm,1); }
 void CPU80386_OP29() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP2B() {modrm_generateInstructionTEXT("SUBD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
-void CPU80386_OP2D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("SUBD EAX,",0,theimm,PARAM_IMM16);/*5=AX,imm16*/ CPU80386_internal_SUB32(&REG_EAX,theimm,1);/*5=AX,imm16*/ }
+void CPU80386_OP2D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("SUBD EAX,",0,theimm,PARAM_IMM32);/*5=AX,imm32*/ CPU80386_internal_SUB32(&REG_EAX,theimm,1);/*5=AX,imm32*/ }
 void CPU80386_OP31() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP33() {modrm_generateInstructionTEXT("XORD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
-void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("XORD EAX,",0,theimm,PARAM_IMM16); CPU80386_internal_XOR32(&REG_EAX,theimm,1); }
+void CPU80386_OP35() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("XORD EAX,",0,theimm,PARAM_IMM32); CPU80386_internal_XOR32(&REG_EAX,theimm,1); }
 void CPU80386_OP39() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
 void CPU80386_OP3B() {modrm_generateInstructionTEXT("CMPD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return; CMP_dw(instructionbufferd,instructionbufferd2,2); }
-void CPU80386_OP3D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("CMPD EAX,",0,theimm,PARAM_IMM16);/*CMP AX, imm16*/ CMP_dw(REG_EAX,theimm,1);/*CMP EAX, imm32*/ }
+void CPU80386_OP3D() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("CMPD EAX,",0,theimm,PARAM_IMM32);/*CMP AX, imm32*/ CMP_dw(REG_EAX,theimm,1);/*CMP EAX, imm32*/ }
 void CPU80386_OP40() {modrm_generateInstructionTEXT("INCD EAX",0,0,PARAM_NONE);/*INC EAX*/ CPU80386_internal_INC32(&REG_EAX);/*INC EAX*/ }
 void CPU80386_OP41() {modrm_generateInstructionTEXT("INCD ECX",0,0,PARAM_NONE);/*INC ECX*/ CPU80386_internal_INC32(&REG_ECX);/*INC ECX*/ }
 void CPU80386_OP42() {modrm_generateInstructionTEXT("INCD EDX",0,0,PARAM_NONE);/*INC EDX*/ CPU80386_internal_INC32(&REG_EDX);/*INC EDX*/ }
@@ -2672,7 +2672,7 @@ void CPU80386_OPBC() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstr
 void CPU80386_OPBD() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EBP,",0,theimm,PARAM_IMM32);/*MOV BP,imm32*/ CPU80386_internal_MOV32(&REG_EBP,theimm,4);/*MOV BP,imm32*/ }
 void CPU80386_OPBE() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD ESI,",0,theimm,PARAM_IMM32);/*MOV SI,imm32*/ CPU80386_internal_MOV32(&REG_ESI,theimm,4);/*MOV SI,imm32*/ }
 void CPU80386_OPBF() {INLINEREGISTER uint_32 theimm = imm32; modrm_generateInstructionTEXT("MOVD EDI,",0,theimm,PARAM_IMM32);/*MOV DI,imm32*/ CPU80386_internal_MOV32(&REG_EDI,theimm,4);/*MOV DI,imm32*/ }
-void CPU80386_OPC2() {INLINEREGISTER int_32 popbytes = imm32();/*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ modrm_generateInstructionTEXT("RETD",0,popbytes,PARAM_IMM8); /*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ CPU80386_internal_RET(popbytes,1); }
+void CPU80386_OPC2() {INLINEREGISTER word popbytes = immw;/*RET imm32 (Near return to calling proc and POP imm32 bytes)*/ modrm_generateInstructionTEXT("RETD",0,popbytes,PARAM_IMM8); /*RET imm16 (Near return to calling proc and POP imm32 bytes)*/ CPU80386_internal_RET(popbytes,1); }
 void CPU80386_OPC3() {modrm_generateInstructionTEXT("RETD",0,0,PARAM_NONE);/*RET (Near return to calling proc)*/ /*RET (Near return to calling proc)*/ CPU80386_internal_RET(0,0); }
 void CPU80386_OPC4() /*LES modr/m*/ {modrm_generateInstructionTEXT("LESD",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_ES); /*Load new ES!*/ }
 void CPU80386_OPC5() /*LDS modr/m*/ {modrm_generateInstructionTEXT("LDSD",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_DS); /*Load new DS!*/ }
@@ -2867,7 +2867,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		//Cycle-accurate emulation of the instruction!
 		if (cpudebugger) //Debugger on?
 		{
-			modrm_generateInstructionTEXT("POPD",16,0,PARAM_MODRM_0); //POPW Ew
+			modrm_generateInstructionTEXT("POPD",32,0,PARAM_MODRM_0); //POPW Ew
 		}
 		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
 		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
@@ -3478,13 +3478,13 @@ void op_grp5_32() {
 
 		modrm_addoffset = 0; //First IP!
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
-		modrm_addoffset = 2; //Then destination CS!
+		modrm_addoffset = 4; //Then destination CS!
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
 		modrm_addoffset = 0;
 
 		destEIP = oper1d; //Get destination IP!
 		CPUPROT1
-		modrm_addoffset = 2; //Then destination CS!
+		modrm_addoffset = 4; //Then destination CS!
 		if (CPU8086_internal_stepreadmodrmw(0,&destCS,MODRM_src0)) return; //Get destination CS!
 		CPUPROT1
 		modrm_addoffset = 0;
@@ -3702,11 +3702,11 @@ void CPU386_OP69()
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULD %s,%08X",info.text,imm32); //IMUL reg,imm16
+		debugger_setcommand("IMULD %s,%08X",info.text,imm32); //IMUL reg,imm32
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULD %s,%s,%08X",info.text,info2.text,imm32); //IMUL reg,r/m16,imm16
+		debugger_setcommand("IMULD %s,%s,%08X",info.text,info2.text,imm32); //IMUL reg,r/m32,imm32
 	}
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
@@ -3718,7 +3718,7 @@ void CPU386_OP69()
 		}
 		else
 		{
-			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,0)) return; //Read reg instead! Word register = Word register * imm16!
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,0)) return; //Read reg instead! Word register = Word register * imm32!
 			temp1.val32high = 0; //Clear high part by default!
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
@@ -3753,7 +3753,7 @@ void CPU386_OP6B()
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULD %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
+		debugger_setcommand("IMULD %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m32,imm8
 	}
 
 	if (CPU[activeCPU].instructionstep==0) //First step?
@@ -3766,7 +3766,7 @@ void CPU386_OP6B()
 		}
 		else
 		{
-			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm16!
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm32!
 			temp1.val32high = 0; //Clear high part by default!
 		}
 		++CPU[activeCPU].instructionstep; //Next step!

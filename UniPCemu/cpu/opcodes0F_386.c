@@ -330,7 +330,7 @@ void CPU386_OP0F03() //LSL /r
 
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
-					if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+					if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
@@ -1071,7 +1071,7 @@ void CPU80386_OP0FBA_32() {
 			if (cpudebugger)
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
-				modrm_text16(&params,1,&modrm_param1[0]);
+				modrm_text32(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTSD %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
@@ -1086,7 +1086,7 @@ void CPU80386_OP0FBA_32() {
 			if (cpudebugger)
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
-				modrm_text16(&params,1,&modrm_param1[0]);
+				modrm_text32(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTRD %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
@@ -1101,7 +1101,7 @@ void CPU80386_OP0FBA_32() {
 			if (cpudebugger)
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
-				modrm_text16(&params,1,&modrm_param1[0]);
+				modrm_text32(&params,1,&modrm_param1[0]);
 				debugger_setcommand("BTCD %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
@@ -1153,7 +1153,7 @@ void CPU80386_OP0FBC_16() {
 } //BSF /r r16,r/m16
 void CPU80386_OP0FBC_32() {
 	uint_32 src,dest,temp;
-	modrm_generateInstructionTEXT("BSFD",16,0,PARAM_MODRM12);
+	modrm_generateInstructionTEXT("BSFD",32,0,PARAM_MODRM12);
 	if (modrm_check32(&params,1,1)) return;
 	if (modrm_check32(&params,1,0)) return;
 	src = modrm_read32(&params,1); //Read src!
@@ -1208,7 +1208,7 @@ void CPU80386_OP0FBD_16() {
 } //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {
 	uint_32 src,dest,temp;
-	modrm_generateInstructionTEXT("BSRD",16,0,PARAM_MODRM12);
+	modrm_generateInstructionTEXT("BSRD",32,0,PARAM_MODRM12);
 	if (modrm_check32(&params,1,1)) return;
 	if (modrm_check32(&params,1,0)) return;
 	src = modrm_read32(&params,1); //Read src!
