@@ -526,7 +526,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
-	if (unlikely(MMU_logging==1)) //To log?
+	if (unlikely((MMU_logging==1) || (specialdebugger && (realaddress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
@@ -557,7 +557,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 			return;
 		}
 	}
-	if (unlikely(MMU_logging==1)) //To log?
+	if (unlikely((MMU_logging==1) || (specialdebugger && (realaddress>=0x100000)))) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
