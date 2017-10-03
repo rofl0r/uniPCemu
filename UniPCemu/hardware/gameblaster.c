@@ -275,7 +275,7 @@ OPTINLINE void calcAmpEnvPrecalcs()
 				AmpEnvPrecalcs[i] = ((input&AMPENV_INPUT_SQUAREWAVEOUTPUT)?AMPENV_RESULT_POSITIVE:AMPENV_RESULT_NEGATIVE)|((input&AMPENV_INPUT_RIGHTCHANNEL)?AMPENV_RESULT_RIGHTCHANNEL:AMPENV_RESULT_LEFTCHANNEL); //Noise at max volume!
 				break;
 			case (AMPENV_INPUT_FREQUENCYENABLE|AMPENV_INPUT_NOISEENABLE): //Noise+Frequency?
-				if (input&AMPENV_INPUT_SQUAREWAVEOUTPUT) //Tone high state?
+				if (likely(input&AMPENV_INPUT_SQUAREWAVEOUTPUT)) //Tone high state?
 				{
 					AmpEnvPrecalcs[i] = ((input&AMPENV_INPUT_RIGHTCHANNEL)?AMPENV_RESULT_RIGHTCHANNEL:AMPENV_RESULT_LEFTCHANNEL)|AMPENV_RESULT_POSITIVE; //Noise at max volume, positive!
 				}
@@ -299,7 +299,7 @@ OPTINLINE void tickSAAEnvelope(SAA1099 *chip, byte channel)
 	byte basechannel;
 	channel &= 1; //Only two channels available!
 	basechannel = SAA1099_basechannels[channel]; //Base channel!
-	if (chip->env_enable[channel]) //Envelope enabled and running?
+	if (likely(chip->env_enable[channel])) //Envelope enabled and running?
 	{
 		byte step,mode,mask; //Temp data!
 		mode = chip->env_mode[channel]; //The mode to use!
@@ -340,8 +340,8 @@ OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
 	{
 		case 0x18:
 		case 0x19:
-			if (chip->env_clock[0]) tickSAAEnvelope(chip,0); //Tick channel 0?
-			if (chip->env_clock[1]) tickSAAEnvelope(chip,1); //Tick channel 1?
+			if (unlikely(chip->env_clock[0])) tickSAAEnvelope(chip,0); //Tick channel 0?
+			if (unlikely(chip->env_clock[1])) tickSAAEnvelope(chip,1); //Tick channel 1?
 			break;
 		default: //Unknown?
 			break;
@@ -351,7 +351,7 @@ OPTINLINE void writeSAA1099Address(SAA1099 *chip, byte address)
 OPTINLINE void updateSAA1099RNGfrequency(SAA1099 *chip, byte channel)
 {
 	byte channel2=channel|8;
-	if (chip->noise[channel].freq!=chip->squarewave[channel2].freq) //Frequency changed?
+	if (unlikely(chip->noise[channel].freq!=chip->squarewave[channel2].freq)) //Frequency changed?
 	{
 		chip->squarewave[channel2].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->noise[channel].freq)); //New timeout!
 		chip->squarewave[channel2].timepoint = 0; //Reset the timepoint!
@@ -383,13 +383,13 @@ OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/f
 	byte noisechannels[8] = {0,2,2,1,2,2,2,2}; //Noise channels to use!
 	channel &= 7; //Safety on channel!
 	chip->channels[channel].freq = (float)((double)((uint_64)(GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
-	if (chip->channels[channel].freq!=chip->squarewave[channel].freq) //Frequency changed?
+	if (unlikely(chip->channels[channel].freq!=chip->squarewave[channel].freq)) //Frequency changed?
 	{
 		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->channels[channel].freq)); //New timeout!
 		chip->squarewave[channel].timepoint = 0; //Reset!
 		chip->squarewave[channel].freq = chip->channels[channel].freq; //We're updated!
 	}
-	if (noisechannels[channel]!=2) //Noise channel might be affected too?
+	if (unlikely(noisechannels[channel]!=2)) //Noise channel might be affected too?
 	{
 		updateSAA1099noisesettings(chip,noisechannels[channel]); //Update the noise channel frequency if needed as well!
 	}
@@ -419,7 +419,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			chip->channels[reg].amplitude[1] = (value>>4);
 			updated |= (chip->channels[reg].amplitude[1]!=oldvalw); //Changed?
 
-			if (updated) updateAmpEnv(chip,reg); //Update amplitude/envelope!
+			if (unlikely(updated)) updateAmpEnv(chip,reg); //Update amplitude/envelope!
 			break;
 		case 0x08:
 		case 0x09:
@@ -430,7 +430,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			reg &= 7;
 			oldval = chip->channels[reg].frequency;
 			chip->channels[reg].frequency = value; //Set the frequency!
-			if (oldval!=chip->channels[reg].frequency) updateSAA1099frequency(chip,reg); //Update frequency!
+			if (unlikely(oldval!=chip->channels[reg].frequency)) updateSAA1099frequency(chip,reg); //Update frequency!
 			break;
 		case 0x10:
 		case 0x11:
@@ -438,72 +438,72 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			reg &= 3;
 			oldval = chip->channels[reg<<1].octave;
 			chip->channels[reg<<1].octave = (value&7);
-			if (oldval!=chip->channels[reg<<1].octave) updateSAA1099frequency(chip,(reg<<1)); //Update frequency!
+			if (unlikely(oldval!=chip->channels[reg<<1].octave)) updateSAA1099frequency(chip,(reg<<1)); //Update frequency!
 			
 			oldval = chip->channels[(reg<<1)|1].octave;
 			chip->channels[(reg<<1)|1].octave = ((value>>4)&7);
-			if (oldval!=chip->channels[(reg<<1)|1].octave) updateSAA1099frequency(chip,((reg<<1)|1)); //Update frequency!
+			if (unlikely(oldval!=chip->channels[(reg<<1)|1].octave)) updateSAA1099frequency(chip,((reg<<1)|1)); //Update frequency!
 			break;
 		case 0x14: //Channel n frequency enable?
 			oldval = chip->channels[0].frequency_enable;
 			chip->channels[0].frequency_enable = (value&1);
-			if (oldval!=chip->channels[0].frequency_enable) updateAmpEnv(chip,0); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[0].frequency_enable)) updateAmpEnv(chip,0); //Update AmpEnv!
 
 			value >>= 1;
 			oldval = chip->channels[1].frequency_enable;
 			chip->channels[1].frequency_enable = (value&1);
-			if (oldval!=chip->channels[1].frequency_enable) updateAmpEnv(chip,1); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[1].frequency_enable)) updateAmpEnv(chip,1); //Update AmpEnv!
 
 			value >>= 1;
 			oldval = chip->channels[2].frequency_enable;
 			chip->channels[2].frequency_enable = (value&1);
-			if (oldval!=chip->channels[2].frequency_enable) updateAmpEnv(chip,2); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[2].frequency_enable)) updateAmpEnv(chip,2); //Update AmpEnv!
 
 			value >>= 1;
 			oldval = chip->channels[3].frequency_enable;
 			chip->channels[3].frequency_enable = (value&1);
-			if (oldval!=chip->channels[3].frequency_enable) updateAmpEnv(chip,3); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[3].frequency_enable)) updateAmpEnv(chip,3); //Update AmpEnv!
 
 			value >>= 1;
 			oldval = chip->channels[4].frequency_enable;
 			chip->channels[4].frequency_enable = (value&1);
-			if (oldval!=chip->channels[4].frequency_enable) updateAmpEnv(chip,4); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[4].frequency_enable)) updateAmpEnv(chip,4); //Update AmpEnv!
 
 			value >>= 1;
 			oldval = chip->channels[5].frequency_enable;
 			chip->channels[5].frequency_enable = (value&1);
-			if (oldval!=chip->channels[5].frequency_enable) updateAmpEnv(chip,5); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[5].frequency_enable)) updateAmpEnv(chip,5); //Update AmpEnv!
 			break;
 		case 0x15: //Channel n noise enable?
 			reg = value; //Load for processing!
 			oldval = chip->channels[0].noise_enable;
 			chip->channels[0].noise_enable = (reg&1);
-			if (oldval!=chip->channels[0].noise_enable) updateAmpEnv(chip,0); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[0].noise_enable)) updateAmpEnv(chip,0); //Update AmpEnv!
 
 			reg >>= 1;
 			oldval = chip->channels[1].noise_enable;
 			chip->channels[1].noise_enable = (reg&1);
-			if (oldval!=chip->channels[1].noise_enable) updateAmpEnv(chip,1); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[1].noise_enable)) updateAmpEnv(chip,1); //Update AmpEnv!
 
 			reg >>= 1;
 			oldval = chip->channels[2].noise_enable;
 			chip->channels[2].noise_enable = (reg&1);
-			if (oldval!=chip->channels[2].noise_enable) updateAmpEnv(chip,2); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[2].noise_enable)) updateAmpEnv(chip,2); //Update AmpEnv!
 
 			reg >>= 1;
 			oldval = chip->channels[3].noise_enable;
 			chip->channels[3].noise_enable = (reg&1);
-			if (oldval!=chip->channels[3].noise_enable) updateAmpEnv(chip,3); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[3].noise_enable)) updateAmpEnv(chip,3); //Update AmpEnv!
 
 			reg >>= 1;
 			oldval = chip->channels[4].noise_enable;
 			chip->channels[4].noise_enable = (reg&1);
-			if (oldval!=chip->channels[4].noise_enable) updateAmpEnv(chip,4); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[4].noise_enable)) updateAmpEnv(chip,4); //Update AmpEnv!
 
 			reg >>= 1;
 			oldval = chip->channels[5].noise_enable;
 			chip->channels[5].noise_enable = (reg&1);
-			if (oldval!=chip->channels[5].noise_enable) updateAmpEnv(chip,5); //Update AmpEnv!
+			if (unlikely(oldval!=chip->channels[5].noise_enable)) updateAmpEnv(chip,5); //Update AmpEnv!
 			break;
 		case 0x16: //Noise generators parameters?
 			chip->noise_params[0] = (value&3);
@@ -525,7 +525,7 @@ OPTINLINE void writeSAA1099Value(SAA1099 *chip, byte value)
 			break;
 		case 0x1C: //Channels enable and reset generators!
 			chip->all_ch_enable = (value&1);
-			if ((chip->sync_state = ((value&2)>>1))) //Sync & Reset generators?
+			if (unlikely((chip->sync_state = ((value&2)>>1)))) //Sync & Reset generators?
 			{
 				for (reg=0;reg<6;++reg)
 				{
@@ -705,9 +705,9 @@ OPTINLINE void generateSAA1099channelsample(SAA1099 *chip, byte channel, int_32 
 	chip->channels[channel].level = getSAA1099SquareWave(chip,channel); //Current flipflop output of the square wave generator!
 
 	//Tick the envelopes when needed(after taking the last sample from the set of channels that use it)!
-	if ((channel==1) && (chip->env_clock[0]==0))
+	if (unlikely((channel==1) && (chip->env_clock[0]==0)))
 		tickSAAEnvelope(chip,0);
-	if ((channel==4) && (chip->env_clock[1]==0))
+	if (unlikely((channel==4) && (chip->env_clock[1]==0)))
 		tickSAAEnvelope(chip,1);
 
 	output = chip->noise[chip->channels[channel].noisechannel].level; //Noise output?
@@ -736,7 +736,7 @@ OPTINLINE void tickSAA1099noise(SAA1099 *chip, byte channel)
 			Verified to match recorded noise from my SAA1099P
 		*/
 
-		if (chip->noise[channel].lfsr&1)
+		if (unlikely(chip->noise[channel].lfsr&1))
 		{
 			chip->noise[channel].lfsr = (chip->noise[channel].lfsr>>1)^0x20400;
 			chip->noise[channel].level = AMPENV_INPUT_NOISEOUTPUT; //Level 1! Current level bit has been updated, preshifted to bit 2 of the output!
@@ -795,7 +795,7 @@ void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
 	if (GAMEBLASTER.baseaddr==0) return; //No game blaster?
 	//Game Blaster sound output
 	gameblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
-	if (gameblaster_soundtiming>=MHZ14_BASETICK)
+	if (unlikely(gameblaster_soundtiming>=MHZ14_BASETICK))
 	{
 		for (;gameblaster_soundtiming>=MHZ14_BASETICK;)
 		{
