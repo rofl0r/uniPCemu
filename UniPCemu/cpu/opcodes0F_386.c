@@ -936,13 +936,13 @@ void CPU80386_BT16(word val, word bit)
 	BST_cnt = (bit&0xF); //Count!
 	FLAGW_CF(val>>(bit&0xF));
 	CPU_apply286cycles(); /* Apply cycles */
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BT32(uint_32 val, uint_32 bit)
 {
 	BST_cnt = (bit&0x1F); //Count!
 	FLAGW_CF(val>>(bit&0x1F));
+	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTS16(word *val, word bit)
