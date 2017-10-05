@@ -871,38 +871,62 @@ void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRDD",32,0,PARAM_MODR
 //IMUL instruction
 
 void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
-	temp1.val32 = (uint_32)modrm_read16(&params,0); //Read reg instead! Word register = Word register * imm16!
-	temp2.val32 = (uint_32)modrm_read16(&params,1); //Immediate word is second/third parameter!
 	modrm_generateInstructionTEXT("IMULW",16,0,PARAM_MODRM12);
-	if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
-	if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
-	temp3.val32s = temp1.val32s; //Load and...
-	temp3.val32s *= temp2.val32s; //Signed multiplication!
-	modrm_write16(&params,0,temp3.val16,0); //Write to the destination(register)!
-	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
-	else FLAGW_OF(1);
-	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
-	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
-	CPU_apply286cycles(); /* Apply cycles */
+	if (CPU[activeCPU].instructionstep==0) //Starting instruction?
+	{
+		if (modrm_check16(&params,0,0)) return;
+		if (modrm_check16(&params,1,1)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return;
+	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,1)) return;
+	if (CPU[activeCPU].instructionstep==4) //Execution step?
+	{
+		temp1.val32 = (uint_32)instructionbufferw; //Read reg instead! Word register = Word register * imm16!
+		temp2.val32 = (uint_32)instructionbufferw2; //Immediate word is second/third parameter!
+		if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
+		if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
+		temp3.val32s = temp1.val32s; //Load and...
+		temp3.val32s *= temp2.val32s; //Signed multiplication!
+		if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+		else FLAGW_OF(1);
+		FLAGW_CF(FLAG_OF); //OF=CF!
+		FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
+		FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
+		FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+		CPU_apply286cycles(); /* Apply cycles */
+		++CPU[activeCPU].instructionstep; //Next step!
+		return; //Time us!
+	}
+	if (CPU8086_instructionstepwritemodrmw(5,temp3.val16,0,0)) return;
 }
 void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
-	temp1.val64 = (uint_64)modrm_read32(&params,0); //Read reg instead! Word register = Word register * imm16!
-	temp2.val64 = (uint_64)modrm_read32(&params,1); //Immediate word is second/third parameter!
 	modrm_generateInstructionTEXT("IMULD",32,0,PARAM_MODRM12);
-	if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
-	if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
-	temp3.val64s = temp1.val32s; //Load and...
-	temp3.val64s *= temp2.val32s; //Signed multiplication!
-	modrm_write32(&params,0,temp3.val32); //Write to the destination(register)!
-	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
-	else FLAGW_OF(1);
-	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF(((uint_64)temp3.val32&0x80000000U)>>31); //Sign!
-	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
-	CPU_apply286cycles(); /* Apply cycles */
+	if (CPU[activeCPU].instructionstep==0) //Starting instruction?
+	{
+		if (modrm_check32(&params,0,0)) return;
+		if (modrm_check32(&params,1,1)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return;
+	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,1)) return;
+	if (CPU[activeCPU].instructionstep==4) //Execution step?
+	{
+		temp1.val64 = (uint_64)instructionbufferd; //Read reg instead! Word register = Word register * imm16!
+		temp2.val64 = (uint_64)instructionbufferd2; //Immediate word is second/third parameter!
+		if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
+		if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
+		temp3.val64s = temp1.val32s; //Load and...
+		temp3.val64s *= temp2.val32s; //Signed multiplication!
+		if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+		else FLAGW_OF(1);
+		FLAGW_CF(FLAG_OF); //OF=CF!
+		FLAGW_SF(((uint_64)temp3.val32&0x80000000U)>>31); //Sign!
+		FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
+		FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
+		CPU_apply286cycles(); /* Apply cycles */
+		++CPU[activeCPU].instructionstep; //Next step!
+		return; //Time us!
+	}
+	if (CPU80386_instructionstepwritemodrmdw(5,temp3.val32,0)) return;
 }
 
 //Bit test(and set/clear/complement) instructions
