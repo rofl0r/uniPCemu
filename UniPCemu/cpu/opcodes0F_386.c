@@ -765,8 +765,11 @@ void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 			flag_szp16(tempSHLRDW);
 			++CPU[activeCPU].internalinstructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
-			CPU[activeCPU].executed = 0; //Still running!
-			return;
+			if (dest==NULL)
+			{
+				CPU[activeCPU].executed = 0; //Still running!
+				return;
+			}
 		}
 		if (dest)
 		{
@@ -802,8 +805,11 @@ void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
 			flag_szp32(tempSHLRDD);
 			++CPU[activeCPU].internalinstructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
-			CPU[activeCPU].executed = 0; //Still running!
-			return;
+			if (dest==NULL)
+			{
+				CPU[activeCPU].executed = 0; //Still running!
+				return;
+			}
 		}
 		if (dest)
 		{
@@ -839,8 +845,11 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 			flag_szp16(tempSHLRDW);
 			++CPU[activeCPU].internalinstructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
-			CPU[activeCPU].executed = 0; //Still running!
-			return;
+			if (dest==NULL)
+			{
+				CPU[activeCPU].executed = 0; //Still running!
+				return;
+			}
 		}
 		if (dest)
 		{
@@ -877,8 +886,11 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 			flag_szp32(tempSHLRDD);
 			++CPU[activeCPU].internalinstructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
-			CPU[activeCPU].executed = 0; //Still running!
-			return;
+			if (dest==NULL)
+			{
+				CPU[activeCPU].executed = 0; //Still running!
+				return;
+			}
 		}
 		if (dest)
 		{
