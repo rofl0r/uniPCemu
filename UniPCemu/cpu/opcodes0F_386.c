@@ -740,133 +740,167 @@ extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
 
 //SHL/RD instructions.
 
+word tempSHLRDW;
+uint_32 tempSHLRDD;
+
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
 	byte shift;
 	BST_cnt = 0; //Count!
 	if (cnt) //To actually shift?
 	{
-		word s = dest?*dest:modrm_read16(&params,1);
-		cnt &= 0x1F;
-		BST_cnt = cnt; //Count!
-		for (shift = 1; shift <= cnt; shift++)
+		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,1)) return; } //Read source if needed!
+		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
+		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			if (s & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
-			s = ((s << 1) & 0xFFFF)|((src>>15)&1);
-			src <<= 1; //Next bit to shift in!
+			cnt &= 0x1F;
+			BST_cnt = cnt; //Count!
+			for (shift = 1; shift <= cnt; shift++)
+			{
+				if (tempSHLRDW & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
+				tempSHLRDW = ((tempSHLRDW << 1) & 0xFFFF)|((src>>15)&1);
+				src <<= 1; //Next bit to shift in!
+			}
+			if (cnt==1) { if (FLAG_CF == (tempSHLRDW >> 15)) FLAGW_OF(0); else FLAGW_OF(1); }
+			flag_szp16(tempSHLRDW);
+			++CPU[activeCPU].internalinstructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			CPU[activeCPU].executed = 0; //Still running!
+			return;
 		}
-		if (cnt==1) { if (FLAG_CF == (s >> 15)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp16(s);
 		if (dest)
 		{
-			*dest = s;
+			*dest = tempSHLRDW;
 		}
 		else
 		{
-			modrm_write16(&params,1,s,0);
+			if (CPU8086_internal_stepwritemodrmw(2,tempSHLRDW,1,0)) return;
 		}
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
 {
 	byte shift;
-	uint_32 s = dest?*dest:modrm_read32(&params,1);
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
 	if (cnt)
 	{
-		BST_cnt = cnt; //Count!
-		for (shift = 1; shift <= cnt; shift++)
+		if (!dest) { if (CPU80386_internal_stepreadmodrmdw(0,&tempSHLRDD,1)) return; } //Read source if needed!
+		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDD = *dest;
+		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			if (s & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
-			s = ((s << 1) & 0xFFFFFFFF)|((src>>31)&1);
-			src <<= 1; //Next bit to shift in!
+			cnt &= 0x1F;
+			BST_cnt = cnt; //Count!
+			for (shift = 1; shift <= cnt; shift++)
+			{
+				if (tempSHLRDD & 0x80000000) FLAGW_CF(1); else FLAGW_CF(0);
+				tempSHLRDD = ((tempSHLRDD << 1) & 0xFFFFFFFF)|((src>>31)&1);
+				src <<= 1; //Next bit to shift in!
+			}
+			if (cnt==1) { if (FLAG_CF == (tempSHLRDD >> 31)) FLAGW_OF(0); else FLAGW_OF(1); }
+			flag_szp32(tempSHLRDD);
+			++CPU[activeCPU].internalinstructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			CPU[activeCPU].executed = 0; //Still running!
+			return;
 		}
-		if (cnt==1) { if (FLAG_CF == (s >> 31)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp32(s);
 		if (dest)
 		{
-			*dest = s;
+			*dest = tempSHLRDD;
 		}
 		else
 		{
-			modrm_write32(&params,1,s);
+			if (CPU80386_internal_stepwritemodrmdw(2,tempSHLRDD,1)) return;
 		}
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 {
 	byte shift;
-	word s = dest?*dest:modrm_read16(&params,1);
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
 	if (cnt)
 	{
-		if (cnt==1) FLAGW_OF((s & 0x8000) ? 1 : 0);
-		BST_cnt = cnt; //Count!
-		for (shift = 1; shift <= cnt; shift++)
+		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,1)) return; } //Read source if needed!
+		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
+		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			FLAGW_CF(s & 1);
-			s = ((s >> 1)|((src&1)<<15));
-			src >>= 1; //Next bit to shift in!
+			cnt &= 0x1F;
+			BST_cnt = cnt; //Count!
+			if (cnt==1) FLAGW_OF((tempSHLRDW & 0x8000) ? 1 : 0);
+			for (shift = 1; shift <= cnt; shift++)
+			{
+				FLAGW_CF(tempSHLRDW & 1);
+				tempSHLRDW = ((tempSHLRDW >> 1)|((src&1)<<15));
+				src >>= 1; //Next bit to shift in!
+			}
+			flag_szp16(tempSHLRDW);
+			++CPU[activeCPU].internalinstructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			CPU[activeCPU].executed = 0; //Still running!
+			return;
 		}
-		flag_szp16(s);
 		if (dest)
 		{
-			*dest = s;
+			*dest = tempSHLRDW;
 		}
 		else
 		{
-			modrm_write16(&params,1,s,0);
+			if (CPU8086_internal_stepwritemodrmw(2,tempSHLRDW,1,0)) return;
 		}
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 
 void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 {
 	byte shift;
-	uint_32 s = dest?*dest:modrm_read32(&params,1);
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
 	if (cnt)
 	{
-		if (cnt==1) FLAGW_OF((s & 0x80000000) ? 1 : 0);
-		BST_cnt = cnt; //Count!
-		for (shift = 1; shift <= cnt; shift++)
+		if (!dest) { if (CPU80386_internal_stepreadmodrmdw(0,&tempSHLRDD,1)) return; } //Read source if needed!
+		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDD = *dest;
+		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			FLAGW_CF(s & 1);
-			s = ((s >> 1)|((src&1)<<31));
-			src >>= 1; //Next bit to shift in!
+			cnt &= 0x1F;
+			BST_cnt = cnt; //Count!
+			if (cnt==1) FLAGW_OF((tempSHLRDW & 0x8000) ? 1 : 0);
+			for (shift = 1; shift <= cnt; shift++)
+			{
+				FLAGW_CF(tempSHLRDD & 1);
+				tempSHLRDD = ((tempSHLRDD >> 1)|((src&1)<<31));
+				src >>= 1; //Next bit to shift in!
+			}
+			flag_szp32(tempSHLRDD);
+			++CPU[activeCPU].internalinstructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			CPU[activeCPU].executed = 0; //Still running!
+			return;
 		}
-		flag_szp32(s);
 		if (dest)
 		{
-			*dest = s;
+			*dest = tempSHLRDW;
 		}
 		else
 		{
-			modrm_write32(&params,1,s);
+			if (CPU80386_internal_stepwritemodrmdw(2,tempSHLRDD,1)) return;
 		}
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
-void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLDW",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHLD /r r/m16,r16,imm8
-void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLDD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHLD /r r/m32,r32,imm8
+void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLDW",16,immb,PARAM_MODRM12_IMM8); if (CPU[activeCPU].instructionstep==0) { if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),instructionbufferw,immb);} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLDD",32,immb,PARAM_MODRM12_IMM8); if (CPU[activeCPU].instructionstep==0) { if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),instructionbufferd,immb);} //SHLD /r r/m32,r32,imm8
 
-void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLDW",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHLD /r r/m16,r16,CL
-void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLDD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHLD /r r/m32,r32,CL
+void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLDW",16,0,PARAM_MODRM12_CL); if (CPU[activeCPU].instructionstep==0) { if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return; CPU80386_SHLD_16(modrm_addr16(&params,1,0),instructionbufferw,REG_CL);} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLDD",32,0,PARAM_MODRM12_CL); if (CPU[activeCPU].instructionstep==0) { if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return; CPU80386_SHLD_32(modrm_addr32(&params,1,0),instructionbufferd,REG_CL);} //SHLD /r r/m32,r32,CL
 
-void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRDW",16,immb,PARAM_MODRM12_IMM8); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),immb);} //SHRD /r r/m16,r16,imm8
-void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRDD",32,immb,PARAM_MODRM12_IMM8); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),immb);} //SHRD /r r/m32,r32,imm8
-void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRDW",16,0,PARAM_MODRM12_CL); if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),modrm_read16(&params,0),REG_CL);} //SHRD /r r/m16,r16,CL
-void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRDD",32,0,PARAM_MODRM12_CL); if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),modrm_read32(&params,0),REG_CL);} //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRDW",16,immb,PARAM_MODRM12_IMM8); if (CPU[activeCPU].instructionstep==0) { if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),instructionbufferw,immb);} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRDD",32,immb,PARAM_MODRM12_IMM8); if (CPU[activeCPU].instructionstep==0) { if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),instructionbufferd,immb);} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRDW",16,0,PARAM_MODRM12_CL); if (CPU[activeCPU].instructionstep==0) { if (modrm_check16(&params,1,1)) return; if (modrm_check16(&params,0,1)) return; if (modrm_check16(&params,1,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return; CPU80386_SHRD_16(modrm_addr16(&params,1,0),instructionbufferw,REG_CL);} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRDD",32,0,PARAM_MODRM12_CL); if (CPU[activeCPU].instructionstep==0) { if (modrm_check32(&params,1,1)) return; if (modrm_check32(&params,0,1)) return; if (modrm_check32(&params,1,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return; CPU80386_SHRD_32(modrm_addr32(&params,1,0),instructionbufferd,REG_CL);} //SHRD /r r/m32,r32,CL
 
 //IMUL instruction
 
@@ -895,6 +929,7 @@ void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 		FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
 		CPU_apply286cycles(); /* Apply cycles */
 		++CPU[activeCPU].instructionstep; //Next step!
+		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
 	if (CPU8086_instructionstepwritemodrmw(5,temp3.val16,0,0)) return;
@@ -924,6 +959,7 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 		FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 		CPU_apply286cycles(); /* Apply cycles */
 		++CPU[activeCPU].instructionstep; //Next step!
+		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
 	if (CPU80386_instructionstepwritemodrmdw(5,temp3.val32,0)) return;
