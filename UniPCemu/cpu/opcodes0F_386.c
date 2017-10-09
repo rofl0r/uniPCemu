@@ -1231,110 +1231,135 @@ void CPU80386_OP0FBB_32() {modrm_generateInstructionTEXT("BTCD",32,0,PARAM_MODRM
 //Bit scan instructions
 
 void CPU80386_OP0FBC_16() {
-	word src,dest,temp;
+	word temp;
 	modrm_generateInstructionTEXT("BSFW",16,0,PARAM_MODRM12);
 	if (modrm_check16(&params,1,1)) return;
 	if (modrm_check16(&params,1,0)) return;
-	src = modrm_read16(&params,1); //Read src!
-	if (src==0) //Nothing?
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,1)) return; //Read src!
+	if (instructionbufferw==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
 		BST_cnt = 0; //No count!
+		CPU_apply286cycles(); /* Apply cycles */
 	}
 	else
 	{
-		dest = modrm_read16(&params,0); //Read dest!
-		FLAGW_ZF(0);
-		temp = 0;
-		BST_cnt = 0; //Init counter!
-		for (;(((src>>temp)&1)==0) && (temp<16);) //Still searching?
+		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,0)) return; //Read dest!
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			++temp;
-			dest = temp;
+			FLAGW_ZF(0);
+			temp = 0;
+			BST_cnt = 0; //Init counter!
+			for (;(((instructionbufferw>>temp)&1)==0) && (temp<16);) //Still searching?
+			{
+				++temp;
+				instructionbufferw2 = temp;
+				++BST_cnt; //Increase counter!
+			}
 			++BST_cnt; //Increase counter!
+			++CPU[activeCPU].instructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		++BST_cnt; //Increase counter!
-		modrm_write16(&params,0,dest,0); //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,0,0)) return; //Write the result!
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 } //BSF /r r16,r/m16
 void CPU80386_OP0FBC_32() {
-	uint_32 src,dest,temp;
+	uint_32 temp;
 	modrm_generateInstructionTEXT("BSFD",32,0,PARAM_MODRM12);
 	if (modrm_check32(&params,1,1)) return;
 	if (modrm_check32(&params,1,0)) return;
-	src = modrm_read32(&params,1); //Read src!
-	if (src==0) //Nothing?
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,1)) return; //Read src!
+	if (instructionbufferd==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
-		BST_cnt = 0; //Init counter!
+		BST_cnt = 0; //No count!
+		CPU_apply286cycles(); /* Apply cycles */
 	}
 	else
 	{
-		dest = modrm_read32(&params,0); //Read dest!
-		FLAGW_ZF(0);
-		temp = 0;
-		BST_cnt = 0; //Init counter!
-		for (;(((src>>temp)&1)==0) && (temp<32);) //Still searching?
+		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,0)) return; //Read dest!
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			++temp;
-			dest = temp; //Store temporary result!
+			FLAGW_ZF(0);
+			temp = 0;
+			BST_cnt = 0; //Init counter!
+			for (;(((instructionbufferd>>temp)&1)==0) && (temp<32);) //Still searching?
+			{
+				++temp;
+				instructionbufferd2 = temp;
+				++BST_cnt; //Increase counter!
+			}
 			++BST_cnt; //Increase counter!
+			++CPU[activeCPU].instructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		++BST_cnt; //Increase counter!
-		modrm_write32(&params,0,dest); //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,0)) return; //Write the result!
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 } //BSF /r r32,r/m32
 
 void CPU80386_OP0FBD_16() {
-	word src,dest,temp;
+	word temp;
 	modrm_generateInstructionTEXT("BSRW",16,0,PARAM_MODRM12);
 	if (modrm_check16(&params,1,1)) return;
 	if (modrm_check16(&params,1,0)) return;
-	src = modrm_read16(&params,1); //Read src!
-	if (src==0) //Nothing?
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,1)) return; //Read src!
+	if (instructionbufferw==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
 		BST_cnt = 0; //No count!
+		CPU_apply286cycles(); /* Apply cycles */
 	}
 	else
 	{
-		dest = modrm_read16(&params,0); //Read dest!
-		FLAGW_ZF(0);
-		temp = 15;
-		BST_cnt = 0;
-		for (;(((src>>temp)&1)==0) && (temp!=0xFFFF);) //Still searching?
+		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,0)) return; //Read dest!
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			--temp;
-			dest = temp;
+			FLAGW_ZF(0);
+			temp = 15;
+			BST_cnt = 0;
+			for (;(((instructionbufferw>>temp)&1)==0) && (temp!=0xFFFF);) //Still searching?
+			{
+				--temp;
+				instructionbufferw2 = temp;
+			}
+			++CPU[activeCPU].instructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		modrm_write16(&params,0,dest,0); //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,0,0)) return; //Write the result!
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 } //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {
-	uint_32 src,dest,temp;
+	uint_32 temp;
 	modrm_generateInstructionTEXT("BSRD",32,0,PARAM_MODRM12);
 	if (modrm_check32(&params,1,1)) return;
 	if (modrm_check32(&params,1,0)) return;
-	src = modrm_read32(&params,1); //Read src!
-	if (src==0) //Nothing?
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,1)) return; //Read src!
+	if (instructionbufferd==0) //Nothing?
 	{
 		FLAGW_ZF(1); //Set zero flag!
 		BST_cnt = 0; //No count!
+		CPU_apply286cycles(); /* Apply cycles */
 	}
 	else
 	{
-		dest = modrm_read32(&params,0); //Read dest!
-		FLAGW_ZF(0);
-		temp = 15;
-		for (;(((src>>temp)&1)==0) && (temp!=0xFFFFFFFF);) //Still searching?
+		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,0)) return; //Read dest!
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			++temp;
-			dest = temp; //Store temporary result!
+			FLAGW_ZF(0);
+			temp = 15;
+			BST_cnt = 0;
+			for (;(((instructionbufferd>>temp)&1)==0) && (temp!=0xFFFFFFFF);) //Still searching?
+			{
+				--temp;
+				instructionbufferd2 = temp;
+			}
+			++CPU[activeCPU].instructionstep;
+			CPU_apply286cycles(); /* Apply cycles */
+			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		modrm_write32(&params,0,dest); //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(2,instructionbufferd2,0)) return; //Write the result!
 	}
-	CPU_apply286cycles(); /* Apply cycles */
 } //BSR /r r32,r/m32
