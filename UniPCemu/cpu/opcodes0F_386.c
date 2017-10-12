@@ -1138,7 +1138,6 @@ void CPU80386_OP0FBA_16() {
 }
 
 void CPU80386_OP0FBA_32() {
-	uint_32 val;
 	thereg = MODRM_REG(params.modrm);
 
 	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
