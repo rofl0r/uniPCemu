@@ -1028,7 +1028,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==2) //Reading prefixes or opcode?
 		{
 			nextprefix: //Try next prefix/opcode?
-			if (CPU_readOP(OP)) return 1; //Read opcode or prefix?
+			if (CPU_readOP(OP,1)) return 1; //Read opcode or prefix?
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 			if (CPU_isPrefix(*OP)) //We're a prefix?
 			{
@@ -1052,7 +1052,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			if ((*OP == 0x0F) && (EMULATED_CPU >= CPU_80286)) //0F instruction extensions used?
 			{
-				if (CPU_readOP(OP)) return 1; //Read the actual opcode to use!
+				if (CPU_readOP(OP,1)) return 1; //Read the actual opcode to use!
 				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				CPU[activeCPU].is0Fopcode = 1; //We're a 0F opcode!
 				CPU[activeCPU].instructionfetch.CPU_fetchphase = 0; //We're fetched completely! Ready for first decode!
@@ -1123,13 +1123,13 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
 					{
-						if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+						if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm8?
 				{
-					if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+					if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
@@ -1138,13 +1138,13 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
-						if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+						if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm16?
 				{
-					if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+					if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
@@ -1153,27 +1153,27 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
-						if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate!
+						if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm32?
 				{
-					if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate!
+					if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 8: //imm16 + imm8
 				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 				{
-					if (CPU_readOPw(&immw)) return 1; //Read 16-bit immediate!
+					if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Start fetching the second parameter!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
 				}
 				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 				{
-					if (CPU_readOP(&immb)) return 1; //Read 8-bit immediate!
+					if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're fetching the second(finished) parameter! This way, we're done fetching!
 				}
@@ -1185,7 +1185,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 					{
 						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 						{
-							if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+							if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate offset!
 							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 							imm64 = (uint_64)imm32; //Convert to 64-bit!
 							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
@@ -1193,7 +1193,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 						}
 						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 						{
-							if (CPU_readOPw(&immw)) return 1; //Read another 16-bit immediate!
+							if (CPU_readOPw(&immw,1)) return 1; //Read another 16-bit immediate!
 							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 							imm64 |= ((uint_64)immw << 32);
 							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're finished!
@@ -1204,7 +1204,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				{
 					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 					{
-						if (CPU_readOPdw(&imm32)) return 1; //Read 32-bit immediate offset!
+						if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate offset!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 						imm64 = (uint_64)imm32; //Convert to 64-bit!
 						CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
@@ -1212,7 +1212,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 					}
 					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 					{
-						if (CPU_readOPw(&immw)) return 1; //Read another 16-bit immediate!
+						if (CPU_readOPw(&immw,1)) return 1; //Read another 16-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 						imm64 |= ((uint_64)immw << 32);
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
@@ -1223,12 +1223,12 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 			case 0xA: //imm16/32, depending on the address size?
 				if (CPU_Address_size[activeCPU]) //32-bit address?
 				{
-					if (CPU_readOPdw(&immaddr32)) return 1; //Read 32-bit immediate offset!
+					if (CPU_readOPdw(&immaddr32,1)) return 1; //Read 32-bit immediate offset!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				else //16-bit address?
 				{
-					if (CPU_readOPw(&immw)) return 1; //Read 32-bit immediate offset!
+					if (CPU_readOPw(&immw,1)) return 1; //Read 32-bit immediate offset!
 					immaddr32 = (uint_32)immw; //Convert to 32-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}

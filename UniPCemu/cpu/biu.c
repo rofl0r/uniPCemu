@@ -340,7 +340,7 @@ byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
-	if (PIQ_block==1) { PIQ_block = 0; return; /* Blocked access: only fetch one byte instead of a full word! */ }
+	if ((PIQ_block==1) || (PIQ_block==9)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
 	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_base[CPU_SEGMENT_CS]+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
@@ -352,7 +352,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0)); //Add the next byte from memory into the buffer!
 	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
 	{
-		PIQ_block &= 1; //Start blocking when it's 3(byte fetch instead of word fetch). Otherwise, continue as normally!		
+		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
 	}
 	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
@@ -369,7 +369,7 @@ void BIU_dosboxTick()
 	}
 }
 
-byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
+byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
 	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
 	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
@@ -390,7 +390,7 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 				MMU_addOP(*result); //Add to the opcode cache!
 			}
 			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
-			++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
+			if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
@@ -408,22 +408,38 @@ byte CPU_readOP(byte *result) //Reads the operation (byte) at CS:EIP
 		MMU_addOP(*result); //Add to the opcode cache!
 	}
 	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
-	++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
+	if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 	return 0; //Give the result!
 }
 
-byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
+byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at CS:EIP
 {
 	static byte temp, temp2;
+	if (EMULATED_CPU>=CPU_80286) //80286+ reads it in one go(one single cycle)?
+	{
+		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
+		{
+			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-1)) //Enough free to read the entire part?
+			{
+				if (CPU_readOP(&temp,0)) return 1; //Read OPcode!
+				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+				++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+				goto fetchsecondhalfw; //Go fetch the second half
+			}
+			return 1; //Abort: not loaded in the PIQ yet!
+		}
+		//No PIQ installed? Use legacy method!
+	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
 	{
-		if (CPU_readOP(&temp)) return 1; //Read OPcode!
+		if (CPU_readOP(&temp,1)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
 	{
-		if (CPU_readOP(&temp2)) return 1; //Read OPcode!
+		fetchsecondhalfw: //Fetching the second half of the data?
+		if (CPU_readOP(&temp2,singlefetch)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
 		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
@@ -431,17 +447,33 @@ byte CPU_readOPw(word *result) //Reads the operation (word) at CS:EIP
 	return 0; //We're fetched!
 }
 
-byte CPU_readOPdw(uint_32 *result) //Reads the operation (32-bit unsigned integer) at CS:EIP
+byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
 	static word resultw1, resultw2;
+	if (likely(EMULATED_CPU>=CPU_80386)) //80386+ reads it in one go(one single cycle)?
+	{
+		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
+		{
+			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-3)) //Enough free to read the entire part?
+			{
+				if (CPU_readOPw(&resultw1,0)) return 1; //Read OPcode!
+				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+				++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
+				goto fetchsecondhalfd; //Go fetch the second half
+			}
+			return 1; //Abort: not loaded in the PIQ yet!
+		}
+		//No PIQ installed? Use legacy method!
+	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
 	{
-		if (CPU_readOPw(&resultw1)) return 1; //Read OPcode!
+		if (CPU_readOPw(&resultw1,1)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
 	{
-		if (CPU_readOPw(&resultw2)) return 1; //Read OPcode!
+		fetchsecondhalfd: //Fetching the second half of the data?
+		if (CPU_readOPw(&resultw2,singlefetch)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
 	}
@@ -699,6 +731,7 @@ void CPU_tickBIU()
 {
 	byte memory_waitstates = 0;
 	CPU_CycleTimingInfo *cycleinfo;
+	byte PIQ_RequiredSize,PIQ_CurrentBlockSize; //The required size for PIQ transfers!
 	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
 
 	byte BIU_active = 1; //Are we counted as active cycles?
@@ -899,16 +932,27 @@ void CPU_tickBIU()
 							else
 							{
 								tryprefetch80286:
+								PIQ_RequiredSize = 1; //Minimum of 2 bytes required for a fetch to happen!
+								PIQ_CurrentBlockSize = 3; //We're blocking after 1 byte access when at an odd address!
+								if (EMULATED_CPU>=CPU_80386) //386+?
+								{
+									PIQ_RequiredSize |= 2; //Minimum of 4 bytes required for a fetch to happen!
+									PIQ_CurrentBlockSize |= 4; //Apply 32-bit quantities as well, when allowed!
+								}
 								if (BIU_processRequests(memory_waitstates)) //Processing a request?
 								{
 									BIU[activeCPU].requestready = 0; //We're starting a request!
 									++BIU[activeCPU].prefetchclock; //Tick!					
 								}
-								else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>1) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
+								else if (fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 								{
 									CPU[activeCPU].BUSactive = 1; //Start memory cycles!
-									PIQ_block = 3; //We're blocking after 1 byte access when at an odd address!
+									PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 									CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+									if (PIQ_RequiredSize&2) //DWord access, when allowed?
+									{
+										CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+									}
 									++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 									BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 									BIU[activeCPU].requestready = 0; //We're starting a request!

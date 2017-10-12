@@ -43,9 +43,9 @@ void BIU_dosboxTick(); //Tick the BIU, dosbox style!
 byte BIU_Ready(); //Are we ready to continue execution?
 
 //Opcode read support for ModR/M!
-byte CPU_readOP(byte *result); //Reads the operation (byte) at CS:EIP
-byte CPU_readOPw(word *result); //Reads the operation (word) at CS:EIP
-byte CPU_readOPdw(uint_32 *result); //Reads the operation (32-bit unsigned integer) at CS:EIP
+byte CPU_readOP(byte *result, byte singlefetch); //Reads the operation (byte) at CS:EIP
+byte CPU_readOPw(word *result, byte singlefetch); //Reads the operation (word) at CS:EIP
+byte CPU_readOPdw(uint_32 *result, byte singlefetch); //Reads the operation (32-bit unsigned integer) at CS:EIP
 
 void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 

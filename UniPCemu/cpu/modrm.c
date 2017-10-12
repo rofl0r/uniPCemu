@@ -2298,7 +2298,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	//Start fetching the parameters from the opcode parser!
 	if (param->instructionfetch.MODRM_instructionfetch==0) //Fetching ModR/M byte?
 	{
-		if (CPU_readOP(&param->modrm)) return 1; /* modrm byte first */
+		if (CPU_readOP(&param->modrm,1)) return 1; /* modrm byte first */
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		param->instructionfetch.MODRM_instructionfetch = 1; //SIB checking now!
 	}
@@ -2307,7 +2307,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	{
 		if (modrm_useSIB(param,size)) //Using SIB byte?
 		{
-			if (CPU_readOP(&param->SIB)) return 1; //Read SIB byte or 0!
+			if (CPU_readOP(&param->SIB,1)) return 1; //Read SIB byte or 0!
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		}
 		else
@@ -2324,15 +2324,15 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		switch (modrm_useDisplacement(param,size)) //Displacement?
 		{
 		case 1: //DISP8?
-			if (CPU_readOP(&param->displacement.low16_low)) return 1; //Use 8-bit!
+			if (CPU_readOP(&param->displacement.low16_low,1)) return 1; //Use 8-bit!
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 			break;
 		case 2: //DISP16?
-			if (CPU_readOPw(&param->displacement.low16)) return 1; //Use 16-bit!
+			if (CPU_readOPw(&param->displacement.low16,1)) return 1; //Use 16-bit!
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 			break;
 		case 3: //DISP32?
-			if (CPU_readOPdw(&param->displacement.dword)) return 1; //Use 32-bit!
+			if (CPU_readOPdw(&param->displacement.dword,1)) return 1; //Use 32-bit!
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 			break;
 		default: //Unknown/no displacement?
