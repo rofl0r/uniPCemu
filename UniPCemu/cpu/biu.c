@@ -949,7 +949,7 @@ void CPU_tickBIU()
 									CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 									PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 									CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-									if (PIQ_RequiredSize&2) //DWord access, when allowed?
+									if ((PIQ_RequiredSize&2) && ((EMULATED_CPU>=CPU_80386) && (CPU_databussize==0))) //DWord access on a 32-bit BUS, when allowed?
 									{
 										CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 									}
