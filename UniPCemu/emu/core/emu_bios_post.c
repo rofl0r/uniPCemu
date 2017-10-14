@@ -240,9 +240,23 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			//Load a normal BIOS ROM, according to the chips!
 			if (is_XT) //5160/5162(80286) XT PC?
 			{
-				if (EMULATED_CPU!=CPU_80286) verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
-				else verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
-				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				if ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) && (EMULATED_CPU!=CPU_80286)) //Diagnostics mode?
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.XT.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+				}
+				if (EMULATED_CPU!=CPU_80286)
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				}
+				if ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)) //Diagnostics mode?
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.XT286.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+				}
+				
+				verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
 
 				if (EMULATED_CPU == CPU_80286) //80286 has different ROMs?
 				{
@@ -298,6 +312,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				if ((EMULATED_CPU>=CPU_80386)) //386+ CPU? We're 32-bit instead!
 				{
+					if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+					{
+						verified = BIOS_load_custom(NULL, "BIOSROM.32.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+						if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+					}
+
 					verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
@@ -323,6 +343,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 
 				tryATROM:
+				if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.AT.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+				}
+
 				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
 				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
