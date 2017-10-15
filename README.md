@@ -12,8 +12,11 @@ This README would normally document whatever steps are necessary to get your app
 * Summary of set up
 - This repository goes into a folder named x86EMU. Place the tools support repository(https://bitbucket.org/superfury/tools.git) parralel to this repository folder(Required for PSP builds).
 - Install Minimalist PSPSDK devkit(PSP) or Visual C++, MinGW(Windows) or GNU C++ toolchsin(Linux).
-- Install SDL packages for the devkit, in C:\SDL for Windows(copy SDL2-2.* folder contents to C:\SDL\SDL2 (and the SDL2_net folder to C:\SDL\SDL2_net), to use SDL 1.2.*, copy the folder contents to C:\SDL\SDL1.2.15(and the SDL_net folder to C:\SDL\SDL_net-1.2.8)), installers for MinPSPW and /mingw(SDL or SDL2). Open the projects within the VisualC subfolders(the solution file) and compile SDL2 and SDL2main. Also compile the SDL2_net project when used(after compiling SDL2 itself). Don't forget to add the paths C:\SDL\SDL2\include to both Win32 and x64 target include directories, as well as the C:\SDL\SDL2\VisualC\Win32\Release to the Win32 library directories and C:\SDL\SDL2\VisualC\x64\Release to the x64 library directories.
-- Set the Visual C++ Local Windows Debugger to use "$(TargetDir)" for it's working directory, to comply with the other paths set in the project.
+- Install SDL packages for the devkit, in C:\SDL for Windows(copy SDL2-2.* folder contents to C:\SDL\SDL2 (and the SDL2_net folder to C:\SDL\SDL2_net), to use SDL 1.2.*, copy the folder contents to C:\SDL\SDL1.2.15(and the SDL_net folder to C:\SDL\SDL_net-1.2.8)), installers for MinPSPW and /mingw(SDL or SDL2).
+-- For Visual C++:
+--- Open the projects within the VisualC subfolders(the solution file) and compile SDL2 and SDL2main. Also compile the SDL2_net project when used(after compiling SDL2 itself).
+---- Don't forget to add the paths C:\SDL\SDL2\include to both Win32 and x64 target include directories, as well as C:\SDL\SDL2\VisualC\$(Platform)\$(Configuration) to both Win32 and x64 target library directories.
+--- Set the Visual C++ Local Windows Debugger to use "$(TargetDir)" for it's working directory, to comply with the other paths set in the project.
 
 * Configuration
 - Make sure there is a compile directory parallel to the project directory(projects_build\x86emu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows).
