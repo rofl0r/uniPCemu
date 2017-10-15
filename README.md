@@ -5,7 +5,9 @@ This README would normally document whatever steps are necessary to get your app
 ### What is this repository for? ###
 
 * Quick summary
+	- The UniPCemu x86 emulator project.
 * Version
+	- Currently unused. Releases are the commit date in format *YYYYMMDD_HHMM*.
 
 ### How do I get set up? ###
 
@@ -19,23 +21,29 @@ This README would normally document whatever steps are necessary to get your app
 	- Set the Visual C++ Local Windows Debugger to use "$(TargetDir)" for it's working directory, to comply with the other paths set in the project.
 
 * Configuration
-- Make sure there is a compile directory parallel to the project directory(projects_build\x86emu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows).
+	- Make sure there is a compile directory parallel to the project directory(projects_build\unipcemu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows and by the Windows/Linux when building using the Makefile).
 * Dependencies
-- See set up.
-* Adding the Android SDL2 build to the project
-- Download the latest version of SDL2 from the project homepage. Copy the android-project\src\org directory to android-project/src. Copy the include and source directories, as well as the Android.mk file to the android-project/jni/SDL2 folder.
-* Adding Android SDL2_net to the project
-- Download the latest version of SDL2_net from the project homepage. Copy all c/h files and Android.mk to a newly created directory android-project\jni\SDL2_net folder. Edit android-project\src\org\libsdl\app\SDLActivity.java, removing // before '// "SDL2_net",'.
+	- See set up.
+* Adding the Android SDL2 build to the Android project
+	- Download the latest version of SDL2 from the project homepage. 
+	- Copy the android-project\src\org directory to android-project/src.
+	- Copy the include and source directories, as well as the Android.mk file to the android-project/jni/SDL2 folder.
+* Adding Android SDL2_net to the Android project
+	- Download the latest version of SDL2_net from the project homepage.
+	- Copy all c/h files and Android.mk to a newly created directory android-project\jni\SDL2_net folder.
+	- Edit android-project\src\org\libsdl\app\SDLActivity.java, removing *//* before '*// "SDL2_net",'*.
 * How to run tests
-- Run the remake.bat file in the project directory(Requires tools repository) and use a PSP emulator to test(like JPCSP, which is supported by the batch file). On Windows, open the Visual C++ project, build and run.
+	- Run the remake.bat file in the project directory(Requires tools repository) and use a PSP emulator to test(like JPCSP, which is supported by the batch file). On Windows, open the Visual C++ project, build and run.
 * Deployment instructions
-- Simply build using the devkit(Makefile command "make psp/win/linux [re]build [SDL2[-static]](to (re)build SDL2 with(out) static linking)" or Visual C++, copy the executable (x86EMU.exe for windows or EBOOT.PBP for the PSP) to the executable directory, add SDL dll when needed, add disk images to use and run the executable. Setting up is integrated into the executable, and it will automatically open the BIOS for setting up during first execution. The settings are saved into a BIOS.DAT file.
-- To make the Android NDK use the SDL2_net library and compile with internet support, add " useSDL2_net=1" to the usual ndk-build command line or equivalent. Otherwise, it isn't enabled/used.
+	- Simply build using the devkit(Makefile command "make psp/win/linux [re]build [SDL2[-static]](to (re)build SDL2 with(out) static linking)" or Visual C++, copy the executable (x86EMU.exe for windows or EBOOT.PBP for the PSP) to the executable directory, add SDL dll when needed, add disk images to use and run the executable. Setting up is integrated into the executable, and it will automatically open the BIOS for setting up during first execution. The settings are saved into a BIOS.DAT file.
+	- To make the Android NDK use the SDL2_net library and compile with internet support, add " useSDL2_net=1" to the usual ndk-build command line or equivalent. Otherwise, it isn't enabled/used.
 
 ### Contribution guidelines ###
 
 * Writing tests
+	- Undocumented
 * Code review
+	- Add an issue to the issue tracker and report the change.
 * Other guidelines
 
 ### Who do I talk to? ###
