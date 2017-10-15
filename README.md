@@ -31,7 +31,7 @@ This README would normally document whatever steps are necessary to get your app
 * Adding Android SDL2_net to the Android project
 	- Download the latest version of SDL2_net from the project homepage.
 	- Copy all c/h files and **Android.mk** to a newly created directory **android-project\jni\SDL2_net** folder.
-	- Edit **android-project\src\org\libsdl\app\SDLActivity.java**, removing **//** before **'// "SDL2_net",'**.
+	- Edit **android-project\src\org\libsdl\app\SDLActivity.java**, removing **//** before **// "SDL2_net",**.
 * How to run tests
 	- Run the **remake.bat** file in the project directory(Requires tools repository) and use a PSP emulator to test(like JPCSP, which is supported by the batch file). On Windows, open the Visual C++ project, build and run.
 * Deployment instructions
