@@ -185,7 +185,7 @@ uint_32 CPU_EIPmask()
 
 byte CPU_EIPSize()
 {
-	return (CPU_EIPmask()==0xFFFF)?PARAM_IMM16:PARAM_IMM32; //Full mask!
+	return ((CPU_EIPmask()==0xFFFF) && (debugger_forceEIP()==0))?PARAM_IMM16:PARAM_IMM32; //Full mask or when forcing EIP to be used!
 }
 
 

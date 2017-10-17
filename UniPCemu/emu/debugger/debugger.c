@@ -126,6 +126,11 @@ byte debuggerINT = 0; //Interrupt special trigger?
 
 extern word waitingforiret; //Logging until IRET?
 
+byte debugger_forceEIP()
+{
+	return ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)); //Force EIP to be used?
+}
+
 byte debugger_logging()
 {
 	byte enablelog=0; //Default: disabled!

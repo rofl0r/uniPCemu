@@ -49,6 +49,8 @@ byte isDebuggingPOSTCodes(); //Debug POST codes?
 void initDebugger(); //Initialize the debugger if needed!
 void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type);
 
+byte debugger_forceEIP(); //Force EIP to be used for debugging?
+
 #define LOGMEMORYACCESS_NORMAL 0
 #define LOGMEMORYACCESS_PAGED 1
 #define LOGMEMORYACCESS_DIRECT 2
