@@ -1102,10 +1102,10 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //DEh: UNK
 		{ NULL, NULL }, //DFh: COProcessor minimum
 		//0xE0:
-		{ NULL, CPU80386_OPE0 }, //E0h:
-		{ NULL, CPU80386_OPE1 }, //E1h:
-		{ NULL, CPU80386_OPE2 }, //E2h:
-		{ NULL, CPU80386_OPE3 }, //E3h:
+		{ CPU80386_OPE0, NULL }, //E0h:
+		{ CPU80386_OPE1, NULL }, //E1h:
+		{ CPU80386_OPE2, NULL }, //E2h:
+		{ CPU80386_OPE3, NULL }, //E3h:
 		{ NULL, NULL }, //E4h:
 		{ NULL, CPU80386_OPE5 }, //E5h:
 		{ NULL, NULL }, //E6h:
