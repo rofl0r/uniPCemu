@@ -57,6 +57,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define PARAM_MODRM21_IMM8 9
 #define PARAM_MODRM12_CL 10
 #define PARAM_MODRM21_CL 11
+#define PARAM_IMM8_PARAM 20
+#define PARAM_IMM16_PARAM 21
+#define PARAM_IMM32_PARAM 22
 
 //Specifics based on the information table:
 #define PARAM_MODRM_01 14

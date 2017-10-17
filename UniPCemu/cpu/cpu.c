@@ -355,13 +355,26 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 				strcat(result," %02X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
+			case PARAM_IMM8_PARAM: //imm8
+				strcat(result,"%02X"); //1 param!
+				debugger_setcommand(result,paramdata);
+				break;
 			case PARAM_IMM16: //imm16
 				strcat(result," %04X"); //1 param!
+				debugger_setcommand(result,paramdata);
+				break;
+			case PARAM_IMM16_PARAM: //imm16
+				strcat(result,"%04X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM32: //imm32
 				strcat(result," %08X"); //1 param!
 				debugger_setcommand(result,paramdata);
+				break;
+			case PARAM_IMM32_PARAM: //imm32
+				strcat(result,"%08X"); //1 param!
+				debugger_setcommand(result,paramdata);
+				break;
 			default: //Unknown?
 				break;
 		}
