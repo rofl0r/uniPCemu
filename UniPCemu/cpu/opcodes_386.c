@@ -1183,12 +1183,12 @@ void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint
 	goto nextstep; //Start the next step!
 	//Finished when remainder<divisor or remainder==0.
 	gotresult: //We've gotten a result!
-	if (temp>((1<<resultbits)-1)) //Modulo overflow?
+	if ((uint_64)temp>((1ULL<<resultbits)-1)) //Modulo overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
 	}
-	if (*quotient>((1<<resultbits)-1)) //Quotient overflow?
+	if ((uint_64)*quotient>((1ULL<<resultbits)-1)) //Quotient overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
@@ -3306,7 +3306,7 @@ OPTINLINE void op_div32(uint_64 valdiv, uint_32 divisor) {
 			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
-	}
+}
 
 OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor) {
 	//uint32_t v1, v2,
@@ -3383,7 +3383,7 @@ void op_grp3_32() {
 		break;
 	case 4: //MULW
 		tempEAX = REG_EAX; //Save a backup for calculating cycles!
-		temp1.val64 = (uint32_t)oper1d * (uint32_t)REG_EAX;
+		temp1.val64 = (uint64_t)oper1d * (uint64_t)REG_EAX;
 		REG_EAX = temp1.val32;
 		REG_EDX = temp1.val32high;
 		if (REG_EDX) { FLAGW_CF(1); FLAGW_OF(1); }
@@ -3409,8 +3409,8 @@ void op_grp3_32() {
 		}
 		break;
 	case 5: //IMULW
-		temp1.val32 = REG_EAX;
-		temp2.val32 = oper1d;
+		temp1.val64 = REG_EAX;
+		temp2.val64 = oper1d;
 		//Sign extend!
 		if (temp1.val32 & 0x80000000) temp1.val64 |= 0xFFFFFFFF00000000ULL;
 		if (temp2.val32 & 0x80000000) temp2.val64 |= 0xFFFFFFFF00000000ULL;

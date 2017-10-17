@@ -1101,8 +1101,8 @@ typedef union PACKED
 		uint_32 val32high; //Filler
 		#endif
 	};
-	uint_32 val64; //Normal
-	int_32 val64s; //Signed
+	uint_64 val64; //Normal
+	int_64 val64s; //Signed
 } VAL64Splitter; //Our 32-bit value splitter!
 #include "headers/endpacked.h" //End of packed type!
 
