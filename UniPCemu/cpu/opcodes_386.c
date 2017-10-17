@@ -3383,7 +3383,7 @@ void op_grp3_32() {
 		break;
 	case 4: //MULW
 		tempEAX = REG_EAX; //Save a backup for calculating cycles!
-		temp1.val64 = (uint32_t)oper1d * (uint32_t)REG_AX;
+		temp1.val64 = (uint32_t)oper1d * (uint32_t)REG_EAX;
 		REG_EAX = temp1.val32;
 		REG_EDX = temp1.val32high;
 		if (REG_EDX) { FLAGW_CF(1); FLAGW_OF(1); }
@@ -3418,7 +3418,7 @@ void op_grp3_32() {
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax
 		REG_EDX = temp3.val32high; //into register dx
-		if (((temp3.val64>>31)==0) || ((temp3.val64>>31)==0x1FFFF)) FLAGW_OF(0);
+		if (((temp3.val64>>31)==0) || ((temp3.val64>>31)==0x1FFFFFFFF)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //Same!
 		FLAGW_SF((REG_EDX>>31)&1); //Sign flag is affected!
