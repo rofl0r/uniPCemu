@@ -1012,7 +1012,14 @@ OPTINLINE static void debugger_autolog()
 				{
 					if (strcmp(executedinstructionstatelog,"\t")!=0) //Valid state(not containing nothing at all)?
 					{
-						dolog("debugger","%s\t",executedinstructionstatelog); //Instruction/State only!
+						if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Special case?
+						{
+							dolog("debugger","%s",executedinstructionstatelog); //Instruction/State only!
+						}
+						else
+						{
+							dolog("debugger","%s\t",executedinstructionstatelog); //Instruction/State only!
+						}
 					}
 				}
 			}
