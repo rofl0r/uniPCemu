@@ -116,6 +116,12 @@ typedef struct PACKED
 #define DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED 9
 //Debugging only, Single line, simplified
 #define DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED 10
+//Universal logging method, always
+#define DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT 11
+//Always, even during skipping?
+#define DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT 12
+//Universal logging method, when debugging only.
+#define DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT 13
 
 //Debugger state log
 //Disabled state log

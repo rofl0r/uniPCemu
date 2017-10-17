@@ -3174,7 +3174,7 @@ void BIOS_DebugLog()
 	GPU_EMU_printscreen(0, 4, "Debugger log: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 11; //Amount of Execution modes!
+	numlist = 13; //Amount of Execution modes!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
@@ -3191,6 +3191,10 @@ void BIOS_DebugLog()
 	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE],"Only when debugging, single line format");
 	strcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED],"Always log, even during skipping, single line format, simplified");
 	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED],"Only when debugging, single line format, simplified");
+	strcpy(itemlist[DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT],"Always log, common log format");
+	strcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT],"Always log, even during skipping, common log format");
+	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT],"Only when debugging, common log format");
+
 	int current = 0;
 	switch (BIOS_Settings.debugger_log) //What debugger log mode?
 	{
@@ -3205,6 +3209,9 @@ void BIOS_DebugLog()
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE: //Only when debugging, single line format
 	case DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED: //Always log, even during skipping, single line format, simplified
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED: //Only when debugging, single line format, simplified
+	case DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT: //Always log, common log format
+	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT: //Always log, even during skipping, common log format
+	case DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT: //Only when debugging, common log format
 		current = BIOS_Settings.debugger_log; //Valid: use!
 		break;
 	default: //Invalid
@@ -3236,6 +3243,9 @@ void BIOS_DebugLog()
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE: //Only when debugging, single line format
 	case DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED: //Always log, even during skipping, single line format, simplified
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED: //Only when debugging, single line format, simplified
+	case DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT: //Always log, common log format
+	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT: //Always log, even during skipping, common log format
+	case DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT: //Only when debugging, common log format
 	default: //Changed?
 		if (file != current) //Not current?
 		{
@@ -4877,6 +4887,15 @@ setShowCPUSpeed:
 		break;
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED: //Only when debugging, single line format
 		strcat(menuoptions[advancedoptions++], "Only when debugging, single line format, simplified");
+		break;
+	case DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT: //Always log, common log format
+		strcat(menuoptions[advancedoptions++], "Always log, common log format");
+		break;
+	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT: //Always log, even during skipping, common log format
+		strcat(menuoptions[advancedoptions++], "Always log, even during skipping, common log format");
+		break;
+	case DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT: //Only when debugging, common log format
+		strcat(menuoptions[advancedoptions++], "Only when debugging, common log format");
 		break;
 	default:
 		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!

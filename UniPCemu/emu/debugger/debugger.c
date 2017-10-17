@@ -26,6 +26,10 @@
 //Debug logging for protected mode?
 //#define DEBUG_PROTECTEDMODE
 
+byte debugger_loggingtimestamp = 1; //Are we to log timestamps?
+
+byte log_timestampbackup; //Backup of the original timestamp value!
+
 //Debugger skipping functionality
 uint_32 skipopcodes = 0; //Skip none!
 byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
@@ -132,11 +136,14 @@ byte debugger_logging()
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP: //Always, but also when skipping?
 	case DEBUGGERLOG_ALWAYS_SINGLELINE: //Always log, even during skipping, single line format
 	case DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED: //Always log, even during skipping, single line format, simplfied
+	case DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT: //Always log, common log format
+	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT: //Always log, even during skip step, common log format
 		enablelog = 1; //Always enabled!
 		break;
 	case DEBUGGERLOG_DEBUGGING:
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE:
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED:
+	case DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT:
 		enablelog = debugging(); //Enable log when debugging!
 		break;
 	case DEBUGGERLOG_INT: //Interrupts only?
@@ -180,6 +187,10 @@ char debugger_memoryaccess_line[256];
 
 void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type)
 {
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+	{
+		return; //No memory access logging, we're disabled for now!
+	}
 	if (iswrite)
 	{
 		switch (type)
@@ -187,7 +198,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_NORMAL:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Writing to normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -206,7 +220,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_PAGED:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Writing to paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -225,7 +242,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_DIRECT:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Writing to physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -245,7 +265,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_RAM:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Writing to RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -264,7 +287,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","MMU: Writing to real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -289,7 +315,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_NORMAL:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Reading from normal memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -308,7 +337,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_PAGED:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Reading from paged memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -327,7 +359,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_DIRECT:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Reading from physical memory: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -347,7 +382,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_RAM:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","Reading from RAM: %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -366,7 +404,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 			case LOGMEMORYACCESS_RAM_LOGMMUALL:
 				if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not using a single line?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger","MMU: Reading from real %08X=%02X (%c)",address,value,stringsafeDebugger(value));
+					log_logtimestamp(log_timestampbackup); //Restore state!
 				}
 				else
 				{
@@ -409,10 +450,16 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 				switch (HWINT_saved)
 				{
 				case 1: //Trap/SW Interrupt?
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
+					log_logtimestamp(log_timestampbackup); //Restore state!
 					break;
 				case 2: //PIC Interrupt toggle?
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger", "HW interrupt: %04X", HWINT_nr);
+					log_logtimestamp(log_timestampbackup); //Restore state!
 					break;
 				default: //Unknown?
 					break;
@@ -426,11 +473,17 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					switch (verify.type) //What type?
 					{
 					case 1: //Trap/SW Interrupt?
+						log_timestampbackup = log_logtimestamp(2); //Save state!
+						log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 						dolog("debugger", "debuggerverify.dat: Trapped Interrupt: %04X", verify.CS); //Trap interrupt!
+						log_logtimestamp(log_timestampbackup); //Restore state!
 						break;
 					case 2: //PIC Interrupt toggle?
+						log_timestampbackup = log_logtimestamp(2); //Save state!
+						log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 						dolog("debugger", "debuggerverify.dat: HW Interrupt: %04X", verify.CS); //HW interrupt!
-						break;
+						log_logtimestamp(log_timestampbackup); //Restore state!
+					break;
 					default: //Unknown?
 						break; //Skip unknown special types: we don't handle them!
 					}
@@ -460,6 +513,8 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 				}
 				if (memcmp(&verify, &originalverify, sizeof(verify)) != 0) //Not equal?
 				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction(Entry number %08X):",debugger_index); //Show where we got our error!
 					debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
@@ -478,7 +533,10 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					CPU[activeCPU].registers->IP = verify.IP;
 					CPU[activeCPU].registers->FLAGS = verify.FLAGS;
 					updateCPUmode(); //Update the CPU mode: flags have been changed!
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 					dolog("debugger", "Expected:");
+					log_logtimestamp(log_timestampbackup); //Restore state!
 					debugger_logregisters("debugger",CPU[activeCPU].registers,debuggerHLT,debuggerReset); //Log the correct registers!
 					//Refresh our debugger registers!
 					memcpy(&debuggerregisters,CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
@@ -586,12 +644,21 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+	{
+		return; //No register logging, we're disabled for now!
+	}
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log the register state?
 	if (!registers || !filename) //Invalid?
 	{
+		log_timestampbackup = log_logtimestamp(2); //Save state!
+		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 		dolog(filename,"Log registers called with invalid argument!");
+		log_logtimestamp(log_timestampbackup); //Restore state!
 		return; //Abort!
 	}
+	log_timestampbackup = log_logtimestamp(2); //Save state!
+	log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 	if (EMULATED_CPU<=CPU_80286) //Emulating 80(1)86 registers?
 	{
 		#ifndef LOGFLAGSONLY
@@ -652,10 +719,15 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
 	}
+	log_logtimestamp(log_timestampbackup); //Restore state!
 }
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+	{
+		return; //No misc logging, we're disabled for now!
+	}
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log us: don't log register state!
 	int i;
 	//Full interrupt status!
@@ -665,6 +737,8 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	{
 		sprintf(buffer,"%s%u",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
+	log_timestampbackup = log_logtimestamp(2); //Save state!
+	log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
 	strcpy(buffer,""); //Clear the buffer!
 	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
@@ -677,6 +751,7 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 		dolog(filename,"VGA@%u,%u(CRT:%u,%u)",((SEQ_DATA *)getActiveVGA()->Sequencer)->x,((SEQ_DATA *)getActiveVGA()->Sequencer)->Scanline,getActiveVGA()->CRTC.x,getActiveVGA()->CRTC.y);
 		dolog(filename,"Display=%u,%u",GPU.xres,GPU.yres);
 	}
+	log_logtimestamp(log_timestampbackup); //Restore state!
 }
 
 extern word modrm_lastsegment;
@@ -709,10 +784,12 @@ OPTINLINE static void debugger_autolog()
 
 	if (debugger_logging()) //To log?
 	{
+		log_timestampbackup = log_logtimestamp(2); //Save state!
+		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 		if (CPU[activeCPU].executed)
 		{
 			//Now generate debugger information!
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not single-line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single-line?
 			{
 				if (last_modrm)
 				{
@@ -752,26 +829,29 @@ OPTINLINE static void debugger_autolog()
 			int i; //A counter for opcode data dump!
 			if (!debugger_set) //No debugger set?
 			{
-				strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
+				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) strcpy(fullcmd,"<Debugger not implemented: "); //Set to the last opcode!
 				for (i = 0; i < (int)OPlength; i++) //List the full command!
 				{
-					sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) sprintf(fullcmd, "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+					else sprintf(fullcmd, fullcmd[0]?"%s %02X":"%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
 				}
-				strcat(fullcmd, ">"); //End of #UNKOP!
+				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) strcat(fullcmd, ">"); //End of #UNKOP!
 			}
 			else
 			{
-				strcpy(fullcmd, "(");
+				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) strcpy(fullcmd, "(");
 				for (i = 0; i < (int)OPlength; i++) //List the full command!
 				{
-					sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
+					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) sprintf(fullcmd, "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
+					else { sprintf(fullcmd, fullcmd[0]?"%s %02X":"%s%02X", fullcmd, OPbuffer[i]); } //Add part of the opcode!
 				}
-				strcat(fullcmd, ")"); //Our opcode before disassembly!
+				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) strcat(fullcmd, ")"); //Our opcode before disassembly!
+				else strcat(fullcmd, " "); //Our opcode before disassembly!
 				strcat(fullcmd, debugger_prefix); //The prefix(es)!
 				strcat(fullcmd, debugger_command_text); //Command itself!
 			}
 
-			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Saved HW interrupt?
+			if (HWINT_saved && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Saved HW interrupt?
 			{
 				switch (HWINT_saved)
 				{
@@ -789,11 +869,18 @@ OPTINLINE static void debugger_autolog()
 			strcpy(executedinstruction,""); //Clear instruction!
 			if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
 			{
-				sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+				if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+				{
+					sprintf(executedinstruction,"%04X:%08X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+				}
+				else //8086 compatible log?
+				{
+					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+				}
 			}
 			else //286+? Use EIP!
 			{
-				if (EMULATED_CPU>CPU_80286) //Newer? Use 32-bits addressing!
+				if ((EMULATED_CPU>CPU_80286) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Newer? Use 32-bits addressing when newer or Common log format!
 				{
 					sprintf(executedinstruction,"%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
@@ -802,7 +889,7 @@ OPTINLINE static void debugger_autolog()
 					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 			}
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not single line?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single line?
 			{
 				dolog("debugger",executedinstruction); //The executed instruction!
 			}
@@ -890,7 +977,7 @@ OPTINLINE static void debugger_autolog()
 					}
 				}
 			}
-			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Not logging single lines?
+			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not logging single lines?
 			{
 				if (strlen(statelog))
 				{
@@ -902,12 +989,21 @@ OPTINLINE static void debugger_autolog()
 				strcpy(executedinstructionstatelog,""); //Init!
 				if (strlen(executedinstruction) && CPU[activeCPU].executed) //Executed instruction?
 				{
-					sprintf(executedinstructionstatelog,"%s\t%s",statelog,executedinstruction);
+					if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Special case?
+					{
+						sprintf(executedinstructionstatelog,"%s",executedinstruction); //Universal format!
+						goto finishstatelog; //Skip other data for now!
+					}
+					else
+					{
+						sprintf(executedinstructionstatelog,"%s\t%s",statelog,executedinstruction);
+					}
 				}
 				else //State only?
 				{
 					sprintf(executedinstructionstatelog,"%s\t",statelog);
 				}
+				finishstatelog:
 				if (strlen(debugger_memoryaccess_text)) //memory access?
 				{
 					dolog("debugger","%s\t%s",executedinstructionstatelog,debugger_memoryaccess_text);
@@ -922,14 +1018,18 @@ OPTINLINE static void debugger_autolog()
 			}
 			strcpy(debugger_memoryaccess_text,""); //Clear the text to apply: we're done!
 		}
+		log_logtimestamp(log_timestampbackup); //Restore state!
 
-		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Multiple lines and finished executing?
+		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Multiple lines and finished executing?
 		{
 			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
 			debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
 
+			log_timestampbackup = log_logtimestamp(2); //Save state!
+			log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 			dolog("debugger",""); //Empty line between comands!
+			log_logtimestamp(log_timestampbackup); //Restore state!
 			debuggerINT = 0; //Don't continue after an INT has been used!
 		}
 	} //Allow logging?
@@ -1277,7 +1377,8 @@ void debugger_step() //Processes the debugging step!
 			return; //We're still running, so start nothing!
 		}
 	}
-	debugger_simplifiedlog = ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)); //Simplified log?
+	debugger_simplifiedlog = ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)); //Simplified log?
+	debugger_loggingtimestamp = ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))?0:1; //Are we to log time too? Not with common log format!
 	debugger_thread = NULL; //Not a running thread!
 	debugger_autolog(); //Log when enabled!
 	if (CPU[activeCPU].executed) //Are we executed?
@@ -1330,6 +1431,7 @@ extern byte cpudebugger;
 
 void debugger_setcommand(char *text, ...)
 {
+	char *c;
 	if (cpudebugger) //Are we debugging?
 	{
 		va_list args; //Going to contain the list!
@@ -1337,11 +1439,25 @@ void debugger_setcommand(char *text, ...)
 		vsprintf (debugger_command_text, text, args); //Compile list!
 		va_end (args); //Destroy list!
 		debugger_set = 1; //We've set the debugger!
+		if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+		{
+			c = &debugger_command_text[0]; //Process it first!
+			for (;*c;)
+			{
+				if ((*c>='A') && (*c<='Z')) //Capital?
+				{
+					*c -= (int)'A'; //Decrease!
+					*c += (int)'a'; //Convert to lower case!
+				}
+				++c; //Next character!
+			}
+		}
 	}
 }
 
 void debugger_setprefix(char *text)
 {
+	char *c;
 	if ((debugger_prefix[0]=='\0') || (*text=='\0')) //No prefix yet or reset?
 	{
 		strcpy(debugger_prefix,text); //Set prefix!
@@ -1354,6 +1470,19 @@ void debugger_setprefix(char *text)
 	{
 		strcat(debugger_prefix, text); //Add prefix!
 		strcat(debugger_prefix, " "); //Prefix seperator!
+	}
+	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+	{
+		c = &debugger_prefix[0]; //Process it first!
+		for (;*c;)
+		{
+			if ((*c>='A') && (*c<='Z')) //Capital?
+			{
+				*c -= (int)'A'; //Decrease!
+				*c += (int)'a'; //Convert to lower case!
+			}
+			++c; //Next character!
+		}
 	}
 }
 
