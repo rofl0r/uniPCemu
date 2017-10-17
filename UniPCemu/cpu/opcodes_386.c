@@ -1534,8 +1534,8 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 	{
 		if (dest) //Register?
 		{
-			//destEIP = REG_EIP; //Store (E)IP for safety!
-			//modrm_updatedsegment(dest,val,0); //Check for an updated segment!
+			destEIP = REG_EIP; //Store (E)IP for safety!
+			modrm_updatedsegment((word *)dest,(word)val,0); //Check for an updated segment!
 			CPUPROT1
 			*dest = val;
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2567,7 +2567,9 @@ void CPU80386_OP85() {modrm_generateInstructionTEXT("TESTD",32,0,PARAM_MODRM_01)
 void CPU80386_OP87() {modrm_generateInstructionTEXT("XCHGD",32,0,PARAM_MODRM_01); CPU80386_internal_XCHG32(modrm_addr32(&params,MODRM_src0,0),modrm_addr32(&params,MODRM_src1,0),2); /*XCHG reg32,r/m32*/ }
 void CPU80386_OP89() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
 void CPU80386_OP8B() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,2); }
+void CPU80386_OP8C() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; if (CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,8)) return;  if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src1].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
 void CPU80386_OP8D() {modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("LEAD %s,%s",modrm_param1,getLEAtext32(&params)); if (CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),getLEA32(&params),0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 2; /* Load effective address */ } }
+void CPU80386_OP8E() {modrm_generateInstructionTEXT("MOVD",32,0,PARAM_MODRM_01); if (modrm_check32(&params,MODRM_src1,1)) return; if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; if (CPU80386_internal_MOV32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,8)) return; if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src1].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
 void CPU80386_OP90() /*NOP*/ {modrm_generateInstructionTEXT("NOP",0,0,PARAM_NONE);/*NOP (XCHG EAX,EAX)*/ if (CPU80386_internal_XCHG32(&REG_EAX,&REG_EAX,1)) return; /* NOP */}
 void CPU80386_OP91() {modrm_generateInstructionTEXT("XCHGD ECX,EAX",0,0,PARAM_NONE);/*XCHG ECX,EAX*/ CPU80386_internal_XCHG32(&REG_ECX,&REG_EAX,1); /*XCHG CX,AX*/ }
 void CPU80386_OP92() {modrm_generateInstructionTEXT("XCHGD EDX,EAX",0,0,PARAM_NONE);/*XCHG EDX,EAX*/ CPU80386_internal_XCHG32(&REG_EDX,&REG_EAX,1); /*XCHG DX,AX*/ }

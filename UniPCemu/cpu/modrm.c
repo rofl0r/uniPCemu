@@ -398,6 +398,14 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		if (params->info[whichregister].is_segmentregister) //Are we a segment register?
+		{
+			if (params->info[whichregister].reg16) //Give register!
+			{
+				modrm_write16(params,whichregister,value,0); //Redirect to segment register instead!
+				return;
+			}
+		}
 		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
@@ -451,6 +459,13 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		if (params->info[whichregister].is_segmentregister) //Are we a segment register?
+		{
+			if (params->info[whichregister].reg16) //Give register!
+			{
+				return modrm_write16_BIU(params,whichregister,value,0); //Redirect to segment register instead!
+			}
+		}
 		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
@@ -648,6 +663,13 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		if (params->info[whichregister].is_segmentregister) //Are we a segment register?
+		{
+			if (params->info[whichregister].reg16) //Give register!
+			{
+				return modrm_read16(params,whichregister); //Redirect to segment register instead!
+			}
+		}
 		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Valid?
 		{
@@ -684,6 +706,18 @@ byte modrm_read32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 *result) 
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		if (params->info[whichregister].is_segmentregister) //Are we a segment register?
+		{
+			if (params->info[whichregister].reg16) //Give register!
+			{
+				*result = 0; //Clear the upper half!
+				if (modrm_read16_BIU(params,whichregister,(word *)result)) //Redirect to segment register instead!
+				{
+					return 2; //We're a register!
+				}
+				return 2; //Nothing to be done?
+			}
+		}
 		resultsrc = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (resultsrc) //Valid?
 		{
@@ -736,28 +770,34 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 	case MODRM_SEG_ES:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES];
 		if (cpudebugger) strcpy(result->text,"ES");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_CS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS];
 		if (cpudebugger) strcpy(result->text,"CS");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_SS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS];
 		if (cpudebugger) strcpy(result->text,"SS");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_DS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS];
 		if (cpudebugger) strcpy(result->text,"DS");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_FS:
 		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS];
 		if (cpudebugger) strcpy(result->text,"FS");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_GS:
 		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS];
 		if (cpudebugger) strcpy(result->text,"GS");
+		result->is_segmentregister = 1; //We're a segment register!
 		break;
 
 	default: //Catch handler!
@@ -1078,6 +1118,12 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	memset(result,0,sizeof(*result)); //Init!
 	result->is16bit = 0; //32-bit offset by default!
+
+	if (params->reg_is_segmentregister && (!whichregister)) //Segment register?
+	{
+		modrm_get_segmentregister(reg,result); //Return segment register!
+		return; //Give the segment register!
+	}
 
 	if (params->specialflags==3) //Reg is CR, R/M is General Purpose Register?
 	{
@@ -2223,6 +2269,13 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		if (params->info[whichregister].is_segmentregister) //Segment register?
+		{
+			if (params->info[whichregister].reg16) //Valid?
+			{
+				return (uint_32 *)params->info[whichregister].reg16; //Segment register itself!
+			}
+		}
 		if (!params->info[whichregister].reg32)
 		{
 			halt_modrm("NULL REG32");
