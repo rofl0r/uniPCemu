@@ -11,6 +11,7 @@
 
 TicksHolder logticksholder; //Log ticks holder!
 SDL_sem *log_Lock = NULL;
+SDL_sem *log_stampLock = NULL;
 byte log_timestamp = 1; //Are we to log the timestamp?
 char lastfile[256] = ""; //Last file we've been logging to!
 FILE *logfile = NULL; //The log file to use!
@@ -59,12 +60,18 @@ OPTINLINE void addnewline(char *s)
 	}
 }
 
-void log_logtimestamp(byte logtimestamp)
+byte log_logtimestamp(byte logtimestamp)
 {
-	WaitSem(log_Lock) //Only one instance allowed!
-	log_timestamp = (logtimestamp!=0)?1:0; //Set the new timestamp setting!
+	byte result;
+	WaitSem(log_stampLock) //Only one instance allowed!
+	result = log_timestamp; //Are we loggin the timestamp?
+	if (logtimestamp<2) //Valid?
+	{
+		log_timestamp = (logtimestamp!=0)?1:0; //Set the new timestamp setting!
+	}
 	//Unlock
-	PostSem(log_Lock)
+	PostSem(log_stampLock)
+	return result; //Give the result!
 }
 
 void dolog(char *filename, const char *format, ...) //Logging functionality!
@@ -134,9 +141,8 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		}
 	}
 
-	if (safe_strlen(log_logtext2,sizeof(log_logtext2)) && log_timestamp) //Got length and logging timestamp?
+	if (safe_strlen(log_logtext2,sizeof(log_logtext2)) && log_logtimestamp(2)) //Got length and logging timestamp?
 	{
-		//Lock
 		time = getuspassed_k(&logticksholder); //Get the current time!
 		convertTime(time,&log_thetimestamp[0]); //Convert the time!
 		strcat(log_thetimestamp,": "); //Suffix!
