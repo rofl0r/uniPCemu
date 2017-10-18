@@ -4992,7 +4992,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 		}, //16-bit
 		{ //32-bit
 			{ 0,1,0,0,1,0,0,0x01 }, //00 ADD
-			{ 1,1,2,0,0,1,0,0x00 }, //01 various instructions, 32-bit operand size.
+			{ 1,1,2,0,1,0,0,0x00 }, //01 various instructions, 32-bit operand size.
 			{ 1,1,2,0,0,1,0,0x00 }, //02 LAR /r
 			{ 1,1,2,0,0,1,0,0x00 }, //03 LSL /r
 			{ 0,0,0,0,0,0,1,0x04 }, //04
