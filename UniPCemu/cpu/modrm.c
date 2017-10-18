@@ -938,7 +938,7 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 //First the decoders:
 
 //is_base: 1=Base, 0=Index
-OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, byte is_base, char *result)
+OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, byte is_base, char *result, byte *useSS)
 {
 	uint_32 disprel=0;
 	uint_32 effectivedisp;
@@ -1031,6 +1031,7 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 		{
 			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
 			if (cpudebugger) sprintf(result,"%sESP",textnr);
+			*useSS = 1; //Use SS default!
 			return REG_ESP+effectivedisp;
 		}
 		break; //SIB doesn't have ESP as a scaled index!
@@ -1038,6 +1039,7 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 		if (is_base==0) //We're the scaled index?
 		{
 			if (cpudebugger) sprintf(result,"EBP*%i",(1<<SIB_SCALE(params->SIB)));
+			*useSS = 1; //Use SS default!
 			return (REG_EBP<<SIB_SCALE(params->SIB));
 		}
 		else //Base?
@@ -1050,6 +1052,7 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 			else //EBP!
 			{
 				if (cpudebugger) sprintf(result,"%sEBP",textnr);
+				*useSS = 1; //Use SS default!
 				return REG_EBP+effectivedisp;
 			}
 		}
@@ -1221,6 +1224,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	uint_32 base; //Going to contain the values for SIB!
 	char indexstr[256]; //Index!
 	char basestr[256]; //Base!
+	byte useSS;
+	useSS = 0; //Default: use DS!
 
 	//Determine R/M (reg2=>RM) pointer!
 
@@ -1283,28 +1288,29 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			break;
 		case MODRM_MEM_SIB: //SIB?
 			//SIB
-			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),0,params->displacement.dword,0,&indexstr[0]);
-			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),0,params->displacement.dword,1,&basestr[0]);
+			
+			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),0,params->displacement.dword,0,&indexstr[0],&useSS);
+			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),0,params->displacement.dword,1,&basestr[0],&useSS);
 
 			if (cpudebugger)
 			{
 				if (indexstr[0]) //Valid index?
 				{
-					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
+					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 				}
 				else //No index?
 				{
-					sprintf(result->text,"[%s:%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr); //Give addr with base only!
+					sprintf(result->text,"[%s:%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
 				}
 			}
-			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
+			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
-			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
-			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			result->segmentregister = CPU_segment_ptr(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
+			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_DISP32: //EBP->32-bit Displacement-Only mode?
 			if (cpudebugger) sprintf(textnr,"%08X",params->displacement.dword); //Text!
-			if (cpudebugger) sprintf(result->text,"[%s:%s]",CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			if (cpudebugger) sprintf(result->text,"[%s:%s]",CPU_textsegment(CPU_SEGMENT_DS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = params->displacement.dword; //Give addr (Displacement Only)!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1369,31 +1375,31 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_SIB: //SIB/ESP?
-			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),1,params->displacement.low16_low,0,&indexstr[0]);
-			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),1,params->displacement.low16_low,1,&basestr[0]);
+			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),1,params->displacement.low16_low,0,&indexstr[0],&useSS);
+			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),1,params->displacement.low16_low,1,&basestr[0],&useSS);
 
 			if (cpudebugger)
 			{
 				if (indexstr[0]) //Valid index?
 				{
-					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
+					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 				}
 				else //No index?
 				{
-					sprintf(result->text,"[%s:%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr); //Give addr with base only!
+					sprintf(result->text,"[%s:%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
 				}
 			}
-			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
+			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
-			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
-			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			result->segmentregister = CPU_segment_ptr(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
+			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (cpudebugger) sprintf(result->text,"[%s:EBP+%s]",CPU_textsegment(CPU_SEGMENT_DS),textnr);
-			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
+			if (cpudebugger) sprintf(result->text,"[%s:EBP+%s]",CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+unsigned2signed8(params->displacement.low16_low); //Give addr!
-			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
-			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
+			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		default:
 			halt_modrm("Unknown modr/m32(8-bit): MOD:%u, RM: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
@@ -1449,31 +1455,31 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_SIB: //SIB/ESP?
-			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),2,params->displacement.dword,0,&indexstr[0]);
-			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),2,params->displacement.dword,1,&basestr[0]);
+			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),2,params->displacement.dword,0,&indexstr[0],&useSS);
+			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),2,params->displacement.dword,1,&basestr[0],&useSS);
 
 			if (cpudebugger)
 			{
 				if (indexstr[0]) //Valid index?
 				{
-					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
+					sprintf(result->text,"[%s:%s+%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 				}
 				else //No index?
 				{
-					sprintf(result->text,"[%s:%s]",CPU_textsegment(CPU_SEGMENT_DS),basestr); //Give addr with base only!
+					sprintf(result->text,"[%s:%s]",CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
 				}
 			}
-			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
+			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
-			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
-			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			result->segmentregister = CPU_segment_ptr(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
+			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (cpudebugger) sprintf(result->text,"[%s:EBP%s]",CPU_textsegment(CPU_SEGMENT_DS),textnr);
-			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
+			if (cpudebugger) sprintf(result->text,"[%s:EBP%s]",CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+params->displacement.dword; //Give addr!
-			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
-			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
+			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
+			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_SS);
 			break;
 		default:
 			halt_modrm("Unknown modr/m32(32-bit): MOD:%u, RM: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
