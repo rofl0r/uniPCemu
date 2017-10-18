@@ -1089,6 +1089,7 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 }
 
 //Prototype for 32-bit decoding redirecting to 16-bit!
+void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //8-bit address/reg decoder!
 void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister); //16-bit address/reg decoder!
 
 void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister) //32-bit address/reg decoder!
@@ -1167,6 +1168,17 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		{
 			isregister = 1; //We're a General Purpose register!
 		}
+	}
+
+	if ((params->specialflags==5) && ((curreg==2) && isregister)) //r/m is 8-bits instead?
+	{
+		modrm_decode8(params,result,whichregister); //Redirect to 8-bit register!
+		return;
+	}
+	else if ((params->specialflags==6) && ((curreg==2) && isregister)) //r/m is 16-bits instead?
+	{
+		modrm_decode16(params,result,whichregister); //Redirect to 16-bit register!
+		return;
 	}
 
 	if (isregister) //Is register data?
@@ -1577,13 +1589,9 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		}
 	}
 
-	if ((params->specialflags==5) && isregister) //Reg is 16-bits instead?
+	if ((params->specialflags==5) && ((curreg==2) && isregister)) //r/m is 8-bits instead?
 	{
-		//Normal 16-bit register!
-	}
-	else if ((params->specialflags==6) && isregister) //Reg is 32-bits instead?
-	{
-		modrm_decode32(params,result,whichregister); //Redirect to 32-bit register!
+		modrm_decode8(params,result,whichregister); //Redirect to 8-bit register!
 		return;
 	}
 
@@ -1931,7 +1939,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	result->mem_offset = offset; //Save the offset we use!
 }
 
-OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
+void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 {
 	INLINEREGISTER byte isregister;
 	INLINEREGISTER byte reg = 0;
@@ -1993,17 +2001,6 @@ OPTINLINE void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte which
 		{
 			isregister = 1; //We're a General Purpose register!
 		}
-	}
-
-	if ((params->specialflags==5) && isregister) //Reg is 16-bits instead?
-	{
-		modrm_decode16(params,result,whichregister); //Normal 16-bit register!
-		return;
-	}
-	else if ((params->specialflags==6) && isregister) //Reg is 32-bits instead?
-	{
-		modrm_decode32(params,result,whichregister); //Redirect to 32-bit register!
-		return;
 	}
 
 	memset(result,0,sizeof(*result)); //Init!
