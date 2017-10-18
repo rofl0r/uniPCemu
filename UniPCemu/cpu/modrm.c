@@ -2206,8 +2206,8 @@ uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister) //Gives address 
 	{
 	case 1: //Register?
 		modrm_lastsegment = 0;
-		modrm_lastoffset = *params->info[whichregister].reg16; //Last offset is the register itself!
-		return *params->info[whichregister].reg16; //Give register value!
+		modrm_lastoffset = *params->info[whichregister].reg32; //Last offset is the register itself!
+		return *params->info[whichregister].reg32; //Give register value!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		result = params->info[whichregister].mem_offset; //Load offset!

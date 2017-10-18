@@ -2213,7 +2213,7 @@ OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
 	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU80386_internal_POPdw(2,&RETFD_val)) return 1;
 	CPUPROT1
-	if (CPU8086_internal_POPw(4,&RETF_destCS)) return 1;
+	if (CPU8086_internal_POPw(4,&RETF_destCS,1)) return 1;
 	CPUPROT1
 	destEIP = RETFD_val; //Load IP!
 	segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4); //CS changed, we're a RETF instruction!
@@ -2590,7 +2590,7 @@ void CPU80386_OP9D_16() {
 	static word tempflags;
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU8086_POPw(2,&tempflags)) return;
+	if (CPU8086_POPw(2,&tempflags,0)) return;
 	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
 	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;

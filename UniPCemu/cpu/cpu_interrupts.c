@@ -70,12 +70,12 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		#endif
 		checkinterruptstep = 0; //Init!
-		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS)) return 0; //Busy pushing flags!
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS,0)) return 0; //Busy pushing flags!
 		checkinterruptstep += 2;
-		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment)) return 0; //Busy pushing return segment!
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment,0)) return 0; //Busy pushing return segment!
 		checkinterruptstep += 2;
 		word retoffset16 = (retoffset&0xFFFF);
-		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retoffset16)) return 0; //Busy pushing return offset!
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retoffset16,0)) return 0; //Busy pushing return offset!
 		checkinterruptstep += 2;
 		if (CPU[activeCPU].internalinterruptstep==checkinterruptstep) //Handle specific EU timings here?
 		{
@@ -150,12 +150,12 @@ void CPU_IRET()
 		tempSS = REG_SS;
 		//uint_32 backupESP = REG_ESP;
 		if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-		destEIP = CPU_POP16(); //POP IP!
-		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(),3); //We're loading because of an IRET!
+		destEIP = CPU_POP16(CPU_Operand_size[activeCPU]); //POP IP!
+		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(CPU_Operand_size[activeCPU]),3); //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		if (CPU[activeCPU].faultraised==0) //No fault raised?
 		{
-			REG_FLAGS = CPU_POP16(); //Pop flags!
+			REG_FLAGS = CPU_POP16(CPU_Operand_size[activeCPU]); //Pop flags!
 		}
 		#ifdef LOG_INTS
 		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!
@@ -190,9 +190,9 @@ void CPU_IRET()
 				else //16-bit operand size?
 				{
 					if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-					destEIP = CPU_POP16();
-					tempCS = CPU_POP16();
-					tempEFLAGS = CPU_POP16();
+					destEIP = CPU_POP16(0);
+					tempCS = CPU_POP16(0);
+					tempEFLAGS = CPU_POP16(0);
 					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
 					if (CPU[activeCPU].faultraised) return; //Abort on fault!
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
@@ -236,16 +236,16 @@ void CPU_IRET()
 			}
 			else
 			{
-				destEIP = (uint_32)CPU_POP16(); //POP IP!
+				destEIP = (uint_32)CPU_POP16(0); //POP IP!
 			}
-			tempCS = CPU_POP16(); //CS to be loaded!
+			tempCS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //CS to be loaded!
 			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
 			{
 				tempEFLAGS = CPU_POP32(); //Pop flags!
 			}
 			else
 			{
-				tempEFLAGS = (uint_32)CPU_POP16(); //Pop flags!
+				tempEFLAGS = (uint_32)CPU_POP16(0); //Pop flags!
 			}
 
 			if ((tempEFLAGS&0x20000) && (!oldCPL)) //Returning to virtual 8086 mode?

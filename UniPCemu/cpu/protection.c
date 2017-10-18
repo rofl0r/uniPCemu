@@ -816,7 +816,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 					}
 					else //16-bit source?
 					{
-						argument = (uint_32)CPU_POP16(); //POP 16-bit argument!
+						argument = (uint_32)CPU_POP16(0); //POP 16-bit argument!
 					}
 					if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
 					{
@@ -937,7 +937,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 								else //16-bit?
 								{
 									stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
-									CPU_PUSH16(&stackval16); //Push the 16-bit stack value to the new stack!
+									CPU_PUSH16(&stackval16,0); //Push the 16-bit stack value to the new stack!
 								}
 							}
 						}
@@ -953,21 +953,21 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					else
 					{
 						word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
-						CPU_PUSH16(&temp);
+						CPU_PUSH16(&temp,0);
 					}
-					CPU_PUSH16(&CPU[activeCPU].oldSS); //SS to return!
+					CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
 				}
 				
 				//Push the old address to the new stack!
 				if (CPU_Operand_size[activeCPU]) //32-bit?
 				{
-					CPU_PUSH16(&CPU[activeCPU].registers->CS);
-					CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+					CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
+					CPU_PUSH32(&CPU[activeCPU].registers->EIP,1);
 				}
 				else //16-bit?
 				{
-					CPU_PUSH16(&CPU[activeCPU].registers->CS);
-					CPU_PUSH16(&CPU[activeCPU].registers->IP);
+					CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
+					CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
 				}
 
 				if (hascallinterrupttaken_type==0xFF) //Not set yet?
@@ -1000,7 +1000,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					tempSS = CPU_POP16();
+					tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
@@ -1010,7 +1010,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 					else
 					{
-						REG_ESP = (uint_32)CPU_POP16();
+						REG_ESP = (uint_32)CPU_POP16(0);
 					}
 				}
 			}
@@ -1019,7 +1019,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				if (getCPL()>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
 					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
-					tempSS = CPU_POP16();
+					tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
@@ -1029,7 +1029,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 					else
 					{
-						tempesp = CPU_POP16();
+						tempesp = CPU_POP16(0);
 					}
 					REG_ESP = tempesp;
 				}
@@ -1083,13 +1083,13 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->CS);
-				CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+				CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
+				CPU_PUSH32(&CPU[activeCPU].registers->EIP,1);
 			}
 			else //16-bit?
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->CS);
-				CPU_PUSH16(&CPU[activeCPU].registers->IP);
+				CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
+				CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
 			}
 		}
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
@@ -1555,11 +1555,11 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				}
 
 				//Save the Segment registers on the new stack!
-				CPU_PUSH16(&REG_GS);
-				CPU_PUSH16(&REG_FS);
-				CPU_PUSH16(&REG_DS);
-				CPU_PUSH16(&REG_ES);
-				CPU_PUSH16(&REG_SS);
+				CPU_PUSH16(&REG_GS,is32bit);
+				CPU_PUSH16(&REG_FS,is32bit);
+				CPU_PUSH16(&REG_DS,is32bit);
+				CPU_PUSH16(&REG_ES,is32bit);
+				CPU_PUSH16(&REG_SS,is32bit);
 				CPU_PUSH32(&REG_ESP);
 				//Other registers are the normal variants!
 
@@ -1596,14 +1596,14 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 				if (is32bit) //32-bit gate?
 				{
-					CPU_PUSH16(&CPU[activeCPU].oldSS);
-					CPU_PUSH32(&CPU[activeCPU].oldESP);
+					CPU_PUSH16(&CPU[activeCPU].oldSS,1);
+					CPU_PUSH32(&CPU[activeCPU].oldESP,1);
 				}
 				else //16-bit gate?
 				{
 					word temp = (word)(CPU[activeCPU].oldESP&0xFFFF); //Backup SP!
-					CPU_PUSH16(&CPU[activeCPU].oldSS);
-					CPU_PUSH16(&temp); //Old SP!
+					CPU_PUSH16(&CPU[activeCPU].oldSS,0);
+					CPU_PUSH16(&temp,0); //Old SP!
 				}
 				//Other registers are the normal variants!
 			}
@@ -1620,10 +1620,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			else
 			{
 				word temp2 = (word)(EFLAGSbackup&0xFFFF);
-				CPU_PUSH16(&temp2); //Push FLAGS!
+				CPU_PUSH16(&temp2,0); //Push FLAGS!
 			}
 
-			CPU_PUSH16(&CPU[activeCPU].registers->CS); //Push CS!
+			CPU_PUSH16(&CPU[activeCPU].registers->CS,is32bit); //Push CS!
 
 			if (is32bit)
 			{
@@ -1631,7 +1631,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->IP); //Push IP!
+				CPU_PUSH16(&CPU[activeCPU].registers->IP,0); //Push IP!
 			}
 
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
@@ -1660,7 +1660,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				}
 				else
 				{
-					CPU_PUSH16(&errorcode16); //Push the error on the stack!
+					CPU_PUSH16(&errorcode16,is32bit); //Push the error on the stack!
 				}
 			}
 

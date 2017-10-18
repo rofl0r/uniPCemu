@@ -164,21 +164,21 @@ void CPU186_OP60()
 	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,1,0)) return; //Abort on fault!
 	static word oldSP;
 	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
-	if (CPU8086_PUSHw(0,&REG_AX)) return;
+	if (CPU8086_PUSHw(0,&REG_AX,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(2,&REG_CX)) return;
+	if (CPU8086_PUSHw(2,&REG_CX,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(4,&REG_DX)) return;
+	if (CPU8086_PUSHw(4,&REG_DX,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(6,&REG_BX)) return;
+	if (CPU8086_PUSHw(6,&REG_BX,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(8,&oldSP)) return;
+	if (CPU8086_PUSHw(8,&oldSP,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(10,&REG_BP)) return;
+	if (CPU8086_PUSHw(10,&REG_BP,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(12,&REG_SI)) return;
+	if (CPU8086_PUSHw(12,&REG_SI,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(14,&REG_DI)) return;
+	if (CPU8086_PUSHw(14,&REG_DI,0)) return;
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -194,21 +194,21 @@ void CPU186_OP61()
 	word dummy;
 	debugger_setcommand("POPA");
 	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,0,0)) return; //Abort on fault!
-	if (CPU8086_POPw(0,&REG_DI)) return;
+	if (CPU8086_POPw(0,&REG_DI,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(2,&REG_SI)) return;
+	if (CPU8086_POPw(2,&REG_SI,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(4,&REG_BP)) return;
+	if (CPU8086_POPw(4,&REG_BP,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(6,&dummy)) return;
+	if (CPU8086_POPw(6,&dummy,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(8,&REG_BX)) return;
+	if (CPU8086_POPw(8,&REG_BX,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(10,&REG_DX)) return;
+	if (CPU8086_POPw(10,&REG_DX,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(12,&REG_CX)) return;
+	if (CPU8086_POPw(12,&REG_CX,0)) return;
 	CPUPROT1
-	if (CPU8086_POPw(14,&REG_AX)) return;
+	if (CPU8086_POPw(14,&REG_AX,0)) return;
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -263,7 +263,7 @@ void CPU186_OP68()
 	word val = immw;    //PUSH Iz
 	debugger_setcommand("PUSHW %04X",val);
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
-	if (CPU8086_PUSHw(0,&val)) return; //PUSH!
+	if (CPU8086_PUSHw(0,&val,0)) return; //PUSH!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
@@ -645,7 +645,7 @@ void CPU186_OPC8()
 	}
 	*/ //Done automatically at the start of an instruction!
 
-	if (CPU8086_PUSHw(0,&REG_BP)) return; //Busy pushing?
+	if (CPU8086_PUSHw(0,&REG_BP,0)) return; //Busy pushing?
 	word frametemp = (word)CPU[activeCPU].oldESP; //Read the original value to start at(for stepping compatibility)!
 	word framestep,instructionstep;
 	instructionstep = 2; //We start at step 2 for the stack operations on instruction step!
@@ -666,7 +666,7 @@ void CPU186_OPC8()
 				{
 					if (checkStackAccess(1,1,0)) return; //Abort on error!
 				}
-				if (CPU8086_PUSHw(instructionstep,&bpdata)) return; //Write back!
+				if (CPU8086_PUSHw(instructionstep,&bpdata,0)) return; //Write back!
 			}
 			instructionstep += 2; //Next instruction step base to process!
 		}
@@ -674,7 +674,7 @@ void CPU186_OPC8()
 		{
 			if (checkStackAccess(1,1,0)) return; //Abort on error!		
 		}
-		if (CPU8086_PUSHw(instructionstep,&frametemp)) return; //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
+		if (CPU8086_PUSHw(instructionstep,&frametemp,0)) return; //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
 	}
 	
 	REG_BP = frametemp;
@@ -688,7 +688,7 @@ void CPU186_OPC9()
 	if (checkStackAccess(1,0,0)) return; //Abort on fault!
 	oldSP = REG_SP; //Backup SP!
 	REG_SP = REG_BP;    //LEAVE
-	if (CPU8086_POPw(0,&REG_BP)) //Not done yet?
+	if (CPU8086_POPw(0,&REG_BP,0)) //Not done yet?
 	{
 		REG_SP = oldSP; //Restore SP to retry later!
 		return; //Abort!

@@ -49,7 +49,7 @@ void CB_handleCallbacks() //Handle callbacks after CPU usage!
 	if (currentcallback.hascallback) //Valid set?
 	{
 		currentcallback.hascallback = 0; //Reset to not used: we're being handled!
-		REG_AX = CPU_POP16(); //POP AX off the stack, restoring it's value for the call!
+		REG_AX = CPU_POP16(0); //POP AX off the stack, restoring it's value for the call!
 		if (currentcallback.handlernr<=1) //Special handler? (Conditional) Zero callback?
 		{
 			if (!currentcallback.handlernr) //Zero callback?

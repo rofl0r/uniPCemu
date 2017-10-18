@@ -608,7 +608,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 		else
 		{
-			CPU_PUSH16(&errorcode16); //Push the error on the stack!
+			CPU_PUSH16(&errorcode16,0); //Push the error on the stack!
 		}
 		if (CPU[activeCPU].faultraised==0) //OK?
 		{

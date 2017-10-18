@@ -312,18 +312,16 @@ void CPU8086_external_XLAT(); //XLAT for extensions!
 
 byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
 
-void CPU8086_addWordIOMemoryTiming(byte evenodd, byte highaccess);
-
 byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 
 //I/O and memory support!
-byte CPU8086_PUSHw(byte base, word *data);
-byte CPU8086_internal_PUSHw(byte base, word *data);
+byte CPU8086_PUSHw(byte base, word *data, byte is32instruction);
+byte CPU8086_internal_PUSHw(byte base, word *data, byte is32instruction);
 byte CPU8086_PUSHb(byte base, byte *data);
-byte CPU8086_internal_interruptPUSHw(byte base, word *data);
+byte CPU8086_internal_interruptPUSHw(byte base, word *data, byte is32instruction);
 byte CPU8086_internal_PUSHb(byte base, byte *data);
-byte CPU8086_POPw(byte base, word *result);
-byte CPU8086_internal_POPw(byte base, word *result);
+byte CPU8086_POPw(byte base, word *result, byte is32instruction);
+byte CPU8086_internal_POPw(byte base, word *result, byte is32instruction);
 byte CPU8086_POPSP(byte base);
 byte CPU8086_POPb(byte base, byte *result);
 byte CPU8086_instructionstepreadmodrmb(byte base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
