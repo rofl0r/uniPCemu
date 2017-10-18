@@ -74,7 +74,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 		switch (MODRM_MOD(params->modrm)) //MOD?
 		{
 		case 0:
-			if (MODRM_RM(params->modrm) == 5) //[dword]?
+			if ((MODRM_RM(params->modrm) == 5) || ((MODRM_RM(params->modrm)==4) && (SIB_BASE(params->SIB)==5))) //[dword] displacement?
 				return 3; //DWord displacement!
 			else
 				return 0; //No displacement!
