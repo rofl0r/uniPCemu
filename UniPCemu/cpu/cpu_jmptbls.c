@@ -976,7 +976,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //UNK
 		{ NULL, CPU386_OP68 }, //68h:
 		{ NULL, CPU386_OP69 }, //69h:
-		{ NULL, NULL }, //6Ah:
+		{ NULL, CPU386_OP6A }, //6Ah:
 		{ NULL, CPU386_OP6B }, //6Bh:
 		{ NULL, NULL }, //6Ch:
 		{ NULL, CPU386_OP6D }, //6Dh:
