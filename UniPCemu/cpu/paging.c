@@ -37,8 +37,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 //Address mask/active mask(in the lookup table)
 #define PXE_ADDRESSMASK 0xFFFFF000
 #define PXE_ACTIVEMASK 0xFFF
-//Address shift
-#define PXE_ADDRESSSHIFT 12
+//Address shift to get the physical address
+#define PXE_ADDRESSSHIFT 0
 
 byte getUserLevel(byte CPL)
 {
