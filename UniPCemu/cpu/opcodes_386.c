@@ -3749,7 +3749,7 @@ void CPU386_OP6A()
 {
 	uint_32 val = (uint_32)immb; //Read the value!
 	if (immb&0x80) val |= 0xFFFFFF00; //Sign-extend to 32-bit!
-	debugger_setcommand("PUSHB %02X",val); //PUSH this!
+	debugger_setcommand("PUSHB %02X",(val&0xFF)); //PUSH this!
 	if (checkStackAccess(1,1,1)) return; //Abort on fault!
 	if (CPU80386_PUSHdw(0,&val)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!

@@ -318,7 +318,7 @@ void CPU186_OP6A()
 {
 	word val = immb; //Read the value!
 	if (val&0x80) val |= 0xFF00; //Sign-extend!
-	debugger_setcommand("PUSHB %02X",val); //PUSH this!
+	debugger_setcommand("PUSHB %02X",(val&0xFF)); //PUSH this!
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
