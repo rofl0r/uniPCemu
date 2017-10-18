@@ -1024,7 +1024,7 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 	case MODRM_REG_ESP: //none/ESP(base), depending on base/index.
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,""); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
+			if (cpudebugger) strcpy(result,""); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
 			return 0;
 		}
 		else //Direct index?
