@@ -1333,26 +1333,26 @@ byte isV86()
 
 //Use below functions for the STACK!
 
-void CPU_PUSH8(byte val) //Push Byte!
+void CPU_PUSH8(byte val, byte is32instruction) //Push Byte!
 {
 	word v=val; //Convert!
 	CPU_PUSH16(&v,0); //Push 16!
 }
 
-byte CPU_PUSH8_BIU(byte val) //Push Byte!
+byte CPU_PUSH8_BIU(byte val, byte is32instruction) //Push Byte!
 {
 	word v=val; //Convert!
-	return CPU_PUSH16_BIU(&v,0); //Push 16!
+	return CPU_PUSH16_BIU(&v,is32instruction); //Push 16!
 }
 
-byte CPU_POP8()
+byte CPU_POP8(byte is32instruction)
 {
-	return (CPU_POP16(0)&0xFF); //Give the result!
+	return (CPU_POP16(is32instruction)&0xFF); //Give the result!
 }
 
-byte CPU_POP8_BIU() //Request an 8-bit POP from the BIU!
+byte CPU_POP8_BIU(byte is32instruction) //Request an 8-bit POP from the BIU!
 {
-	return (CPU_POP16_BIU(0)); //Give the result: we're requesting from the BIU to POP one entry!
+	return (CPU_POP16_BIU(is32instruction)); //Give the result: we're requesting from the BIU to POP one entry!
 }
 
 //Changes in stack during PUSH and POP operations!

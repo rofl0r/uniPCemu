@@ -291,12 +291,12 @@ byte CPU8086_internal_interruptPUSHw(byte base, word *data, byte is32instruction
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_PUSHb(byte base, byte *data)
+byte CPU8086_PUSHb(byte base, byte *data, byte is32instruction)
 {
 	byte temp;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (CPU_PUSH8_BIU(*data)==0) //Not ready?
+		if (CPU_PUSH8_BIU(*data,is32instruction)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -317,12 +317,12 @@ byte CPU8086_PUSHb(byte base, byte *data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_PUSHb(byte base, byte *data)
+byte CPU8086_internal_PUSHb(byte base, byte *data, byte is32instruction)
 {
 	byte temp;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
-		if (CPU_PUSH8_BIU(*data)==0) //Not ready?
+		if (CPU_PUSH8_BIU(*data,is32instruction)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -418,11 +418,11 @@ byte CPU8086_POPSP(byte base)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_POPb(byte base, byte *result)
+byte CPU8086_POPb(byte base, byte *result, byte is32instruction)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (CPU_POP8_BIU()==0) //Not ready?
+		if (CPU_POP8_BIU(is32instruction)==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!

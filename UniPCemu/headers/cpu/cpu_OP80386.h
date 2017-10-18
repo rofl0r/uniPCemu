@@ -160,6 +160,7 @@ void CPU386_OP61();
 void CPU386_OP62();
 void CPU386_OP68();
 void CPU386_OP69();
+void CPU386_OP6A();
 void CPU386_OP6B();
 void CPU386_OP6D();
 

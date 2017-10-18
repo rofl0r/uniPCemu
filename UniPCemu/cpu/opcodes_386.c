@@ -3745,6 +3745,16 @@ void CPU386_OP69()
 	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
 
+void CPU386_OP6A()
+{
+	uint_32 val = (uint_32)immb; //Read the value!
+	if (immb&0x80) val |= 0xFFFFFF00; //Sign-extend to 32-bit!
+	debugger_setcommand("PUSHB %02X",val); //PUSH this!
+	if (checkStackAccess(1,1,1)) return; //Abort on fault!
+	if (CPU80386_PUSHdw(0,&val)) return;    //PUSH Ib
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+}
+
 void CPU386_OP6B()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!

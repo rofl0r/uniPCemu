@@ -1201,10 +1201,10 @@ char *CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
 
 //PUSH and POP for CPU STACK! The _BIU suffixes place a request for the BIU to handle it (and requires a response to be read, which is either the result of the operation or 1 for writes).
 
-void CPU_PUSH8(byte val); //Push Byte!
-byte CPU_PUSH8_BIU(byte val); //Push Byte!
-byte CPU_POP8();
-byte CPU_POP8_BIU(); //Request an 8-bit POP from the BIU!
+void CPU_PUSH8(byte val, byte is32instruction); //Push Byte!
+byte CPU_PUSH8_BIU(byte val, byte is32instruction); //Push Byte!
+byte CPU_POP8(byte is32instruction);
+byte CPU_POP8_BIU(byte is32instruction); //Request an 8-bit POP from the BIU!
 
 void CPU_PUSH16(word *val, byte is32instruction); //Push Word!
 byte CPU_PUSH16_BIU(word *val, byte is32instruction); //Push Word!
