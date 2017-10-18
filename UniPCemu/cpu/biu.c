@@ -335,6 +335,28 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
 
+word BIU_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
+{
+	return (BIU_directrb(realaddress + 1, index | 1) << 8) | BIU_directrb(realaddress, index); //Get data, wrap arround!
+}
+
+void BIU_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
+{
+	BIU_directwb(realaddress, value & 0xFF, index); //Low!
+	BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+}
+
+//Used by paging only!
+uint_32 BIU_directrdw(uint_32 realaddress, byte index)
+{
+	return (BIU_directrw(realaddress + 2, index | 2) << 16) | BIU_directrw(realaddress, index); //Get data, wrap arround!	
+}
+void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index)
+{
+	BIU_directww(realaddress, value & 0xFFFF, index); //Low!
+	BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
+}
+
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!

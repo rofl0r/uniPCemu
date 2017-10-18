@@ -21,6 +21,32 @@ extern MMU_type MMU; //MMU itself!
 
 byte writeword = 0; //Hi-end word written?
 
+byte memory_BIUdirectrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return BIU_directrb(realaddress, 0);
+}
+word memory_BIUdirectrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return BIU_directrw(realaddress, 0);
+}
+uint_32 memory_BIUdirectrdw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
+{
+	return BIU_directrdw(realaddress, 0);
+}
+void memory_BIUdirectwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
+{
+	BIU_directwb(realaddress, value, 0);
+}
+void memory_BIUdirectww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
+{
+	BIU_directww(realaddress, value, 0);
+}
+void memory_BIUdirectwdw(uint_32 realaddress, uint_32 value) //Direct write to real memory (with real data direct)!
+{
+	BIU_directwdw(realaddress, value, 0);
+}
+
+
 //Pointer support (real mode only)!
 void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
 {

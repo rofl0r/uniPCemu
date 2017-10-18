@@ -495,7 +495,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 	}
 }
 
-//Used by the DMA controller only (or the paging system for faster reads):
+//Used by the DMA controller only:
 word MMU_INTERNAL_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
 	return (MMU_INTERNAL_directrb(realaddress + 1, index | 1) << 8) | MMU_INTERNAL_directrb(realaddress, index); //Get data, wrap arround!
@@ -514,8 +514,8 @@ uint_32 MMU_INTERNAL_directrdw(uint_32 realaddress, byte index)
 }
 void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
 {
-	MMU_INTERNAL_directww(realaddress, value & 0xFF, index); //Low!
-	MMU_INTERNAL_directww(realaddress + 2, (value >> 8) & 0xFF, index | 2); //High!
+	MMU_INTERNAL_directww(realaddress, value & 0xFFFF, index); //Low!
+	MMU_INTERNAL_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
 }
 
 //Direct memory access with Memory mapped I/O (for the CPU).

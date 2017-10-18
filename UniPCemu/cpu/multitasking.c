@@ -483,7 +483,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		int i;
 		for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);) //Process the descriptor data!
 		{
-			LDTsegdesc.descdata[i++] = memory_directrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
+			LDTsegdesc.descdata[i++] = memory_BIUdirectrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
 		}
 
 		//Now the LDT entry is loaded for testing!

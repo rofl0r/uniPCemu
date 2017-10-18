@@ -7,6 +7,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/protection.h" //Fault raising support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
+#include "headers/cpu/biu.h" //BIU support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -120,7 +121,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	}
 	if (isPrefetch) return 0; //Stop the prefetch when not in the TLB!
 	//Check PDE
-	PDE = memory_directrdw(PDBR+(DIR<<2)); //Read the page directory entry!
+	PDE = memory_BIUdirectrdw(PDBR+(DIR<<2)); //Read the page directory entry!
 	if (!(PDE&PXE_P)) //Not present?
 	{
 		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
@@ -128,7 +129,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	}
 	
 	//Check PTE
-	PTE = memory_directrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
+	PTE = memory_BIUdirectrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
 	if (!(PTE&PXE_P)) //Not present?
 	{
 		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
@@ -156,11 +157,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	if (!(PDE&PXE_A)) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
-		memory_directwdw(PDBR+(DIR<<2),PDE); //Update in memory!
+		memory_BIUdirectwdw(PDBR+(DIR<<2),PDE); //Update in memory!
 	}
 	if (PTEUPDATED) //Updated?
 	{
-		memory_directwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
+		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
 	Paging_writeTLB(address,RW,effectiveUS,(PTE&PTE_D)?1:0,(PTE&PXE_ADDRESSMASK)); //Save the PTE 32-bit address in the TLB!
 	return 1; //Valid!
