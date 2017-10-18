@@ -369,7 +369,7 @@ byte memory_readlinear(uint_32 address, byte *result)
 
 byte memory_writelinear(uint_32 address, byte value)
 {
-	memory_directwb(address,value); //Write the address!
+	memory_BIUdirectwb(address,value); //Write the address!
 	return 0; //No error!
 }
 
@@ -962,7 +962,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				if (CPU_Operand_size[activeCPU]) //32-bit?
 				{
 					CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
-					CPU_PUSH32(&CPU[activeCPU].registers->EIP,1);
+					CPU_PUSH32(&CPU[activeCPU].registers->EIP);
 				}
 				else //16-bit?
 				{
@@ -1084,7 +1084,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
 				CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
-				CPU_PUSH32(&CPU[activeCPU].registers->EIP,1);
+				CPU_PUSH32(&CPU[activeCPU].registers->EIP);
 			}
 			else //16-bit?
 			{
@@ -1597,7 +1597,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				if (is32bit) //32-bit gate?
 				{
 					CPU_PUSH16(&CPU[activeCPU].oldSS,1);
-					CPU_PUSH32(&CPU[activeCPU].oldESP,1);
+					CPU_PUSH32(&CPU[activeCPU].oldESP);
 				}
 				else //16-bit gate?
 				{
