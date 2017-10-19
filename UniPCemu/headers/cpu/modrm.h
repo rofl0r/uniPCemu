@@ -141,7 +141,7 @@ typedef struct
 
 //When not register:
 
-	char text[20]; //String representation of reg or memory address!
+	char text[30]; //String representation of reg or memory address!
 	word mem_segment; //Segment of memory address!
 	word *segmentregister; //The segment register (LEA related functions)!
 	int segmentregister_index; //Segment register index!
