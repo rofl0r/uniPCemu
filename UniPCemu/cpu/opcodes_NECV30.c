@@ -225,7 +225,7 @@ extern byte modrm_addoffset; //Add this offset to ModR/M reads!
 void CPU186_OP62()
 {
 	modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Debug the location!
-	debugger_setcommand("BOUNDW %s,%s",modrm_param1,modrm_param2); //Opcode!
+	debugger_setcommand("BOUND %s,%s",modrm_param1,modrm_param2); //Opcode!
 
 	if (modrm_isregister(params)) //ModR/M may only be referencing memory?
 	{
@@ -261,7 +261,7 @@ void CPU186_OP62()
 void CPU186_OP68()
 {
 	word val = immw;    //PUSH Iz
-	debugger_setcommand("PUSHW %04X",val);
+	debugger_setcommand("PUSH %04X",val);
 	if (checkStackAccess(1,1,0)) return; //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return; //PUSH!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
@@ -273,11 +273,11 @@ void CPU186_OP69()
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULW %s,%04X",info.text,immw); //IMUL reg,imm16
+		debugger_setcommand("IMUL %s,%04X",info.text,immw); //IMUL reg,imm16
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULW %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
+		debugger_setcommand("IMUL %s,%s,%04X",info.text,info2.text,immw); //IMUL reg,r/m16,imm16
 	}
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
@@ -330,11 +330,11 @@ void CPU186_OP6B()
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
-		debugger_setcommand("IMULW %s,%02X",info.text,immb); //IMUL reg,imm8
+		debugger_setcommand("IMUL %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
-		debugger_setcommand("IMULW %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
+		debugger_setcommand("IMUL %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
 	}
 
 	if (CPU[activeCPU].instructionstep==0) //First step?
@@ -524,7 +524,7 @@ void CPU186_OP6F()
 }
 
 word temp8Edata;
-void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm_generateInstructionTEXT("MOVW", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; if (modrm_check16(&params,1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,1)) return; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), temp8Edata); }
+void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; if (modrm_check16(&params,1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,1)) return; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), temp8Edata); }
 
 void CPU186_OPC0()
 {
@@ -579,28 +579,28 @@ void CPU186_OPC1()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLW %s,%02X",info.text,oper2);
+			debugger_setcommand("ROL %s,%02X",info.text,oper2);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORW %s,%02X",info.text,oper2);
+			debugger_setcommand("ROR %s,%02X",info.text,oper2);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLW %s,%02X",info.text,oper2);
+			debugger_setcommand("RCL %s,%02X",info.text,oper2);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRW %s,%02X",info.text,oper2);
+			debugger_setcommand("RCR %s,%02X",info.text,oper2);
 			break;
 		case 4: //SHL
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2);
+			debugger_setcommand("SHL %s,%02X",info.text,oper2);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRW %s,%02X",info.text,oper2);
+			debugger_setcommand("SHR %s,%02X",info.text,oper2);
 			break;
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLW %s,%02X",info.text,oper2);
+			debugger_setcommand("SHL %s,%02X",info.text,oper2);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARW %s,%02X",info.text,oper2);
+			debugger_setcommand("SAR %s,%02X",info.text,oper2);
 			break;
 		default:
 			break;

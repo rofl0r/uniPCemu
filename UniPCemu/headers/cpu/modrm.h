@@ -161,6 +161,7 @@ typedef struct
 	byte modrm; //MODR/M!
 	SIBType SIB; //SIB Byte if applied.
 	dwordsplitterb displacement; //byte/word/dword!
+	byte size; //The used operand size of the memory operand!
 	byte specialflags; //Is this a /r MODR/M (=RM is reg2)?
 	byte reg_is_segmentregister; //REG is segment register?
 	MODRM_PTR info[3]; //All versions of info!
