@@ -2693,8 +2693,8 @@ void CPU80386_OPE2(){if (!CPU_Address_size[activeCPU]) { CPU8086_OPE2(); return;
 void CPU80386_OPE3(){if (!CPU_Address_size[activeCPU]) { CPU8086_OPE3(); return; /* Use CX instead! */ }  INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("JECXZ",0,((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if (!REG_ECX){CPU_JMPrel(rel8);CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 18; }  /* Branch taken */} else { if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 6; } /* Branch not taken */}}
 void CPU80386_OPE5(){INLINEREGISTER byte theimm = immb;modrm_generateInstructionTEXT("IN EAX,",0,theimm,PARAM_IMM8_PARAM); if (CPU_PORT_IN_D(0,theimm,&REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/ } }
 void CPU80386_OPE7(){INLINEREGISTER byte theimm = immb; debugger_setcommand("OUT %02X,EAX",theimm); if (CPU_PORT_OUT_D(0,theimm,REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/ } }
-void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALL",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EIP)) return; CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19-EU_CYCLES_SUBSTRACT_ACCESSREAD; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
-void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
+void CPU80386_OPE8(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("CALLD",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } if (CPU80386_PUSHdw(0,&REG_EIP)) return; CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19-EU_CYCLES_SUBSTRACT_ACCESSREAD; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
+void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32(); modrm_generateInstructionTEXT("JMPD",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Intrasegment direct */}
 void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMPD %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask())); destEIP = (segmentoffset&CPU_EIPmask()); segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1); CPU_flushPIQ(-1); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; } /* Intersegment direct */}
 void CPU80386_OPEB(){INLINEREGISTER sbyte reloffset = imm8(); modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask()),CPU_EIPSize()); CPU_JMPrel(reloffset);CPU_flushPIQ(-1); /*We're jumping to another address*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; CPU[activeCPU].cycles_stallBIU += 6; /*Stall the BIU partly now!*/ } /* Intrasegment direct short */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); if (CPU_PORT_IN_D(0,REG_DX,&REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/ } }
@@ -3070,14 +3070,14 @@ void CPU80386_OPFF() //GRP5 Ev
 			modrm_generateInstructionTEXT("CALL",32,0,PARAM_MODRM_0); //CALL!
 			break;
 		case 3: //CALL Mp (Read address word and jump there)
-			modrm_generateInstructionTEXT("CALL",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT("CALLF",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
 			//debugger_setcommand("CALL %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //Based on CALL Ap
 			break;
 		case 4: //JMP
 			modrm_generateInstructionTEXT("JMP",32,0,PARAM_MODRM_0); //JMP to the register!
 			break;
 		case 5: //JMP Mp
-			modrm_generateInstructionTEXT("JMP",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
+			modrm_generateInstructionTEXT("JMPF",32,0,PARAM_MODRM_0); //Jump to the address pointed here!
 			//debugger_setcommand("JMP %04X:%04X",MMU_rw(CPU_SEGMENT_CS,REG_CS,ea,0),MMU_rw(CPU_SEGMENT_CS,REG_CS,ea+2,0)); //JMP to destination!
 			break;
 		case 6: //PUSH
