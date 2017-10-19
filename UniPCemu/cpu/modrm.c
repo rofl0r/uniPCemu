@@ -942,103 +942,112 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 {
 	uint_32 disprel=0;
 	uint_32 effectivedisp;
-	char format[6] = "%04X+";
+	char format[6] = "+%04X";
 	char textnr[18] = "";
 	switch (mod) //What kind of parameter are we(signed vs unsigned, if used)?
 	{
 		case 0: //Mem? 32-bit size!
 			disprel = disp32; //Same!
 			effectivedisp = disprel; //Same!
-			format[2] = '8'; //DWord!
+			format[3] = '8'; //DWord!
 			break;
 		case 1: //8-bit? Needs sign-extending!
 			disprel = (byte)disp32;
 			effectivedisp = disprel|((disprel&0x80)?0xFFFFFF00ULL:0ULL); //Sign extended form!
-			format[2] = '2'; //Byte!
+			format[3] = '2'; //Byte!
 			break;
 		case 2: //32-bit?
 			disprel = disp32; //Sign is included!
 			effectivedisp = disprel; //Same!
-			format[2] = '8'; //DWord!
+			format[3] = '8'; //DWord!
 			break;
 		default: //Unknown?
 			//Don't apply!
 			effectivedisp = 0; //Nothing!
 			break;
 	}
-	if (cpudebugger) sprintf(textnr,format,disprel); //Text!
+	if (cpudebugger)
+	{
+		if ((mod==1) && (disprel&0x80)) //Negative instead?
+		{
+			disprel = (byte)0-unsigned2signed8(disprel&0xFF); //Make positive!
+			format[0] = '-'; //Substract instead!
+		}
+		sprintf(textnr,format,disprel); //Text!
+	}
 	switch (reg)
 	{
 	case MODRM_REG_EAX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"EAX*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_EAX<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"EAX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_EAX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sEAX",textnr);
-			return REG_EAX+effectivedisp;
+			if (cpudebugger) strcpy(result,"EAX");
+			return REG_EAX;
 		}
 		break;
 	case MODRM_REG_EBX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"EBX*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_EBX<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"EBX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_EBX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
 			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sEBX",textnr);
-			return REG_EBX+effectivedisp;
+			if (cpudebugger) strcpy(result,"EBX");
+			return REG_EBX;
 		}
 		break;
 	case MODRM_REG_ECX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"ECX*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_ECX<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"ECX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_ECX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sECX",textnr);
-			return REG_ECX+effectivedisp;
+			if (cpudebugger) strcpy(result,"ECX");
+			return REG_ECX;
 		}
 		break;
 	case MODRM_REG_EDX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"EDX*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_EDX<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"EDX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_EDX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sEDX",textnr);
-			return REG_EDX+effectivedisp;
+			if (cpudebugger) strcpy(result,"EDX");
+			return REG_EDX;
 		}
 		break;
 	case MODRM_REG_ESP: //none/ESP(base), depending on base/index.
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) strcpy(result,""); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
-			return 0;
+			if (mod==0) { textnr[1] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) strcpy(result,&textnr[1]); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
+			return effectivedisp;
 		}
 		else //Direct index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sESP",textnr);
+			if (cpudebugger) strcpy(result,"ESP");
 			*useSS = 1; //Use SS default!
-			return REG_ESP+effectivedisp;
+			return REG_ESP;
 		}
-		break; //SIB doesn't have ESP as a scaled index!
+		break; //SIB doesn't have ESP as a scaled index: it's none!
 	case MODRM_REG_EBP:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"EBP*%i",(1<<SIB_SCALE(params->SIB)));
+			if (cpudebugger) sprintf(result,"EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			*useSS = 1; //Use SS default!
 			return (REG_EBP<<SIB_SCALE(params->SIB));
 		}
@@ -1047,40 +1056,40 @@ OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_3
 			if (mod==MOD_MEM) //We're disp32 instead?
 			{
 				if (cpudebugger) sprintf(result,"%08X",disp32);
-				return disp32; //Disp32 instead!
+				return effectivedisp; //Disp32 instead!
 			}
 			else //EBP!
 			{
-				if (cpudebugger) sprintf(result,"%sEBP",textnr);
+				if (cpudebugger) strcpy(result,"EBP");
 				*useSS = 1; //Use SS default!
-				return REG_EBP+effectivedisp;
+				return REG_EBP;
 			}
 		}
 		break;
 	case MODRM_REG_ESI:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"ESI*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_ESI<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"ESI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_ESI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) sprintf(result,"%sESI",textnr);
-			return REG_ESI+effectivedisp;
+			if (cpudebugger) strcpy(result,"ESI");
+			return REG_ESI;
 		}
 		break;
 	case MODRM_REG_EDI:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) sprintf(result,"EDI*%i",(1<<SIB_SCALE(params->SIB)));
-			return (REG_EDI<<SIB_SCALE(params->SIB));
+			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
+			if (cpudebugger) sprintf(result,"EDI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			return (REG_EDI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
 			if (cpudebugger) sprintf(result,"%sEDI",textnr);
-			return REG_EDI+effectivedisp;
+			return REG_EDI;
 		}
 		break;
 	}
