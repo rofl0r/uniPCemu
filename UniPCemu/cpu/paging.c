@@ -246,7 +246,7 @@ int compareageentry( const void* a, const void* b)
      else if ( int_a->age < int_b->age ) return -1;
      else return 1;
 }
-void Paging_refreshAges(byte TLB_set, byte newestentry) //Refresh the ages, with the entry specified as newest!
+void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
 	AGEENTRY sortarray[8];
 	byte x,y;
@@ -254,7 +254,7 @@ void Paging_refreshAges(byte TLB_set, byte newestentry) //Refresh the ages, with
 	//Age bit 3 is assigned to become 8+(invalid/unused, which is moved to the end with value assigned 0)!
 	for (x=0;x<8;++x)
 	{
-		sortarray[x].age = (((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3)|(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
+		sortarray[x].age = ((sbyte)(((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3))+(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
 		sortarray[x].entry = x; //What entry are we?
 	}
 	qsort(&sortarray,8,sizeof(AGEENTRY),&compareageentry); //Sort the entries!
@@ -262,7 +262,7 @@ void Paging_refreshAges(byte TLB_set, byte newestentry) //Refresh the ages, with
 	for (x=0;x<8;++x) //Apply the new order!
 	{
 		CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = (y>>(sortarray[x].age&8)); //Generated age or unused age(0)!
-		if ((sortarray[x].age&8)==0) ++y; //Next when valid entry!
+		++y; //Next when valid entry!
 	}
 }
 
@@ -274,10 +274,10 @@ void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_
 	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
-	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = -1; //Clear the age: wére the new last used!
+	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = -1; //Clear the age: we're the new last used!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].data = result; //The result for the lookup!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = TAG; //The TAG to find it by!
-	Paging_refreshAges(TLB_set,entry); //Refresh the ages!
+	Paging_refreshAges(TLB_set); //Refresh the ages!
 }
 
 byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 *result)
@@ -295,7 +295,7 @@ byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_3
 			if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age)) //Not the newest age(which is always 0)?
 			{
 				CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = -1; //Clear the age: we're the new last used!
-				Paging_refreshAges(TLB_set,entry); //Refresh the ages!
+				Paging_refreshAges(TLB_set); //Refresh the ages!
 			}
 			return 1; //Found!
 		}
