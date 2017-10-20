@@ -73,7 +73,7 @@ OPTINLINE byte CPU80286_instructionstepPOPtimeout(byte base)
 
 void CPU286_OP63() //ARPL r/m16,r16
 {
-	modrm_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM21); //Our instruction text!
+	modrm_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM_01); //Our instruction text!
 	if (getcpumode() == CPU_MODE_REAL) //Real mode? #UD!
 	{
 		unkOP_186(); //Execute our unk opcode handler!
@@ -86,18 +86,22 @@ void CPU286_OP63() //ARPL r/m16,r16
 	CPUPROT1
 	if (CPU8086_instructionstepreadmodrmw(2,&srcRPL,MODRM_src1)) return; //Read source RPL!
 	CPUPROT1
-		if (getRPL(destRPL) < getRPL(srcRPL))
+		if (CPU[activeCPU].instructionstep==4)
 		{
-			FLAGW_ZF(1); //Set ZF!
-			setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
-			if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
-			if (CPU8086_instructionstepwritemodrmw(4,destRPL,MODRM_src0,0)) return; //Set the result!
+			if (getRPL(destRPL) < getRPL(srcRPL))
+			{
+				FLAGW_ZF(1); //Set ZF!
+				setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
+				if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
+			}
+			else
+			{
+				FLAGW_ZF(0); //Clear ZF!
+			}
+			++CPU[activeCPU].instructionstep;
+			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		}
-		else
-		{
-			FLAGW_ZF(0); //Clear ZF!
-		}
-		CPU_apply286cycles(); //Apply the 80286+ cycles!
+		if (FLAG_ZF) if (CPU8086_instructionstepwritemodrmw(5,destRPL,MODRM_src0,0)) return; //Set the result!
 	CPUPROT2
 	CPUPROT2
 }
