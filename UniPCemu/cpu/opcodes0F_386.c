@@ -1244,7 +1244,7 @@ void CPU80386_OP0FBC_16() {
 	else
 	{
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==0) //Executing?
+		if (CPU[activeCPU].instructionstep==4) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 0;
@@ -1260,7 +1260,7 @@ void CPU80386_OP0FBC_16() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,0,0)) return; //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,0,0)) return; //Write the result!
 	}
 } //BSF /r r16,r/m16
 void CPU80386_OP0FBC_32() {
@@ -1278,7 +1278,7 @@ void CPU80386_OP0FBC_32() {
 	else
 	{
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==0) //Executing?
+		if (CPU[activeCPU].instructionstep==4) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 0;
@@ -1294,7 +1294,7 @@ void CPU80386_OP0FBC_32() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,0)) return; //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,0)) return; //Write the result!
 	}
 } //BSF /r r32,r/m32
 
@@ -1313,11 +1313,12 @@ void CPU80386_OP0FBD_16() {
 	else
 	{
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==0) //Executing?
+		if (CPU[activeCPU].instructionstep==4) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 15;
 			BST_cnt = 0;
+			instructionbufferw2 = temp; //Save the current value!
 			for (;(((instructionbufferw>>temp)&1)==0) && (temp!=0xFFFF);) //Still searching?
 			{
 				--temp;
@@ -1327,7 +1328,7 @@ void CPU80386_OP0FBD_16() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,0,0)) return; //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,0,0)) return; //Write the result!
 	}
 } //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {
@@ -1345,11 +1346,12 @@ void CPU80386_OP0FBD_32() {
 	else
 	{
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==0) //Executing?
+		if (CPU[activeCPU].instructionstep==4) //Executing?
 		{
 			FLAGW_ZF(0);
-			temp = 15;
+			temp = 31;
 			BST_cnt = 0;
+			instructionbufferd2 = temp; //Save the current value!
 			for (;(((instructionbufferd>>temp)&1)==0) && (temp!=0xFFFFFFFF);) //Still searching?
 			{
 				--temp;
@@ -1359,6 +1361,6 @@ void CPU80386_OP0FBD_32() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) return; //Delay when running!
 		}
-		if (CPU80386_instructionstepwritemodrmdw(2,instructionbufferd2,0)) return; //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,0)) return; //Write the result!
 	}
 } //BSR /r r32,r/m32
