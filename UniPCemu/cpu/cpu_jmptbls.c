@@ -1014,7 +1014,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, CPU80386_OP8B }, //8Bh:
 		{ NULL, CPU80386_OP8C }, //8Ch:
 		{ NULL, CPU80386_OP8D }, //8Dh:
-		{ NULL, CPU80386_OP8E }, //8Eh:
+		{ NULL, /*CPU80386_OP8E*/ NULL }, //8Eh:
 		{ NULL, CPU80386_OP8F }, //8Fh:
 		//0x90:
 		{ NULL, CPU80386_OP90 }, //90h:

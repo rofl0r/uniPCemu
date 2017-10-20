@@ -3058,7 +3058,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,1,2,0,0,1,0,0x01 }, //8B MOV
 			{ 1,1,2,2,1,0,0,0x01 }, //8C MOV Ew,Sw
 			{ 1,1,2,0,0,0,0,0x03 }, //8D LEA
-			{ 1,1,2,2,0,1,0,0x01 }, //8E MOV Sw,Ew
+			{ 0,1,2,2,0,1,0,0x01 }, //8E MOV Sw,Ew: Only 16-bit is allowed!
 			{ 1,1,2,0,1,0,0,0x00 }, //8F Undocumented GRP opcode POP
 			{ 0,0,0,0,0,0,0,0x00 }, //90 NOP
 			{ 0,0,0,0,0,0,0,0x00 }, //91 XCHG REG,AX
