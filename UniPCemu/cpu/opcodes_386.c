@@ -1537,7 +1537,10 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 			destEIP = REG_EIP; //Store (E)IP for safety!
 			modrm_updatedsegment((word *)dest,(word)val,0); //Check for an updated segment!
 			CPUPROT1
-			*dest = val;
+			if (get_segment_index((word *)dest)==-1) //We're not a segment?
+			{
+				*dest = val;
+			}
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
 				switch (flags) //What type are we?
