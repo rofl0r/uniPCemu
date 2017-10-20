@@ -1401,7 +1401,7 @@ void CPU_PUSH16(word *val, byte is32instruction) //Push Word!
 	{
 		word oldval = *val; //Original value, saved before decrementing (E)SP!
 		stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
-		if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+		if (is32instruction) //32-bit?
 		{
 			MMU_wdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
 		}
