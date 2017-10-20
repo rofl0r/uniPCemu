@@ -27,6 +27,14 @@ word TEXT_ydelta = 0; //Delta x,y!
 #define ADAPTIVETEXT
 #endif
 
+#ifdef ADAPTIVETEXT
+byte forcexdelta = 1;
+byte forceydelta = 1;
+#else
+byte forcexdelta = 0;
+byte forceydelta = 0;
+#endif
+
 float render_xfactor=1.0f, render_yfactor=1.0f; //X and Y factor during rendering!
 float render_xfactorreverse = 1.0, render_yfactorreverse = 1.0; //X and Y factor during mouse/touch input!
 
@@ -319,7 +327,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 	horizontalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSX+1)*render_xfactorreverse),(rendersurface->sdllayer->w+1))<<2); //Horizontal size!
 	verticalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSY+1)*render_yfactorreverse),(rendersurface->sdllayer->h+1))<<2); //Vertical size!
 
-	if (((((tsurface->xdelta?TEXT_xdelta:0)==tsurface->curXDELTA)) || ((tsurface->ydelta?TEXT_ydelta:0)==tsurface->curYDELTA)) //Delta OK?
+	if ((((((tsurface->xdelta|forcexdelta)?TEXT_xdelta:0)==tsurface->curXDELTA)) || (((tsurface->ydelta|forceydelta)?TEXT_ydelta:0)==tsurface->curYDELTA)) //Delta OK?
 		#ifdef ADAPTIVETEXT
 		&& ((tsurface->cur_render_xfactor==(float)render_xfactor) && (tsurface->cur_render_yfactor==(float)render_yfactor)) //X/Y factor to apply OK?
 		#endif
@@ -332,8 +340,8 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 	}
 
 	//Update delta values!
-	tsurface->curXDELTA = tsurface->xdelta?TEXT_xdelta:0;
-	tsurface->curYDELTA = tsurface->ydelta?TEXT_ydelta:0;
+	tsurface->curXDELTA = (tsurface->xdelta|forcexdelta)?TEXT_xdelta:0;
+	tsurface->curYDELTA = (tsurface->ydelta|forceydelta)?TEXT_ydelta:0;
 
 	#ifdef ADAPTIVETEXT
 	//Update factors used when rendering!
@@ -372,7 +380,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		for (;;) //Process all x coordinates!
 		{
 			fx = sx; //x converted to destination factor!
-			if (tsurface->xdelta) fx += TEXT_xdelta; //Apply delta position to the output pixel!
+			if ((tsurface->xdelta|forcexdelta)) fx += TEXT_xdelta; //Apply delta position to the output pixel!
 			if ((fx>=0) && (fx<tsurface->horizontalprecalcsentries) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
 			{
 				tsurface->horizontalprecalcs[fx] = x; //Save the outgoing pixel location mapping on the screen!
@@ -401,7 +409,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		for (;;) //Process all y coordinates!
 		{
 			fy = sy; //y converterd to destination factor!
-			if (tsurface->ydelta) fy += TEXT_ydelta; //Apply delta position to the output pixel!
+			if ((tsurface->ydelta|forceydelta)) fy += TEXT_ydelta; //Apply delta position to the output pixel!
 			if ((fy>=0) && (fy<tsurface->verticalprecalcsentries) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
 			{
 				tsurface->verticalprecalcs[fy] = y; //Save the outgoing pixel location mapping on the screen!
@@ -905,8 +913,8 @@ byte GPU_textbuttondown(GPU_TEXTSURFACE *surface, byte finger, word x, word y) /
 	word x1, y1;
 	x1 = 0;
 	y1 = 0;
-	if (surface->xdelta) x1 += TEXT_xdelta; //Apply delta position to the output pixel!
-	if (surface->ydelta) y1 += TEXT_ydelta; //Apply delta position to the output pixel!
+	if ((surface->xdelta|forcexdelta)) x1 += TEXT_xdelta; //Apply delta position to the output pixel!
+	if ((surface->ydelta|forceydelta)) y1 += TEXT_ydelta; //Apply delta position to the output pixel!
 
 	//Now x1,y1 is the start of the surface!
 	if (x >= x1) //Within x range?
