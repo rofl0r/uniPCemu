@@ -123,6 +123,8 @@ extern PIC i8259; //PIC processor!
 double MHZ14tick = (1000000000/(double)MHZ14); //Time of a 14 MHZ tick!
 double MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
 
+byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
+
 int emu_started = 0; //Emulator started (initEMU called)?
 
 //To debug init/doneemu?
@@ -487,6 +489,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Initializing CPU...");
 	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
+	useIPSclock = BIOS_Settings.clockingmode; //Are we using the IPS clock instead?
 	initCPU(); //Initialise CPU for emulation!
 
 	debugrow("Initializing Inboard when required...");
@@ -752,49 +755,70 @@ void updateSpeedLimit()
 		{
 			case CPU_8086:
 			case CPU_NECV30: //First generation? Use 808X speed!
-				if (is_Turbo) //Turbo speed instead?
+				if (useIPSclock) //Using the IPS clock?
 				{
-					CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+					setCPUCycles(3000); //Default to 3000 cycles!
 				}
-				else //Normal speed?
+				else
 				{
-					CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+					if (is_Turbo) //Turbo speed instead?
+					{
+						CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+					}
+					else //Normal speed?
+					{
+						CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+					}
 				}
 				break;
 			case CPU_80286: //286?
 			case CPU_80386: //386?
 			case CPU_80486: //486?
 			case CPU_PENTIUM: //586?
-				if (is_Turbo) //Turbo speed instead?
+				if (useIPSclock) //Using the IPS clock?
 				{
-					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+					setCPUCycles(3000); //Unsupported so far! Default to 3000 cycles!
 				}
-				else //Normal speed?
+				else
 				{
-					CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
-				}
-				if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU==CPU_80486)) || (is_Compaq==1)) //80386/80486 or Compaq?
-				{
-					if (!(is_Compaq) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU==CPU_80486))) //XT/AT 386? 16MHz clock!
+					if (is_Turbo) //Turbo speed instead?
 					{
-						if (is_XT) //Inboard 386/486 XT?
-						{
-							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386/80486 16MHz!
-						}
-						else //Inboard 386/486 AT?
-						{
-							CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386/80486 32MHz(Type 3 motherboard)!
-						}
+						CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
 					}
-					else if (is_Compaq==1) //Compaq Deskpro 386+?
+					else //Normal speed?
 					{
-						CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+						CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
 					}
-					//Use AT speed for AT compatiblity for AT architectures!
+					if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU==CPU_80486)) || (is_Compaq==1)) //80386/80486 or Compaq?
+					{
+						if (!(is_Compaq) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU==CPU_80486))) //XT/AT 386? 16MHz clock!
+						{
+							if (is_XT) //Inboard 386/486 XT?
+							{
+								CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386/80486 16MHz!
+							}
+							else //Inboard 386/486 AT?
+							{
+								CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386/80486 32MHz(Type 3 motherboard)!
+							}
+						}
+						else if (is_Compaq==1) //Compaq Deskpro 386+?
+						{
+							CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+						}
+						//Use AT speed for AT compatiblity for AT architectures!
+					}
 				}
 				break;
 			default: //Unknown CPU?
-				setCPUCycles(8000); //Unsupported so far! Default to 8MHz cycles!
+				if (useIPSclock) //Using the IPS clock?
+				{
+					setCPUCycles(3000); //Default to 3000 cycles!
+				}
+				else
+				{
+					setCPUCycles(8000); //Unsupported so far! Default to 8MHz cycles!
+				}
 				break;
 		}
 	}
@@ -1000,7 +1024,14 @@ OPTINLINE byte coreHandler()
 		}
 
 		//Update current timing with calculated cycles we've executed!
-		instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		if (likely(useIPSclock==0)) //Use cycle-accurate clock?
+		{
+			instructiontime = CPU[activeCPU].cycles*CPU_speed_cycle; //Increase timing with the instruction time!
+		}
+		else
+		{
+			instructiontime = CPU[activeCPU].executed*CPU_speed_cycle; //Increase timing with the instruction time!
+		}
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 

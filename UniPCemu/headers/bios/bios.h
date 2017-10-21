@@ -80,6 +80,7 @@ typedef struct PACKED
 	byte got_CompaqCMOS; //Gotten an CMOS?
 	byte InboardInitialWaitstates; //Inboard 386 initial delay used?
 	word modemlistenport; //What port does the modem need to listen on?
+	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -144,6 +145,11 @@ typedef struct PACKED
 #define EXECUTIONMODE_SOUND 5
 //Load external BIOS (at the BIOS adress) and run it, enable debugger!
 
+//Use cycle-accurate clock
+#define CLOCKINGMODE_CYCLEACCURATE 0
+//Use IPS clock
+#define CLOCKINGMODE_IPSCLOCK 1
+
 //To debug the text mode characters on-screen?
 #define DEBUG_VIDEOCARD (BIOS_Settings.executionmode==EXECUTIONMODE_VIDEOCARD)
 
@@ -193,6 +199,7 @@ enum BIOSROMMode {
 #define DEFAULT_BIOSROMMODE BIOSROMMODE_NORMAL
 #define DEFAULT_INBOARDINITIALWAITSTATES 0
 #define DEFAULT_MODEMLISTENPORT 23
+#define DEFAULT_CLOCKINGMODE CLOCKINGMODE_CYCLEACCURATE
 
 //Breakpoint helper constants
 //2-bit mode(0=Disabled, 1=Real, 2=Protected, 3=Virtual 8086)

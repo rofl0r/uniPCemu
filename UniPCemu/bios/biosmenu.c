@@ -197,6 +197,8 @@ void BIOS_syncTime(); //Reset the kept time in UniPCemu!
 void BIOS_ROMMode(); //ROM mode!
 void BIOS_DebugState(); //State log!
 void BIOS_InboardInitialWaitstates(); //Inboard Initial Waitstates
+void BIOS_ClockingMode(); //Clocking Mode toggle!
+
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -266,6 +268,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ROMMode //BIOS ROM mode is #62!
 	,BIOS_DebugState //BIOS State log is #63!
 	,BIOS_InboardInitialWaitstates //Inboard Initial Waitstates is #64!
+	,BIOS_ClockingMode //Clocking Mode toggle is #65!
 };
 
 //Not implemented?
@@ -4688,7 +4691,7 @@ void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<17; i++) //Clear all possibilities!
+	for (i = 0; i<18; i++) //Clear all possibilities!
 	{
 		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
@@ -4781,8 +4784,26 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
+	fixClockingMode:
+	optioninfo[advancedoptions] = 5; //Change Turbo CPU option!
+	strcpy(menuoptions[advancedoptions], "Clocking mode: ");
+	switch (BIOS_Settings.clockingmode) //What clocking mode?
+	{
+	case CLOCKINGMODE_CYCLEACCURATE: //Disabled?
+		strcat(menuoptions[advancedoptions++], "Cycle-accurate clock"); //Default!
+		break;
+	case CLOCKINGMODE_IPSCLOCK: //Enabled?
+		strcat(menuoptions[advancedoptions++], "IPS clock"); //Default!
+		break;
+	default: //Limited cycles?
+		BIOS_Settings.clockingmode = CLOCKINGMODE_CYCLEACCURATE; //Default!
+		BIOS_Changed = 1; //Changed!
+		goto fixClockingMode; //Fix it!
+		break;
+	}
+
 setShowCPUSpeed:
-	optioninfo[advancedoptions] = 5; //Change CPU speed!
+	optioninfo[advancedoptions] = 6; //Change CPU speed!
 	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
 	{
@@ -4799,11 +4820,11 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 6; //Boot Order!
+	optioninfo[advancedoptions] = 7; //Boot Order!
 	strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
 	strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
-	optioninfo[advancedoptions] = 7; //Execution mode!
+	optioninfo[advancedoptions] = 8; //Execution mode!
 	strcpy(menuoptions[advancedoptions], "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
@@ -4830,7 +4851,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 8; //Debug mode!
+	optioninfo[advancedoptions] = 9; //Debug mode!
 	strcpy(menuoptions[advancedoptions], "Debug mode: ");
 	switch (BIOS_Settings.debugmode) //What debug mode is active?
 	{
@@ -4851,7 +4872,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 9; //We're debug log setting!
+	optioninfo[advancedoptions] = 10; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -4902,7 +4923,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 10; //We're debug log setting!
+	optioninfo[advancedoptions] = 11; //We're debug log setting!
 	strcpy(menuoptions[advancedoptions], "Debugger state log: ");
 	switch (BIOS_Settings.debugger_logstates)
 	{
@@ -4917,7 +4938,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 11; //We're diagnostics output!
+	optioninfo[advancedoptions] = 12; //We're diagnostics output!
 	if (BIOS_Settings.diagnosticsportoutput_breakpoint>=0) //Diagnostics breakpoint specified?
 	{
 		sprintf(menuoptions[advancedoptions++], "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
@@ -4927,7 +4948,7 @@ setShowCPUSpeed:
 		sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 	}
 
-	optioninfo[advancedoptions] = 12; //Change Diagnostics Port Breakpoint Timeout!
+	optioninfo[advancedoptions] = 13; //Change Diagnostics Port Breakpoint Timeout!
 	strcpy(menuoptions[advancedoptions], "Diagnostics Port Breakpoint Timeout: ");
 	switch (BIOS_Settings.diagnosticsportoutput_timeout) //What Diagnostics Port Breakpoint Timeout?
 	{
@@ -4940,7 +4961,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 13; //Breakpoint!
+	optioninfo[advancedoptions] = 14; //Breakpoint!
 	strcpy(menuoptions[advancedoptions], "Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
@@ -4988,7 +5009,7 @@ setShowCPUSpeed:
 	++advancedoptions; //Increase after!
 
 setArchitecture: //For fixing it!
-	optioninfo[advancedoptions] = 14; //Architecture!
+	optioninfo[advancedoptions] = 15; //Architecture!
 	strcpy(menuoptions[advancedoptions], "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
@@ -5012,7 +5033,7 @@ setArchitecture: //For fixing it!
 	}
 
 setBIOSROMmode: //For fixing it!
-	optioninfo[advancedoptions] = 15; //BIOS ROM mode!
+	optioninfo[advancedoptions] = 16; //BIOS ROM mode!
 	strcpy(menuoptions[advancedoptions], "BIOS ROM mode: ");
 	switch (BIOS_Settings.BIOSROMmode) //What architecture?
 	{
@@ -5030,7 +5051,7 @@ setBIOSROMmode: //For fixing it!
 	}
 
 setInboardInitialWaitstates: //For fixing it!
-	optioninfo[advancedoptions] = 16; //Inboard Initial Waitstates!
+	optioninfo[advancedoptions] = 17; //Inboard Initial Waitstates!
 	strcpy(menuoptions[advancedoptions], "Inboard Initial Waitstates: ");
 	switch (BIOS_Settings.InboardInitialWaitstates) //What architecture?
 	{
@@ -5075,7 +5096,8 @@ void BIOS_CPU() //CPU menu!
 	case 13:
 	case 14:
 	case 15:
-	case 16: //Valid option?
+	case 16:
+	case 17: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5109,45 +5131,51 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Menu = 56; //Turbo CPU speed selection!
 			}
 			break;
-		case 5: //CPU speed display setting?
+		case 5: //Clocking mode?
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 65; //Turbo CPU speed selection!
+			}
+			break;
+		case 6: //CPU speed display setting?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 41; //CPU speed display setting!
 			}
 			break;
 		//Basic execution information
-		case 6: //Boot order?
+		case 7: //Boot order?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 9; //Boot Order Menu!
 			}
 			break;
-		case 7:
+		case 8:
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 24; //Execution mode option!
 			}
 			break;
 		//Debugger information
-		case 8: //Debug mode?
+		case 9: //Debug mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 13; //Debug mode option!
 			}
 			break;
-		case 9: //Debugger log setting!
+		case 10: //Debugger log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 23; //Debugger log setting!
 			}
 			break;
-		case 10: //Debugger state log setting!
+		case 11: //Debugger state log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 63; //Debugger state log setting!
 			}
 			break;
-		case 11: //Diagnostics output breakpoint setting!
+		case 12: //Diagnostics output breakpoint setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 57; //Diagnostics Output Breakpoint setting!
@@ -5158,13 +5186,13 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Changed = 1; //We've changed!
 			}
 			break; //We do nothing!
-		case 12: //Timeout to be used for breakpoints?
+		case 13: //Timeout to be used for breakpoints?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
 			}
 			break;
-		case 13: //Breakpoint
+		case 14: //Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				#ifndef IS_PSP
@@ -5201,13 +5229,13 @@ void BIOS_CPU() //CPU menu!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
 			break; //TODO
-		case 14: //Architecture
+		case 15: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
-		case 15: //BIOS ROM mode
+		case 16: //BIOS ROM mode
 			if (!EMU_RUNNING) BIOS_Menu = 62; //Architecture option!
 			break;
-		case 16: //Inboard Initial Waitstates?
+		case 17: //Inboard Initial Waitstates?
 			BIOS_Menu = 64; //Architecture option!
 			break;
 		}
@@ -6801,5 +6829,12 @@ void BIOS_InboardInitialWaitstates()
 		}
 		break;
 	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_ClockingMode() //Clocking Mode toggle!
+{
+	BIOS_Settings.clockingmode = !BIOS_Settings.clockingmode; //Toggle!
+	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 35; //Goto CPU menu!
 }

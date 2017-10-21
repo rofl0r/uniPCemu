@@ -542,6 +542,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine","showcpuspeed",0,BIOS_Settings_file); //Show the relative CPU speed together with the framerate?
 	BIOS_Settings.TurboCPUSpeed = (uint_32)get_private_profile_uint64("machine","turbocpuspeed",0,BIOS_Settings_file);
 	BIOS_Settings.useTurboSpeed = (byte)get_private_profile_uint64("machine","useturbocpuspeed",0,BIOS_Settings_file); //Are we to use Turbo CPU speed?
+	BIOS_Settings.clockingmode = (byte)get_private_profile_uint64("machine","clockingmode",DEFAULT_CLOCKINGMODE,BIOS_Settings_file); //Are we using the IPS clock?
 	BIOS_Settings.BIOSROMmode = (byte)get_private_profile_uint64("machine","BIOSROMmode",DEFAULT_BIOSROMMODE,BIOS_Settings_file); //BIOS ROM mode.
 	BIOS_Settings.InboardInitialWaitstates = (byte)get_private_profile_uint64("machine","inboardinitialwaitstates",DEFAULT_INBOARDINITIALWAITSTATES,BIOS_Settings_file); //Inboard 386 initial delay used?
 
@@ -692,6 +693,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(machine_comment,"showcpuspeed: 0=Don't show, 1=Show\n");
 	strcat(machine_comment,"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
 	strcat(machine_comment,"useturbocpuspeed: 0=Don't use, 1=Use\n");
+	strcat(machine_comment,"clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
 	strcat(machine_comment,"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM\n");
 	strcat(machine_comment,"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
 	char *machine_commentused=NULL;
@@ -705,6 +707,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("machine",machine_commentused,"showcpuspeed",BIOS_Settings.ShowCPUSpeed,BIOS_Settings_file)) return 0; //Show the relative CPU speed together with the framerate?
 	if (!write_private_profile_uint64("machine",machine_commentused,"turbocpuspeed",BIOS_Settings.TurboCPUSpeed,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("machine",machine_commentused,"useturbocpuspeed",BIOS_Settings.useTurboSpeed,BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
+	if (!write_private_profile_uint64("machine",machine_commentused,"clockingmode",BIOS_Settings.clockingmode,BIOS_Settings_file)) return 0; //Are we using the IPS clock?
 	if (!write_private_profile_uint64("machine",machine_commentused,"BIOSROMmode",BIOS_Settings.BIOSROMmode,BIOS_Settings_file)) return 0; //BIOS ROM mode.
 	if (!write_private_profile_uint64("machine",machine_commentused,"inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 

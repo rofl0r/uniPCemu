@@ -63,6 +63,8 @@ byte DMA_currenttick=0;
 
 DMAControllerTYPE DMAController[2]; //We have 2 DMA Controllers!
 
+extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
+
 void freeDMA(void)
 {
 	SDL_DestroySemaphore(DMA_Lock); //Free!
@@ -505,14 +507,17 @@ void DMA_StateHandler_SI()
 void DMA_StateHandler_S0()
 {
 	//S0: Sample DLDA. Resolve DRQn priorities.
-	if (CPU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
+	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{
-		if (CPU[activeCPU].BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
+		if (CPU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
 		{
-			CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+			if (CPU[activeCPU].BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
+			{
+				CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+			}
+			//BUS is taken or waiting the cycle?
+			return; //NOP state!
 		}
-		//BUS is taken or waiting the cycle?
-		return; //NOP state!
 	}
 	//We now have control of the BUS! DLDA=1. Resolve DRQn priorities!
 	INLINEREGISTER byte channelindex, MCMReversed;
@@ -562,7 +567,10 @@ void DMA_StateHandler_S0()
 			}
 		}
 	}
-	CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
+	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
+	{
+		CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
+	}
 }
 
 void DMA_StateHandler_S1()
@@ -719,9 +727,18 @@ void DMA_StateHandler_S4()
 		}
 		break;
 	}
-	CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS, when allowed!
+	byte retryclock = 0;
 	DMA_S = 0; //Default to SI state!
-	if (((CPU[activeCPU].BUSactive==2) || (CPU[activeCPU].BUSactive==0))) //BUS available? Sample DREQ and perform steps to get directly into S1!
+	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
+	{	
+		CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS, when allowed!
+		retryclock = (((CPU[activeCPU].BUSactive==2) || (CPU[activeCPU].BUSactive==0))); //BUS available? Sample DREQ and perform steps to get directly into S1!
+	}
+	else //Using IPS clock?
+	{
+		retryclock = 1; //BUS always available? Sample DREQ and perform steps to get directly into S1!
+	}
+	if (retryclock) //Retrying the clock?
 	{
 		DMA_StateHandler_SI(); //Perform first state to sample DRQn!
 		if (DMA_S==1) //State increased? We're ready to process more right away!
