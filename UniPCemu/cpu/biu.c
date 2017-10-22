@@ -441,6 +441,14 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+1),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-1)) //Enough free to read the entire part?
 			{
 				if (CPU_readOP(&temp,0)) return 1; //Read OPcode!
@@ -476,6 +484,22 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+1),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+2),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+3),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-3)) //Enough free to read the entire part?
 			{
 				if (CPU_readOPw(&resultw1,0)) return 1; //Read OPcode!
