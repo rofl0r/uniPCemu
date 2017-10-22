@@ -3423,7 +3423,7 @@ void op_grp3_32() {
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax
 		REG_EDX = temp3.val32high; //into register dx
-		if (((temp3.val64>>31)==0) || ((temp3.val64>>31)==0x1FFFFFFFF)) FLAGW_OF(0);
+		if (((temp3.val64>>31)==0) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //Same!
 		FLAGW_SF((REG_EDX>>31)&1); //Sign flag is affected!

@@ -83,4 +83,12 @@ void memory_BIUdirectwb(uint_32 realaddress, byte value); //Direct write to real
 void memory_BIUdirectww(uint_32 realaddress, word value); //Direct write to real memory (with real data direct)!
 void memory_BIUdirectwdw(uint_32 realaddress, uint_32 value); //Direct write to real memory (with real data direct)!
 
+//MMU support for the above functionality!
+byte BIU_directrb(uint_32 realaddress, byte index);
+word BIU_directrw(uint_32 realaddress, byte index); //Direct read from real memory (with real data direct)!
+uint_32 BIU_directrdw(uint_32 realaddress, byte index);
+void BIU_directwb(uint_32 realaddress, byte val, byte index); //Access physical memory dir
+void BIU_directww(uint_32 realaddress, word value, byte index); //Direct write to real memory (with real data direct)!
+void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index);
+
 #endif

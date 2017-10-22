@@ -337,7 +337,7 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 
 word BIU_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
-	return (BIU_directrb(realaddress + 1, index | 1) << 8) | BIU_directrb(realaddress, index); //Get data, wrap arround!
+	return BIU_directrb(realaddress, index) | (BIU_directrb(realaddress + 1, index | 1) << 8); //Get data, wrap arround!
 }
 
 void BIU_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
@@ -349,7 +349,7 @@ void BIU_directww(uint_32 realaddress, word value, byte index) //Direct write to
 //Used by paging only!
 uint_32 BIU_directrdw(uint_32 realaddress, byte index)
 {
-	return (BIU_directrw(realaddress + 2, index | 2) << 16) | BIU_directrw(realaddress, index); //Get data, wrap arround!	
+	return BIU_directrw(realaddress, index) | (BIU_directrw(realaddress + 2, index | 2) << 16); //Get data, wrap arround!	
 }
 void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index)
 {
