@@ -5,6 +5,9 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//Default filename for the port E9 outout to log to.
+#define SOFTDEBUGGER_DEFAULTFILENAME "porte9"
+
 //Identifier readback!
 char debugger_identifier[22] = "COMMAND:SFHB_UniPCemu"; //Our identifier during standard debugger operations!
 //Written back debugger data!
@@ -470,7 +473,7 @@ void BIOS_initDebugger() //Init software debugger!
 	register_PORTIN(&PORT_readCommand); //Read a command byte!
 	register_PORTOUT(&PORT_writeCommand); //Write a command byte!
 	cleardata(&softdebugger.data.outputfilename[0],sizeof(softdebugger.data.outputfilename)); //Init output filename!
-	strcpy(softdebugger.data.outputfilename,"debugger"); //We're logging to debugger by default!
+	strcpy(softdebugger.data.outputfilename,SOFTDEBUGGER_DEFAULTFILENAME); //We're logging to debugger by default!
 	quitdebugger(); //First controller reset!
 }
 
