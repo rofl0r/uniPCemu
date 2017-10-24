@@ -596,13 +596,18 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	//Input
 	BIOS_Settings.input_settings.analog_minrange = (byte)get_private_profile_uint64("input","analog_minrange",0,BIOS_Settings_file); //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
-	BIOS_Settings.input_settings.fontcolor = (byte)get_private_profile_uint64("input","keyboard_fontcolor",0,BIOS_Settings_file);
-	BIOS_Settings.input_settings.bordercolor = (byte)get_private_profile_uint64("input","keyboard_bordercolor",0,BIOS_Settings_file);
-	BIOS_Settings.input_settings.activecolor = (byte)get_private_profile_uint64("input","keyboard_activecolor",0,BIOS_Settings_file);
-	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0,BIOS_Settings_file);
-	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0,BIOS_Settings_file);
-	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0,BIOS_Settings_file);
-	
+	BIOS_Settings.input_settings.fontcolor = (byte)get_private_profile_uint64("input","keyboard_fontcolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.bordercolor = (byte)get_private_profile_uint64("input","keyboard_bordercolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.activecolor = (byte)get_private_profile_uint64("input","keyboard_activecolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0xFF,BIOS_Settings_file);
+	byte c;
+	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
+	{
+		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor(c); //Set default color when invalid!
+	}
+
 	//Gamingmode
 	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
 	byte button;
