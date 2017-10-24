@@ -30,6 +30,7 @@ void donelog(void)
 {
 	if (logfile) fclose(logfile); //Close the last log file!
 	SDL_DestroySemaphore(log_Lock);
+	SDL_DestroySemaphore(log_stampLock);
 }
 
 char log_filenametmp[256];
@@ -42,6 +43,7 @@ void initlog()
 	initTicksHolder(&logticksholder); //Initialize our time!
 	startHiresCounting(&logticksholder); //Init our timer to the starting point!
 	log_Lock = SDL_CreateSemaphore(1); //Create our sephamore!
+	log_stampLock = SDL_CreateSemaphore(1); //Create our sephamore!
 	atexit(&donelog); //Our cleanup function!
 	cleardata(&log_filenametmp[0],sizeof(log_filenametmp)); //Init filename!
 	cleardata(&log_logtext[0],sizeof(log_logtext)); //Init logging text!
