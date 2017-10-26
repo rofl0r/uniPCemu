@@ -672,7 +672,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
 		if (EMULATED_CPU==CPU_80286) //Protected mode available?
 		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X, TR: %04X, LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 		}
 		else //Real mode only?
 		{
@@ -686,7 +686,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 			dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		}
 		#endif
-		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
+		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
 		//More aren't implemented in the 80(1/2)86!
 	}
 	else //80386+? 32-bit registers!
@@ -696,7 +696,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
 		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		
-		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
@@ -719,7 +719,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
 		//Finally, flags seperated!
-		dolog(filename,"FLAGSINFO:%s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
+		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
 	}
 	log_logtimestamp(log_timestampbackup); //Restore state!
 }
