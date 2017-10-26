@@ -81,6 +81,7 @@ typedef struct PACKED
 	byte InboardInitialWaitstates; //Inboard 386 initial delay used?
 	word modemlistenport; //What port does the modem need to listen on?
 	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
+	byte debugger_logregisters; //Are we to log registers when debugging?
 } BIOS_Settings_TYPE; //BIOS Settings!
 #include "headers/endpacked.h" //We're packed!
 
@@ -129,6 +130,13 @@ typedef struct PACKED
 #define DEBUGGERSTATELOG_DISABLED 0
 //Enabled state log
 #define DEBUGGERSTATELOG_ENABLED 1
+
+//Debugger registers log
+//Disabled registers log
+#define DEBUGGERREGISTERSLOG_DISABLED 0
+//Enabled registers log
+#define DEBUGGERREGISTERSLOG_ENABLED 1
+
 
 //Execution modes:
 //None:
@@ -180,6 +188,8 @@ enum BIOSROMMode {
 #define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
 #define DEFAULT_DEBUGGERLOG DEBUGGERLOG_NONE
 #define DEFAULT_DEBUGGERSTATELOG DEBUGGERSTATELOG_DISABLED
+#define DEFAULT_DEBUGGERREGISTERSLOG DEBUGGERREGISTERSLOG_DISABLED
+
 #define DEFAULT_ASPECTRATIO 2
 #ifdef STATICSCREEN
 #define DEFAULT_DIRECTPLOT 0

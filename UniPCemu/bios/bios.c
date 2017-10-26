@@ -550,6 +550,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.debugmode = (byte)get_private_profile_uint64("debugger","debugmode",DEFAULT_DEBUGMODE,BIOS_Settings_file);
 	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger","debuggerlog",DEFAULT_DEBUGGERLOG,BIOS_Settings_file);
 	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger","logstates",DEFAULT_DEBUGGERSTATELOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
+	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger","logregisters",DEFAULT_DEBUGGERREGISTERSLOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
 	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger","breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
@@ -721,6 +722,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
 	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
 	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
+	strcat(debugger_comment,"logregisters: 0=Disabled, 1=Enabled\n");
 	strcat(debugger_comment,"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
 	strcat(debugger_comment,"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
 	strcat(debugger_comment,"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
@@ -729,6 +731,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"debuggerlog",BIOS_Settings.debugger_log,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"logstates",BIOS_Settings.debugger_logstates,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
+	if (!write_private_profile_uint64("debugger",debugger_commentused,"logregisters",BIOS_Settings.debugger_logregisters,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"breakpoint",BIOS_Settings.breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
 	if (!write_private_profile_int64("debugger",debugger_commentused,"diagnosticsport_breakpoint",BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!

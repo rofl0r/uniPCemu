@@ -27,6 +27,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
 //Are we logging states?
 #define DEBUGGER_LOGSTATES (BIOS_Settings.debugger_logstates>0)
 
+//Are we logging states?
+#define DEBUGGER_LOGREGISTERS (BIOS_Settings.debugger_logregisters>0)
+
 void debugger_step(); //Debugging, if debugging (see below), after the CPU changes it''s registers!
 byte debugging(); //Debugging?
 byte debugger_logging(); //Are we logging?

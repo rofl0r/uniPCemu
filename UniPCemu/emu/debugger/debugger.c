@@ -649,7 +649,7 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
-	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+	if (DEBUGGER_LOGREGISTERS==0) //Disable register loggimg?
 	{
 		return; //No register logging, we're disabled for now!
 	}
@@ -664,16 +664,17 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	}
 	log_timestampbackup = log_logtimestamp(2); //Save state!
 	log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
-	if (EMULATED_CPU<=CPU_80286) //Emulating 80(1)86 registers?
+	//(DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)
+	if (EMULATED_CPU<=CPU_80286) //Emulating 80(1)86 registers or 80286?
 	{
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"Registers:"); //Start of the registers!
 		dolog(filename,"AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
-		if (registers->CR0&1) //Protected mode?
+		if (EMULATED_CPU==CPU_80286) //Protected mode available?
 		{
 			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 		}
-		else //Real mode?
+		else //Real mode only?
 		{
 			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
 		}
@@ -693,21 +694,17 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
-		
-		if (registers->CR0&1) //Protected mode?
-		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
-		}
-		else //Real mode?
-		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS); //Segment registers!
-		}
-
 		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
+		
+		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR:%04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+
 		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
 		dolog(filename, "CR0: %08X; CR1: %08X; CR2: %08X; CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
-		dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
+		if (EMULATED_CPU>CPU_80386) //More available?
+		{
+			dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
+		}
 
 		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium has DR4?
@@ -1032,16 +1029,18 @@ OPTINLINE static void debugger_autolog()
 		}
 		log_logtimestamp(log_timestampbackup); //Restore state!
 
-		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Multiple lines and finished executing?
+		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Multiple lines and finished executing?
 		{
 			debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the previous (initial) register status!
 		
 			debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
-
-			log_timestampbackup = log_logtimestamp(2); //Save state!
-			log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
-			dolog("debugger",""); //Empty line between comands!
-			log_logtimestamp(log_timestampbackup); //Restore state!
+			if (((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))==0) //Allowed to log?
+			{
+				log_timestampbackup = log_logtimestamp(2); //Save state!
+				log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
+				dolog("debugger",""); //Empty line between comands!
+				log_logtimestamp(log_timestampbackup); //Restore state!
+			}
 			debuggerINT = 0; //Don't continue after an INT has been used!
 		}
 	} //Allow logging?
