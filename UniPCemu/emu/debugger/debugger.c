@@ -557,63 +557,16 @@ char flags[256]; //Flags as a text!
 static char *debugger_generateFlags(CPU_registers *registers)
 {
 	strcpy(flags,""); //Clear the flags!
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
-	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
-	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED8(registers));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AF(registers)?'A':'a'));
-	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32(registers));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ZF(registers)?'Z':'z'));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_SF(registers)?'S':'s'));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_TF(registers)?'T':'t'));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_IF(registers)?'I':'i'));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_DF(registers)?'D':'d'));
-	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_OF(registers)?'O':'o'));
-	if (EMULATED_CPU>=CPU_80286) //286+?
-	{
-		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
-		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
-		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_NT(registers)?'N':'n'));
-	}
-	else //186-? Display as numbers!
-	{
-		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
-		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
-		sprintf(flags,"%s%u",flags,FLAGREGR_NT(registers));
-	}
-	//Higest 16-bit value!
-	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32768(registers));
-	
-	//Now the high word (80386+)!
+
+	//First the high word (80386+)!
 	if (EMULATED_CPU>=CPU_80386) //386+?
 	{
-		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_RF(registers)?'R':'r'));
-		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_V8(registers)?'V':'v'));
-		if (EMULATED_CPU>=CPU_80486) //486+?
-		{
-			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AC(registers)?'A':'a'));
-		}
-		else //386?
-		{
-			sprintf(flags,"%s%u",flags,FLAGREGR_AC(registers)); //Literal bit!
-		}
-		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+?
-		{
-			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIF(registers)?'F':'f'));
-			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIP(registers)?'P':'p'));
-			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ID(registers)?'I':'i'));
-		}
-		else //386/486?
-		{
-			sprintf(flags,"%s%u",flags,FLAGREGR_VIF(registers));
-			sprintf(flags,"%s%u",flags,FLAGREGR_VIP(registers));
-			sprintf(flags,"%s%u",flags,FLAGREGR_ID(registers));
-		}
+		//First, the unmapped bits!
 		//Unmapped high bits!
 		int i; //For counting the current bit!
 		word j; //For holding the current bit!
 		j = 1; //Start with value 1!
-		for (i=0;i<10;i++) //10-bits value rest!
+		for (i=9;i>=0;--i) //10-bits value rest!
 		{
 			if (FLAGREGR_UNMAPPEDHI(registers)&j) //Bit set?
 			{
@@ -625,7 +578,69 @@ static char *debugger_generateFlags(CPU_registers *registers)
 			}
 			j <<= 1; //Shift to the next bit!
 		}
+
+		if (EMULATED_CPU>=CPU_80486) //ID is available?
+		{
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ID(registers)?'I':'i'));
+		}
+		else //No ID?
+		{
+			sprintf(flags,"%s%u",flags,FLAGREGR_ID(registers));
+		}
+
+		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+?
+		{
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIP(registers)?'P':'p'));
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_VIF(registers)?'F':'f'));
+		}
+		else //386/486?
+		{
+			sprintf(flags,"%s%u",flags,FLAGREGR_VIP(registers));
+			sprintf(flags,"%s%u",flags,FLAGREGR_VIF(registers));
+		}
+
+		if (EMULATED_CPU>=CPU_80486) //486+?
+		{
+			sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AC(registers)?'A':'a'));
+		}
+		else //386?
+		{
+			sprintf(flags,"%s%u",flags,FLAGREGR_AC(registers)); //Literal bit!
+		}
+
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_V8(registers)?'V':'v'));
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_RF(registers)?'R':'r'));
 	}
+
+	//Higest 16-bit value!
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32768(registers));
+
+	if (EMULATED_CPU>=CPU_80286) //286+?
+	{
+		sprintf(flags,"%s%c",flags,(char)(FLAGREGR_NT(registers)?'N':'n'));
+		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+	}
+	else //186-? Display as numbers!
+	{
+		sprintf(flags,"%s%u",flags,FLAGREGR_NT(registers));
+		sprintf(flags,"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		sprintf(flags,"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+	}
+
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_OF(registers)?'O':'o'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_DF(registers)?'D':'d'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_IF(registers)?'I':'i'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_TF(registers)?'T':'t'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_SF(registers)?'S':'s'));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_ZF(registers)?'Z':'z'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED32(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_AF(registers)?'A':'a'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED8(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
+	sprintf(flags,"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
+	sprintf(flags,"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
+
 	return &flags[0]; //Give the flags for quick reference!
 }
 
@@ -693,12 +708,12 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	{
 		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
-		dolog(filename,"EAX: %08x EBX: %08x ECX: %08x EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
-		dolog(filename,"ESP: %08x EBP: %08x ESI: %08x EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
+		dolog(filename,"EAX: %08X EBX: %08X ECX: %08X EDX: %08X",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
+		dolog(filename,"ESP: %08X EBP: %08X ESI: %08X EDI: %08X",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		
 		dolog(filename,"CS: %04X DS: %04X ES: %04X FS: %04X GS: %04X SS: %04X TR: %04X LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 
-		dolog(filename,"EIP: %08x EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
+		dolog(filename,"EIP: %08X EFLAGS: %08X",registers->EIP,registers->EFLAGS); //Rest!
 		
 		dolog(filename, "CR0: %08X CR1: %08X CR2: %08X CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
 		if (EMULATED_CPU>CPU_80386) //More available?
