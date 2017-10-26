@@ -669,21 +669,21 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	{
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"Registers:"); //Start of the registers!
-		dolog(filename,"AX: %04X, BX: %04X, CX: %04X, DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
+		dolog(filename,"AX: %04X BX: %04X CX: %04X DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
+		dolog(filename,"SP: %04X BP: %04X SI: %04X DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
 		if (EMULATED_CPU==CPU_80286) //Protected mode available?
 		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X, TR: %04X, LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+			dolog(filename,"CS: %04X DS: %04X ES: %04X SS: %04X TR: %04X LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 		}
 		else //Real mode only?
 		{
-			dolog(filename,"CS: %04X, DS: %04X, ES: %04X, SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+			dolog(filename,"CS: %04X DS: %04X ES: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
 		}
-		dolog(filename,"SP: %04X, BP: %04X, SI: %04X, DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
-		dolog(filename,"IP: %04X, FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
+		dolog(filename,"IP: %04X FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
 		{
 			dolog(filename, "CR0: %04X", (registers->CR0&0xFFFF)); //Rest!
-			dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+			dolog(filename,"GDTR: " LONGLONGSPRINTX " IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		}
 		#endif
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -693,30 +693,30 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	{
 		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
-		dolog(filename,"EAX: %08x, EBX: %08x, ECX: %08x, EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
-		dolog(filename,"ESP: %08x, EBP: %08x, ESI: %08x, EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
+		dolog(filename,"EAX: %08x EBX: %08x ECX: %08x EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
+		dolog(filename,"ESP: %08x EBP: %08x ESI: %08x EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		
-		dolog(filename,"CS: %04X, DS: %04X, ES: %04X, FS: %04X, GS: %04X SS: %04X, TR: %04X, LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		dolog(filename,"CS: %04X DS: %04X ES: %04X FS: %04X GS: %04X SS: %04X TR: %04X LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 
-		dolog(filename,"EIP: %08x, EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
+		dolog(filename,"EIP: %08x EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
-		dolog(filename, "CR0: %08X; CR1: %08X; CR2: %08X; CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
+		dolog(filename, "CR0: %08X CR1: %08X CR2: %08X CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
 		if (EMULATED_CPU>CPU_80386) //More available?
 		{
-			dolog(filename, "CR4: %08X; CR5: %08X; CR6: %08X; CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
+			dolog(filename, "CR4: %08X CR5: %08X CR6: %08X CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
 		}
 
-		dolog(filename, "DR0: %08X; DR1: %08X; DR2: %08X; CR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
+		dolog(filename, "DR0: %08X DR1: %08X DR2: %08X DR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium has DR4?
 		{
-			dolog(filename, "DR4: %08X; DR6: %08X; DR5&7: %08X", registers->DR4, registers->DR6, registers->DR7); //Rest!
+			dolog(filename, "DR4: %08X DR6: %08X DR5&7: %08X", registers->DR4, registers->DR6, registers->DR7); //Rest!
 		}
 		else //DR4=>DR6
 		{
-			dolog(filename, "DR6: %08X; DR5&7: %08X", registers->DR6, registers->DR7); //Rest!
+			dolog(filename, "DR6: %08X DR5&7: %08X", registers->DR6, registers->DR7); //Rest!
 		}
 
-		dolog(filename,"GDTR: " LONGLONGSPRINTX ", IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+		dolog(filename,"GDTR: " LONGLONGSPRINTX " IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
