@@ -29,6 +29,7 @@
 //Default long long(uint_64) definition!
 #define LONGLONGSPRINTF "%llu"
 #define LONGLONGSPRINTX "%016llX"
+#define LONGLONGSPRINTx "%016llx"
 
 //Platform specific stuff!
 #ifdef _WIN32

@@ -103,7 +103,9 @@
 #undef LONGLONGSPRINTF
 #define LONGLONGSPRINTF "%I64u"
 #undef LONGLONGSPRINTX
+#undef LONGLONGSPRINTx
 #define LONGLONGSPRINTX "%I64X"
+#define LONGLONGSPRINTx "%I64x"
 #endif
 typedef uint_64 ptrnum;
 #else
@@ -113,7 +115,9 @@ typedef uint_64 ptrnum;
 #undef LONGLONGSPRINTF
 #define LONGLONGSPRINTF "%I64u"
 #undef LONGLONGSPRINTX
+#undef LONGLONGSPRINTx
 #define LONGLONGSPRINTX "%I64X"
+#define LONGLONGSPRINTx "%I64x"
 #endif
 typedef uint_32 ptrnum;
 #endif
