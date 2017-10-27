@@ -684,21 +684,21 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	{
 		#ifndef LOGFLAGSONLY
 		dolog(filename,"Registers:"); //Start of the registers!
-		dolog(filename,"AX: %04X BX: %04X CX: %04X DX: %04X",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
-		dolog(filename,"SP: %04X BP: %04X SI: %04X DI: %04X",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
+		dolog(filename,"AX: %04x BX: %04x CX: %04x DX: %04x",registers->AX,registers->BX,registers->CX,registers->DX); //Basic registers!
+		dolog(filename,"SP: %04x BP: %04x SI: %04x DI: %04x",registers->SP,registers->BP,registers->SI,registers->DI); //Segment registers!
 		if (EMULATED_CPU==CPU_80286) //Protected mode available?
 		{
-			dolog(filename,"CS: %04X DS: %04X ES: %04X SS: %04X TR: %04X LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x TR: %04x LDTR: %04x",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 		}
 		else //Real mode only?
 		{
-			dolog(filename,"CS: %04X DS: %04X ES: %04X SS: %04X",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
 		}
-		dolog(filename,"IP: %04X FLAGS: %04X",registers->IP,registers->FLAGS); //Rest!
+		dolog(filename,"IP: %04x FLAGS: %04x",registers->IP,registers->FLAGS); //Rest!
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
 		{
-			dolog(filename, "CR0: %04X", (registers->CR0&0xFFFF)); //Rest!
-			dolog(filename,"GDTR: " LONGLONGSPRINTX " IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+			dolog(filename, "CR0: %04x", (registers->CR0&0xFFFF)); //Rest!
+			dolog(filename,"GDTR: " LONGLONGSPRINTx " IDTR: " LONGLONGSPRINTx,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		}
 		#endif
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -708,30 +708,30 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 	{
 		dolog(filename,"Registers:"); //Start of the registers!
 		#ifndef LOGFLAGSONLY
-		dolog(filename,"EAX: %08X EBX: %08X ECX: %08X EDX: %08X",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
-		dolog(filename,"ESP: %08X EBP: %08X ESI: %08X EDI: %08X",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
+		dolog(filename,"EAX: %08x EBX: %08x ECX: %08x EDX: %08x",registers->EAX,registers->EBX,registers->ECX,registers->EDX); //Basic registers!
+		dolog(filename,"ESP: %08x EBP: %08x ESI: %08x EDI: %08x",registers->ESP,registers->EBP,registers->ESI,registers->EDI); //Segment registers!
 		
-		dolog(filename,"CS: %04X DS: %04X ES: %04X FS: %04X GS: %04X SS: %04X TR: %04X LDTR: %04X",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		dolog(filename,"CS: %04x DS: %04x ES: %04x FS: %04x GS: %04x SS: %04x TR: %04x LDTR: %04x",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
 
-		dolog(filename,"EIP: %08X EFLAGS: %08X",registers->EIP,registers->EFLAGS); //Rest!
+		dolog(filename,"EIP: %08x EFLAGS: %08x",registers->EIP,registers->EFLAGS); //Rest!
 		
-		dolog(filename, "CR0: %08X CR1: %08X CR2: %08X CR3: %08X", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
+		dolog(filename, "CR0: %08x CR1: %08x CR2: %08x CR3: %08x", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
 		if (EMULATED_CPU>CPU_80386) //More available?
 		{
-			dolog(filename, "CR4: %08X CR5: %08X CR6: %08X CR7: %08X", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
+			dolog(filename, "CR4: %08x CR5: %08x CR6: %08x CR7: %08x", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
 		}
 
-		dolog(filename, "DR0: %08X DR1: %08X DR2: %08X DR3: %08X", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
+		dolog(filename, "DR0: %08x DR1: %08x DR2: %08x DR3: %08x", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium has DR4?
 		{
-			dolog(filename, "DR4: %08X DR6: %08X DR5&7: %08X", registers->DR4, registers->DR6, registers->DR7); //Rest!
+			dolog(filename, "DR4: %08x DR6: %08x DR5&7: %08x", registers->DR4, registers->DR6, registers->DR7); //Rest!
 		}
 		else //DR4=>DR6
 		{
-			dolog(filename, "DR6: %08X DR5&7: %08X", registers->DR6, registers->DR7); //Rest!
+			dolog(filename, "DR6: %08x DR5&7: %08x", registers->DR6, registers->DR7); //Rest!
 		}
 
-		dolog(filename,"GDTR: " LONGLONGSPRINTX " IDTR: " LONGLONGSPRINTX,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+		dolog(filename,"GDTR: " LONGLONGSPRINTx " IDTR: " LONGLONGSPRINTx,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
@@ -812,11 +812,11 @@ OPTINLINE static void debugger_autolog()
 				{
 					if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
 					{
-						dolog("debugger","ModR/M address: %04X:%04X=%08X",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+						dolog("debugger","ModR/M address: %04x:%04X=%08x",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
 					}
 					else //386+? Unknown addresses, so just take it as given!
 					{
-						dolog("debugger","ModR/M address: %04X:%08X",modrm_lastsegment,modrm_lastoffset);
+						dolog("debugger","ModR/M address: %04x:%08x",modrm_lastsegment,modrm_lastoffset);
 					}
 				}
 				if (MMU_invaddr()) //We've detected an invalid address?
@@ -873,10 +873,10 @@ OPTINLINE static void debugger_autolog()
 				switch (HWINT_saved)
 				{
 				case 1: //Trap/SW Interrupt?
-					dolog("debugger", "Trapped interrupt: %04X", HWINT_nr);
+					dolog("debugger", "Trapped interrupt: %04x", HWINT_nr);
 					break;
 				case 2: //PIC Interrupt toggle?
-					dolog("debugger", "HW interrupt: %04X", HWINT_nr);
+					dolog("debugger", "HW interrupt: %04x", HWINT_nr);
 					break;
 				default: //Unknown?
 					break;
@@ -888,22 +888,22 @@ OPTINLINE static void debugger_autolog()
 			{
 				if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
 				{
-					sprintf(executedinstruction,"%04X:%08X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+					sprintf(executedinstruction,"%04x:%08x %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 				}
 				else //8086 compatible log?
 				{
-					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
+					sprintf(executedinstruction,"%04x:%04x %s",debuggerregisters.CS,debuggerregisters.IP,fullcmd); //Log command, 16-bit disassembler style!
 				}
 			}
 			else //286+? Use EIP!
 			{
 				if ((EMULATED_CPU>CPU_80286) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Newer? Use 32-bits addressing when newer or Common log format!
 				{
-					sprintf(executedinstruction,"%04X:%08X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+					sprintf(executedinstruction,"%04x:%08x %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 				else //16-bits offset?
 				{
-					sprintf(executedinstruction,"%04X:%04X %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
+					sprintf(executedinstruction,"%04x:%04x %s",debuggerregisters.CS,debuggerregisters.EIP,fullcmd); //Log command, 32-bit disassembler style!
 				}
 			}
 			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single line?
