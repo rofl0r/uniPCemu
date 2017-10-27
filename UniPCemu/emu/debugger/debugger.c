@@ -192,9 +192,15 @@ char debugger_memoryaccess_line[256];
 
 void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type)
 {
+	/*
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
 	{
 		return; //No memory access logging, we're disabled for now!
+	}
+	*/
+	if (DEBUGGER_LOGREGISTERS==0) //Disable register loggimg?
+	{
+		return; //Disable memory access logs as well!
 	}
 	if (iswrite)
 	{
