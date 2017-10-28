@@ -76,6 +76,18 @@ byte log_logtimestamp(byte logtimestamp)
 	return result; //Give the result!
 }
 
+void closeLogFile(byte islocked)
+{
+	if (islocked==0) WaitSem(log_Lock) //Only one instance allowed!
+	//PSP doesn't buffer, because it's too slow! Android is still in the making, so constantly log, don't buffer!
+	if (unlikely(logfile)) //Are we logging?
+	{
+		fclose(logfile);
+		logfile = NULL; //We're finished!
+	}
+	if (islocked==0) PostSem(log_Lock)
+}
+
 void dolog(char *filename, const char *format, ...) //Logging functionality!
 {
 	word i;
@@ -152,7 +164,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 
 	if ((!logfile) || (strcmp(lastfile,log_filenametmp)!=0)) //Other file or new file?
 	{
-		if (logfile) fclose(logfile); //Close the old log if needed!
+		closeLogFile(1); //Close the old log if needed!
 		domkdir(logpath); //Create a logs directory if needed!
 		logfile = fopen(log_filenametmp, "rb"); //Open for testing!
 		if (logfile) //Existing?
@@ -183,9 +195,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
 #if defined(IS_PSP) || defined(ANDROID)
-		//PSP doesn't buffer, because it's too slow! Android is still in the making, so constantly log, don't buffer!
-		fclose(logfile);
-		logfile = NULL; //We're finished!
+		closeLogfile(1); //Close the current log file!
 #endif
 
 	}

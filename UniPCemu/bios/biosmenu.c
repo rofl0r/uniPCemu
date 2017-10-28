@@ -442,6 +442,8 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	reboot_needed = 0; //Do we need to reboot?
 
+	closeLogFile(0); //Close all log files!
+
 	BIOS_MenuChooser(); //Show the BIOS's menu we've selected!
 
 	if (BIOS_Settings.firstrun) //First run?
