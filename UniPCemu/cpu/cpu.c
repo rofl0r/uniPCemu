@@ -1110,6 +1110,11 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
+	if (((timing->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0)) //LOCK when not allowed?
+	{
+		goto invalidlockprefix;
+	}
+
 	if (timing->used==0) goto skiptimings; //Are we not used?
 	if (timing->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
 	{
@@ -1118,6 +1123,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?
 		{
+			invalidlockprefix: //Lock prefix when not allowed? Count as #UD!
 			currentOP_handler = &CPU_unkOP; //Unknown opcode/parameter!
 			CPU_unkOP(); //Execute the unknown opcode handler!
 			return 1; //Abort!

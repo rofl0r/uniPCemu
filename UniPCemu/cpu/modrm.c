@@ -21,6 +21,8 @@
 
 char modrm_sizes[4][256] = {"byte","word","dword","byte"}; //What size is used for the parameter?
 
+extern CPU_Timings *timing; //The timing used for the current instruction! Used for stuff like invalid LOCK prefixes!
+
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
@@ -857,7 +859,7 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 		if (cpudebugger) strcpy(result->text,"DR3");
 		break;
 	case MODRM_REG_DR4: //4 becomes 6 until Pentium, Pentium either redirects to 6(386-compatible) when the Debug Extension bit in CR4 is clear(Pentium) or when 80386/80486. Else CR4 raises #UD.
-		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+? DR4 exists, with extra rules on redirecting!
+		if (EMULATED_CPU>=CPU_80486) //80486+? DR4 exists, with extra rules on redirecting!
 		{
 			if (CPU[activeCPU].registers->CR4&8) //Debugging extensions?
 			{
@@ -870,7 +872,7 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 		if (cpudebugger) strcpy(result->text,"DR6");
 		break;
 	case MODRM_REG_DR5:
-		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+? DR4 exists, with extra rules on redirecting!
+		if (EMULATED_CPU>=CPU_80486) //80486+? DR4 exists, with extra rules on redirecting!
 		{
 			if (CPU[activeCPU].registers->CR4&8) //Debugging extensions?
 			{
@@ -2466,5 +2468,77 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	{
 		param->error = 1; //We've detected an error!
 	}
+	if (CPU_getprefix(0xF0)) //LOCK prefix used?
+	{
+		if ((timing->readwritebackinformation&0x400) && (param->info[timing->modrm_src0].isreg!=2) && (MODRM_REG(param->modrm)<5)) //Allow for reg 5-7 only!
+		{
+			param->error = 1; //We've detected an error!		
+		}
+		else if ((timing->readwritebackinformation&0x400)) //Allow for reg 5-7 only!
+		{
+			if (MODRM_REG(param->modrm)>4) //We're a lockable instruction?
+			{
+				if (param->info[timing->modrm_src0].isreg!=2) //Invalid access?
+				{
+					param->error = 1; //We've detected an error!		
+				}
+			}
+			else //Invalid prefix for instruction?
+			{
+				param->error = 1; //We've detected an error!		
+			}
+		}
+		else //Check for reg also, if required?
+		{
+			switch (timing->readwritebackinformation&0x300)
+			{
+			case 0x100: //Reg!=7 faults only!
+				if (MODRM_REG(param->modrm)!=7) //We're a lockable instruction?
+				{
+					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					{
+						param->error = 1; //We've detected an error!		
+					}
+				}
+				else //Invalid prefix for instruction?
+				{
+					param->error = 1; //We've detected an error!		
+				}
+				break;
+			case 0x200: //Reg 2 or 3 faults only!
+				if ((MODRM_REG(param->modrm)&0x6)==2) //We're a lockable instruction?
+				{
+					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					{
+						param->error = 1; //We've detected an error!		
+					}
+				}
+				else //Invalid prefix for instruction?
+				{
+					param->error = 1; //We've detected an error!		
+				}
+				break;
+			case 0x300: //Reg 0 or 1 faults only!
+				if ((MODRM_REG(param->modrm)&0x6)==0) //We're a lockable instruction?
+				{
+					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					{
+						param->error = 1; //We've detected an error!		
+					}
+				}
+				else //Invalid prefix for instruction?
+				{
+					param->error = 1; //We've detected an error!		
+				}
+				break;
+			default: //Normal behaviour?
+				if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+				{
+					param->error = 1; //We've detected an error!
+				}
+				break;
+			}
+		}
+	} 
 	return 0; //We're finished fetching!
 }

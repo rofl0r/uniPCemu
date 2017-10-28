@@ -724,18 +724,11 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename, "CR0: %08x CR1: %08x CR2: %08x CR3: %08x", registers->CR0, registers->CR1, registers->CR2, registers->CR3); //Rest!
 		if (EMULATED_CPU>CPU_80386) //More available?
 		{
-			dolog(filename, "CR4: %08x CR5: %08x CR6: %08x CR7: %08x", registers->CR4, registers->CR5, registers->CR6, registers->CR7); //Rest!
+			dolog(filename, "CR4: %08x", registers->CR4); //Rest!
 		}
 
 		dolog(filename, "DR0: %08x DR1: %08x DR2: %08x DR3: %08x", registers->DR0, registers->DR1, registers->DR2, registers->DR3); //Rest!
-		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium has DR4?
-		{
-			dolog(filename, "DR4: %08x DR6: %08x DR5&7: %08x", registers->DR4, registers->DR6, registers->DR7); //Rest!
-		}
-		else //DR4=>DR6
-		{
-			dolog(filename, "DR6: %08x DR5&7: %08x", registers->DR6, registers->DR7); //Rest!
-		}
+		dolog(filename, "DR6: %08x DR7: %08x", registers->DR6, registers->DR7); //Rest!
 
 		dolog(filename,"GDTR: " LONGLONGSPRINTx " IDTR: " LONGLONGSPRINTx,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
 		#endif
