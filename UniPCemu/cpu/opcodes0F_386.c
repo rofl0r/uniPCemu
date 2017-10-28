@@ -961,8 +961,8 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 		temp2.val64 = (uint_64)instructionbufferd2; //Immediate word is second/third parameter!
 		if ((temp1.val64 &0x80000000ULL)==0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;
 		if ((temp2.val64 &0x80000000ULL)==0x80000000ULL) temp2.val64 |= 0xFFFFFFFF00000000ULL;
-		temp3.val64s = temp1.val32s; //Load and...
-		temp3.val64s *= temp2.val32s; //Signed multiplication!
+		temp3.val64s = temp1.val64s; //Load and...
+		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!

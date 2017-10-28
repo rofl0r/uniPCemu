@@ -3423,7 +3423,7 @@ void op_grp3_32() {
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax
 		REG_EDX = temp3.val32high; //into register dx
-		if (((temp3.val64>>31)==0) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0);
+		if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //Same!
 		FLAGW_SF((REG_EDX>>31)&1); //Sign flag is affected!
@@ -3740,7 +3740,7 @@ void CPU386_OP69()
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	modrm_write32(&params,MODRM_src0,temp3.val32); //Write to the destination(register)!
-	if (((temp3.val64>>31)==0U) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
+	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
 	FLAGW_SF((temp3.val32&0x80000000U)>>31); //Sign!
@@ -3790,9 +3790,9 @@ void CPU386_OP6B()
 	{
 		temp2.val64 = (uint_64)immb; //Read unsigned parameter!
 
-		if (temp1.val64&0x80000000) temp1.val64 |= 0xFFFFFFFF00000000LL;//Sign extend to 64 bits!
-		if (temp2.val64&0x80) temp2.val64 |= 0xFFFFFFFFFFFFFF00LL; //Sign extend to 64 bits!
-		temp3.val32s = temp1.val32s * temp2.val32s;
+		if (temp1.val64&0x80000000ULL) temp1.val64 |= 0xFFFFFFFF00000000ULL;//Sign extend to 64 bits!
+		if (temp2.val64&0x80ULL) temp2.val64 |= 0xFFFFFFFFFFFFFF00ULL; //Sign extend to 64 bits!
+		temp3.val64s = temp1.val64s * temp2.val64s;
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
@@ -3802,7 +3802,7 @@ void CPU386_OP6B()
 	if (((temp3.val64>>15)==0ULL) || ((temp3.val64>>15)==0x1FFFFFFFFFFFFFFULL)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
-	FLAGW_SF((temp3.val32&0x80000000)>>31); //Sign!
+	FLAGW_SF((temp3.val32&0x80000000U)>>31); //Sign!
 	FLAGW_PF(parity[temp3.val32&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val32==0)?1:0); //Set the zero flag!
 }
