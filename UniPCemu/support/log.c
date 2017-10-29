@@ -195,7 +195,7 @@ void dolog(char *filename, const char *format, ...) //Logging functionality!
 		}
 		fwrite(&lineending,1,sizeof(lineending),logfile); //Write the line feed appropriate for the system after any write operation!
 #if defined(IS_PSP) || defined(ANDROID)
-		closeLogfile(1); //Close the current log file!
+		closeLogFile(1); //Close the current log file!
 #endif
 
 	}
