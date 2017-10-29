@@ -281,17 +281,20 @@ void CPU186_OP69()
 	}
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
+		/*
 		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
+		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,1)) return; //Read R/M!
+			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
-		}
+		/*}
 		else
 		{
 			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,0)) return; //Read reg instead! Word register = Word register * imm16!
 			temp1.val16high = 0; //Clear high part by default!
 		}
+		*/
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
@@ -328,28 +331,32 @@ void CPU186_OP6B()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
+	/*
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
+	*/
 		debugger_setcommand("IMUL %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
-	}
+	//}
 
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
-		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
+		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
 			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
-		}
+		/*}
 		else
 		{
 			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm16!
 			temp1.val16high = 0; //Clear high part by default!
 		}
+		*/
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
@@ -365,7 +372,7 @@ void CPU186_OP6B()
 	}
 
 	modrm_write16(&params,MODRM_src0,temp3.val16,0); //Write to register!
-	if (((temp3.val32>>7)==0) || ((temp3.val32>>7)==0x1FFFFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
+	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!

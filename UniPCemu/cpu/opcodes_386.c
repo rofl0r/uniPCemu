@@ -3705,27 +3705,31 @@ void CPU386_OP69()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
+	/*
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%08X",info.text,imm32); //IMUL reg,imm32
 	}
 	else //Three-operand version?
 	{
+	*/
 		debugger_setcommand("IMUL %s,%s,%08X",info.text,info2.text,imm32); //IMUL reg,r/m32,imm32
-	}
+	//}
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
-		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
+		*/
 			if (modrm_check32(&params,1,1)) return; //Abort on fault!
-			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,1)) return; //Read R/M!
+			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
-		}
+		/*}
 		else
 		{
 			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,0)) return; //Read reg instead! Word register = Word register * imm32!
 			temp1.val32high = 0; //Clear high part by default!
 		}
+		*/
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
@@ -3762,28 +3766,32 @@ void CPU386_OP6B()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
+	/*
 	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
+	*/
 		debugger_setcommand("IMUL %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m32,imm8
-	}
+	//}
 
 	if (CPU[activeCPU].instructionstep==0) //First step?
 	{
-		if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
+		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
+		*/
 			if (modrm_check32(&params,1,1)) return; //Abort on fault!
 			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
-		}
+		/*}
 		else
 		{
 			if (CPU80386_instructionstepreadmodrmdw(0,&temp1.val32,MODRM_src0)) return; //Read reg instead! Word register = Word register * imm32!
 			temp1.val32high = 0; //Clear high part by default!
 		}
+		*/
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
@@ -3799,7 +3807,7 @@ void CPU386_OP6B()
 	}
 
 	modrm_write32(&params,MODRM_src0,temp3.val32); //Write to register!
-	if (((temp3.val64>>15)==0ULL) || ((temp3.val64>>15)==0x1FFFFFFFFFFFFFFULL)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
+	if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //Same!
 	FLAGW_SF((temp3.val32&0x80000000U)>>31); //Sign!

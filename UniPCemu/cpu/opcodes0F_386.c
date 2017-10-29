@@ -923,8 +923,8 @@ void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 		if (modrm_check16(&params,0,0)) return;
 		if (modrm_check16(&params,1,1)) return;
 	}
-	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,0)) return;
-	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,1)) return;
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
+	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src1)) return;
 	if (CPU[activeCPU].instructionstep==4) //Execution step?
 	{
 		temp1.val32 = (uint_32)instructionbufferw; //Read reg instead! Word register = Word register * imm16!
@@ -944,7 +944,7 @@ void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
-	if (CPU8086_instructionstepwritemodrmw(5,temp3.val16,0,0)) return;
+	if (CPU8086_instructionstepwritemodrmw(5,temp3.val16,MODRM_src0,0)) return;
 }
 void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 	modrm_generateInstructionTEXT("IMUL",32,0,PARAM_MODRM12);
@@ -953,8 +953,8 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 		if (modrm_check32(&params,0,0)) return;
 		if (modrm_check32(&params,1,1)) return;
 	}
-	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,0)) return;
-	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,1)) return;
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
+	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return;
 	if (CPU[activeCPU].instructionstep==4) //Execution step?
 	{
 		temp1.val64 = (uint_64)instructionbufferd; //Read reg instead! Word register = Word register * imm16!
@@ -974,7 +974,7 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
-	if (CPU80386_instructionstepwritemodrmdw(5,temp3.val32,0)) return;
+	if (CPU80386_instructionstepwritemodrmdw(5,temp3.val32,MODRM_src0)) return;
 }
 
 //Bit test(and set/clear/complement) instructions
