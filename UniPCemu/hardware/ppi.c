@@ -17,6 +17,7 @@ extern byte singlestep; //Enable EMU-driven single step!
 sword diagnosticsportoutput_breakpoint = -1; //Breakpoint set?
 sword breakpoint_comparison = -1; //Breakpoint comparison value!
 uint_32 breakpoint_timeout = 1; //Timeout for the breakpoint to become active, in instructions! Once it becomes 0(and was 1), it triggers the breakpoint!
+uint_32 breakpoint_timeoutoriginal = 1; //Original timeout value!
 extern byte NMI; //NMI control on XT support!
 
 extern byte is_XT; //Are we using XT architecture?
@@ -164,6 +165,7 @@ byte PPI_writeIO(word port, byte value)
 				if (--breakpoint_timeout==0) //Timeout?
 				{
 					singlestep = 2; //Start single stepping after this breakpoint, the debugger isn't ready yet for this instruction!
+					breakpoint_timeout = breakpoint_timeoutoriginal; //Reset the timeout variable to count again after triggering it, providing a skip again!
 				}
 			}
 		}
@@ -246,7 +248,7 @@ void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeou
 	diagnosticsportoutput = 0x00; //Clear diagnostics port output!
 	diagnosticsportoutput_breakpoint = useDiagnosticsportoutput_breakpoint; //Breakpoint set?
 	breakpoint_comparison = -1; //Default to no comparison set, so the first set will trigger a breakpoint if needed!
-	breakpoint_timeout = breakpointtimeout+1; //Time out after this many instructions(0=Very first instruction, 0xFFFFFFFF is 4G instructions)!
+	breakpoint_timeout = breakpoint_timeoutoriginal = breakpointtimeout+1; //Time out after this many instructions(0=Very first instruction, 0xFFFFFFFF is 4G instructions)!
 	TurboMode = 0; //Default to no turbo mode according to the switches!
 	updateSpeedLimit(); //Update the speed used!
 	register_PORTIN(&PPI_readIO);
