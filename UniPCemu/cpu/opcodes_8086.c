@@ -2397,22 +2397,17 @@ byte CPU8086_internal_DAS()
 	CPUPROT1
 	if (((bigAL&0xF)>9) || FLAG_AF)
 	{
-		oper1 = bigAL = REG_AL-6;
-		REG_AL = oper1&255;
-		FLAGW_CF(tempCF|((oper1&0xFF00)>0));
+		bigAL = REG_AL-6;
+		REG_AL = (bigAL&0xFF); //Store the result!
+		FLAGW_CF(tempCF|((bigAL&0xFF00)>0)); //Old CF or borrow that occurs when substracting!
 		FLAGW_AF(1);
 	}
 	else FLAGW_AF(0);
 
 	if ((tempAL>0x99) || tempCF)
 	{
-		bigAL -= 0x60;
-		REG_AL = (byte)(bigAL&0xFF);
+		REG_AL -= 0x60;
 		FLAGW_CF(1);
-	}
-	else
-	{
-		FLAGW_CF(0);
 	}
 	flag_szp8(REG_AL);
 	//if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
