@@ -2390,21 +2390,22 @@ byte CPU8086_internal_DAA()
 }
 byte CPU8086_internal_DAS()
 {
-	INLINEREGISTER byte tempCF, tempAL;
-	INLINEREGISTER word bigAL;
-	bigAL = (word)(tempAL = REG_AL);
-	tempCF = FLAG_CF; //Save old values!
+	INLINEREGISTER byte old_CF, old_AL;
+	INLINEREGISTER word carryAL;
+	old_AL = (word)(REG_AL);
+	old_CF = FLAG_CF; //Save old values!
+	FLAGW_CF(0);
 	CPUPROT1
-	if (((bigAL&0xF)>9) || FLAG_AF)
+	if (((old_AL&0xF)>9) || FLAG_AF)
 	{
-		bigAL = REG_AL-6;
-		REG_AL = (bigAL&0xFF); //Store the result!
-		FLAGW_CF(tempCF|((bigAL&0xFF00)>0)); //Old CF or borrow that occurs when substracting!
+		carryAL = REG_AL-6;
+		REG_AL = (carryAL&0xFF); //Store the result!
+		FLAGW_CF(old_CF|((carryAL&0xFF00)>0)); //Old CF or borrow that occurs when substracting!
 		FLAGW_AF(1);
 	}
 	else FLAGW_AF(0);
 
-	if ((tempAL>0x99) || tempCF)
+	if ((old_AL>0x99) || old_CF)
 	{
 		REG_AL -= 0x60;
 		FLAGW_CF(1);
