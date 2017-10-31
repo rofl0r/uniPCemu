@@ -1015,14 +1015,21 @@ OPTINLINE static void debugger_autolog()
 						sprintf(executedinstructionstatelog,"%s\t%s",statelog,executedinstruction);
 					}
 				}
-				else //State only?
+				else if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) //State only?
 				{
 					sprintf(executedinstructionstatelog,"%s\t",statelog);
 				}
 				finishstatelog:
 				if (strlen(debugger_memoryaccess_text)) //memory access?
 				{
-					dolog("debugger","%s\t%s",executedinstructionstatelog,debugger_memoryaccess_text);
+					if (((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) && (executedinstructionstatelog[0]=='\0')) //Special case?
+					{
+						dolog("debugger","\t%s",debugger_memoryaccess_text);
+					}
+					else //Normal case?
+					{
+						dolog("debugger","%s\t%s",executedinstructionstatelog,debugger_memoryaccess_text);
+					}
 				}
 				else //(Instruction+)State only?
 				{
