@@ -1140,12 +1140,12 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "DS:%04X; ES:%04X", debuggerregisters.DS, debuggerregisters.ES); //Debug DS&ES!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "SS:%04X", debuggerregisters.SS); //Debug SS!
-		if (EMULATED_CPU >= CPU_80386) //386+?
+		if (EMULATED_CPU >= CPU_80386) //386+ has more plain segment registers(F segment and G segment)?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X; GS:%04X", debuggerregisters.FS, debuggerregisters.GS); //Debug FS&GS!
 		}
-		if (debuggerregisters.CR0&1) //Protected mode?
+		if (EMULATED_CPU >= CPU_80286) //Protected mode-capable CPU has Task and Local Descriptor Table registers?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 18, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "TR:%04X; LDTR:%04X", debuggerregisters.TR, debuggerregisters.LDTR); //Debug TR&LDTR!
@@ -1204,15 +1204,15 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR0:%08X; DR1:%08X", debuggerregisters.DR[0], debuggerregisters.DR[1]); //Debug DR0&DR1!
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
 			GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR2:%08X; DR3:%08X", debuggerregisters.DR[2], debuggerregisters.DR[3]); //Debug DR2&DR3!
-			if (EMULATED_CPU<CPU_PENTIUM) //DR4=>DR6?
+			if (EMULATED_CPU<CPU_80486) //DR4=>DR6?
 			{
-				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 31, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4&6:%08X; DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
+				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 27, debuggerrow++); //Second debug row!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR6:%08X; DR7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
 			}
-			else //DR4 and DR6 are seperated and both implemented on Pentium+!
+			else //DR4 and DR6 are seperated and both implemented on 80486+!
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 42, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4:%08X; DR6:%08X DR5&7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[5]); //Debug DR4/6&DR5/7!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "DR4:%08X; DR6:%08X DR7:%08X", debuggerregisters.DR[4], debuggerregisters.DR[6], debuggerregisters.DR[7]); //Debug DR4/6&DR5/7!
 			}
 		}
 
