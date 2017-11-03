@@ -407,10 +407,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		}
 		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
-			if (cpudebugger) //We're an OPcode retrieval and debugging?
-			{
-				MMU_addOP(*result); //Add to the opcode cache!
-			}
+			MMU_addOP(*result); //Add to the opcode cache!
 			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
 			if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
@@ -425,10 +422,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		return 1; //Abort on fault!
 	}
 	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
-	if (cpudebugger) //We're an OPcode retrieval and debugging?
-	{
-		MMU_addOP(*result); //Add to the opcode cache!
-	}
+	MMU_addOP(*result); //Add to the opcode cache!
 	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
 	if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 	return 0; //Give the result!
