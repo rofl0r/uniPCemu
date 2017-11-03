@@ -355,9 +355,13 @@ Parameters:
 	resultbits: The amount of bits the result contains(16 or 8 on 8086) of quotient and remainder.
 	SHLcycle: The amount of cycles for each SHL.
 	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
+	applycycles: Apply the default cycles externally?
+	issigned: Signed division?
+	quotientnegative: Quotient is signed negative result?
+	remaindernegative: Remainder is signed negative result?
 
 */
-void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles);
+void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles, byte issigned, byte quotientnegative, byte remaindernegative);
 void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles);
 
 #endif

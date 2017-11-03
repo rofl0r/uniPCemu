@@ -78,6 +78,29 @@ byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncomment
 
 word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 
+/*
+
+checkSignedOverflow: Checks if a signed overflow occurs trying to store the data.
+unsignedval: The unsigned, positive value
+calculatedbits: The amount of bits that's stored in unsignedval.
+bits: The amount of bits to store in.
+convertedtopositive: The unsignedval is a positive conversion from a negative result, so needs to be converted back.
+
+*/
+
+byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, byte convertedtopositive)
+{
+	uint_64 overunderflown[2]; //Are we overflown, depending on result?
+	overunderflown[0] = (unsignedval>((1ULL<<(bits-1))-1)); //Positive overflow occurred?
+	overunderflown[1] = (unsignedval<(0-(1ULL<<(bits-1)))); //Negative overflow occurred?
+	--calculatedbits; //Highest calculated bit!
+	if (unlikely(overunderflown[((unsignedval>>calculatedbits)&1)^convertedtopositive])) //Are we negative?
+	{
+		return 1; //Underflow/overflow detected!
+	}
+	return 0; //OK!
+}
+
 uint_32 getstackaddrsizelimiter()
 {
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT()? 0xFFFFFFFF : 0xFFFF; //Stack address size!
