@@ -350,3 +350,4 @@ gen-external-apklibs
 android-project/jni/SDL2/
 android-project/jni/SDL2_net/
 android-project/src/org/libsdl/app/
+UniPCemu/enc_temp_folder
