@@ -1479,7 +1479,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!
 		break;
 	default: //All other cases?
-		is32bit = IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG; //Enable 32-bit gate?
+		is32bit = ((IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG)>>IDTENTRY_32BIT_GATEEXTENSIONFLAG_SHIFT); //Enable 32-bit gate?
 		switch (IDTENTRY_TYPE(idtentry) & 0x7) //What type are we?
 		{
 		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
