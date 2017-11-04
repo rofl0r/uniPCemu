@@ -92,12 +92,10 @@ convertedtopositive: The unsignedval is a positive conversion from a negative re
 
 byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, byte convertedtopositive)
 {
-	uint_64 maxpositive,maxbit,errorrange;
-	if (convertedtopositive) unsignedval = (~unsignedval)+1; //Convert to negative, if needed!
+	uint_64 maxpositive,maxnegative;
 	maxpositive = ((1ULL<<(bits-1))-1); //Maximum positive value we can have!
-	maxbit = (1ULL<<(bits-1)); //The highest value we cannot set!
-	errorrange = ((1ULL<<bits)-1)-maxpositive; //Lower roof of invalid range!
-	if (unlikely((unsignedval>maxpositive) && ((unsignedval<maxbit)||(unsignedval>errorrange)))) //Signed underflow/overflow on unsinged conversion?
+	maxnegative = (1ULL<<(bits-1)); //The highest value we cannot set and get past when negative!
+	if (unlikely(((unsignedval>maxpositive) && (convertedtopositive==0)) && ((unsignedval>maxnegative) && (convertedtopositive)))) //Signed underflow/overflow on unsinged conversion?
 	{
 		return 1; //Underflow/overflow detected!
 	}
