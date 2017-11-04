@@ -99,6 +99,15 @@ byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, by
 	{
 		return 1; //Underflow/overflow detected!
 	}
+	/*
+	if (unlikely(convertedtopositive)) //We might lose data converting this back to negative?
+	{
+		if (unlikely((((((~unsignedval)+1)&(maxnegative|maxpositive)))&maxnegative)==maxnegative)) //Value changes when flipped and result is incorrect(sign fault)?
+		{
+			return 1; //Underflow/overflow detected!
+		}
+	}
+	*/
 	return 0; //OK!
 }
 
