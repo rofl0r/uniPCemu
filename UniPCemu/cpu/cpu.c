@@ -95,19 +95,10 @@ byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, by
 	uint_64 maxpositive,maxnegative;
 	maxpositive = ((1ULL<<(bits-1))-1); //Maximum positive value we can have!
 	maxnegative = (1ULL<<(bits-1)); //The highest value we cannot set and get past when negative!
-	if (unlikely(((unsignedval>maxpositive) && (convertedtopositive==0)) && ((unsignedval>maxnegative) && (convertedtopositive)))) //Signed underflow/overflow on unsinged conversion?
+	if (unlikely(((unsignedval>maxpositive) && (convertedtopositive==0)) || ((unsignedval>maxnegative) && (convertedtopositive)))) //Signed underflow/overflow on unsinged conversion?
 	{
 		return 1; //Underflow/overflow detected!
 	}
-	/*
-	if (unlikely(convertedtopositive)) //We might lose data converting this back to negative?
-	{
-		if (unlikely((((((~unsignedval)+1)&(maxnegative|maxpositive)))&maxnegative)==maxnegative)) //Value changes when flipped and result is incorrect(sign fault)?
-		{
-			return 1; //Underflow/overflow detected!
-		}
-	}
-	*/
 	return 0; //OK!
 }
 
