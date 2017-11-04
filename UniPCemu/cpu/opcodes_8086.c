@@ -2029,13 +2029,13 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 		if (checkSignedOverflow(temp,32,resultbits,remaindernegative))
 		{
 			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!					
+			return; //Abort!
 		}
 		*/
 		if (checkSignedOverflow(resultquotient,32,resultbits,quotientnegative))
 		{
 			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!					
+			return; //Abort!
 		}
 	}
 	*quotient = resultquotient; //Quotient calculated!

@@ -1187,12 +1187,12 @@ void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint
 	goto nextstep; //Start the next step!
 	//Finished when remainder<divisor or remainder==0.
 	gotresult: //We've gotten a result!
-	if ((uint_64)temp>((1ULL<<resultbits)-1)) //Modulo overflow?
+	if (temp>((1ULL<<resultbits)-1)) //Modulo overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
 	}
-	if ((uint_64)resultquotient>((1ULL<<resultbits)-1)) //Quotient overflow?
+	if (resultquotient>((1ULL<<resultbits)-1ULL)) //Quotient overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
@@ -1200,16 +1200,16 @@ void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint
 	if (issigned) //Check for signed overflow as well?
 	{
 		/*
-		if (checkSignedOverflow((uint_64)temp,64,resultbits,remaindernegative))
+		if (checkSignedOverflow(temp,64,resultbits,remaindernegative))
 		{
 			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!					
+			return; //Abort!
 		}
 		*/
-		if (checkSignedOverflow((uint_64)resultquotient,64,resultbits,quotientnegative))
+		if (checkSignedOverflow(resultquotient,64,resultbits,quotientnegative))
 		{
 			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!					
+			return; //Abort!
 		}
 	}
 	*quotient = resultquotient; //Quotient calculated!
@@ -1221,16 +1221,16 @@ void CPU80386_internal_IDIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uin
 {
 	byte quotientnegative, remaindernegative; //To toggle the result and apply sign after and before?
 	quotientnegative = remaindernegative = 0; //Default: don't toggle the result not remainder!
-	if (((val>>31)!=(divisor>>15))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
+	if (((val>>63)!=(divisor>>31))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
 	{
 		quotientnegative = 1; //We're to toggle the result sign if not zero!
 	}
-	if (val&0x80000000) //Negative value to divide?
+	if (val&0x8000000000000000ULL) //Negative value to divide?
 	{
 		val = ((~val)+1); //Convert the negative value to be positive!
 		remaindernegative = 1; //We're to toggle the remainder is any, because the value to divide is negative!
 	}
-	if (divisor&0x8000) //Negative divisor? Convert to a positive divisor!
+	if (divisor&0x80000000) //Negative divisor? Convert to a positive divisor!
 	{
 		divisor = ((~divisor)+1); //Convert the divisor to be positive!
 	}
