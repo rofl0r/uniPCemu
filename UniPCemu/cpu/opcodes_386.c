@@ -3198,41 +3198,40 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x80000000)>>31); //Save MSB!
-			s = (s << 1)|tempCF;
+			FLAGW_CF((s&0x80000000)>>31); //Save MSB!
+			s = (s << 1)|FLAG_CF;
 		}
-		FLAGW_CF(s&1); //Set carry flag!
-		if (cnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF);
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 31) & 1));
 		break;
 
 	case 1: //ROR r/m32
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 31);
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (FLAG_CF << 31);
 		}
-		FLAGW_CF(((s&0x80000000)>>31)); //Set carry flag!
-		if (cnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
+		if (varshift==0) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 2: //RCL r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x80000000)>>31); //Save MSB!
-			s = (s << 1)|FLAG_CF; //Shift and set CF!
-			FLAGW_CF(tempCF); //Set CF!
+			tempCF = FLAG_CF;
+			FLAGW_CF((s&0x80000000)>>31); //Save MSB!
+			s = (s << 1)|tempCF; //Shift and set CF!
 		}
-		if (cnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF); //OF=MSB^CF
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 31) & 1)); //OF=MSB^CF
 		break;
 
 	case 3: //RCR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
-		if (cnt==1) FLAGW_OF((s >> 31) ^ FLAG_CF);
+		if (numcnt==1) FLAGW_OF(FLAG_CF^(s >> 31));
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 31);
-			FLAGW_CF(tempCF);
+			tempCF = FLAG_CF;
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (tempCF << 31);
 		}
 		break;
 

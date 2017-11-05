@@ -4578,48 +4578,48 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1b;
+	tempCF = FLAG_CF; //Save CF!
 	switch (thereg) {
 	case 0: //ROL r/m8
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x80)>>7); //Save MSB!
-			s = (s << 1)|tempCF;
+			FLAGW_CF((s&0x80)>>7); //Save MSB!
+			s = (s << 1)|FLAG_CF;
 		}
-		FLAGW_CF(s&1); //Set carry flag!
-		if (cnt==1) FLAGW_OF(((s >> 7) & 1)^FLAG_CF);
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 7) & 1)); //Only when not using CL?
 		break;
 
 	case 1: //ROR r/m8
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 7);
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (FLAG_CF << 7);
 		}
-		FLAGW_CF(((s&0x80)>>7)); //Set carry flag!
-		if (cnt==1) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
+		if (varshift==0) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1)); //Only when not using CL?
 		break;
 
 	case 2: //RCL r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 9; //Operand size wrap!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x80)>>7); //Save MSB!
-			s = (s << 1)|FLAG_CF; //Shift and set CF!
-			FLAGW_CF(tempCF); //Set CF!
+			tempCF = FLAG_CF;
+			FLAGW_CF((s&0x80)>>7); //Save MSB!
+			s = (s << 1)|tempCF; //Shift and set CF!
 		}
-		if (cnt==1) FLAGW_OF(((s >> 7) & 1)^FLAG_CF); //OF=MSB^CF
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 7) & 1)); //OF=MSB^CF, only when not using CL?
 		break;
 
 	case 3: //RCR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 9; //Operand size wrap!
-		if (cnt==1) FLAGW_OF((s >> 7) ^ FLAG_CF);
+		if (numcnt==1) FLAGW_OF( FLAG_CF^(s >> 7));
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 7);
-			FLAGW_CF(tempCF);
+			tempCF = FLAG_CF;
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (tempCF << 7);
 		}
 		break;
 
@@ -4691,48 +4691,48 @@ word op_grp2_16(byte cnt, byte varshift) {
 	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1;
+	tempCF = FLAG_CF; //Save CF!
 	switch (thereg) {
 	case 0: //ROL r/m16
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x8000)>>15); //Save MSB!
-			s = (s << 1)|tempCF;
+			FLAGW_CF((s&0x8000)>>15); //Save MSB!
+			s = (s << 1)|FLAG_CF;
 		}
-		FLAGW_CF(s&1); //Set carry flag!
-		if (cnt==1) FLAGW_OF(((s >> 15) & 1)^FLAG_CF);
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 15) & 1)); //Only when not using CL?
 		break;
 
 	case 1: //ROR r/m16
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
+		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 15);
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (FLAG_CF << 15);
 		}
-		FLAGW_CF(((s&0x8000)>>15)); //Set carry flag!
-		if (cnt==1) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
+		if (varshift==0) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1)); //Only when not using CL?
 		break;
 
 	case 2: //RCL r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 17; //Operand size wrap!
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = ((s&0x8000)>>15); //Save MSB!
-			s = (s << 1)|FLAG_CF; //Shift and set CF!
-			FLAGW_CF(tempCF); //Set CF!
+			tempCF = FLAG_CF;
+			FLAGW_CF((s&0x8000)>>15); //Save MSB!
+			s = (s << 1)|tempCF; //Shift and set CF!
 		}
-		if (cnt==1) FLAGW_OF(((s >> 15) & 1)^FLAG_CF); //OF=MSB^CF
+		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 15) & 1)); //OF=MSB^CF, only when not using CL?
 		break;
 
 	case 3: //RCR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 17; //Operand size wrap!
-		if (cnt==1) FLAGW_OF((s >> 15) ^ FLAG_CF);
+		if (numcnt==1) FLAGW_OF(FLAG_CF^(s >> 15));
 		for (shift = 1; shift <= numcnt; shift++) {
-			tempCF = (s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 15);
-			FLAGW_CF(tempCF);
+			tempCF = FLAG_CF;
+			FLAGW_CF(s&1); //Save LSB!
+			s = (s >> 1) | (tempCF << 15);
 		}
 		break;
 
