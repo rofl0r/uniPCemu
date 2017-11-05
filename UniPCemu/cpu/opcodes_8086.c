@@ -4596,8 +4596,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = (s&1); //Save LSB!
 			s = (s >> 1) | (tempCF << 7);
-			FLAGW_CF(tempCF); //Set carry flag!
 		}
+		FLAGW_CF(((s&0x80)>>7)); //Set carry flag!
 		if (cnt==1) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1));
 		break;
 
@@ -4632,7 +4632,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>7)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp8((uint8_t)(s&0xFF)); break;
+		if (numcnt) flag_szp8((uint8_t)(s&0xFF)); break;
 
 	case 5: //SHR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4644,7 +4644,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		flag_szp8((uint8_t)(s & 0xFF)); break;
+		if (numcnt) flag_szp8((uint8_t)(s & 0xFF)); break;
 
 	case 7: //SAR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4709,8 +4709,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = (s&1); //Save LSB!
 			s = (s >> 1) | (tempCF << 15);
-			FLAGW_CF(tempCF); //Set carry flag!
 		}
+		FLAGW_CF(((s&0x8000)>>15)); //Set carry flag!
 		if (cnt==1) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1));
 		break;
 
@@ -4745,7 +4745,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>15)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp16((uint16_t)(s&0xFFFF)); break;
+		if (numcnt) flag_szp16((uint16_t)(s&0xFFFF)); break;
 
 	case 5: //SHR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4757,7 +4757,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		flag_szp16((uint16_t)(s & 0xFFFF)); break;
+		if (numcnt) flag_szp16((uint16_t)(s & 0xFFFF)); break;
 
 	case 7: //SAR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!

@@ -3211,8 +3211,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = (s&1); //Save LSB!
 			s = (s >> 1) | (tempCF << 31);
-			FLAGW_CF(tempCF); //Set carry flag!
 		}
+		FLAGW_CF(((s&0x80000000)>>31)); //Set carry flag!
 		if (cnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
@@ -3245,7 +3245,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFFFFFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>31)) FLAGW_OF(0); else FLAGW_OF(1); }
-		flag_szp32((uint32_t)(s&0xFFFFFFFF)); break;
+		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFF)); break;
 
 	case 5: //SHR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -3257,7 +3257,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		flag_szp32((uint32_t)(s & 0xFFFFFFFF)); break;
+		if (numcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFF)); break;
 
 	case 7: //SAR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
