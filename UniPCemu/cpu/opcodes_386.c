@@ -3745,7 +3745,7 @@ void CPU386_OP69()
 		{
 		*/
 			if (modrm_check32(&params,1,1)) return; //Abort on fault!
-			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
+			if (CPU80386_internal_stepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
 		/*}
 		else
@@ -3797,7 +3797,7 @@ void CPU386_OP6B()
 		{
 		*/
 			if (modrm_check32(&params,1,1)) return; //Abort on fault!
-			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
+			if (CPU80386_internal_stepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
 		/*}
 		else

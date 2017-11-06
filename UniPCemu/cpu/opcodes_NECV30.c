@@ -288,7 +288,7 @@ void CPU186_OP69()
 		{
 		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
+			if (CPU8086_internal_stepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
 		/*}
 		else
@@ -301,7 +301,6 @@ void CPU186_OP69()
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
-		temp2.val32 = immw; 
 		CPU_CIMUL(instructionbufferw,16,immw,16,&IMULresult,16); //Immediate word is second/third parameter!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
@@ -341,7 +340,7 @@ void CPU186_OP6B()
 		{
 		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
+			if (CPU8086_internal_stepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
 		/*}
 		else
