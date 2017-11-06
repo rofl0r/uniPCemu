@@ -102,6 +102,41 @@ byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, by
 	return 0; //OK!
 }
 
+extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+
+uint_64 signextend64(uint_64 val, byte bits)
+{
+	INLINEREGISTER uint_64 highestbit,bitmask;
+	bitmask = highestbit = (1ULL<<(bits-1)); //Sign bit to use!
+	bitmask <<= 1; //Shift to bits!
+	--bitmask; //Mask for the used bits!
+	if (likely(val&highestbit)) //Sign to extend?
+	{
+		val |= (~bitmask); //Sign extend!
+		return val; //Give the result!
+	}
+	val &= bitmask; //Mask high bits off!
+	return val; //Give the result!
+}
+
+//x86 IMUL for opcodes 69h/6Bh.
+uint_32 IMULresult; //Buffer to use, general purpose!
+void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplicantsize, uint_32 *result, byte resultsize)
+{
+	temp1.val64 = signextend64(base,basesize); //Read reg instead! Word register = Word register * imm16!
+	temp2.val64 = signextend64(multiplicant,multiplicantsize); //Immediate word is second/third parameter!
+	temp3.val64s = temp1.val64s; //Load and...
+	temp3.val64s *= temp2.val64s; //Signed multiplication!
+	temp2.val64 = signextend64(temp3.val64,resultsize); //For checking for overflow and giving the correct result!
+	if (temp3.val64s==temp2.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
+	else FLAGW_OF(1);
+	FLAGW_CF(FLAG_OF); //OF=CF!
+	FLAGW_SF((temp3.val64&0x8000000000000000)>>63); //Sign!
+	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
+	FLAGW_ZF((temp3.val64==0)?1:0); //Set the zero flag!	
+	*result = (uint_32)temp2.val64; //Save the result, truncated to used size as 64-bit sign extension!
+}
+
 uint_32 getstackaddrsizelimiter()
 {
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT()? 0xFFFFFFFF : 0xFFFF; //Stack address size!

@@ -267,6 +267,8 @@ void CPU186_OP68()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
+extern uint_32 IMULresult; //Buffer to use, general purpose!
+extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
 void CPU186_OP69()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
@@ -286,7 +288,7 @@ void CPU186_OP69()
 		{
 		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src1)) return; //Read R/M!
+			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
 		/*}
 		else
@@ -299,22 +301,13 @@ void CPU186_OP69()
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
-		temp2.val32 = immw; //Immediate word is second/third parameter!
-		if ((temp1.val32 &0x8000)==0x8000) temp1.val32 |= 0xFFFF0000;
-		if ((temp2.val32 &0x8000)==0x8000) temp2.val32 |= 0xFFFF0000;
-		temp3.val32s = temp1.val32s; //Load and...
-		temp3.val32s *= temp2.val32s; //Signed multiplication!
+		temp2.val32 = immw; 
+		CPU_CIMUL(instructionbufferw,16,immw,16,&IMULresult,16); //Immediate word is second/third parameter!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	modrm_write16(&params,MODRM_src0,temp3.val16,0); //Write to the destination(register)!
-	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word!
-	else FLAGW_OF(1);
-	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
-	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+	modrm_write16(&params,MODRM_src0,(IMULresult&0xFFFF),0); //Write to the destination(register)!
 }
 
 void CPU186_OP6A()
@@ -348,7 +341,7 @@ void CPU186_OP6B()
 		{
 		*/
 			if (modrm_check16(&params,1,1)) return; //Abort on fault!
-			if (CPU8086_instructionstepreadmodrmw(0,&temp1.val16,MODRM_src1)) return; //Read R/M!
+			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
 		/*}
 		else
@@ -361,23 +354,13 @@ void CPU186_OP6B()
 	}
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
-		temp2.val32 = (uint_32)immb; //Read unsigned parameter!
-
-		if (temp1.val32&0x8000) temp1.val32 |= 0xFFFF0000;//Sign extend to 32 bits!
-		if (temp2.val32&0x80) temp2.val32 |= 0xFFFFFF00; //Sign extend to 32 bits!
-		temp3.val32s = temp1.val32s * temp2.val32s;
+		CPU_CIMUL(instructionbufferw,16,immb,8,&IMULresult,16); //Immediate word is second/third parameter!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 
-	modrm_write16(&params,MODRM_src0,temp3.val16,0); //Write to register!
-	if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0); //Overflow is cleared when the high byte is a sign extension of the low byte?
-	else FLAGW_OF(1);
-	FLAGW_CF(FLAG_OF); //Same!
-	FLAGW_SF((temp3.val16&0x8000)>>15); //Sign!
-	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
-	FLAGW_ZF((temp3.val16==0)?1:0); //Set the zero flag!
+	modrm_write16(&params,MODRM_src0,(IMULresult&0xFFFF),0); //Write to register!
 }
 
 void CPU186_OP6C()

@@ -1308,4 +1308,5 @@ byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16
 byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offset16);
 
 byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, byte convertedtopositive); //Is there a signed overflow?
+void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplicantsize, uint_32 *result, byte resultsize); //IMUL instruction support for fixed size IMUL(not GRP opcodes)!
 #endif
