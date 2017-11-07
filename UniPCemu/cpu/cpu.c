@@ -131,7 +131,7 @@ void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplic
 	if (temp3.val64s==temp2.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
-	FLAGW_SF((temp3.val64&0x8000000000000000)>>63); //Sign!
+	FLAGW_SF((temp3.val64&0x8000000000000000ULL)>>63); //Sign!
 	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val64==0)?1:0); //Set the zero flag!	
 	*result = (uint_32)temp2.val64; //Save the result, truncated to used size as 64-bit sign extension!
