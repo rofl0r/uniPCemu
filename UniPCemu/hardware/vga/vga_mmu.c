@@ -392,14 +392,16 @@ void updateVGAMMUAddressMode()
 byte planes; //What planes to affect!
 uint_32 realoffset; //What offset to affect!
 
+extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
+
 void applyCGAMDAOffset(uint_32 *offset)
 {
 	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA?
 	{
 		*offset &= 0x3FFF; //Wrap around 16KB!
 
-		//Apply wait states!
-		if (CPU[activeCPU].running==1) //Are we running? Introduce wait states!
+		//Apply wait states(except when using the IPS clock)!
+		if ((CPU[activeCPU].running==1) && (useIPSclock==0)) //Are we running? Introduce wait states! Don't allow wait states when using the IPS clock: it will crash because the instruction is never finished, thus never allowing the video adapter emulation to finish the wait state!
 		{
 			getActiveVGA()->WaitState = 1; //Start our waitstate for CGA memory access!
 			getActiveVGA()->WaitStateCounter = 8; //Reset our counter for the 8 hdots to wait!
