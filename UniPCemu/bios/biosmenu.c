@@ -5156,7 +5156,7 @@ void BIOS_CPU() //CPU menu!
 		case 5: //Clocking mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
-				BIOS_Menu = 65; //Turbo CPU speed selection!
+				if (!EMU_RUNNING) BIOS_Menu = 65; //Clocking mode selection!
 			}
 			break;
 		case 6: //CPU speed display setting?
@@ -6865,6 +6865,7 @@ void BIOS_ClockingMode() //Clocking Mode toggle!
 	BIOS_Settings.clockingmode = !BIOS_Settings.clockingmode; //Toggle!
 	BIOS_Changed = 1; //Changed!
 	BIOS_Menu = 35; //Goto CPU menu!
+	reboot_needed |= 1; //A reboot is needed when applied!
 }
 
 void BIOS_DebugRegisters()
