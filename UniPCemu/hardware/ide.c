@@ -9,6 +9,9 @@
 
 //#define ATA_LOG
 
+//Define to use traditional CHS translation!
+//#define TRADITIONALCHSTRANSLATION
+
 //Timeout for a reset! We're up to 3us!
 #define ATA_RESET_TIMEOUT 2000.0
 //Timing for drive select
@@ -722,21 +725,78 @@ void ATA_updateCapacity(byte channel, byte slave)
 	ATA[channel].Drive[slave].driveparams[58] = (word)(sectors&0xFFFF);
 }
 
+void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT)
+{
+	//Plain CHS geometry detection!
+	#ifdef TRADITIONALCHSTRANSLATION
+	uint_32 tempcylinders=0;
+	tempcylinders = (uint_32)(disk_size / (63 * 16)); //How many cylinders!
+	*cylinders = (tempcylinders>=0x3FFF)?0x3FFF:(tempcylinders?tempcylinders:1); //Give the maximum amount of cylinders allowed!
+	*heads = ((disk_size/get_SPT(disk_size))>=16)?16:((disk_size/get_SPT(disk_size))?(disk_size/get_SPT(disk_size)):1); //1-16 heads!
+	*SPT = (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
+	#else
+	//Optimal size detection?
+	word C, H, S; //To detect the size!
+	uint_64 CHSsize; //Found size!
+	word optimalC, optimalH, optimalS; //Optimal found size!
+	uint_64 optimalsize;
+	optimalsize = 1; //Optimal size found!
+	optimalC = 1; //Init!
+	optimalH = 1; //Init!
+	optimalS = 1; //Init!
+	C=0x3FFF; //Init!
+	do //Process all cylinder combinations!
+	{
+		H=16; //Init!
+		do
+		{
+			S=63; //Init!
+			do
+			{
+				CHSsize = (C*H*S); //Found size!
+				if ((CHSsize>optimalsize) && ((C*H*S)<=disk_size)) //New optimal found?
+				{
+					//Check additional requirements?
+					if (1) //OK?
+					{
+						//Accept the new found size!
+						optimalC = C; //Optimal C!
+						optimalH = H; //Optimal H!
+						optimalS = S; //Optimal S!
+						optimalsize = CHSsize; //New optimal size!
+					}
+				}
+				--S;
+			} while (S);
+			--H;
+		} while (H);
+		--C;
+	} while (C);
+	*cylinders = optimalC; //Optimally found cylinders!
+	*heads = optimalH; //Optimally found heads!
+	*SPT = optimalS; //Optimally found sectors!
+	#endif
+}
+
 word get_SPT(uint_64 disk_size)
 {
-	return (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
+	word result,dummy1,dummy2;
+	HDD_detectGeometry(disk_size,&dummy1,&dummy2,&result);
+	return result; //Give the result!
 }
 
 word get_heads(uint_64 disk_size)
 {
-	return ((disk_size/get_SPT(disk_size))>=16)?16:((disk_size/get_SPT(disk_size))?(disk_size/get_SPT(disk_size)):1); //1-16 heads!
+	word result,dummy1,dummy2;
+	HDD_detectGeometry(disk_size,&dummy1,&result,&dummy2);
+	return result; //Give the result!
 }
 
 word get_cylinders(uint_64 disk_size)
 {
-	uint_32 cylinders=0;
-	cylinders = (uint_32)(disk_size / (63 * 16)); //How many cylinders!
-	return (cylinders>=0x3FFF)?0x3FFF:(cylinders?cylinders:1); //Give the maximum amount of cylinders allowed!
+	word result,dummy1,dummy2;
+	HDD_detectGeometry(disk_size,&result,&dummy1,&dummy2);
+	return result; //Give the result!	
 }
 
 //LBA address support with CHS/LBA input/output!
