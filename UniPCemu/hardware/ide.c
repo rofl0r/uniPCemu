@@ -744,6 +744,18 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 	optimalC = 1; //Init!
 	optimalH = 1; //Init!
 	optimalS = 1; //Init!
+
+	//Basic requirement rule initialization!
+	byte limitcylinders;
+	limitcylinders = ((disk_size>1032192) && (disk_size<=16514064))?1:0; //Limit available using table?
+	if (disk_size>15481935) limitcylinders = 2; //Force 0x3FFF!
+
+	word limitheads;
+	limitheads = (disk_size<=8257536)?16:((disk_size>16514064)?15:0); //Head limit, if any!
+
+	word limitSPT;
+	limitSPT = (disk_size>1032192)?63:0; //Limit SPT?
+
 	C=0x3FFF; //Init!
 	do //Process all cylinder combinations!
 	{
@@ -754,18 +766,44 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 			do
 			{
 				CHSsize = (C*H*S); //Found size!
-				if ((CHSsize>optimalsize) && ((C*H*S)<=disk_size)) //New optimal found?
+				if (unlikely((CHSsize>optimalsize) && (CHSsize<=disk_size))) //New optimal found?
 				{
-					//Check additional requirements?
-					if (1) //OK?
+					//Check additional requirements? Rules based on http://www.t13.org/Documents/UploadedDocuments/project/d1321r3-ATA-ATAPI-5.pdf appendix C!
+					if (unlikely(limitcylinders)) //Cylinder limited rule?
 					{
-						//Accept the new found size!
-						optimalC = C; //Optimal C!
-						optimalH = H; //Optimal H!
-						optimalS = S; //Optimal S!
-						optimalsize = CHSsize; //New optimal size!
+						switch (limitcylinders) //What method?
+						{
+							case 1: //Using table?
+								if (H<5) //Maximum FFFFh?
+								{
+									if (unlikely(C>0xFFFF)) goto ignoreDetection; //Don't allow invalid combinations!
+								}
+								else if (H<9) //Maximum 7FFFh?
+								{
+									if (unlikely(C>0x7FFF)) goto ignoreDetection; //Don't allow invalid combinations!
+								}
+								else //Maximum 3FFFh?
+								{
+									if (unlikely(C>0x3FFF)) goto ignoreDetection; //Don't allow invalid combinations!
+								}
+								break;
+							case 2: //Force 0x3FFF?
+								if (unlikely(C!=0x3FFF)) goto ignoreDetection; //Don't allow invalid combinations!
+								break;
+							default: //Unknown?
+								break;
+						}
 					}
+					if (unlikely(limitheads && (H!=limitheads))) goto ignoreDetection; //Don't allow invalid combinations!
+					if (unlikely(limitSPT && (S!=limitSPT))) goto ignoreDetection; //Don't allow invalid combinations!
+
+					//Accept the new found size!
+					optimalC = C; //Optimal C!
+					optimalH = H; //Optimal H!
+					optimalS = S; //Optimal S!
+					optimalsize = CHSsize; //New optimal size!
 				}
+				ignoreDetection:
 				--S;
 			} while (S);
 			--H;
