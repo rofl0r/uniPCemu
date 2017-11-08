@@ -722,12 +722,12 @@ void ATA_updateCapacity(byte channel, byte slave)
 	ATA[channel].Drive[slave].driveparams[58] = (word)(sectors&0xFFFF);
 }
 
-OPTINLINE word get_SPT(uint_64 disk_size)
+word get_SPT(uint_64 disk_size)
 {
 	return (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
 }
 
-OPTINLINE word get_heads(uint_64 disk_size)
+word get_heads(uint_64 disk_size)
 {
 	return ((disk_size/get_SPT(disk_size))>=16)?16:((disk_size/get_SPT(disk_size))?(disk_size/get_SPT(disk_size)):1); //1-16 heads!
 }

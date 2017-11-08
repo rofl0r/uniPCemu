@@ -1094,6 +1094,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 	}
 }
 
+byte selectingHDD = 0;
 void hdd_information(char *filename) //Displays information about a harddisk to mount!
 {
 	char path[256];
@@ -1108,6 +1109,11 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		size = dynamicimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
+		if (selectingHDD) //HDD?
+		{
+			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
+		}
 	}
 	else if (is_DSKimage(path)) //DSK disk image?
 	{
@@ -1117,18 +1123,29 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		size = dynamicimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a DSK disk image file.              "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
+		if (selectingHDD) //HDD?
+		{
+			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
+		}
 	}
 	else if (is_staticimage(path)) //Static image?
 	{
 		size = staticimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Static disk image file.           "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
+		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
+		if (selectingHDD) //HDD?
+		{
+			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
+		}
 	}
 	else //Unknown file type: no information?
 	{
 	unknownimage: //Unknown disk image?
 		GPU_EMU_printscreen(0, 6, "This is an unknown disk image file.         "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "                              "); //Clear file size info!
+		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
 	}
 }
 
@@ -1146,6 +1163,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
 
+	selectingHDD = 0; //Not selecting a HDD!
 	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1175,6 +1193,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 0; //Not selecting a HDD!
 	int file = ExecuteList(12,4,BIOS_Settings.floppy1,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1205,6 +1224,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 1; //Selecting a HDD!
 	int file = ExecuteList(12,4,BIOS_Settings.hdd0,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -1237,6 +1257,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 1; //Selecting a HDD!
 	int file = ExecuteList(12,4,BIOS_Settings.hdd1,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -2418,6 +2439,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 1; //Selecting a HDD!
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -2603,6 +2625,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 1; //Selecting a HDD!
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
@@ -2784,6 +2807,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
+	selectingHDD = 1; //Selecting a HDD!
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
