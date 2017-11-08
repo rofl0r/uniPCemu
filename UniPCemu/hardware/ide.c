@@ -756,7 +756,7 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 	word limitSPT;
 	limitSPT = (disk_size>1032192)?63:0; //Limit SPT?
 
-	C=0x3FFF; //Init!
+	C=0xFFFF; //Init!
 	do //Process all cylinder combinations!
 	{
 		H=16; //Init!
