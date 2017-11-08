@@ -747,7 +747,7 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 
 	//Basic requirement rule initialization!
 	byte limitcylinders;
-	limitcylinders = ((disk_size>1032192) && (disk_size<=16514064))?1:0; //Limit available using table?
+	limitcylinders = ((disk_size>1032192) && (disk_size<=16514064))?1:((disk_size<=1032192)?3:0); //Limit available using table?
 	if (disk_size>15481935) limitcylinders = 2; //Force 0x3FFF!
 
 	word limitheads;
@@ -789,6 +789,9 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 								break;
 							case 2: //Force 0x3FFF?
 								if (unlikely(C!=0x3FFF)) goto ignoreDetection; //Don't allow invalid combinations!
+								break;
+							case 3: //Force 1024 cylinder limit?
+								if (unlikely(C>0x400)) goto ignoreDetection; //Don't allow invalid combinations!
 								break;
 							default: //Unknown?
 								break;
