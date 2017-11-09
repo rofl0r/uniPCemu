@@ -756,6 +756,15 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 	word limitSPT;
 	limitSPT = (disk_size>1032192)?63:0; //Limit SPT?
 
+	//Apply Bochs compatibility!
+	if ((disk_size>=20160) && (disk_size<(262144*16*63)) && (((disk_size/1008)*1008)==disk_size) && ((disk_size/(16*63))<=0xFFFF)) //Assume Bochs compatiblity and still within valid range of disk size we support?
+	{
+		optimalH = 16; //Force Bochs-style compatiblity!
+		optimalS = 63; //Force Bochs-style compatiblity!
+		optimalC = (disk_size/(16*63)); //Force Bochs-style compatiblity!
+		goto applyBochsImage;
+	}
+
 	C=0xFFFF; //Init!
 	do //Process all cylinder combinations!
 	{
@@ -813,6 +822,7 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 		} while (H);
 		--C;
 	} while (C);
+	applyBochsImage: //Force Bochs-style compatiblity?
 	*cylinders = optimalC; //Optimally found cylinders!
 	*heads = optimalH; //Optimally found heads!
 	*SPT = optimalS; //Optimally found sectors!
