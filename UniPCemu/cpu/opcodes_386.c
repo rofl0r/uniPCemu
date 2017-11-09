@@ -3190,7 +3190,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 	INLINEREGISTER uint_64 s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt;
 	//word backup;
-	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
+	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1d;
 	switch (thereg) {
@@ -3294,7 +3294,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		break;
 	}
 	op_grp2_cycles32(numcnt, varshift);
-	return(s & 0xFFFFFFFF);
+	return (s & 0xFFFFFFFF);
 }
 
 extern byte tmps,tmpp; //Sign/parity backup!
@@ -3936,9 +3936,10 @@ void CPU386_OPC1()
 	
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
-	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src0)) return;
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
+		oper1d = instructionbufferd;
 		res32 = op_grp2_32((byte)oper2d,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}

@@ -17,11 +17,11 @@ int read_line(FILE *fp, char *bp)
     {
 		if (i>(MAX_LINE_LENGTH-1)) return (-1); //Overflow detected!
 		if( c == EOF )         /* return FALSE on unexpected EOF */
-            return(0);
+            return (0);
 		bp[i++] = (char)c;
     }
     bp[i] = '\0';
-    return(1);
+    return (1);
 }
 
 /**************************************************************************
@@ -41,7 +41,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
     char *ep;
     char t_section[MAX_LINE_LENGTH];
     int len = strlen(entry);
-    if( !fp ) return(0);
+    if( !fp ) return (0);
     sprintf(t_section,"[%s]",section);    /* Format the section name */
     /*  Move through file 1 line at a time until a section is matched or EOF */
     do
@@ -50,7 +50,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
 		if( (read_line(fp,buff)<=0) )
         {   fclose(fp);
             strncpy(buffer,def,buffer_len);
-            return(strlen(buffer));
+            return (strlen(buffer));
         }
 		if (buff[0]==';') //Comment?
 		{
@@ -64,7 +64,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
     {   if( (read_line(fp,buff)<=0) || buff[0] == '\0' )
         {   fclose(fp);
             strncpy(buffer,def,buffer_len);
-            return(strlen(buffer));
+            return (strlen(buffer));
         }
     }  while( strncmp(buff,entry,len) );
     ep = strrchr(buff,'=');    /* Parse out the equal sign */
@@ -74,7 +74,7 @@ int get_private_profile_string(char *section, char *entry, char *def,
 
     buffer[buffer_len] = '\0';
     fclose(fp);               /* Clean up and return the amount copied */
-    return(strlen(buffer));
+    return (strlen(buffer));
 }
 
 /************************************************************************
@@ -190,16 +190,16 @@ int write_private_profile_string(char *section, char *section_comment,
     sprintf(t_section,"[%s]",section);/* Format the section name */
     if( !(rfp = fopen(file_name,"r")) )  /* If the .ini file doesn't exist */
     {   if( !(wfp = fopen(file_name,"w")) ) /*  then make one */
-        {   return(0);   }
+        {   return (0);   }
         fprintf(wfp,"%s\n",t_section);
 		writesectioncomment(section_comment,wfp); //Write the comment!
         fprintf(wfp,"%s=%s\n",entry,buffer);
         fclose(wfp);
-        return(1);
+        return (1);
     }
     if( !(wfp = fopen(tmp_name,"w")) )
     {   fclose(rfp);
-        return(0);
+        return (0);
     }
 
     /* Move through the file one line at a time until a section is
@@ -216,7 +216,7 @@ int write_private_profile_string(char *section, char *section_comment,
             fclose(wfp);
             delete_file(NULL,file_name);
             rename(tmp_name,file_name);
-            return(1);
+            return (1);
         }
         fprintf(wfp,"%s\n",buff);
     } while( strcmp(buff,t_section) );
@@ -235,7 +235,7 @@ int write_private_profile_string(char *section, char *section_comment,
             fclose(wfp);
             delete_file(NULL,file_name);
             rename(tmp_name,file_name);
-            return(1);
+            return (1);
 
         }
 
@@ -264,7 +264,7 @@ int write_private_profile_string(char *section, char *section_comment,
     fclose(rfp);
     delete_file(NULL,file_name);
     rename(tmp_name,file_name);
-    return(1);
+    return (1);
 }
 
 int write_private_profile_int64(char *section, char *section_comment,

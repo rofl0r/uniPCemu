@@ -268,6 +268,7 @@ void CPU186_OP68()
 }
 
 extern uint_32 IMULresult; //Buffer to use, general purpose!
+extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
 extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
 void CPU186_OP69()
 {
@@ -551,9 +552,10 @@ void CPU186_OPC0()
 
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
-	if (CPU8086_instructionstepreadmodrmb(0,&oper1b,MODRM_src0)) return;
+	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
+		oper1b = instructionbufferb;
 		res8 = op_grp2_8(oper2b,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
@@ -597,9 +599,10 @@ void CPU186_OPC1()
 	
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (CPU[activeCPU].instructionstep==0) if (modrm_check16(&params,MODRM_src0,0)) return; //Abort when needed!
-	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return;
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==2) //Execution step?
 	{
+		oper1 = instructionbufferw;
 		res16 = op_grp2_16((byte)oper2,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}

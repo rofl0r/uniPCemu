@@ -4575,7 +4575,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	INLINEREGISTER word s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt;
 	//word backup;
-	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
+	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1b;
 	tempCF = FLAG_CF; //Save CF!
@@ -4682,7 +4682,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		break;
 	}
 	op_grp2_cycles(numcnt, varshift);
-	return(s & 0xFF);
+	return (s & 0xFF);
 }
 
 word op_grp2_16(byte cnt, byte varshift) {
@@ -4690,7 +4690,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	INLINEREGISTER uint_32 s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt;
 	//word backup;
-	//if (cnt>0x8) return(oper1b); //NEC V20/V30+ limits shift count
+	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1;
 	tempCF = FLAG_CF; //Save CF!
@@ -4797,7 +4797,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		break;
 	}
 	op_grp2_cycles(numcnt, varshift);
-	return(s & 0xFFFF);
+	return (s & 0xFFFF);
 }
 
 OPTINLINE void op_div8(word valdiv, byte divisor) {
