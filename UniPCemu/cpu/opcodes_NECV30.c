@@ -525,26 +525,26 @@ void CPU186_OPC0()
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
-			debugger_setcommand("ROLB %s,%02X",info.text,oper2b);
+			debugger_setcommand("ROL %s,%02X",info.text,oper2b);
 			break;
 		case 1: //ROR
-			debugger_setcommand("RORB %s,%02X",info.text,oper2b);
+			debugger_setcommand("ROR %s,%02X",info.text,oper2b);
 			break;
 		case 2: //RCL
-			debugger_setcommand("RCLB %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCL %s,%02X",info.text,oper2b);
 			break;
 		case 3: //RCR
-			debugger_setcommand("RCRB %s,%02X",info.text,oper2b);
+			debugger_setcommand("RCR %s,%02X",info.text,oper2b);
 			break;
 		case 4: //SHL
 		case 6: //--- Unknown Opcode! --- Undocumented opcode!
-			debugger_setcommand("SHLB %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHL %s,%02X",info.text,oper2b);
 			break;
 		case 5: //SHR
-			debugger_setcommand("SHRB %s,%02X",info.text,oper2b);
+			debugger_setcommand("SHR %s,%02X",info.text,oper2b);
 			break;
 		case 7: //SAR
-			debugger_setcommand("SARB %s,%02X",info.text,oper2b);
+			debugger_setcommand("SAR %s,%02X",info.text,oper2b);
 			break;
 		default:
 			break;
