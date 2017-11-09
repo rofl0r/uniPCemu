@@ -1814,8 +1814,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 1,1,0,0,1,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 1,1,1,0,1,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 1,1,0,0,1,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 1,1,1,0,1,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -2072,8 +2072,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -2332,8 +2332,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -2590,8 +2590,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -2850,8 +2850,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -3108,8 +3108,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 1,0,0,0,0,0,3,0x00 }, //BD MOV REG,imm32
 			{ 1,0,0,0,0,0,3,0x00 }, //BE MOV REG,imm32
 			{ 1,0,0,0,0,0,3,0x00 }, //BF MOV REG,imm32
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 1,1,2,0,1,0,1,0x80 }, //C1 386+ GRP opcode 32-bit address
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 1,1,2,0,1,0,1,0x80 }, //C1 386+ GRP2 opcode 32-bit address
 			{ 1,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 1,1,2,0,0,1,0,0x00 }, //C4 LES
@@ -3368,8 +3368,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -3626,8 +3626,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -3886,8 +3886,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -4144,8 +4144,8 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -4407,8 +4407,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -4665,8 +4665,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -4925,8 +4925,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 1,1,1,1,0,1,0,0x01 }, //BD BSR /r r16,r/m16
 			{ 1,1,0x21,5,0,1,0,0x01 }, //BE MOVSX /r r16,r/m8
 			{ 1,1,0x22,6,0,1,0,0x01 }, //BF MOVSX /r r32,r/m8
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -5183,8 +5183,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 1,1,2,1,0,1,0,0x01 }, //BD BSR /r r32,r/m32
 			{ 1,1,0x22,5,0,1,0,0x01 }, //BE MOVSX /r r16,r/m8
 			{ 1,1,0x42,6,0,1,0,0x01 }, //BF MOVSX /r r32,r/m16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,2,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,2,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,2,0,0,0,0,0x00 }, //C4 LES
@@ -5701,7 +5701,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
 			{ 1,1,2,0,1,0,0,0x81 }, //C1 XADD r/m32,r32
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
@@ -5961,8 +5961,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
@@ -6219,8 +6219,8 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,0,0,0,0,0,2,0x00 }, //BD MOV REG,imm16
 			{ 0,0,0,0,0,0,2,0x00 }, //BE MOV REG,imm16 CS forbidden on 186+
 			{ 0,0,0,0,0,0,2,0x00 }, //BF MOV REG,imm16
-			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP opcode
-			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP opcode
+			{ 0,1,0,0,0,0,1,0x00 }, //C0 186+ GRP2 opcode
+			{ 0,1,1,0,0,0,1,0x00 }, //C1 186+ GRP2 opcode
 			{ 0,0,0,0,0,0,2,0x00 }, //C2 RET imm16
 			{ 0,0,0,0,0,0,0,0x00 }, //C3 RET
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
