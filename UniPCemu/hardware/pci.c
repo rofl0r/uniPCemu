@@ -175,7 +175,7 @@ void register_PCI(void *config, byte device, byte function, byte size, PCIConfig
 			configurationchanges[i] = configurationchangehandler; //Configuration change handler!
 			configurationdevices[i] = device; //What device!
 			configurationfunctions[i] = function; //What function!
-			configurationactivedevices[i] = deviceID; //Use this device ID!
+			configurationactivedevices[i] = (byte)deviceID; //Use this device ID!
 			return; //We've registered!
 		}
 	}

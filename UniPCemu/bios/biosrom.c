@@ -418,7 +418,7 @@ int BIOS_load_custom(char *path, char *rom)
 
 		//Also limit the ROM base addresses accordingly(only last block).
 		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x100000)-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000:0x20000))-1); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000)).
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:0x20000U))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000)).
 		BIOSROM_BASE_Modern = 0xFFFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000000)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
@@ -1005,7 +1005,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 				tempoffset += BIOS_custom_ROM_size; //Double in memory by patching to second block!
 			}
 		}
-		tempoffset = BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup)); //Patch to the end block of the ROM instead of the start.
+		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
 			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
@@ -1174,7 +1174,7 @@ void BIOSROM_dumpBIOS()
 		if (!f) return;
 		for (;baseloc<endloc;++baseloc)
 		{
-			if (BIOS_readhandler(baseloc,&data)) //Read directly!
+			if (BIOS_readhandler((uint_32)baseloc,&data)) //Read directly!
 			{
 				if (!fwrite(&data,1,1,f)) //Failed to write?
 				{

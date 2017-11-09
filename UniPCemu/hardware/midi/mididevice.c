@@ -987,8 +987,8 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
 	{
-		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0:(0.7*powf(0.9,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
-		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0:(0.7*powf(0.9,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
 	}
 
 	//Setup default channel chorus/reverb!

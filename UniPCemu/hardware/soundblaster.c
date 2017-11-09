@@ -1191,7 +1191,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	DSP_HWreset(); //Hardware reset!
 
 	//Our tick timings!
-	soundblaster_soundtiming = soundblaster_recordingtiming = 0;
+	soundblaster_soundtiming = (uint_32)(soundblaster_recordingtiming = 0);
 }
 
 void doneSoundBlaster()

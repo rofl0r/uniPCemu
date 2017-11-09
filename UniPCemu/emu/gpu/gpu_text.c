@@ -324,8 +324,8 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 	GPU_TEXTSURFACE *tsurface = (GPU_TEXTSURFACE *)surface; //Convert!
 	uint_32 horizontalprecalcssize, verticalprecalcssize;
 
-	horizontalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSX+1)*render_xfactorreverse),(rendersurface->sdllayer->w+1))<<2); //Horizontal size!
-	verticalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSY+1)*render_yfactorreverse),(rendersurface->sdllayer->h+1))<<2); //Vertical size!
+	horizontalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSX+1)*render_xfactorreverse),(uint_32)(rendersurface->sdllayer->w+1))<<2); //Horizontal size!
+	verticalprecalcssize = (MAX((uint_32)((GPU_TEXTPIXELSY+1)*render_yfactorreverse),(uint_32)(rendersurface->sdllayer->h+1))<<2); //Vertical size!
 
 	if ((((((tsurface->xdelta|forcexdelta)?TEXT_xdelta:0)==tsurface->curXDELTA)) || (((tsurface->ydelta|forceydelta)?TEXT_ydelta:0)==tsurface->curYDELTA)) //Delta OK?
 		#ifdef ADAPTIVETEXT
@@ -381,7 +381,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		{
 			fx = sx; //x converted to destination factor!
 			if ((tsurface->xdelta|forcexdelta)) fx += TEXT_xdelta; //Apply delta position to the output pixel!
-			if ((fx>=0) && (fx<tsurface->horizontalprecalcsentries) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
+			if ((fx>=0) && ((uint_32)fx<tsurface->horizontalprecalcsentries) && (x<GPU_TEXTPIXELSX)) //Valid pixel to render the surface?
 			{
 				tsurface->horizontalprecalcs[fx] = x; //Save the outgoing pixel location mapping on the screen!
 			}
@@ -410,7 +410,7 @@ void GPU_precalctextrenderer(void *surface) //Precalculate all that needs to be 
 		{
 			fy = sy; //y converterd to destination factor!
 			if ((tsurface->ydelta|forceydelta)) fy += TEXT_ydelta; //Apply delta position to the output pixel!
-			if ((fy>=0) && (fy<tsurface->verticalprecalcsentries) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
+			if ((fy>=0) && ((uint_32)fy<tsurface->verticalprecalcsentries) && (y<GPU_TEXTPIXELSY)) //Valid pixel to render the surface?
 			{
 				tsurface->verticalprecalcs[fy] = y; //Save the outgoing pixel location mapping on the screen!
 			}
@@ -552,7 +552,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 			nextpixel:
 
 			prevs = tsurface->horizontalprecalcs[sx++]; //Previous SX result! Increase, because a pixel has been rendered!
-			if (unlikely(sx>=tsurface->horizontalprecalcsentries)) //End of row block reached? Prevent invalid rows by immediately starting the next when it's occurring!
+			if (unlikely(sx>=(int_32)tsurface->horizontalprecalcsentries)) //End of row block reached? Prevent invalid rows by immediately starting the next when it's occurring!
 			{
 				goto loadnextrow;
 			}
@@ -562,7 +562,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 				if (unlikely(prevs!=~0)) //We were active?
 					if (unlikely(curs==~0)) //Finished a row(end of specified area) now?
 						goto loadnextrow; //Load the next row!
-				if (likely(sx<tsurface->horizontalprecalcsentries)) //End of row not reached?
+				if (likely(sx<(int_32)tsurface->horizontalprecalcsentries)) //End of row not reached?
 				{
 					if (likely(curs!=~0)) //Valid? Always the case on static screens!
 					{ //Valid horizontal location?
@@ -591,7 +591,7 @@ uint_64 GPU_textrenderer(void *surface) //Run the text rendering on rendersurfac
 					prevs = tsurface->verticalprecalcs[sy]; //Previous SY result!
 					++sy; //Screen row rendered!
 					currentrow = &renderpixels[ ( sy * get_pixelrow_pitch(rendersurface) )]; //The new pixel row!
-					if (unlikely(sy>=tsurface->verticalprecalcsentries)) break; //Finished!
+					if (unlikely(sy>=(int_32)tsurface->verticalprecalcsentries)) break; //Finished!
 					curs = tsurface->verticalprecalcs[sy]; //Current SY result!
 					if (unlikely((prevs!=~0) && (curs==~0))) //Finished a screen(end of specified area)?
 					{

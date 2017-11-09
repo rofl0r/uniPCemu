@@ -818,8 +818,8 @@ int ExecuteMenu(int numitems, int startrow, int allowspecs, word *stat)
 //Amount of files in the list MAX
 char itemlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
 char dirlist[ITEMLIST_MAXITEMS][256]; //Max X files listed!
-int numlist = 0; //Number of files!
-int numdirlist = 0; //Number of files!
+word numlist = 0; //Number of files!
+word numdirlist = 0; //Number of files!
 
 void clearList()
 {
@@ -6629,7 +6629,7 @@ uint_32 converthex2int(char *s)
 	return result; //Give the result we calculated!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, byte semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress);
+void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress);
 
 void BIOS_breakpoint()
 {
@@ -6757,7 +6757,7 @@ void BIOS_breakpoint()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, byte semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress)
+void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress)
 {
 	word segment;
 	uint_32 offset;

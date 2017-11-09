@@ -213,7 +213,7 @@ OPTINLINE void op_sbb16() {
 }
 
 //Stack operation support through the BIU!
-byte CPU8086_PUSHw(byte base, word *data, byte is32instruction)
+byte CPU8086_PUSHw(word base, word *data, byte is32instruction)
 {
 	word temp;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -239,7 +239,7 @@ byte CPU8086_PUSHw(byte base, word *data, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_PUSHw(byte base, word *data, byte is32instruction)
+byte CPU8086_internal_PUSHw(word base, word *data, byte is32instruction)
 {
 	word temp;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
@@ -265,7 +265,7 @@ byte CPU8086_internal_PUSHw(byte base, word *data, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_interruptPUSHw(byte base, word *data, byte is32instruction)
+byte CPU8086_internal_interruptPUSHw(word base, word *data, byte is32instruction)
 {
 	word temp;
 	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
@@ -291,7 +291,7 @@ byte CPU8086_internal_interruptPUSHw(byte base, word *data, byte is32instruction
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_PUSHb(byte base, byte *data, byte is32instruction)
+byte CPU8086_PUSHb(word base, byte *data, byte is32instruction)
 {
 	byte temp;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -317,7 +317,7 @@ byte CPU8086_PUSHb(byte base, byte *data, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_PUSHb(byte base, byte *data, byte is32instruction)
+byte CPU8086_internal_PUSHb(word base, byte *data, byte is32instruction)
 {
 	byte temp;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
@@ -343,7 +343,7 @@ byte CPU8086_internal_PUSHb(byte base, byte *data, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_POPw(byte base, word *result, byte is32instruction)
+byte CPU8086_POPw(word base, word *result, byte is32instruction)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -368,7 +368,7 @@ byte CPU8086_POPw(byte base, word *result, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_POPw(byte base, word *result, byte is32instruction)
+byte CPU8086_internal_POPw(word base, word *result, byte is32instruction)
 {
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
@@ -393,7 +393,7 @@ byte CPU8086_internal_POPw(byte base, word *result, byte is32instruction)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_POPSP(byte base)
+byte CPU8086_POPSP(word base)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -418,7 +418,7 @@ byte CPU8086_POPSP(byte base)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_POPb(byte base, byte *result, byte is32instruction)
+byte CPU8086_POPb(word base, byte *result, byte is32instruction)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -444,7 +444,7 @@ byte CPU8086_POPb(byte base, byte *result, byte is32instruction)
 }
 
 //BIU delay(keeping BIU active)
-byte CPU8086_instructionstepdelayBIU(byte base, byte cycles)
+byte CPU8086_instructionstepdelayBIU(word base, byte cycles)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -456,7 +456,7 @@ byte CPU8086_instructionstepdelayBIU(byte base, byte cycles)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_delayBIU(byte base, byte cycles)
+byte CPU8086_internal_delayBIU(word base, byte cycles)
 {
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
@@ -469,7 +469,7 @@ byte CPU8086_internal_delayBIU(byte base, byte cycles)
 }
 
 //BUS --- state delay!
-byte CPU8086_instructionstepdelayBIUidle(byte base, byte cycles)
+byte CPU8086_instructionstepdelayBIUidle(word base, byte cycles)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -481,7 +481,7 @@ byte CPU8086_instructionstepdelayBIUidle(byte base, byte cycles)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_delayBIUidle(byte base, byte cycles)
+byte CPU8086_internal_delayBIUidle(word base, byte cycles)
 {
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
@@ -497,7 +497,7 @@ byte CPU8086_internal_delayBIUidle(byte base, byte cycles)
 
 //Instruction variants of ModR/M!
 
-byte CPU8086_instructionstepreadmodrmb(byte base, byte *result, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
 {
 	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -527,7 +527,7 @@ byte CPU8086_instructionstepreadmodrmb(byte base, byte *result, byte paramnr) //
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_instructionstepreadmodrmw(byte base, word *result, byte paramnr)
+byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr)
 {
 	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -557,7 +557,7 @@ byte CPU8086_instructionstepreadmodrmw(byte base, word *result, byte paramnr)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_instructionstepwritemodrmb(byte base, byte value, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
 {
 	byte dummy;
 	byte BIUtype;
@@ -588,7 +588,7 @@ byte CPU8086_instructionstepwritemodrmb(byte base, byte value, byte paramnr) //B
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_instructionstepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL)
+byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byte isJMPorCALL)
 {
 	word dummy;
 	byte BIUtype;
@@ -620,7 +620,7 @@ byte CPU8086_instructionstepwritemodrmw(byte base, word value, byte paramnr, byt
 }
 
 //Now, the internal variants of the functions above!
-byte CPU8086_internal_stepreadmodrmb(byte base, byte *result, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepreadmodrmb(word base, byte *result, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
 {
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -650,7 +650,7 @@ byte CPU8086_internal_stepreadmodrmb(byte base, byte *result, byte paramnr) //Ba
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepreadmodrmw(byte base, word *result, byte paramnr)
+byte CPU8086_internal_stepreadmodrmw(word base, word *result, byte paramnr)
 {
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -680,7 +680,7 @@ byte CPU8086_internal_stepreadmodrmw(byte base, word *result, byte paramnr)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepwritemodrmb(word base, byte value, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
 {
 	byte dummy;
 	byte BIUtype;
@@ -711,7 +711,7 @@ byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr) //Bas
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16)
+byte CPU8086_internal_stepwritedirectb(word base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16)
 {
 	byte dummy;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -737,7 +737,7 @@ byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, ui
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16)
+byte CPU8086_internal_stepwritedirectw(word base, sword segment, word segval, uint_32 offset, word val, byte is_offset16)
 {
 	word dummy;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -763,7 +763,7 @@ byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, ui
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16)
+byte CPU8086_internal_stepreaddirectb(word base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16)
 {
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
@@ -788,7 +788,7 @@ byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uin
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
+byte CPU8086_internal_stepreaddirectw(word base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
 {
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
@@ -813,7 +813,7 @@ byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uin
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
+byte CPU8086_internal_stepreadinterruptw(word base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16)
 {
 	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
 	{
@@ -838,7 +838,7 @@ byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, 
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL)
+byte CPU8086_internal_stepwritemodrmw(word base, word value, byte paramnr, byte isJMPorCALL)
 {
 	word dummy;
 	byte BIUtype;
@@ -2013,12 +2013,12 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 	goto nextstep; //Start the next step!
 	//Finished when remainder<divisor or remainder==0.
 	gotresult: //We've gotten a result!
-	if (temp>((1<<resultbits)-1)) //Modulo overflow?
+	if (temp>(uint_32)((1<<resultbits)-1)) //Modulo overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
 	}
-	if (resultquotient>((1<<resultbits)-1)) //Quotient overflow?
+	if (resultquotient>(uint_32)((1<<resultbits)-1)) //Quotient overflow?
 	{
 		*error = 1; //Raise divide by 0 error due to overflow!
 		return; //Abort!		
@@ -3302,12 +3302,12 @@ OPTINLINE byte CPU8086_internal_SCASW()
 	return 0;
 }
 
-OPTINLINE byte CPU8086_instructionstepPOPtimeout(byte base)
+OPTINLINE byte CPU8086_instructionstepPOPtimeout(word base)
 {
 	return CPU8086_instructionstepdelayBIU(base,2);//Delay 2 cycles for POPs to start!
 }
 
-OPTINLINE byte CPU8086_internal_POPtimeout(byte base)
+OPTINLINE byte CPU8086_internal_POPtimeout(word base)
 {
 	return CPU8086_internal_delayBIU(base,2);//Delay 2 cycles for POPs to start!
 }
@@ -4632,7 +4632,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>7)) FLAGW_OF(0); else FLAGW_OF(1); }
-		if (numcnt) flag_szp8((uint8_t)(s&0xFF)); break;
+		if (numcnt) flag_szp8((uint8_t)(s&0xFF));
+		break;
 
 	case 5: //SHR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4644,7 +4645,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (numcnt) flag_szp8((uint8_t)(s & 0xFF)); break;
+		if (numcnt) flag_szp8((uint8_t)(s & 0xFF));
+		break;
 
 	case 7: //SAR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4666,12 +4668,12 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		}
 		else if (numcnt==1) //Overflow is cleared on all 1-bit shifts!
 		{
-			flag_szp8(s); //Affect sign as well!
+			flag_szp8((uint8_t)s); //Affect sign as well!
 			FLAGW_OF(0); //Cleared!
 		}
 		else if (numcnt) //Anything shifted at all?
 		{
-			flag_szp8(s); //Affect sign as well!
+			flag_szp8((uint8_t)s); //Affect sign as well!
 			if (EMULATED_CPU<=CPU_NECV30) //Valid to update OF?
 			{
 				FLAGW_OF(0); //Cleared with count as well?
@@ -4745,7 +4747,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>15)) FLAGW_OF(0); else FLAGW_OF(1); }
-		if (numcnt) flag_szp16((uint16_t)(s&0xFFFF)); break;
+		if (numcnt) flag_szp16((uint16_t)(s&0xFFFF));
+		break;
 
 	case 5: //SHR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -4757,7 +4760,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (numcnt) flag_szp16((uint16_t)(s & 0xFFFF)); break;
+		if (numcnt) flag_szp16((uint16_t)(s & 0xFFFF));
+		break;
 
 	case 7: //SAR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!

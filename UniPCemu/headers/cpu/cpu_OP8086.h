@@ -315,33 +315,33 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much d
 byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 
 //I/O and memory support!
-byte CPU8086_PUSHw(byte base, word *data, byte is32instruction);
-byte CPU8086_internal_PUSHw(byte base, word *data, byte is32instruction);
-byte CPU8086_PUSHb(byte base, byte *data, byte is32instruction);
-byte CPU8086_internal_interruptPUSHw(byte base, word *data, byte is32instruction);
-byte CPU8086_internal_PUSHb(byte base, byte *data, byte is32instruction);
-byte CPU8086_POPw(byte base, word *result, byte is32instruction);
-byte CPU8086_internal_POPw(byte base, word *result, byte is32instruction);
-byte CPU8086_POPSP(byte base);
-byte CPU8086_POPb(byte base, byte *result, byte is32instruction);
-byte CPU8086_instructionstepreadmodrmb(byte base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
-byte CPU8086_instructionstepreadmodrmw(byte base, word *result, byte paramnr);
-byte CPU8086_instructionstepwritemodrmb(byte base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
-byte CPU8086_instructionstepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
-byte CPU8086_internal_stepreadmodrmb(byte base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
-byte CPU8086_internal_stepreadmodrmw(byte base, word *result, byte paramnr);
-byte CPU8086_internal_stepwritemodrmb(byte base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
-byte CPU8086_internal_stepwritedirectb(byte base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16);
-byte CPU8086_internal_stepwritedirectw(byte base, sword segment, word segval, uint_32 offset, word val, byte is_offset16);
-byte CPU8086_internal_stepreaddirectb(byte base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16);
-byte CPU8086_internal_stepreaddirectw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
-byte CPU8086_internal_stepreadinterruptw(byte base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
-byte CPU8086_internal_stepwritemodrmw(byte base, word value, byte paramnr, byte isJMPorCALL);
+byte CPU8086_PUSHw(word base, word *data, byte is32instruction);
+byte CPU8086_internal_PUSHw(word base, word *data, byte is32instruction);
+byte CPU8086_PUSHb(word base, byte *data, byte is32instruction);
+byte CPU8086_internal_interruptPUSHw(word base, word *data, byte is32instruction);
+byte CPU8086_internal_PUSHb(word base, byte *data, byte is32instruction);
+byte CPU8086_POPw(word base, word *result, byte is32instruction);
+byte CPU8086_internal_POPw(word base, word *result, byte is32instruction);
+byte CPU8086_POPSP(word base);
+byte CPU8086_POPb(word base, byte *result, byte is32instruction);
+byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr);
+byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byte isJMPorCALL);
+byte CPU8086_internal_stepreadmodrmb(word base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepreadmodrmw(word base, word *result, byte paramnr);
+byte CPU8086_internal_stepwritemodrmb(word base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
+byte CPU8086_internal_stepwritedirectb(word base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16);
+byte CPU8086_internal_stepwritedirectw(word base, sword segment, word segval, uint_32 offset, word val, byte is_offset16);
+byte CPU8086_internal_stepreaddirectb(word base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16);
+byte CPU8086_internal_stepreaddirectw(word base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
+byte CPU8086_internal_stepreadinterruptw(word base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
+byte CPU8086_internal_stepwritemodrmw(word base, word value, byte paramnr, byte isJMPorCALL);
 
-byte CPU8086_instructionstepdelayBIU(byte base, byte cycles);
-byte CPU8086_internal_delayBIU(byte base, byte cycles);
-byte CPU8086_instructionstepdelayBIUidle(byte base, byte cycles);
-byte CPU8086_internal_delayBIUidle(byte base, byte cycles);
+byte CPU8086_instructionstepdelayBIU(word base, byte cycles);
+byte CPU8086_internal_delayBIU(word base, byte cycles);
+byte CPU8086_instructionstepdelayBIUidle(word base, byte cycles);
+byte CPU8086_internal_delayBIUidle(word base, byte cycles);
 
 
 /*

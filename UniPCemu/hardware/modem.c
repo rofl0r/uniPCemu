@@ -82,7 +82,7 @@ byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
 void modem_responseString(byte *s, byte usecarriagereturn)
 {
 	word i, lengthtosend;
-	lengthtosend = strlen((char *)s); //How long to send!
+	lengthtosend = (word)strlen((char *)s); //How long to send!
 	if (usecarriagereturn&1)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
@@ -160,7 +160,7 @@ byte readIPnumber(char **x, byte *number)
 	}
 	if ((size==3) && (result<256)) //Valid IP part?
 	{
-		*number = result; //Give the result!
+		*number = (byte)result; //Give the result!
 		return 1; //Read!
 	}
 	return 0; //Not a valid IP section!
@@ -340,7 +340,7 @@ byte resetModem(byte state)
 	modem.registers[38] = 20; //Delay before Force Disconnect(seconds)
 	for (reg=0;reg<256;++reg)
 	{
-		modem_updateRegister(reg); //This register has been updated!
+		modem_updateRegister((byte)reg); //This register has been updated!
 	}
 
 	modem.communicationstandard = 0; //Default communication standard!
@@ -398,7 +398,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 					modem_hangup(); //Hang up!
 				}
 			case 1: //Goto AT command mode?
-				modem.datamode = modem.ATcommandsize = 0; //Starting a new command!
+				modem.datamode = (byte)(modem.ATcommandsize = 0); //Starting a new command!
 				break;
 		}
 	}

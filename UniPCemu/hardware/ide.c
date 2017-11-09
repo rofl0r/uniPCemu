@@ -761,7 +761,7 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 	{
 		optimalH = 16; //Force Bochs-style compatiblity!
 		optimalS = 63; //Force Bochs-style compatiblity!
-		optimalC = (disk_size/(16*63)); //Force Bochs-style compatiblity!
+		optimalC = (word)(disk_size/(16*63)); //Force Bochs-style compatiblity!
 		goto applyBochsImage;
 	}
 
@@ -901,7 +901,7 @@ void strcpy_padded(byte *buffer, byte sizeinbytes, byte *s)
 {
 	byte counter, data;
 	word length;
-	length = strlen((char *)s); //Check the length for the copy!
+	length = (word)strlen((char *)s); //Check the length for the copy!
 	for (counter=0;counter<sizeinbytes;++counter) //Step words!
 	{
 		data = 0x20; //Initialize to unused!
@@ -2965,7 +2965,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 {
 	byte counter, lowbyte, highbyte;
 	word length;
-	length = strlen((char *)s); //Check the length for the copy!
+	length = (word)strlen((char *)s); //Check the length for the copy!
 	for (counter=0;counter<sizeinwords;++counter) //Step words!
 	{
 		lowbyte = highbyte = 0x20; //Initialize to unused!
@@ -3082,7 +3082,7 @@ void ATA_DiskChanged(int disk)
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_disksize = disk_size; //Number of addressable LBA sectors, minus one!
+			ATA[disk_channel].Drive[disk_ATA].ATAPI_disksize = (uint_32)disk_size; //Number of addressable LBA sectors, minus one!
 		}
 		//ATA-1 supports up to word 63 only. Above is filled on ATAPI only(newer ATA versions)!
 		ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Major version! We're ATA/ATAPI 4 on CD-ROM, ATA-1 on HDD!

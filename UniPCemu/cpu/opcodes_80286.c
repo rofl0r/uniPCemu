@@ -66,7 +66,7 @@ extern byte custommem; //Custom memory address?
 extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
 extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
-OPTINLINE byte CPU80286_instructionstepPOPtimeout(byte base)
+OPTINLINE byte CPU80286_instructionstepPOPtimeout(word base)
 {
 	return CPU8086_instructionstepdelayBIU(base,2);//Delay 2 cycles for POPs to start!
 }

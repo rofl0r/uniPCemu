@@ -255,7 +255,7 @@ void CPU386_OP0F02() //LAR /r
 					isconforming = 0;
 					break;
 				}
-				if ((MAX(getCPL(), getRPL(oper1d)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
+				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
 					if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!

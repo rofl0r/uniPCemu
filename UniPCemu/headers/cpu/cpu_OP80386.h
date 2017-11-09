@@ -325,22 +325,22 @@ byte CPU80386_internal_LXS(int segmentregister); //LDS, LES etc. 32-bit variant!
 */
 
 //Stack operation support through the BIU!
-byte CPU80386_PUSHdw(byte base, uint_32 *data);
-byte CPU80386_internal_PUSHdw(byte base, uint_32 *data);
-byte CPU80386_internal_interruptPUSHdw(byte base, uint_32 *data);
-byte CPU80386_POPdw(byte base, uint_32 *result);
-byte CPU80386_internal_POPdw(byte base, uint_32 *result);
-byte CPU80386_POPESP(byte base);
+byte CPU80386_PUSHdw(word base, uint_32 *data);
+byte CPU80386_internal_PUSHdw(word base, uint_32 *data);
+byte CPU80386_internal_interruptPUSHdw(word base, uint_32 *data);
+byte CPU80386_POPdw(word base, uint_32 *result);
+byte CPU80386_internal_POPdw(word base, uint_32 *result);
+byte CPU80386_POPESP(word base);
 
 //Instruction variants of ModR/M!
 
-byte CPU80386_instructionstepreadmodrmdw(byte base, uint_32 *result, byte paramnr);
-byte CPU80386_instructionstepwritemodrmdw(byte base, uint_32 value, byte paramnr);
+byte CPU80386_instructionstepreadmodrmdw(word base, uint_32 *result, byte paramnr);
+byte CPU80386_instructionstepwritemodrmdw(word base, uint_32 value, byte paramnr);
 //Now, the internal variants of the functions above!
-byte CPU80386_internal_stepreadmodrmdw(byte base, uint_32 *result, byte paramnr);
-byte CPU80386_internal_stepwritedirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16);
-byte CPU80386_internal_stepreaddirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
-byte CPU80386_internal_stepreadinterruptdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
-byte CPU80386_internal_stepwritemodrmdw(byte base, uint_32 value, byte paramnr);
+byte CPU80386_internal_stepreadmodrmdw(word base, uint_32 *result, byte paramnr);
+byte CPU80386_internal_stepwritedirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16);
+byte CPU80386_internal_stepreaddirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
+byte CPU80386_internal_stepreadinterruptdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
+byte CPU80386_internal_stepwritemodrmdw(word base, uint_32 value, byte paramnr);
 
 #endif

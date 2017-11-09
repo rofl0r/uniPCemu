@@ -200,7 +200,7 @@ OPTINLINE void op_sbb32() {
 */
 
 //Stack operation support through the BIU!
-byte CPU80386_PUSHdw(byte base, uint_32 *data)
+byte CPU80386_PUSHdw(word base, uint_32 *data)
 {
 	uint_32 temp;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -226,7 +226,7 @@ byte CPU80386_PUSHdw(byte base, uint_32 *data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_PUSHdw(byte base, uint_32 *data)
+byte CPU80386_internal_PUSHdw(word base, uint_32 *data)
 {
 	uint_32 temp;
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
@@ -252,7 +252,7 @@ byte CPU80386_internal_PUSHdw(byte base, uint_32 *data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_interruptPUSHdw(byte base, uint_32 *data)
+byte CPU80386_internal_interruptPUSHdw(word base, uint_32 *data)
 {
 	uint_32 temp;
 	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
@@ -278,7 +278,7 @@ byte CPU80386_internal_interruptPUSHdw(byte base, uint_32 *data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_POPdw(byte base, uint_32 *result)
+byte CPU80386_POPdw(word base, uint_32 *result)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -303,7 +303,7 @@ byte CPU80386_POPdw(byte base, uint_32 *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_POPdw(byte base, uint_32 *result)
+byte CPU80386_internal_POPdw(word base, uint_32 *result)
 {
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
@@ -328,7 +328,7 @@ byte CPU80386_internal_POPdw(byte base, uint_32 *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_POPESP(byte base)
+byte CPU80386_POPESP(word base)
 {
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
@@ -355,7 +355,7 @@ byte CPU80386_POPESP(byte base)
 
 //Instruction variants of ModR/M!
 
-byte CPU80386_instructionstepreadmodrmdw(byte base, uint_32 *result, byte paramnr)
+byte CPU80386_instructionstepreadmodrmdw(word base, uint_32 *result, byte paramnr)
 {
 	byte BIUtype;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
@@ -385,7 +385,7 @@ byte CPU80386_instructionstepreadmodrmdw(byte base, uint_32 *result, byte paramn
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_instructionstepwritemodrmdw(byte base, uint_32 value, byte paramnr)
+byte CPU80386_instructionstepwritemodrmdw(word base, uint_32 value, byte paramnr)
 {
 	uint_32 dummy;
 	byte BIUtype;
@@ -418,7 +418,7 @@ byte CPU80386_instructionstepwritemodrmdw(byte base, uint_32 value, byte paramnr
 
 //Now, the internal variants of the functions above!
 
-byte CPU80386_internal_stepreadmodrmdw(byte base, uint_32 *result, byte paramnr)
+byte CPU80386_internal_stepreadmodrmdw(word base, uint_32 *result, byte paramnr)
 {
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -448,7 +448,7 @@ byte CPU80386_internal_stepreadmodrmdw(byte base, uint_32 *result, byte paramnr)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_stepwritedirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16)
+byte CPU80386_internal_stepwritedirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16)
 {
 	uint_32 dummy;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
@@ -474,7 +474,7 @@ byte CPU80386_internal_stepwritedirectdw(byte base, sword segment, word segval, 
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_stepreaddirectdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
+byte CPU80386_internal_stepreaddirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
 {
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
@@ -499,7 +499,7 @@ byte CPU80386_internal_stepreaddirectdw(byte base, sword segment, word segval, u
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_stepreadinterruptdw(byte base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
+byte CPU80386_internal_stepreadinterruptdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
 {
 	if (CPU[activeCPU].internalinterruptstep==base) //First step? Request!
 	{
@@ -524,7 +524,7 @@ byte CPU80386_internal_stepreadinterruptdw(byte base, sword segment, word segval
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU80386_internal_stepwritemodrmdw(byte base, uint_32 value, byte paramnr)
+byte CPU80386_internal_stepwritemodrmdw(word base, uint_32 value, byte paramnr)
 {
 	uint_32 dummy;
 	byte BIUtype;
@@ -1143,7 +1143,7 @@ void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint
 	if (divisor==0) //Not able to divide?
 	{
 		*quotient = 0;
-		*remainder = temp; //Unable to comply!
+		*remainder = (uint_32)temp; //Unable to comply!
 		*error = 1; //Divide by 0 error!
 		return; //Abort: division by 0!
 	}
@@ -1212,8 +1212,8 @@ void CPU80386_internal_DIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uint
 			return; //Abort!
 		}
 	}
-	*quotient = resultquotient; //Quotient calculated!
-	*remainder = temp; //Give the modulo! The result is already calculated!
+	*quotient = (uint_32)resultquotient; //Quotient calculated!
+	*remainder = (uint_32)temp; //Give the modulo! The result is already calculated!
 	*error = 0; //We're having a valid result!
 }
 
@@ -2188,12 +2188,12 @@ OPTINLINE byte CPU80386_internal_SCASD()
 	return 0;
 }
 
-OPTINLINE byte CPU80386_instructionstepPOPtimeout(byte base)
+OPTINLINE byte CPU80386_instructionstepPOPtimeout(word base)
 {
 	return CPU8086_instructionstepdelayBIU(base,2);//Delay 2 cycles for POPs to start!
 }
 
-OPTINLINE byte CPU80386_internal_POPtimeout(byte base)
+OPTINLINE byte CPU80386_internal_POPtimeout(word base)
 {
 	return CPU8086_internal_delayBIU(base,2);//Delay 2 cycles for POPs to start!
 }
@@ -3244,7 +3244,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFFFFFFF;
 		}
 		if (numcnt==1) { if (FLAG_CF==(s>>31)) FLAGW_OF(0); else FLAGW_OF(1); }
-		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFF)); break;
+		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFF));
+		break;
 
 	case 5: //SHR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -3256,7 +3257,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (numcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFF)); break;
+		if (numcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFF));
+		break;
 
 	case 7: //SAR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
@@ -3278,12 +3280,12 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		}
 		else if (numcnt==1) //Overflow is cleared on all 1-bit shifts!
 		{
-			flag_szp32(s); //Affect sign as well!
+			flag_szp32((uint32_t)s); //Affect sign as well!
 			FLAGW_OF(0); //Cleared!
 		}
 		else if (numcnt) //Anything shifted at all?
 		{
-			flag_szp32(s); //Affect sign as well!
+			flag_szp32((uint32_t)s); //Affect sign as well!
 			if (EMULATED_CPU<=CPU_NECV30) //Valid to update OF?
 			{
 				FLAGW_OF(0); //Cleared with count as well?

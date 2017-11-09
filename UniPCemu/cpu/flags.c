@@ -202,15 +202,15 @@ void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3)
 	add=(uint16_t)v2;
 	dst = (uint16_t)v1 + (add + (uint16_t)v3);
 	flag_szp8((uint8_t)(dst&0xFF));
-	flag_adcoa8(v1,add,dst);
+	flag_adcoa8(v1,(uint16_t)add,(uint16_t)dst);
 }
 
 void flag_adc16(uint16_t v1, uint16_t v2, uint16_t v3)
 {
 	add = (uint32_t)v2;
 	dst = (uint32_t)v1 + (add + (uint32_t)v3);
-	flag_szp16(dst);
-	flag_adcoa16(v1,add,dst);
+	flag_szp16((uint16_t)dst);
+	flag_adcoa16(v1,(uint32_t)add,(uint32_t)dst);
 }
 
 void flag_adc32(uint32_t v1, uint32_t v2, uint32_t v3)
@@ -226,15 +226,15 @@ void flag_add8(uint8_t v1, uint8_t v2)
 	add = (uint16_t)v2;
 	dst = (uint16_t)v1 + add;
 	flag_szp8((uint8_t)(dst&0xFF));
-	flag_adcoa8(v1,add,dst);
+	flag_adcoa8(v1,(uint16_t)add,(uint16_t)dst);
 }
 
 void flag_add16(uint16_t v1, uint16_t v2)
 {
 	add = (uint32_t)v2;
 	dst = (uint32_t)v1 + add;
-	flag_szp16(dst);
-	flag_adcoa16(v1,add,dst);
+	flag_szp16((uint16_t)dst);
+	flag_adcoa16(v1,(uint32_t)add,(uint32_t)dst);
 }
 
 void flag_add32(uint32_t v1, uint32_t v2)
@@ -250,7 +250,7 @@ void flag_sbb8(uint8_t v1, uint8_t v2, uint8_t v3)
 	sub = (uint_64)v2;
 	dst = (uint16_t)v1 - (sub + (uint_64)v3);
 	flag_szp8(dst & 0xFF);
-	flag_subcoa8(v1,sub,dst);
+	flag_subcoa8(v1,(uint16_t)sub,(uint16_t)dst);
 }
 
 void flag_sbb16(uint16_t v1, uint16_t v2, uint16_t v3)
@@ -258,7 +258,7 @@ void flag_sbb16(uint16_t v1, uint16_t v2, uint16_t v3)
 	sub = (uint_64)v2;
 	dst = (uint32_t)v1 - (sub + (uint_64)v3);
 	flag_szp16(dst & 0xFFFF);
-	flag_subcoa16(v1,sub,dst);
+	flag_subcoa16(v1,(uint32_t)sub,(uint32_t)dst);
 }
 
 void flag_sbb32(uint32_t v1, uint32_t v2, uint32_t v3)
@@ -274,7 +274,7 @@ void flag_sub8(uint8_t v1, uint8_t v2)
 	sub = (uint16_t)v2;
 	dst = (uint16_t)v1 - sub;
 	flag_szp8(dst&0xFF);
-	flag_subcoa8(v1,sub,dst);
+	flag_subcoa8(v1,(uint16_t)sub,(uint16_t)dst);
 }
 
 void flag_sub16(uint16_t v1, uint16_t v2)
@@ -282,7 +282,7 @@ void flag_sub16(uint16_t v1, uint16_t v2)
 	sub = (uint32_t)v2;
 	dst = (uint32_t)v1 - sub;
 	flag_szp16(dst & 0xFFFF);
-	flag_subcoa16(v1,sub,dst);
+	flag_subcoa16(v1,(uint32_t)sub,(uint32_t)dst);
 }
 
 void flag_sub32(uint32_t v1, uint32_t v2)

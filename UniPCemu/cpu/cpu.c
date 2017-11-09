@@ -441,7 +441,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 }
 
 //PORT IN/OUT instructions!
-byte CPU_PORT_OUT_B(byte base, word port, byte data)
+byte CPU_PORT_OUT_B(word base, word port, byte data)
 {
 	//Check rights!
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
@@ -477,7 +477,7 @@ byte CPU_PORT_OUT_B(byte base, word port, byte data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_OUT_W(byte base, word port, word data)
+byte CPU_PORT_OUT_W(word base, word port, word data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -517,7 +517,7 @@ byte CPU_PORT_OUT_W(byte base, word port, word data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_OUT_D(byte base, word port, uint_32 data)
+byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -567,7 +567,7 @@ byte CPU_PORT_OUT_D(byte base, word port, uint_32 data)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_B(byte base, word port, byte *result)
+byte CPU_PORT_IN_B(word base, word port, byte *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -601,7 +601,7 @@ byte CPU_PORT_IN_B(byte base, word port, byte *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_W(byte base, word port, word *result)
+byte CPU_PORT_IN_W(word base, word port, word *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
@@ -640,7 +640,7 @@ byte CPU_PORT_IN_W(byte base, word port, word *result)
 	return 0; //Ready to process further! We're loaded!
 }
 
-byte CPU_PORT_IN_D(byte base, word port, uint_32 *result)
+byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
