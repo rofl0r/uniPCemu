@@ -4596,7 +4596,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 7);
+			s = ((s >> 1)&0x7F) | (FLAG_CF << 7);
 		}
 		if (varshift==0) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1)); //Only when not using CL?
 		break;
@@ -4619,7 +4619,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 7);
+			s = ((s >> 1)&0x7F) | (tempCF << 7);
 		}
 		break;
 
@@ -4711,7 +4711,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 15);
+			s = ((s >> 1)&0x7FFF) | (FLAG_CF << 15);
 		}
 		if (varshift==0) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1)); //Only when not using CL?
 		break;
@@ -4734,7 +4734,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 15);
+			s = ((s >> 1)&0x7FFF) | (tempCF << 15);
 		}
 		break;
 

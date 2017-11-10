@@ -3210,7 +3210,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (FLAG_CF << 31);
+			s = ((s >> 1)&0x7FFFFFFF) | (FLAG_CF << 31);
 		}
 		if (varshift==0) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
@@ -3231,7 +3231,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
-			s = (s >> 1) | (tempCF << 31);
+			s = ((s >> 1)&0x7FFFFFFF) | (tempCF << 31);
 		}
 		break;
 
