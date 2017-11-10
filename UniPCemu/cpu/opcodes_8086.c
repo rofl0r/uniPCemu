@@ -4636,14 +4636,14 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFF;
 		}
-		if (maskcnt==1) { if (FLAG_CF==(s>>7)) FLAGW_OF(0); else FLAGW_OF(1); }
+		if (maskcnt==1) { FLAGW_OF(FLAG_CF^(s>>7)); }
 		if (numcnt) flag_szp8((uint8_t)(s&0xFF));
 		break;
 
 	case 5: //SHR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (maskcnt==1) { if (s&0x80) FLAGW_OF(1); else FLAGW_OF(0); }
+		if (maskcnt==1) { FLAGW_OF(s>>7); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s & 1);
@@ -4758,14 +4758,14 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFF;
 		}
-		if (maskcnt==1) { if (FLAG_CF==(s>>15)) FLAGW_OF(0); else FLAGW_OF(1); }
+		if (maskcnt==1) FLAGW_OF(FLAG_CF^(s>>15));
 		if (numcnt) flag_szp16((uint16_t)(s&0xFFFF));
 		break;
 
 	case 5: //SHR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (maskcnt==1) { if (s&0x8000) FLAGW_OF(1); else FLAGW_OF(0); }
+		if (maskcnt==1) { FLAGW_OF(s>>15); }
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s & 1);

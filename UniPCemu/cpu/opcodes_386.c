@@ -3252,14 +3252,14 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFFFFFF;
 		}
-		if (maskcnt==1) { if (FLAG_CF==(s>>31)) FLAGW_OF(0); else FLAGW_OF(1); }
+		if (maskcnt==1) FLAGW_OF(FLAG_CF^(s>>31));
 		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFF));
 		break;
 
 	case 5: //SHR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (maskcnt==1) { if (s&0x80000000) FLAGW_OF(1); else FLAGW_OF(0); }
+		if (maskcnt==1) FLAGW_OF(s>>31);
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s & 1);
