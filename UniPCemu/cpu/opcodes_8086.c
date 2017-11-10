@@ -4578,7 +4578,6 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1b;
-	tempCF = FLAG_CF; //Save CF!
 	switch (thereg) {
 	case 0: //ROL r/m8
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
@@ -4587,17 +4586,18 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			FLAGW_CF((s&0x80)>>7); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 		}
+		FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 7) & 1)); //Only when not using CL?
 		break;
 
 	case 1: //ROR r/m8
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
-		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s&1); //Save LSB!
 			s = ((s >> 1)&0x7F) | (FLAG_CF << 7);
 		}
+		FLAGW_CF(s>>7); //Always sets CF, according to various sources?
 		if (varshift==0) FLAGW_OF((s >> 7) ^ ((s >> 6) & 1)); //Only when not using CL?
 		break;
 
@@ -4693,7 +4693,6 @@ word op_grp2_16(byte cnt, byte varshift) {
 	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = cnt; //Save count!
 	s = oper1;
-	tempCF = FLAG_CF; //Save CF!
 	switch (thereg) {
 	case 0: //ROL r/m16
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
@@ -4702,17 +4701,18 @@ word op_grp2_16(byte cnt, byte varshift) {
 			FLAGW_CF((s&0x8000)>>15); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 		}
+		FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (varshift==0) FLAGW_OF(FLAG_CF^((s >> 15) & 1)); //Only when not using CL?
 		break;
 
 	case 1: //ROR r/m16
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
 		else if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
-		tempCF = FLAG_CF; //Default: unchanged!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s&1); //Save LSB!
 			s = ((s >> 1)&0x7FFF) | (FLAG_CF << 15);
 		}
+		FLAGW_CF(s>>15); //Always sets CF, according to various sources?
 		if (varshift==0) FLAGW_OF((s >> 15) ^ ((s >> 14) & 1)); //Only when not using CL?
 		break;
 
