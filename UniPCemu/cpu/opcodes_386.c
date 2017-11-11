@@ -3203,7 +3203,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = (s << 1)|FLAG_CF;
 		}
 		FLAGW_CF(s); //Always sets CF, according to various sources?
-		if (numcnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF);
+		if (maskcnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF);
 		break;
 
 	case 1: //ROR r/m32
@@ -3216,7 +3216,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			s = ((s >> 1)&0x7FFFFFFF) | (FLAG_CF << 31);
 		}
 		FLAGW_CF(s>>31); //Always sets CF, according to various sources?
-		if (numcnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
+		if (maskcnt==1) FLAGW_OF((s >> 31) ^ ((s >> 30) & 1));
 		break;
 
 	case 2: //RCL r/m32
@@ -3228,14 +3228,14 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			FLAGW_CF((s&0x80000000)>>31); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
 		}
-		if (cnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF); //OF=MSB^CF
+		if (maskcnt==1) FLAGW_OF(((s >> 31) & 1)^FLAG_CF); //OF=MSB^CF
 		break;
 
 	case 3: //RCR r/m32
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
 		if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
-		if (cnt==1) FLAGW_OF(((s >> 31)&1)^FLAG_CF);
+		if (maskcnt==1) FLAGW_OF(((s >> 31)&1)^FLAG_CF);
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
