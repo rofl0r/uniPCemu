@@ -1897,7 +1897,7 @@ void keyboard_renderer() //Render the keyboard on-screen!
 			{
 				if (GPU_textsetxyclickable(keyboardsurface, x, y, keyboard_display[y - ybase][x - xbase], fontcolor, bordercolor,0)&SETXYCLICKED_CLICKED) //Settings menu toggle on click?
 				{
-					if (BIOSMenuThread==NULL)  //BIOS pause menu thread not already running?
+					if ((BIOSMenuThread==NULL) || (Settings_request==2))  //BIOS pause menu thread not already running?
 					{
 						Settings_request = 1; //Requesting settings to be loaded!
 					}

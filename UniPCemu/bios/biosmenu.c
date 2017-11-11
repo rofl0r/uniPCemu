@@ -349,7 +349,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		printmsg(0xE, "Press SELECT to run BIOS SETUP");
 		EMU_unlocktext();
 	}
-	
+	lock(LOCK_INPUT); //Make sure we're responsive to input!
+	Settings_request = 2; //Special case: allow even though the BIOS Menu Thread is running!
+	unlock(LOCK_INPUT); //Restore input response!
 	byte BIOSClicked = 0;
 	while (counter>0) //Time left?
 	{
@@ -360,9 +362,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		{
 			return 1; //Reset, abort if needed!
 		}
-		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked || Settings_request) //R trigger pressed or first run? Also when clicked!
+		lock(LOCK_INPUT);
+		if ((psp_inputkey() & BUTTON_SELECT) || BIOS_Settings.firstrun || bootBIOS || FORCE_BIOS || BIOSClicked || (Settings_request==1)) //SELECT trigger pressed or first run? Also when clicked!
 		{
-			lock(LOCK_INPUT);
 			Settings_request = 0; //Requested and handled!
 			unlock(LOCK_INPUT);
 			bootBIOS = 0; //Not booting into BIOS anymore!
@@ -378,6 +380,7 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 				return 1; //We've to reset!
 			}
 		}
+		unlock(LOCK_INPUT);
 	}
 	if (timeout)
 	{
@@ -385,6 +388,9 @@ int CheckBIOSMenu(uint_32 timeout) //To run the BIOS Menus! Result: to reboot?
 		GPU_EMU_printscreen(0,0,"                                           "); //Clear our text!
 		EMU_unlocktext();
 	}
+	lock(LOCK_INPUT);
+	Settings_request = 0; //Not inputting anymore!
+	unlock(LOCK_INPUT);
 	return 0; //No reset!
 }
 
