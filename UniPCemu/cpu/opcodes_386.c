@@ -3200,7 +3200,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		overflow = 0; //Default: no overflow!
 		for (shift = 1; shift <= numcnt; shift++) {
-			FLAGW_CF((s&0x80000000U)>>31); //Save MSB!
+			FLAGW_CF(s>>31); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 			overflow = (((s >> 31) & 1)^FLAG_CF);
 		}
@@ -3214,7 +3214,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		overflow = 0; //Default: no overflow!
 		for (shift = 1; shift <= numcnt; shift++) {
-			FLAGW_CF(s&1); //Save LSB!
+			FLAGW_CF(s); //Save LSB!
 			s = ((s >> 1)&0x7FFFFFFFU) | (FLAG_CF << 31);
 			overflow = ((s >> 31) ^ ((s >> 30) & 1));
 		}
@@ -3229,7 +3229,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		overflow = 0; //Default: no overflow!
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
-			FLAGW_CF((s&0x80000000U)>>31); //Save MSB!
+			FLAGW_CF(s>>31); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
 			overflow = (((s >> 31) & 1)^FLAG_CF); //OF=MSB^CF
 		}
@@ -3244,7 +3244,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			overflow = (((s >> 31)&1)^FLAG_CF);
 			tempCF = FLAG_CF;
-			FLAGW_CF(s&1); //Save LSB!
+			FLAGW_CF(s); //Save LSB!
 			s = ((s >> 1)&0x7FFFFFFFU) | (tempCF << 31);
 		}
 		if (maskcnt) FLAGW_OF(overflow); //Overflow?
@@ -3272,7 +3272,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		overflow = 0;
 		for (shift = 1; shift <= numcnt; shift++) {
 			overflow = (s>>31);
-			FLAGW_CF(s & 1);
+			FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
@@ -3287,7 +3287,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		msb = s & 0x80000000U;
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
-			FLAGW_CF(s & 1);
+			FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
