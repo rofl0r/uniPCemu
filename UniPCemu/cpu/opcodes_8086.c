@@ -4587,7 +4587,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF((s&0x80U)>>7); //Save MSB!
 			s = (s << 1)|FLAG_CF;
-			overflow = (FLAG_CF^((s >> 7) & 1)); //Only when not using CL?
+			overflow = (((s >> 7) & 1)^FLAG_CF); //Only when not using CL?
 		}
 		//FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
@@ -4616,7 +4616,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			tempCF = FLAG_CF;
 			FLAGW_CF((s&0x80U)>>7); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
-			overflow = (FLAG_CF^((s >> 7) & 1)); //OF=MSB^CF, only when not using CL?
+			overflow = (((s >> 7) & 1)^FLAG_CF); //OF=MSB^CF, only when not using CL?
 		}
 		if (maskcnt) FLAGW_OF(overflow);
 		break;
@@ -4627,7 +4627,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 9; //Operand size wrap!
 		overflow = 0;
 		for (shift = 1; shift <= numcnt; shift++) {
-			overflow = (FLAG_CF^(s >> 7));
+			overflow = (((s >> 7)&1)^FLAG_CF);
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
 			s = ((s >> 1)&0x7FU) | (tempCF << 7);
@@ -4721,7 +4721,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF((s&0x8000U)>>15); //Save MSB!
 			s = (s << 1)|FLAG_CF;
-			overflow = (FLAG_CF^((s >> 15) & 1)); //Only when not using CL?
+			overflow = (((s >> 15) & 1)^FLAG_CF); //Only when not using CL?
 		}
 		//FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
@@ -4750,7 +4750,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			tempCF = FLAG_CF;
 			FLAGW_CF((s&0x8000U)>>15); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
-			overflow = (FLAG_CF^((s >> 15) & 1)); //OF=MSB^CF, only when not using CL?
+			overflow = (((s >> 15) & 1)^FLAG_CF); //OF=MSB^CF, only when not using CL?
 		}
 		if (maskcnt) FLAGW_OF(overflow);
 		break;
@@ -4760,7 +4760,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt %= 17; //Operand size wrap!
 		for (shift = 1; shift <= numcnt; shift++) {
-			overflow = (FLAG_CF^(s >> 15));
+			overflow = ((s >> 15)^FLAG_CF);
 			tempCF = FLAG_CF;
 			FLAGW_CF(s&1); //Save LSB!
 			s = ((s >> 1)&0x7FFFU) | (tempCF << 15);
