@@ -34,6 +34,17 @@ int_64 extendedinformationblocklocation; //The location of an Extended Informati
 } EXTENDEDDYNAMICIMAGE_HEADER; //Extended Dynamic image .DAT header.
 #include "headers/endpacked.h"
 
+#include "headers/packed.h"
+typedef struct PACKED
+{
+uint_32 type; //0=format
+word format; //Format! 0=Bochs/UniPCemu compatible mode. 1=UniPCemu minimal mode.
+int_64 nextrecord; //Next record location. 0=None.
+byte padding[512-14]; //Padding to 512 bytes!
+} EXTENDEDDYNAMICIMAGE_FORMATBLOCK; //Extended Dynamic image format block.
+#include "headers/endpacked.h"
+
+
 typedef struct
 {
 	byte SIG[7]; //SFDIMG\0
@@ -134,9 +145,30 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 				|| ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && (header->headersize == sizeof(extendedheader))) //Extended header?
 				)//(New) dynamic image header?
 			{
-				if (readdynamicheader_extensionlocation(f,&extendedheader) != 0) //Extended image data isn't supported yet!
+				int_64 extensionlocation;
+				if (extensionlocation = readdynamicheader_extensionlocation(f,&extendedheader)) //Extended image data is supported!
 				{
-					return 0; //Isn't supported yet!
+					if (emufseek64(f, extensionlocation, SEEK_SET) != 0)
+					{
+						return 0; //Failed to seek to position 0!
+					}
+					EXTENDEDDYNAMICIMAGE_FORMATBLOCK formatblock;
+					if (emufread64(&formatblock,1,sizeof(formatblock),f)==sizeof(formatblock)) //Read the formatblock?
+					{
+						if (formatblock.type) //Unsupported type?
+						{
+							return 0; //Isn't supported yet!
+						}
+						if (formatblock.nextrecord) //More records?
+						{
+							return 0; //Isn't supported yet!
+						}
+						if (formatblock.format>1) //Unsupported format?
+						{
+							return 0; //Isn't supported yet!
+						}
+						return 1+formatblock.format; //Give format+1. 1=Old type disk(63x16), 2=Largest CHS disk(autodetect).
+					}
 				}
 				return 1; //Is dynamic!
 			}
@@ -176,6 +208,26 @@ FILEPOS dynamicimage_getsize(char *filename)
 	}
 	emufclose64(f);
 	return result; //Give the result!
+}
+
+byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
+{
+	uint_32 tempcylinders=0;
+	uint_64 disk_size = dynamicimage_getsize(filename);
+	switch (is_dynamicimage(filename)) //What type?
+	{
+		case 1:
+			HDD_classicGeometry(disk_size,cylinders,heads,SPT); //Apply classic geometry!
+			return 1; //OK!
+			break;
+		case 2: //Auto minimal type?
+			HDD_detectOptimalGeometry(disk_size,cylinders,heads,SPT); //Apply optimal geometry!
+			return 1; //OK!
+			break;
+		default:
+			break;
+		}
+		return 0; //Not retrieved!
 }
 
 OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
@@ -645,6 +697,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 {
 	EXTENDEDDYNAMICIMAGE_HEADER header;
 	FILE *f;
+	EXTENDEDDYNAMICIMAGE_FORMATBLOCK formatblock;
 
 	char fullfilename[256];
 	memset(&fullfilename,0,sizeof(fullfilename)); //Init!
@@ -670,10 +723,17 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 		header.headersize = sizeof(header); //The size of the header to validate!
 		header.filesize = numblocks; //Ammount of blocks!
 		header.sectorsize = 512; //512 bytes per sector!
-		header.currentsize = sizeof(header); //The current file size. This is updated as data is appended to the file.
+		header.currentsize = sizeof(header)+sizeof(formatblock); //The current file size. This is updated as data is appended to the file.
 		header.firstlevellocation = 0; //No first level createn yet!
-		header.extendedinformationblocklocation = 0; //We don't have extended information!
+		header.extendedinformationblocklocation = sizeof(header); //We have extended information!
 		if (emufwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
+		{
+			emufclose64(f); //Close the file!
+			return 0; //Error: couldn't write the header!
+		}
+		memset(&formatblock,0,sizeof(formatblock)); //Init format block!
+		formatblock.format = 1; //Minimum CHS mode!
+		if (emufwrite64(&formatblock,1,sizeof(formatblock),f)!=sizeof(formatblock)) //Failed to write the header?
 		{
 			emufclose64(f); //Close the file!
 			return 0; //Error: couldn't write the header!

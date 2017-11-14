@@ -7,6 +7,7 @@
 
 byte is_staticimage(char *filename)
 {
+	char sidefile[256];
 	FILE *f;
 	f = emufopen64(filename, "rb"); //Open file!
 	if (!f)
@@ -29,7 +30,21 @@ byte is_staticimage(char *filename)
 	{
 		return 0; //Not static: invalid sector size!
 	}
-	return 1; //We're a static image: we're a multiple of 512 bytes and have contents!
+	memset(&sidefile,0,sizeof(sidefile));
+	strcpy(sidefile,filename);
+	strcat(sidefile,".bochs.txt"); //Bochs compatibility enabled?
+	if (file_exists(sidefile)) //Compatible mode?
+	{
+		return 1; //We're a static image: we're a multiple of 512 bytes and have contents!
+	}
+	strcpy(sidefile,filename);
+	strcat(sidefile,".unipcemu.txt"); //UniPCemu compatibility enabled?
+	if (file_exists(sidefile)) //Compatible mode?
+	{
+		return 2; //We're a static image: we're a multiple of 512 bytes and have contents(compatible mode)!
+	}
+
+	return 3; //We're a static image: we're a multiple of 512 bytes and have contents! We're running in minimal mode!
 }
 
 FILEPOS staticimage_getsize(char *filename)
@@ -46,6 +61,31 @@ FILEPOS staticimage_getsize(char *filename)
 	result = emuftell64(f); //Current pos = size!
 	emufclose64(f); //Close the file!
 	return result; //Give the result!
+}
+
+byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
+{
+	uint_32 tempcylinders=0;
+	uint_64 disk_size = staticimage_getsize(filename);
+	switch (is_staticimage(filename)) //What type?
+	{
+		case 1: //Bochs format?
+			*heads = 16;
+			*SPT = 63;
+			*cylinders = MAX(MIN((disk_size/(63*16)),0xFFFF),1);
+			return 1; //OK!
+		case 2: //UniPCemu format?
+			HDD_classicGeometry(disk_size,cylinders,heads,SPT); //Apply classic geometry!
+			return 1; //OK!
+			break;
+		case 3: //Auto minimal type?
+			HDD_detectOptimalGeometry(disk_size,cylinders,heads,SPT); //Apply optimal geometry!
+			return 1; //OK!
+			break;
+		default:
+			break;
+		}
+		return 0; //Not retrieved!
 }
 
 byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!

@@ -12,7 +12,6 @@ char diskpath[256] = "disks"; //The full disk path of the directory containing t
 IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 DISKCHANGEDHANDLER diskchangedhandlers[0x100]; //Disk changed handler!
 
-
 void ioInit() //Resets/unmounts all disks!
 {
 	memset(&disks,0,sizeof(disks)); //Initialise disks!
@@ -50,6 +49,19 @@ FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 	return staticimage_getsize(disks[device].filename); //Dynamic image size!
 }
 
+FILEPOS getdiskCHS(int device, word *type, word *c, word *h, word *s) //Retrieve a dynamic/static image size!
+{
+	//Retrieve the disk size!
+	byte dynamicimage;
+	dynamicimage = disks[device].dynamicimage; //Dynamic image?
+	if (dynamicimage) //Dynamic image?
+	{
+		return dynamicimage_getgeometry(disks[device].filename, c,h,s); //Dynamic image size!
+	}
+	return staticimage_getgeometry(disks[device].filename, c,h,s); //Static image size!
+}
+
+
 void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler) //Register a disk changed handler!
 {
 	switch (device)
@@ -84,11 +96,12 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	strcpy(oldfilename,disks[device].filename); //Save the old filename!
 
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
+	byte staticimage = 0;
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
 		if (!is_DSKimage(fullfilename)) //Not a DSK image?
 		{
-			if (!is_staticimage(fullfilename)) //Not a static image? We're invalid!
+			if (!(staticimage = is_staticimage(fullfilename))) //Not a static image? We're invalid!
 			{
 				memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
 				goto registerdiskchange; //Unmount us! Don't abort, because we need to register properly(as in the case of removable media)!
@@ -101,6 +114,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!
+	disks[device].staticimage = staticimage; //Dynamic image!
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	disks[device].readhandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector); //What read sector function to use!
@@ -156,6 +170,39 @@ uint_64 disksize(int disknumber)
 #define TRUE 1
 #define FALSE 0
 
+byte io_getgeometry(int device, word *cylinders, word *heads, word *SPT) //Get geometry, if possible!
+{
+	if ((device&0xFF)!=device) //Invalid device?
+	{
+		dolog("IO","io.c: Unknown device: %i!",device);
+		return FALSE; //Unknown device!
+	}
+
+	char dev[256]; //Our device!
+	memset(&dev[0],0,sizeof(dev)); //Init device string!
+
+	if (disks[device].customdisk.used) //Custom disk?
+	{
+		return FALSE; //Not supported!!
+	}
+	strcpy(dev,disks[device].filename); //Use floppy0!
+
+	if (strcmp(dev,"")==0) //Failed to open or not assigned
+	{
+		//dolog("IO","io.c: Device couldnt be opened or isn't mounted: %i!",device);
+		return FALSE; //Error: device not found!
+	}
+
+	if (disks[device].dynamicimage) //Dynamic?
+	{
+		return dynamicimage_getgeometry(dev,cylinders,heads,SPT); //Dynamic image format!
+	}
+	else if (disks[device].staticimage && (!disks[device].DSKimage)) //Static?
+	{
+		return staticimage_getgeometry(dev,cylinders,heads,SPT); //Dynamic image format!
+	}
+	return FALSE; //Unknown disk type!
+}
 char *getDSKimage(int drive)
 {
 	if (drive<0 || drive>0xFF) return NULL; //Readonly with unknown drives!

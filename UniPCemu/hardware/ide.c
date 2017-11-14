@@ -725,16 +725,18 @@ void ATA_updateCapacity(byte channel, byte slave)
 	ATA[channel].Drive[slave].driveparams[58] = (word)(sectors&0xFFFF);
 }
 
-void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT)
+void HDD_classicGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT)
+{
+	uint_32 tempcylinders=0;
+	*SPT = (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
+	*heads = ((disk_size/ *SPT)>=16)?16:((disk_size/ *SPT)?(disk_size/ *SPT):1); //1-16 heads!
+	tempcylinders = (uint_32)(disk_size / (*SPT* *heads)); //How many cylinders!
+	*cylinders = (tempcylinders>=0x3FFF)?0x3FFF:(tempcylinders?tempcylinders:1); //Give the maximum amount of cylinders allowed!
+}
+
+void HDD_detectOptimalGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT)
 {
 	//Plain CHS geometry detection!
-	#ifdef TRADITIONALCHSTRANSLATION
-	uint_32 tempcylinders=0;
-	tempcylinders = (uint_32)(disk_size / (63 * 16)); //How many cylinders!
-	*cylinders = (tempcylinders>=0x3FFF)?0x3FFF:(tempcylinders?tempcylinders:1); //Give the maximum amount of cylinders allowed!
-	*heads = ((disk_size/get_SPT(disk_size))>=16)?16:((disk_size/get_SPT(disk_size))?(disk_size/get_SPT(disk_size)):1); //1-16 heads!
-	*SPT = (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
-	#else
 	//Optimal size detection?
 	word C, H, S; //To detect the size!
 	uint_64 CHSsize; //Found size!
@@ -755,15 +757,6 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 
 	word limitSPT;
 	limitSPT = (disk_size>1032192)?63:0; //Limit SPT?
-
-	//Apply Bochs compatibility!
-	if ((disk_size>=20160) && (disk_size<(262144*16*63)) && (((disk_size/1008)*1008)==disk_size) && ((disk_size/(16*63))<=0xFFFF)) //Assume Bochs compatiblity and still within valid range of disk size we support?
-	{
-		optimalH = 16; //Force Bochs-style compatiblity!
-		optimalS = 63; //Force Bochs-style compatiblity!
-		optimalC = (word)(disk_size/(16*63)); //Force Bochs-style compatiblity!
-		goto applyBochsImage;
-	}
 
 	C=0xFFFF; //Init!
 	do //Process all cylinder combinations!
@@ -826,27 +819,35 @@ void HDD_detectGeometry(uint_64 disk_size, word *cylinders, word *heads, word *S
 	*cylinders = optimalC; //Optimally found cylinders!
 	*heads = optimalH; //Optimally found heads!
 	*SPT = optimalS; //Optimally found sectors!
-	#endif
 }
 
-word get_SPT(uint_64 disk_size)
+void HDD_detectGeometry(int disk, int_64 disk_size,word *cylinders, word *heads, word *SPT)
+{
+	if (io_getgeometry(disk,cylinders,heads,SPT)) //Gotten?
+	{
+		return; //Success!
+	}
+	HDD_classicGeometry(disk_size,cylinders,heads,SPT); //Fallback to classic by default!
+}
+
+word get_SPT(int disk, int_64 disk_size)
 {
 	word result,dummy1,dummy2;
-	HDD_detectGeometry(disk_size,&dummy1,&dummy2,&result);
+	HDD_detectGeometry(disk,disk_size,&dummy1,&dummy2,&result);
 	return result; //Give the result!
 }
 
-word get_heads(uint_64 disk_size)
+word get_heads(int disk, int_64 disk_size)
 {
 	word result,dummy1,dummy2;
-	HDD_detectGeometry(disk_size,&dummy1,&result,&dummy2);
+	HDD_detectGeometry(disk,disk_size,&dummy1,&result,&dummy2);
 	return result; //Give the result!
 }
 
-word get_cylinders(uint_64 disk_size)
+word get_cylinders(int disk, int_64 disk_size)
 {
 	word result,dummy1,dummy2;
-	HDD_detectGeometry(disk_size,&result,&dummy1,&dummy2);
+	HDD_detectGeometry(disk,disk_size,&result,&dummy1,&dummy2);
 	return result; //Give the result!	
 }
 
@@ -3046,9 +3047,9 @@ void ATA_DiskChanged(int disk)
 			if (IS_CDROM==0) //Not with CD-ROM?
 			{
 				if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
-				ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk_size); //1=Number of cylinders
-				ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk_size); //3=Number of heads
-				ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk_size); //6=Sectors per track
+				ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk,disk_size); //1=Number of cylinders
+				ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk,disk_size); //3=Number of heads
+				ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk,disk_size); //6=Sectors per track
 				ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector unformatted!
 				ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track unformatted!
 			}
