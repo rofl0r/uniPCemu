@@ -1110,16 +1110,19 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 	strcat(path,filename);
 	FILEPOS size;
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	word c,h,s;
 	if (is_dynamicimage(path)) //Dynamic image?
 	{
 		size = dynamicimage_getsize(path); //Get the filesize!
 		GPU_EMU_printscreen(0, 6, "This is a Superfury Dynamic Disk Image file."); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
-		if (selectingHDD) //HDD?
+		if (selectingHDD && dynamicimage_getgeometry(path,&c,&h,&s)) //HDD?
 		{
-			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
+			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", c, h, s); //Show geometry too!
 		}
+		else
+			GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
 	}
 	else if (is_DSKimage(path)) //DSK disk image?
 	{
@@ -1130,10 +1133,6 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		GPU_EMU_printscreen(0, 6, "This is a DSK disk image file.              "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
-		if (selectingHDD) //HDD?
-		{
-			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
-		}
 	}
 	else if (is_staticimage(path)) //Static image?
 	{
@@ -1141,10 +1140,12 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		GPU_EMU_printscreen(0, 6, "This is a Static disk image file.           "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
-		if (selectingHDD) //HDD?
+		if (selectingHDD && staticimage_getgeometry(path,&c,&h,&s)) //HDD?
 		{
-			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", get_cylinders(size>>9), get_heads(size>>9), get_SPT(size>>9)); //Show geometry too!
+			GPU_EMU_printscreen(0, 8, "Geometry(C,H,S): %i,%i,%i", c, h, s); //Show geometry too!
 		}
+		else
+			GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
 	}
 	else //Unknown file type: no information?
 	{
