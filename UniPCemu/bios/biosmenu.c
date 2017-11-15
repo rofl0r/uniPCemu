@@ -2357,7 +2357,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					strcpy(fullfilename,diskpath);
 					strcat(fullfilename,"/");
 					strcat(fullfilename,filename);
-					generateStaticImage(filename, size, 18, 6, 2); //Generate a static image!
+					generateStaticImage(filename, size, 18, 6, 1); //Generate a static image, Bochs/Dosbox-compatible format!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
