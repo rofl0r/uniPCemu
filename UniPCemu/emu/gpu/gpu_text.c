@@ -16,6 +16,9 @@
 //Mouse has clicked!
 #define CLICKABLE_CLICKED 4
 
+//Plot test pixel in the top left corner?
+//#define TEXT_TESTPIXEL
+
 extern GPU_SDL_Surface *rendersurface; //The PSP's surface to use when flipping!
 extern byte allcleared;
 
@@ -100,6 +103,13 @@ OPTINLINE static void updateDirty(GPU_TEXTSURFACE *surface, int fx, int fy)
 	byte xmin, xmax; //Top/bottom maximum reached?
 	byte backpixel; //Are we a background pixel?
 	//Undirty!
+	#ifdef TEXT_TESTPIXEL
+	if (unlikely((fx==0) && (fy==0))) //Test pixel?
+	{
+		surface->notdirty[0] = RGB(0xFF,0xFF,0xFF); //White pixel!
+		return; //Overrule normal behaviour!
+	}
+	#endif
 	if (unlikely(GPU_textget_pixel(surface,fx,fy))) //Font?
 	{
 		surface->notdirty[(fy<<9)|fx] = GPU_textgetcolor(surface,fx,fy,0); //Font!
