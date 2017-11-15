@@ -730,7 +730,7 @@ void HDD_classicGeometry(uint_64 disk_size, word *cylinders, word *heads, word *
 	uint_32 tempcylinders=0;
 	*SPT = (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
 	*heads = ((disk_size/ *SPT)>=16)?16:((disk_size/ *SPT)?(disk_size/ *SPT):1); //1-16 heads!
-	tempcylinders = (uint_32)(disk_size / (*SPT* *heads)); //How many cylinders!
+	tempcylinders = (uint_32)(disk_size / (63*16)); //How many cylinders!
 	*cylinders = (tempcylinders>=0x3FFF)?0x3FFF:(tempcylinders?tempcylinders:1); //Give the maximum amount of cylinders allowed!
 }
 
