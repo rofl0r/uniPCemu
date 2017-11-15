@@ -142,7 +142,7 @@ void BIOS_AdvancedMenu(); //Advanced menu!
 void BIOS_BootOrderOption(); //Boot order option!
 void BIOS_InstalledCPUOption(); //Manages the installed CPU!
 void BIOS_GenerateStaticHDD(); //Generate Static HDD Image!
-void BIOS_GenerateDynamicHDD(); //Generate Static HDD Image!
+void BIOS_GenerateDynamicHDD(); //Generate Dynamic HDD Image!
 void BIOS_DebugMode(); //Switch BIOS Mode!
 void BIOS_DebugLog(); //Debugger log!
 void BIOS_ExecutionMode(); //Switch execution mode!
@@ -1399,6 +1399,8 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 
 word Menu_Stat; //Menu status!
 
+byte generateHDD_type = 1; //Generate static/dynamic HDD type!
+
 void BIOS_InitDisksText()
 {
 	int i;
@@ -1576,13 +1578,25 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	case 7: //Generate Static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
+			generateHDD_type = 3; //Minimal type!
+			BIOS_Menu = 11; //Generate Static HDD!
+		}
+		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Square used?
+		{
+			generateHDD_type = 1; //Bochs type!
 			BIOS_Menu = 11; //Generate Static HDD!
 		}
 		break;
 	case 8: //Generate Dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
+			generateHDD_type = 3; //Minimal type!
 			BIOS_Menu = 12; //Generate Dynamic HDD!
+		}
+		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Square used?
+		{
+			generateHDD_type = 1; //Bochs type!
+			BIOS_Menu = 11; //Generate Static HDD!
 		}
 		break;
 	case 9: //Convert static to dynamic HDD?
@@ -2326,7 +2340,10 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	FILEPOS size = 0;
 	BIOSClearScreen(); //Clear the screen!
 	memset(&filename[0],0,sizeof(filename)); //Init!
-	BIOS_Title("Generate Static HDD Image"); //Full clear!
+	char title[256];
+	memset(&title,0,sizeof(title));
+	sprintf(title,"Generate Static(%s) HDD Image",((generateHDD_type==1)?"Bochs":((generateHDD_type==2)?"classic":"optimal")));
+	BIOS_Title(title); //Full clear!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Name: "); //Show the filename!
@@ -2357,7 +2374,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					strcpy(fullfilename,diskpath);
 					strcat(fullfilename,"/");
 					strcat(fullfilename,filename);
-					generateStaticImage(filename, size, 18, 6, 1); //Generate a static image, Bochs/Dosbox-compatible format!
+					generateStaticImage(filename, size, 18, 6, generateHDD_type); //Generate a static image, Bochs/Dosbox-compatible format!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2377,7 +2394,10 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
 	char fullfilename[256]; //Full filename container!
-	BIOS_Title("Generate Dynamic HDD Image");
+	char title[256];
+	memset(&title,0,sizeof(title));
+	sprintf(title,"Generate Dynamic(%s) HDD Image",((generateHDD_type==3)?"Bochs":((generateHDD_type==1)?"classic":"optimal")));
+	BIOS_Title(title);
 	char filename[256]; //Filename container!
 	memset(&filename[0],0,sizeof(filename)); //Init!
 	FILEPOS size = 0;
@@ -2412,7 +2432,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					strcpy(fullfilename, diskpath);
 					strcat(fullfilename, "/");
 					strcat(fullfilename, filename);
-					generateDynamicImage(filename, size, 18, 6, 2); //Generate a dynamic image!
+					generateDynamicImage(filename, size, 18, 6, generateHDD_type); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
