@@ -70,7 +70,9 @@ endif
 
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,SDL)
-$(call import-module,SDL2_gfx)
+ifeq (1,$(useSDL2_net))
+$(call import-module,SDL2_net)
+endif
 
 LOCAL_PATH := $(call my-dir)
 
