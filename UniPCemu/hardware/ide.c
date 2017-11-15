@@ -815,7 +815,6 @@ void HDD_detectOptimalGeometry(uint_64 disk_size, word *cylinders, word *heads, 
 		} while (H);
 		--C;
 	} while (C);
-	applyBochsImage: //Force Bochs-style compatiblity?
 	*cylinders = optimalC; //Optimally found cylinders!
 	*heads = optimalH; //Optimally found heads!
 	*SPT = optimalS; //Optimally found sectors!

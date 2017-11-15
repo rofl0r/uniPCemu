@@ -4,6 +4,7 @@
 #include "headers/emu/directorylist.h" //Directory list support.
 #include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
 #include "headers/emu/gpu/gpu_emu.h" //Text output support!
+#include "headers/hardware/ide.h" //Geometry support!
 
 //A dynamic image .DAT data:
 byte SIG[7] = {'S','F','D','I','M','G','\0'}; //Signature!
@@ -146,7 +147,7 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 				)//(New) dynamic image header?
 			{
 				int_64 extensionlocation;
-				if (extensionlocation = readdynamicheader_extensionlocation(f,&extendedheader)) //Extended image data is supported!
+				if ((extensionlocation = readdynamicheader_extensionlocation(f,&extendedheader))!=0) //Extended image data is supported!
 				{
 					if (emufseek64(f, extensionlocation, SEEK_SET) != 0)
 					{
@@ -212,7 +213,6 @@ FILEPOS dynamicimage_getsize(char *filename)
 
 byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
 {
-	uint_32 tempcylinders=0;
 	uint_64 disk_size = dynamicimage_getsize(filename);
 	switch (is_dynamicimage(filename)) //What type?
 	{

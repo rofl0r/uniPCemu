@@ -4,6 +4,7 @@
 #include "headers/cpu/modrm.h" //MODR/M support for boot loader creation.
 #include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
 #include "headers/emu/gpu/gpu_emu.h" //Text output support!
+#include "headers/hardware/ide.h" //Geometry support!
 
 byte is_staticimage(char *filename)
 {
@@ -65,7 +66,6 @@ FILEPOS staticimage_getsize(char *filename)
 
 byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
 {
-	uint_32 tempcylinders=0;
 	uint_64 disk_size = staticimage_getsize(filename);
 	switch (is_staticimage(filename)) //What type?
 	{
