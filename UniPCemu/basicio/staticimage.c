@@ -88,6 +88,25 @@ byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word 
 		return 0; //Not retrieved!
 }
 
+byte statictodynamic_imagetype(char *filename)
+{
+	switch (is_staticimage(filename)) //What type?
+	{
+	case 1: //Bochs format?
+		return 3; //OK!
+	case 2: //UniPCemu format?
+		return 1; //OK!
+		break;
+	case 3: //Auto minimal type?
+		return 2; //OK!
+		break;
+	default:
+		break;
+	}
+		return 0; //Not retrieved!
+}
+
+
 byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
 	FILE *f;
@@ -140,7 +159,7 @@ byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 
 extern char diskpath[256]; //Disk path!
 
-void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey) //Generate a static image!
+void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey, byte format) //Generate a static image!
 {
 	FILEPOS sizeleft = size; //Init size left!
 	byte buffer[4096]; //Buffer!
@@ -148,7 +167,10 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
+	char originalfilename[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
+	memset(&originalfilename[0],0,sizeof(originalfilename)); //Init!
+	strcpy(originalfilename,filename); //Backup!
 	strcpy(fullfilename,diskpath); //Disk path!
 	strcat(fullfilename,"/");
 	strcat(fullfilename,filename); //The full filename!
@@ -190,6 +212,24 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		}
 	}
 	emufclose64(f);
+	strcpy(filename,fullfilename);
+	switch (format) //Extra type conversion stuff?
+	{
+		case 1: //.bochs.txt
+			strcat(filename,".bochs.txt");
+			f = fopen(filename,"wb");
+			if (!f) delete_file(diskpath,originalfilename);
+			else fclose(f);
+			break;
+		case 2: //.unipcemu.txt
+			strcat(filename,".unipcemu.txt");
+			f = fopen(filename,"wb");
+			if (!f) delete_file(diskpath,originalfilename);
+			else fclose(f);
+			break;
+		default:
+			break;
+	}
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
 		EMU_locktext();

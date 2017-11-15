@@ -38,7 +38,7 @@ int_64 extendedinformationblocklocation; //The location of an Extended Informati
 typedef struct PACKED
 {
 uint_32 type; //0=format
-word format; //Format! 0=Bochs/UniPCemu compatible mode. 1=UniPCemu minimal mode.
+word format; //Format! 0=UniPCemu compatible mode. 1=UniPCemu minimal mode. 2=Bochs mode, .
 int_64 nextrecord; //Next record location. 0=None.
 byte padding[512-14]; //Padding to 512 bytes!
 } EXTENDEDDYNAMICIMAGE_FORMATBLOCK; //Extended Dynamic image format block.
@@ -163,11 +163,11 @@ OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 						{
 							return 0; //Isn't supported yet!
 						}
-						if (formatblock.format>1) //Unsupported format?
+						if (formatblock.format>2) //Unsupported format?
 						{
 							return 0; //Isn't supported yet!
 						}
-						return 1+formatblock.format; //Give format+1. 1=Old type disk(63x16), 2=Largest CHS disk(autodetect).
+						return 1+formatblock.format; //Give format+1. 0=Compatible UniPCemu, 1=Bochs compatible disk(63x16), 2=Largest CHS disk(autodetect).
 					}
 				}
 				return 1; //Is dynamic!
@@ -216,7 +216,7 @@ byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word
 	uint_64 disk_size = dynamicimage_getsize(filename);
 	switch (is_dynamicimage(filename)) //What type?
 	{
-		case 1:
+		case 1: //UniPCemu format?
 			HDD_classicGeometry(disk_size,cylinders,heads,SPT); //Apply classic geometry!
 			return 1; //OK!
 			break;
@@ -224,10 +224,35 @@ byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word
 			HDD_detectOptimalGeometry(disk_size,cylinders,heads,SPT); //Apply optimal geometry!
 			return 1; //OK!
 			break;
+		case 3: //Bochs CHS?
+			*heads = 16;
+			*SPT = 63;
+			*cylinders = MAX(MIN((disk_size/(63*16)),0xFFFF),1);
+			return 1; //OK!
+			break;
 		default:
 			break;
 		}
 		return 0; //Not retrieved!
+}
+
+byte dynamictostatic_imagetype(char *filename)
+{
+	switch (is_dynamicimage(filename)) //What type?
+	{
+	case 1: //UniPCemu format?
+		return 2; //OK!
+		break;
+	case 2: //Auto minimal type?
+		return 3; //OK!
+		break;
+	case 3: //Bochs CHS?
+		return 1; //OK!
+		break;
+	default:
+		break;
+	}
+	return 0; //Not retrieved!
 }
 
 OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
@@ -693,7 +718,7 @@ sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector) //Finds 
 
 char diskpath[256]; //Disk path!
 
-FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey)
+FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey, byte format)
 {
 	EXTENDEDDYNAMICIMAGE_HEADER header;
 	FILE *f;
@@ -732,7 +757,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 			return 0; //Error: couldn't write the header!
 		}
 		memset(&formatblock,0,sizeof(formatblock)); //Init format block!
-		formatblock.format = 1; //Minimum CHS mode!
+		formatblock.format = ((format<=3)&&format)?(format-1):0; //CHS mode! Default to compatible mode!
 		if (emufwrite64(&formatblock,1,sizeof(formatblock),f)!=sizeof(formatblock)) //Failed to write the header?
 		{
 			emufclose64(f); //Close the file!

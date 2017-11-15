@@ -2356,7 +2356,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					strcpy(fullfilename,diskpath);
 					strcat(fullfilename,"/");
 					strcat(fullfilename,filename);
-					generateStaticImage(filename, size, 18, 6); //Generate a static image!
+					generateStaticImage(filename, size, 18, 6, 2); //Generate a static image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2411,7 +2411,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					strcpy(fullfilename, diskpath);
 					strcat(fullfilename, "/");
 					strcat(fullfilename, filename);
-					generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+					generateDynamicImage(filename, size, 18, 6, 2); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
 						BIOS_Changed = 1; //We've changed!
@@ -2466,6 +2466,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 			EMU_unlocktext();
+			char srcdisk[256];
+			memset(&srcdisk,0,sizeof(srcdisk));
+			strcpy(srcdisk,filename); //Save!
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			strcat(filename, ".sfdimg"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
@@ -2481,7 +2484,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
 				strcat(fullfilename, filename);
-				sizecreated = generateDynamicImage(filename, size, 18, 6); //Generate a dynamic image!
+				sizecreated = generateDynamicImage(filename, size, 18, 6,statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2653,6 +2656,10 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 			EMU_unlocktext();
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
+
+			byte dynamicimage_type;
+			dynamicimage_type = dynamictostatic_imagetype(filename);
+
 			strcat(filename, ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
 			//dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
@@ -2776,6 +2783,25 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					EMU_unlocktext();
+					strcpy(filename,fullfilename);
+					FILE *f;
+					switch (dynamicimage_type) //Extra type conversion stuff?
+					{
+						case 1: //.bochs.txt
+							strcat(filename,".bochs.txt");
+							f = fopen(filename,"wb");
+							if (!f) error = 1;
+							else fclose(f);
+							break;
+						case 2: //.unipcemu.txt
+							strcat(filename,".unipcemu.txt");
+							f = fopen(filename,"wb");
+							if (!f) error = 1;
+							else fclose(f);
+							break;
+						default:
+							break;
+					}
 					if (error) //Error occurred?
 					{
 						remove(fullfilename); //Try to remove the generated file!
@@ -2857,7 +2883,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 				GPU_EMU_printscreen(0, 6, "Defragmenting image: "); //Start of percentage!
 				EMU_unlocktext();
 				FILEPOS sizecreated;
-				sizecreated = generateDynamicImage(filename, size, 21, 6); //Generate a dynamic image!
+				sizecreated = generateDynamicImage(filename, size, 21, 6,is_dynamicimage(originalfilename)); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
 					EMU_locktext();
