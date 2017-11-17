@@ -83,7 +83,7 @@ Basic renderer functionality
 
 void initVGAclocks(byte extension)
 {
-	if (extension!=4) //VGA clock?
+	if (extension!=3) //VGA clock?
 	{
 		VGA_clocks[0] = VGA25MHZ; //25MHZ clock!
 		VGA_clocks[1] = VGA28MHZ; //28MHZ clock!
