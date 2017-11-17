@@ -164,7 +164,7 @@ byte debugger_logging()
 	enablelog |= harddebugging; //Same as startreached, but special operations only!
 	enablelog |= waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
-	if (skipstep && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP)) enablelog = 0; //Disable when skipping?
+	if (skipstep && ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT))) enablelog = 0; //Disable when skipping?
 	return enablelog; //Logging?
 }
 
