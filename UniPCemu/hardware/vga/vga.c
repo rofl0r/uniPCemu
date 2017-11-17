@@ -196,6 +196,8 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	switch (extension)
 	{
 		case 3: //EGA? We're starting in color mode!
+			VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER |= 0x22; //Default misc output set bits!
+			VGA->registers->SequencerRegisters.DATA[4] |= 2; //Set by default: dxtended memory!
 		case 0: //VGA?
 		case 1: //SVGA?
 		case 2: //SVGA?
