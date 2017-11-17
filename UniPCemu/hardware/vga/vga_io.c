@@ -391,6 +391,11 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 			*result = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER; //Give!
 			ok = 1;
 		}
+		else //EGA?
+		{
+			*result = 2; //Unknown what this is, but it's returning this in other emulators(86box)!
+			ok = 1;
+		}
 		break;
 	case 0x3C9: //DAC Data Register				DATA
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
