@@ -98,20 +98,33 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 OPTINLINE void CPU186_internal_AAA()
 {
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	FLAGW_SF((REG_AL>=0x7A)&&(REG_AL<=0xF9)); //According to IBMulator
+	if ((REG_AL&0xF)>9)
+	{
+		FLAGW_OF(((REG_AL&0xF0)==0x70)?1:0); //According to IBMulator
+		REG_AX += 0x0106;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+		FLAGW_ZF((REG_AL==0)?1:0);
+	}
+	else if (FLAG_AF) //Special case according to IBMulator?
 	{
 		REG_AX += 0x0106;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
+		FLAGW_ZF(0); //According to IBMulator!
+		FLAGW_OF(0); //According to IBMulator!
 	}
 	else
 	{
 		FLAGW_AF(0);
 		FLAGW_CF(0);
+		FLAGW_OF(0); //According to IBMulator!
+		FLAGW_ZF((REG_AL==0)?1:0); //According to IBMulator!
 	}
+	flag_p8(REG_AL); //Parity is affected!
 	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
-	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	FLAGW_SF(0); //Clear Sign!
 	//z=s=p=o=?
@@ -124,22 +137,34 @@ OPTINLINE void CPU186_internal_AAA()
 OPTINLINE void CPU186_internal_AAS()
 {
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	if (((REG_AL&0xF)>9))
 	{
+		FLAGW_SF((REG_AL>0x85)?1:0); //According to IBMulator!
+		REG_AX -= 0x0106;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+		FLAGW_OF(0); //According to IBMulator!
+	}
+	else if (FLAG_AF)
+	{
+		FLAGW_OF(((REG_AL>=0x80) && (REG_AL<=0x85))?1:0); //According to IBMulator!
+		FLAGW_SF(((REG_AL < 0x06) || (REG_AL > 0x85))?1:0); //According to IBMulator!
 		REG_AX -= 0x0106;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
 	}
 	else
 	{
+		FLAGW_SF((REG_AL>=0x80)?1:0); //According to IBMulator!
 		FLAGW_AF(0);
 		FLAGW_CF(0);
+		FLAGW_OF(0); //According to IBMulator!
 	}
 	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	FLAGW_SF(0); //Sign is cleared!
+	//FLAGW_SF(0); //Sign is cleared!
 	//z=s=o=p=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?

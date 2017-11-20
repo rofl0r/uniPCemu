@@ -2378,8 +2378,9 @@ Non-logarithmic opcodes!
 //BCD opcodes!
 byte CPU8086_internal_DAA()
 {
-	word ALVAL, oldCF;
+	word ALVAL, oldCF, oldAL;
 	CPUPROT1
+	oldAL = (word)REG_AL; //Save original!
 	oldCF = FLAG_CF; //Save old Carry!
 	ALVAL = (word)REG_AL;
 	if (((ALVAL&0xF)>9) || FLAG_AF)
@@ -2400,6 +2401,7 @@ byte CPU8086_internal_DAA()
 	}
 	REG_AL = (byte)(ALVAL&0xFF); //Write the value back to AL!
 	flag_szp8(REG_AL);
+	FLAGW_OF(((((oldAL&0x80)==0) && (REG_AL&0x80)))?1:0); //Overflow flag, according to IBMulator!
 	//if (ALVAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2431,6 +2433,7 @@ byte CPU8086_internal_DAS()
 		FLAGW_CF(1);
 	}
 	flag_szp8(REG_AL);
+	FLAGW_OF(((old_AL&0x80)) && ((REG_AL&0x80)==0)); //According to IBMulator!
 	//if (bigAL&0xFF00) FLAGW_OF(1); else FLAGW_OF(0); //Undocumented: Overflow flag!
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2442,18 +2445,35 @@ byte CPU8086_internal_DAS()
 byte CPU8086_internal_AAA()
 {
 	CPUPROT1
-	if (((REG_AL&0xF)>9) || FLAG_AF)
+	if (((REG_AL&0xF)>9))
+	{
+		if ((REG_AL&0xF)>9)
+		{
+			FLAGW_OF(((REG_AL&0xF0)==0x70)?1:0); //According to IBMulator
+		}
+		REG_AL += 6;
+		REG_AL &= 0xF;
+		++REG_AH;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+		FLAGW_ZF((REG_AL==0)?1:0);
+	}
+	else if (FLAG_AF)
 	{
 		REG_AL += 6;
 		REG_AL &= 0xF;
 		++REG_AH;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
+		FLAGW_ZF(0); //According to IBMulator!
+		FLAGW_OF(0); //According to IBMulator!
 	}
 	else
 	{
 		FLAGW_AF(0);
 		FLAGW_CF(0);
+		FLAGW_OF(0); //According to IBMulator!
+		FLAGW_ZF(0); //According to IBMulator!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
@@ -2471,6 +2491,18 @@ byte CPU8086_internal_AAS()
 	CPUPROT1
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
+		FLAGW_SF((REG_AL>0x85)?1:0); //According to IBMulator!
+		REG_AL -= 6;
+		REG_AL &= 0xF;
+		--REG_AH;
+		FLAGW_AF(1);
+		FLAGW_CF(1);
+		FLAGW_OF(0); //According to IBMulator!
+	}
+	else if (FLAG_AF)
+	{
+		FLAGW_OF(((REG_AL>=0x80) && (REG_AL<=0x85))?1:0); //According to IBMulator!
+		FLAGW_SF(((REG_AL < 0x06) || (REG_AL > 0x85))?1:0); //According to IBMulator!
 		REG_AL -= 6;
 		REG_AL &= 0xF;
 		--REG_AH;
@@ -2479,20 +2511,14 @@ byte CPU8086_internal_AAS()
 	}
 	else
 	{
+		FLAGW_SF((REG_AL>=0x80)?1:0); //According to IBMulator!
 		FLAGW_AF(0);
 		FLAGW_CF(0);
+		FLAGW_OF(0); //According to IBMulator!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
-	if (EMULATED_CPU<CPU_80286) //Before new CPU?
-	{
-		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	}
-	else
-	{
-		FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-		FLAGW_SF(0); //Sign is cleared!
-	}
+	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=o=p=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2535,10 +2561,10 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
 	CPUPROT1
-	oper2 = (word)REG_AL; //What to add!
-	oper1 = ((word)REG_AH*(word)data); //AAD base to work on, we're adding to this!
-	op_add16(); //Add, 16-bit, including flags!
-	REG_AX = (res16&0xFF); //The result to load!
+	oper2b = (word)REG_AL; //What to add!
+	oper1b = ((word)REG_AH*(word)data); //AAD base to work on, we're adding to this!
+	op_add8(); //Add, 8-bit, including flags!
+	REG_AX = (res8&0xFF); //The result to load!
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
