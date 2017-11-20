@@ -960,62 +960,80 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 
 void CPU80386_BT16(word val, word bit)
 {
+	INLINEREGISTER byte overflow,tempCF,shift;
+	INLINEREGISTER word s;
 	BST_cnt = (bit&0xF); //Count!
-	FLAGW_CF(val>>(bit&0xF));
+
+	s = val; //For processing like RCR!
+	overflow = (BST_cnt+1)?0:FLAG_OF; //Default: no overflow!
+	for (shift = 1; shift <= (BST_cnt+1); shift++) {
+		overflow = ((s >> 15)^FLAG_CF);
+		tempCF = FLAG_CF;
+		FLAGW_CF(s); //Save LSB!
+		s = ((s >> 1)&0x7FFFU) | (tempCF << 15);
+	}
+	if ((BST_cnt+1)) FLAGW_OF(overflow);
+
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BT32(uint_32 val, uint_32 bit)
 {
+	INLINEREGISTER byte overflow,tempCF,shift;
+	INLINEREGISTER uint_32 s;
 	BST_cnt = (bit&0x1F); //Count!
-	FLAGW_CF(val>>(bit&0x1F));
+
+	s = val; //For processing like RCR!
+	overflow = (BST_cnt+1)?0:FLAG_OF; //Default: no overflow!
+	for (shift = 1; shift <= (BST_cnt+1); shift++) {
+		overflow = (((s >> 31)&1)^FLAG_CF);
+		tempCF = FLAG_CF;
+		FLAGW_CF(s); //Save LSB!
+		s = ((s >> 1)&0x7FFFFFFFU) | (tempCF << 31);
+	}
+	if ((BST_cnt+1)) FLAGW_OF(overflow);
+
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTS16(word *val, word bit)
 {
-	BST_cnt = (bit&0xF); //Count!
-	FLAGW_CF(*val>>(bit&0xF));
+	CPU80386_BT16(*val,bit);
 	*val |= (1<<(bit&0xF)); //Set!
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTS32(uint_32 *val, uint_32 bit)
 {
-	BST_cnt = (bit&0x1F); //Count!
-	FLAGW_CF(*val>>(bit&0x1F));
+	CPU80386_BT32(*val,bit);
 	*val |= (1<<(bit&0x1F)); //Set!
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTR16(word *val, word bit)
 {
-	BST_cnt = (bit&0xF); //Count!
-	FLAGW_CF(*val>>(bit&0xF));
+	CPU80386_BT16(*val,bit);
 	*val &= ~(1<<(bit&0xF)); //Reset!
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTR32(uint_32 *val, uint_32 bit)
 {
-	BST_cnt = (bit&0x1F); //Count!
-	FLAGW_CF(*val>>(bit&0x1F));
+	CPU80386_BT32(*val,bit);
 	*val &= ~(1<<(bit&0x1F)); //Reset!
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTC16(word *val, word bit)
 {
-	BST_cnt = (bit&0xF); //Count!
-	FLAGW_CF(*val>>(bit&0xF));
+	CPU80386_BT16(*val,bit);
 	*val ^= (1<<(bit&0xF)); //Complement!
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTC32(uint_32 *val, uint_32 bit)
 {
-	BST_cnt = (bit&0x1F); //Count!
-	FLAGW_CF(*val>>(bit&0x1F));
+	CPU80386_BT32(*val,bit);
 	*val ^= (1<<(bit&0x1F)); //Complement!
 	CPU_apply286cycles(); /* Apply cycles */
 }
