@@ -2447,10 +2447,7 @@ byte CPU8086_internal_AAA()
 	CPUPROT1
 	if (((REG_AL&0xF)>9))
 	{
-		if ((REG_AL&0xF)>9)
-		{
-			FLAGW_OF(((REG_AL&0xF0)==0x70)?1:0); //According to IBMulator
-		}
+		FLAGW_OF(((REG_AL&0xF0)==0x70)?1:0); //According to IBMulator
 		REG_AL += 6;
 		REG_AL &= 0xF;
 		++REG_AH;
@@ -2473,11 +2470,11 @@ byte CPU8086_internal_AAA()
 		FLAGW_AF(0);
 		FLAGW_CF(0);
 		FLAGW_OF(0); //According to IBMulator!
-		FLAGW_ZF(0); //According to IBMulator!
+		FLAGW_ZF((REG_AL==0)?1:0); //According to IBMulator!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	//FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=p=o=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -2493,7 +2490,6 @@ byte CPU8086_internal_AAS()
 	{
 		FLAGW_SF((REG_AL>0x85)?1:0); //According to IBMulator!
 		REG_AL -= 6;
-		REG_AL &= 0xF;
 		--REG_AH;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
@@ -2504,7 +2500,6 @@ byte CPU8086_internal_AAS()
 		FLAGW_OF(((REG_AL>=0x80) && (REG_AL<=0x85))?1:0); //According to IBMulator!
 		FLAGW_SF(((REG_AL < 0x06) || (REG_AL > 0x85))?1:0); //According to IBMulator!
 		REG_AL -= 6;
-		REG_AL &= 0xF;
 		--REG_AH;
 		FLAGW_AF(1);
 		FLAGW_CF(1);
@@ -2519,6 +2514,7 @@ byte CPU8086_internal_AAS()
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	REG_AL &= 0xF;
 	//z=s=o=p=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?

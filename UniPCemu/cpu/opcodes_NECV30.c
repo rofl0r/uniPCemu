@@ -125,8 +125,8 @@ OPTINLINE void CPU186_internal_AAA()
 	flag_p8(REG_AL); //Parity is affected!
 	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
-	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
-	FLAGW_SF(0); //Clear Sign!
+	//FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	//FLAGW_SF(0); //Clear Sign!
 	//z=s=p=o=?
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -160,10 +160,10 @@ OPTINLINE void CPU186_internal_AAS()
 		FLAGW_CF(0);
 		FLAGW_OF(0); //According to IBMulator!
 	}
-	REG_AL &= 0xF;
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
+	REG_AL &= 0xF;
 	//FLAGW_SF(0); //Sign is cleared!
 	//z=s=o=p=?
 	CPUPROT2
