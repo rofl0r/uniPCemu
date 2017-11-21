@@ -3265,6 +3265,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>31); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFFU));
 		break;
 
@@ -3282,6 +3283,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		if (numcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFFU));
 		break;
 
@@ -3297,6 +3299,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
+		if (maskcnt) FLAGW_AF(0);
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
 		/*flag_szp8((uint8_t)(s & 0xFF));*/

@@ -4673,6 +4673,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>7); //Always sets CF, according to various sources?
 		if (numcnt) flag_szp8((uint8_t)(s&0xFFU));
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		break;
 
 	case 5: //SHR r/m8
@@ -4690,6 +4691,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (numcnt) flag_szp8((uint8_t)(s & 0xFFU));
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		break;
 
 	case 7: //SAR r/m8
@@ -4704,6 +4706,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
+		if (maskcnt) FLAGW_AF(0);
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
 		/*flag_szp8((uint8_t)(s & 0xFF));*/
@@ -4809,6 +4812,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>15); //Always sets CF, according to various sources?
 		if (numcnt) flag_szp16((uint16_t)(s&0xFFFFU));
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		break;
 
 	case 5: //SHR r/m16
@@ -4826,6 +4830,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (numcnt) flag_szp16((uint16_t)(s & 0xFFFFU));
 		if (maskcnt) FLAGW_OF(overflow);
+		if (maskcnt) FLAGW_AF(1);
 		break;
 
 	case 7: //SAR r/m16
@@ -4840,6 +4845,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
+		if (maskcnt) FLAGW_AF(0);
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
 		/*flag_szp8((uint8_t)(s & 0xFF));*/
