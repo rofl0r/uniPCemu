@@ -4713,7 +4713,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	case 7: //SAR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Limit count!
+		//if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Limit count! Not to be limited!
 		msb = s & 0x80U;
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
