@@ -1037,7 +1037,10 @@ OPTINLINE static void debugger_autolog()
 					{
 						if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Special case?
 						{
-							dolog("debugger","%s",executedinstructionstatelog); //Instruction/State only!
+							if (executedinstructionstatelog[0]) //Anything to log?
+							{
+								dolog("debugger","%s",executedinstructionstatelog); //Instruction/State only!
+							}
 						}
 						else
 						{
