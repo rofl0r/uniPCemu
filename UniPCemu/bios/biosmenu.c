@@ -4140,7 +4140,7 @@ void BIOS_VGAModeSetting()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Disabled!
+		file = DEFAULT_VIDEOCARD; //Default setting: Disabled!
 
 	case 0:
 	case 1:
@@ -4289,7 +4289,7 @@ setVGAModetext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "Pure EGA"); //EGA card!
 		break;
 	default: //Error: fix it!
-		BIOS_Settings.VGA_Mode = 0; //Reset/Fix!
+		BIOS_Settings.VGA_Mode = DEFAULT_VIDEOCARD; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
 		goto setVGAModetext; //Goto!
 		break;
@@ -4313,7 +4313,7 @@ setCGAModeltext: //For fixing it!
 		strcat(menuoptions[advancedoptions++], "New-style NTSC");
 		break;
 	default: //Error: fix it!
-		BIOS_Settings.CGAModel = 0; //Reset/Fix!
+		BIOS_Settings.CGAModel = DEFAULT_CGAMODEL; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
 		goto setCGAModeltext; //Goto!
 		break;
@@ -4485,9 +4485,9 @@ void BIOS_InitSoundText()
 
 	optioninfo[advancedoptions] = 6; //Sound Blaster!
 	strcpy(menuoptions[advancedoptions], "Sound Blaster: ");
+	redetectSoundBlaster:
 	switch (BIOS_Settings.useSoundBlaster)
 	{
-	default:
 	case 1:
 		strcat(menuoptions[advancedoptions++], "Version 1.5");
 		break;
@@ -4496,6 +4496,9 @@ void BIOS_InitSoundText()
 		break;
 	case 0:
 		strcat(menuoptions[advancedoptions++], "Disabled");
+	default:
+		BIOS_Settings.useSoundBlaster = DEFAULT_SOUNDBLASTER;
+		goto redetectSoundBlaster;
 	}
 
 	optioninfo[advancedoptions] = 7; //Sound Source Volume!
@@ -6210,7 +6213,7 @@ void BIOS_CGAModel()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting!
+		file = DEFAULT_CGAMODEL; //Default setting!
 
 	case 0:
 	case 1:
@@ -6374,7 +6377,7 @@ void BIOS_useSoundBlaster()
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_DEFAULT: //Default?
-		file = 0; //Default setting: Disabled!
+		file = DEFAULT_SOUNDBLASTER; //Default setting: Disabled!
 
 	case 0:
 	case 1:

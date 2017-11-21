@@ -556,12 +556,12 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
 
 	//Video
-	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",0,BIOS_Settings_file); //Enable VGA NMI on precursors?
-	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video","CGAmodel",0,BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",DEFAULT_VIDEOCARD,BIOS_Settings_file); //Enable VGA NMI on precursors?
+	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video","CGAmodel",DEFAULT_CGAMODEL,BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
 	BIOS_Settings.VRAM_size = (uint_32)get_private_profile_uint64("video","VRAM",0,BIOS_Settings_file); //(S)VGA VRAM size!
 	BIOS_Settings.VGASynchronization = (byte)get_private_profile_uint64("video","synchronization",DEFAULT_VGASYNCHRONIZATION,BIOS_Settings_file); //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
 	BIOS_Settings.VGA_AllowDirectPlot = (byte)get_private_profile_uint64("video","directplot",DEFAULT_DIRECTPLOT,BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
-	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video","aspectratio",DEFAULT_BWMONITOR,BIOS_Settings_file); //The aspect ratio to use?
+	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video","aspectratio",DEFAULT_ASPECTRATIO,BIOS_Settings_file); //The aspect ratio to use?
 	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video","bwmonitor",DEFAULT_BWMONITOR,BIOS_Settings_file); //Are we a b/w monitor?
 	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video","showframerate",DEFAULT_FRAMERATE,BIOS_Settings_file); //Show the frame rate?
 
@@ -573,7 +573,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound","directmidi",DEFAULT_DIRECTMIDIMODE,BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
 	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound","gameblaster",1,BIOS_Settings_file); //Emulate Game Blaster?
 	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound","gameblaster_volume",100,BIOS_Settings_file); //The Game Blaster volume knob!
-	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",0,BIOS_Settings_file); //Emulate Sound Blaster?
+	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",DEFAULT_SOUNDBLASTER,BIOS_Settings_file); //Emulate Sound Blaster?
 	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound","soundsource_volume",DEFAULT_SSOURCEVOL,BIOS_Settings_file); //The sound source volume knob!
 
 	//Modem
