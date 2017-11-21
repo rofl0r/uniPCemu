@@ -4662,6 +4662,18 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	case 4: case 6: //SHL r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
+		if ((EMULATED_CPU>=CPU_80386))
+		{
+			if ((maskcnt==0x10) || (maskcnt==0x18))
+			{
+				FLAGW_CF(s);
+				FLAGW_OF(FLAG_CF);
+				overflow = FLAG_OF;
+				s = 0; //Make the result zeroed, according to IBMulator?
+				goto skipshift;
+			}
+			if (maskcnt!=8) numcnt &= 7; //Limit count!
+		}
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
 		for (shift = 1; shift <= numcnt; shift++) {
@@ -4670,8 +4682,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFU;
 			overflow = (FLAG_CF^(s>>7));
 		}
-		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>7); //Always sets CF, according to various sources?
-		if (numcnt) flag_szp8((uint8_t)(s&0xFFU));
+		skipshift:
+		if (maskcnt) flag_szp8((uint8_t)(s&0xFFU));
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
 		break;
@@ -4681,15 +4693,19 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
+		if (maskcnt && ((maskcnt&7)==0))
+		{
+			//Adjusted according to IBMulator!
+			FLAGW_CF(s>>7); //Always sets CF, according to various sources?
+		}
 		for (shift = 1; shift <= numcnt; shift++) {
 			overflow = (s>>7);
-			FLAGW_CF(s);
+			if (numcnt&7) FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = s >> 1;
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
-		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
-		if (numcnt) flag_szp8((uint8_t)(s & 0xFFU));
+		if (maskcnt) flag_szp8((uint8_t)(s & 0xFFU));
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
 		break;
@@ -4697,6 +4713,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	case 7: //SAR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
+		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Limit count!
 		msb = s & 0x80U;
 		//FLAGW_AF(0);
 		for (shift = 1; shift <= numcnt; shift++) {
@@ -4810,7 +4827,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			overflow = (FLAG_CF^(s>>15));
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>15); //Always sets CF, according to various sources?
-		if (numcnt) flag_szp16((uint16_t)(s&0xFFFFU));
+		if (maskcnt) flag_szp16((uint16_t)(s&0xFFFFU));
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
 		break;
@@ -4828,7 +4845,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
-		if (numcnt) flag_szp16((uint16_t)(s & 0xFFFFU));
+		if (maskcnt) flag_szp16((uint16_t)(s & 0xFFFFU));
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
 		break;

@@ -3266,7 +3266,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>31); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
-		if (numcnt) flag_szp32((uint32_t)(s&0xFFFFFFFFU));
+		if (maskcnt) flag_szp32((uint32_t)(s&0xFFFFFFFFU));
 		break;
 
 	case 5: //SHR r/m32
@@ -3284,7 +3284,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
-		if (numcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFFU));
+		if (maskcnt) flag_szp32((uint32_t)(s & 0xFFFFFFFFU));
 		break;
 
 	case 7: //SAR r/m32
