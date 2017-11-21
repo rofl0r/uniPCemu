@@ -961,18 +961,19 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 void CPU80386_BT16(word val, word bit)
 {
 	INLINEREGISTER byte overflow,tempCF,shift;
-	INLINEREGISTER word s;
-	BST_cnt = (bit&0xF); //Count!
+	INLINEREGISTER uint_32 s;
+	BST_cnt = (bit&0xF)+1; //Count!
 
+	FLAGW_CF(0); //Start out with CF cleared!
 	s = val; //For processing like RCR!
-	overflow = (BST_cnt+1)?0:FLAG_OF; //Default: no overflow!
-	for (shift = 1; shift <= (BST_cnt+1); shift++) {
+	overflow = BST_cnt?0:FLAG_OF; //Default: no overflow!
+	for (shift = 1; shift <= BST_cnt; shift++) {
 		overflow = ((s >> 15)^FLAG_CF);
 		tempCF = FLAG_CF;
 		FLAGW_CF(s); //Save LSB!
 		s = ((s >> 1)&0x7FFFU) | (tempCF << 15);
 	}
-	if ((BST_cnt+1)) FLAGW_OF(overflow);
+	if (BST_cnt) FLAGW_OF(overflow);
 
 	CPU_apply286cycles(); /* Apply cycles */
 }
@@ -980,18 +981,19 @@ void CPU80386_BT16(word val, word bit)
 void CPU80386_BT32(uint_32 val, uint_32 bit)
 {
 	INLINEREGISTER byte overflow,tempCF,shift;
-	INLINEREGISTER uint_32 s;
-	BST_cnt = (bit&0x1F); //Count!
+	INLINEREGISTER uint_64 s;
+	BST_cnt = (bit&0x1F)+1; //Count!
 
+	FLAGW_CF(0); //Start out with CF cleared!
 	s = val; //For processing like RCR!
-	overflow = (BST_cnt+1)?0:FLAG_OF; //Default: no overflow!
-	for (shift = 1; shift <= (BST_cnt+1); shift++) {
+	overflow = BST_cnt?0:FLAG_OF; //Default: no overflow!
+	for (shift = 1; shift <= BST_cnt; shift++) {
 		overflow = (((s >> 31)&1)^FLAG_CF);
 		tempCF = FLAG_CF;
 		FLAGW_CF(s); //Save LSB!
 		s = ((s >> 1)&0x7FFFFFFFU) | (tempCF << 31);
 	}
-	if ((BST_cnt+1)) FLAGW_OF(overflow);
+	if (BST_cnt) FLAGW_OF(overflow);
 
 	CPU_apply286cycles(); /* Apply cycles */
 }
