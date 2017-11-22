@@ -4664,7 +4664,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if ((EMULATED_CPU>=CPU_80386))
 		{
-			if ((maskcnt==0x10) || (maskcnt==0x18))
+			if (((maskcnt&0x18)==maskcnt) && maskcnt) //8/16/24 shifts?
 			{
 				numcnt = maskcnt = 8; //Brhave like a 8 bit shift!
 			}
