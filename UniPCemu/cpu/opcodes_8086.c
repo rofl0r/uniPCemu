@@ -4666,13 +4666,9 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		{
 			if ((maskcnt==0x10) || (maskcnt==0x18))
 			{
-				FLAGW_CF(s);
-				FLAGW_OF(FLAG_CF);
-				overflow = FLAG_OF;
-				s = 0; //Make the result zeroed, according to IBMulator?
-				goto skipshift;
+				numcnt = maskcnt = 8; //Brhave like a 8 bit shift!
 			}
-			if (maskcnt!=8) numcnt &= 7; //Limit count!
+			else numcnt &= 7; //Limit count!
 		}
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
@@ -4723,7 +4719,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
-		if (maskcnt) FLAGW_AF(0);
+		if (maskcnt) FLAGW_AF(1);
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
 		/*flag_szp8((uint8_t)(s & 0xFF));*/
@@ -4862,7 +4858,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 			//if (((backup^s)&0x10)) FLAGW_AF(1); //Auxiliary carry?
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s); //Always sets CF, according to various sources?
-		if (maskcnt) FLAGW_AF(0);
+		if (maskcnt) FLAGW_AF(1);
 		byte tempSF;
 		tempSF = FLAG_SF; //Save the SF!
 		/*flag_szp8((uint8_t)(s & 0xFF));*/
