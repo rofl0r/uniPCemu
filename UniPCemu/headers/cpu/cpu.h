@@ -11,7 +11,7 @@
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
 
 //How many CPU instances are used?
-#define MAXCPUS 2
+#define MAXCPUS 1
 
 //Number of currently supported CPUs & opcode 0F extensions.
 #define NUMCPUS 6

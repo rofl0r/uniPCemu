@@ -1,5 +1,5 @@
-#ifndef VGA_DAC_H
-#define VGA_DAC_H
+#ifndef VGA_DACRENDERER_H
+#define VGA_DACRENDERER_H
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/vga/vga_renderer.h" //Sequencer!
