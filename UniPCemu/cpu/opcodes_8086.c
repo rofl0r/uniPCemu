@@ -4632,7 +4632,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	case 2: //RCL r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (EMULATED_CPU>=CPU_80386) numcnt %= 9; //Operand size wrap!
+		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>9)) numcnt %= 9; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
@@ -4647,7 +4647,7 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	case 3: //RCR r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (EMULATED_CPU>=CPU_80386) numcnt %= 9; //Operand size wrap!
+		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>9)) numcnt %= 9; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
 		for (shift = 1; shift <= numcnt; shift++) {
 			overflow = (((s >> 7)&1)^FLAG_CF);
@@ -4784,7 +4784,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	case 2: //RCL r/m16
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (EMULATED_CPU>=CPU_80386) numcnt %= 17; //Operand size wrap!
+		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>17)) numcnt %= 17; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
 		for (shift = 1; shift <= numcnt; shift++) {
 			tempCF = FLAG_CF;
@@ -4799,7 +4799,7 @@ word op_grp2_16(byte cnt, byte varshift) {
 	case 3: //RCR r/m16
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
-		if (EMULATED_CPU>=CPU_80386) numcnt %= 17; //Operand size wrap!
+		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>17)) numcnt %= 17; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
 		for (shift = 1; shift <= numcnt; shift++) {
 			overflow = ((s >> 15)^FLAG_CF);
