@@ -5,8 +5,8 @@
 #include "headers/cpu/biu.h" //BIU support for making direct memory requests!
 #include "headers/support/log.h" //To log invalids!
 
-//Define to d3bug disk reads using interrupt 13h
-#define DEBUGBOOT
+//Define to debug disk reads using interrupt 13h
+//#define DEBUGBOOT
 
 //Memory access functionality with Paging!
 byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
