@@ -1049,7 +1049,7 @@ OPTINLINE byte coreHandler()
 
 		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
 		if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
-		updateDMA(MHZ14passed); //Update the DMA timer!
+		if (unlikely(MHZ14passed)) updateDMA(MHZ14passed); //Update the DMA timer!
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		updateMIDIPlayer(instructiontime); //MIDI player playback, if any!
@@ -1059,7 +1059,7 @@ OPTINLINE byte coreHandler()
 		updateCMOS(instructiontime); //Tick the CMOS, if needed!
 		updateFloppy(instructiontime); //Update the floppy!
 		updateMPUTimer(instructiontime); //Update the MPU timing!
-		if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
+		if (unlikely(useAdlib && MHZ14passed)) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed and running!
 		if (useSoundBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed and running!
 		updateATA(instructiontime); //Update the ATA timer!
@@ -1083,7 +1083,7 @@ OPTINLINE byte coreHandler()
 	skipCPUtiming: //Audio emulation only?
 	//Slowdown to requested speed if needed!
 	currenttiming += getnspassed(&CPU_timing); //Add real time!
-	for (;currenttiming < last_timing;) //Not enough time spent on instructions?
+	for (;unlikely(currenttiming < last_timing);) //Not enough time spent on instructions?
 	{
 		currenttiming += getnspassed(&CPU_timing); //Add to the time to wait!
 		delay(0); //Update to current time every instruction according to cycles passed!
