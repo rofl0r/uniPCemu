@@ -1049,7 +1049,11 @@ OPTINLINE byte coreHandler()
 
 		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
 		if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
-		if (unlikely(MHZ14passed)) updateDMA(MHZ14passed); //Update the DMA timer!
+		if (unlikely(MHZ14passed)) //14MHz to be ticked?
+		{
+			updateDMA(MHZ14passed); //Update the DMA timer!
+			if (unlikely(useAdlib)) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
+		}
 		updateMouse(instructiontime); //Tick the mouse timer if needed!
 		stepDROPlayer(instructiontime); //DRO player playback, if any!
 		updateMIDIPlayer(instructiontime); //MIDI player playback, if any!
@@ -1059,7 +1063,6 @@ OPTINLINE byte coreHandler()
 		updateCMOS(instructiontime); //Tick the CMOS, if needed!
 		updateFloppy(instructiontime); //Update the floppy!
 		updateMPUTimer(instructiontime); //Update the MPU timing!
-		if (unlikely(useAdlib && MHZ14passed)) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 		if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed and running!
 		if (useSoundBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed and running!
 		updateATA(instructiontime); //Update the ATA timer!

@@ -4678,7 +4678,6 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			s = (s << 1) & 0xFFU;
 			overflow = (FLAG_CF^(s>>7));
 		}
-		skipshift:
 		if (maskcnt) flag_szp8((uint8_t)(s&0xFFU));
 		if (maskcnt) FLAGW_OF(overflow);
 		if (maskcnt) FLAGW_AF(1);
