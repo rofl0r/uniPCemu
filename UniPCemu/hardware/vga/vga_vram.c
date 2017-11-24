@@ -9,7 +9,7 @@
 //Planar access to VRAM
 byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank) //Read from a VRAM plane!
 {
-	if (VGA==0) return 0; //Invalid VGA!
+	if (unlikely(VGA==0)) return 0; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available! Wrap arround the planes if needed!
 
 	INLINEREGISTER uint_32 fulloffset2;
@@ -20,13 +20,13 @@ byte readVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank) //Re
 
 	fulloffset2 &= VGA->precalcs.VMemMask; //Only 64K memory available, so wrap arround it when needed!
 
-	if (fulloffset2>=VGA->VRAM_size) return 0; //VRAM valid, simple check?
+	if (unlikely(fulloffset2>=VGA->VRAM_size)) return 0; //VRAM valid, simple check?
 	return VGA->VRAM[fulloffset2]; //Read the data from VRAM!
 }
 
 void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank, byte value) //Write to a VRAM plane!
 {
-	if (VGA==0) return; //Invalid VGA!
+	if (unlikely(VGA==0)) return; //Invalid VGA!
 	plane &= 3; //Only 4 planes are available!
 
 	INLINEREGISTER uint_32 fulloffset2;
@@ -37,9 +37,9 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank, byt
 
 	fulloffset2 &= VGA->precalcs.VMemMask; //Only 64K memory available, so wrap arround it when needed!
 
-	if (fulloffset2>=VGA->VRAM_size) return; //VRAM valid, simple check?
+	if (unlikely(fulloffset2>=VGA->VRAM_size)) return; //VRAM valid, simple check?
 	VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
-	if (plane==2) //Character RAM updated?
+	if (unlikely(plane==2)) //Character RAM updated?
 	{
 		VGA_plane2updated(VGA,offset); //Plane 2 has been updated!	
 	}

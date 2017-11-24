@@ -32,7 +32,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 	underlinelocation = GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,0,0x1F); //Underline location is the value desired minus 1!
 	
 	byte textmode;
-	textmode = (!GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,0,1))?4:4; //Text mode? Also the number of bits to shift to get the high nibble, if used!
+	textmode = (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,0,1)==0)?4:4; //Text mode? Also the number of bits to shift to get the high nibble, if used!
 
 	byte monomode;
 	monomode = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,1,1); //Monochrome emulation mode(attribute) with b/w emulation(misc output)?
@@ -96,19 +96,19 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						fontstatus = pixelon; //What font status? By default this is the font/back status!
 
 											  //Underline(text mode)&Off capability!
-						if (monomode) //Only in mono mode do we have underline capability and other stuff!
+						if (unlikely(monomode)) //Only in mono mode do we have underline capability and other stuff!
 						{
-							if (textmode) //This is active in text mode only!
+							if (likely(textmode)) //This is active in text mode only!
 							{
-								if (charinnery == underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
+								if (unlikely(charinnery == underlinelocation)) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
 								{
-									if ((Attribute & 7) == 1) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
+									if (unlikely((Attribute & 7) == 1)) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
 									{
 										fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 									}
 								}
 							}
-							if ((Attribute & 0x88) == Attribute) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+							if (unlikely((Attribute & 0x88) == Attribute)) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
 							{
 								fontstatus = 0; //Force background!
 							}
@@ -117,14 +117,14 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						//Blinking capability! Applies to the font/background only!
 						if (enableblink) //Blink affects font?
 						{
-							if (getattributeback(textmode, (byte)Attribute, 0x8)) //Blink enabled?
+							if (unlikely(getattributeback(textmode, (byte)Attribute, 0x8))) //Blink enabled?
 							{
 								fontstatus &= currentblink; //Need blink on to show foreground!
 							}
 						}
 
 						//Determine pixel font or back color to PAL index!
-						if (fontstatus)
+						if (unlikely(fontstatus))
 						{
 							CurrentDAC = (byte)Attribute; //Load attribute!
 						}
@@ -135,7 +135,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 						CurrentDAC &= colorplanes; //Apply color planes(4-bits)!
 
-						if (paletteenable == 0) goto skippalette; //Internal palette enable?
+						if (unlikely(paletteenable == 0)) goto skippalette; //Internal palette enable?
 						//Use original 16 color palette!
 						CurrentDAC = palettecopy[CurrentDAC]; //Translate base index into DAC Base index!
 
@@ -170,35 +170,35 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 						fontstatus = pixelon; //What font status? By default this is the font/back status!
 
 						//Underline(text mode)&Off capability!
-						if (monomode) //Only in mono mode do we have underline capability and other stuff!
+						if (unlikely(monomode)) //Only in mono mode do we have underline capability and other stuff!
 						{
-							if (textmode) //This is active in text mode only!
+							if (likely(textmode)) //This is active in text mode only!
 							{
-								if (charinnery==underlinelocation) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
+								if (unlikely(charinnery==underlinelocation)) //Underline (Non-graphics monochrome mode only)? Ignore textmode?
 								{
-									if ((Attribute&7)==1) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
+									if (unlikely((Attribute&7)==1)) //Underline used for this character? Bits 6-4=0(not according to seasip.info/VintagePC/mda.html, so ignore that fact!) and 2-0=1 only according to freeVGA!
 									{
 										fontstatus = 1; //Force font color for underline WHEN FONT ON (either <blink enabled and blink ON> or <blink disabled>)!
 									}
 								}
 							}
-							if ((Attribute&0x88)==Attribute) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
+							if (unlikely((Attribute&0x88)==Attribute)) //Are we always displayed as background (values 0, 8, 0x80 and 0x88)?
 							{
 								fontstatus = 0; //Force background!
 							}
 						}
 
 						//Blinking capability! Applies to the font/background only!
-						if (enableblink) //Blink affects font?
+						if (likely(enableblink)) //Blink affects font?
 						{
-							if (getattributeback(textmode,(byte)Attribute,0x8)) //Blink enabled?
+							if (unlikely(getattributeback(textmode,(byte)Attribute,0x8))) //Blink enabled?
 							{
 								fontstatus &= currentblink; //Need blink on to show foreground!
 							}
 						}
 
 						//Determine pixel font or back color to PAL index!
-						if (fontstatus)
+						if (unlikely(fontstatus))
 						{
 							CurrentDAC = (byte)Attribute; //Load attribute!
 						}
@@ -209,12 +209,12 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 
 						CurrentDAC &= colorplanes; //Apply color planes(4-bits)!
 
-						if (paletteenable==0) goto skippalette; //Internal palette enable?
+						if (unlikely(paletteenable==0)) goto skippalette; //Internal palette enable?
 						//Use original 16 color palette!
 						CurrentDAC = palettecopy[CurrentDAC]; //Translate base index into DAC Base index!
 
-						if (VGADisabled) goto skippalette; //Are we not on a CGA? Skip the further lookup!
-						if (color256) //8-bit colors and not monochrome mode?
+						if (unlikely(VGADisabled)) goto skippalette; //Are we not on a CGA? Skip the further lookup!
+						if (unlikely(color256)) //8-bit colors and not monochrome mode?
 						{
 							CurrentDAC &= 0xF; //Take 4 bits only!
 						}

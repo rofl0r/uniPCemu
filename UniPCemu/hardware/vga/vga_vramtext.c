@@ -28,7 +28,7 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 	word character = 0; //From 0-255!
 	sbyte singlerow = -1; //Single row only?
 	byte y=0; //From 0-32 (5 bits)!
-	if (address!=-1) //Single character row only?
+	if (likely(address!=-1)) //Single character row only?
 	{
 		character = (word)((address >> 5) & 0xFF); //Only single character to edit!
 		singlerow = (sbyte)(address&0x1F); //The single row to edit!
@@ -39,13 +39,13 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 		byte attribute = 0; //0 or 1 (bit value 0x4 of the attribute, 1 bit)!
 		for (;attribute<2;) //2 attributes!
 		{
-			if (singlerow==-1) y = 0; //Ignore the selected row if single isn't set!
+			if (unlikely(singlerow==-1)) y = 0; //Ignore the selected row if single isn't set!
 			for (;y<0x20;) //33 rows!
 			{
 				uint_32 characterset_offset, add2000; //First, the character set, later translated to the real charset offset!
 				if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,1,1)) //Memory maps are enabled?
 				{
-					if (attribute) //Charset A? (bit 2 (value 0x4) set?)
+					if (unlikely(attribute)) //Charset A? (bit 2 (value 0x4) set?)
 					{
 						characterset_offset = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,2,3);
 						add2000 = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CHARACTERMAPSELECTREGISTER,5,1); //Charset A!
@@ -72,14 +72,14 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 				characterset_offset += y; //Add the row!
 				
 				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset,0)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
-				if (singlerow!=-1) goto nextattr; //Don't change the row if a single line is updated!
+				if (likely(singlerow!=-1)) goto nextattr; //Don't change the row if a single line is updated!
 				++y; //Next row!
 			}
 			nextattr:
 			++attribute; //Next attribute!
 		}
 		++character; //Next character!
-		if (singlerow!=-1) return; //Stop on single character update!
+		if (likely(singlerow!=-1)) return; //Stop on single character update!
 	}
 }
 
@@ -150,17 +150,17 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 
 	attribute >>= 3; //...
 	attribute &= 1; //... Take bit 3 to get the actual attribute we need!
-	if (newx>7) //Extra ninth bit?
+	if (unlikely(newx>7)) //Extra ninth bit?
 	{
 		newx = 7; //Only 7 max!
-		if (getcharacterwidth(VGA)!=8) //What width? 9 wide?
+		if (likely(getcharacterwidth(VGA)!=8)) //What width? 9 wide?
 		{
 			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background?
 		}
 	}
 	
 	lastlookup = (((((character << 1) | attribute) << 5) | y) | 0x8000); //The last lookup!
-	if (lastcharinfo!=lastlookup) //Row not yet loaded?
+	if (unlikely(lastcharinfo!=lastlookup)) //Row not yet loaded?
 	{
 		charloc = character; //Character position!
 		charloc <<= 5;
@@ -191,11 +191,11 @@ OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 		{
 			buf[0] = getcharxy(VGA,0xF,c,x,y)?'X':' '; //Load character pixel!
 			strcat(row,buf); //The character to use!
-			if (++x>=maxx) goto nexty;
+			if (unlikely(++x>=maxx)) goto nexty;
 		}
 		nexty:
 		dolog("VRAM_CHARS","%s",row); //Log the row!
-		if (++y>=maxy) break; //Done!
+		if (unlikely(++y>=maxy)) break; //Done!
 	}
 	dolog("VRAM_CHARS",""); //Empty row!
 }
@@ -204,7 +204,7 @@ void VGA_dumpstr(VGA_Type *VGA, char *s)
 {
 	if (!s) return;
 	char *s2 = s; //Load string!
-	while (*s2!='\0') //Not EOS?
+	while (likely(*s2!='\0')) //Not EOS?
 	{
 		VGA_dumpchar(VGA,*s2++); //Dump the next character!
 	}
@@ -222,7 +222,7 @@ void VGA_dumpFonts()
 		for (;;)
 		{
 			VGA_dumpchar(VGA,c);
-			if (++c>0xFF) return; //Abort: done!
+			if (unlikely(++c>0xFF)) return; //Abort: done!
 		}
 	}
 }

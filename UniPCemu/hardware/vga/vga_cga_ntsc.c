@@ -342,7 +342,7 @@ OPTINLINE uint_32 getCGAcol16(byte color) //Special for the emulator, like the k
 OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
 {
 	uint_32 current;
-	for (current=0;current<size;current++) //Process all pixels!
+	for (current=0;likely(current<size);current++) //Process all pixels!
 		renderdestination[current] = getCGAcol16(pixels[current]); //Just use the CGA RGBI colors!
 }
 

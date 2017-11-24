@@ -17,11 +17,11 @@
 OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
 	byte cursorOK;
-	if (CHARISCURSOR) //Character is cursor character?
+	if (unlikely(CHARISCURSOR)) //Character is cursor character?
 	{
-		if (CGAMDAEMULATION_ENABLED(VGA)) //CGA emulation has different cursors?
+		if (unlikely(CGAMDAEMULATION_ENABLED(VGA))) //CGA emulation has different cursors?
 		{
-			if (VGA->registers->specialCGAflags&8) //Split cursor?
+			if (unlikely(VGA->registers->specialCGAflags&8)) //Split cursor?
 			{
 				cursorOK = (Rendery>=VGA->precalcs.CursorStartRegister_CursorScanLineStart); //Before?
 				cursorOK |= (Rendery<=VGA->precalcs.CursorEndRegister_CursorScanLineEnd); //After?
@@ -67,7 +67,7 @@ OPTINLINE byte getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y
 	INLINEREGISTER word lastlookup;
 	INLINEREGISTER word charloc;
 	lastlookup = (((((character << 1) | attribute3) << 5) | y) ^ 0x8000); //The last lookup!
-	if (lastcharinfo != lastlookup) //Row not yet loaded?
+	if (unlikely(lastcharinfo != lastlookup)) //Row not yet loaded?
 	{
 		charloc = character; //Character position!
 		charloc <<= 5;
@@ -89,9 +89,9 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	character = loadedplanes.splitplanes[0]; //Character!
 	attribute = loadedplanes.splitplanes[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
 	iscursor = is_cursorscanline(VGA, ((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
-	if (CGAMDAEMULATION_ENABLED(VGA)) //Enabled CGA/MDA emulation?
+	if (unlikely(CGAMDAEMULATION_ENABLED(VGA))) //Enabled CGA/MDA emulation?
 	{
-		if (CGAEMULATION_ENABLED(VGA)) //Pure CGA mode?
+		if (likely(CGAEMULATION_ENABLED(VGA))) //Pure CGA mode?
 		{
 			//Read all 8 pixels with a possibility of 9 pixels to be safe!
 			characterpixels[0] = getcharxy_CGA(character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
@@ -105,7 +105,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 			characterpixels[8] = 0; //Read all coordinates!
 			//We're not displayed else, so don't care about output!
 		}
-		else if (MDAEMULATION_ENABLED(VGA)) //Pure MDA mode?
+		else if (likely(MDAEMULATION_ENABLED(VGA))) //Pure MDA mode?
 		{
 			//Read all 9 pixels with a possibility of 9 pixels to be safe!
 			characterpixels[0] = getcharxy_MDA(character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
@@ -133,11 +133,11 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		{
 			characterpixels[x++] = (charrow&1); //Read current coordinate!
 			charrow >>= 1; //Shift to the next pixel!
-		} while (--attr3); //Loop while anything left!
+		} while (likely(--attr3)); //Loop while anything left!
 
 		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
 		{
-			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0))
+			if (unlikely(GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0)))
 			{
 				characterpixels[8] = 0; //9th bit is always background?
 			}
@@ -154,7 +154,7 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 {
 	//First, full value to lookup!
 	INLINEREGISTER word charinner;
-	if (Sequencer->textx==0) return; //Invalid pointer!
+	if (unlikely(Sequencer->textx==0)) return; //Invalid pointer!
 	charinner = *Sequencer->textx++; //Read the inner location of the row to read!
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!
