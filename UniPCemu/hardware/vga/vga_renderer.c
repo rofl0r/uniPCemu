@@ -169,7 +169,7 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 {
 	INLINEREGISTER uint_32 drawx;
 	if (CGALineSize>2048) CGALineSize = 2048; //Limit to what we have available!
-	if (unlikely(VGA->registers->specialMDAflags&1)) //MDA rendering mode?
+	if (VGA->registers->specialMDAflags&1) //MDA rendering mode?
 	{
 		INLINEREGISTER byte data; //The current entry to draw!
 		INLINEREGISTER uint_32 color; //The full color to draw!
@@ -221,14 +221,14 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 
 	//Determine shifts and reset the start map if needed!
 	allow_pixelshiftcount = 1; //Allow by default!
-	if (unlikely(Sequencer->Scanline>=VGA->precalcs.topwindowstart)) //Top window reached?
+	if (Sequencer->Scanline>=VGA->precalcs.topwindowstart) //Top window reached?
 	{
 		if (unlikely(Sequencer->Scanline==VGA->precalcs.topwindowstart)) //Start of the top window?
 		{
 			Sequencer->startmap = 0; //What start address to use? Start at the top of VRAM!
 		}
 		//Enforce start of map to beginning in VRAM for the top window!
-		if (unlikely(VGA->precalcs.AttributeModeControlRegister_PixelPanningMode))
+		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode)
 		{
 			bytepanning = 0; //Act like no byte panning is enabled!
 			allow_pixelshiftcount = 0; //Don't allow it anymore!
@@ -238,7 +238,7 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 	//Determine byte panning and pixel shift count!
 	Sequencer->bytepanning = bytepanning; //Pass!
 
-	if (likely(allow_pixelshiftcount)) //Allow pixel shift count to be applied?
+	if (allow_pixelshiftcount) //Allow pixel shift count to be applied?
 	{
 		Sequencer->pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
 		Sequencer->presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
@@ -258,7 +258,7 @@ typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch full VRAM address!
 { //Check this!
 	INLINEREGISTER uint_32 bit; //Load row scan counter!
-	if (unlikely(GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,0,1)==0)) //a13=Bit 0 of the row scan counter!
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,0,1)==0) //a13=Bit 0 of the row scan counter!
 	{
 		//Row scan counter bit 1 is placed on the memory bus bit 14 during active display time.
 		//Bit 1, placed on memory address bit 14 has the effect of quartering the memory.
@@ -269,7 +269,7 @@ OPTINLINE uint_32 patch_map1314(VGA_Type *VGA, uint_32 addresscounter) //Patch f
 		addresscounter |= bit; //Set bit13 if needed!
 	}
 
-	if (unlikely(GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,1,1)==0)) //a14<=Bit 1 of the row scan counter!
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,1,1)==0) //a14<=Bit 1 of the row scan counter!
 	{
 		bit = ((SEQ_DATA *)VGA->Sequencer)->rowscancounter; //Current row scan counter!
 		bit &= 2; //Bit1 only!
@@ -286,7 +286,7 @@ VGA_addresswrapextensionhandler VGA_calcaddresswrapextensionhandler = NULL; //Th
 OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memory arround 64k!
 {
 	INLINEREGISTER uint_32 result, address2;
-	if (unlikely(VGA_calcaddresswrapextensionhandler)) return VGA_calcaddresswrapextensionhandler(VGA,memoryaddress); //Apply extension shift method when specified!
+	if (VGA_calcaddresswrapextensionhandler) return VGA_calcaddresswrapextensionhandler(VGA,memoryaddress); //Apply extension shift method when specified!
 	switch (VGA->precalcs.BWDModeShift) //What mode?
 	{
 		case 1: //Word mode?
@@ -301,7 +301,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 			return result; //Give the result!
 		case 2: //DWord mode?
 			//Doubleword mode executed normally according to documentation!
-			if (likely(getActiveVGA()->enable_SVGA == 0)) //VGA?
+			if (getActiveVGA()->enable_SVGA == 0) //VGA?
 			{
 				return (memoryaddress<<2)|((memoryaddress>>14)&3); //VGA-compatible DWORD addressing!
 			}
@@ -352,9 +352,9 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		return 0; //Abort: we're disabled!
 	}
 
-	if (unlikely(extrastatus & 2)) //Half character clock is to be executed?
+	if (extrastatus & 2) //Half character clock is to be executed?
 	{
-		if (unlikely((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0)) //Increase memory address counter?
+		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
 		{
 			Sequencer->linearcounterdivider = 0; //Reset!
 			++Sequencer->memoryaddress; //Increase the memory address counter!
@@ -367,10 +367,7 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (likely(extrastatus & 4)) //To allow increasing us?
-	{
-		++Sequencer->extrastatus; //Increase the extra status!
-	}
+	Sequencer->extrastatus += ((extrastatus>>2)&1); //Increase the extra status, when allowed!
 
 	return extrastatus & 1; //Read next pixel?
 }
@@ -405,7 +402,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
-	if (unlikely(row>VGA->precalcs.topwindowstart)) //Splitscreen operations?
+	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
 		--row; //We start at row #0, not row #1(1 after topwindowstart).
@@ -443,11 +440,11 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	VGA_loadcharacterplanes(VGA, Sequencer); //Load data from the first planes!
 
 	//Process any horizontal pixel shift count!
-	if (unlikely(VGA->precalcs.textmode)) //Text mode?
+	if (VGA->precalcs.textmode) //Text mode?
 	{
 		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
 		{
-			if (likely(VGA_ActiveDisplay_timing(Sequencer, VGA))) //Render the next pixel?
+			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
 				VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
 				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
@@ -458,7 +455,7 @@ OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer
 	{
 		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
 		{
-			if (likely(VGA_ActiveDisplay_timing(Sequencer, VGA))) //Render the next pixel?
+			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
 				VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
 				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
@@ -490,7 +487,7 @@ OPTINLINE void VGA_RenderOutput(SEQ_DATA *Sequencer, VGA_Type *VGA) //Render the
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
-	if (unlikely(Sequencer->is_topwindow)) //Top window isn't supported yet?
+	if (Sequencer->is_topwindow) //Top window isn't supported yet?
 	{
 		GPU.yres = Sequencer->topwindowCRTbase; //Take the top window only, the bottom window(splitscreen) isn't supported yet!
 	}
@@ -532,7 +529,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Retrace handlers!
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (unlikely(VGA->CRTC.y>Sequencer->yres))
+	if (VGA->CRTC.y>Sequencer->yres)
 	{
 		Sequencer->yres = VGA->CRTC.y; //Current y resolution!
 	}
@@ -549,7 +546,7 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA->CRTC.x = 0; //Reset destination column!
 	if (likely(vretrace==0)) //Not retracing vertically?
 	{
-		if (likely(CGAMDARenderer)) //CGA/MDA rendering mode?
+		if (CGAMDARenderer) //CGA/MDA rendering mode?
 		{
 			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 		}
@@ -581,7 +578,7 @@ void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 //Blank handler!
 OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces or top screen rendering!
+	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
@@ -589,7 +586,7 @@ OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 
 OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 	if (likely(VGA->CRTC.x<NUMITEMS(CGALineBuffer))) //Valid pixel horizontally?
 	{
@@ -603,15 +600,15 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 {
 	uint_32 DACcolor; //The latched color!
 	INLINEREGISTER byte doublepixels=0;
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if (unlikely((VGA->precalcs.DACmode&6)==2)) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	if ((VGA->precalcs.DACmode&6)==2) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
 	{
 		//Latch a 8-bit pixel?
 		Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
 		Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
 
-		if (likely((++Sequencer->DACcounter)&1)) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		if ((++Sequencer->DACcounter)&1) //To latch and not process yet? This is the least significant byte/bits of the counter!
 		{
 			return; //Skip this data: we only latch every two pixels!
 		}
@@ -622,16 +619,16 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 
 	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize); //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
-	if (unlikely((VGA->precalcs.DACmode&6)==2)) //Multiple inputs are taken?
+	if ((VGA->precalcs.DACmode&6)==2) //Multiple inputs are taken?
 	{
 		doublepixels <<= 1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
 	}
 
 	//Convert the pixel to a RGB value before drawing any blocks of pixels!
-	if (unlikely(VGA->precalcs.DACmode&2)) //16-bit color?
+	if (VGA->precalcs.DACmode&2) //16-bit color?
 	{
 		//Now draw in the selected color depth!
-		if (likely(VGA->precalcs.DACmode&1)) //16-bit color?
+		if (VGA->precalcs.DACmode&1) //16-bit color?
 		{
 			DACcolor = CLUT16bit[(Sequencer->lastDACcolor&0xFFFF)]; //Draw the 16-bit color pixel!
 		}
@@ -642,7 +639,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	}
 	else //VGA compatibility mode? 8-bit color!
 	{
-		if (unlikely(VGA->precalcs.EGA_DisableInternalVideoDrivers)) //Special case: internal video drivers disabled?
+		if (VGA->precalcs.EGA_DisableInternalVideoDrivers) //Special case: internal video drivers disabled?
 		{
 			DACcolor = VGA_DAC(VGA,VGA->CRTC.DACOutput = (VGA->registers->ExternalRegisters.FEATURECONTROLREGISTER&3)); //The FEAT0 and FEAT1 outputs become the new output!
 		}
@@ -658,12 +655,12 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 		drawPixel(VGA, DACcolor); //Draw the color pixel(s)!
 		video_updateLightPen(VGA,0); //Update the light pen!
 		++VGA->CRTC.x; //Next x!
-	} while (likely(--doublepixels)); //Any pixels left to render?
+	} while (--doublepixels); //Any pixels left to render?
 }
 
 OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 	if (likely(VGA->CRTC.x<NUMITEMS(CGALineBuffer))) //Valid pixel horizontally?
@@ -676,7 +673,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 
 OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
 	/*
 	if (VGA->precalcs.AttributeController_16bitDAC==3) //16-bit color mode?
@@ -686,7 +683,7 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	else //VGA compatibility mode?
 	{
 	*/
-		if (unlikely(VGA->precalcs.EGA_DisableInternalVideoDrivers)) //Special case: internal video drivers disabled?
+		if (VGA->precalcs.EGA_DisableInternalVideoDrivers) //Special case: internal video drivers disabled?
 		{
 			VGA->CRTC.DACOutput = (VGA->registers->ExternalRegisters.FEATURECONTROLREGISTER&3); //The FEAT0 and FEAT1 outputs become the new output!
 			drawPixel(VGA, VGA_DAC(VGA, VGA->CRTC.DACOutput)); //Draw overscan in the specified color instead!
@@ -703,7 +700,7 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 
 OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
-	if (unlikely(hretrace)) return; //Don't handle during horizontal retraces!
+	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
 	if (likely(VGA->CRTC.x<NUMITEMS(CGALineBuffer))) //Valid pixel horizontally?
@@ -723,16 +720,16 @@ void updateVGASequencer_Mode(VGA_Type *VGA)
 void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	if (unlikely(VGA_ActiveDisplay_timing(Sequencer, VGA))) //Execute our timings!
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
 		VGA_Sequencer_TextMode(VGA,Sequencer,&currentattributeinfo); //Get the color to render!
-		if (unlikely(VGA_AttributeController(&currentattributeinfo,VGA)))
+		if (VGA_AttributeController(&currentattributeinfo,VGA))
 		{
 			return; //Nibbled!
 		}
 	}
 
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 	}
@@ -745,16 +742,16 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	if (unlikely(VGA_ActiveDisplay_timing(Sequencer, VGA))) //Execute our timings!
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
 		VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-		if (unlikely(VGA_AttributeController(&currentattributeinfo, VGA)))
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
 		{
 			return; //Nibbled!
 		}
 	}
 
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 	}
@@ -767,16 +764,16 @@ void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here!
-	if (unlikely(VGA_ActiveDisplay_timing(Sequencer, VGA))) //Execute our timings!
+	if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Execute our timings!
 	{
 		VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-		if (unlikely(VGA_AttributeController(&currentattributeinfo, VGA)))
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
 		{
 			return; //Nibbled!
 		}
 	}
 
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 	}
@@ -789,16 +786,16 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//Render our active display here! Start with text mode!		
-	if (unlikely(VGA_ActiveDisplay_timing(Sequencer,VGA))) //Execute our timings!
+	if (VGA_ActiveDisplay_timing(Sequencer,VGA)) //Execute our timings!
 	{
 		VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-		if (unlikely(VGA_AttributeController(&currentattributeinfo, VGA)))
+		if (VGA_AttributeController(&currentattributeinfo, VGA))
 		{
 			return; //Nibbled!
 		}
 	}
 
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 	}
@@ -811,7 +808,7 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_Overscan_noblanking_CGA(VGA,Sequencer,NULL); //Attribute info isn't used!
 	}
@@ -823,7 +820,7 @@ void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_Overscan_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (unlikely(CGAMDARenderer)) //CGA rendering mode?
+	if (CGAMDARenderer) //CGA rendering mode?
 	{
 		VGA_Blank_CGA(VGA, Sequencer, NULL); //Attribute info isn't used!
 	}
@@ -1255,21 +1252,21 @@ void updateVGA(double timepassed)
 		VGA_debugtiming += timepassed; //Time has passed!
 	}
 
-	if (likely((VGA_timing >= VGA_rendertiming) && VGA_rendertiming)) //Might have passed?
+	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
 	{
 		float renderings;
 		renderings = floorf((float)(VGA_timing/VGA_rendertiming)); //Ammount of times to render!
 		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
 
 		#ifdef LIMITVGA
-		if (unlikely((renderings>VGA_limit) && VGA_limit)) //Limit broken?
+		if ((renderings>VGA_limit) && VGA_limit) //Limit broken?
 		{
 			renderings = VGA_limit; //Limit the processing to the amount of time specified!
 		}
 		#endif
 		if (unlikely(renderings==0)) return; //Nothing to render!
 		#ifdef LIMITVGA
-		if (unlikely(passedcounter && currentVGASpeed)) //Still counting?
+		if (passedcounter && currentVGASpeed) //Still counting?
 		{
 			timeprocessed = (renderings*VGA_rendertiming); //How much are we processing?
 			renderingsbackup = renderings; //Save the backup for comparision!
@@ -1287,7 +1284,7 @@ void updateVGA(double timepassed)
 		if (unlikely(Sequencer->extrastatus==0)) Sequencer->extrastatus = &getActiveVGA()->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 		#ifdef LIMITVGA
-		if (unlikely(passedcounter && currentVGASpeed)) getnspassed(&VGA_test); //Still counting? Then count our interval!
+		if (passedcounter && currentVGASpeed) getnspassed(&VGA_test); //Still counting? Then count our interval!
 		#endif
 		do
 		{
@@ -1303,7 +1300,7 @@ void updateVGA(double timepassed)
 			}
 		} while (--renderings); //Ticks left to tick?
 
-		if (likely(getActiveVGA()->enable_SVGA!=4)) //EGA/VGA+(Not MDA/CGA)?
+		if (getActiveVGA()->enable_SVGA!=4) //EGA/VGA+(Not MDA/CGA)?
 		{
 			SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,retracing); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
 		}
@@ -1313,7 +1310,7 @@ void updateVGA(double timepassed)
 		}
 
 		#ifdef LIMITVGA
-		if (unlikely(passedcounter && currentVGASpeed)) //Still counting?
+		if (passedcounter && currentVGASpeed) //Still counting?
 		{
 			limitcalc = getnspassed(&VGA_test); //How long have we taken?
 
@@ -1331,7 +1328,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Our settings!
 void EMU_update_VGA_Settings() //Update the VGA settings!
 {
 	DAC_Use_BWMonitor((BIOS_Settings.bwmonitor>0) ? 1 : 0); //Select color/bw monitor!
-	if (unlikely(DAC_Use_BWMonitor(0xFF))) //Using a b/w monitor?
+	if (DAC_Use_BWMonitor(0xFF)) //Using a b/w monitor?
 	{
 		DAC_BWColor(BIOS_Settings.bwmonitor); //Set the color to use!
 	}
@@ -1372,7 +1369,7 @@ void EMU_update_VGA_Settings() //Update the VGA settings!
 			break;
 	}
 	setVGASpeed(BIOS_Settings.VGASynchronization); //Apply VGA synchronization setting!
-	if (likely(getActiveVGA())) //Gotten an active VGA?
+	if (getActiveVGA()) //Gotten an active VGA?
 	{
 		DAC_updateEntries(getActiveVGA()); //Update all DAC entries according to the current/new color settings!
 		byte CGAMode;
