@@ -1048,32 +1048,37 @@ OPTINLINE byte coreHandler()
 		}
 
 		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
-		if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(instructiontime,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
+		double MHZ14passed_ns;
 		if (unlikely(MHZ14passed)) //14MHz to be ticked?
 		{
+			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!
 			updateDMA(MHZ14passed); //Update the DMA timer!
+			if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(MHZ14passed_ns,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
 			if (unlikely(useAdlib)) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
+			updateMouse(MHZ14passed_ns); //Tick the mouse timer if needed!
+			stepDROPlayer(MHZ14passed_ns); //DRO player playback, if any!
+			updateMIDIPlayer(MHZ14passed_ns); //MIDI player playback, if any!
+			updatePS2Keyboard(MHZ14passed_ns); //Tick the PS/2 keyboard timer, if needed!
+			updatePS2Mouse(MHZ14passed_ns); //Tick the PS/2 mouse timer, if needed!
+			update8042(MHZ14passed_ns); //Tick the PS/2 mouse timer, if needed!
+			updateCMOS(MHZ14passed_ns); //Tick the CMOS, if needed!
+			updateFloppy(MHZ14passed_ns); //Update the floppy!
+			updateMPUTimer(MHZ14passed_ns); //Update the MPU timing!
+			if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(MHZ14passed_ns,MHZ14passed); //Tick the Game Blaster timer if needed and running!
+			if (useSoundBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateSoundBlaster(MHZ14passed_ns,MHZ14passed); //Tick the Sound Blaster timer if needed and running!
+			updateATA(MHZ14passed_ns); //Update the ATA timer!
+			tickParallel(MHZ14passed_ns); //Update the Parallel timer!
+			updateUART(MHZ14passed_ns); //Update the UART timer!
+			if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(MHZ14passed_ns); //Update the Sound Source / Covox Speech Thing if needed!
 		}
-		updateMouse(instructiontime); //Tick the mouse timer if needed!
-		stepDROPlayer(instructiontime); //DRO player playback, if any!
-		updateMIDIPlayer(instructiontime); //MIDI player playback, if any!
-		updatePS2Keyboard(instructiontime); //Tick the PS/2 keyboard timer, if needed!
-		updatePS2Mouse(instructiontime); //Tick the PS/2 mouse timer, if needed!
-		update8042(instructiontime); //Tick the PS/2 mouse timer, if needed!
-		updateCMOS(instructiontime); //Tick the CMOS, if needed!
-		updateFloppy(instructiontime); //Update the floppy!
-		updateMPUTimer(instructiontime); //Update the MPU timing!
-		if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(instructiontime,MHZ14passed); //Tick the Game Blaster timer if needed and running!
-		if (useSoundBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateSoundBlaster(instructiontime,MHZ14passed); //Tick the Sound Blaster timer if needed and running!
-		updateATA(instructiontime); //Update the ATA timer!
-		tickParallel(instructiontime); //Update the Parallel timer!
-		updateUART(instructiontime); //Update the UART timer!
-		if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(instructiontime); //Update the Sound Source / Covox Speech Thing if needed!
 		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime); //Update the VGA timer when running!
-		updateModem(instructiontime); //Update the modem!
-		updateJoystick(instructiontime); //Update the Joystick!
-		updateAudio(instructiontime); //Update the general audio processing!
-		BIOSROM_updateTimers(instructiontime); //Update any ROM(Flash ROM) timers!
+		if (unlikely(MHZ14passed))
+		{
+			updateModem(MHZ14passed_ns); //Update the modem!
+			updateJoystick(MHZ14passed_ns); //Update the Joystick!
+			updateAudio(MHZ14passed_ns); //Update the general audio processing!
+			BIOSROM_updateTimers(MHZ14passed_ns); //Update any ROM(Flash ROM) timers!
+		}
 		MMU_logging &= ~2; //Are we logging hardware memory accesses again?
 		if (--timeout==0) //Timed out?
 		{
