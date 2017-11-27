@@ -91,7 +91,7 @@ void initVGAclocks(byte extension)
 	else //EGA clock?
 	{
 		VGA_clocks[0] = MHZ14; //14MHz clock!
-		VGA_clocks[1] = 16000000.0f; //16MHz clock
+		VGA_clocks[1] = 16257000.0f; //16MHz clock
 	}
 	VGA_clocks[2] = 0.0; //Unused!
 	VGA_clocks[3] = 0.0; //Unused!
@@ -100,6 +100,7 @@ void initVGAclocks(byte extension)
 double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
 	double result=0.0;
+	byte clock;
 	//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
 	//Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
 	if (unlikely(memprotect(VGA,sizeof(*VGA),NULL)==0)) //No VGA?
@@ -111,7 +112,12 @@ double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in H
 		if (unlikely(VGA_calcclockrateextensionhandler(VGA)!=0.0)) return VGA_calcclockrateextensionhandler(VGA); //Give the extended clock if needed!
 		else result = VGA_clocks[(GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3) & 3)]; //VGA clock!
 	}
-	else result = VGA_clocks[(GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3)&3)]; //VGA clock!
+	else
+	{
+		clock = (GETBITS(VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER,2,3)&3); //What clock is specified?
+		result = VGA_clocks[clock]; //VGA clock, if used!
+		VGA->precalcs.use14MHzclock = (((VGA->enable_SVGA==3) && (clock==0)) || (VGA->enable_SVGA==4)); //Use 14MHz motherboard clock when supplied!
+	}
 	return result; //Give the result!
 }
 
@@ -1239,25 +1245,37 @@ OPTINLINE static void VGA_Renderer(SEQ_DATA *Sequencer)
 }
 
 //CPU cycle locked version of VGA rendering!
-void updateVGA(double timepassed)
+void updateVGA(double timepassed, uint_32 MHZ14passed)
 {
 	#ifdef LIMITVGA
-	float limitcalc=0,renderingsbackup=0;
+	float limitcalc=0;
+	uint_32 renderingsbackup=0;
 	float timeprocessed=0.0;
 	#endif
-	VGA_timing += timepassed; //Time has passed!
-	
 	if (unlikely(VGA_debugtiming_enabled)) //Valid debug timing to apply?
 	{
 		VGA_debugtiming += timepassed; //Time has passed!
 	}
 
-	if ((VGA_timing >= VGA_rendertiming) && VGA_rendertiming) //Might have passed?
+	uint_32 renderings; //How many clocks to render?
+	renderings = MHZ14passed; //Default to 14MHz clock from the motherboard!
+	if (unlikely(getActiveVGA()->precalcs.use14MHzclock==0)) //Not using 14MHz clocking?
 	{
-		float renderings;
-		renderings = floorf((float)(VGA_timing/VGA_rendertiming)); //Ammount of times to render!
-		VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
+		VGA_timing += timepassed; //Time has passed!
 
+		if (unlikely((VGA_timing >= VGA_rendertiming) && VGA_rendertiming)) //Might have passed?
+		{
+			renderings = (uint_32)floorf((float)(VGA_timing/VGA_rendertiming)); //Ammount of times to render!
+			VGA_timing -= (renderings*VGA_rendertiming); //Rest the amount we can process!
+		}
+		else
+		{
+			renderings = 0; //Nothing to render!
+		}
+	}
+
+	if (unlikely(renderings)) //Anything to render?
+	{
 		#ifdef LIMITVGA
 		if ((renderings>VGA_limit) && VGA_limit) //Limit broken?
 		{

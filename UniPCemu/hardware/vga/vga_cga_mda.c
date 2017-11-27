@@ -856,11 +856,13 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 double getCGAMDAClock(VGA_Type *VGA)
 {
 	double result=0.0f; //The calculated clock speed! Default: not used!
+	VGA->precalcs.use14MHzclock = 0; //Default to normal clocking!
 	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) //Are we enabled?
 	{
 		if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA emulation enabled?
 		{
 			result = CGA_RATE; //Special CGA compatibility mode: change our refresh speed to match it according to CGA specifications! Pixel speed is always 14MHz!
+			VGA->precalcs.use14MHzclock = 1; //Use the motherboard CGA 14MHz clocking!
 		}
 		else if (MDAEMULATION_ENABLED_CRTC(VGA)) //MDA emulation enabled?
 		{

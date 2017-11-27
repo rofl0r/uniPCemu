@@ -1070,8 +1070,9 @@ OPTINLINE byte coreHandler()
 			tickParallel(MHZ14passed_ns); //Update the Parallel timer!
 			updateUART(MHZ14passed_ns); //Update the UART timer!
 			if (useLPTDAC && ((CPU[activeCPU].halt&0x10)==0)) tickssourcecovox(MHZ14passed_ns); //Update the Sound Source / Covox Speech Thing if needed!
+			if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(0.0,MHZ14passed); //Update the video 14MHz timer, when running!
 		}
-		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime); //Update the VGA timer when running!
+		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime,0); //Update the normal video timer, when running!
 		if (unlikely(MHZ14passed))
 		{
 			updateModem(MHZ14passed_ns); //Update the modem!
