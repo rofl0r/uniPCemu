@@ -866,7 +866,7 @@ OPTINLINE byte coreHandler()
 	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
-		if (debugger_thread)
+		if (unlikely(debugger_thread))
 		{
 			if (threadRunning(debugger_thread)) //Are we running the debugger?
 			{
@@ -877,7 +877,7 @@ OPTINLINE byte coreHandler()
 				goto skipCPUtiming; //OK, but skipped!
 			}
 		}
-		if (BIOSMenuThread)
+		if (unlikely(BIOSMenuThread))
 		{
 			if (threadRunning(BIOSMenuThread)) //Are we running the BIOS menu and not permanently halted? Block our execution!
 			{
@@ -892,15 +892,15 @@ OPTINLINE byte coreHandler()
 				BIOSMenuAllowed = 0; //We're running the BIOS menu! Don't open it again!
 			}
 		}
-		if ((CPU[activeCPU].halt&2)==0) //Are we running normally(not partly ran without CPU from the BIOS menu)?
+		if (likely((CPU[activeCPU].halt&2)==0)) //Are we running normally(not partly ran without CPU from the BIOS menu)?
 		{
 			BIOSMenuThread = NULL; //We don't run the BIOS menu anymore!
 		}
 
-		if (allcleared) return 0; //Abort: invalid buffer!
+		if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 		interruptsaved = 0; //Reset PIC interrupt to not used!
-		if (!CPU[activeCPU].registers) //We need registers at this point, but have none to use?
+		if (unlikely(CPU[activeCPU].registers==0)) //We need registers at this point, but have none to use?
 		{
 			return 0; //Invalid registers: abort, since we're invalid!
 		}
@@ -909,15 +909,15 @@ OPTINLINE byte coreHandler()
 
 		CPU_tickPendingReset();
 
-		if ((CPU[activeCPU].halt&3) && (BIU_Ready() && CPU[activeCPU].resetPending==0)) //Halted normally with no reset pending? Don't count CGA wait states!
+		if (unlikely((CPU[activeCPU].halt&3) && (BIU_Ready() && CPU[activeCPU].resetPending==0))) //Halted normally with no reset pending? Don't count CGA wait states!
 		{
-			if (romsize) //Debug HLT?
+			if (unlikely(romsize)) //Debug HLT?
 			{
 				MMU_dumpmemory("bootrom.dmp"); //Dump the memory to file!
 				return 0; //Stop execution!
 			}
 
-			if (FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0)) //We have an interrupt? Clear Halt State when allowed to!
+			if (unlikely(FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0))) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
 				goto resumeFromHLT; //We're resuming from HLT state!
@@ -927,7 +927,7 @@ OPTINLINE byte coreHandler()
 				//Execute using actual CPU clocks!
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
-			if (CPU[activeCPU].halt==1) //Normal halt?
+			if (unlikely(CPU[activeCPU].halt==1)) //Normal halt?
 			{
 				//Increase the instruction counter every instruction/HLT time!
 				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
@@ -944,24 +944,21 @@ OPTINLINE byte coreHandler()
 		else //We're not halted? Execute the CPU routines!
 		{
 			resumeFromHLT:
-			if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //We're starting a new instruction?
+			if (unlikely(CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1))) //We're starting a new instruction?
 			{
-				if (CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep) //Single step enabled and allowed?
+				if (unlikely(CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep && (getcpumode() == (doEMUsinglestep - 1)))) //Single step enabled and allowed, CPU mode specified?
 				{
-					if (getcpumode() == (doEMUsinglestep - 1)) //Are we the selected CPU mode?
+					switch (getcpumode()) //What CPU mode are we to debug?
 					{
-						switch (getcpumode()) //What CPU mode are we to debug?
-						{
-						case CPU_MODE_REAL: //Real mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
-							break;
-						case CPU_MODE_PROTECTED: //Protected mode?
-						case CPU_MODE_8086: //Virtual 8086 mode?
-							singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
-							break;
-						default: //Invalid mode?
-							break;
-						}
+					case CPU_MODE_REAL: //Real mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 16)&0xFFFF)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
+						break;
+					case CPU_MODE_PROTECTED: //Protected mode?
+					case CPU_MODE_8086: //Virtual 8086 mode?
+						singlestep |= ((CPU[activeCPU].registers->CS == (((singlestepaddress >> 32)&0xFFFF)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF))||(singlestepaddress&0x1000000000000ULL)))||(singlestepaddress&0x2000000000000ULL)); //Single step enabled?
+						break;
+					default: //Invalid mode?
+						break;
 					}
 				}
 
@@ -970,15 +967,15 @@ OPTINLINE byte coreHandler()
 
 				HWINT_saved = 0; //No HW interrupt by default!
 				CPU_beforeexec(); //Everything before the execution!
-				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
+				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (FLAG_IF) //Interrupts available?
+					if (likely(FLAG_IF)) //Interrupts available?
 					{
-						if (PICInterrupt()) //We have a hardware interrupt ready?
+						if (unlikely(PICInterrupt())) //We have a hardware interrupt ready?
 						{
 							HWINT_nr = nextintr(); //Get the HW interrupt nr!
 							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-							if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+							if (likely(((EMULATED_CPU <= CPU_80286) && REPPending)==0)) //Not 80386+, REP pending and segment override?
 							{
 								CPU_8086REPPending(); //Process pending REPs normally as documented!
 							}
@@ -1023,7 +1020,7 @@ OPTINLINE byte coreHandler()
 
 			//Increase the instruction counter every cycle/HLT time!
 			debugger_step(); //Step debugger if needed!
-			if (CPU[activeCPU].executed) //Are we executed?
+			if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 			{
 				CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 			}
@@ -1060,7 +1057,7 @@ OPTINLINE byte coreHandler()
 			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!
 			updateDMA(MHZ14passed); //Update the DMA timer!
 			if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(MHZ14passed_ns,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
-			if (unlikely(useAdlib)) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
+			if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 			updateMouse(MHZ14passed_ns); //Tick the mouse timer if needed!
 			stepDROPlayer(MHZ14passed_ns); //DRO player playback, if any!
 			updateMIDIPlayer(MHZ14passed_ns); //MIDI player playback, if any!
@@ -1087,7 +1084,7 @@ OPTINLINE byte coreHandler()
 			BIOSROM_updateTimers(MHZ14passed_ns); //Update any ROM(Flash ROM) timers!
 		}
 		MMU_logging &= ~2; //Are we logging hardware memory accesses again?
-		if (--timeout==0) //Timed out?
+		if (unlikely(--timeout==0)) //Timed out?
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
 			currenttiming += getnspassed(&CPU_timing); //Check for passed time!
@@ -1114,9 +1111,9 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
-	if ((psp_keypressed(BUTTON_SELECT) || (Settings_request==1)) && (BIOSMenuThread==NULL) && (debugger_thread==NULL)) //Run in-emulator BIOS menu requested while running?
+	if (unlikely((psp_keypressed(BUTTON_SELECT) || (Settings_request==1)) && (BIOSMenuThread==NULL) && (debugger_thread==NULL))) //Run in-emulator BIOS menu requested while running?
 	{
-		if ((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || (Settings_request==1)) //Not gaming/direct input mode and allowed to open it(not already started)?
+		if (unlikely((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || (Settings_request==1))) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
 			skipstep = 3; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
 			lock(LOCK_INPUT);
