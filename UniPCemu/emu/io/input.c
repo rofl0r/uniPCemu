@@ -3966,7 +3966,7 @@ void updateInput(SDL_Event *event) //Update all input!
 	#ifdef ANDROID
 	case SDL_APP_TERMINATING: //Terminating the application by the OS?
 	
-	//case SDL_APP_LOWMEMORY: //Low on memory?
+	case SDL_APP_LOWMEMORY: //Low on memory?
 		#ifdef NDK_PROFILE
 			monpendingcleanup(); //Process any pending cleanup when needed!
 		#endif
