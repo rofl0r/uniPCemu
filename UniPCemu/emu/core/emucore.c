@@ -104,6 +104,8 @@ which is at the first row of the IBM AT POST3 function.
 
 //Compaq 386 runs at 16MHz.
 #define CPU80386_COMPAQ_CLOCK 16000000.0
+//Compaq Deskpro 486DX/33M runs at 33MHz.
+#define CPU80486_COMPAQ_CLOCK 33000000.0
 
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
@@ -805,6 +807,10 @@ void updateSpeedLimit()
 						else if (is_Compaq==1) //Compaq Deskpro 386+?
 						{
 							CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+							if (EMULATED_CPU==CPU_80486) //80486 default clock instead?
+							{
+								CPU_speed_cycle = 1000000000.0 / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
+							}
 						}
 						//Use AT speed for AT compatiblity for AT architectures!
 					}
