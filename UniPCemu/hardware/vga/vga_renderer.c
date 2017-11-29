@@ -1257,7 +1257,7 @@ void updateVGA(double timepassed, uint_32 MHZ14passed)
 		VGA_debugtiming += timepassed; //Time has passed!
 	}
 
-	uint_32 renderings; //How many clocks to render?
+	INLINEREGISTER uint_32 renderings; //How many clocks to render?
 	renderings = MHZ14passed; //Default to 14MHz clock from the motherboard!
 	if (unlikely(getActiveVGA()->precalcs.use14MHzclock==0)) //Not using 14MHz clocking?
 	{
@@ -1306,15 +1306,30 @@ void updateVGA(double timepassed, uint_32 MHZ14passed)
 		#endif
 		do
 		{
-			if (likely(renderings<5)) VGA_Renderer(Sequencer); //5+ optimization? Not usable? Execute only once!
-			else //x+ optimization?
+			if (likely(renderings==1)) VGA_Renderer(Sequencer); //2+ optimization? Not usable? Execute only once!
+			else //2+ optimization?
 			{
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				VGA_Renderer(Sequencer); //Tick the VGA once!
-				renderings -= 4; //We've processed 4 more!
+				switch (renderings-1) //How many to render(1-5 clocks multiple optimizations)?
+				{
+				case 3: //4 rendering?
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+				case 2: //3 rendering?
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+				case 1: //2 rendering?
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					renderings -= (renderings-1); //We've processed 1-3 more!
+				case 0: //1 rendering?
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					break;
+				default: //5+ optimization?
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					VGA_Renderer(Sequencer); //Tick the VGA once!
+					renderings -= 4; //We've processed 4 more!
+					break;
+				}
 			}
 		} while (--renderings); //Ticks left to tick?
 
