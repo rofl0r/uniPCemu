@@ -257,6 +257,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				}
 				
 				verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
+				if (verified) goto loadOPTROMS; //Loaded the BIOS?
 
 				if (EMULATED_CPU == CPU_80286) //80286 has different ROMs?
 				{
