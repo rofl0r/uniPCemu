@@ -11,6 +11,7 @@ typedef struct
 	byte cycles_stallBIU; //How many cycles to stall the BIU when running the BIU?
 	byte curcycle; //Current cycle to process?
 	byte cycles_stallBUS; //How many cycles to stall the BUS, BIU and EU!
+	Handler currentTimingHandler; //What step are we currently executing?
 } CPU_CycleTimingInfo;
 
 typedef struct
