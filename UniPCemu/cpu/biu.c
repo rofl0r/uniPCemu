@@ -887,6 +887,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 
 		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
+	BIU_detectCycle(); //Detect the next cycle!
 }
 
 void BIU_cycle_active286()
@@ -968,6 +969,7 @@ void BIU_cycle_active286()
 		}
 		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
+	BIU_detectCycle(); //Detect the next cycle!
 }
 
 void BIU_detectCycle() //Detect the cycle to execute!
@@ -986,7 +988,7 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	}
 	else //Active cycle?
 	{
-		cycleinfo->currentTimingHandler = EMULATED_CPU>CPU_NECV30?&BIU_cycle_active286:&BIU_cycle_active8086; //Active CPU cycle!
+		cycleinfo->currentTimingHandler = (EMULATED_CPU>CPU_NECV30)?&BIU_cycle_active286:&BIU_cycle_active8086; //Active CPU cycle!
 	}
 }
 
