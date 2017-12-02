@@ -107,9 +107,9 @@ OPTINLINE uint_32 fifobuffer_INTERNAL_freesize(FIFOBUFFER *buffer)
 uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 {
 	INLINEREGISTER uint_32 result;
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 	if (buffer->lock) //Locked buffer?
 	{
 		WaitSem(buffer->lock)
@@ -126,15 +126,15 @@ uint_32 fifobuffer_freesize(FIFOBUFFER *buffer)
 void waitforfreefifobuffer(FIFOBUFFER *buffer, uint_32 size)
 {
 	if (__HW_DISABLED) return; //Abort!
-	for (;fifobuffer_freesize(buffer)<size;) delay(0); //Wait for the buffer to have enough free size!
+	for (;unlikely(fifobuffer_freesize(buffer)<size);) delay(0); //Wait for the buffer to have enough free size!
 }
 
 byte peekfifobuffer(FIFOBUFFER *buffer, byte *result) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -163,7 +163,7 @@ OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 	INLINEREGISTER uint_32 readpos;
 	readpos = buffer->readpos; //Load the old read position!
 	*result = buffer->buffer[readpos++]; //Read and update!
-	if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+	if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 	buffer->readpos = readpos; //Update the read position!
 	buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 }
@@ -171,9 +171,9 @@ OPTINLINE static void readfifobufferunlocked(FIFOBUFFER *buffer, byte *result)
 byte readfifobuffer(FIFOBUFFER *buffer, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
-	if (buffer->buffer) //Valid buffer?
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
+	if (likely(buffer->buffer)) //Valid buffer?
 	{
 		if (buffer->lock)
 		{
@@ -203,7 +203,7 @@ OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 	INLINEREGISTER uint_32 writepos;
 	writepos = buffer->writepos; //Load the old write position!
 	buffer->buffer[writepos++] = data; //Write and update!
-	if (writepos >= buffer->size) writepos = 0; //Wrap arround when needed!
+	if (unlikely(writepos >= buffer->size)) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
@@ -211,9 +211,9 @@ OPTINLINE static void writefifobufferunlocked(FIFOBUFFER *buffer, byte data)
 byte writefifobuffer(FIFOBUFFER *buffer, byte data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -240,9 +240,9 @@ byte writefifobuffer(FIFOBUFFER *buffer, byte data)
 byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -252,7 +252,7 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos]; //Read and update!
 			PostSem(buffer->lock)
@@ -267,7 +267,7 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos]; //Read and update!
 			return 1; //Something to peek at!
@@ -279,9 +279,9 @@ byte peekfifobuffer16(FIFOBUFFER *buffer, word *result) //Is there data to be re
 byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -291,13 +291,13 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos]; //Read and update!
 			PostSem(buffer->lock)
@@ -312,13 +312,13 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos]; //Read and update!
 			return 1; //Something to peek at!
@@ -330,9 +330,9 @@ byte peekfifobuffer32(FIFOBUFFER *buffer, uint_32 *result) //Is there data to be
 byte peekfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2) //Is there data to be read?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -342,24 +342,25 @@ byte peekfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2) /
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
-			*result |= buffer->buffer[readpos]; //Read and update!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			//Second result!
 			*result2 = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos]; //Read and update!
 			PostSem(buffer->lock)
@@ -374,24 +375,25 @@ byte peekfifobuffer32_2(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2) /
 			INLINEREGISTER uint_32 readpos;
 			readpos = buffer->readpos; //Current reading position!
 			*result = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
 			*result |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result <<= 8; //Shift high!
-			*result |= buffer->buffer[readpos]; //Read and update!
+			*result |= buffer->buffer[readpos++]; //Read and update!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			//Second result!
 			*result2 = buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos++]; //Read and update!
-			if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+			if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 			*result2 <<= 8; //Shift high!
 			*result2 |= buffer->buffer[readpos]; //Read and update!
 			return 1; //Something to peek at!
@@ -424,14 +426,14 @@ OPTINLINE static void readfifobuffer16unlocked(FIFOBUFFER *buffer, word *result,
 	else //Unaligned read?
 	{
 		temp.byte1 = (buffer->buffer[readpos++]); //Read and update high!
-		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= size)) readpos = 0; //Wrap arround when needed!
 		temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
 	}
 	temp.resultw = LE16(temp.resultw); //Convert to native ordering, if needed!
 	*result = temp.resultw; //Save the result retrieved, from LE format!
 	if (updateposition)
 	{
-		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 		buffer->readpos = readpos; //Update our the position!
 		buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 	}
@@ -463,18 +465,18 @@ OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *resu
 	else //Unaligned read?
 	{
 		temp.byte1 = (buffer->buffer[readpos++]); //Read and update high!
-		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= size)) readpos = 0; //Wrap arround when needed!
 		temp.byte2 = buffer->buffer[readpos++]; //Read and update low!
-		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= size)) readpos = 0; //Wrap arround when needed!
 		temp.byte3 = buffer->buffer[readpos++]; //Read and update low!
-		if (readpos >= size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= size)) readpos = 0; //Wrap arround when needed!
 		temp.byte4 = buffer->buffer[readpos++]; //Read and update low!
 	}
 	temp.resultd = LE32(temp.resultd); //Convert to native ordering if needed!
 	*result = temp.resultd; //Save the result retrieved, in LE format!
 	if (updateposition)
 	{
-		if (readpos >= buffer->size) readpos = 0; //Wrap arround when needed!
+		if (unlikely(readpos >= buffer->size)) readpos = 0; //Wrap arround when needed!
 		buffer->readpos = readpos; //Update our the position!
 		buffer->laststatus = LASTSTATUS_READ; //Last operation was a read operation!
 	}
@@ -483,9 +485,9 @@ OPTINLINE static void readfifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 *resu
 byte readfifobuffer16(FIFOBUFFER *buffer, word *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -513,16 +515,16 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 {
 	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-1)-(backtrace<<1))) //Filled enough?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 				PostSem(buffer->lock)
@@ -531,7 +533,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<1); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -552,7 +554,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-1)-(backtrace<<1))) return 0; //Filled enough?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer16unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 				return 1; //Read!
@@ -560,7 +562,7 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<1); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -581,9 +583,9 @@ byte readfifobuffer16_backtrace(FIFOBUFFER *buffer, word *result, uint_32 backtr
 byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -610,9 +612,9 @@ byte readfifobuffer32(FIFOBUFFER *buffer, uint_32 *result)
 byte readfifobuffer32_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -641,9 +643,9 @@ byte readfifobuffer32_2(FIFOBUFFER *buffer, int_32 *result, int_32 *result2)
 byte readfifobuffer32_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 *result2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -673,16 +675,16 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 {
 	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-3)-(backtrace<<2))) //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 				PostSem(buffer->lock)
@@ -691,7 +693,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<2); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -712,7 +714,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-3)-(backtrace<<2))) return 0; //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 				return 1; //Read!
@@ -720,7 +722,7 @@ byte readfifobuffer32_backtrace(FIFOBUFFER *buffer, uint_32 *result, uint_32 bac
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<2); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -742,16 +744,16 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 {
 	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-7)-(backtrace<<3))) //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
 				readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
@@ -761,7 +763,7 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -783,7 +785,7 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-7)-(backtrace<<3))) return 0; //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
 				readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
@@ -792,7 +794,7 @@ byte readfifobuffer32_backtrace_2(FIFOBUFFER *buffer, int_32 *result, int_32 *re
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -815,16 +817,16 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 {
 	uint_32 readposhistory, oldreadpos;
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
 		WaitSem(buffer->lock)
 		if (fifobuffer_INTERNAL_freesize(buffer)<((buffer->size-7)-(backtrace<<3))) //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,result,1); //Read the FIFO buffer without lock!
 				readfifobuffer32unlocked(buffer,result2,1); //Read the FIFO buffer without lock!
@@ -834,7 +836,7 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -856,7 +858,7 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 	{
 		if (fifobuffer_INTERNAL_freesize(buffer)>=((buffer->size-7)-(backtrace<<3))) return 0; //Filled?
 		{
-			if (finalbacktrace) //No history? Just pop final input!
+			if (unlikely(finalbacktrace)) //No history? Just pop final input!
 			{
 				readfifobuffer32unlocked(buffer,(uint_32 *)result,1); //Read the FIFO buffer without lock!
 				readfifobuffer32unlocked(buffer,(uint_32 *)result2,1); //Read the FIFO buffer without lock!
@@ -865,7 +867,7 @@ byte readfifobuffer32_backtrace_2u(FIFOBUFFER *buffer, uint_32 *result, uint_32 
 			//Normal tap?
 			readposhistory = (int_64)buffer->readpos; //Save the read position!
 			readposhistory -= ((int_64)backtrace<<3); //Trace this far back!
-			if (readposhistory<0) //To make valid?
+			if (unlikely(readposhistory<0)) //To make valid?
 			{
 				do //Invalid?
 				{
@@ -909,10 +911,10 @@ OPTINLINE static void writefifobuffer16unlocked(FIFOBUFFER *buffer, word data)
 	else //Unaligned read?
 	{
 		buffer->buffer[writepos++] = temp.byte1; //Write high and update!
-		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 		buffer->buffer[writepos++] = temp.byte2; //Write high and update!
 	}
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
@@ -944,14 +946,14 @@ OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data
 	else //Unaligned read?
 	{
 		buffer->buffer[writepos++] = temp.byte1; //Write high and update!
-		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 		buffer->buffer[writepos++] = temp.byte2; //Write high and update!
-		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 		buffer->buffer[writepos++] = temp.byte3; //Write high and update!
-		if (writepos >= size) writepos = 0; //Wrap arround when needed!
+		if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 		buffer->buffer[writepos++] = temp.byte4; //Write low and update!
 	}
-	if (writepos >= size) writepos = 0; //Wrap arround when needed!
+	if (unlikely(writepos >= size)) writepos = 0; //Wrap arround when needed!
 	buffer->writepos = writepos; //Update the write position!
 	buffer->laststatus = LASTSTATUS_WRITE; //Last operation was a write operation!
 }
@@ -959,9 +961,9 @@ OPTINLINE static void writefifobuffer32unlocked(FIFOBUFFER *buffer, uint_32 data
 byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -990,9 +992,9 @@ byte writefifobuffer16(FIFOBUFFER *buffer, word data)
 byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1021,9 +1023,9 @@ byte writefifobuffer32(FIFOBUFFER *buffer, uint_32 data)
 byte writefifobuffer32_2(FIFOBUFFER *buffer, int_32 data, int_32 data2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1054,9 +1056,9 @@ byte writefifobuffer32_2(FIFOBUFFER *buffer, int_32 data, int_32 data2)
 byte writefifobuffer32_2u(FIFOBUFFER *buffer, uint_32 data, uint_32 data2)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (buffer==0) return 0; //Error: invalid buffer!
-	if (buffer->buffer==0) return 0; //Error invalid: buffer!
-	if (allcleared) return 0; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return 0; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return 0; //Error invalid: buffer!
+	if (unlikely(allcleared)) return 0; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1175,9 +1177,9 @@ byte readfifobufferflt_backtrace_2(FIFOBUFFER *buffer, float *result, float *res
 
 void fifobuffer_save(FIFOBUFFER *buffer)
 {
-	if (buffer==0) return; //Error: invalid buffer!
-	if (buffer->buffer==0) return; //Error invalid: buffer!
-	if (allcleared) return; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return; //Error invalid: buffer!
+	if (unlikely(allcleared)) return; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1197,9 +1199,9 @@ void fifobuffer_save(FIFOBUFFER *buffer)
 
 void fifobuffer_restore(FIFOBUFFER *buffer)
 {
-	if (buffer==0) return; //Error: invalid buffer!
-	if (buffer->buffer==0) return; //Error invalid: buffer!
-	if (allcleared) return; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return; //Error invalid: buffer!
+	if (unlikely(allcleared)) return; //Error: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1220,9 +1222,9 @@ void fifobuffer_restore(FIFOBUFFER *buffer)
 void fifobuffer_gotolast(FIFOBUFFER *buffer)
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (buffer==0) return; //Error: invalid buffer!
-	if (buffer->buffer==0) return; //Error invalid: buffer!
-	if (allcleared) return; //Abort: invalid buffer!
+	if (unlikely(buffer==0)) return; //Error: invalid buffer!
+	if (unlikely(buffer->buffer==0)) return; //Error invalid: buffer!
+	if (unlikely(allcleared)) return; //Abort: invalid buffer!
 
 	if (buffer->lock)
 	{
@@ -1266,7 +1268,7 @@ void fifobuffer_gotolast(FIFOBUFFER *buffer)
 void fifobuffer_clear(FIFOBUFFER *buffer)
 {
 	byte temp; //Saved data to discard!
-	if (buffer==0) return; //Error: invalid buffer!
+	if (unlikely(buffer==0)) return; //Error: invalid buffer!
 
 	fifobuffer_gotolast(buffer); //Goto last!
 	readfifobuffer(buffer,&temp); //Clean out the last byte if it's there!
@@ -1275,11 +1277,11 @@ void fifobuffer_clear(FIFOBUFFER *buffer)
 void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
 	if (allcleared) return; //Abort: invalid buffer!
-	if ((src == dest) || (!threshold)) return; //Can't move to itself!
+	if (unlikely((src == dest) || (!threshold))) return; //Can't move to itself!
 	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	byte buffer; //our buffer for the transfer!
-	if (!src) return; //Invalid source!
-	if (!dest) return; //Invalid destination!
+	if (unlikely(src==0)) return; //Invalid source!
+	if (unlikely(dest==0)) return; //Invalid destination!
 	if (src->lock) WaitSem(src->lock) //Lock the source!
 	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
 	{
@@ -1292,7 +1294,7 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			{
 				readfifobufferunlocked(src, &buffer); //Read 8-bit data!
 				writefifobufferunlocked(dest, buffer); //Write 8-bit data!
-			} while (--current);
+			} while (likely(--current));
 		}
 		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 	}
@@ -1301,12 +1303,12 @@ void movefifobuffer8(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 
 void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
-	if (allcleared) return; //Abort: invalid buffer!
-	if ((src==dest) || (!threshold)) return; //Can't move to itself!
+	if (unlikely(allcleared)) return; //Abort: invalid buffer!
+	if (unlikely((src==dest) || (!threshold))) return; //Can't move to itself!
 	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	word buffer; //our buffer for the transfer!
-	if (!src) return; //Invalid source!
-	if (!dest) return; //Invalid destination!
+	if (unlikely(src==0)) return; //Invalid source!
+	if (unlikely(dest==0)) return; //Invalid destination!
 	threshold <<= 1; //Make the threshold word-sized, since we're moving word items!
 	if (src->lock) WaitSem(src->lock) //Lock the source!
 	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
@@ -1321,7 +1323,7 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			{
 				readfifobuffer16unlocked(src,&buffer,1); //Read 16-bit data!
 				writefifobuffer16unlocked(dest,buffer); //Write 16-bit data!
-			} while (--current);
+			} while (likely(--current));
 		}
 		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 	}
@@ -1330,12 +1332,12 @@ void movefifobuffer16(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 
 void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 {
-	if (allcleared) return; //Abort: invalid buffer!
-	if ((src==dest) || (!threshold)) return; //Can't move to itself!
+	if (unlikely(allcleared)) return; //Abort: invalid buffer!
+	if (unlikely((src==dest) || (!threshold))) return; //Can't move to itself!
 	INLINEREGISTER uint_32 current; //Current thresholded data index!
 	uint_32 buffer; //our buffer for the transfer!
-	if (!src) return; //Invalid source!
-	if (!dest) return; //Invalid destination!
+	if (unlikely(src==0)) return; //Invalid source!
+	if (unlikely(dest==0)) return; //Invalid destination!
 	threshold <<= 2; //Make the threshold dword-sized, since we're moving dword items!
 	if (src->lock) WaitSem(src->lock) //Lock the source!
 	if (fifobuffer_INTERNAL_freesize(src) <= (src->size - threshold)) //Buffered enough words of data?
@@ -1350,7 +1352,7 @@ void movefifobuffer32(FIFOBUFFER *src, FIFOBUFFER *dest, uint_32 threshold)
 			{
 				readfifobuffer32unlocked(src,&buffer,1); //Read 32-bit data!
 				writefifobuffer32unlocked(dest,buffer); //Write 32-bit data!
-			} while (--current);
+			} while (likely(--current));
 		}
 		if (dest->lock) PostSem(dest->lock) //Unlock the destination!
 	}
