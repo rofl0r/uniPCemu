@@ -145,6 +145,15 @@ struct
 	double driveselectTiming;
 } ATA[2]; //Two channels of ATA drives!
 
+enum {
+	LOAD_NO_DISC=0,
+	LOAD_INSERT_CD=1,			/* user is "inserting" the CD */
+	LOAD_IDLE=2,			/* disc is stationary, not spinning */
+	LOAD_DISC_LOADING=3,		/* disc is "spinning up" */
+	LOAD_DISC_READIED=4,		/* disc just "became ready" */
+	LOAD_READY=5
+};
+
 //Drive/Head register
 #define ATA_DRIVEHEAD_HEADR(channel,drive) (ATA[channel].Drive[drive].PARAMETERS.drivehead&0xF)
 #define ATA_DRIVEHEAD_HEADW(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.drivehead=((ATA[channel].Drive[drive].PARAMETERS.drivehead&~0xF)|(val&0xF))
