@@ -328,25 +328,59 @@ int BIOS_load_ROM(byte nr)
 		{
 			case 18:
 			case 19: //u18/u19 chips?
-				BIOS_ROM_type = BIOSROMTYPE_U18_19; //u18/19 combo!
-				ROM_size = BIOS_ROM_size[18]+BIOS_ROM_size[19]; //ROM size!
+				if (BIOS_ROMS[18] && BIOS_ROMS[19]) //Both loaded?
+				{
+					BIOS_ROM_type = BIOSROMTYPE_U18_19; //u18/19 combo!
+					ROM_size = BIOS_ROM_size[18]+BIOS_ROM_size[19]; //ROM size!
+				}
+				else
+				{
+					BIOS_ROM_type = BIOSROMTYPE_INVALID; //Invalid!
+					ROM_size = 0; //No ROM!
+				}
 				break;
 			case 34:
 			case 35: //u34/u35 chips?
-				BIOS_ROM_type = BIOSROMTYPE_U34_35; //u34/35 combo!
-				ROM_size = BIOS_ROM_size[34]+BIOS_ROM_size[35]; //ROM size!
+				if (BIOS_ROMS[34] && BIOS_ROMS[35]) //Both loaded?
+				{
+					BIOS_ROM_type = BIOSROMTYPE_U34_35; //u34/35 combo!
+					ROM_size = BIOS_ROM_size[34]+BIOS_ROM_size[35]; //ROM size!
+				}
+				else
+				{
+					BIOS_ROM_type = BIOSROMTYPE_INVALID; //Invalid!
+					ROM_size = 0; //No ROM!
+				}
 				break;
 			case 27:
 			case 47: //u27/u47 chips?
-				BIOS_ROM_type = BIOSROMTYPE_U27_47; //u27/47 combo!
-				ROM_size = BIOS_ROM_size[27]+BIOS_ROM_size[47]; //ROM size!
+				if (BIOS_ROMS[27] && BIOS_ROMS[47]) //Both loaded?
+				{
+					BIOS_ROM_type = BIOSROMTYPE_U27_47; //u27/47 combo!
+					ROM_size = BIOS_ROM_size[27]+BIOS_ROM_size[47]; //ROM size!
+				}
+				else
+				{
+					BIOS_ROM_type = BIOSROMTYPE_INVALID; //Invalid!
+					ROM_size = 0; //No ROM!
+				}
 				break;
 			case 13:
 			case 15: //u13/u15 chips?
-				BIOS_ROM_type = BIOSROMTYPE_U13_15; //u13/15 combo!
-				ROM_size = (BIOS_ROM_size[13]+BIOS_ROM_size[15])<<1; //ROM size! The ROM is doubled in RAM(duplicated twice)
-				BIOS_ROM_U13_15_double = ROM_size; //Save the loaded ROM size for easier processing!
-				BIOS_ROM_U13_15_single = ROM_size>>1; //Half the ROM for easier lookup!
+				if (BIOS_ROMS[13] && BIOS_ROMS[15]) //Both loaded?
+				{
+					BIOS_ROM_type = BIOSROMTYPE_U13_15; //u13/15 combo!
+					ROM_size = (BIOS_ROM_size[13]+BIOS_ROM_size[15])<<1; //ROM size! The ROM is doubled in RAM(duplicated twice)
+					BIOS_ROM_U13_15_double = ROM_size; //Save the loaded ROM size for easier processing!
+					BIOS_ROM_U13_15_single = ROM_size>>1; //Half the ROM for easier lookup!
+				}
+				else
+				{
+					BIOS_ROM_type = BIOSROMTYPE_INVALID; //Invalid!
+					ROM_size = 0; //No ROM!
+					BIOS_ROM_U13_15_double = 0; //Save the loaded ROM size for easier processing!
+					BIOS_ROM_U13_15_single = 0; //Half the ROM for easier lookup!
+				}
 				break;
 		}
 		
@@ -875,15 +909,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			basepos &= 0x7FFF; //Our offset within the ROM!
 			if (originaloffset&0x8000) //u18?
 			{
-				if (likely(BIOS_ROMS[18])) //Set?
+				if (likely(BIOS_ROM_size[18]>basepos)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[18]>basepos)) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
+					return 1; //Ignore writes!
 				}
 			}
-			else if (likely(BIOS_ROMS[19])) //u19?
+			else //u19?
 			{
 				if (likely(BIOS_ROM_size[19]>basepos)) //Within range?
 				{
@@ -892,29 +923,23 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			}
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
-			if (likely(BIOS_ROMS[15] && BIOS_ROMS[13])) //Compaq?
+			if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 			{
-				if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
+				if (unlikely(tempoffset>=(BIOS_ROM_U13_15_double>>1))) //Second copy?
 				{
-					if (likely(tempoffset>=(BIOS_ROM_U13_15_double>>1))) //Second copy?
-					{
-						tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
-					}
+					tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
 				}
 			}
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
 			{
-				if (likely(BIOS_ROMS[15])) //u13/u15 combination?
+				if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
-					{
-						return 1; //Ignore writes!
-					}					
-				}
+					return 1; //Ignore writes!
+				}					
 			}
-			else if (likely(BIOS_ROMS[13])) //u13/u15 combination?
+			else //u13/u15 combination?
 			{
 				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
 				{
@@ -927,15 +952,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (likely(BIOS_ROMS[35])) //u34/u35 combination?
+				if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
+					return 1; //Ignore writes!
 				}
 			}
-			else if (likely(BIOS_ROMS[34])) //u34/u35 combination?
+			else //u34/u35 combination?
 			{
 				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
 				{
@@ -948,15 +970,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //Normal AT BIOS ROM?
 			{
-				if (likely(BIOS_ROMS[47])) //Loaded?
+				if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
-					{
-						return 1; //Ignore writes!
-					}
+					return 1; //Ignore writes!
 				}
 			}
-			else if (likely(BIOS_ROMS[27])) //Loaded?
+			else //Loaded?
 			{
 				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
 				{
@@ -1029,16 +1048,13 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
 			if (basepos&0x8000) //u18?
 			{
-				if (likely(BIOS_ROMS[18])) //Set?
+				if (likely(BIOS_ROM_size[18]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[18]>tempoffset)) //Within range?
-					{
-						*value = BIOS_ROMS[18][tempoffset]; //Give the value!
-						return 1;
-					}
+					*value = BIOS_ROMS[18][tempoffset]; //Give the value!
+					return 1;
 				}
 			}
-			else if (likely(BIOS_ROMS[19])) //u19?
+			else //u19?
 			{
 				if (likely(BIOS_ROM_size[19]>tempoffset)) //Within range?
 				{
@@ -1049,30 +1065,24 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
 			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
-			if (likely(BIOS_ROMS[15] && BIOS_ROMS[13])) //Compaq?
+			if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 			{
-				if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
+				if (unlikely(tempoffset>=BIOS_ROM_U13_15_single)) //Second copy?
 				{
-					if (tempoffset>=BIOS_ROM_U13_15_single) //Second copy?
-					{
-						tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
-					}
+					tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
 				}
 			}
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment) //u47/u35/u15?
 			{
-				if (likely(BIOS_ROMS[15])) //u34/u35 combination?
+				if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
-					{
-						*value = BIOS_ROMS[15][tempoffset]; //Give the value!
-						return 1;
-					}
+					*value = BIOS_ROMS[15][tempoffset]; //Give the value!
+					return 1;
 				}
 			}
-			else if (likely(BIOS_ROMS[13])) //u34/u35 combination?
+			else //u34/u35 combination?
 			{
 				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
 				{
@@ -1087,16 +1097,13 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (likely(BIOS_ROMS[47])) //Loaded?
+				if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
-					{
-						*value = BIOS_ROMS[47][tempoffset]; //Give the value!
-						return 1;
-					}
+					*value = BIOS_ROMS[47][tempoffset]; //Give the value!
+					return 1;
 				}
 			}
-			else if (likely(BIOS_ROMS[27])) //Loaded?
+			else //Loaded?
 			{
 				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
 				{
@@ -1111,16 +1118,13 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment &= 1; //Even=u27, Odd=u47
 			if (segment)
 			{
-				if (likely(BIOS_ROMS[35])) //u34/u35 combination?
+				if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
 				{
-					if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
-					{
-						*value = BIOS_ROMS[35][tempoffset]; //Give the value!
-						return 1;
-					}
+					*value = BIOS_ROMS[35][tempoffset]; //Give the value!
+					return 1;
 				}
 			}
-			else if (likely(BIOS_ROMS[34])) //u34/u35 combination?
+			else //u34/u35 combination?
 			{
 				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
 				{
