@@ -33,6 +33,18 @@
 #define ATAPI_DISKCHANGEINSERTED 1
 //The disk change timer is finished, backend disk is ready to use again:
 #define ATAPI_DISKCHANGEUNCHANGED 2
+//Using the dynamic ATAPI disk loading/spin/unloading process?
+#define ATAPI_DYNAMICLOADINGPROCESS 3
+
+enum
+{
+	ATAPI_SPINDOWN=0,
+	ATAPI_SPINUP=1
+};
+
+//Some timeouts for the spindown/spinup timing!
+#define ATAPI_SPINDOWN_TIMEOUT 100000.0
+#define ATAPI_SPINUP_TIMEOUT 100000.0
 
 //What has happened during a ATAPI_DISKCHANGETIMEOUT?
 
@@ -107,6 +119,9 @@ struct
 
 		byte diskInserted; //Is the disk even inserted, from the CD-ROM-drive perspective(isn't inserted when 0, inserted only when both this and backend is present)?
 		byte ATAPI_diskChanged; //Is the disk changed, from the CD-ROM-drive perspective(not ready becoming ready)?
+
+		byte PendingLoadingMode; //What loading mode is to be applied? Defaulting to 0=Idle!
+		byte PendingSpinType; //What type to execute(spindown/up)?
 
 		struct
 		{
@@ -431,6 +446,67 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 	//Don't handle removed?
 }
 
+void ATAPI_dynamicloadingprocess_spindown(byte channel, byte drive)
+{
+	switch (ATA[channel].Drive[drive].PendingLoadingMode)
+	{
+	case LOAD_DISC_READIED:
+	case LOAD_READY:
+		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_IDLE; //Becoming idle!
+		break;
+	default:
+		break;
+	}
+}
+
+void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
+{
+	switch (ATA[channel].Drive[drive].PendingLoadingMode)
+	{
+	case LOAD_INSERT_CD:
+		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING; //Start loading!
+		ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin down!
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINUP_TIMEOUT; //Timeout to spinup complete!
+		ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+		break;
+	default:
+		break;
+	}
+}
+
+void ATAPI_dynamicloadingprocess_SpinUpComplete(byte channel, byte drive)
+{
+	switch (ATA[channel].Drive[drive].PendingLoadingMode)
+	{
+	case LOAD_DISC_LOADING:
+		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_READIED; //Start loading!
+		ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //Spin down!
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWN_TIMEOUT; //Timeout to spindown!
+		ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+		break;
+	default:
+		break;
+	}
+}
+
+void ATAPI_dynamicloadingprocess(byte channel, byte drive)
+{
+	byte newloadingmode;
+	newloadingmode = ATA[channel].Drive[drive].PendingLoadingMode; //What loading mode to apply now?
+	ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on, by default!
+	switch (ATA[channel].Drive[drive].PendingSpinType)
+	{
+	case ATAPI_SPINDOWN:
+		ATAPI_dynamicloadingprocess_spindown(channel,drive);
+		break;
+	case ATAPI_SPINUP:
+		ATAPI_dynamicloadingprocess_SpinUpComplete(channel,drive);
+		break;
+	default: //Unknown?
+		break;
+	}
+}
+
 void tickATADiskChange(byte channel, byte drive)
 {
 	if (ATA[channel].Drive[drive].commandstatus==0) //Ready for a new command?
@@ -453,13 +529,15 @@ void tickATADiskChange(byte channel, byte drive)
 			case ATAPI_DISKCHANGEINSERTED: //Inserted? Tick inserted, finish!
 				ATAPI_diskchangedhandler(channel,drive,1); //We're inserted!
 				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0; //No timer anymore!
+			case ATAPI_DYNAMICLOADINGPROCESS: //Dynamic loading process? Also triggered when a disk is inserted!
+				ATAPI_dynamicloadingprocess(channel,drive); //Apply the dynamic loading process! This also must clear the timer if becoming unused!
 				break;
 			default: //Finished by default(NOP)?
 				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
 				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0; //No timer anymore!
 				break;
 		}
+
 	}
 	else //Command still pending? We still pend as well!
 	{
@@ -3110,6 +3188,7 @@ void ATA_DiskChanged(int disk)
 				ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Add to pending timing!
 			}
 			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEREMOVED; //Start with being removed!
+			ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		}
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
