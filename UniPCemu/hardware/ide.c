@@ -126,6 +126,7 @@ struct
 		word driveparams[0x100]; //All drive parameters for a drive!
 		uint_32 current_LBA_address; //Current LBA address!
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
+		byte EnableMediaStatusNofication; //Enable Media Status Notification?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
@@ -2510,6 +2511,19 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		case 0x82: //Disable write cache!
 			//OK! Ignore!
 			break;
+		case 0x31: //Disable Media Status Notification
+			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
+			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication = 0; //Disable the status notification!
+			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 0; //Leave us in an unlocked state!
+			break;
+		case 0x95: //Enable Media Status Notification
+			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Version 0!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication?1:0); //Media Status Notification was enabled?
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 2; //Are we lockable?
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media?
+			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication = 1; //Enable the status notification!
+			break;
 		default: //Invalid feature!
 #ifdef ATA_LOG
 			dolog("ATA", "Invalid feature set: %02X", ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features);
@@ -3008,17 +3022,20 @@ void ATA_DiskChanged(int disk)
 	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
 	{
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_ATA,1); //We've changed media!
-		ATA[disk_channel].Drive[disk_ATA].isSpinning = 1;
-		//Disable the IRQ for now to let the software know we've changed!
-		if (!ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout) //Not already pending?
+		ATA[disk_channel].Drive[disk_ATA].isSpinning = 1; //We're spinning automatically, since the media has been inserted!
+		if (ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNofication) //Enabled Media Status notification? Notifify the software we've changed!
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //New timer!
+			//Disable the IRQ for now to let the software know we've changed!
+			if (!ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout) //Not already pending?
+			{
+				ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //New timer!
+			}
+			else
+			{
+				ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Add to pending timing!
+			}
+			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEREMOVED; //Start with being removed!
 		}
-		else
-		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Add to pending timing!
-		}
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEREMOVED; //Start with being removed!
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
