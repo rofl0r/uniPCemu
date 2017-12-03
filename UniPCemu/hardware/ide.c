@@ -43,8 +43,9 @@ enum
 };
 
 //Some timeouts for the spindown/spinup timing!
-#define ATAPI_SPINDOWN_TIMEOUT 100000.0
-#define ATAPI_SPINUP_TIMEOUT 100000.0
+#define ATAPI_SPINDOWN_TIMEOUT 10000000000.0
+#define ATAPI_SPINUP_TIMEOUT 1000000000.0
+#define ATAPI_INSERTION_TIME 4000000000.0
 
 //What has happened during a ATAPI_DISKCHANGETIMEOUT?
 
@@ -3235,13 +3236,13 @@ void ATA_DiskChanged(int disk)
 		//Disable the IRQ for now to let the software know we've changed!
 		if (!ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout) //Not already pending?
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //New timer!
+			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Add to pending timing!
+			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
 		}
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEREMOVED; //Start with being removed!
+		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
 	}
