@@ -106,6 +106,7 @@ struct
 		byte SensePacket[0x10]; //Data of a request sense packet.
 
 		byte diskInserted; //Is the disk even inserted, from the CD-ROM-drive perspective(isn't inserted when 0, inserted only when both this and backend is present)?
+		byte ATAPI_diskChanged; //Is the disk changed, from the CD-ROM-drive perspective(not ready becoming ready)?
 
 		struct
 		{
@@ -126,7 +127,7 @@ struct
 		word driveparams[0x100]; //All drive parameters for a drive!
 		uint_32 current_LBA_address; //Current LBA address!
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
-		byte EnableMediaStatusNofication; //Enable Media Status Notification?
+		byte EnableMediaStatusNotification; //Enable Media Status Notification?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
@@ -400,10 +401,18 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 	if (inserted) //Inserted?
 	{
 		ATA[channel].Drive[drive].diskInserted = 1; //We're inserted!
-		ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
-		ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
-		ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-		ATA_IRQ(channel,drive); //Raise an IRQ!
+		if (ATA[channel].Drive[drive].EnableMediaStatusNotification) //Enabled the notification of media being inserted?
+		{
+			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
+			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
+			ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
+			ATA_IRQ(channel,drive); //Raise an IRQ!
+		}
+		else //ATAPI drive might have something to do now?
+		{
+			ATA[channel].Drive[drive].ATAPI_diskChanged = 1; //We've been changed!
+			ATA[channel].Drive[drive].ATAPI_diskchangepending = 3; //Special: disk inserted sense packet only!
+		}
 	}
 	else //Not inserted anymore, if inserted?
 	{
@@ -1796,6 +1805,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
 		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+		if (ATA[channel].Drive[drive].ATAPI_diskChanged) //Are we changed?
+		{
+			abortreason = SENSE_NOT_READY; additionalsensecode = 4; goto ATAPI_invalidcommand;
+		}
 		ATA[channel].Drive[drive].preventMediumRemoval = (ATA[channel].Drive[drive].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
@@ -2227,7 +2240,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "ACNMEDIACHANGE:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
-		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		switch (ATA_Drives[channel][ATA_activeDrive(channel)]) //What kind of drive?
 		{
 		case CDROM0:
@@ -2476,22 +2488,18 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "GETMEDIASTATUS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
-		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Not a CD-ROM drive?
+		drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
+		if (is_mounted(drive)) //Drive inserted?
 		{
-			drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
-			if (is_mounted(drive)) //Drive inserted?
-			{
-				ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
-			}
-			else
-			{
-				ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),0); //Are we read-only!
-			}
-			ATA_ERRORREGISTER_MEDIACHANGEDW(channel,ATA_activeDrive(channel),0); //Not anymore!
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
-			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
+			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
 		}
-		else goto invalidcommand;
+		else
+		{
+			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),0); //Are we read-only!
+		}
+		ATA_ERRORREGISTER_MEDIACHANGEDW(channel,ATA_activeDrive(channel),0); //Not anymore!
+		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
 		break;
 	case 0xEF: //Set features (Mandatory)?
 #ifdef ATA_LOG
@@ -2513,16 +2521,16 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			break;
 		case 0x31: //Disable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
-			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication = 0; //Disable the status notification!
+			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 0; //Disable the status notification!
 			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 0; //Leave us in an unlocked state!
 			break;
 		case 0x95: //Enable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Version 0!
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication?1:0); //Media Status Notification was enabled?
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification?1:0); //Media Status Notification was enabled?
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 2; //Are we lockable?
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media?
-			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNofication = 1; //Enable the status notification!
+			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification!
 			break;
 		default: //Invalid feature!
 #ifdef ATA_LOG
@@ -3022,10 +3030,10 @@ void ATA_DiskChanged(int disk)
 	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
 	{
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_ATA,1); //We've changed media!
-		ATA[disk_channel].Drive[disk_ATA].isSpinning = 1; //We're spinning automatically, since the media has been inserted!
-		if (ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNofication) //Enabled Media Status notification? Notifify the software we've changed!
+		ATA[disk_channel].Drive[disk_ATA].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
+		//Disable the IRQ for now to let the software know we've changed!
+		if (is_mounted(disk)) //Are we mounted?
 		{
-			//Disable the IRQ for now to let the software know we've changed!
 			if (!ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout) //Not already pending?
 			{
 				ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //New timer!
