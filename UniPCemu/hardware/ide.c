@@ -39,7 +39,8 @@
 enum
 {
 	ATAPI_SPINDOWN=0,
-	ATAPI_SPINUP=1
+	ATAPI_SPINUP=1,
+	ATAPI_CDINSERTED=2
 };
 
 //Some timeouts for the spindown/spinup timing!
@@ -502,6 +503,9 @@ void ATAPI_dynamicloadingprocess(byte channel, byte drive)
 		break;
 	case ATAPI_SPINUP:
 		ATAPI_dynamicloadingprocess_SpinUpComplete(channel,drive);
+		break;
+	case ATAPI_CDINSERTED:
+		ATAPI_dynamicloadingprocess_CDinserted(channel,drive);
 		break;
 	default: //Unknown?
 		break;
@@ -3244,6 +3248,7 @@ void ATA_DiskChanged(int disk)
 		}
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
+		ATA[disk_channel].Drive[disk_ATA].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
