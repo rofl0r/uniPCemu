@@ -242,6 +242,10 @@ void updatePS2Keyboard(double timepassed)
 					{
 						Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //Delay until next response!
 					}
+					else
+					{
+						Keyboard.timeout = (double)0; //No delay, stop automatic response!
+					}
 				}
 				break;
 			case 0xEE: //Echo 0xEE!
