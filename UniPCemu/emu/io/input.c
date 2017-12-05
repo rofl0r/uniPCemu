@@ -1191,7 +1191,7 @@ void fill_keyboarddisplay() //Fills the display for displaying on-screen!
 		}
 
 		keyboard_display[KEYBOARD_NUMY-2][KEYBOARD_NUMX-2] = 'C'; //CAPS LOCK!
-		if (Keyboard.LEDS&2) //CAPSLOCK?
+		if (Keyboard.LEDS&4) //CAPSLOCK?
 		{
 			keyboard_attribute[KEYBOARD_NUMY-2][KEYBOARD_NUMX-2] = 3; //Special shift color active!
 		}
