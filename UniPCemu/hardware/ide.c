@@ -493,8 +493,6 @@ void ATAPI_dynamicloadingprocess_SpinUpComplete(byte channel, byte drive)
 
 void ATAPI_dynamicloadingprocess(byte channel, byte drive)
 {
-	byte newloadingmode;
-	newloadingmode = ATA[channel].Drive[drive].PendingLoadingMode; //What loading mode to apply now?
 	ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on, by default!
 	switch (ATA[channel].Drive[drive].PendingSpinType)
 	{
