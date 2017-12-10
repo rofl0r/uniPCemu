@@ -26,7 +26,7 @@
 #define VGA25MHZ 25175000.0
 //28MHz: VGA standard clock
 //#define VGA28MHZ (28.35 / 1.001)*1000000.0
-#define VGA28MHZ 28321000.0
+#define VGA28MHZ 28322000.0
 
 //Enable VGA I/O dump when recording? Also specifies the length to dump(in ns)!
 //#define VGAIODUMP 40000000.0f
