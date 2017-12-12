@@ -992,8 +992,11 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	}
 }
 
+byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
+
 void CPU_tickBIU()
 {
+	byte cyclebackup,stallBUSbackup;
 	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
 
 	//Determine memory waitstate first!
@@ -1023,11 +1026,30 @@ void CPU_tickBIU()
 		BIU_detectCycle(); //Detect the current cycle to execute!
 	}
 
-	BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
+	if (likely(useIPSclock==0)) //Not using IPS clocking?
+	{
+		BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
 
-	//Now we have the amount of cycles we're idling.
-	BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
-	cycleinfo->currentTimingHandler(); //Run the current handler!
+		//Now we have the amount of cycles we're idling.
+		BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
+		cycleinfo->currentTimingHandler(); //Run the current handler!
+	}
+	else
+	{
+		BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
+
+		cyclebackup = cycleinfo->cycles; //Save state!
+		stallBUSbackup = cycleinfo->cycles_stallBUS; //Save state!
+		for (;(cycleinfo->cycles|cycleinfo->cycles_stallBUS);) //Process all waiting cycles in one go(IPS clocking) for a small speedup!
+		{
+			//Now we have the amount of cycles we're idling.
+			BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
+			cycleinfo->currentTimingHandler(); //Run the current handler!
+			if (unlikely((cycleinfo->cycles==cyclebackup) && (cycleinfo->cycles_stallBUS==stallBUSbackup))) break; //We're not doing anything for some reason? Abort in that case(prevent hanging)!
+			cyclebackup = cycleinfo->cycles; //Save state!
+			stallBUSbackup = cycleinfo->cycles_stallBUS; //Save state!
+		}
+	}
 
 	CPU[activeCPU].cycles = 1; //Only take 1 cycle: we're cycle-accurate emulation of the BIU(and EU by extension, since we handle that part indirectly as well in our timings, resulting in the full CPU timings)!
 }

@@ -125,7 +125,7 @@ extern PIC i8259; //PIC processor!
 double MHZ14tick = (1000000000/(double)MHZ14); //Time of a 14 MHZ tick!
 double MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
 
-byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
+extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
 
 int emu_started = 0; //Emulator started (initEMU called)?
 
