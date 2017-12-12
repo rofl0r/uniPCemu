@@ -759,7 +759,7 @@ void updateSpeedLimit()
 			case CPU_NECV30: //First generation? Use 808X speed!
 				if (useIPSclock) //Using the IPS clock?
 				{
-					setCPUCycles(3000); //Default to 3000 cycles!
+					setCPUCycles(315); //Default to 315 cycles(4.77MHz)!
 				}
 				else
 				{
@@ -779,7 +779,24 @@ void updateSpeedLimit()
 			case CPU_PENTIUM: //586?
 				if (useIPSclock) //Using the IPS clock?
 				{
-					setCPUCycles(3000); //Unsupported so far! Default to 3000 cycles!
+					switch (EMULATED_CPU) //What CPU, if supported!
+					{
+					case CPU_80286: //80286 12.5MHz?
+						setCPUCycles(2750); //Supported so far! Default cycles!
+						break;
+					case CPU_80386: //80386 33MHz?
+						setCPUCycles(7800); //Supported so far! Default cycles!
+						break;
+					case CPU_80486: //80486 66MHz?
+						setCPUCycles(26800); //Supported so far! Default cycles!
+						break;
+					case CPU_PENTIUM: //Pentium 100MHz?
+						setCPUCycles(77000); //Supported so far! Default cycles!
+						break;
+					default: //Unknown?
+						setCPUCycles(3000); //Unsupported so far! Default to 3000 cycles!
+						break;
+					}
 				}
 				else
 				{
