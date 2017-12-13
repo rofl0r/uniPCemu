@@ -278,6 +278,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	}
 
 	CGAMDARenderer = CGAMDAEMULATION_RENDER(VGA)?1:0; //Render CGA/MDA style?
+	updateCGAMDARenderer(); //Update the renderer to behave in the correct way!
 
 	if ((whereupdated == (WHEREUPDATED_MISCOUTPUTREGISTER)) || FullUpdate) //Misc output register updated?
 	{

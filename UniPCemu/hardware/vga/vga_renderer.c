@@ -605,7 +605,7 @@ OPTINLINE void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 }
 
 //Blank handler!
-OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
@@ -613,7 +613,7 @@ OPTINLINE void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	++VGA->CRTC.x; //Next x!
 }
 
-OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Normally, we convert the pixel given using the VGA attribute, but in this case we need to apply NTSC conversion from reenigne.
@@ -625,7 +625,7 @@ OPTINLINE void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeIn
 	++VGA->CRTC.x; //Next x!
 }
 
-OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	uint_32 DACcolor; //The latched color!
 	INLINEREGISTER byte doublepixels=0;
@@ -687,7 +687,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	} while (--doublepixels); //Any pixels left to render?
 }
 
-OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
@@ -700,7 +700,7 @@ OPTINLINE void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequenc
 	++VGA->CRTC.x; //Next x!
 }
 
-OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
@@ -727,7 +727,7 @@ OPTINLINE void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, V
 	++VGA->CRTC.x; //Next x!
 }
 
-OPTINLINE void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Overscan!
@@ -745,6 +745,11 @@ void updateVGASequencer_Mode(VGA_Type *VGA)
 	VGA->precalcs.extrasignal = VGA->precalcs.graphicsmode?VGA_DISPLAYGRAPHICSMODE:0x0000; //Apply the current mode (graphics vs text mode)!
 }
 
+VGA_Sequencer_Mode activedisplay_noblanking_handler = NULL;
+VGA_Sequencer_Mode activedisplay_blank_handler = NULL;
+VGA_Sequencer_Mode overscan_noblanking_handler = NULL;
+VGA_Sequencer_Mode overscan_blank_handler = NULL;
+
 //Active display handler!
 void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
@@ -758,14 +763,7 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (CGAMDARenderer) //CGA rendering mode?
-	{
-		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
-	else
-	{
-		VGA_ActiveDisplay_noblanking_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
+	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
 
 void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -780,14 +778,7 @@ void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (CGAMDARenderer) //CGA rendering mode?
-	{
-		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
-	else //VGA renderer?
-	{
-		VGA_Blank_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
+	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
 
 void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -802,14 +793,7 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (CGAMDARenderer) //CGA rendering mode?
-	{
-		VGA_ActiveDisplay_noblanking_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
-	else
-	{
-		VGA_ActiveDisplay_noblanking_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
+	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
 
 void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -824,38 +808,35 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 
-	if (CGAMDARenderer) //CGA rendering mode?
-	{
-		VGA_Blank_CGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
-	else //VGA renderer?
-	{
-		VGA_Blank_VGA(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
-	}
+	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
 
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (CGAMDARenderer) //CGA rendering mode?
-	{
-		VGA_Overscan_noblanking_CGA(VGA,Sequencer,NULL); //Attribute info isn't used!
-	}
-	else //VGA renderer?
-	{
-		VGA_Overscan_noblanking_VGA(VGA, Sequencer, NULL); //Attribute info isn't used!
-	}
+	overscan_noblanking_handler(VGA,Sequencer,NULL); //Attribute info isn't used!
 }
 
 void VGA_Overscan_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	if (CGAMDARenderer) //CGA rendering mode?
+	overscan_blank_handler(VGA, Sequencer, NULL); //Attribute info isn't used!
+}
+
+void updateCGAMDARenderer() //Update the renderer to use!
+{
+	if (unlikely(CGAMDARenderer)) //CGA/MDA rendering mode?
 	{
-		VGA_Blank_CGA(VGA, Sequencer, NULL); //Attribute info isn't used!
+		activedisplay_noblanking_handler = &VGA_ActiveDisplay_noblanking_CGA; //Blank or active display!
+		activedisplay_blank_handler = &VGA_Blank_CGA; //Blank or active display!
+		overscan_noblanking_handler = &VGA_Overscan_noblanking_CGA; //Attribute info isn't used!
+		overscan_blank_handler = &VGA_Blank_CGA; //Attribute info isn't used!
 	}
-	else //VGA renderer?
+	else //VGA+ rendering mode?
 	{
-		VGA_Blank_VGA(VGA, Sequencer, NULL); //Attribute info isn't used!
+		activedisplay_noblanking_handler = &VGA_ActiveDisplay_noblanking_VGA; //Blank or active display!
+		activedisplay_blank_handler = &VGA_Blank_VGA; //Blank or active display!
+		overscan_noblanking_handler = &VGA_Overscan_noblanking_VGA; //Attribute info isn't used!
+		overscan_blank_handler = &VGA_Blank_VGA; //Attribute info isn't used!
 	}
 }
 
@@ -874,6 +855,8 @@ void initStateHandlers()
 	displayrenderhandler[1][0] = &VGA_NOP; //Default: no action!
 	displayrenderhandler[2][0] = &VGA_NOP; //Default: no action!
 	displayrenderhandler[3][0] = &VGA_NOP; //Default: no action!
+
+	updateCGAMDARenderer(); //Initialise the renderer for usage!
 
 	for (i=1;i<VGA_DISPLAYRENDERSIZE;i++) //Fill the normal entries!
 	{
