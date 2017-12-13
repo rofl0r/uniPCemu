@@ -568,17 +568,40 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //All renderers for active display parts:
 
 typedef void (*VGA_Sequencer_Mode)(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo); //Render an active display pixel!
+typedef void (*VGA_LightPen_Mode)(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed); //Light pen handler for the specified hardware!
 
 uint_32 CLUT16bit[0x10000]; //16-bit color lookup table!
 uint_32 CLUT15bit[0x10000]; //15-bit color lookup table!
 
+void VGA_LightPenHandler(word currentlocation, byte is_lightpenlocation, byte is_lightpenpressed)
+{
+	//Do nothing: VGA has no light pen support!
+}
+
+VGA_LightPen_Mode lightpenhandler = &VGA_LightPenHandler; //Light Pen Handler!
+
+void updateLightPenMode(VGA_Type *VGA)
+{
+	if (unlikely(VGA->enable_SVGA==3)) //EGA?
+	{
+		lightpenhandler = &EGA_checklightpen; //Check for anything requiring the lightpen on the EGA!
+	}
+	else if (unlikely(VGA->enable_SVGA==4)) //CGA/MDA?
+	{
+		lightpenhandler = &CGA_checklightpen; //Check for anything requiring the lightpen on the CGA!
+	}
+	else //VGA?
+	{
+		lightpenhandler = &VGA_LightPenHandler; //Use VGA light pen handler!
+	}
+}
+
 //drawnto: 0=GPU, 1=CGALineBuffer
-void video_updateLightPen(VGA_Type *VGA, byte drawnto)
+OPTINLINE void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 {
 	byte lightpen_triggered;
 	lightpen_triggered = ((lightpen_x==VGA->CRTC.x) && (lightpen_y==VGA->CRTC.y)); //Are we at the location specified by the lightpen on the CRT?
-	CGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the CGA!
-	EGA_checklightpen(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the EGA!
+	lightpenhandler(lightpen_currentvramlocation,lightpen_triggered,lightpen_pressed); //Check for anything requiring the lightpen on the device!
 }
 
 //Blank handler!

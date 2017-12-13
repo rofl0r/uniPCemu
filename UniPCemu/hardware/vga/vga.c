@@ -325,6 +325,7 @@ void startVGA() //Starts the current VGA! (See terminateVGA!)
 		getActiveVGA()->Terminated = DISABLE_VGA; //Reset termination flag, effectively starting the rendering!
 		VGA_calcprecalcs(getActiveVGA(),0); //Update full VGA to make sure we're running!
 		VGA_initBWConversion(); //Initialise B/W conversion data!
+		updateLightPenMode(getActiveVGA()); //Update the light pen mode for the selected hardware!
 	}
 }
 

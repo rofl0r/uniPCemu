@@ -97,5 +97,6 @@ void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
+void updateLightPenMode(VGA_Type *VGA);
 
 #endif
