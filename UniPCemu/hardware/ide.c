@@ -1418,7 +1418,7 @@ OPTINLINE void ATAPI_calculateByteCountLeft(byte channel)
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft) //Byte counter is running for this device?
 	{
 		--ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft; //Decrease the counter that's transferring!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft==0) //Finished transferring the subblock?
+		if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft==0) && (ATA[channel].Drive[ATA_activeDrive(channel)].datasize)) //Finished transferring the subblock and something left to transfer?
 		{
 			ATAPI_giveresultsize(channel,MIN((ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize)-ATA[channel].Drive[ATA_activeDrive(channel)].datapos,0xFFFE),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ); //Start waiting until we're to transfer the next subblock for the remaining data!
 		}
