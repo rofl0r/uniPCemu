@@ -121,6 +121,7 @@ struct
 
 		byte diskInserted; //Is the disk even inserted, from the CD-ROM-drive perspective(isn't inserted when 0, inserted only when both this and backend is present)?
 		byte ATAPI_diskChanged; //Is the disk changed, from the CD-ROM-drive perspective(not ready becoming ready)?
+		byte ATAPI_mediaChanged; //Has the inserted media been ejected or inserted?
 
 		byte PendingLoadingMode; //What loading mode is to be applied? Defaulting to 0=Idle!
 		byte PendingSpinType; //What type to execute(spindown/up)?
@@ -225,6 +226,16 @@ enum {
 #define ATAPI_ERRORREGISTER_ABRT(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~4)|((val&1)<<2))
 #define ATAPI_ERRORREGISTER_MCR(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~8)|((val&1)<<3))
 #define ATAPI_ERRORREGISTER_SENSEKEY(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0xF0)|((val&0xF)<<4))
+
+//ATAPI Media Status extension results!
+#define ATAPI_MEDIASTATUS_RSRVD(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~1)|(val&1))
+#define ATAPI_MEDIASTATUS_NOMED(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~2)|((val&1)<<1))
+#define ATAPI_MEDIASTATUS_RSRVD2(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~4)|((val&1)<<2))
+#define ATAPI_MEDIASTATUS_MCR(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~8)|((val&1)<<3))
+#define ATAPI_MEDIASTATUS_RSRVD3(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x10)|((val&1)<<4))
+#define ATAPI_MEDIASTATUS_MC(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x20)|((val&1)<<5))
+#define ATAPI_MEDIASTATUS_WT_PT(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x40)|((val&1)<<6))
+#define ATAPI_MEDIASTATUS_RSRVD4(channel,drive,val) ATA[channel].Drive[drive].ERRORREGISTER=((ATA[channel].Drive[drive].ERRORREGISTER&~0x80)|((val&1)<<7))
 
 //ATAPI Sense Packet
 
@@ -2693,15 +2704,22 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "GETMEDIASTATUS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
+		ATAPI_MEDIASTATUS_RSRVD(channel,ATA_activeDrive(channel),0); //Reserved!
+		ATAPI_MEDIASTATUS_RSRVD2(channel,ATA_activeDrive(channel),0); //Reserved!
+		ATAPI_MEDIASTATUS_RSRVD3(channel,ATA_activeDrive(channel),0); //Reserved!
+		ATAPI_MEDIASTATUS_RSRVD4(channel,ATA_activeDrive(channel),0); //Reserved!
+		ATAPI_MEDIASTATUS_NOMED(channel,ATA_activeDrive(channel),is_mounted(drive)?0:1); //No media?
+		ATAPI_MEDIASTATUS_MCR(channel,ATA_activeDrive(channel),0); //Media change requests aren't supported yet?
+		ATAPI_MEDIASTATUS_MC(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
 		if (is_mounted(drive)) //Drive inserted?
 		{
-			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
+			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
 		}
 		else
 		{
-			ATA_ERRORREGISTER_UNCORRECTABLEDATAW(channel,ATA_activeDrive(channel),0); //Are we read-only!
+			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),0); //Are we read-only!
 		}
-		ATA_ERRORREGISTER_MEDIACHANGEDW(channel,ATA_activeDrive(channel),0); //Not anymore!
 		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
 		break;
@@ -3248,6 +3266,7 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		ATA[disk_channel].Drive[disk_ATA].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
+		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged = 1; //Media has been changed()?
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
@@ -3321,6 +3340,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = (1<<4); //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
 			ATA[disk_channel].Drive[disk_ATA].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
 			ATA[disk_channel].Drive[disk_ATA].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
+			ATA[disk_channel].Drive[disk_ATA].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
 		}
 		ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
 		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
