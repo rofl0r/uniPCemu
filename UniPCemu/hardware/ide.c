@@ -1892,7 +1892,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
 		ATA[channel].Drive[drive].datablock = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
-		memset(ATA[channel].Drive[drive].data,0,ATA[channel].Drive[drive].datablock); //Clear the result!
+		memset(&ATA[channel].Drive[drive].data,0,ATA[channel].Drive[drive].datablock); //Clear the result!
 		//Now fill the packet with data!
 		ATA[channel].Drive[drive].data[0] = 0x05; //We're a CD-ROM drive!
 		ATA[channel].Drive[drive].data[1] = 0x80; //We're always removable!
@@ -1911,7 +1911,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
 		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
-		memset(ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
+		memset(&ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 2; //Transferring data OUT!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
@@ -1922,7 +1922,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
-		memset(ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
+		memset(&ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN for the result!
 
@@ -2130,7 +2130,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Allocation length!
 			ret_len = 4;
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			memset(ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
+			memset(&ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
 			ATA[channel].Drive[drive].data[0] = 0;
 			ATA[channel].Drive[drive].data[1] = 0; //audio not supported
 			ATA[channel].Drive[drive].data[2] = 0;
@@ -3347,8 +3347,8 @@ void initATA()
 
 	//We don't implement DMA: this is done by our own DMA controller!
 	//First, detect HDDs!
-	memset(ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
-	memset(ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
+	memset(&ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
+	memset(&ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
 	byte CDROM_channel = 1; //CDROM is the second channel by default!
 	if (is_mounted(HDD0)) //Have HDD0?
 	{
