@@ -5,7 +5,7 @@ void initATA();
 void cleanATA(); //ATA timing reset!
 void updateATA(double timepassed); //ATA timing!
 
-byte ATA_allowDiskChange(int disk); //Are we allowing this disk to be changed?
+byte ATA_allowDiskChange(int disk, byte ejectRequested); //Are we allowing this disk to be changed?
 
 //Geometry detection support for harddisks!
 word get_SPT(int disk, uint_64 disk_size);

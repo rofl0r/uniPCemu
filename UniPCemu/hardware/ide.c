@@ -147,6 +147,8 @@ struct
 		byte Enable8BitTransfers; //Enable 8-bit transfers?
 		byte EnableMediaStatusNotification; //Enable Media Status Notification?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
+		byte allowDiskInsertion; //Allow a disk to be inserted?
+		byte MediumChangeRequested; //Is the user requesting the drive to be ejected?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
@@ -1395,7 +1397,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	return 0; //We're finished!
 }
 
-byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
+//ejectRequested: 0=Normal behaviour, 1=Eject/mount from disk mounting request, 2=Eject from CPU.
+byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this disk to be changed?
 {
 	byte disk_ATA, disk_channel, disk_nr;
 	switch (disk) //What disk?
@@ -1418,7 +1421,11 @@ byte ATA_allowDiskChange(int disk) //Are we allowing this disk to be changed?
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
 	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
-	return !ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval; //Are we not preventing removal of this medium?
+	if ((ejectRequested==1) && ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNotification) //Requesting eject button from user while media status notification is enabled(the OS itself handes us)?
+	{
+		ATA[disk_channel].Drive[disk_ATA].MediumChangeRequested = 1; //We're requesting the medium to change!
+	}
+	return (!(ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_ATA].allowDiskInsertion); //Are we not preventing removal of this medium?
 }
 
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
@@ -2261,9 +2268,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].isSpinning = 1; //We're running now!
 			break;
 		case 2: //Eject the disc if possible?
-			if (ATA_allowDiskChange(ATA_Drives[channel][drive]) && (!ATA[channel].Drive[drive].isSpinning)) //Do we allow the disc to be changed? Don't allow ejecting when running!
+			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2) && (!ATA[channel].Drive[drive].isSpinning)) //Do we allow the disc to be changed? Don't allow ejecting when running!
 			{
 				requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
+				ATA[channel].Drive[channel].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
 			}
 			else //Not allowed to change?
 			{
@@ -2709,7 +2717,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATAPI_MEDIASTATUS_RSRVD3(channel,ATA_activeDrive(channel),0); //Reserved!
 		ATAPI_MEDIASTATUS_RSRVD4(channel,ATA_activeDrive(channel),0); //Reserved!
 		ATAPI_MEDIASTATUS_NOMED(channel,ATA_activeDrive(channel),is_mounted(drive)?0:1); //No media?
-		ATAPI_MEDIASTATUS_MCR(channel,ATA_activeDrive(channel),0); //Media change requests aren't supported yet?
+		ATAPI_MEDIASTATUS_MCR(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
 		ATAPI_MEDIASTATUS_MC(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
 		if (is_mounted(drive)) //Drive inserted?
@@ -2745,14 +2753,17 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 0; //Disable the status notification!
 			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 0; //Leave us in an unlocked state!
+			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = 1; //Allow disk insertion always now?
 			break;
 		case 0x95: //Enable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Version 0!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification?1:0); //Media Status Notification was enabled?
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 2; //Are we lockable?
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media?
-			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media, in other words: are we locking the media and leaving the ejection mechanism to the OS(only set when not under software control, e.g. lever of floppy disk drives)?
+			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification(report medium change requests)!
+			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 1; //Prevent Medium Removal, to facilitate Medium Change Requests!
+			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = !is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)]); //Allow disk insertion?
 			break;
 		default: //Invalid feature!
 #ifdef ATA_LOG
@@ -3422,6 +3433,8 @@ void initATA()
 	ATA_DiskChanged(CDROM1); //Init HDD1!
 	ATA[CDROM_channel].Drive[0].diskInserted = is_mounted(CDROM0); //Init Mounted and inserted?
 	ATA[CDROM_channel].Drive[1].diskInserted = is_mounted(CDROM1); //Init Mounted and inserted?
+	ATA[CDROM_channel].Drive[0].allowDiskInsertion = 1; //Allow disk insertion!
+	ATA[CDROM_channel].Drive[1].allowDiskInsertion = 1; //Allow disk insertion!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
 	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!

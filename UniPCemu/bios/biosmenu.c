@@ -1289,7 +1289,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
-	if (ATA_allowDiskChange(CDROM0)) //Allowed to change?
+	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
 	{
 		BIOS_Title("Mount First CD-ROM");
 		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
@@ -1339,7 +1339,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 	case CDROM0: //CD-ROM0?
 		if (strcmp(BIOS_Settings.cdrom0, "")==0) //Specified?
 		{
-			if (ATA_allowDiskChange(disk)) //Allowed to be changed?
+			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
 				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
 				ejected = 1; //We're ejected!
@@ -1349,7 +1349,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 	case CDROM1: //CD-ROM1?
 		if (strcmp(BIOS_Settings.cdrom1, "")==0) //Specified?
 		{
-			if (ATA_allowDiskChange(disk)) //Allowed to be changed?
+			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
 				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
 				ejected = 1; //We're ejected!
@@ -1369,7 +1369,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
-	if (ATA_allowDiskChange(CDROM0)) //Allowed to change?
+	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
 	{
 		BIOS_Title("Mount Second CD-ROM");
 		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
