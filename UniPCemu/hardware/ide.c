@@ -122,6 +122,7 @@ struct
 		byte diskInserted; //Is the disk even inserted, from the CD-ROM-drive perspective(isn't inserted when 0, inserted only when both this and backend is present)?
 		byte ATAPI_diskChanged; //Is the disk changed, from the CD-ROM-drive perspective(not ready becoming ready)?
 		byte ATAPI_mediaChanged; //Has the inserted media been ejected or inserted?
+		byte ATAPI_mediaChanged2; //Has the inserted media been ejected or inserted?
 
 		byte PendingLoadingMode; //What loading mode is to be applied? Defaulting to 0=Idle!
 		byte PendingSpinType; //What type to execute(spindown/up)?
@@ -611,6 +612,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			if (spinupdown)
 			{
 				ATA[channel].Drive[drive].ATAPI_diskChanged = 0; //Not changed anymore!
+				ATA[channel].Drive[drive].ATAPI_mediaChanged2 = 0; //Not changed anymore!
 			}
 			ATAPI_SET_SENSE(channel,drive,0x02,0x28,0x00); //Medium is ready (has changed)
 			return 0;
@@ -1475,6 +1477,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			case 0x42: //Read sub-channel (mandatory)?
 			case 0x43: //Read TOC (mandatory)?
 			case 0x44: //Read header (mandatory)?
+			case 0xBD: //Mechanism status(mandatory)
 				result = ATA[channel].Drive[ATA_activeDrive(channel)].data[ATA[channel].Drive[ATA_activeDrive(channel)].datapos++]; //Read the data byte!
 				if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 				{
@@ -2333,6 +2336,23 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].data[5] = 8;
 		ATA[channel].Drive[drive].data[6] = 0;
 		ATA[channel].Drive[drive].data[7] = 0; //We're 4096 byte sectors!
+		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
+		break;
+	case 0xBD: //Mechanism status(mandatory)
+		ATA[channel].Drive[drive].datablock = MIN((ATA[channel].Drive[drive].ATAPI_PACKET[8] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]),12); //How much data to transfer
+		ATA[channel].Drive[drive].datapos = 0; //Start of data!
+		ATA[channel].Drive[drive].datasize = 1; //Number of blocks of information to transfer!
+		memset(&ATA[channel].Drive[drive].data,0,12); //Init data to zero!
+		ATA[channel].Drive[drive].data[0] |= (0<<5); //Always ready!
+		ATA[channel].Drive[drive].data[1] |= (0<<4)|(0<<5); //Bit4=door open, bit5-7=0:idle,1:playing,2:scanning,7:initializing
+		//result 2-4=current LBA
+		ATA[channel].Drive[drive].data[5] = 1; //number of slots available(5 bits)
+		ATA[channel].Drive[drive].data[6] = 0; //Length of slot tables(msb)
+		ATA[channel].Drive[drive].data[7] = 4; //Length of slot tables(lsb)
+		//Slot table entry(size: 4 bytes)
+		ATA[channel].Drive[drive].data[8] = (((is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)?0x80:0x00)|(ATA[channel].Drive[drive].ATAPI_mediaChanged2?1:0)); //Bit0=disk changed(since last load), Bit 8=Disk present
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
@@ -3277,7 +3297,8 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		ATA[disk_channel].Drive[disk_ATA].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged = 1; //Media has been changed()?
+		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
+		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
