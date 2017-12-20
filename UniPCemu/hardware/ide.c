@@ -599,7 +599,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		break;
 	case LOAD_DISC_LOADING:
 		applyDiscLoadingState:
-		if (ATA[channel].Drive[drive].ATAPI_diskChanged && (dowait==0))
+		if ((ATA[channel].Drive[drive].ATAPI_diskChanged || ATA[channel].Drive[drive].ATAPI_mediaChanged2) && (dowait==0))
 		{
 			ATAPI_SET_SENSE(channel,drive,0x02,0x04,0x01); //Medium is becoming available
 			return 0;
@@ -607,7 +607,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		break;
 	case LOAD_DISC_READIED:
 		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_READY;
-		if (ATA[channel].Drive[drive].ATAPI_diskChanged)
+		if (ATA[channel].Drive[drive].ATAPI_diskChanged || ATA[channel].Drive[drive].ATAPI_mediaChanged2)
 		{
 			if (spinupdown)
 			{
