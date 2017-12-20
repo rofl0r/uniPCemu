@@ -3309,6 +3309,7 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
+		ATA[disk_channel].Drive[disk_ATA].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_ATA]); //Are we inserted from the emulated point of view?
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
