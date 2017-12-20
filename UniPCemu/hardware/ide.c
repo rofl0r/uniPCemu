@@ -1805,9 +1805,9 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 
 void ATAPI_command_reportError(byte channel, byte slave)
 {
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 3;
+	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 3; //Interrupt reason!
 	//State=Ready?
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.features = ((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)?4 /* abort? */ :0);
+	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = ((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)?4 /* abort? */ :0);
 	ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 	ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF) //Error?
