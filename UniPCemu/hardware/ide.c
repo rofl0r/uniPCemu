@@ -1423,7 +1423,7 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
 	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
-	if ((ejectRequested==1) && ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNotification) //Requesting eject button from user while media status notification is enabled(the OS itself handes us)?
+	if ((ejectRequested==1) && (ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNotification|(ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval&2))) //Requesting eject button from user while media status notification is enabled(the OS itself handes us) or locked by ATAPI?
 	{
 		ATA[disk_channel].Drive[disk_ATA].MediumChangeRequested = 1; //We're requesting the medium to change!
 	}
@@ -2005,7 +2005,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			abortreason = SENSE_NOT_READY; additionalsensecode = 4; goto ATAPI_invalidcommand;
 		}
-		ATA[channel].Drive[drive].preventMediumRemoval = (ATA[channel].Drive[drive].ATAPI_PACKET[4]&1); //Are we preventing the storage medium to be removed?
+		ATA[channel].Drive[drive].preventMediumRemoval = (ATA[channel].Drive[drive].preventMediumRemoval&~2)|((ATA[channel].Drive[drive].ATAPI_PACKET[4]&1)<<1); //Are we preventing the storage medium to be removed?
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 		ATAPI_giveresultsize(channel,0,1); //No result size! Raise and interrupt to end the transfer after busy!
@@ -2740,6 +2740,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATAPI_MEDIASTATUS_MCR(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
 		ATAPI_MEDIASTATUS_MC(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
+		ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested = 0; //Requesting the medium to change is only reported once!
 		if (is_mounted(drive)) //Drive inserted?
 		{
 			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
@@ -2772,7 +2773,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		case 0x31: //Disable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 0; //Disable the status notification!
-			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 0; //Leave us in an unlocked state!
+			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval &= ~1; //Leave us in an unlocked state!
 			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = 1; //Allow disk insertion always now?
 			break;
 		case 0x95: //Enable Media Status Notification
@@ -2782,7 +2783,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 2; //Are we lockable?
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media, in other words: are we locking the media and leaving the ejection mechanism to the OS(only set when not under software control, e.g. lever of floppy disk drives)?
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification(report medium change requests)!
-			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval = 1; //Prevent Medium Removal, to facilitate Medium Change Requests!
+			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval |= 1; //Prevent Medium Removal, to facilitate Medium Change Requests!
 			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = !is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)]); //Allow disk insertion?
 			break;
 		default: //Invalid feature!
