@@ -575,6 +575,7 @@ void ATAPI_SET_SENSE(byte channel, byte drive, byte SK,byte ASC,byte ASCQ)
 	ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SK);
 	ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC);
 	ATAPI_SENSEPACKET_ASCQW(channel,drive,ASCQ);
+	ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Error to report!
 }
 
 byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte dowait)
@@ -1813,14 +1814,14 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF) //Error?
 	{
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1);
-		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0);
 	}
 	else
 	{
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0);
-		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1);
 	}
-	ATA_IRQ(channel,slave); //Raise the IRQ!
+	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //No service(when enabled), nor drive seek complete!
+	ATA[channel].Drive[slave].commandstatus = 0xFF; //Move to error mode!
+	ATAPI_giveresultsize(channel,0,1); //No result size!
 }
 
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
@@ -1871,7 +1872,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
+			ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //We're invalid!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //OK!
 			ATAPI_giveresultsize(channel,0,1); //No result size!
