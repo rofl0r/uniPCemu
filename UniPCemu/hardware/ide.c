@@ -526,11 +526,11 @@ void ATAPI_dynamicloadingprocess(byte channel, byte drive)
 
 void tickATADiskChange(byte channel, byte drive)
 {
-	if (ATA[channel].Drive[drive].commandstatus==0) //Ready for a new command?
+	switch (ATA[channel].Drive[drive].ATAPI_diskchangeDirection) //What action to take?
 	{
-		switch (ATA[channel].Drive[drive].ATAPI_diskchangeDirection) //What action to take?
-		{
-			case ATAPI_DISKCHANGEREMOVED: //Removed? Tick removed, pend inserted when inserted!
+		case ATAPI_DISKCHANGEREMOVED: //Removed? Tick removed, pend inserted when inserted!
+			if (ATA[channel].Drive[drive].commandstatus==0) //Ready for a new command?
+			{
 				ATAPI_diskchangedhandler(channel,drive,0); //We're removed!
 				if (is_mounted(ATA_Drives[channel][drive])) //Are we mounted? Simulate a disk being inserted very soon!
 				{
@@ -542,23 +542,30 @@ void tickATADiskChange(byte channel, byte drive)
 					ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
 					ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0; //No timer anymore!
 				}
-				break;
-			case ATAPI_DISKCHANGEINSERTED: //Inserted? Tick inserted, finish!
+			}
+			else //Command still pending? We still pend as well!
+			{
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			}
+			break;
+		case ATAPI_DISKCHANGEINSERTED: //Inserted? Tick inserted, finish!
+			if (ATA[channel].Drive[drive].commandstatus==0) //Ready for a new command?
+			{
 				ATAPI_diskchangedhandler(channel,drive,1); //We're inserted!
 				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
-			case ATAPI_DYNAMICLOADINGPROCESS: //Dynamic loading process? Also triggered when a disk is inserted!
-				ATAPI_dynamicloadingprocess(channel,drive); //Apply the dynamic loading process! This also must clear the timer if becoming unused!
-				break;
-			default: //Finished by default(NOP)?
-				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0; //No timer anymore!
-				break;
-		}
-
-	}
-	else //Command still pending? We still pend as well!
-	{
-		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			}
+			else //Command still pending? We still pend as well!
+			{
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			}
+			break;
+		case ATAPI_DYNAMICLOADINGPROCESS: //Dynamic loading process? Also triggered when a disk is inserted!
+			ATAPI_dynamicloadingprocess(channel,drive); //Apply the dynamic loading process! This also must clear the timer if becoming unused!
+			break;
+		default: //Finished by default(NOP)?
+			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
+			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0; //No timer anymore!
+			break;
 	}
 }
 
