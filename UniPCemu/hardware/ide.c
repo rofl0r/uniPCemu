@@ -1848,27 +1848,32 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x00: //TEST UNIT READY(Mandatory)?
 		if (ATAPI_common_spin_response(channel,drive,0,0)) //Common response OK?
 		{
+			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			//Valid disk loaded?
+			ATA[channel].Drive[drive].ERRORREGISTER = 0; //Clear error register!
 			//Clear sense packet?
+			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
+			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
+			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
+			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
+			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[channel].Drive[drive].commandstatus = 0; //OK!
+			ATAPI_giveresultsize(channel,0,1); //No result size!
 		}
-		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-		//Valid disk loaded?
-		ATA[channel].Drive[drive].ERRORREGISTER = 0; //Clear error register!
-		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
-		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
-		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
-		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
-		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[drive].commandstatus = 0; //OK!
-		ATAPI_giveresultsize(channel,0,1); //No result size!
+		else //Report error!
+		{
+			ATAPI_command_reportError(channel,drive); //Report the error!
+			aborted = 1; //We're aborted!
+		}
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
 		//if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
@@ -2189,6 +2194,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
+			aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x43: //Read TOC (mandatory)?
@@ -2226,6 +2232,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
+			aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x2B: //Seek (Mandatory)?
@@ -2251,6 +2258,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
+			aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
@@ -2319,6 +2327,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
+			aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
