@@ -246,8 +246,8 @@ enum {
 #define ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0]=((ATA[channel].Drive[drive].SensePacket[0]&~0x7F)|(val&0x7F))
 #define ATAPI_SENSEPACKET_VALIDW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[0]=((ATA[channel].Drive[drive].SensePacket[0]&~0x80)|((val&1)<<7))
 #define ATAPI_SENSEPACKET_RESERVED1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[1]=val
-#define ATAPI_SENSEPACKET_REVERVED2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF)|(val&0xF))
-#define ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF0)|((val&0xF)<<4))
+#define ATAPI_SENSEPACKET_REVERVED2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF0)|((val&0xF)<<4))
+#define ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF)|(val&0xF))
 #define ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[3]=val
 #define ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[4]=val
 #define ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[5]=val
@@ -1806,20 +1806,20 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 
 void ATAPI_command_reportError(byte channel, byte slave)
 {
-	ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 3; //Interrupt reason!
+	ATA[channel].Drive[slave].PARAMETERS.sectorcount = 3; //Interrupt reason!
 	//State=Ready?
-	ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = ((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF)?4 /* abort? */ :0);
-	ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-	ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
+	ATA[channel].Drive[slave].ERRORREGISTER = ((ATA[channel].Drive[slave].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[slave].SensePacket[2]&0xF)?4 /* abort? */ :0);
+	ATA[channel].Drive[slave].commandstatus = 0xFF; //Error!
+	ATA_STATUSREGISTER_DRIVEREADYW(channel,slave,1); //Ready!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF) //Error?
 	{
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1);
+		ATA_STATUSREGISTER_ERRORW(channel,slave,1);
 	}
 	else
 	{
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0);
+		ATA_STATUSREGISTER_ERRORW(channel,slave,0);
 	}
-	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //No service(when enabled), nor drive seek complete!
+	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,slave,0); //No service(when enabled), nor drive seek complete!
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Move to error mode!
 	ATAPI_giveresultsize(channel,0,1); //No result size!
 }
@@ -1895,7 +1895,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
-			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,(0x70|(1<<7))); //Default error code?
+			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
 			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
