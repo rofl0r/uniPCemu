@@ -140,7 +140,7 @@ extern uint_32 CPU_exec_EIP; //OPCode EIP
 
 void CPU_IRET()
 {
-	word V86SegRegs[5]; //All V86 mode segment registers!
+	word V86SegRegs[4]; //All V86 mode segment registers!
 	byte V86SegReg; //Currently processing segment register!
 	byte oldCPL = getCPL(); //Original CPL
 	word tempCS, tempSS;
