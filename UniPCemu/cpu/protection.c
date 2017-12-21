@@ -442,7 +442,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 		}
 		else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory!
 		{
-			memcpy(&container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
+			memcpy(container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
 			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
 		}
 	}
