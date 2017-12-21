@@ -177,7 +177,7 @@ void CPU_IRET()
 			//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
 			if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
 			{
-				if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit operand size?
+				if (CPU_Operand_size[activeCPU]) //32-bit operand size?
 				{
 					if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
 					destEIP = CPU_POP32();
@@ -221,7 +221,7 @@ void CPU_IRET()
 		else //Normal IRET?
 		{
 			uint_32 tempesp;
-			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+			if (CPU_Operand_size[activeCPU]) //32-bit?
 			{
 				if (checkStackAccess(3,0,1)) return; //Top 12 bytes!
 			}
@@ -230,7 +230,7 @@ void CPU_IRET()
 				if (checkStackAccess(3,0,0)) return; //Top 6 bytes!
 			}
 			
-			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
 				destEIP = CPU_POP32(); //POP EIP!
 			}
@@ -238,8 +238,8 @@ void CPU_IRET()
 			{
 				destEIP = (uint_32)CPU_POP16(0); //POP IP!
 			}
-			tempCS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT()); //CS to be loaded!
-			if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit mode?
+			tempCS = CPU_POP16(CPU_Operand_size[activeCPU]); //CS to be loaded!
+			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
 				tempEFLAGS = CPU_POP32(); //Pop flags!
 			}
