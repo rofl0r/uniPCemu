@@ -2609,7 +2609,7 @@ void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*P
 
 void CPU80386_OP9D_16() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) THROWDESCGP(0,0,0); //#GP fault!
+	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; } //#GP fault!
 	static word tempflags;
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
@@ -2624,7 +2624,7 @@ void CPU80386_OP9D_16() {
 
 void CPU80386_OP9D_32() {
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) THROWDESCGP(0,0,0); //#GP fault!
+	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; }//#GP fault!
 	static uint_32 tempflags;
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
