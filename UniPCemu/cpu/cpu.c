@@ -1360,7 +1360,7 @@ byte CPUmode = CPU_MODE_REAL; //The current CPU mode!
 void updateCPUmode() //Update the CPU mode!
 {
 	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
-	byte mode = 0;
+	byte mode = 0; //Buffer new mode to start using for comparison!
 	if (!CPU[activeCPU].registers)
 	{
 		CPU_initRegisters(); //Make sure we have registers!
@@ -1369,19 +1369,23 @@ void updateCPUmode() //Update the CPU mode!
 	mode = FLAG_V8; //VM86 mode?
 	mode <<= 1;
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
-	if ((CPUmode==CPU_MODE_REAL) && (modes[mode]==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
+	mode = modes[mode]; //What is the newly set mode, if changed?
+	if (unlikely(mode!=CPUmode)) //Mode changed?
 	{
-		CPU[activeCPU].CPL = 0; //Start at CPL 0!
+		if ((CPUmode==CPU_MODE_REAL) && (mode==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
+		{
+			CPU[activeCPU].CPL = 0; //Start at CPL 0!
+		}
+		else if ((CPUmode!=CPU_MODE_REAL) && (mode==CPU_MODE_REAL)) //Switching from protected mode, back to real mode?
+		{
+			CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
+		}
+		else if ((CPUmode==CPU_MODE_PROTECTED) && (mode==CPU_MODE_8086)) //Switching from protected mode to Virtual 8086 mode?
+		{
+			CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
+		}
+		CPUmode = mode; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 	}
-	else if ((CPUmode!=CPU_MODE_REAL) && (modes[mode]==CPU_MODE_REAL)) //Switching from protected mode, back to real mode?
-	{
-		CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
-	}
-	else if ((CPUmode==CPU_MODE_PROTECTED) && (modes[mode]==CPU_MODE_8086)) //Switching from protected mode to Virtual 8086 mode?
-	{
-		CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
-	}
-	CPUmode = modes[mode]; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 	CPU[activeCPU].is_paging = ((CPUmode!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
 }
 
