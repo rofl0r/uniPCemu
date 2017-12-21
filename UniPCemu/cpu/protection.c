@@ -1456,7 +1456,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCNP(base,is_EXT,EXCEPTION_TABLE_IDT); //#NP!
+		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
