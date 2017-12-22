@@ -1516,19 +1516,22 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			uint_32 EFLAGSbackup;
 			EFLAGSbackup = REG_EFLAGS; //Back-up EFLAGS!
 
-			if (FLAG_V8 && ((getCPL()!=oldCPL) && (getCPL()!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
+			byte newCPL;
+			newCPL = GENERALSEGMENT_DPL(newdescriptor.desc); //New CPL to use!
+
+			if (FLAG_V8 && ((newCPL!=oldCPL) && (newCPL!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
-				if (getCPL()!=0)
+				if (newCPL!=0) //Not switching to PL0?
 				{
-					THROWDESCGP(REG_CS,1,EXCEPTION_TABLE_GDT); //Exception!
+					THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
 					return 0; //Abort on fault!
 				}
 
 				word SS0;
 				uint_32 ESP0;
 
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(getCPL()<<2)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(getCPL()<<2)),0,0); //ESP0-2
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<2)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(newCPL<<2)),0,0); //ESP0-2
 
 				//Now, switch to the new EFLAGS!
 				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
@@ -1537,6 +1540,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				FLAGW_RF(0); //Clear Resume flag too!
 
 				//We're back in protected mode now!
+				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
 				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
@@ -1573,17 +1577,19 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				segmentWritten(CPU_SEGMENT_GS,0,0); //Clear GS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
-			else if ((getCPL()!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
+			else if ((newCPL!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
 			{
 				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
 
 				word SS0;
 				uint_32 ESP0;
 
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(getCPL()<<2)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(getCPL()<<2)),0,0); //ESP0-2
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<2)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(newCPL<<2)),0,0); //ESP0-2
 
 				//Unlike the other case, we're still in protected mode!
+				//We're back in protected mode now!
+				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
 				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
