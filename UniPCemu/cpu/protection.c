@@ -1410,7 +1410,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
 	byte is_EXT = 0;
-	is_EXT = ((errorcode>=0)&&(errorcode&1)?1:0); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
+	is_EXT = ((errorcode==-1)||(errorcode>=0)&&(errorcode&1)?1:0); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
