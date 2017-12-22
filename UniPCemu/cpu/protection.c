@@ -1579,8 +1579,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else if ((newCPL!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
 			{
-				if (checkStackAccess(5,1,1)) return 0; //Abort on fault!
-
 				word SS0;
 				uint_32 ESP0;
 
@@ -1598,7 +1596,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
+				if (checkStackAccess(5+((errorcode!=-1)?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 
 				if (is32bit) //32-bit gate?
 				{
