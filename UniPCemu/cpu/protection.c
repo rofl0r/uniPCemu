@@ -1456,13 +1456,13 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#NP isn't triggered with IDT entries! #GP is triggered instead!
+		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
 	if ((is_EXT==0) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt(ext==0)?
 	{
-		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
 		return 0;
 	}
 
@@ -1490,17 +1490,17 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
-				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return 0; //Error, by specified reason!
 			}
 			if (((GENERALSEGMENT_S(newdescriptor.desc)==0) || (EXECSEGMENT_ISEXEC(newdescriptor.desc)==0)) || (EXECSEGMENT_R(newdescriptor.desc)==0)) //Not readable, execute segment or is code/executable segment?
 			{
-				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(newdescriptor.desc) << 16))) //Limit exceeded?
 			{
-				THROWDESCGP(idtentry.selector,is_EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 
@@ -1520,7 +1520,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			{
 				if (getCPL()!=0)
 				{
-					THROWDESCGP(REG_CS,is_EXT,EXCEPTION_TABLE_GDT); //Exception!
+					THROWDESCGP(REG_CS,1,EXCEPTION_TABLE_GDT); //Exception!
 					return 0; //Abort on fault!
 				}
 
@@ -1672,7 +1672,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
-			THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP! We're always from the IDT!
+			THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP! We're always from the IDT!
 			return 0; //Errored out!
 			break;
 		}
