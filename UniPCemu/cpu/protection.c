@@ -1551,11 +1551,11 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Verify that the new stack is available!
 				if (is32bit) //32-bit gate?
 				{
-					if (checkStackAccess(19+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
+					if (checkStackAccess(9+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
 				}
 				else //16-bit gate?
 				{
-					if (checkStackAccess(19+((errorcode!=-1)?1:0),1,0)) return 0; //Abort on fault!
+					if (checkStackAccess(9+((errorcode!=-1)?1:0),1,0)) return 0; //Abort on fault!
 				}
 
 				//Save the Segment registers on the new stack!
@@ -1563,8 +1563,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				CPU_PUSH16(&REG_FS,is32bit);
 				CPU_PUSH16(&REG_DS,is32bit);
 				CPU_PUSH16(&REG_ES,is32bit);
-				CPU_PUSH16(&REG_SS,is32bit);
-				CPU_PUSH32(&REG_ESP);
+				CPU_PUSH16(&CPU[activeCPU].oldSS,is32bit);
+				CPU_PUSH32(&CPU[activeCPU].oldESP);
 				//Other registers are the normal variants!
 
 				//Load all Segment registers with zeroes!
