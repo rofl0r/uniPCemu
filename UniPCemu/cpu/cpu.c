@@ -227,7 +227,7 @@ void CPU_JMPrel(int_32 reladdr)
 	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
-		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
+		THROWDESCGP(0,1,0); //#GP(0) when out of limit range!
 	} 
 }
 
@@ -237,7 +237,7 @@ void CPU_JMPabs(uint_32 addr)
 	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
-		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
+		THROWDESCGP(0,1,0); //#GP(0) when out of limit range!
 	} 
 }
 
@@ -456,7 +456,7 @@ byte CPU_PORT_OUT_B(word base, word port, byte data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -491,12 +491,12 @@ byte CPU_PORT_OUT_W(word base, word port, word data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port+1)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -531,22 +531,22 @@ byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -581,7 +581,7 @@ byte CPU_PORT_IN_B(word base, word port, byte *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -615,12 +615,12 @@ byte CPU_PORT_IN_W(word base, word port, word *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -654,22 +654,22 @@ byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,1,0); //#GP!
 			return 1; //Abort!
 		}
 	}
