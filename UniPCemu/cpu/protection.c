@@ -553,6 +553,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 {
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 	word originalval=segmentval; //Back-up of the original segment value!
+	byte allowNP; //Allow #NP to be used?
 
 	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
@@ -565,6 +566,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		THROWDESCGP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 		return NULL; //Error, by specified reason!
 	}
+	allowNP = (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0); //Allow segment to be marked non-present?
 	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
 	byte privilegedone = 0; //Privilege already calculated?
 	byte is_gated = 0;
@@ -584,7 +586,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 		}
 	}
 
-	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (segmentval&~3) || (isGateDescriptor(&LOADEDDESCRIPTOR)))) //Not present loaded into non-data segment register?
+	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (segmentval&~3) || (isGateDescriptor(&LOADEDDESCRIPTOR))) && (allowNP==0)) //Not present loaded into non-data segment register?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
