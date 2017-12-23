@@ -1419,6 +1419,12 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
+	if (errorcode<0) //Invalid error code to use?
+	{
+		errorcode16 = 0; //Empty to log!
+		errorcode32 = 0; //Empty to log!
+	}
+
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 	byte oldCPL;
@@ -1659,7 +1665,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				FLAGW_IF(0); //No interrupts!
 			}
 
-			if (errorcode!=-1) //Error code specified?
+			if ((errorcode!=-1) && (errorcode!=-2)) //Error code specified?
 			{
 				if (/*SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask*/ is32bit) //32-bit task?
 				{
