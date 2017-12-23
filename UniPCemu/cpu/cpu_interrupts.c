@@ -185,6 +185,8 @@ void CPU_IRET()
 					tempEFLAGS = CPU_POP32();
 					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
 					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					//VM&IOPL aren't changed by the POP!
+					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
 				}
 				else //16-bit operand size?
@@ -195,6 +197,8 @@ void CPU_IRET()
 					tempEFLAGS = CPU_POP16(0);
 					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
 					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					//VM&IOPL aren't changed by the POP!
+					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 				}
 			}
