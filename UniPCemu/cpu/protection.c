@@ -590,11 +590,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
+			THROWDESCSP(segmentval,1,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
 		}
 		else
 		{
-			THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(segmentval,1,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -731,11 +731,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else
 		{
-			THROWDESCNP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -1411,8 +1411,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 {
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
-	byte is_EXT = 0;
-	is_EXT = ((errorcode==-1)||(errorcode>=0)&&(errorcode&1)?1:0); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
+	byte is_EXT = 0; //External interrupt(exception/hardware, skips DPL check) when set.
+	is_EXT = (((errorcode==-1)||((errorcode>=0)&&(errorcode&1)))?1:0); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
@@ -1431,7 +1431,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	oldCPL = getCPL(); //Save the CPL!
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
-		THROWDESCGP(base,is_EXT,EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
 		return 0; //Abort!
 	}
 
@@ -1482,7 +1482,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		desttask = idtentry.selector; //Read the destination task!
 		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
-			THROWDESCGP(desttask,((errorcode!=-1)&&(errorcode&1)?1:0),(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			THROWDESCGP(desttask,1,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 			return 0; //Error, by specified reason!
 		}
 		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2,1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)!

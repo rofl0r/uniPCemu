@@ -132,7 +132,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	uint_32 limit; //The limit we use!
 	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR->desc)==0) //Not present?
 	{
-		THROWDESCNP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
+		THROWDESCNP(destinationtask,1,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 1; //Error out!
 	}
 
@@ -154,7 +154,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		break;
 	default: //Invalid descriptor!
 		invalidsrctask:
-		THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
+		THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -300,7 +300,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		break;
 	default: //Invalid descriptor!
 		invaliddesttask:
-		THROWDESCGP(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
+		THROWDESCGP(destinationtask,1,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -489,13 +489,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return 1; //Not present: not an IDT!	
 		}
 
 		if (!GENERALSEGMENT_P(LDTsegdesc.desc)) //Not present?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return 1; //Not present: not an IDT!	
 		}
 	}
