@@ -1530,8 +1530,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				word SS0;
 				uint_32 ESP0;
 
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<2)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(newCPL<<2)),0,0); //ESP0-2
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<3)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x4+(newCPL<<3)),0,0); //ESP0-2
 
 				//Now, switch to the new EFLAGS!
 				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
@@ -1582,8 +1582,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				word SS0;
 				uint_32 ESP0;
 
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<2)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0xC+(newCPL<<2)),0,0); //ESP0-2
+				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<3)),0,0); //SS0-2
+				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x4+(newCPL<<3)),0,0); //ESP0-2
 
 				//Unlike the other case, we're still in protected mode!
 				//We're back in protected mode now!
