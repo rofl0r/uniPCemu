@@ -1418,6 +1418,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
+	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 	byte oldCPL;
 	oldCPL = getCPL(); //Save the CPL!
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
