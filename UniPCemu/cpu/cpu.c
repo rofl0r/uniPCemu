@@ -456,7 +456,7 @@ byte CPU_PORT_OUT_B(word base, word port, byte data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -491,12 +491,12 @@ byte CPU_PORT_OUT_W(word base, word port, word data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port+1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -531,22 +531,22 @@ byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -581,7 +581,7 @@ byte CPU_PORT_IN_B(word base, word port, byte *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -615,12 +615,12 @@ byte CPU_PORT_IN_W(word base, word port, word *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -654,17 +654,17 @@ byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 	{
 		if (checkPortRights(port)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 1)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 2)) //Not allowed?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //#GP!
+			THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 		if (checkPortRights(port + 3)) //Not allowed?
