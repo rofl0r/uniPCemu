@@ -3061,6 +3061,9 @@ extern byte needvideoupdate; //For resolution updates!
 
 byte RDP = 0;
 
+extern byte window_moved; //Has this window been moved(Owned by the GPU)?
+extern uint_32 window_x,window_y; //Set location when moved!
+
 void updateInput(SDL_Event *event) //Update all input!
 {
 	byte joysticktype=0; //What joystick type?
@@ -4041,6 +4044,13 @@ void updateInput(SDL_Event *event) //Update all input!
 				break;
 			case SDL_WINDOWEVENT_CLOSE:
 				goto quitting; //We're redirecting to the SDL_QUIT event!
+				break;
+			case SDL_WINDOWEVENT_MOVED: //We've been moved?
+				lock(LOCK_GPU);
+				window_moved = 1; //We've moved!
+				window_x = event->window.data1; //X location of the window!
+				window_y = event->window.data2; //Y location of the window!
+				unlock(LOCK_GPU);
 				break;
 			default: //Unknown event?
 				break;

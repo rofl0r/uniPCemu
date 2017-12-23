@@ -47,6 +47,8 @@ word window_xres = 0;
 word window_yres = 0;
 uint_32 window_flags = 0; //Current flags for the window!
 byte video_aspectratio = 0; //Current aspect ratio!
+byte window_moved = 0; //Has this window been moved?
+uint_32 window_x=0,window_y=0; //Set location when moved!
 
 TicksHolder renderTiming;
 double currentRenderTiming = 0.0;
@@ -72,10 +74,21 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		window_yres = yres;
 		window_flags = flags;
 		#ifndef SDL2
+		char posstr[256];
+		memset(&posstr,0,sizeof(posstr)); //Init when needed!
 		//SDL1?
 		if (icon) //Gotten an icon?
 		{
 			SDL_WM_SetIcon(icon,NULL); //Set the icon to use!
+		}
+		if ((window_moved==0) && (useFullscreen==0)) //Not moved? We're centering the window now!
+		{
+			SDL_putenv("SDL_VIDEO_WINDOW_POS=center");
+		}
+		else if (useFullscreen==0) //Not fullscreen at same position?
+		{
+			sprintf(&posstr,"SDL_VIDEO_WINDOW_POS=%u,%u",window_x,window_y); //The position to restore!
+			SDL_putenv(&posstr); //Old position maintained, if possible!
 		}
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
@@ -106,6 +119,10 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		else
 		{
 			SDL_SetWindowSize(sdlWindow,xres,yres); //Set the new window size!
+		}
+		if ((window_moved==0) && (useFullscreen==0)) //Not moved? We're centering the window now!
+		{
+			SDL_SetWindowPosition(sdlWindow,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED); //Recenter the window!
 		}
 		SDL_SetWindowFullscreen(sdlWindow,useFullscreen?SDL_WINDOW_FULLSCREEN:0); //Are we to apply fullscreen?
 		if (sdlWindow) //Gotten a window?
