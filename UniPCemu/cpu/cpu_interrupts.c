@@ -250,7 +250,7 @@ void CPU_IRET()
 
 			if ((tempEFLAGS&0x20000) && (!oldCPL)) //Returning to virtual 8086 mode?
 			{
-				if (checkStackAccess(12,0,1)) return; //First level IRET data?
+				if (checkStackAccess(6,0,1)) return; //First level IRET data?
 				tempesp = CPU_POP32(); //POP ESP!
 				tempSS = (CPU_POP32()&0xFFFF); //POP SS!
 				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
