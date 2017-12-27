@@ -81,7 +81,7 @@ void CPU486_OP0F01_32()
 		{
 			if (getCPL())
 			{
-				THROWDESCGP(0,1,0);
+				THROWDESCGP(0,0,0);
 				return;
 			}
 		}
@@ -104,7 +104,7 @@ void CPU486_OP0F01_16()
 		{
 			if (getCPL())
 			{
-				THROWDESCGP(0,1,0);
+				THROWDESCGP(0,0,0);
 				return;
 			}
 		}
@@ -124,7 +124,7 @@ void CPU486_OP0F08() //INVD?
 	{
 		if (getCPL())
 		{
-			THROWDESCGP(0,1,0);
+			THROWDESCGP(0,0,0);
 			return;
 		}
 	}
@@ -137,7 +137,7 @@ void CPU486_OP0F09() //WBINVD?
 	{
 		if (getCPL())
 		{
-			THROWDESCGP(0,1,0);
+			THROWDESCGP(0,0,0);
 			return;
 		}
 	}

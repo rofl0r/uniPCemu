@@ -204,7 +204,7 @@ void CPU_IRET()
 			}
 			else
 			{
-				THROWDESCGP(0,1,0); //Throw #GP(0) to trap to the VM monitor!
+				THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
 			}
 			return; //Abort!
 		}

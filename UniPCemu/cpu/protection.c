@@ -1124,7 +1124,7 @@ int checkPrivilegedInstruction() //Allowed to run a privileged instruction?
 {
 	if (getCPL()) //Not allowed when CPL isn't zero?
 	{
-		THROWDESCGP(0,1,0); //Throw a descriptor fault!
+		THROWDESCGP(0,0,0); //Throw a descriptor fault!
 		return 0; //Not allowed to run!
 	}
 	return 1; //Allowed to run!
@@ -1253,16 +1253,16 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			switch (rights)
 			{
 			default: //Unknown status? Count #GP by default!
-			case 1: //#GP?
-				if (unlikely((forreading&0x10)==0)) THROWDESCGP(segmentval,1,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw fault when not prefetching!
+			case 1: //#GP(0)?
+				if (unlikely((forreading&0x10)==0)) THROWDESCGP(0,0,0); //Throw fault when not prefetching!
 				return 1; //Error out!
 				break;
 			case 2: //#NP?
-				if (unlikely((forreading&0x10)==0)) THROWDESCNP(segmentval,1,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor when not prefetching!
+				if (unlikely((forreading&0x10)==0)) THROWDESCNP(segmentval,0,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error: accessing non-present segment descriptor when not prefetching!
 				return 1; //Error out!
 				break;
-			case 3: //#SS?
-				if (unlikely((forreading&0x10)==0)) THROWDESCSP(segmentval,1,(segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error when not prefetching!
+			case 3: //#SS(0)?
+				if (unlikely((forreading&0x10)==0)) THROWDESCSP(0,0,0); //Throw error when not prefetching!
 				return 1; //Error out!
 				break;
 			}
@@ -1296,7 +1296,7 @@ byte checkSTICLI() //Check STI/CLI rights!
 {
 	if (checkSpecialRights()) //Not priviledged?
 	{
-		THROWDESCGP(0,1,0); //Raise exception!
+		THROWDESCGP(0,0,0); //Raise exception!
 		return 0; //Ignore this command!
 	}
 	return 1; //We're allowed to execute!

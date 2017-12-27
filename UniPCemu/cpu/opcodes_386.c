@@ -2609,7 +2609,7 @@ void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*P
 
 void CPU80386_OP9D_16() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,1,0); return; } //#GP fault!
+	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; } //#GP fault!
 	static word tempflags;
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
@@ -2624,7 +2624,7 @@ void CPU80386_OP9D_16() {
 
 void CPU80386_OP9D_32() {
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,1,0); return; }//#GP fault!
+	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; }//#GP fault!
 	static uint_32 tempflags;
 	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
@@ -2704,10 +2704,10 @@ void CPU80386_OPC5() /*LDS modr/m*/ {modrm_generateInstructionTEXT("LDS",0,0,PAR
 void CPU80386_OPC7() {uint_32 val = imm32; modrm_debugger32(&params,MODRM_src0,MODRM_src1); debugger_setcommand("MOV %s,%08x",modrm_param1,val); if (modrm_check32(&params,MODRM_src0,0)) return; if (CPU80386_instructionstepwritemodrmdw(0,val,MODRM_src0)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /* Imm->Mem */ } else CPU[activeCPU].cycles_OP += 4; /* Imm->Reg */ } }
 void CPU80386_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm32 (Far return to calling proc and pop imm32 bytes)*/ modrm_generateInstructionTEXT("RETFD",0,popbytes,PARAM_IMM32); /*RETF imm32 (Far return to calling proc and pop imm16 bytes)*/ CPU80386_internal_RETF(popbytes,1); }
 void CPU80386_OPCB() {modrm_generateInstructionTEXT("RETFD",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU80386_internal_RETF(0,0); }
-void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,1,0); return; } if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-2); } /*INT 3*/ }
-void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,1,0); return; } CPU_executionphase_startinterrupt(theimm,0,-2);/*INT imm8*/ }
-void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,1,0); return; } CPU80386_internal_INTO();/*INTO*/ }
-void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRETD",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,1,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
+void CPU80386_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-2); } /*INT 3*/ }
+void CPU80386_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger80386();  modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU_executionphase_startinterrupt(theimm,0,-2);/*INT imm8*/ }
+void CPU80386_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ CPU80386_internal_INTO();/*INTO*/ }
+void CPU80386_OPCF() {modrm_generateInstructionTEXT("IRETD",0,0,PARAM_NONE);/*IRET*/ if (isV86() && (FLAG_PL!=3)) {THROWDESCGP(0,0,0); return; } CPU80386_IRET();/*IRET : also restore interrupt flag!*/ }
 void CPU80386_OPD6(){debugger_setcommand("SALC"); REG_AL=FLAG_CF?0xFF:0x00; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } } //Special case on the 80386: SALC!
 void CPU80386_OPD7(){CPU80386_internal_XLAT();} //We depend on the address size instead!
 void CPU80386_OPE0(){if (!CPU_Address_size[activeCPU]) { CPU8086_OPE0(); return; /* Use CX instead! */ } INLINEREGISTER sbyte rel8; rel8 = imm8(); modrm_generateInstructionTEXT("LOOPNZ",0, ((REG_EIP+rel8)&CPU_EIPmask()),CPU_EIPSize()); if ((--REG_ECX) && (!FLAG_ZF)){CPU_JMPrel(rel8); CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 19; } /* Branch taken */} else { if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 5; } /* Branch not taken */}}
