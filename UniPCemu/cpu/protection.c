@@ -1412,7 +1412,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
 	byte is_EXT = 0; //External interrupt(exception/hardware, skips DPL check) when set.
-	is_EXT = (((errorcode==-1)||((errorcode>=0)&&(errorcode&1)))?1:0); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
+	is_EXT = (is_interrupt?0:1); //EXT is set for exceptions and hardware interrupts(ignoring DPL of interrupt descriptor)?
 	SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
@@ -1560,11 +1560,11 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Verify that the new stack is available!
 				if (is32bit) //32-bit gate?
 				{
-					if (checkStackAccess(9+((errorcode!=-1)?1:0),1,1)) return 0; //Abort on fault!
+					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,1)) return 0; //Abort on fault!
 				}
 				else //16-bit gate?
 				{
-					if (checkStackAccess(9+((errorcode!=-1)?1:0),1,0)) return 0; //Abort on fault!
+					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,0)) return 0; //Abort on fault!
 				}
 
 				//Save the Segment registers on the new stack!
@@ -1605,7 +1605,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+((errorcode!=-1)?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 
 				if (is32bit) //32-bit gate?
 				{
@@ -1622,7 +1622,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else
 			{
-				if (checkStackAccess(3+((errorcode!=-1)?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 			}
 
 			CPU[activeCPU].faultraised = 0; //Reset fault detection algorithm!
