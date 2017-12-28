@@ -100,8 +100,8 @@ struct
 	FLOPPY_GEOMETRY customgeometry[4]; //Custom disk geometries!
 	byte reset_pending,reset_pended; //Reset pending?
 	byte reset_pending_size; //Size of the pending reset max value! A maximum set of 3 with 4 drives reset!
-	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives!
-	byte physicalcylinder[4]; //Actual physical drive cyclinder that's been selected on the drive!
+	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives(current cylinder = the idea the FDC has of the current cylinder)!
+	byte physicalcylinder[4]; //Actual physical drive cyclinder that's been selected on the drive(the physical cylinder on the drive)!
 	byte activecommand[4]; //What command is running to time?
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
