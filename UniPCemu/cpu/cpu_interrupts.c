@@ -43,7 +43,7 @@ extern byte singlestep; //Enable EMU-driven single step!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 
 word destINTCS, destINTIP;
-byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode) //Used by soft (below) and exceptions/hardware!
+byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode, byte is_interrupt) //Used by soft (below) and exceptions/hardware!
 {
 	byte checkinterruptstep;
 	char errorcodestr[256];
@@ -121,16 +121,16 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		return 1; //OK!
 	}
 	//Use Protected mode IVT?
-	return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode); //Execute the protected mode interrupt!
+	return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode,is_interrupt); //Execute the protected mode interrupt!
 }
 
 word INTreturn_CS=0xCCCC;
 uint_32 INTreturn_EIP=0xCCCCCCCC;
 
-byte CPU_INT(byte intnr, int_64 errorcode) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
+byte CPU_INT(byte intnr, int_64 errorcode, byte is_interrupt) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	return CPU_customint(intnr,INTreturn_CS,INTreturn_EIP,errorcode); //Execute real interrupt, returning to current address!
+	return CPU_customint(intnr,INTreturn_CS,INTreturn_EIP,errorcode,is_interrupt); //Execute real interrupt, returning to current address!
 }
 
 byte NMIMasked = 0; //Are NMI masked?

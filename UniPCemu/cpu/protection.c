@@ -1407,7 +1407,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	return 1; //OK!
 }
 
-byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode) //Execute a protected mode interrupt!
+byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
 {
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
@@ -1469,7 +1469,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 		return 0;
 	}
 
-	if ((is_EXT==0) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt(ext==0)?
+	if (is_interrupt && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
 		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
 		return 0;

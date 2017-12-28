@@ -144,6 +144,7 @@ void CPU_executionphase_taskswitch() //Are we to switch tasks?
 byte CPU_executionphaseinterrupt_nr = 0x00; //What interrupt to execute?
 byte CPU_executionphaseinterrupt_type3 = 0; //Are we a type3 interrupt?
 int_64 CPU_executionphaseinterrupt_errorcode = -1; //What code to push afterwards?
+byte CPU_executionphaseinterrupt_is_interrupt = 0; //int instruction?
 byte interrupt_result;
 extern byte singlestep; //Enable EMU-driven single step!
 
@@ -151,7 +152,7 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 {
 	if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
 	{
-		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
+		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode,CPU_executionphaseinterrupt_is_interrupt);
 		if (interrupt_result) //Final stage?
 		{
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
@@ -161,7 +162,7 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 	}
 	else //Unsupported CPU? Use plain general interrupt handling instead!
 	{
-		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode);
+		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode,CPU_executionphaseinterrupt_is_interrupt);
 		if (interrupt_result==0) return; //Execute the interupt!
 		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
 		if (CPU_apply286cycles()) return; //80286+ cycles instead?
@@ -172,6 +173,7 @@ Handler currentEUphasehandler = NULL; //Current execution phase handler, start o
 
 void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 {
+	CPU_executionphaseinterrupt_is_interrupt = 0; //Not an interrupt!
 	currentEUphasehandler = &CPU_executionphase_normal; //Starting a opcode phase handler!
 }
 
@@ -187,6 +189,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
 	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
 	CPU_executionphaseinterrupt_type3 = type3; //Are we a type-3 interrupt?
+	CPU_executionphaseinterrupt_is_interrupt = (errorcode==-2); //Interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	INTreturn_CS = CPU[activeCPU].registers->CS; //Return segment!
 	INTreturn_EIP = CPU[activeCPU].registers->EIP; //Save the return offset!

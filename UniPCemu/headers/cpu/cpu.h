@@ -1218,7 +1218,7 @@ byte CPU_PUSH32_BIU(uint_32 *val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
 byte CPU_POP32_BIU(); //Full stack used!
 
-byte call_soft_inthandler(byte intnr, int_64 errorcode); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
+byte call_soft_inthandler(byte intnr, int_64 errorcode, byte is_interrupt); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
 
 
