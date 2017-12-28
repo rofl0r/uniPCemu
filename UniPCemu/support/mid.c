@@ -548,10 +548,12 @@ void updateMIDIPlayer(double timepassed)
 			}
 		}
 
+		lock(LOCK_INPUT);
 		if (psp_inputkey()&(BUTTON_CIRCLE|BUTTON_STOP)) //Circle/stop pressed? Request to stop playback!
 		{
 			MID_TERM = 2; //Pending termination by pressing the stop button!
 		}
+		unlock(LOCK_INPUT);
 	}
 }
 
@@ -615,13 +617,18 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			}
 			if (showinfo) printMIDIChannelStatus(); //Print the MIDI channel status!
 
+			lock(LOCK_INPUT);
 			if ((psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP)) || (MID_TERM==2)) //Circle/stop pressed? Request to stop playback!
 			{
+				unlock(LOCK_INPUT);
 				unlock(LOCK_CPU); //Unlock us!
+				lock(LOCK_INPUT);
 				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
+				unlock(LOCK_INPUT);
 				lock(LOCK_CPU); //Lock us!
 				MID_TERM = 1; //Set termination flag to request a termination!
 			}
+			else unlock(LOCK_INPUT);
 
 			if (!running) break; //Not running anymore? Start quitting!
 		}

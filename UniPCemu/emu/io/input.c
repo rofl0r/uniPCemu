@@ -599,23 +599,31 @@ int psp_inputkeydelay(uint_32 waittime) //Don't use within any timers! This will
 		{
 			if (counter>(uint_32)INPUTKEYDELAYSTEP) //Big block?
 			{
+				unlock(LOCK_INPUT);
 				delay(INPUTKEYDELAYSTEP); //Wait a delay step!
+				lock(LOCK_INPUT);
 				counter -= INPUTKEYDELAYSTEP; //Substract!
 			}
 			else
 			{
+				unlock(LOCK_INPUT);
 				delay(counter); //Wait rest!
+				lock(LOCK_INPUT);
 				counter = 0; //Done!
 			}
 		}
 		if (waittime==0) //No waiting time?
 		{
+			unlock(LOCK_INPUT);
 			delay(0); //Allow for updating of the keys!
+			lock(LOCK_INPUT);
 		}
 	}
 	else
 	{
+		unlock(LOCK_INPUT);
 		delay(0); //Allow for updating of the keys!
+		lock(LOCK_INPUT);
 	}
 	return key; //Give the key!
 }

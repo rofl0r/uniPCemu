@@ -103,6 +103,7 @@ byte harddebugging = 0; //Hard-coded debugger set?
 
 OPTINLINE byte debugging() //Debugging?
 {
+	byte result=0;
 	if (singlestep==1) //EMU enforced single step?
 	{
 		return 1; //We're enabled now!
@@ -115,11 +116,21 @@ OPTINLINE byte debugging() //Debugging?
 	{
 		return 1; //Always debug!
 	}
-	else if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
+	else
 	{
-		return 1; //Always step!
+		lock(LOCK_INPUT);
+		if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
+		{
+			unlock(LOCK_INPUT);
+			return 1; //Always step!
+		}
+		goto skiprelock; //Don't lock again!
 	}
-	return psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
+	lock(LOCK_INPUT);
+	skiprelock:
+	result = psp_keypressed(BUTTON_LTRIGGER); //Debugging according to LTRIGGER!!!
+	unlock(LOCK_INPUT);
+	return result; //Give the result!
 }
 
 byte debuggerINT = 0; //Interrupt special trigger?
@@ -1287,6 +1298,7 @@ void debuggerThread()
 		unlock(LOCK_MAINTHREAD); //Finished with the main thread!
 	}
 
+	lock(LOCK_INPUT);
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
 	{
 		if (DEBUGGER_ALWAYS_STEP || (singlestep==1)) //Always step?
@@ -1357,11 +1369,13 @@ void debuggerThread()
 				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
 			}
 		}
+		unlock(LOCK_INPUT);
 		openBIOS = 0; //Init!
 		lock(LOCK_MAINTHREAD); //We're checking some input!
 		openBIOS = Settings_request;
 		Settings_request = 0; //We're handling it if needed!
 		unlock(LOCK_MAINTHREAD); //We've finished checking for input!
+		lock(LOCK_INPUT);
 		openBIOS |= psp_keypressed(BUTTON_SELECT); //Are we to open the BIOS menu?
 		if (openBIOS && !is_gamingmode()) //Goto BIOS?
 		{
@@ -1377,6 +1391,7 @@ void debuggerThread()
 			//Check the current state to continue at!
 			if (debugging()) //Recheck the debugger!
 			{
+				unlock(LOCK_INPUT); //Don't keep us hanging when relocking!
 				goto restartdebugger; //Restart the debugger!
 			}
 			else //Not debugging anymore?
@@ -1387,6 +1402,7 @@ void debuggerThread()
 		if (shuttingdown()) break; //Stop debugging when shutting down!
 		delay(0); //Wait a bit!
 	} //While not done
+	unlock(LOCK_INPUT);
 	singlestepenabled: //Single step has been enabled just now?
 	if (displayed) //Are we to clean up?
 	{

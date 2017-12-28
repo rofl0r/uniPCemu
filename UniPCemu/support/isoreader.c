@@ -7,6 +7,7 @@
 #include "headers/support/zalloc.h" //Zero allocation support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_emu.h" //Text output support!
+#include "headers/support/locks.h" //Locking support for input!
 
 //Stuff we need!
 //Bootable indicator
@@ -245,11 +246,14 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	{
 		counter -= INPUT_INTERVAL;
 		delay(INPUT_INTERVAL); //Intervals of one!
+		lock(LOCK_INPUT);
 		if (psp_inputkey()!=0) //Key pressed?
 		{
+			unlock(LOCK_INPUT);
 			do_boot = 1; //We're to boot!
 			break; //Start booting!
 		}
+		unlock(LOCK_INPUT);
 	}
 
 	if (!do_boot) //Not to boot?
@@ -473,11 +477,15 @@ int getBootImageInfo(int device, BOOTIMGINFO *imagefile) //Returns TRUE on boota
 	{
 		counter -= INPUT_INTERVAL;
 		delay(INPUT_INTERVAL); //Intervals of one!
+		lock(LOCK_INPUT);
 		if (psp_inputkey()!=0) //Key pressed?
 		{
+			unlock(LOCK_INPUT);
+
 			do_boot = 1; //We're to boot!
 			break; //Start booting!
 		}
+		unlock(LOCK_INPUT);
 	}
 
 	if (!do_boot) //Not to boot?

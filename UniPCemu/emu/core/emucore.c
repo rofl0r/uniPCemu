@@ -1128,8 +1128,10 @@ OPTINLINE byte coreHandler()
 	updateKeyboard(timeexecuted); //Tick the keyboard timer if needed!
 
 	//Check for BIOS menu!
+	lock(LOCK_INPUT);
 	if (unlikely((psp_keypressed(BUTTON_SELECT) || (Settings_request==1)) && (BIOSMenuThread==NULL) && (debugger_thread==NULL))) //Run in-emulator BIOS menu requested while running?
 	{
+		unlock(LOCK_INPUT);
 		if (unlikely((!is_gamingmode() && !Direct_Input && BIOSMenuAllowed) || (Settings_request==1))) //Not gaming/direct input mode and allowed to open it(not already started)?
 		{
 			skipstep = 3; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
@@ -1140,6 +1142,7 @@ OPTINLINE byte coreHandler()
 			delay(0); //Wait a bit for the thread to start up!
 		}
 	}
+	unlock(LOCK_INPUT);
 	return 1; //OK!
 }
 

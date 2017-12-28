@@ -725,7 +725,9 @@ int ExecuteMenu(int numitems, int startrow, int allowspecs, word *stat)
 			option = BIOSMENU_SPEC_CANCEL;
 			break;
 		}
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input a key with delay!
+		unlock(LOCK_INPUT);
 		if ((key & BUTTON_UP)>0) //Up pressed?
 		{
 			if (option>0) //Past first?
@@ -1032,7 +1034,9 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 		{
 			return FILELIST_CANCEL; //Cancel!
 		}
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
 
 		if ((key&BUTTON_UP)>0) //UP?
 		{
@@ -1947,10 +1951,14 @@ void BIOS_MainMenu() //Shows the main menu to process!
 FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
+	lock(LOCK_INPUT);
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
 	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
 	}
 	FILEPOS result = 0; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	FILEPOS oldvalue; //To check for high overflow!
@@ -1960,7 +1968,9 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
 		GPU_EMU_printscreen(x, y, "%08i MB %04i KB", (uint_32)(result/MBMEMORY), (uint_32)((result%MBMEMORY)/1024)); //Show current size!
 		EMU_unlocktext();
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
 		FILEPOS step;
 		step = 4096; //Default to 4KB steps!
 		//1GB/1MB steps!
@@ -2012,7 +2022,9 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 		{
 			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return result;
 		}
@@ -2020,7 +2032,9 @@ FILEPOS ImageGenerator_GetImageSize(byte x, byte y) //Retrieve the size, or 0 fo
 		{
 			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			break; //Cancel!
 		}
@@ -5357,10 +5371,14 @@ void BIOS_CPU() //CPU menu!
 int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
+	lock(LOCK_INPUT);
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
 	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
 	}
 	uint_32 result = CPUSpeed; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	uint_32 oldvalue; //To check for high overflow!
@@ -5377,7 +5395,9 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 			GPU_EMU_printscreen(x, y, "Limited to %u cycles", result); //Show current size!
 		}
 		EMU_unlocktext();
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
 		
 		//1GB steps!
 		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
@@ -5417,7 +5437,9 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 		{
 			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return (int_64)result;
 		}
@@ -5425,7 +5447,9 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 		{
 			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			break; //Cancel!
 		}
@@ -5433,7 +5457,9 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 		{
 			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return 0; //Default!
 		}
@@ -5513,10 +5539,14 @@ void BIOS_syncTime() //Synchronize the kept time in UniPCemu!
 uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
+	lock(LOCK_INPUT);
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
 	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
 	}
 	uint_32 result = Percentage; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	uint_32 oldvalue; //To check for high overflow!
@@ -5526,8 +5556,10 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
 		GPU_EMU_printscreen(x, y, "%u%%                                                      ", result); //Show current percentage!
 		EMU_unlocktext();
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
-												  //1GB steps!
+		unlock(LOCK_INPUT);
+		//1GB steps!
 		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
 		{
 			if (result == 0) {}
@@ -5565,7 +5597,9 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 		{
 			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return result; //Convert back to an ordinary factor!
 		}
@@ -5573,7 +5607,9 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 		{
 			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			break; //Cancel!
 		}
@@ -5581,7 +5617,9 @@ uint_32 GetPercentage(byte x, byte y, uint_32 Percentage) //Retrieve the size, o
 		{
 			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return 0; //Default!
 		}
@@ -6431,10 +6469,14 @@ void BIOS_useTurboCPUSpeed() //CPU speed toggle!
 int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpoint) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
+	lock(LOCK_INPUT);
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
 	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
 	}
 	if (DiagnosticsPortBreakpoint < 0) //Disabled?
 	{
@@ -6451,7 +6493,9 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
 		GPU_EMU_printscreen(x, y, "%02X", result); //Show current size!
 		EMU_unlocktext();
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
 
 		if ((key & BUTTON_DOWN)>0) //1 step up?
 		{
@@ -6466,7 +6510,9 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 		{
 			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return (int_64)result;
 		}
@@ -6474,7 +6520,9 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 		{
 			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			break; //Cancel!
 		}
@@ -6482,7 +6530,9 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 		{
 			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return FILELIST_DEFAULT; //Default: disabled!
 		}
@@ -6496,10 +6546,14 @@ int_64 GetDiagnosticsPortBreakpoint(byte x, byte y, sword DiagnosticsPortBreakpo
 int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Retrieve the size, or 0 for none!
 {
 	int key = 0;
+	lock(LOCK_INPUT);
 	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
 	while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Pressed? Wait for release!
 	{
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
 	}
 	uint_32 result = timeout; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
 	uint_32 oldvalue; //To check for high overflow!
@@ -6516,9 +6570,11 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 			GPU_EMU_printscreen(x, y, "At %u instructions", (result+1)); //Show current size!
 		}
 		EMU_unlocktext();
+		lock(LOCK_INPUT);
 		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
 
-												  //1GB steps!
+		//1GB steps!
 		if ((key & BUTTON_LTRIGGER)>0) //1000 step down?
 		{
 			if (result == 0) {}
@@ -6556,7 +6612,9 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 		{
 			while ((key&(BUTTON_CROSS|BUTTON_START))>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return (int_64)result;
 		}
@@ -6564,7 +6622,9 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 		{
 			while ((key&BUTTON_CIRCLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			break; //Cancel!
 		}
@@ -6572,7 +6632,9 @@ int_64 GetDiagnosticsPortBreakpointTimeout(byte x, byte y, uint_32 timeout) //Re
 		{
 			while ((key&BUTTON_TRIANGLE)>0) //Wait for release!
 			{
+				lock(LOCK_INPUT);
 				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
 			}
 			return 0; //Default!
 		}
