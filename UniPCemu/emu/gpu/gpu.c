@@ -62,9 +62,7 @@ SDL_Texture *sdlTexture = NULL;
 
 void updateWindow(word xres, word yres, uint_32 flags)
 {
-	#ifdef SDL2
 	byte useFullscreen; //Are we to use fullscreen?
-	#endif
 	if ((xres!=window_xres) || (yres!=window_yres) || (flags!=window_flags) || !originalrenderer) //Do we need to update the Window?
 	{
 #include "headers/emu/icon.h" //We need our icon!
@@ -74,6 +72,7 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		window_yres = yres;
 		window_flags = flags;
 		#ifndef SDL2
+		useFullscreen = (flags&SDL_FULLSCREEN)?1:0; //Fullscreen specified?
 		char posstr[256];
 		memset(&posstr,0,sizeof(posstr)); //Init when needed!
 		//SDL1?
@@ -81,15 +80,17 @@ void updateWindow(word xres, word yres, uint_32 flags)
 		{
 			SDL_WM_SetIcon(icon,NULL); //Set the icon to use!
 		}
+		#ifndef IS_PSP
 		if ((window_moved==0) && (useFullscreen==0)) //Not moved? We're centering the window now!
 		{
 			SDL_putenv("SDL_VIDEO_WINDOW_POS=center");
 		}
 		else if (useFullscreen==0) //Not fullscreen at same position?
 		{
-			sprintf(&posstr,"SDL_VIDEO_WINDOW_POS=%u,%u",window_x,window_y); //The position to restore!
-			SDL_putenv(&posstr); //Old position maintained, if possible!
+			sprintf(&posstr[0],"SDL_VIDEO_WINDOW_POS=%u,%u",window_x,window_y); //The position to restore!
+			SDL_putenv(&posstr[0]); //Old position maintained, if possible!
 		}
+		#endif
 		originalrenderer = SDL_SetVideoMode(xres, yres, 32, flags); //Start rendered display, 32BPP pixel mode! Don't use double buffering: this changes our address (too slow to use without in hardware surface, so use sw surface)!
 		#else
 		useFullscreen = 0; //Default: not fullscreen!
