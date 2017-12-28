@@ -1932,6 +1932,8 @@ void updateFloppy(double timepassed)
 							}
 							else movedcylinder = 0; //We didn't move?
 
+							updateST3(drive); //Update ST3 only!
+
 							//Check if we're there!
 							if ((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0)))) //Found and existant?
 							{
