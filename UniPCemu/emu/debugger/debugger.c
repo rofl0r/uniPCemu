@@ -1391,6 +1391,7 @@ void debuggerThread()
 				delay(0);
 				lock(LOCK_INPUT);
 			}
+			unlock(LOCK_INPUT);
 			//Start the BIOS
 			if (runBIOS(0)) //Run the BIOS, reboot needed?
 			{
@@ -1400,7 +1401,6 @@ void debuggerThread()
 			//Check the current state to continue at!
 			if (debugging()) //Recheck the debugger!
 			{
-				unlock(LOCK_INPUT); //Don't keep us hanging when relocking!
 				goto restartdebugger; //Restart the debugger!
 			}
 			else //Not debugging anymore?
@@ -1408,8 +1408,10 @@ void debuggerThread()
 				goto singlestepenabled; //Stop debugging!
 			}
 		}
+		unlock(LOCK_INPUT);
 		if (shuttingdown()) break; //Stop debugging when shutting down!
 		delay(0); //Wait a bit!
+		lock(LOCK_INPUT);
 	} //While not done
 	unlock(LOCK_INPUT);
 	singlestepenabled: //Single step has been enabled just now?
@@ -1472,7 +1474,7 @@ void debugger_step() //Processes the debugging step!
 			{
 				--skipopcodes; //Skipped one opcode!
 			}
-			if (!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) //To debug when not skipping repeating or skipping opcodes?
+			if ((!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) && (skipstep!=4)) //To debug when not skipping repeating or skipping opcodes?
 			{
 				debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
 			}
