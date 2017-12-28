@@ -25,6 +25,8 @@
 //Timing until ATAPI becomes ready for a new command.
 #define ATAPI_FINISHREADYTIMING 20000.0
 
+#define ATA_FINISHREADYTIMING 2000.0
+
 //Time between inserting/removing a disk, must be at least the sum of a transfer, something human usable!
 #define ATAPI_DISKCHANGETIMING 100000.0
 
@@ -155,6 +157,7 @@ struct
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
 		double resetTiming;
 		double ReadyTiming; //Timing until we become ready after executing a command!
+		double IRQTimeout; //Timeout until we're to fire an IRQ!
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -301,36 +304,43 @@ byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
-OPTINLINE void ATA_IRQ(byte channel, byte slave)
+OPTINLINE void ATA_IRQ(byte channel, byte slave, double timeout)
 {
-	if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
+	if (timeout) //Timeout specified to use?
 	{
-		if (is_XT)
+		ATA[channel].Drive[slave].IRQTimeout = timeout; //Set the timeout for the IRQ!
+	}
+	else //No timeout? Fire IRQ immediately!
+	{
+		if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
 		{
-			switch (channel)
+			if (is_XT)
 			{
-			case 0: //Primary channel?
-				raiseirq(ATA_PRIMARYIRQ_XT); //Execute the IRQ!
-				break;
-			case 1:
-				raiseirq(ATA_SECONDARYIRQ_XT); //Execute the IRQ!
-				break;
-			default: //Unknown channel?
-				break;
+				switch (channel)
+				{
+				case 0: //Primary channel?
+					raiseirq(ATA_PRIMARYIRQ_XT); //Execute the IRQ!
+					break;
+				case 1:
+					raiseirq(ATA_SECONDARYIRQ_XT); //Execute the IRQ!
+					break;
+				default: //Unknown channel?
+					break;
+				}
 			}
-		}
-		else
-		{
-			switch (channel)
+			else
 			{
-			case 0: //Primary channel?
-				raiseirq(ATA_PRIMARYIRQ_AT); //Execute the IRQ!
-				break;
-			case 1:
-				raiseirq(ATA_SECONDARYIRQ_AT); //Execute the IRQ!
-				break;
-			default: //Unknown channel?
-				break;
+				switch (channel)
+				{
+				case 0: //Primary channel?
+					raiseirq(ATA_PRIMARYIRQ_AT); //Execute the IRQ!
+					break;
+				case 1:
+					raiseirq(ATA_SECONDARYIRQ_AT); //Execute the IRQ!
+					break;
+				default: //Unknown channel?
+					break;
+				}
 			}
 		}
 	}
@@ -446,7 +456,7 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
 			ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-			ATA_IRQ(channel,drive); //Raise an IRQ!
+			ATA_IRQ(channel,drive,(double)0); //Raise an IRQ!
 		}
 		else //ATAPI drive might have something to do now?
 		{
@@ -696,6 +706,47 @@ void updateATA(double timepassed) //ATA timing!
 			}
 		}
 
+		//Handle ATA(PI) IRQ timing!
+		if (ATA[0].Drive[0].IRQTimeout) //Timing IRQ?
+		{
+			ATA[0].Drive[0].IRQTimeout -= timepassed; //Time until timeout!
+			if (ATA[0].Drive[0].IRQTimeout<=0.0) //Timeout?
+			{
+				ATA[0].Drive[0].IRQTimeout = (double)0; //Timer finished!
+				ATA_IRQ(0,0,(double)0); //Finish timeout!
+			}
+		}
+
+		if (ATA[0].Drive[1].IRQTimeout) //Timing IRQ?
+		{
+			ATA[0].Drive[1].IRQTimeout -= timepassed; //Time until timeout!
+			if (ATA[0].Drive[1].IRQTimeout<=0.0) //Timeout?
+			{
+				ATA[0].Drive[1].IRQTimeout = (double)0; //Timer finished!
+				ATA_IRQ(0,1,(double)0); //Finish timeout!
+			}
+		}
+
+		if (ATA[1].Drive[0].IRQTimeout) //Timing IRQ?
+		{
+			ATA[1].Drive[0].IRQTimeout -= timepassed; //Time until timeout!
+			if (ATA[1].Drive[0].IRQTimeout<=0.0) //Timeout?
+			{
+				ATA[1].Drive[0].IRQTimeout = (double)0; //Timer finished!
+				ATA_IRQ(1,0,(double)0); //Finish timeout!
+			}
+		}
+
+		if (ATA[1].Drive[1].IRQTimeout) //Timing IRQ?
+		{
+			ATA[1].Drive[1].IRQTimeout -= timepassed; //Time until timeout!
+			if (ATA[1].Drive[1].IRQTimeout<=0.0) //Timeout?
+			{
+				ATA[1].Drive[1].IRQTimeout = (double)0; //Timer finished!
+				ATA_IRQ(1,1,(double)0); //Finish timeout!
+			}
+		}
+
 		//Handle ATAPI Ready Timing!
 
 		if (ATA[0].Drive[0].ReadyTiming) //Timing reset?
@@ -819,7 +870,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,0); //Generate our reason!
-					ATA_IRQ(0,0); //Raise an IRQ!
+					ATA_IRQ(0,0,(double)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -833,7 +884,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,1); //Generate our reason!
-					ATA_IRQ(0,1); //Raise an IRQ!
+					ATA_IRQ(0,1,(double)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -847,7 +898,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,0); //Generate our reason!
-					ATA_IRQ(1,0); //Raise an IRQ!
+					ATA_IRQ(1,0,(double)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -861,7 +912,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,1); //Generate our reason!
-					ATA_IRQ(1,1); //Raise an IRQ!
+					ATA_IRQ(1,1,(double)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -1468,7 +1519,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		{
 			if (ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
 			}
 		}
         return result; //Give the result!
@@ -1509,7 +1560,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 					if (ATAPI_readsector(channel)) //Next sector read?
 					{
 						ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-						ATA_IRQ(channel,ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+						ATA_IRQ(channel,ATA_activeDrive(channel),ATAPI_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
 					}
 				}
 				else //Still transferring data?
@@ -1533,7 +1584,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			{
 				ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
 			}
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise an IRQ: we're needing attention!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
 		}
 		return result; //Give the result byte!
 	default: //Unknown?
@@ -1564,7 +1615,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 		{
 			if (ATA_writesector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Sector written and to write another sector?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
 			}
 		}
 		break;
@@ -2053,7 +2104,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
 					ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-					ATA_IRQ(channel, drive); //Raise an IRQ: we're needing attention!
+					ATA_IRQ(channel, drive,ATAPI_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
 				}
 				break;
 			default: //Unknown request?
@@ -2104,7 +2155,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				if (ATAPI_readsector(channel)) //Sector read?
 				{
 					ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-					ATA_IRQ(channel, drive); //Raise an IRQ: we're needing attention!
+					ATA_IRQ(channel, drive,ATAPI_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
 				}
 				break;
 			default: //Unknown request?
@@ -2329,7 +2380,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_readsector(channel)) //Sector read?
 			{
 				ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-				ATA_IRQ(channel,drive); //Raise an IRQ: we're needing attention!
+				ATA_IRQ(channel,drive,ATAPI_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
 			}
 		}
 		else
@@ -2494,7 +2545,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			giveSignature(channel,1); //Give our signature!
 		}
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
 #ifdef ATA_LOG
@@ -2542,7 +2593,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the IRQ!
 		}
 		else
 		{
@@ -2586,7 +2637,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
 				ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),(command & 0xF)); //Select the following head!
-				ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the IRQ!
 			}
 			else goto invalidcommand; //Error out!
 		}
@@ -2619,7 +2670,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
 		if (ATA_readsector(channel,command)) //OK?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
 		}
 		break;
 	case 0x40: //Read verify sector(s) (w/retry)?
@@ -2647,7 +2698,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		if (!ATA_STATUSREGISTER_ERRORR(channel,ATA_activeDrive(channel))) //Finished OK?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise the OK IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the OK IRQ!
 		}
 		break;
 	case 0xC5: //Write multiple?
@@ -2669,7 +2720,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Give our requesting IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
 
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
 		{
@@ -2730,7 +2781,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //We're requesting data to be read!
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Execute an IRQ from us!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Execute an IRQ from us!
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
@@ -2766,7 +2817,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),0); //Are we read-only!
 		}
-		ATA_IRQ(channel, ATA_activeDrive(channel)); //Raise IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATAPI_FINISHREADYTIMING); //Raise IRQ!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
 		break;
 	case 0xEF: //Set features (Mandatory)?
@@ -2879,7 +2930,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATA_IRQ(channel, ATA_activeDrive(channel));
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING);
 		break;
 	}
 }
@@ -2890,18 +2941,18 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	{
 	case 0: //Ready for command?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */))?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */))?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		break;
 	case 1: //Transferring data IN?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 2: //Transferring data OUT?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),ATA[channel].driveselectTiming?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 3: //Busy waiting?
