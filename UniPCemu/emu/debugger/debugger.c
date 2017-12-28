@@ -1318,16 +1318,10 @@ void debuggerThread()
 		{
 			while (psp_keypressed(BUTTON_CROSS)) //Wait for release!
 			{
+				unlock(LOCK_INPUT);
+				delay(0);
+				lock(LOCK_INPUT);
 			}
-			singlestep = 0; //If single stepping, stop doing so!
-			break;
-		}
-		if (psp_keypressed(BUTTON_TRIANGLE)) //Skip 10 commands?
-		{
-			while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
-			{
-			}
-			skipopcodes = 9; //Skip 9 additional opcodes!
 			singlestep = 0; //If single stepping, stop doing so!
 			break;
 		}
@@ -1335,6 +1329,9 @@ void debuggerThread()
 		{
 			while (psp_keypressed(BUTTON_SQUARE)) //Wait for release!
 			{
+				unlock(LOCK_INPUT);
+				delay(0);
+				lock(LOCK_INPUT);
 			}
 			skipopcodes_destEIP = debuggerregisters.EIP+OPlength; //Destination instruction position!
 			if (getcpumode() != CPU_MODE_PROTECTED) //Not protected mode?
@@ -1359,14 +1356,23 @@ void debuggerThread()
 			}
 			break;
 		}
-		if (psp_keypressed(BUTTON_CIRCLE)) //Dump memory?
+		if (psp_keypressed(BUTTON_TRIANGLE)) //Might Dump memory?
 		{
-			while (psp_keypressed(BUTTON_CIRCLE)) //Wait for release!
+			while (psp_keypressed(BUTTON_TRIANGLE)) //Wait for release!
 			{
+				unlock(LOCK_INPUT);
+				delay(0);
+				lock(LOCK_INPUT);
 			}
-			if (psp_keypressed(BUTTON_TRIANGLE)) //Memory dump?
+			if (psp_keypressed(BUTTON_CIRCLE)) //Memory dump?
 			{
 				MMU_dumpmemory("memory.dat"); //Dump the MMU memory!
+			}
+			else //Skip 10 commands?
+			{
+				skipopcodes = 9; //Skip 9 additional opcodes!
+				singlestep = 0; //If single stepping, stop doing so!
+				break;
 			}
 		}
 		unlock(LOCK_INPUT);
@@ -1381,6 +1387,9 @@ void debuggerThread()
 		{
 			while (psp_keypressed(BUTTON_SELECT)) //Wait for release when pressed!
 			{
+				unlock(LOCK_INPUT);
+				delay(0);
+				lock(LOCK_INPUT);
 			}
 			//Start the BIOS
 			if (runBIOS(0)) //Run the BIOS, reboot needed?

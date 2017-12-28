@@ -623,7 +623,12 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 				unlock(LOCK_INPUT);
 				unlock(LOCK_CPU); //Unlock us!
 				lock(LOCK_INPUT);
-				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));) delay(0); //Wait for release while pressed!
+				for (; (psp_keypressed(BUTTON_CIRCLE) || psp_keypressed(BUTTON_STOP));)
+				{
+					unlock(LOCK_INPUT);
+					delay(0); //Wait for release while pressed!
+					lock(LOCK_INPUT);
+				}
 				unlock(LOCK_INPUT);
 				lock(LOCK_CPU); //Lock us!
 				MID_TERM = 1; //Set termination flag to request a termination!
