@@ -889,8 +889,12 @@ typedef struct PACKED
 	int calllayer; //What CALL layer are we (Starts with 0 for none, 1+=CALL)
 	int running; //We're running?
 	byte lastopcode; //Currently/last running opcode!
+	byte lastopcode0F; //Currently/last opcode 0F state!
+	byte lastmodrm; //Currently/last ModR/M byte value!
+
 	byte previousopcode; //Previous opcode for diagnostic purposes!
 	byte previousopcode0F; //Previous opcode 0F state!
+	byte previousmodrm; //Previous ModR/M byte value!
 	uint_32 previousCSstart; //Previous CS starting address!
 	byte faultraised; //Has a fault been raised by the protection module?
 	byte faultlevel; //The level of the raised fault!

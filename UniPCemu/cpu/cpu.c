@@ -939,7 +939,7 @@ void resetCPU() //Initialises the currently selected CPU!
 	//Continue interrupt call (hardware)?
 	CPU[activeCPU].running = 1; //We're running!
 	
-	CPU[activeCPU].lastopcode = CPU[activeCPU].previousopcode = 0; //Last opcode, default to 0 and unknown?
+	CPU[activeCPU].lastopcode = CPU[activeCPU].lastopcode0F = CPU[activeCPU].lastmodrm = CPU[activeCPU].previousopcode = CPU[activeCPU].previousopcode0F = CPU[activeCPU].previousmodrm = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_timings_tbl(); //Generate the timings tables for all CPU's!
@@ -1327,6 +1327,8 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 skiptimings: //Skip all timings and parameters(invalid instruction)!
 	CPU_resetInstructionSteps(); //Reset the current instruction steps!
 	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
+	CPU[activeCPU].lastopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
+	CPU[activeCPU].lastmodrm = (likely(timing)?timing->has_modrm:0)?params.modrm:0; //Modr/m if used!
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!
@@ -2284,6 +2286,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_afterexec(); //After executing OPCode stuff!
 		CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
+		CPU[activeCPU].previousmodrm = CPU[activeCPU].lastmodrm; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
 	BIUWaiting: //The BIU is waiting!
