@@ -603,7 +603,7 @@ int main(int argc, char * argv[])
 			CPU_time %= 10000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 			unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
-			delay(0); //Wait minimum amount of time!
+			delay(unlikely((haswindowactive&0x38)==0x18)?1000000:0); //Wait minimum amount of time, large delays when inactive!
 			lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
