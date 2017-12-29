@@ -603,8 +603,14 @@ int main(int argc, char * argv[])
 			CPU_time %= 10000; //Rest!
 			unlock(LOCK_CPU); //Unlock the CPU: we're not running anymore!
 			unlock(LOCK_MAINTHREAD); //Lock the main thread(us)!
-			const uint_32 delaytime[2] = {0,1000000}; //Delay to execute!
-			delay(delaytime[((haswindowactive&0x8)>>3)]); //Wait minimum amount of time, large delays when inactive!
+			if (unlikely(((haswindowactive&0xA)==8))) //Discarding time and backgrounded?
+			{
+				delay(1000000); //Wait maximum amount of time, large delays when inactive!
+			}
+			else //Normal operation?
+			{
+				delay(0); //Wait minimum amount of time!
+			}
 			lock(LOCK_MAINTHREAD); //Lock the main thread(us)!
 			lock(LOCK_CPU); //Lock the CPU: we're running!
 		}
