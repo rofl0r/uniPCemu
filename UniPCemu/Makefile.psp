@@ -25,6 +25,10 @@ SDL_CONFIG = $(PSPBIN)/sdl-config
 
 CFLAGS = $(OPTIMIZATIONFLAG) -G0 -Wall
 CFLAGS := $(CFLAGS) -D$(BUILD_DEFINE)
+
+#Common emulator framework!
+CFLAGS := $(CFLAGS) -I../commonemuframework
+
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 

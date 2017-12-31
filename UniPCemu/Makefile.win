@@ -107,6 +107,9 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 INCLUDE_DIRS := -I. -I$(prefix)/include -I$(prefix)/include/SDL -I$(prefix)/lib
 endif
 
+#Common emulator framework!
+INCLUDE_DIRS := $(INCLUDE_DIRS) -I../commonemuframework
+
 #Modify the compiler to 64-bit!
 CC = x86_64-w64-mingw32-gcc
 endif

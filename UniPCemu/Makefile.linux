@@ -40,6 +40,8 @@ ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 INCLUDE_DIRS := -I. $(shell sdl-config --cflags)
 endif
 
+#Common emulator framework!
+INCLUDE_DIRS := $(INCLUDE_DIRS) -I../commonemuframework
 
 #Default optimization flags!
 OPTIMIZATIONFLAGS = -O3
