@@ -1,0 +1,3 @@
+[submodule "commonemuframework"]
+	path = commonemuframework
+	url = https://bitbucket.org/superfury/commonemuframework
