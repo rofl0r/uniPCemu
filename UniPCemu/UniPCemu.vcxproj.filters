@@ -34,12 +34,6 @@
     <Filter Include="Source Files\emu\gpu">
       <UniqueIdentifier>{cc9e78cc-6305-424a-9eff-5c7de4b9dcad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\emu\io">
-      <UniqueIdentifier>{5f0a8846-a239-471a-9d0d-23615b363a36}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\exception">
-      <UniqueIdentifier>{2151ebe6-f422-4f2e-9e9e-8a8b864e3aa3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\hardware">
       <UniqueIdentifier>{3e9d58b5-58ab-4289-b663-40fc3eb783e2}</UniqueIdentifier>
     </Filter>
@@ -60,9 +54,6 @@
     </Filter>
     <Filter Include="Source Files\support">
       <UniqueIdentifier>{50417615-5086-4aea-ab04-c4c51bfec8c2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\exception">
-      <UniqueIdentifier>{d5942cf7-f702-44e1-8a8f-022f38f5a1be}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\basicio">
       <UniqueIdentifier>{e2134f8f-bba2-49da-91a5-30a300e7ace2}</UniqueIdentifier>
@@ -106,15 +97,60 @@
     <Filter Include="Makefiles">
       <UniqueIdentifier>{d2cf3af9-c025-467f-8d7f-d9f66f143d66}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\common headers">
+      <UniqueIdentifier>{1e893066-7862-4e6b-be66-87d04f4c775a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\emu">
+      <UniqueIdentifier>{6ea519e2-cc56-4d10-871d-d1adc9abbf79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\emu\gpu">
+      <UniqueIdentifier>{c3db1006-2036-441d-9bbd-16de5ae5bb02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\hardware">
+      <UniqueIdentifier>{2f521662-c8e8-424d-b046-7e598f011dc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\interrupts">
+      <UniqueIdentifier>{4f9c8e0d-574d-46b0-a516-1974dfb2a94a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\support">
+      <UniqueIdentifier>{bb59103a-714c-44ea-bcf6-253113c3c0e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common headers\exception">
+      <UniqueIdentifier>{5b5d4b6d-b4b2-4695-b62e-17e5e8386ba5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files">
+      <UniqueIdentifier>{dc5581f4-e554-4077-aa92-0d32d6d0b6b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\basicio">
+      <UniqueIdentifier>{4a3cebdf-1424-4995-ac59-7770fa234b8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\emu">
+      <UniqueIdentifier>{a86bf869-d558-49ee-a9b4-8b75c90f8f60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\emu\core">
+      <UniqueIdentifier>{1b8c8f43-ba7c-4e74-a5a0-2181826faaad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\emu\gpu">
+      <UniqueIdentifier>{7b6c2fe4-33c4-4552-ad1c-31e55e2d0a18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\emu\io">
+      <UniqueIdentifier>{858c3991-924d-4f8e-b0e4-77cba9049fe7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\exception">
+      <UniqueIdentifier>{97b4586a-b7b5-41ce-8dd6-31ab4cd404d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\hardware">
+      <UniqueIdentifier>{5dc2be62-933c-456e-b54d-d608a9db6333}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common files\support">
+      <UniqueIdentifier>{6ff18b25-1df7-4f59-90fd-2af2d7a4f578}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basicio\dskimage.c">
       <Filter>Source Files\basicio</Filter>
     </ClCompile>
     <ClCompile Include="basicio\dynamicimage.c">
-      <Filter>Source Files\basicio</Filter>
-    </ClCompile>
-    <ClCompile Include="basicio\fopen64.c">
       <Filter>Source Files\basicio</Filter>
     </ClCompile>
     <ClCompile Include="basicio\io.c">
@@ -195,34 +231,16 @@
     <ClCompile Include="cpu\cb_manager.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="emu\main.c">
-      <Filter>Source Files\emu</Filter>
-    </ClCompile>
     <ClCompile Include="emu\core\emu_vga_bios.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
     <ClCompile Include="emu\core\emucore.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
-    <ClCompile Include="emu\core\errors.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\core\number_optimizations.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\core\threads.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
     <ClCompile Include="emu\core\emu_bios_post.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
     <ClCompile Include="emu\core\emu_bios_sound.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\core\emu_main.c">
-      <Filter>Source Files\emu\core</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\core\emu_misc.c">
       <Filter>Source Files\emu\core</Filter>
     </ClCompile>
     <ClCompile Include="emu\debugger\debug_sound.c">
@@ -240,41 +258,8 @@
     <ClCompile Include="emu\debugger\debug_graphics.c">
       <Filter>Source Files\emu\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="emu\gpu\gpu_framerate.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\gpu\gpu_renderer.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\gpu\gpu_sdl.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\gpu\gpu_text.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\gpu\gpu.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
     <ClCompile Include="emu\gpu\gpu_debug.c">
       <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\gpu\gpu_emu.c">
-      <Filter>Source Files\emu\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\io\keyboard.c">
-      <Filter>Source Files\emu\io</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\io\sound.c">
-      <Filter>Source Files\emu\io</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\io\directorylist.c">
-      <Filter>Source Files\emu\io</Filter>
-    </ClCompile>
-    <ClCompile Include="emu\io\input.c">
-      <Filter>Source Files\emu\io</Filter>
-    </ClCompile>
-    <ClCompile Include="exception\exception.c">
-      <Filter>Source Files\exception</Filter>
     </ClCompile>
     <ClCompile Include="hardware\adlib.c">
       <Filter>Source Files\hardware</Filter>
@@ -319,9 +304,6 @@
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
     <ClCompile Include="hardware\ps2_keyboard.c">
-      <Filter>Source Files\hardware</Filter>
-    </ClCompile>
-    <ClCompile Include="hardware\ps2_keyboard_data.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
     <ClCompile Include="hardware\ps2_mouse.c">
@@ -450,55 +432,22 @@
     <ClCompile Include="mmu\mmuhandler.c">
       <Filter>Source Files\mmu</Filter>
     </ClCompile>
-    <ClCompile Include="support\log.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
     <ClCompile Include="support\mid.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="support\sf2.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
-    <ClCompile Include="support\signedness.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\sounddoublebuffer.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
     <ClCompile Include="support\state.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
-    <ClCompile Include="support\timers.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\wave.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\zalloc.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\bmp.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\crc32.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
     <ClCompile Include="support\dro.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\fifobuffer.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\highrestimer.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="support\isoreader.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="support\lba.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
-    <ClCompile Include="support\locks.c">
       <Filter>Source Files\support</Filter>
     </ClCompile>
     <ClCompile Include="bios\boot.c">
@@ -519,9 +468,6 @@
     <ClCompile Include="interrupts\interrupt10_videoparametertable.c">
       <Filter>Source Files\interrupts</Filter>
     </ClCompile>
-    <ClCompile Include="support\filters.c">
-      <Filter>Source Files\support</Filter>
-    </ClCompile>
     <ClCompile Include="hardware\inboard.c">
       <Filter>Source Files\hardware</Filter>
     </ClCompile>
@@ -537,48 +483,111 @@
     <ClCompile Include="cpu\cpu_execution.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="support\tcphelper.c">
-      <Filter>Source Files\support</Filter>
+    <ClCompile Include="..\commonemuframework\basicio\fopen64.c">
+      <Filter>Source Files\common files\basicio</Filter>
     </ClCompile>
-    <ClCompile Include="support\iniparser.c">
-      <Filter>Source Files\support</Filter>
+    <ClCompile Include="..\commonemuframework\emu\main.c">
+      <Filter>Source Files\common files\emu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\core\emu_main.c">
+      <Filter>Source Files\common files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\core\emu_misc.c">
+      <Filter>Source Files\common files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\core\errors.c">
+      <Filter>Source Files\common files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\core\number_optimizations.c">
+      <Filter>Source Files\common files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\core\threads.c">
+      <Filter>Source Files\common files\emu\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_emu.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_framerate.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_renderer.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_sdl.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_text.c">
+      <Filter>Source Files\common files\emu\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\io\directorylist.c">
+      <Filter>Source Files\common files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\io\input.c">
+      <Filter>Source Files\common files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\io\keyboard.c">
+      <Filter>Source Files\common files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\emu\io\sound.c">
+      <Filter>Source Files\common files\emu\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\exception\exception.c">
+      <Filter>Source Files\common files\exception</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\hardware\ps2_keyboard_data.c">
+      <Filter>Source Files\common files\hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\bmp.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\crc32.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\fifobuffer.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\filters.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\highrestimer.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\iniparser.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\locks.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\log.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\signedness.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\sounddoublebuffer.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\tcphelper.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\timers.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\wave.c">
+      <Filter>Source Files\common files\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\commonemuframework\support\zalloc.c">
+      <Filter>Source Files\common files\support</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="exception\exception.h">
-      <Filter>Header Files\exception</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\sdl_rest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\types_base.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\types_linux.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\types_psp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\types_win.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\endpacked.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\fopen64.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="headers\header_dosbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\header_dosboxmpu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\packed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\basicio\dynamicimage.h">
@@ -656,34 +665,13 @@
     <ClInclude Include="headers\cpu\cpu.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\emu\number_optimizations.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\sound.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\emu\soundtest.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
     <ClInclude Include="headers\emu\state.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\emu\threads.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\timers.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\directorylist.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\emu\emu_bios_sound.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\emu_main.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\emu_misc.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
     <ClInclude Include="headers\emu\emu_vga.h">
@@ -692,16 +680,10 @@
     <ClInclude Include="headers\emu\emu_vga_bios.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\emu\emucore.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\emu\file_debug.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
     <ClInclude Include="headers\emu\graphics_debug.h">
-      <Filter>Header Files\emu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\input.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
     <ClInclude Include="headers\emu\debugger\runromverify.h">
@@ -710,25 +692,7 @@
     <ClInclude Include="headers\emu\debugger\debugger.h">
       <Filter>Header Files\emu\debugger</Filter>
     </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu_framerate.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu_renderer.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu_sdl.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu_text.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\emu\gpu\gpu_debug.h">
-      <Filter>Header Files\emu\gpu</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\emu\gpu\gpu_emu.h">
       <Filter>Header Files\emu\gpu</Filter>
     </ClInclude>
     <ClInclude Include="headers\hardware\sermouse.h">
@@ -792,9 +756,6 @@
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
     <ClInclude Include="headers\hardware\ppi.h">
-      <Filter>Header Files\hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\hardware\ps2_keyboard.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
     <ClInclude Include="headers\hardware\ps2_mouse.h">
@@ -869,9 +830,6 @@
     <ClInclude Include="headers\interrupts\interrupt19.h">
       <Filter>Header Files\interrupts</Filter>
     </ClInclude>
-    <ClInclude Include="headers\interrupts\textmodedata.h">
-      <Filter>Header Files\interrupts</Filter>
-    </ClInclude>
     <ClInclude Include="headers\interrupts\interrupt1a.h">
       <Filter>Header Files\interrupts</Filter>
     </ClInclude>
@@ -887,49 +845,16 @@
     <ClInclude Include="headers\support\dro.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
-    <ClInclude Include="headers\support\fifobuffer.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\highrestimer.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
     <ClInclude Include="headers\support\isoreader.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
-    <ClInclude Include="headers\support\keyboard.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
     <ClInclude Include="headers\support\lba.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\locks.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\log.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
     <ClInclude Include="headers\support\mid.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
     <ClInclude Include="headers\support\sf2.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\signedness.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\sounddoublebuffer.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\wave.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\zalloc.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\bmp.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\support\crc32.h">
       <Filter>Header Files\support</Filter>
     </ClInclude>
     <ClInclude Include="headers\hardware\soundblaster.h">
@@ -959,9 +884,6 @@
     <ClInclude Include="headers\cpu\cpu_pmtimings.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\support\filters.h">
-      <Filter>Header Files\support</Filter>
-    </ClInclude>
     <ClInclude Include="headers\hardware\inboard.h">
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
@@ -977,11 +899,128 @@
     <ClInclude Include="headers\cpu\cpu_execution.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="headers\support\tcphelper.h">
-      <Filter>Header Files\support</Filter>
+    <ClInclude Include="..\commonemuframework\headers\endpacked.h">
+      <Filter>Header Files\common headers</Filter>
     </ClInclude>
-    <ClInclude Include="headers\support\iniparser.h">
-      <Filter>Header Files\support</Filter>
+    <ClInclude Include="..\commonemuframework\headers\fopen64.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\packed.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\sdl_rest.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\types.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\types_base.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\types_linux.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\types_psp.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\types_win.h">
+      <Filter>Header Files\common headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\directorylist.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\emu_main.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\emu_misc.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\emucore.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\input.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\number_optimizations.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\sound.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\threads.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\timers.h">
+      <Filter>Header Files\common headers\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_emu.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_framerate.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_renderer.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_sdl.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_text.h">
+      <Filter>Header Files\common headers\emu\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\hardware\ps2_keyboard.h">
+      <Filter>Header Files\common headers\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\interrupts\textmodedata.h">
+      <Filter>Header Files\common headers\interrupts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\bmp.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\crc32.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\fifobuffer.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\filters.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\highrestimer.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\iniparser.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\keyboard.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\locks.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\log.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\signedness.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\sounddoublebuffer.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\tcphelper.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\wave.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\headers\support\zalloc.h">
+      <Filter>Header Files\common headers\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\commonemuframework\exception\exception.h">
+      <Filter>Header Files\common headers\exception</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

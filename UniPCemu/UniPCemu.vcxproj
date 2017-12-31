@@ -75,9 +75,41 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\commonemuframework\basicio\fopen64.c" />
+    <ClCompile Include="..\commonemuframework\emu\core\emu_main.c" />
+    <ClCompile Include="..\commonemuframework\emu\core\emu_misc.c" />
+    <ClCompile Include="..\commonemuframework\emu\core\errors.c" />
+    <ClCompile Include="..\commonemuframework\emu\core\number_optimizations.c" />
+    <ClCompile Include="..\commonemuframework\emu\core\threads.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_emu.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_framerate.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_renderer.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_sdl.c" />
+    <ClCompile Include="..\commonemuframework\emu\gpu\gpu_text.c" />
+    <ClCompile Include="..\commonemuframework\emu\io\directorylist.c" />
+    <ClCompile Include="..\commonemuframework\emu\io\input.c" />
+    <ClCompile Include="..\commonemuframework\emu\io\keyboard.c" />
+    <ClCompile Include="..\commonemuframework\emu\io\sound.c" />
+    <ClCompile Include="..\commonemuframework\emu\main.c" />
+    <ClCompile Include="..\commonemuframework\exception\exception.c" />
+    <ClCompile Include="..\commonemuframework\hardware\ps2_keyboard_data.c" />
+    <ClCompile Include="..\commonemuframework\support\bmp.c" />
+    <ClCompile Include="..\commonemuframework\support\crc32.c" />
+    <ClCompile Include="..\commonemuframework\support\fifobuffer.c" />
+    <ClCompile Include="..\commonemuframework\support\filters.c" />
+    <ClCompile Include="..\commonemuframework\support\highrestimer.c" />
+    <ClCompile Include="..\commonemuframework\support\iniparser.c" />
+    <ClCompile Include="..\commonemuframework\support\locks.c" />
+    <ClCompile Include="..\commonemuframework\support\log.c" />
+    <ClCompile Include="..\commonemuframework\support\signedness.c" />
+    <ClCompile Include="..\commonemuframework\support\sounddoublebuffer.c" />
+    <ClCompile Include="..\commonemuframework\support\tcphelper.c" />
+    <ClCompile Include="..\commonemuframework\support\timers.c" />
+    <ClCompile Include="..\commonemuframework\support\wave.c" />
+    <ClCompile Include="..\commonemuframework\support\zalloc.c" />
     <ClCompile Include="basicio\dskimage.c" />
     <ClCompile Include="basicio\dynamicimage.c" />
-    <ClCompile Include="basicio\fopen64.c" />
     <ClCompile Include="basicio\io.c" />
     <ClCompile Include="basicio\port_io.c" />
     <ClCompile Include="basicio\port_mapper.c" />
@@ -113,30 +145,13 @@
     <ClCompile Include="emu\core\emucore.c" />
     <ClCompile Include="emu\core\emu_bios_post.c" />
     <ClCompile Include="emu\core\emu_bios_sound.c" />
-    <ClCompile Include="emu\core\emu_main.c" />
-    <ClCompile Include="emu\core\emu_misc.c" />
     <ClCompile Include="emu\core\emu_vga_bios.c" />
-    <ClCompile Include="emu\core\errors.c" />
-    <ClCompile Include="emu\core\number_optimizations.c" />
-    <ClCompile Include="emu\core\threads.c" />
     <ClCompile Include="emu\debugger\debugger.c" />
     <ClCompile Include="emu\debugger\debug_files.c" />
     <ClCompile Include="emu\debugger\debug_graphics.c" />
     <ClCompile Include="emu\debugger\debug_sound.c" />
     <ClCompile Include="emu\debugger\runromverify.c" />
-    <ClCompile Include="emu\gpu\gpu.c" />
     <ClCompile Include="emu\gpu\gpu_debug.c" />
-    <ClCompile Include="emu\gpu\gpu_emu.c" />
-    <ClCompile Include="emu\gpu\gpu_framerate.c" />
-    <ClCompile Include="emu\gpu\gpu_renderer.c" />
-    <ClCompile Include="emu\gpu\gpu_sdl.c" />
-    <ClCompile Include="emu\gpu\gpu_text.c" />
-    <ClCompile Include="emu\io\directorylist.c" />
-    <ClCompile Include="emu\io\input.c" />
-    <ClCompile Include="emu\io\keyboard.c" />
-    <ClCompile Include="emu\io\sound.c" />
-    <ClCompile Include="emu\main.c" />
-    <ClCompile Include="exception\exception.c" />
     <ClCompile Include="hardware\8042.c" />
     <ClCompile Include="hardware\adlib.c" />
     <ClCompile Include="hardware\CMOS.c" />
@@ -159,7 +174,6 @@
     <ClCompile Include="hardware\pit.c" />
     <ClCompile Include="hardware\ppi.c" />
     <ClCompile Include="hardware\ps2_keyboard.c" />
-    <ClCompile Include="hardware\ps2_keyboard_data.c" />
     <ClCompile Include="hardware\ps2_mouse.c" />
     <ClCompile Include="hardware\sermouse.c" />
     <ClCompile Include="hardware\softdebugger.c" />
@@ -200,29 +214,55 @@
     <ClCompile Include="interrupts\interrupt5.c" />
     <ClCompile Include="interrupts\unkint.c" />
     <ClCompile Include="mmu\mmuhandler.c" />
-    <ClCompile Include="support\bmp.c" />
-    <ClCompile Include="support\crc32.c" />
     <ClCompile Include="support\dro.c" />
-    <ClCompile Include="support\fifobuffer.c" />
-    <ClCompile Include="support\filters.c" />
-    <ClCompile Include="support\highrestimer.c" />
-    <ClCompile Include="support\iniparser.c" />
     <ClCompile Include="support\isoreader.c" />
     <ClCompile Include="support\lba.c" />
-    <ClCompile Include="support\locks.c" />
-    <ClCompile Include="support\log.c" />
     <ClCompile Include="support\mid.c" />
     <ClCompile Include="support\sf2.c" />
-    <ClCompile Include="support\signedness.c" />
-    <ClCompile Include="support\sounddoublebuffer.c" />
     <ClCompile Include="support\state.c" />
-    <ClCompile Include="support\tcphelper.c" />
-    <ClCompile Include="support\timers.c" />
-    <ClCompile Include="support\wave.c" />
-    <ClCompile Include="support\zalloc.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="exception\exception.h" />
+    <ClInclude Include="..\commonemuframework\exception\exception.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\directorylist.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\emucore.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\emu_main.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\emu_misc.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_emu.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_framerate.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_renderer.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_sdl.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\gpu\gpu_text.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\input.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\number_optimizations.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\sound.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\threads.h" />
+    <ClInclude Include="..\commonemuframework\headers\emu\timers.h" />
+    <ClInclude Include="..\commonemuframework\headers\endpacked.h" />
+    <ClInclude Include="..\commonemuframework\headers\fopen64.h" />
+    <ClInclude Include="..\commonemuframework\headers\hardware\ps2_keyboard.h" />
+    <ClInclude Include="..\commonemuframework\headers\interrupts\textmodedata.h" />
+    <ClInclude Include="..\commonemuframework\headers\packed.h" />
+    <ClInclude Include="..\commonemuframework\headers\sdl_rest.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\bmp.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\crc32.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\fifobuffer.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\filters.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\highrestimer.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\iniparser.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\keyboard.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\locks.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\log.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\signedness.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\sounddoublebuffer.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\tcphelper.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\wave.h" />
+    <ClInclude Include="..\commonemuframework\headers\support\zalloc.h" />
+    <ClInclude Include="..\commonemuframework\headers\types.h" />
+    <ClInclude Include="..\commonemuframework\headers\types_base.h" />
+    <ClInclude Include="..\commonemuframework\headers\types_linux.h" />
+    <ClInclude Include="..\commonemuframework\headers\types_psp.h" />
+    <ClInclude Include="..\commonemuframework\headers\types_win.h" />
     <ClInclude Include="headers\basicio\dskimage.h" />
     <ClInclude Include="headers\basicio\dynamicimage.h" />
     <ClInclude Include="headers\basicio\io.h" />
@@ -257,32 +297,15 @@
     <ClInclude Include="headers\cpu\protection.h" />
     <ClInclude Include="headers\emu\debugger\debugger.h" />
     <ClInclude Include="headers\emu\debugger\runromverify.h" />
-    <ClInclude Include="headers\emu\directorylist.h" />
-    <ClInclude Include="headers\emu\emucore.h" />
     <ClInclude Include="headers\emu\emu_bios_sound.h" />
-    <ClInclude Include="headers\emu\emu_main.h" />
-    <ClInclude Include="headers\emu\emu_misc.h" />
     <ClInclude Include="headers\emu\emu_vga.h" />
     <ClInclude Include="headers\emu\emu_vga_bios.h" />
     <ClInclude Include="headers\emu\file_debug.h" />
-    <ClInclude Include="headers\emu\gpu\gpu.h" />
     <ClInclude Include="headers\emu\gpu\gpu_debug.h" />
-    <ClInclude Include="headers\emu\gpu\gpu_emu.h" />
-    <ClInclude Include="headers\emu\gpu\gpu_framerate.h" />
-    <ClInclude Include="headers\emu\gpu\gpu_renderer.h" />
-    <ClInclude Include="headers\emu\gpu\gpu_sdl.h" />
-    <ClInclude Include="headers\emu\gpu\gpu_text.h" />
     <ClInclude Include="headers\emu\graphics_debug.h" />
     <ClInclude Include="headers\emu\icon.h" />
-    <ClInclude Include="headers\emu\input.h" />
-    <ClInclude Include="headers\emu\number_optimizations.h" />
-    <ClInclude Include="headers\emu\sound.h" />
     <ClInclude Include="headers\emu\soundtest.h" />
     <ClInclude Include="headers\emu\state.h" />
-    <ClInclude Include="headers\emu\threads.h" />
-    <ClInclude Include="headers\emu\timers.h" />
-    <ClInclude Include="headers\endpacked.h" />
-    <ClInclude Include="headers\fopen64.h" />
     <ClInclude Include="headers\hardware\8042.h" />
     <ClInclude Include="headers\hardware\8237A.h" />
     <ClInclude Include="headers\hardware\8253.h" />
@@ -304,7 +327,6 @@
     <ClInclude Include="headers\hardware\pic.h" />
     <ClInclude Include="headers\hardware\ports.h" />
     <ClInclude Include="headers\hardware\ppi.h" />
-    <ClInclude Include="headers\hardware\ps2_keyboard.h" />
     <ClInclude Include="headers\hardware\ps2_mouse.h" />
     <ClInclude Include="headers\hardware\sermouse.h" />
     <ClInclude Include="headers\hardware\softdebugger.h" />
@@ -338,35 +360,13 @@
     <ClInclude Include="headers\interrupts\interrupt18.h" />
     <ClInclude Include="headers\interrupts\interrupt19.h" />
     <ClInclude Include="headers\interrupts\interrupt1a.h" />
-    <ClInclude Include="headers\interrupts\textmodedata.h" />
     <ClInclude Include="headers\mmu\mmuhandler.h" />
     <ClInclude Include="headers\mmu\mmu_internals.h" />
-    <ClInclude Include="headers\packed.h" />
-    <ClInclude Include="headers\sdl_rest.h" />
-    <ClInclude Include="headers\support\bmp.h" />
-    <ClInclude Include="headers\support\crc32.h" />
     <ClInclude Include="headers\support\dro.h" />
-    <ClInclude Include="headers\support\fifobuffer.h" />
-    <ClInclude Include="headers\support\filters.h" />
-    <ClInclude Include="headers\support\highrestimer.h" />
-    <ClInclude Include="headers\support\iniparser.h" />
     <ClInclude Include="headers\support\isoreader.h" />
-    <ClInclude Include="headers\support\keyboard.h" />
     <ClInclude Include="headers\support\lba.h" />
-    <ClInclude Include="headers\support\locks.h" />
-    <ClInclude Include="headers\support\log.h" />
     <ClInclude Include="headers\support\mid.h" />
     <ClInclude Include="headers\support\sf2.h" />
-    <ClInclude Include="headers\support\signedness.h" />
-    <ClInclude Include="headers\support\sounddoublebuffer.h" />
-    <ClInclude Include="headers\support\tcphelper.h" />
-    <ClInclude Include="headers\support\wave.h" />
-    <ClInclude Include="headers\support\zalloc.h" />
-    <ClInclude Include="headers\types.h" />
-    <ClInclude Include="headers\types_base.h" />
-    <ClInclude Include="headers\types_linux.h" />
-    <ClInclude Include="headers\types_psp.h" />
-    <ClInclude Include="headers\types_win.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -541,7 +541,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -550,7 +550,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL_net-1.2.8\VisualC\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -559,7 +559,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL2\VisualC\Win32\Release;C:\SDL\SDL2\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -568,7 +568,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL2\VisualC\Win32\Release;C:\SDL\SDL2\VisualC\SDLmain\Release;C:\SDL\SDL2_net\VisualC\Win32\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -577,7 +577,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL2\VisualC\Win32\Release;C:\SDL\SDL2\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -586,7 +586,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -595,7 +595,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL_net-1.2.8\VisualC\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -604,7 +604,7 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL2\VisualC\Win32\Release;C:\SDL\SDL2\VisualC\SDLmain\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
@@ -613,14 +613,14 @@
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
     <LibraryPath>C:\SDL\SDL2\VisualC\Win32\Release;C:\SDL\SDL2\VisualC\SDLmain\Release;C:\SDL\SDL2_net\VisualC\Win32\Release;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
-    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x86</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -628,7 +628,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL_net|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL_net-1.2.8\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -636,7 +636,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL2\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -644,7 +644,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2_net|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL2\VisualC\x64\Release;C:\SDL\SDL2_net\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -652,7 +652,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL2\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -660,7 +660,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -668,7 +668,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL_net|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL-1.2.15\include;C:\SDL\SDL_net-1.2.8;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\SDL\SDL-1.2.15\VisualC\Release;C:\SDL\SDL-1.2.15\VisualC\SDLmain\Release;C:\SDL\SDL_net-1.2.8\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -676,7 +676,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\SDL\SDL2\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
@@ -684,7 +684,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2_net|x64'">
     <OutDir>$(SolutionDir)..\..\projects_build\UniPCemu\</OutDir>
     <IntDir>$(SolutionDir)..\..\projects_build\UniPCemu\$(Configuration)\$(PlatformShortName)\</IntDir>
-    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\SDL\SDL2\include;C:\SDL\SDL2_net;$(SolutionDir);$(SolutionDir)\..\commonemuframework;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\SDL\SDL2\VisualC\x64\Release;C:\SDL\SDL2_net\VisualC\x64\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <SourcePath>$(VC_SourcePath);$(SolutionDir)</SourcePath>
     <TargetName>$(ProjectName)_x64</TargetName>
