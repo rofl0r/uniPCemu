@@ -24,6 +24,7 @@ PSPBIN = $(PSPDEV)/bin
 SDL_CONFIG = $(PSPBIN)/sdl-config
 
 CFLAGS = $(OPTIMIZATIONFLAG) -G0 -Wall
+CFLAGS := $(CFLAGS) -D$(BUILD_DEFINE)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 

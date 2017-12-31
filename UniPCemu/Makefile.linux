@@ -52,6 +52,8 @@ ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 OPTIMIZATIONFLAGS = -Og
 endif
 
+CFLAGS := $(CFLAGS) -D$(BUILD_DEFINE)
+
 #Building for debugger and normal CFLAGS
 BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))

@@ -1,5 +1,6 @@
 #Define our default building directory and executable name/title for all output files!
 BUILD_NAME = UniPCemu
+BUILD_DEFINE = UNIPCEMU
 
 #Now, our modules!
 
