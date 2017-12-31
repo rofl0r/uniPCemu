@@ -5,25 +5,25 @@ BUILD_DEFINE = UNIPCEMU
 #Now, our modules!
 
 #Exception handler!
-OBJS = exception/exception.o
+OBJS = ../commonemuframework/exception/exception.o
 
 #Memory allocation!
-OBJS += support/zalloc.o
+OBJS += ../commonemuframework/support/zalloc.o
 
 #Timers!
-OBJS += support/timers.o
+OBJS += ../commonemuframework/support/timers.o
 
 #Bitmap support!
-OBJS += support/bmp.o
+OBJS += ../commonemuframework/support/bmp.o
 
 #Logging support!
-OBJS += support/log.o
+OBJS += ../commonemuframework/support/log.o
 
 #Lock support!
-OBJS += support/locks.o
+OBJS += ../commonemuframework/support/locks.o
 
 #WAV file support!
-OBJS += support/wave.o
+OBJS += ../commonemuframework/support/wave.o
 
 #Basic Callback manager in-memory!
 OBJS += cpu/cb_manager.o
@@ -33,7 +33,7 @@ OBJS += cpu/cpu_interrupts.o
 #Interrupt 10h VGA help:
 OBJS += interrupts/interrupt10_modelist_vga.o interrupts/interrupt10_switchvideomode.o interrupts/interrupt10_romfont.o interrupts/interrupt10_videoparametertable.o interrupts/interrupt10_textmodedata.o
 #next, support
-OBJS += basicio/dynamicimage.o basicio/staticimage.o basicio/dskimage.o support/isoreader.o support/fifobuffer.o support/sounddoublebuffer.o support/lba.o support/crc32.o
+OBJS += basicio/dynamicimage.o basicio/staticimage.o basicio/dskimage.o support/isoreader.o ../commonemuframework/support/fifobuffer.o ../commonemuframework/support/sounddoublebuffer.o support/lba.o ../commonemuframework/support/crc32.o
 #all main I/O stuff we need (disk I/O and port mapping)
 OBJS += basicio/io.o basicio/port_mapper.o
 #external chip caller port port i/o (for the CPU and hardware):
@@ -41,7 +41,7 @@ OBJS += basicio/port_io.o
 #external chips
 OBJS += hardware/pit.o
 #PS/2 Keyboard
-OBJS += hardware/ps2_keyboard_data.o hardware/ps2_keyboard.o
+OBJS += ../commonemuframework/hardware/ps2_keyboard_data.o hardware/ps2_keyboard.o
 #PS/2 mouse device
 OBJS += hardware/ps2_mouse.o
 #Main PS/2 controller
@@ -147,7 +147,7 @@ OBJS += cpu/mmu.o cpu/paging.o cpu/cpu_execution.o
 #Debugger
 OBJS += emu/debugger/debugger.o
 #Signed VS unsigned conversion support!
-OBJS += support/signedness.o
+OBJS += ../commonemuframework/support/signedness.o
 
 #MIDI and SF2 support!
 OBJS += support/sf2.o hardware/midi/mpu.o hardware/midi/midi.o hardware/midi/mididevice.o hardware/midi/adsr.o
@@ -157,10 +157,10 @@ OBJS += support/mid.o
 OBJS += support/dro.o
 
 #TCP connection support!
-OBJS += support/tcphelper.o
+OBJS += ../commonemuframework/support/tcphelper.o
 
 #INI file support!
-OBJS += support/iniparser.o
+OBJS += ../commonemuframework/support/iniparser.o
 
 #UART
 OBJS += hardware/uart.o
@@ -181,27 +181,27 @@ OBJS += hardware/pci.o
 OBJS += hardware/ide.o
 
 #High resolution timer
-OBJS += support/highrestimer.o
+OBJS += ../commonemuframework/support/highrestimer.o
 
 #Rest and main script
 OBJS += bios/boot.o
 
 #Emulator specific stuff!
 #Emulator sound:
-OBJS += emu/io/sound.o
+OBJS += ../commonemuframework/emu/io/sound.o
 #Filter support
-OBJS += support/filters.o
+OBJS += ../commonemuframework/support/filters.o
 #Emulator threads:
-OBJS += emu/core/threads.o
+OBJS += ../commonemuframework/emu/core/threads.o
 #Emulator input:
-OBJS += emu/io/keyboard.o emu/io/input.o
+OBJS += ../commonemuframework/emu/io/keyboard.o ../commonemuframework/emu/io/input.o
 #All GPU parts!
-OBJS += emu/gpu/gpu.o emu/gpu/gpu_debug.o emu/gpu/gpu_framerate.o emu/gpu/gpu_renderer.o emu/gpu/gpu_emu.o emu/gpu/gpu_text.o
+OBJS += ../commonemuframework/emu/gpu/gpu.o emu/gpu/gpu_debug.o ../commonemuframework/emu/gpu/gpu_framerate.o ../commonemuframework/emu/gpu/gpu_renderer.o ../commonemuframework/emu/gpu/gpu_emu.o ../commonemuframework/emu/gpu/gpu_text.o
 #GPU SDL part!
-OBJS += emu/gpu/gpu_sdl.o
+OBJS += ../commonemuframework/emu/gpu/gpu_sdl.o
 
 #Error handler!
-OBJS += emu/core/errors.o
+OBJS += ../commonemuframework/emu/core/errors.o
 
 #Sound test utility.
 OBJS += emu/debugger/debug_sound.o
@@ -212,16 +212,16 @@ OBJS += emu/core/emucore.o
 OBJS += emu/core/emu_bios_post.o
 
 #Main subcores.
-OBJS += emu/core/emu_main.o emu/core/emu_misc.o emu/core/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
+OBJS += ../commonemuframework/emu/core/emu_main.o ../commonemuframework/emu/core/emu_misc.o ../commonemuframework/emu/core/number_optimizations.o emu/core/emu_vga_bios.o emu/core/emu_bios_sound.o emu/debugger/debug_graphics.o emu/debugger/debug_files.o
 
 #Directory listing support!
-OBJS += emu/io/directorylist.o
+OBJS += ../commonemuframework/emu/io/directorylist.o
 
 #Finally: main script!
-OBJS += emu/main.o
+OBJS += ../commonemuframework/emu/main.o
 
 #64-bit file support!
-OBJS += basicio/fopen64.o
+OBJS += ../commonemuframework/basicio/fopen64.o
 
 #Support multi platform builds:
 include Makefile.multiplatform
