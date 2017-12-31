@@ -433,7 +433,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
 	BIOS_Settings.debugger_log = DEFAULT_DEBUGGERLOG; //Default debugger logging!
 
-	BIOS_Settings.VGA_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default: automatic 1:1 mapping!
+	BIOS_Settings.GPU_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default: automatic 1:1 mapping!
 	BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Don't keep aspect ratio by default!
 	BIOS_Settings.bwmonitor = DEFAULT_BWMONITOR; //Default B/W monitor setting!
 	BIOS_Settings.SoundSource_Volume = DEFAULT_SSOURCEVOL; //Default soundsource volume knob!
@@ -560,7 +560,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video","CGAmodel",DEFAULT_CGAMODEL,BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
 	BIOS_Settings.VRAM_size = (uint_32)get_private_profile_uint64("video","VRAM",0,BIOS_Settings_file); //(S)VGA VRAM size!
 	BIOS_Settings.VGASynchronization = (byte)get_private_profile_uint64("video","synchronization",DEFAULT_VGASYNCHRONIZATION,BIOS_Settings_file); //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
-	BIOS_Settings.VGA_AllowDirectPlot = (byte)get_private_profile_uint64("video","directplot",DEFAULT_DIRECTPLOT,BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	BIOS_Settings.GPU_AllowDirectPlot = (byte)get_private_profile_uint64("video","directplot",DEFAULT_DIRECTPLOT,BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
 	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video","aspectratio",DEFAULT_ASPECTRATIO,BIOS_Settings_file); //The aspect ratio to use?
 	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video","bwmonitor",DEFAULT_BWMONITOR,BIOS_Settings_file); //Are we a b/w monitor?
 	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video","showframerate",DEFAULT_FRAMERATE,BIOS_Settings_file); //Show the frame rate?
@@ -752,7 +752,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("video",video_commentused,"CGAmodel",BIOS_Settings.CGAModel,BIOS_Settings_file)) return 0; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
 	if (!write_private_profile_uint64("video",video_commentused,"VRAM",BIOS_Settings.VRAM_size,BIOS_Settings_file)) return 0; //(S)VGA VRAM size!
 	if (!write_private_profile_uint64("video",video_commentused,"synchronization",BIOS_Settings.VGASynchronization,BIOS_Settings_file)) return 0; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
-	if (!write_private_profile_uint64("video",video_commentused,"directplot",BIOS_Settings.VGA_AllowDirectPlot,BIOS_Settings_file)) return 0; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	if (!write_private_profile_uint64("video",video_commentused,"directplot",BIOS_Settings.GPU_AllowDirectPlot,BIOS_Settings_file)) return 0; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
 	if (!write_private_profile_uint64("video",video_commentused,"aspectratio",BIOS_Settings.aspectratio,BIOS_Settings_file)) return 0; //The aspect ratio to use?
 	if (!write_private_profile_uint64("video",video_commentused,"bwmonitor",BIOS_Settings.bwmonitor,BIOS_Settings_file)) return 0; //Are we a b/w monitor?
 	if (!write_private_profile_uint64("video",video_commentused,"showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?

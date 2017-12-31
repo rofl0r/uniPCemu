@@ -3401,26 +3401,26 @@ void BIOS_DirectPlotSetting()
 	strcpy(itemlist[0],"Disabled"); //Set filename from options!
 	strcpy(itemlist[1],"Automatic"); //Set filename from options!
 	strcpy(itemlist[2],"Forced"); //Set filename from options!
-	if (BIOS_Settings.VGA_AllowDirectPlot >= numlist) //Invalid?
+	if (BIOS_Settings.GPU_AllowDirectPlot >= numlist) //Invalid?
 	{
-		BIOS_Settings.VGA_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default!
+		BIOS_Settings.GPU_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default!
 		BIOS_Changed = 1; //We've changed!
 	}
 	int current = 0;
-	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot?
+	switch (BIOS_Settings.GPU_AllowDirectPlot) //What direct plot?
 	{
 	case 0: //Valid
 	case 1: //Valid
 	case 2: //Valid
-		current = BIOS_Settings.VGA_AllowDirectPlot; //Valid: use!
+		current = BIOS_Settings.GPU_AllowDirectPlot; //Valid: use!
 		break;
 	default: //Invalid
 		current = 0; //Default: none!
 		break;
 	}
-	if (BIOS_Settings.VGA_AllowDirectPlot!=current) //Invalid?
+	if (BIOS_Settings.GPU_AllowDirectPlot!=current) //Invalid?
 	{
-		BIOS_Settings.VGA_AllowDirectPlot = current; //Safety!
+		BIOS_Settings.GPU_AllowDirectPlot = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
 	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
@@ -3438,7 +3438,7 @@ void BIOS_DirectPlotSetting()
 		if (file!=current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			BIOS_Settings.VGA_AllowDirectPlot = file; //Select Direct Plot setting!
+			BIOS_Settings.GPU_AllowDirectPlot = file; //Select Direct Plot setting!
 		}
 		break;
 	}
@@ -4195,7 +4195,7 @@ void BIOS_InitVideoSettingsText()
 	optioninfo[advancedoptions] = 0; //We're direct plot setting!
 	strcpy(menuoptions[advancedoptions],"VGA Direct Plot: ");
 setdirectplottext: //For fixing it!
-	switch (BIOS_Settings.VGA_AllowDirectPlot) //What direct plot setting?
+	switch (BIOS_Settings.GPU_AllowDirectPlot) //What direct plot setting?
 	{
 	case 2: //Forced?
 		strcat(menuoptions[advancedoptions++],"Forced");
@@ -4207,7 +4207,7 @@ setdirectplottext: //For fixing it!
 		strcat(menuoptions[advancedoptions++],"Disabled");
 		break;
 	default: //Error: fix it!
-		BIOS_Settings.VGA_AllowDirectPlot = 0; //Reset/Fix!
+		BIOS_Settings.GPU_AllowDirectPlot = 0; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
 		goto setdirectplottext; //Goto!
 		break;
