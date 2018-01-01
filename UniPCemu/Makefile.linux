@@ -54,8 +54,6 @@ ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 OPTIMIZATIONFLAGS = -Og
 endif
 
-CFLAGS := $(CFLAGS) -D$(BUILD_DEFINE)
-
 #Building for debugger and normal CFLAGS
 BUILD_CFLAGS = -enable-core-inline -static-libgcc -static-libstdc++
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
@@ -82,6 +80,8 @@ endif
 #Flags always set for compiling with SDL2(for the code compilation itself)!
 CFLAGS := $(CFLAGS) -DSDL2
 endif
+
+CFLAGS := $(CFLAGS) -D$(BUILD_DEFINE)
 
 ifeq (,$(findstring SDL2,$(MAKECMDGOALS)))
 #SDL1 functions instead!
@@ -143,12 +143,17 @@ $(BUILD_RELEASE): ${OBJS}
 	@$(MKDIR) -p $(dir $@)
 	@${CC} -o "$@" ${OBJS} $(STRIP) ${LDFLAGS}
 
+
+#Dummy to prevent compiling .d.o invalid paths!
+$(BUILD_DIR)/linux/%.d.o:
+	@
+
 #Patch for dependancy output using incorrect .o file paths is right below the CC lines!
-$(BUILD_DIR)/linux/%.o:%.c
-	$(info Compiling $<)
+$(BUILD_DIR)/linux/%.o:
+	$(info Compiling $(subst parentdir/,../,$(patsubst $(BUILD_DIR)/linux/%.o,%.c,$@)))
 	@$(MKDIR) -p $(dir $@)
-	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $< -o $@
-	@${CC} $(CFLAGS) $(INCLUDE_DIRS) -c $< -MM -MF $(patsubst %.o,%.d,$@)
+	@${CC} $(OPTIMIZATIONFLAGS) ${CFLAGS} $(BUILD_CFLAGS) ${INCLUDE_DIRS} -c $(subst parentdir/,../,$(patsubst $(BUILD_DIR)/linux/%.o,%.c,$@)) -o $@
+	@${CC} $(CFLAGS) $(INCLUDE_DIRS) -c $(subst parentdir/,../,$(patsubst $(BUILD_DIR)/linux/%.o,%.c,$@)) -MM -MF $(patsubst %.o,%.d,$@)
 	@sed -i 's|$(notdir $@):|$@:|' $(patsubst %.o,%.d,$@)
 
 clean:
