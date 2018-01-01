@@ -12,7 +12,8 @@ This README would normally document whatever steps are necessary to get your app
 ### How do I get set up? ###
 
 * Summary of set up
-- This repository goes into a folder named x86EMU. Place the tools support repository(https://bitbucket.org/superfury/tools.git) parralel to this repository folder(Required for PSP builds).
+- This repository goes into a folder named UniPCEMU. Place the tools support repository(https://bitbucket.org/superfury/tools.git) parralel to this repository folder(Required for PSP builds).
+- Pull the submodules as well for it's required Makefiles and source code files.
 - Install Minimalist PSPSDK devkit(PSP, up to version 0.10.0 is compiling UniPCemu(with lots of sprintf warnings). Newer versions currently fail linking.) or Visual C++, MinGW(Windows)/MSYS2(See **MSYS2.txt**) or GNU C++ toolchsin(Linux).
 - Install SDL packages for the devkit, in C:\SDL for Windows(copy SDL2-2.* folder contents to C:\SDL\SDL2 (and the SDL2_net folder to C:\SDL\SDL2_net), to use SDL 1.2.*, copy the folder contents to C:\SDL\SDL1.2.15(and the SDL_net folder to C:\SDL\SDL_net-1.2.8)), installers for MinPSPW and /mingw(SDL or SDL2).
 - For Visual C++:
