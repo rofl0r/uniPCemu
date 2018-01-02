@@ -10,12 +10,13 @@ SDL_PATH := ../SDL2
 SDL_net_PATH := ../SDL2_net
 
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include ../UniPCemu
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include ../UniPCemu ../commonemuframework
 
-LOCAL_CFLAGS := -DSDL2
+LOCAL_CFLAGS := -DSDL2 -DUNIPCEMU
 
 ROOTPATH = ../UniPCemu
 
+PLATFORM = custom
 include ../UniPCemu/Makefile
 
 # Add your application source files here...
