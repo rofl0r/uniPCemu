@@ -1246,7 +1246,7 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 //Read signed numbers from CS:(E)IP!
 #define imm8() unsigned2signed8(immb)
 #define imm16() unsigned2signed16(immw)
-#define imm32() unsigned2signed32(imm32)
+#define imm32s() unsigned2signed32(imm32)
 
 //Exceptions!
 
