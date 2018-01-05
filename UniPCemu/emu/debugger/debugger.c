@@ -198,8 +198,16 @@ OPTINLINE char stringsafeDebugger(byte x)
 	return (x && (x!=0xD) && (x!=0xA))?x:(char)0x20;
 }
 
-char debugger_memoryaccess_text[1024]; //Memory access text!
+char debugger_memoryaccess_text[0x40000]; //Memory access text!
 char debugger_memoryaccess_line[256];
+
+void safestrcat_text(char *line)
+{
+	if (((strlen(line)+strlen(debugger_memoryaccess_text))+1)<=sizeof(debugger_memoryaccess_text)) //OK to store without overflow?
+	{
+		strcat(debugger_memoryaccess_text,line); //Add the line!
+	}
+}
 
 void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte type)
 {
@@ -234,8 +242,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Normal(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -256,8 +264,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Paged(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -278,8 +286,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Physical(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -301,8 +309,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"RAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -323,8 +331,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"RealRAM(w):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -351,8 +359,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Normal(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -373,8 +381,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Paged(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -395,8 +403,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"Physical(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -418,8 +426,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"RAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
@@ -440,8 +448,8 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 					else
 					{
 						sprintf(debugger_memoryaccess_line,"RealRAM(r):%08X=%02X(%c)",address,value,stringsafeDebugger(value)); //Compact version!
-						strcat(debugger_memoryaccess_text,"; ");
-						strcat(debugger_memoryaccess_text,debugger_memoryaccess_line); //Add the line!
+						safestrcat_text("; ");
+						safestrcat_text(debugger_memoryaccess_line); //Add the line!
 					}
 				}
 				break;
