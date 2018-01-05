@@ -1192,9 +1192,9 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 		SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1,0); //CGA word mode!
 	}
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1); //The horizontal size might have been updated!
-	if (getActiveVGA->CGAMDAMemoryMode!=memorymode) //Memory mode updated?
+	if (getActiveVGA()->CGAMDAMemoryMode!=memorymode) //Memory mode updated?
 	{
-		getActiveVGA->CGAMDAMemoryMode = memorymode; //Updating memory!
+		getActiveVGA()->CGAMDAMemoryMode = memorymode; //Updating memory!
 		bytesleft = CGAEMULATION_ENABLED(getActiveVGA())?0x4000:0x1000; //How much to copy(CGA vs MDA)!
 		shadowaddr = 0; //Init shadow RAM address!
 		memaddr = VGA_VRAM_START; //Start of address to write!
