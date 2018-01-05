@@ -338,6 +338,8 @@ typedef struct PACKED
 //First, VRAM and registers:
 	byte *VRAM; //The VRAM: 64K of 32-bit values, byte align!
 	uint_32 VRAM_size; //The size of the VRAM!
+	byte CGAMDAShadowRAM[0x4000]; //ShadowRAM for static adapter reads!
+	byte CGAMDAMemoryMode; //What memory mode(for restoring RAM during mode changes).
 //Active video mode:
 
 	VGA_REGISTERS *registers; //The registers itself!
@@ -458,5 +460,8 @@ void PORT_write_MISC_3C2(byte value); //Misc Output register updating for SVGA!
 void updateVGAWaitState(); //Update the new WaitState for the VGA handler!
 
 void VGA_setupEGAPalette(VGA_Type *VGA); //Setup the EGA palette for the EGA emulation!
+
+//Support for adapters using unmapped memory!
+byte VGAmemIO_wb(uint_32 offset, byte value);
 
 #endif

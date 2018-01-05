@@ -1150,9 +1150,17 @@ OPTINLINE void setCGAMDAMode(byte useGraphics, byte GraphicsMode, byte blink) //
 	updateCGAmapping(); //Update the rendering mapping by the CGA!
 }
 
+extern uint_32 VGA_VRAM_START; //To copy memory between VRAM modes!
+
 OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
+	word i;
+	uint_32 memaddr;
+	word bytesleft,shadowaddr;
+	byte memorymode;
+	
 	SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3,((!useGraphics) && GraphicsMode)?2:3); //Use map B000(MDA) or B800(CGA), depending on the adapter used!
+	memorymode = (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1))|((useGraphics && (!GraphicsMode))?2:0); //New memory mode!
 	if (useGraphics && (!GraphicsMode)) //Special case? CGA monochrome mode?
 	{
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1,0); //Don't force odd/even mode!
@@ -1184,6 +1192,17 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 		SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1,0); //CGA word mode!
 	}
 	VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CGACRTCONTROLLER_HORIZONTAL|0x1); //The horizontal size might have been updated!
+	if (getActiveVGA->CGAMDAMemoryMode!=memorymode) //Memory mode updated?
+	{
+		getActiveVGA->CGAMDAMemoryMode = memorymode; //Updating memory!
+		bytesleft = CGAEMULATION_ENABLED(getActiveVGA())?0x4000:0x1000; //How much to copy(CGA vs MDA)!
+		shadowaddr = 0; //Init shadow RAM address!
+		memaddr = VGA_VRAM_START; //Start of address to write!
+		for (;bytesleft--;) //Process all RAM!
+		{
+			VGAmemIO_wb(memaddr++,getActiveVGA()->CGAMDAShadowRAM[shadowaddr++]); //Copy shadow RAM to VRAM, keeping the layout identical(like we're using normal CGA VRAM)!
+		}
+	}
 }
 
 OPTINLINE void applyCGAModeControl()

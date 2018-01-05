@@ -420,9 +420,12 @@ byte VGAmemIO_rb(uint_32 offset, byte *value)
 	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(0, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
+		if (CGAEMULATION_ENABLED(getActiveVGA())||MDAEMULATION_ENABLED(getActiveVGA()) //Unchanged mapping?
+		{
+			*value = getActiveVGA()->CGAMDAShadowRAM[offset]; //Read from shadow RAM!
+		}
 		return 1; //Read!
 	}
 	return 0; //Not read!
@@ -436,6 +439,10 @@ byte VGAmemIO_wb(uint_32 offset, byte value)
 		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(1, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
+if (CGAEMULATION_ENABLED(getActiveVGA())||MDAEMULATION_ENABLED(getActiveVGA()) //Unchanged mapping?
+		{
+			getActiveVGA()->CGAMDAShadowRAM[offset] = value; //Write to shadow RAM!
+		}
 		return 1; //Written!
 	}
 	return 0; //Not written!
