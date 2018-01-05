@@ -4510,6 +4510,7 @@ void BIOS_InitSoundText()
 		break;
 	case 0:
 		strcat(menuoptions[advancedoptions++], "Disabled");
+		break;
 	default:
 		BIOS_Settings.useSoundBlaster = DEFAULT_SOUNDBLASTER;
 		goto redetectSoundBlaster;
