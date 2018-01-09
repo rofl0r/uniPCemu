@@ -1958,6 +1958,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	didNewREP = 0; didRepeating=0; //Did we do a REP?
 	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
+	uint_32 REPcondition; //What kind of condition?
 	//byte cycles_counted = 0; //Cycles have been counted?
 	if (likely((BIU_Ready()&&(CPU[activeCPU].halt==0))==0)) //BIU not ready to continue? We're handling seperate cycles still!
 	{
@@ -2220,7 +2221,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				}
 			}
 		}
-		if (!CPU[activeCPU].registers->CX) //REP and finished?
+		if (!(CPU_Address_size[activeCPU]?CPU[activeCPU].registers->ECX:CPU[activeCPU].registers->CX)) //REP and finished?
 		{
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
@@ -2249,7 +2250,15 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				gotREP &= FLAG_ZF; //To reset the opcode (ZF needs to be set to loop)?
 			}
-			if (CPU[activeCPU].registers->CX-- && gotREP) //Still looping and allowed? Decrease CX after checking for the final item!
+			if (CPU_Address_size[activeCPU]) //32-bit REP?
+			{
+				REPcondition = CPU[activeCPU].registers->ECX--; //ECX set and decremented?
+			}
+			else
+			{
+				REPcondition = CPU[activeCPU].registers->CX--; //CX set and decremented?
+			}
+			if (REPcondition && gotREP) //Still looping and allowed? Decrease (E)CX after checking for the final item!
 			{
 				REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
 			}
