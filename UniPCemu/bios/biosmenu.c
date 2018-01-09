@@ -2402,9 +2402,6 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
 
-//Interval to update!
-#define SECTORUPDATEINTERVAL 51200000
-
 void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 {
 	char fullfilename[256]; //Full filename container!
@@ -2464,6 +2461,9 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 #define VERIFICATIONBLOCK 500
 
 byte sector[VERIFICATIONBLOCK * 512], verificationsector[VERIFICATIONBLOCK * 512]; //Current sector!
+
+FILEPOS sectorupdateinterval; //How many sectors interval before updating?
+FILEPOS sectorupdateintervalcnt; //Counter for testing for sector update display!
 
 void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static one!
 {
@@ -2539,6 +2539,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					byte error = 0;
+					sectorupdateinterval = MAX((sizecreated/100),sizeof(sector)); //Update interval!
+					sectorupdateintervalcnt = 0; //Reset counter for the first update!
+					byte firstupdate = 1; //First update!
 					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
 					{
 						if (shuttingdown())
@@ -2568,8 +2571,11 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+						sectorupdateintervalcnt += datatotransfer; //Transferred data!
+						if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 						{
+							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+							firstupdate = 0; //Not first update anymore!
 							EMU_locktext();
 							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							EMU_unlocktext();
@@ -2587,6 +2593,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
 						EMU_unlocktext();
 						iohdd1(filename, 0, 1, 0); //Mount!
+						sectorupdateinterval = MAX((sizecreated/100),sizeof(sector)); //Update interval!
+						sectorupdateintervalcnt = 0; //Reset counter for the first update!
+						firstupdate = 1; //First update!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
 							if (shuttingdown())
@@ -2621,8 +2630,10 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								error = 1;
 								break; //Stop reading!
 							}
-							if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+							sectorupdateintervalcnt += datatotransfer; //Transferred data!
+							if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 							{
+								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 								EMU_unlocktext();
@@ -2716,6 +2727,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				EMU_unlocktext();
 				byte error = 0;
+				sectorupdateinterval = MAX((size/100),sizeof(sector)); //Update interval!
+				sectorupdateintervalcnt = 0; //Reset counter for the first update!
+				byte firstupdate = 1; //First update!
 				FILE *dest;
 				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 				memset(fullfilename, 0, sizeof(fullfilename));
@@ -2752,8 +2766,10 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						error = 1;
 						break; //Stop reading!
 					}
-					if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+					sectorupdateintervalcnt += datatotransfer; //Transferred data!
+					if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 					{
+						sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
@@ -2773,6 +2789,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
 					EMU_unlocktext();
 					iohdd1(filename, 0, 1, 0); //Mount!
+					sectorupdateinterval = MAX((size/100),sizeof(sector)); //Update interval!
+					sectorupdateintervalcnt = 0; //Reset counter for the first update!
+					firstupdate = 1; //First update!
 					for (sectornr = 0; sectornr < size;) //Process all sectors!
 					{
 						if (shuttingdown())
@@ -2807,8 +2826,10 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							error = 1;
 							break; //Stop reading!
 						}
-						if (!(sectornr % SECTORUPDATEINTERVAL)) //Update every 10000 sectors!
+						sectorupdateintervalcnt += datatotransfer; //Transferred data!
+						if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 						{
+							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 							EMU_locktext();
 							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							EMU_unlocktext();
@@ -2933,6 +2954,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 					if (!updateinterval) updateinterval = 1; //Minimum of 1 sector interval!
 					updatenr = 0; //Reset update number!
 					srcstatus = 0; //Initialize to EOF!
+					byte firstupdate = 1; //First update!
 					for (sectornr = 0; sectornr < size;) //Process all sectors from the source image!
 					{
 						sectorposition = 0; //Default: no position!
@@ -2986,6 +3008,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						updatenr = 0; //Reset update number!
 						destsectornr = previoussectornr = previousdestsectornr = 0; //Destination starts at sector #0 too!
 						error = 0; //Default: no error!
+						firstupdate = 1; //First update!
 						for (sectornr = 0; sectornr < size;) //Process all sectors!
 						{
 							sectorposition = 0; //Default: no position!
