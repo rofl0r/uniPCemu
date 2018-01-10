@@ -31,6 +31,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 
 //What file to use for saving the BIOS!
 #define DEFAULT_SETTINGS_FILE "SETTINGS.INI"
+#define DEFAULT_REDIRECT_FILE "REDIRECT.TXT"
 #define DEFAULT_ROOT_PATH "."
 
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
@@ -98,10 +99,17 @@ byte is_writablepath(char *path)
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
 	#ifdef ANDROID
+		FILE *f;
+		byte is_redirected=0;
+		is_redirected = 0; //Init redirect status for main directory!
 		//Try external media first!
 		char *environment;
 		int multipathseperator; //Multi path seperator position in the current string! When set, it's changed into a NULL character to read out the current path in the list!
 
+		char redirectdir[256]; //Redirect directory!
+		int_32 redirectdirsize; //How much has been read?
+
+		applyredirect: //Apply the redirecting?
 		#ifdef PELYAS_SDL
 		if (environment = getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
 		#else
@@ -170,6 +178,64 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#endif
 
 		finishpathsetting:
+		memset(&redirectdir,0,sizeof(redirectdir)); //Init!
+		strcpy(redirectdir,UniPCEmu_root_dir); //Check for redirects!
+		strcat(redirectdir,"/"); //Inside the directory!
+		strcat(redirectdir,DEFAULT_REDIRECT_FILE); //Our redirect file!
+		if (file_exists(redirectdir) && (is_redirected==0)) //Redirect for main directory?
+		{
+			f = fopen(redirectdir,"rb");
+			if (f) //Valid?
+			{
+				fseek(f,0,SEEK_END); //Goto EOF!
+				if (((redirectdirsize = ftell(f))<sizeof(redirectdir)) && redirectdirsize) //Valid to read?
+				{
+					fseek(f,0,SEEK_SET); //Goto BOF!
+					memset(&redirectdir,0,sizeof(redirectdir)); //Clear for our result to be stored safely!
+					if (fread(&redirectdir,1,redirectdirsize,f)==redirectdirsize) //Read?
+					{
+						for (;strlen(redirectdir);) //Valid to process?
+						{
+							switch (redirectdir[strlen(redirectdir)-1]) //What is the final character?
+							{
+								case '/': //Invalid? Take it off!
+									if (strlen(redirectdir)>1) //More possible? Check for special path specification(e.g. :// etc.)!
+									{
+										if (!((redirectdir[strlen(redirectdir-2)]>='a') && (redirectdir[strlen(redirectdir-2)]<='z'))) //Not normal path?
+										{
+											redirectdir[strlen(redirectdir)] = '\0'; //Take it off, we're specifying the final slash ourselves!
+											goto redirect_validpath;
+										}
+									}
+									//Invalid normal path: handle normally!
+								case '\n':
+								case '\r':
+									redirectdir[strlen(redirectdir)] = '\0'; //Take it off!
+									break;
+								default:
+									redirect_validpath: //Apply valid directory for a root domain!
+									if (is_writablepath(redirectdir)) //Writable path?
+									{
+										is_redirected = 1; //We're redirecting!
+									}
+									else
+									{
+										is_redirected = 0; //We're not redirecting after all!
+									}
+									goto finishredirect;
+									break;
+							}
+						}
+					}
+				}
+				finishredirect: //Finishing redirect!
+				fclose(f); //Stop checking!
+				if (is_redirected) //To redirect?
+				{
+					goto applyredirect; //Go and apply the redirection!
+				}
+			}
+		}
 		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
 		strcat(BIOS_Settings_file,"/"); //Inside the directory!
 		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
