@@ -19,6 +19,9 @@
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//Log redirect, if enabled!
+//#define LOG_REDIRECT
+
 BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 byte exec_showchecksumerrors = 0; //Show checksum errors?
 
@@ -31,7 +34,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 
 //What file to use for saving the BIOS!
 #define DEFAULT_SETTINGS_FILE "SETTINGS.INI"
-#define DEFAULT_REDIRECT_FILE "REDIRECT.TXT"
+#define DEFAULT_REDIRECT_FILE "redirect.txt"
 #define DEFAULT_ROOT_PATH "."
 
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
@@ -109,7 +112,6 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		char redirectdir[256]; //Redirect directory!
 		int_32 redirectdirsize; //How much has been read?
 
-		applyredirect: //Apply the redirecting?
 		#ifdef PELYAS_SDL
 		if (environment = getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
 		#else
@@ -178,22 +180,90 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#endif
 
 		finishpathsetting:
+		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
+		strcat(BIOS_Settings_file,"/"); //Inside the directory!
+		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
+		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
+		BIOS_updateDirectories(); //Update all directories!
+		//Normal devices? Don't detect!
+
+		//Check for redirection to apply!
 		memset(&redirectdir,0,sizeof(redirectdir)); //Init!
 		strcpy(redirectdir,UniPCEmu_root_dir); //Check for redirects!
 		strcat(redirectdir,"/"); //Inside the directory!
 		strcat(redirectdir,DEFAULT_REDIRECT_FILE); //Our redirect file!
+		#ifdef LOG_REDIRECT
+		char temppath[256];
+		memset(&temppath,0,sizeof(temppath)); //Set log path!
+		strcpy(temppath,logpath); //Set log path!
+		strcat(temppath,"/"); //Inside the directory!
+		strcat(temppath,DEFAULT_REDIRECT_FILE); //Log file for testing!
+		char buffer[256];
+		FILE *f2;
+		char lb[2] = {0xD,0xA}; //Line break!
+		memset(&buffer,0,sizeof(buffer)); //Init buffer!
+		sprintf(buffer,"Redirect file: %s",redirectdir);
+		f2 = fopen(temppath,"wb"); //Log the filename!
+		if (f2) //Valid?
+		{
+			fwrite(&buffer,1,strlen(buffer),f2); //Log!
+			fwrite(&lb,1,sizeof(lb),f2); //Line break!
+			fclose(f2); //Close!
+		}
+		#endif
 		if (file_exists(redirectdir) && (is_redirected==0)) //Redirect for main directory?
 		{
+			memset(&buffer,0,sizeof(buffer)); //Init buffer!
+			#ifdef LOG_REDIRECT
+			sprintf(buffer,"Attempting redirect...");
+			f2 = fopen(temppath,"ab"); //Log the filename!
+			if (f2) //Valid?
+			{
+				fwrite(&buffer,1,strlen(buffer),f2); //Log!
+				fwrite(&lb,1,sizeof(lb),f2); //Line break!
+				fclose(f2); //Close!
+			}
+			#endif
 			f = fopen(redirectdir,"rb");
 			if (f) //Valid?
 			{
+				#ifdef LOG_REDIRECT
+				sprintf(buffer,"Valid file!");
+				f2 = fopen(temppath,"ab"); //Log the filename!
+				if (f2) //Valid?
+				{
+					fwrite(&buffer,1,strlen(buffer),f2); //Log!
+					fwrite(&lb,1,sizeof(lb),f2); //Line break!
+					fclose(f2); //Close!
+				}
+				#endif
 				fseek(f,0,SEEK_END); //Goto EOF!
 				if (((redirectdirsize = ftell(f))<sizeof(redirectdir)) && redirectdirsize) //Valid to read?
 				{
+					#ifdef LOG_REDIRECT
+					sprintf(buffer,"Valid size!");
+					f2 = fopen(temppath,"ab"); //Log the filename!
+					if (f2) //Valid?
+					{
+						fwrite(&buffer,1,strlen(buffer),f2); //Log!
+						fwrite(&lb,1,sizeof(lb),f2); //Line break!
+						fclose(f2); //Close!
+					}
+					#endif
 					fseek(f,0,SEEK_SET); //Goto BOF!
 					memset(&redirectdir,0,sizeof(redirectdir)); //Clear for our result to be stored safely!
 					if (fread(&redirectdir,1,redirectdirsize,f)==redirectdirsize) //Read?
 					{
+						#ifdef LOG_REDIRECT
+						sprintf(buffer,"Valid content!");
+						f2 = fopen(temppath,"ab"); //Log the filename!
+						if (f2) //Valid?
+						{
+							fwrite(&buffer,1,strlen(buffer),f2); //Log!
+							fwrite(&lb,1,sizeof(lb),f2); //Line break!
+							fclose(f2); //Close!
+						}
+						#endif
 						for (;strlen(redirectdir);) //Valid to process?
 						{
 							switch (redirectdir[strlen(redirectdir)-1]) //What is the final character?
@@ -214,6 +284,16 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 									break;
 								default:
 									redirect_validpath: //Apply valid directory for a root domain!
+									#ifdef LOG_REDIRECT
+									sprintf(buffer,"Trying: Redirecting to: %s",redirectdir); //Where are we redirecting to?
+									f2 = fopen(temppath,"ab"); //Log the filename!
+									if (f2) //Valid?
+									{
+										fwrite(&buffer,1,strlen(buffer),f2); //Log!
+										fwrite(&lb,1,sizeof(lb),f2); //Line break!
+										fclose(f2); //Close!
+									}
+									#endif
 									if (is_writablepath(redirectdir)) //Writable path?
 									{
 										is_redirected = 1; //We're redirecting!
@@ -230,18 +310,25 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				}
 				finishredirect: //Finishing redirect!
 				fclose(f); //Stop checking!
-				if (is_redirected) //To redirect?
+				dolog("redirect","Content:%s/%i!",redirectdir,is_redirected);
+				if (is_redirected && redirectdir[0]) //To redirect?
 				{
-					goto applyredirect; //Go and apply the redirection!
+					strcpy(UniPCEmu_root_dir,redirectdir); //The new path to use!
+					//delete_file(logpath,"redirect.log"); //Make sure we're starting out with an empty log!
+					#ifdef LOG_REDIRECT
+					sprintf(buffer,"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
+					f2 = fopen(temppath,"ab"); //Log the filename!
+					if (f2) //Valid?
+					{
+						fwrite(&buffer,1,strlen(buffer),f2); //Log!
+						fwrite(&lb,1,sizeof(lb),f2); //Line break!
+						fclose(f2); //Close!
+					}
+					#endif
+					goto finishpathsetting; //Go and apply the redirection!
 				}
 			}
 		}
-		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
-		strcat(BIOS_Settings_file,"/"); //Inside the directory!
-		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
-		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
-		BIOS_updateDirectories(); //Update all directories!
-		//Normal devices? Don't detect!
 	#endif
 }
 
