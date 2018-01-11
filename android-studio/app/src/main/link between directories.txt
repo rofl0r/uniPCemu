@@ -1,0 +1,4 @@
+java -> ..\..\..\..\android-project\src
+Dont use(external source code repository): jni -> ..\..\..\..\android-project\jni
+res -> ..\..\..\..\android-project\res
+AndroidManifest.xml -> ..\..\..\..\android-project\AndroidManifest.xml
