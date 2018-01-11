@@ -15,6 +15,10 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(ROOTPATH) $(ROOTPATH)/..
 
 LOCAL_CFLAGS := -DSDL2 -DUNIPCEMU
 
+ifeq (1,$(ANDROIDSTUDIO))
+LOCAL_CFLAGS := $(LOCAL_CFLAGS) -D__DISABLE_INLINE
+endif
+
 PLATFORM = custom
 include $(LOCAL_PATH)/../../../UniPCemu/Makefile
 
