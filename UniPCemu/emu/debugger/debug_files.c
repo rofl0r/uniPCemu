@@ -47,7 +47,7 @@ void DoDebugFiles() //Do the debug files!
 	
 	do
 	{
-		if ( (direntry[0] == '.') ) continue; //. or ..?
+		if (direntry[0] == '.') continue; //. or ..?
 		//Assume files only!
 		cleardata(&file_name[0],sizeof(file_name));
 		cleardata(&file_nameres[0],sizeof(file_nameres));
