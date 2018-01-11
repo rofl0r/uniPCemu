@@ -224,4 +224,4 @@ OBJS += ../commonemuframework/emu/main.o
 OBJS += ../commonemuframework/basicio/fopen64.o
 
 #Support multi platform builds:
-include ../commonemuframework/Makefile.multiplatform
+include $(ROOTPATH)/../commonemuframework/Makefile.multiplatform

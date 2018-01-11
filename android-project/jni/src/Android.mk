@@ -9,19 +9,18 @@ LOCAL_MODULE := main
 SDL_PATH := ../SDL2
 SDL_net_PATH := ../SDL2_net
 
+ROOTPATH = $(LOCAL_PATH)/../../../UniPCemu
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include ../UniPCemu ../commonemuframework
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(ROOTPATH) $(ROOTPATH)/../commonemuframework
 
 LOCAL_CFLAGS := -DSDL2 -DUNIPCEMU
 
-ROOTPATH = ../UniPCemu
-
 PLATFORM = custom
-include ../UniPCemu/Makefile
+include $(LOCAL_PATH)/../../../UniPCemu/Makefile
 
 # Add your application source files here...
 LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
-	$(patsubst %.o,../../../UniPCemu/%.c,$(OBJS))
+	$(patsubst %.o,$(ROOTPATH)/%.c,$(OBJS))
 
 LOCAL_SHARED_LIBRARIES := SDL2
 
