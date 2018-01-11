@@ -2634,6 +2634,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 							{
 								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+								firstupdate = 0; //Not first anymore!
 								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 								EMU_unlocktext();
@@ -2770,6 +2771,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 					{
 						sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+						firstupdate = 0; //Not first update anymore!
 						EMU_locktext();
 						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 						EMU_unlocktext();
@@ -2830,6 +2832,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 						{
 							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+							firstupdate = 0; //Not first update anymore!
 							EMU_locktext();
 							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							EMU_unlocktext();
@@ -2986,9 +2989,10 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 								break; //Continue running on the next sector to process!
 						}
 						updatenr += sectornr-previoussectornr; //Last processed sector number difference!
-						if (updatenr>=updateinterval) //Update every 1% sectors!
+						if ((updatenr>=updateinterval) || firstupdate) //Update every 1% sectors!
 						{
 							updatenr = 0; //Reset!
+							firstupdate = 0; //Not first update anymore!
 							EMU_locktext();
 							GPU_EMU_printscreen(21, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 							EMU_unlocktext();
@@ -3063,9 +3067,10 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									break; //Continue running on the next sector to process!
 							}
 							updatenr += sectornr-previoussectornr; //Last processed sector number difference!
-							if (updatenr>=updateinterval) //Update every 1% sectors!
+							if ((updatenr>=updateinterval) || firstupdate) //Update every 1% sectors!
 							{
 								updatenr = 0; //Reset!
+								firstupdate = 0; //Not first update anymore!
 								EMU_locktext();
 								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 								EMU_unlocktext();

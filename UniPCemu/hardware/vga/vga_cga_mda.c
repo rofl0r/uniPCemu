@@ -1154,7 +1154,6 @@ extern uint_32 VGA_VRAM_START; //To copy memory between VRAM modes!
 
 OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
-	word i;
 	uint_32 memaddr;
 	word bytesleft,shadowaddr;
 	byte memorymode;
