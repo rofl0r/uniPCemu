@@ -155,7 +155,7 @@ void register_PCI(void *config, byte device, byte function, byte size, PCIConfig
 		}
 		if (configurationspaces[i]) //Registered device?
 		{
-			if ((configurationdevices[i]==device)) //Used device detected?
+			if (configurationdevices[i]==device) //Used device detected?
 			{
 				deviceID = configurationactivedevices[i]; //Use the device ID for this device we've now autodetected!
 			}

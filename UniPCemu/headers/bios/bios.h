@@ -11,8 +11,7 @@
 //BIOS Version!
 #define BIOS_VERSION 1
 
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+typedef struct
 {
 	byte version; //The version number of the BIOS; should match with current version number!
 
@@ -83,7 +82,6 @@ typedef struct PACKED
 	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
 	byte debugger_logregisters; //Are we to log registers when debugging?
 } BIOS_Settings_TYPE; //BIOS Settings!
-#include "headers/endpacked.h" //We're packed!
 
 //Debug modes:
 //None:

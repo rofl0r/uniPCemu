@@ -115,7 +115,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#ifdef PELYAS_SDL
 		if (environment = getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
 		#else
-		if (environment = SDL_getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
+		if ((environment = SDL_getenv("SECONDARY_STORAGE"))!=NULL) //Autodetected try secondary storage?
 		#endif
 		{
 			scanNextSecondaryPath:
@@ -154,7 +154,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
 			strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
 		#else
-			if (environment = SDL_getenv("SDCARD")) //Autodetected?
+			if ((environment = SDL_getenv("SDCARD"))!=NULL) //Autodetected?
 			{
 				strcpy(UniPCEmu_root_dir, environment); //path!
 				strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
@@ -213,8 +213,8 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#endif
 		if (file_exists(redirectdir) && (is_redirected==0)) //Redirect for main directory?
 		{
-			memset(&buffer,0,sizeof(buffer)); //Init buffer!
 			#ifdef LOG_REDIRECT
+			memset(&buffer,0,sizeof(buffer)); //Init buffer!
 			sprintf(buffer,"Attempting redirect...");
 			f2 = fopen(temppath,"ab"); //Log the filename!
 			if (f2) //Valid?
@@ -228,6 +228,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			if (f) //Valid?
 			{
 				#ifdef LOG_REDIRECT
+				memset(&buffer,0,sizeof(buffer)); //Init buffer!
 				sprintf(buffer,"Valid file!");
 				f2 = fopen(temppath,"ab"); //Log the filename!
 				if (f2) //Valid?
@@ -241,6 +242,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				if (((redirectdirsize = ftell(f))<sizeof(redirectdir)) && redirectdirsize) //Valid to read?
 				{
 					#ifdef LOG_REDIRECT
+					memset(&buffer,0,sizeof(buffer)); //Init buffer!
 					sprintf(buffer,"Valid size!");
 					f2 = fopen(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
@@ -255,6 +257,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					if (fread(&redirectdir,1,redirectdirsize,f)==redirectdirsize) //Read?
 					{
 						#ifdef LOG_REDIRECT
+						memset(&buffer,0,sizeof(buffer)); //Init buffer!
 						sprintf(buffer,"Valid content!");
 						f2 = fopen(temppath,"ab"); //Log the filename!
 						if (f2) //Valid?
@@ -285,6 +288,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 								default:
 									redirect_validpath: //Apply valid directory for a root domain!
 									#ifdef LOG_REDIRECT
+									memset(&buffer,0,sizeof(buffer)); //Init buffer!
 									sprintf(buffer,"Trying: Redirecting to: %s",redirectdir); //Where are we redirecting to?
 									f2 = fopen(temppath,"ab"); //Log the filename!
 									if (f2) //Valid?
@@ -316,6 +320,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					strcpy(UniPCEmu_root_dir,redirectdir); //The new path to use!
 					//delete_file(logpath,"redirect.log"); //Make sure we're starting out with an empty log!
 					#ifdef LOG_REDIRECT
+					memset(&buffer,0,sizeof(buffer)); //Init buffer!
 					sprintf(buffer,"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
 					f2 = fopen(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
@@ -927,7 +932,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("sound",sound_commentused,"adlib",BIOS_Settings.useAdlib,BIOS_Settings_file)) return 0; //Emulate Adlib?
 	if (!write_private_profile_uint64("sound",sound_commentused,"LPTDAC",BIOS_Settings.useLPTDAC,BIOS_Settings_file)) return 0; //Emulate Covox/Disney Sound Source?
 	if (!write_private_profile_string("sound",sound_commentused,"soundfont",&BIOS_Settings.SoundFont[0],BIOS_Settings_file)) return 0; //Read entry!
-	if (!write_private_profile_uint64("sound",sound_commentused,"directmidi",BIOS_Settings.useDirectMIDI,BIOS_Settings_file)); //Use Direct MIDI synthesis by using a passthrough to the OS?
+	if (!write_private_profile_uint64("sound",sound_commentused,"directmidi",BIOS_Settings.useDirectMIDI,BIOS_Settings_file)) return 0; //Use Direct MIDI synthesis by using a passthrough to the OS?
 	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster",BIOS_Settings.useGameBlaster,BIOS_Settings_file)) return 0; //Emulate Game Blaster?
 	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster_volume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundblaster",BIOS_Settings.useSoundBlaster,BIOS_Settings_file)) return 0; //Emulate Sound Blaster?

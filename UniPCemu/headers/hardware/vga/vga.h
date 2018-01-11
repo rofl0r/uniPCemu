@@ -332,8 +332,7 @@ typedef struct PACKED
 } VGA_CRTC; //CRTC information!
 #include "headers/endpacked.h" //We're packed!
 
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+typedef struct
 {
 //First, VRAM and registers:
 	byte *VRAM; //The VRAM: 64K of 32-bit values, byte align!
@@ -378,7 +377,6 @@ typedef struct PACKED
 	void *SVGAExtension; //The SVGA extension data, if any!
 	byte enable_SVGA; //Enable SVGA? If >0, a SVGA extension is enabled. Then initialize it as needed!
 } VGA_Type; //VGA dataset!
-#include "headers/endpacked.h" //We're packed!
 
 typedef double (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
 typedef uint_32 (*VGA_addresswrapextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!

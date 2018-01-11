@@ -250,7 +250,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?
 				}
-				if ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)) //Diagnostics mode?
+				if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 				{
 					verified = BIOS_load_custom(NULL, "BIOSROM.XT286.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?							

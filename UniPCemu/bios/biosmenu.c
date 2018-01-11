@@ -5326,7 +5326,7 @@ void BIOS_CPU() //CPU menu!
 			{
 				BIOS_Menu = 57; //Diagnostics Output Breakpoint setting!
 			}
-			else if ((Menu_Stat == BIOSMENU_STAT_SQUARE)) //SQUARE=Set current value as the breakpoint!
+			else if (Menu_Stat == BIOSMENU_STAT_SQUARE) //SQUARE=Set current value as the breakpoint!
 			{
 				BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)diagnosticsportoutput; //Set the current value as the breakpoint!
 				BIOS_Changed = 1; //We've changed!

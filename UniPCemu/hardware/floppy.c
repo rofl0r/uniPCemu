@@ -1921,7 +1921,7 @@ void updateFloppy(double timepassed)
 							if (FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive]) //Step out towards smaller cylinder numbers?
 							{
 								--FLOPPY.currentcylinder[drive]; //Step up!
-								if (FLOPPY.physicalcylinder) --FLOPPY.physicalcylinder[drive]; //Decrease when available!
+								if (FLOPPY.physicalcylinder[drive]) --FLOPPY.physicalcylinder[drive]; //Decrease when available!
 								movedcylinder = 1;
 							}
 							else if (FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive]) //Step in towards bigger cylinder numbers?
