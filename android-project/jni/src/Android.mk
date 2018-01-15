@@ -20,6 +20,10 @@ LOCAL_CFLAGS := $(LOCAL_CFLAGS) -D__DISABLE_INLINE
 endif
 
 PLATFORM = custom
+
+#Patch for easy compatiblity with Makefile.files
+ROOTPATH := $(ROOTPATH)/
+
 include $(LOCAL_PATH)/../../../UniPCemu/Makefile
 
 # Add your application source files here...

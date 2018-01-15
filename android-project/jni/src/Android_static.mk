@@ -14,6 +14,10 @@ ROOTPATH = $(LOCAL_PATH)/../../../UniPCemu
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(ROOTPATH) $(ROOTPATH)/../commonemuframework
 
 PLATFORM = custom
+
+#Patch for easy compatiblity with Makefile.files
+ROOTPATH := $(ROOTPATH)/
+
 include ../UniPCemu/Makefile
 
 # Add your application source files here...
