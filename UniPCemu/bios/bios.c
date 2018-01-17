@@ -99,6 +99,53 @@ byte is_writablepath(char *path)
 	return 0; //We're not writable!
 }
 
+#ifdef ANDROID
+byte is_textcharacter(char *c)
+{
+	if ((*c>='a') && (*c<='z')) return 1; //Text!
+	if ((*c>='A') && (*c<='Z')) return 1; //Text!
+	if ((*c>='0') && (*c<='9'))) return 1; //Text!
+	switch (*c) //Remaining cases?
+	{
+		case '~':
+		case '`':
+		case '!':
+		case '@':
+		case '#':
+		case '$':
+		case '%':
+		case '^':
+		case '&':
+		case '*':
+		case '(':
+		case ')':
+		case '-':
+		case '_':
+		case '+':
+		case '=':
+		case '{';
+		case '}':
+		case '[':
+		case ']':
+		case '|':
+		case '\\':
+		case ':':
+		case ';':
+		case '"':
+		case '\'':
+		case '<':
+		case ',':
+		case '>':
+		case '.':
+		case '?':
+			return 1; //Valid text for a filename to end in!
+		default:
+			break;
+	}
+	return 0; //Not a text character!
+}
+#endif
+
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
 	#ifdef ANDROID
@@ -274,16 +321,16 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 								case '/': //Invalid? Take it off!
 									if (strlen(redirectdir)>1) //More possible? Check for special path specification(e.g. :// etc.)!
 									{
-										if (!((redirectdir[strlen(redirectdir-2)]>='a') && (redirectdir[strlen(redirectdir-2)]<='z'))) //Not normal path?
+										if (!is_textcharacter(redirectdir[strlen(redirectdir-2)])) //Not normal path?
 										{
-											redirectdir[strlen(redirectdir)] = '\0'; //Take it off, we're specifying the final slash ourselves!
+											redirectdir[strlen(redirectdir)-1] = '\0'; //Take it off, we're specifying the final slash ourselves!
 											goto redirect_validpath;
 										}
 									}
 									//Invalid normal path: handle normally!
 								case '\n':
 								case '\r':
-									redirectdir[strlen(redirectdir)] = '\0'; //Take it off!
+									redirectdir[strlen(redirectdir)-1] = '\0'; //Take it off!
 									break;
 								default:
 									redirect_validpath: //Apply valid directory for a root domain!
@@ -314,11 +361,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				}
 				finishredirect: //Finishing redirect!
 				fclose(f); //Stop checking!
+				#ifdef LOG_REDIRECT
 				dolog("redirect","Content:%s/%i!",redirectdir,is_redirected);
+				#endif
 				if (is_redirected && redirectdir[0]) //To redirect?
 				{
 					strcpy(UniPCEmu_root_dir,redirectdir); //The new path to use!
-					//delete_file(logpath,"redirect.log"); //Make sure we're starting out with an empty log!
 					#ifdef LOG_REDIRECT
 					memset(&buffer,0,sizeof(buffer)); //Init buffer!
 					sprintf(buffer,"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
