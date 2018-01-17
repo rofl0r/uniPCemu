@@ -100,12 +100,12 @@ byte is_writablepath(char *path)
 }
 
 #ifdef ANDROID
-byte is_textcharacter(char *c)
+byte is_textcharacter(char c)
 {
-	if ((*c>='a') && (*c<='z')) return 1; //Text!
-	if ((*c>='A') && (*c<='Z')) return 1; //Text!
-	if ((*c>='0') && (*c<='9'))) return 1; //Text!
-	switch (*c) //Remaining cases?
+	if ((c>='a') && (c<='z')) return 1; //Text!
+	if ((c>='A') && (c<='Z')) return 1; //Text!
+	if ((c>='0') && (c<='9')) return 1; //Text!
+	switch (c) //Remaining cases?
 	{
 		case '~':
 		case '`':
@@ -123,7 +123,7 @@ byte is_textcharacter(char *c)
 		case '_':
 		case '+':
 		case '=':
-		case '{';
+		case '{':
 		case '}':
 		case '[':
 		case ']':
