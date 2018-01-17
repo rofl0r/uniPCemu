@@ -1,3 +1,3 @@
 #For detecting Android studio-specific handling!
-ANDROIDSTUDIO = 1
+ANDROIDSTUDIO = 2
 include $(call all-subdir-makefiles)
