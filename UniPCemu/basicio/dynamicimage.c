@@ -751,17 +751,24 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 		header.currentsize = sizeof(header)+sizeof(formatblock); //The current file size. This is updated as data is appended to the file.
 		header.firstlevellocation = 0; //No first level createn yet!
 		header.extendedinformationblocklocation = sizeof(header); //We have extended information!
+		memset(&formatblock,0,sizeof(formatblock)); //Init format block!
+		formatblock.format = ((format<=3)&&format)?(format-1):0; //CHS mode! Default to compatible mode!
+		if (formatblock.format==0) //Compatible format? Fallback to not use an extended information block for simple compatiblity!
+		{
+			header.extendedinformationblocklocation = 0; //Disable extended information block for compatiblity with older UniPCemu versions!
+		}
 		if (emufwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
 		{
 			emufclose64(f); //Close the file!
 			return 0; //Error: couldn't write the header!
 		}
-		memset(&formatblock,0,sizeof(formatblock)); //Init format block!
-		formatblock.format = ((format<=3)&&format)?(format-1):0; //CHS mode! Default to compatible mode!
-		if (emufwrite64(&formatblock,1,sizeof(formatblock),f)!=sizeof(formatblock)) //Failed to write the header?
+		if (header.extendedinformationblocklocation) //Use extended information block?
 		{
-			emufclose64(f); //Close the file!
-			return 0; //Error: couldn't write the header!
+			if (emufwrite64(&formatblock,1,sizeof(formatblock),f)!=sizeof(formatblock)) //Failed to write the format block?
+			{
+				emufclose64(f); //Close the file!
+				return 0; //Error: couldn't write the header!
+			}
 		}
 		emufclose64(f); //Close info file!
 	}
