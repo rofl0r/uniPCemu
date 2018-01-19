@@ -8,73 +8,53 @@
 //Conditional JMPs opcodes:
 
 //00+
-void CPU8086_OP00();
-void CPU8086_OP01();
-void CPU8086_OP02();
-void CPU8086_OP03();
+void CPU8086_execute_ADD_modrmmodrm8();
+void CPU8086_execute_ADD_modrmmodrm16();
 void CPU8086_OP04();
 void CPU8086_OP05();
 void CPU8086_OP06();
 void CPU8086_OP07();
-void CPU8086_OP08();
-void CPU8086_OP09();
-void CPU8086_OP0A();
-void CPU8086_OP0B();
+void CPU8086_execute_OR_modrmmodrm8();
+void CPU8086_execute_OR_modrmmodrm16();
 void CPU8086_OP0C();
 void CPU8086_OP0D();
 void CPU8086_OP0E();
 void CPU8086_OP0F();
 //No 0F!
 //10+
-void CPU8086_OP10();
-void CPU8086_OP11();
-void CPU8086_OP12();
-void CPU8086_OP13();
+void CPU8086_execute_ADC_modrmmodrm8();
+void CPU8086_execute_ADC_modrmmodrm16();
 void CPU8086_OP14();
 void CPU8086_OP15();
 void CPU8086_OP16();
 void CPU8086_OP17();
-void CPU8086_OP18();
-void CPU8086_OP19();
-void CPU8086_OP1A();
-void CPU8086_OP1B();
+void CPU8086_execute_SBB_modrmmodrm8();
+void CPU8086_execute_SBB_modrmmodrm16();
 void CPU8086_OP1C();
 void CPU8086_OP1D();
 void CPU8086_OP1E();
 void CPU8086_OP1F();
 //20+
-void CPU8086_OP20();
-void CPU8086_OP21();
-void CPU8086_OP22();
-void CPU8086_OP23();
+void CPU8086_execute_AND_modrmmodrm8();
+void CPU8086_execute_AND_modrmmodrm16();
 void CPU8086_OP24();
 void CPU8086_OP25();
-void CPU8086_OP26();
 void CPU8086_OP27();
-void CPU8086_OP28();
-void CPU8086_OP29();
-void CPU8086_OP2A();
-void CPU8086_OP2B();
+void CPU8086_execute_SUB_modrmmodrm8();
+void CPU8086_execute_SUB_modrmmodrm16();
 void CPU8086_OP2C();
 void CPU8086_OP2D();
-void CPU8086_OP2E();
 void CPU8086_OP2F();
 //30+
-void CPU8086_OP30();
-void CPU8086_OP31();
-void CPU8086_OP32();
-void CPU8086_OP33();
+void CPU8086_execute_XOR_modrmmodrm8();
+void CPU8086_execute_XOR_modrmmodrm16();
 void CPU8086_OP34();
 void CPU8086_OP35();
-void CPU8086_OP36();
 void CPU8086_OP37();
-void CPU8086_OP38();
-void CPU8086_OP39();
-void CPU8086_OP3A();
-void CPU8086_OP3B();
+void CPU8086_execute_CMP_modrmmodrm8();
+void CPU8086_execute_CMP_modrmmodrm16();
 void CPU8086_OP3C();
 void CPU8086_OP3D();
-void CPU8086_OP3E();
 void CPU8086_OP3F();
 //40+
 void CPU8086_OP40();
@@ -139,13 +119,10 @@ void CPU8086_OP84();
 void CPU8086_OP85();
 void CPU8086_OP86();
 void CPU8086_OP87();
-void CPU8086_OP88();
-void CPU8086_OP89();
-void CPU8086_OP8A();
-void CPU8086_OP8B();
-void CPU8086_OP8C();
+void CPU8086_execute_MOV_modrmmodrm8();
+void CPU8086_execute_MOV_modrmmodrm16();
+void CPU8086_execute_MOVSegRegMemory();
 void CPU8086_OP8D();
-void CPU8086_OP8E();
 void CPU8086_OP8F();
 //90+
 void CPU8086_OP90();
@@ -238,10 +215,7 @@ void CPU8086_OPED();
 void CPU8086_OPEE();
 void CPU8086_OPEF();
 //F0+
-void CPU8086_OPF0();
 void CPU8086_OPF1();
-void CPU8086_OPF2();
-void CPU8086_OPF3();
 void CPU8086_OPF4();
 void CPU8086_OPF5();
 void CPU8086_OPF6();

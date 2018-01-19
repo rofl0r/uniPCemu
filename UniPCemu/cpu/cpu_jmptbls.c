@@ -35,69 +35,69 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 	//8086
 	{
 //0x00:
-		{CPU8086_OP00,NULL}, //00h:
-		{CPU8086_OP01,NULL}, //01h:
-		{CPU8086_OP02,NULL}, //02h:
-		{CPU8086_OP03,NULL}, //03h:
+		{CPU8086_execute_ADD_modrmmodrm8,NULL}, //00h:
+		{CPU8086_execute_ADD_modrmmodrm16,NULL}, //01h:
+		{CPU8086_execute_ADD_modrmmodrm8,NULL}, //02h:
+		{CPU8086_execute_ADD_modrmmodrm16,NULL}, //03h:
 		{CPU8086_OP04,NULL}, //04h:
 		{CPU8086_OP05,NULL}, //05h:
 		{CPU8086_OP06,NULL}, //06h:
 		{CPU8086_OP07,NULL}, //07h:
-		{CPU8086_OP08,NULL}, //08h:
-		{CPU8086_OP09,NULL}, //09h:
-		{CPU8086_OP0A,NULL}, //0Ah:
-		{CPU8086_OP0B,NULL}, //0Bh:
+		{CPU8086_execute_OR_modrmmodrm8,NULL}, //08h:
+		{CPU8086_execute_OR_modrmmodrm16,NULL}, //09h:
+		{CPU8086_execute_OR_modrmmodrm8,NULL}, //0Ah:
+		{CPU8086_execute_OR_modrmmodrm16,NULL}, //0Bh:
 		{CPU8086_OP0C,NULL}, //0Ch:
 		{CPU8086_OP0D,NULL}, //0Dh:
 		{CPU8086_OP0E,NULL}, //0Eh:
 		{CPU8086_OP0F,NULL}, //0Fh: 8086 specific OPcode!
 //0x10:
-		{CPU8086_OP10,NULL}, //10h:
-		{CPU8086_OP11,NULL}, //11h:
-		{CPU8086_OP12,NULL}, //12h:
-		{CPU8086_OP13,NULL}, //13h:
+		{CPU8086_execute_ADC_modrmmodrm8,NULL}, //10h:
+		{CPU8086_execute_ADC_modrmmodrm16,NULL}, //11h:
+		{CPU8086_execute_ADC_modrmmodrm8,NULL}, //12h:
+		{CPU8086_execute_ADC_modrmmodrm16,NULL}, //13h:
 		{CPU8086_OP14,NULL}, //14h:
 		{CPU8086_OP15,NULL}, //15h:
 		{CPU8086_OP16,NULL}, //16h:
 		{CPU8086_OP17,NULL}, //17h:
-		{CPU8086_OP18,NULL}, //18h:
-		{CPU8086_OP19,NULL}, //19h:
-		{CPU8086_OP1A,NULL}, //1Ah:
-		{CPU8086_OP1B,NULL}, //1Bh:
+		{CPU8086_execute_SBB_modrmmodrm8,NULL}, //18h:
+		{CPU8086_execute_SBB_modrmmodrm16,NULL}, //19h:
+		{CPU8086_execute_SBB_modrmmodrm8,NULL}, //1Ah:
+		{CPU8086_execute_SBB_modrmmodrm16,NULL}, //1Bh:
 		{CPU8086_OP1C,NULL}, //1Ch:
 		{CPU8086_OP1D,NULL}, //1Dh:
 		{CPU8086_OP1E,NULL}, //1Eh:
 		{CPU8086_OP1F,NULL}, //1Fh:
 //0x20:
-		{CPU8086_OP20,NULL}, //20h:
-		{CPU8086_OP21,NULL}, //21h:
-		{CPU8086_OP22,NULL}, //22h:
-		{CPU8086_OP23,NULL}, //23h:
+		{CPU8086_execute_AND_modrmmodrm8,NULL}, //20h:
+		{CPU8086_execute_AND_modrmmodrm16,NULL}, //21h:
+		{CPU8086_execute_AND_modrmmodrm8,NULL}, //22h:
+		{CPU8086_execute_AND_modrmmodrm16,NULL}, //23h:
 		{CPU8086_OP24,NULL}, //24h:
 		{CPU8086_OP25,NULL}, //25h:
 		{unkOP_8086,NULL}, //26h: Special
 		{CPU8086_OP27,NULL}, //27h:
-		{CPU8086_OP28,NULL}, //28h:
-		{CPU8086_OP29,NULL}, //29h:
-		{CPU8086_OP2A,NULL}, //2Ah:
-		{CPU8086_OP2B,NULL}, //2Bh:
+		{CPU8086_execute_SUB_modrmmodrm8,NULL}, //28h:
+		{CPU8086_execute_SUB_modrmmodrm16,NULL}, //29h:
+		{CPU8086_execute_SUB_modrmmodrm8,NULL}, //2Ah:
+		{CPU8086_execute_SUB_modrmmodrm16,NULL}, //2Bh:
 		{CPU8086_OP2C,NULL}, //2Ch:
 		{CPU8086_OP2D,NULL}, //2Dh:
 		{unkOP_8086,NULL}, //2Eh: Special
 		{CPU8086_OP2F,NULL}, //2Fh:
 //0x30:
-		{CPU8086_OP30,NULL}, //30h:
-		{CPU8086_OP31,NULL}, //31h:
-		{CPU8086_OP32,NULL}, //32h:
-		{CPU8086_OP33,NULL}, //33h:
+		{CPU8086_execute_XOR_modrmmodrm8,NULL}, //30h:
+		{CPU8086_execute_XOR_modrmmodrm16,NULL}, //31h:
+		{CPU8086_execute_XOR_modrmmodrm8,NULL}, //32h:
+		{CPU8086_execute_XOR_modrmmodrm16,NULL}, //33h:
 		{CPU8086_OP34,NULL}, //34h:
 		{CPU8086_OP35,NULL}, //35h:
 		{unkOP_8086,NULL}, //36h: Special
 		{CPU8086_OP37,NULL}, //37h:
-		{CPU8086_OP38,NULL}, //38h:
-		{CPU8086_OP39,NULL}, //39h:
-		{CPU8086_OP3A,NULL}, //3Ah:
-		{CPU8086_OP3B,NULL}, //3Bh:
+		{CPU8086_execute_CMP_modrmmodrm8,NULL}, //38h:
+		{CPU8086_execute_CMP_modrmmodrm16,NULL}, //39h:
+		{CPU8086_execute_CMP_modrmmodrm8,NULL}, //3Ah:
+		{CPU8086_execute_CMP_modrmmodrm16,NULL}, //3Bh:
 		{CPU8086_OP3C,NULL}, //3Ch:
 		{CPU8086_OP3D,NULL}, //3Dh:
 		{unkOP_8086,NULL}, //3Eh: Special
@@ -179,13 +179,13 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{CPU8086_OP85,NULL}, //85h:
 		{CPU8086_OP86,NULL}, //86h:
 		{CPU8086_OP87,NULL}, //87h:
-		{CPU8086_OP88,NULL}, //88h:
-		{CPU8086_OP89,NULL}, //89h:
-		{CPU8086_OP8A,NULL}, //8Ah:
-		{CPU8086_OP8B,NULL}, //8Bh:
-		{CPU8086_OP8C,NULL}, //8Ch:
+		{CPU8086_execute_MOV_modrmmodrm8,NULL}, //88h:
+		{CPU8086_execute_MOV_modrmmodrm16,NULL}, //89h:
+		{CPU8086_execute_MOV_modrmmodrm8,NULL}, //8Ah:
+		{CPU8086_execute_MOV_modrmmodrm16,NULL}, //8Bh:
+		{CPU8086_execute_MOVSegRegMemory,NULL}, //8Ch:
 		{CPU8086_OP8D,NULL}, //8Dh:
-		{CPU8086_OP8E,NULL}, //8Eh:
+		{CPU8086_execute_MOVSegRegMemory,NULL}, //8Eh:
 		{CPU8086_OP8F,NULL}, //8Fh:
 //0x90:
 		{CPU8086_OP90,NULL}, //90h:
@@ -865,68 +865,68 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 
 		//0x00:
 		{ NULL, NULL }, //00h:
-		{ NULL, CPU80386_OP01 }, //01h:
+		{ NULL, CPU80386_execute_ADD_modrmmodrm32 }, //01h:
 		{ NULL, NULL }, //02h:
-		{ NULL, CPU80386_OP03 }, //03h:
+		{ NULL, CPU80386_execute_ADD_modrmmodrm32 }, //03h:
 		{ NULL, NULL }, //04h:
 		{ NULL, CPU80386_OP05 }, //05h:
 		{ NULL, NULL }, //06h:
 		{ NULL, NULL }, //07h:
 		{ NULL, NULL }, //08h:
-		{ NULL, CPU80386_OP09 }, //09h:
+		{ NULL, CPU80386_execute_OR_modrmmodrm32 }, //09h:
 		{ NULL, NULL }, //0Ah:
-		{ NULL, CPU80386_OP0B }, //0Bh:
+		{ NULL, CPU80386_execute_OR_modrmmodrm32 }, //0Bh:
 		{ NULL, NULL }, //0Ch:
 		{ NULL, CPU80386_OP0D }, //0Dh:
 		{ NULL, NULL }, //0Eh:
 		{ NULL, NULL }, //0Fh: Two-byte instruction opcode!
 		//0x10:
 		{ NULL, NULL }, //10h:
-		{ NULL, CPU80386_OP11 }, //11h:
+		{ NULL, CPU80386_execute_ADC_modrmmodrm32 }, //11h:
 		{ NULL, NULL }, //12h:
-		{ NULL, CPU80386_OP13 }, //13h:
+		{ NULL, CPU80386_execute_ADC_modrmmodrm32 }, //13h:
 		{ NULL, NULL }, //14h:
 		{ NULL, CPU80386_OP15 }, //15h:
 		{ NULL, NULL }, //16h:
 		{ NULL, NULL }, //17h:
 		{ NULL, NULL }, //18h:
-		{ NULL, CPU80386_OP19 }, //19h:
+		{ NULL, CPU80386_execute_SBB_modrmmodrm32 }, //19h:
 		{ NULL, NULL }, //1Ah:
-		{ NULL, CPU80386_OP1B }, //1Bh:
+		{ NULL, CPU80386_execute_SBB_modrmmodrm32 }, //1Bh:
 		{ NULL, NULL }, //1Ch:
 		{ NULL, CPU80386_OP1D }, //1Dh:
 		{ NULL, NULL }, //1Eh:
 		{ NULL, NULL }, //1Fh:
 		//0x20:
 		{ NULL, NULL }, //20h:
-		{ NULL, CPU80386_OP21 }, //21h:
+		{ NULL, CPU80386_execute_AND_modrmmodrm32 }, //21h:
 		{ NULL, NULL }, //22h:
-		{ NULL, CPU80386_OP23 }, //23h:
+		{ NULL, CPU80386_execute_AND_modrmmodrm32 }, //23h:
 		{ NULL, NULL }, //24h:
 		{ NULL, CPU80386_OP25 }, //25h:
 		{ NULL, NULL }, //26h: Special
 		{ NULL ,NULL }, //27h:
 		{ NULL, NULL }, //28h:
-		{ NULL, CPU80386_OP29 }, //29h:
+		{ NULL, CPU80386_execute_SUB_modrmmodrm32 }, //29h:
 		{ NULL, NULL }, //2Ah:
-		{ NULL, CPU80386_OP2B }, //2Bh:
+		{ NULL, CPU80386_execute_SUB_modrmmodrm32 }, //2Bh:
 		{ NULL, NULL }, //2Ch:
 		{ NULL, CPU80386_OP2D }, //2Dh:
 		{ NULL, NULL }, //2Eh: Special
 		{ NULL, NULL }, //2Fh:
 		//0x30:
 		{ NULL, NULL }, //30h:
-		{ NULL, CPU80386_OP31 }, //31h:
+		{ NULL, CPU80386_execute_XOR_modrmmodrm32 }, //31h:
 		{ NULL, NULL }, //32h:
-		{ NULL, CPU80386_OP33 }, //33h:
+		{ NULL, CPU80386_execute_XOR_modrmmodrm32 }, //33h:
 		{ NULL, NULL }, //34h:
 		{ NULL, CPU80386_OP35 }, //35h:
 		{ NULL, NULL }, //36h: Special
 		{ NULL, NULL }, //37h:
 		{ NULL, NULL }, //38h:
-		{ NULL, CPU80386_OP39 }, //39h:
+		{ NULL, CPU80386_execute_CMP_modrmmodrm32 }, //39h:
 		{ NULL, NULL }, //3Ah:
-		{ NULL, CPU80386_OP3B }, //3Bh:
+		{ NULL, CPU80386_execute_CMP_modrmmodrm32 }, //3Bh:
 		{ NULL, NULL }, //3Ch:
 		{ NULL, CPU80386_OP3D }, //3Dh:
 		{ NULL, NULL }, //3Eh: Special
@@ -1009,12 +1009,12 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //86h:
 		{ NULL, CPU80386_OP87 }, //87h:
 		{ NULL, NULL }, //88h:
-		{ NULL, CPU80386_OP89 }, //89h:
+		{ NULL, CPU80386_execute_MOV_modrmmodrm32 }, //89h:
 		{ NULL, NULL }, //8Ah:
-		{ NULL, CPU80386_OP8B }, //8Bh:
+		{ NULL, CPU80386_execute_MOV_modrmmodrm32 }, //8Bh:
 		{ NULL, CPU80386_OP8C }, //8Ch:
 		{ NULL, CPU80386_OP8D }, //8Dh:
-		{ NULL, /*CPU80386_OP8E*/ NULL }, //8Eh:
+		{ NULL, NULL }, //8Eh:
 		{ NULL, CPU80386_OP8F }, //8Fh:
 		//0x90:
 		{ NULL, CPU80386_OP90 }, //90h:
