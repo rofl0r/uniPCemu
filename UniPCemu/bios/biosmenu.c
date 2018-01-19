@@ -1886,12 +1886,12 @@ void BIOS_MainMenu() //Shows the main menu to process!
 
 	if (EMU_RUNNING) //Emulator is running?
 	{
-		if (!(BIOS_Changed && reboot_needed)) //We're not a duplicate?
+		if ((!(BIOS_Changed && reboot_needed)) && BIOS_Changed) //We're not a duplicate?
 		{
 			optioninfo[advancedoptions] = 3; //Restart emulator option!
 			strcpy(menuoptions[advancedoptions++], "Restart emulator (Save changes)"); //Restart emulator option!
 		}
-		if (!((reboot_needed&2)==0)) //We're not a duplicate?
+		if ((reboot_needed&2)==0) //We're not a duplicate?
 		{
 			optioninfo[advancedoptions] = 5; //Restart emulator and enter BIOS menu option!
 			strcpy(menuoptions[advancedoptions++], "Restart emulator (discard changes)"); // Restart emulator and enter BIOS menu option!
