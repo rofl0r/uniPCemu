@@ -15,9 +15,6 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(ROOTPATH) $(ROOTPATH)/..
 
 PLATFORM = custom
 
-#Patch for easy compatiblity with Makefile.files
-ROOTPATH := $(ROOTPATH)/
-
 include ../UniPCemu/Makefile
 
 # Add your application source files here...
