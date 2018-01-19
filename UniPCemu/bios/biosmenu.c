@@ -1886,10 +1886,23 @@ void BIOS_MainMenu() //Shows the main menu to process!
 
 	if (EMU_RUNNING) //Emulator is running?
 	{
-		optioninfo[advancedoptions] = 3; //Restart emulator option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator (Save changes)"); //Restart emulator option!
-		optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (save changes)"); // Restart emulator and enter BIOS menu option!
+		if (!(BIOS_Changed && reboot_needed)) //We're not a duplicate?
+		{
+			optioninfo[advancedoptions] = 3; //Restart emulator option!
+			strcpy(menuoptions[advancedoptions++], "Restart emulator (Save changes)"); //Restart emulator option!
+		}
+		if (!((reboot_needed&2)==0)) //We're not a duplicate?
+		{
+			optioninfo[advancedoptions] = 5; //Restart emulator and enter BIOS menu option!
+			strcpy(menuoptions[advancedoptions++], "Restart emulator (discard changes)"); // Restart emulator and enter BIOS menu option!
+		}
+		if (BIOS_Changed) //We're a viable option?
+		{
+			optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
+			strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (save changes)"); // Restart emulator and enter BIOS menu option!
+		}
+		optioninfo[advancedoptions] = 6; //Restart emulator and enter BIOS menu option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (discard changes)"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
@@ -1907,6 +1920,8 @@ void BIOS_MainMenu() //Shows the main menu to process!
 	case 2:
 	case 3:
 	case 4:
+	case 5:
+	case 6:
 		switch (optioninfo[menuresult]) //What option is chosen?
 		{
 		case 0: //Save&Quit?
@@ -1932,6 +1947,18 @@ void BIOS_MainMenu() //Shows the main menu to process!
 			bootBIOS = 1; //Forced first run!
 			BIOS_Menu = -1; //Quit!
 			BIOS_SaveStat = 1; //Save the BIOS!
+			reboot_needed |= 2; //We need a reboot!
+			break;
+		case 5: //Restart emulator and discard changes?
+			bootBIOS = 0; //Not a forced first run!
+			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 0; //Discard changes!
+			reboot_needed |= 2; //We need a reboot!
+			break;
+		case 6: //Restart emulator, discard changes and enter BIOS menu?
+			bootBIOS = 1; //Forced first run!
+			BIOS_Menu = -1; //Quit!
+			BIOS_SaveStat = 0; //Discard changes!
 			reboot_needed |= 2; //We need a reboot!
 			break;
 		}
