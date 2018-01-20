@@ -3608,6 +3608,11 @@ byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 
 	if (CPU[activeCPU].internalinstructionstep==0)
 	{
+		if (modrm_isregister(params)) //Invalid?
+		{
+			CPU_unkOP(); //Invalid: registers aren't allowed!
+			return 1;
+		}
 		modrm_addoffset = 0; //Add this to the offset to use!
 		if (modrm_check16(&params,MODRM_src1,1)) return 1; //Abort on fault!
 		modrm_addoffset = 2; //Add this to the offset to use!
