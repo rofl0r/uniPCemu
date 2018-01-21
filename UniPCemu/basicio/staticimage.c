@@ -66,7 +66,7 @@ FILEPOS staticimage_getsize(char *filename)
 
 byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
 {
-	uint_64 disk_size = staticimage_getsize(filename);
+	uint_64 disk_size = (staticimage_getsize(filename)>>(isext(filename,"iso")?11:9)); //CD-ROM or static disk/floppy image sector count!
 	switch (is_staticimage(filename)) //What type?
 	{
 		case 1: //Bochs format?

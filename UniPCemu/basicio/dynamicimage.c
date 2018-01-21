@@ -213,7 +213,7 @@ FILEPOS dynamicimage_getsize(char *filename)
 
 byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word *SPT)
 {
-	uint_64 disk_size = dynamicimage_getsize(filename);
+	uint_64 disk_size = (dynamicimage_getsize(filename)>>9); //Sector count!
 	switch (is_dynamicimage(filename)) //What type?
 	{
 		case 1: //UniPCemu format?
