@@ -99,7 +99,7 @@ struct
 		uint_32 datapos; //Data position?
 		uint_32 datablock; //How large is a data block to be transferred?
 		uint_32 datasize; //Data size in blocks to transfer?
-		byte data[0x10000]; //Full sector data, large enough to buffer anything we throw at it (normal buffering)! Up to 10000 
+		byte data[0x20000]; //Full sector data, large enough to buffer anything we throw at it (normal buffering)! Up to 10000 
 		byte command;
 		byte commandstatus; //Do we have a command?
 		byte multiplesectors; //How many sectors to transfer in multiple mode? 0=Disabled(according to the ATA-1 documentation)!
