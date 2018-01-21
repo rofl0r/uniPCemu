@@ -1594,13 +1594,13 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	case 8: //Generate Dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
-			generateHDD_type = 3; //Minimal type!
+			generateHDD_type = 2; //Minimal type!
 			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
 		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Square used?
 		{
-			generateHDD_type = 1; //Bochs type!
-			BIOS_Menu = 11; //Generate Static HDD!
+			generateHDD_type = 3; //Bochs type!
+			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
 		break;
 	case 9: //Convert static to dynamic HDD?
