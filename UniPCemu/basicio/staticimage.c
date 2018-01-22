@@ -159,6 +159,46 @@ byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read 
 
 extern char diskpath[256]; //Disk path!
 
+byte generateStaticImageFormat(char *filename, byte format)
+{
+	FILE *f;
+	char fullfilename[256], fullfilenamebackup[256];
+	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
+	memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!
+	strcpy(fullfilename,filename); //The filename!
+	strcpy(fullfilenamebackup,filename); //The filename!
+	switch (format) //Extra type conversion stuff?
+	{
+		case 1: //.bochs.txt
+			//Delete leftovers, if any!
+			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			delete_file(NULL,fullfilename); //Remove, if present!
+			strcpy(fullfilename,fullfilenamebackup); //Restore!
+			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			f = fopen(fullfilename,"wb");
+			if (!f) return 0; //Failed!
+			else fclose(f);
+			break;
+		case 2: //.unipcemu.txt
+			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			delete_file(NULL,fullfilename); //Remove, if present!
+			strcpy(fullfilename,fullfilenamebackup); //Restore!
+			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			f = fopen(fullfilename,"wb");
+			if (!f) return 0; //Failed!
+			else fclose(f);
+			break;
+		default: //Neither, remove all identifier files!
+			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			delete_file(NULL,fullfilename); //Remove, if present!
+			strcpy(fullfilename,fullfilenamebackup); //Restore!
+			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			delete_file(NULL,fullfilename); //Remove, if present!
+			break;
+	}
+	return 1; //OK!
+}
+
 void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey, byte format) //Generate a static image!
 {
 	FILEPOS sizeleft = size; //Init size left!
@@ -212,23 +252,9 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		}
 	}
 	emufclose64(f);
-	strcpy(filename,fullfilename);
-	switch (format) //Extra type conversion stuff?
+	if (!generateStaticImageFormat(fullfilename,format)) //Generate the correct format for this disk image!
 	{
-		case 1: //.bochs.txt
-			strcat(filename,".bochs.txt");
-			f = fopen(filename,"wb");
-			if (!f) delete_file(diskpath,originalfilename);
-			else fclose(f);
-			break;
-		case 2: //.unipcemu.txt
-			strcat(filename,".unipcemu.txt");
-			f = fopen(filename,"wb");
-			if (!f) delete_file(diskpath,originalfilename);
-			else fclose(f);
-			break;
-		default:
-			break;
+		delete_file(diskpath,originalfilename); //Format creation failed, thus file creation failed!
 	}
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{
@@ -236,6 +262,39 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",100.0f); //Show percentage!
 		EMU_unlocktext();
 	}
+}
+
+byte deleteStaticImageCompletely(char *filename)
+{
+	byte format;
+	if (format = is_staticimage(filename)) //Gotten format?
+	{
+		FILE *f;
+		char fullfilename[256], fullfilenamebackup[256];
+		memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
+		memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!
+		strcpy(fullfilename,filename); //The filename!
+		strcpy(fullfilenamebackup,filename); //The filename!
+		switch (format) //Extra type conversion stuff?
+		{
+			case 1: //.bochs.txt
+				//Delete leftovers, if any!
+				strcat(fullfilename,".bochs.txt"); //Bochs type!
+				if (!remove(fullfilenamebackup)) return 0; //Failed removing the disk image!
+				if (!remove(fullfilename)) return 0; //Failed removing the leftovers!
+				break;
+			case 2: //.unipcemu.txt
+				strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+				if (!remove(fullfilenamebackup)) return 0; //Failed removing the disk image!
+				if (!remove(fullfilename)) return 0; //Failed removing the leftovers!
+				break;
+			default: //Neither, remove all identifier files!
+				if (!remove(fullfilenamebackup)) return 0; //Failed removing the disk image!
+				break;
+		}
+		return 1; //OK!		
+	}
+	return 0; //Failed!
 }
 
 byte bootmessage[] = "This is a non-bootable disk.\r\nPress any key to reboot...\r\n\0"; //Our boot message!

@@ -2764,6 +2764,12 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
 				strcat(fullfilename, filename);
+
+				if (!generateStaticImageFormat(fullfilename,dynamicimage_type)) //Failed generating the format to use?
+				{
+					
+				}
+
 				dest = emufopen64(fullfilename, "wb"); //Open the destination!
 				for (sectornr = 0; sectornr < size;) //Process all sectors!
 				{
@@ -2869,35 +2875,16 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					EMU_locktext();
 					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
 					EMU_unlocktext();
-					strcpy(filename,fullfilename);
-					FILE *f;
-					switch (dynamicimage_type) //Extra type conversion stuff?
-					{
-						case 1: //.bochs.txt
-							strcat(filename,".bochs.txt");
-							f = fopen(filename,"wb");
-							if (!f) error = 1;
-							else fclose(f);
-							break;
-						case 2: //.unipcemu.txt
-							strcat(filename,".unipcemu.txt");
-							f = fopen(filename,"wb");
-							if (!f) error = 1;
-							else fclose(f);
-							break;
-						default:
-							break;
-					}
 					if (error) //Error occurred?
 					{
-						remove(fullfilename); //Try to remove the generated file!
+						deleteStaticImageCompletely(fullfilename); //Try to remove the generated file!
 						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition?sectorposition-1:0); //Error at this sector!
 					}
 				}
 				else //Error occurred?
 				{
 					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
-					if (!remove(fullfilename)) //Defragmented file can be removed?
+					if (!deleteStaticImageCompletely(fullfilename)) //Defragmented file can be removed?
 					{
 						dolog(filename, "Error cleaning up the new defragmented image!");
 					}

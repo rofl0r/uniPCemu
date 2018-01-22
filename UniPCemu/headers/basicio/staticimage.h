@@ -12,6 +12,8 @@ byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word 
 byte statictodynamic_imagetype(char *filename);
 
 
+byte deleteStaticImageCompletely(char *filename); //Remove a static disk image completely!
+byte generateStaticImageFormat(char *filename, byte format); //Generate the format for a static disk image!
 void generateStaticImage(char *filename, FILEPOS size, int percentagex, int percentagey, byte format); //Generate a static image!
 void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percentagex, int percentagey); //Generate a floppy image!
 
