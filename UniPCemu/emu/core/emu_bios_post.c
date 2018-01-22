@@ -245,7 +245,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					verified = BIOS_load_custom(NULL, "BIOSROM.XT.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
 				}
-				if (EMULATED_CPU!=CPU_80286)
+				if ((EMULATED_CPU!=CPU_80286) && (BIOS_Settings.BIOSROMmode!=BIOSROMMODE_UROMS))
 				{
 					verified = BIOS_load_custom(NULL, "BIOSROM.XT.BIN"); //Try to load a custom XT BIOS ROM!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?
@@ -256,8 +256,11 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
 				}
 				
-				verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
-				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				if ((BIOS_Settings.BIOSROMmode!=BIOSROMMODE_UROMS) && (EMULATED_CPU==CPU_80286))
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.XT286.BIN"); //Try to load a custom XT BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				}
 
 				if (EMULATED_CPU == CPU_80286) //80286 has different ROMs?
 				{
@@ -319,8 +322,11 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 						if (verified) goto loadOPTROMS; //Loaded the BIOS?							
 					}
 
-					verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
-					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+					if (BIOS_Settings.BIOSROMmode!=BIOSROMMODE_UROMS)
+					{
+						verified = BIOS_load_custom(NULL, "BIOSROM.32.BIN"); //Try to load a custom 32-bit BIOS ROM!
+						if (verified) goto loadOPTROMS; //Loaded the BIOS?
+					}
 
 					//Try Compaq Deskpro ROMs next!
 					if (is_Compaq==1) //Compaq ROMs?
@@ -350,8 +356,11 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					if (verified) goto loadOPTROMS; //Loaded the BIOS?							
 				}
 
-				verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
-				if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				if (BIOS_Settings.BIOSROMmode!=BIOSROMMODE_UROMS)
+				{
+					verified = BIOS_load_custom(NULL, "BIOSROM.AT.BIN"); //Try to load a custom AT BIOS ROM!
+					if (verified) goto loadOPTROMS; //Loaded the BIOS?
+				}
 
 				if (!BIOS_load_ROM(27)) //Failed to load u27?
 				{

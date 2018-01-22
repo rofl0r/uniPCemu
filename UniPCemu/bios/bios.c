@@ -906,7 +906,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(machine_comment,"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
 	strcat(machine_comment,"useturbocpuspeed: 0=Don't use, 1=Use\n");
 	strcat(machine_comment,"clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
-	strcat(machine_comment,"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM\n");
+	strcat(machine_comment,"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
 	strcat(machine_comment,"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
 	char *machine_commentused=NULL;
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];

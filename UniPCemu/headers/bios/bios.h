@@ -169,7 +169,8 @@ enum Architectures {
 
 enum BIOSROMMode {
 	BIOSROMMODE_NORMAL = 0,
-	BIOSROMMODE_DIAGNOSTICS = 1
+	BIOSROMMODE_DIAGNOSTICS = 1,
+	BIOSROMMODE_UROMS = 2
 }; //All possible priorities!
 
 //B/W monitor setting:

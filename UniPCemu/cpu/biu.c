@@ -31,7 +31,7 @@
 #define REQUEST_IOWRITE 4
 
 //Size to access
-#define REQUEST_SIZEMASK 0xC
+#define REQUEST_SIZEMASK 0x18
 #define REQUEST_16BIT 0x08
 #define REQUEST_32BIT 0x10
 

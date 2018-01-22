@@ -5214,6 +5214,9 @@ setBIOSROMmode: //For fixing it!
 	case BIOSROMMODE_DIAGNOSTICS:
 		strcat(menuoptions[advancedoptions++], "Diagnostic ROM");
 		break;
+	case BIOSROMMODE_UROMS:
+		strcat(menuoptions[advancedoptions++], "Enforce normal U-ROMs");
+		break;
 	default: //Error: fix it!
 		BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE; //Reset/Fix!
 		BIOS_Changed = 1; //We've changed!
@@ -6957,18 +6960,20 @@ void BIOS_ROMMode()
 	GPU_EMU_printscreen(0, 4, "BIOS ROM mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 2; //Amount of Direct modes!
-	for (i = 0; i<2; i++) //Process options!
+	numlist = 3; //Amount of Direct modes!
+	for (i = 0; i<3; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	strcpy(itemlist[BIOSROMMODE_NORMAL], "Normal BIOS ROM"); //Set filename from options!
 	strcpy(itemlist[BIOSROMMODE_DIAGNOSTICS], "Diagnostic ROM"); //Set filename from options!
+	strcpy(itemlist[BIOSROMMODE_UROMS], "Enforce normal U-ROMs"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.BIOSROMmode) //What setting?
 	{
 	case BIOSROMMODE_NORMAL: //Valid
 	case BIOSROMMODE_DIAGNOSTICS: //Valid
+	case BIOSROMMODE_UROMS: //Valid
 		current = BIOS_Settings.BIOSROMmode; //Valid: use!
 		break;
 	default: //Invalid
@@ -6991,6 +6996,7 @@ void BIOS_ROMMode()
 
 	case BIOSROMMODE_NORMAL:
 	case BIOSROMMODE_DIAGNOSTICS:
+	case BIOSROMMODE_UROMS:
 	default: //Changed?
 		if (file != current) //Not current?
 		{
