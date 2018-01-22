@@ -2732,7 +2732,12 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 
 			byte dynamicimage_type;
-			dynamicimage_type = dynamictostatic_imagetype(filename);
+			memset(&fullfilename,0,sizeof(fullfilename)); //Init!
+			strcpy(fullfilename, diskpath); //Disk path!
+			strcat(fullfilename, "/");
+			strcat(fullfilename, filename); //The full filename!
+
+			dynamicimage_type = dynamictostatic_imagetype(fullfilename);
 
 			strcat(filename, ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
