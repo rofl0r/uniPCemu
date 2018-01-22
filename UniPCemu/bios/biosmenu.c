@@ -2767,7 +2767,8 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 				if (!generateStaticImageFormat(fullfilename,dynamicimage_type)) //Failed generating the format to use?
 				{
-					
+					error = 2; //Error #2!
+					goto handleDynamicStaticCreationError;
 				}
 
 				dest = emufopen64(fullfilename, "wb"); //Open the destination!
@@ -2883,6 +2884,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				}
 				else //Error occurred?
 				{
+					handleDynamicStaticCreationError:
 					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
 					if (!deleteStaticImageCompletely(fullfilename)) //Defragmented file can be removed?
 					{
