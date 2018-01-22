@@ -48,8 +48,9 @@
 BIU_type BIU[MAXCPUS]; //All possible BIUs!
 
 extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
-
+extern byte BUSmasks[2][NUMCPUS]; //The bus masks, for applying 8/16/32-bit data buses to the memory accesses!
 byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
+byte CPU_databusmask = 0; //The mask from the BUSmasks lookup table!
 
 extern byte cpudebugger; //To debug the CPU?
 
@@ -64,6 +65,7 @@ void CPU_initBIU()
 	{
 		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
 	}
+	CPU_databusmask = BUSmasks[CPU_databussize][EMULATED_CPU]; //Our data bus mask we use for splitting memory chunks!
 	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
 	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
@@ -258,38 +260,6 @@ byte BIU_readResultdw(uint_32 *result) //Read the result data of a BUS request!
 
 byte BIU_access_writeshift[4] = {32,40,48,56}; //Shift to get the result byte to write to memory!
 byte BIU_access_readshift[4] = {0,8,16,24}; //Shift to put the result byte in the result!
-
-OPTINLINE byte BIU_isfulltransfer()
-{
-	INLINEREGISTER byte result;
-	result = 0; //Default: byte transfer!
-	if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) && ((BIU[activeCPU].currentaddress&1)==0)) //Aligned 16-bit access?
-	{
-		if ((EMULATED_CPU>=CPU_80386) || ((EMULATED_CPU<=CPU_80286) && (CPU_databussize==0))) //16-bit+ bus available?
-		{
-			result = 1; //Start a full transfer this very clock!
-		}
-	}
-	else if ((BIU[activeCPU].currentrequest&REQUEST_32BIT) && ((BIU[activeCPU].currentaddress&3)==0)) //Aligned 32-bit access?
-	{
-		if ((EMULATED_CPU>=CPU_80386) && (CPU_databussize==0)) //32-bit processor with 32-bit bus?
-		{
-			result = 1; //Start a full transfer this very clock!
-		}
-		else if (EMULATED_CPU>=CPU_80386) //32-bit processor with 16-bit data bus?
-		{
-			result = 2; //Start a full transfer, broken in half(two 16-bit accesses)!
-		}
-	}
-	else if ((BIU[activeCPU].currentrequest&REQUEST_32BIT) && ((BIU[activeCPU].currentaddress&1)==0)) //Word-Aligned 32-bit access, but not 32-bit aligned? Break up into word accesses, when possible!
-	{
-		if (EMULATED_CPU>=CPU_80386) //32-bit processor with 16-bit data bus at least?
-		{
-			result = 2; //Start a full transfer, broken in half(two 16-bit accesses)!
-		}
-	}
-	return result; //Give the result!
-}
 
 //Linear memory access for the CPU through the Memory Unit!
 extern byte MMU_logging; //Are we logging?
@@ -520,7 +490,6 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	return 0; //We're fetched!
 }
 
-byte fulltransfer=0; //Are we to fully finish the transfer in one go?
 OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 {
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
@@ -545,8 +514,8 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
-					if (fulltransfer) goto fulltransferMMUread;
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					goto fulltransferMMUread;
 				}
 				return 1; //Handled!
 				break;
@@ -565,8 +534,8 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
-					if (fulltransfer) goto fulltransferMMUwrite;
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					goto fulltransferMMUwrite;
 				}
 				return 1; //Handled!
 				break;
@@ -584,8 +553,8 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
-					if (fulltransfer) goto fulltransferIOread;
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					goto fulltransferIOread;
 				}
 				return 1; //Handled!
 				break;
@@ -602,8 +571,8 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if ((fulltransfer==2) && ((BIU[activeCPU].currentaddress&3)==2)) return 1; //Finished 16-bit half of a split 32-bit transfer?
-					if (fulltransfer) goto fulltransferIOwrite;
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					goto fulltransferIOwrite;
 				}
 				return 1; //Handled!
 				break;
@@ -617,7 +586,6 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 	{
 		if (BIU_readRequest(&BIU[activeCPU].currentrequest,&BIU[activeCPU].currentpayload[0],&BIU[activeCPU].currentpayload[1])) //Read the request, if available!
 		{
-			fulltransfer = 0; //Init full transfer flag!
 			switch (BIU[activeCPU].currentrequest&REQUEST_TYPEMASK) //What kind of request?
 			{
 				//Memory operations!
@@ -642,9 +610,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
-						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (fulltransfer) goto fulltransferMMUread; //Start Full transfer, when available?
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						goto fulltransferMMUread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -670,9 +638,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					else //Busy request?
 					{
 						BIU_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
-						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (fulltransfer) goto fulltransferMMUwrite; //Start Full transfer, when available?
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						goto fulltransferMMUwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -709,9 +677,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
-						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (fulltransfer) goto fulltransferIOread; //Start Full transfer, when available?
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						goto fulltransferIOread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
@@ -749,9 +717,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					}
 					else
 					{
-						fulltransfer = BIU_isfulltransfer(); //Are we a full transfer?
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (fulltransfer) goto fulltransferIOwrite; //Start Full transfer, when available?
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						goto fulltransferIOwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
 					break;
