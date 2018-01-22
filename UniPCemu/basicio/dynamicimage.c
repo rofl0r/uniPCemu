@@ -93,7 +93,7 @@ OPTINLINE int_64 readdynamicheader_extensionlocation(FILE *f, EXTENDEDDYNAMICIMA
 		if (emufread64(header, 1, sizeof(*header), f) == sizeof(*header)) //Read the new header?
 		{
 			char *sig = (char *)&header->SIG; //The signature!
-			if ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && (header->headersize == sizeof(header)) //Extended header?
+			if ((!memcmp(sig, &EXTSIG, sizeof(header->SIG))) && (header->headersize == sizeof(*header)) //Extended header?
 				) //(New) dynamic image header?
 			{
 				return header->extendedinformationblocklocation; //Is dynamic extended image! Give the location, if used!
