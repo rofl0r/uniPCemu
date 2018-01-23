@@ -756,6 +756,7 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 		if (formatblock.format==0) //Compatible format? Fallback to not use an extended information block for simple compatiblity!
 		{
 			header.extendedinformationblocklocation = 0; //Disable extended information block for compatiblity with older UniPCemu versions!
+			header.currentsize = sizeof(header); //The new current file size as required. Don't add the extended block size, as it isn't there!
 		}
 		if (emufwrite64(&header,1,sizeof(header),f)!=sizeof(header)) //Failed to write the header?
 		{
