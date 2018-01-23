@@ -330,6 +330,7 @@ byte CPU80386_internal_POPdw(word base, uint_32 *result)
 
 byte CPU80386_POPESP(word base)
 {
+	uint_32 result;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		if (CPU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,1)==0) //Not ready?
@@ -348,6 +349,16 @@ byte CPU80386_POPESP(word base)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		result = REG_ESP; //Save the popped value!
+		if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //ESP?
+		{
+			REG_ESP += 4; //Add four for the correct result!
+		}
+		else
+		{
+			REG_SP += 4; //Add four for the correct result!
+		}
+		REG_ESP = result; //Give the correct result, according to http://www.felixcloutier.com/x86/POP.html!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
