@@ -1476,6 +1476,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST0 &= 0xF8; //Clear low 3 bits!
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
+				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
 				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data!
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
