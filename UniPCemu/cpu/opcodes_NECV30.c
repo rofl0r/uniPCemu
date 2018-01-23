@@ -539,7 +539,7 @@ void CPU186_OP6F()
 }
 
 word temp8Edata;
-void CPU186_OP8E() { if (params.info[0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, 0, 1); modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM12); MODRM_src0 = 0; if (modrm_check16(&params,1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,1)) return; CPU186_internal_MOV16(modrm_addr16(&params, 0, 0), temp8Edata); }
+void CPU186_OP8E() { if (params.info[MODRM_src0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0,PARAM_MODRM_01); MODRM_src0 = 0; if (modrm_check16(&params,MODRM_src1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); }
 
 void CPU186_OPC0()
 {
