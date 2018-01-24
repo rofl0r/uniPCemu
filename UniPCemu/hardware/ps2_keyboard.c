@@ -50,6 +50,10 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	if (!is_ATInit)
 	{
+		Keyboard.command = 0xFF; //Handler!
+		Keyboard.command_step = 2;
+		Keyboard.has_command = 1;
+		Keyboard.timeout = KEYBOARD_BATTIMEOUT; //Executing BAT!
 		give_keyboard_output(0xAA); //Give OK status code!
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
@@ -169,7 +173,7 @@ void updatePS2Keyboard(double timepassed)
 					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
 					give_keyboard_output(0xFA); //Acnowledge!
 					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
-					Keyboard.timeout = KEYBOARD_RESETTIMEOUT; //A small delay for the result code to appear!
+					Keyboard.timeout = KEYBOARD_BATTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					Keyboard.command = 0xFF; //Restore the command byte, so that we can continue!
 					Keyboard.has_command = 1; //We're stil executing a command!
