@@ -606,7 +606,8 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	if (__HW_DISABLED) return; //Abort!
 	//First, register ourselves!
 	register_PS2PortWrite(0,&handle_keyboardwrite); //Write functionality!
-	register_PS2PortRead(0,&handle_keyboardread,&handle_keyboardpeek); //Read functionality!		
+	register_PS2PortRead(0,&handle_keyboardread,&handle_keyboardpeek); //Read functionality!
+	register_PS2PortEnabled(0,&resetKeyboard_8042); //Port enabled handler!
 	Keyboard.buffer = allocfifobuffer(32,1); //Allocate a small keyboard buffer (originally 16, dosbox uses double buffer (release size=2 by default)!
 	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
 	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?

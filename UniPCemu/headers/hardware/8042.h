@@ -6,6 +6,7 @@
 typedef void (*PS2OUT)(byte);    /* A pointer to a PS/2 device handler Write function */
 typedef byte (*PS2IN)();    /* A pointer to a PS/2 device handler Read function */
 typedef int (*PS2PEEK)(byte *result);    /* A pointer to a PS/2 device handler Peek (Read without flush) function */
+typedef void (*PS2ENABLEDHANDLER)(byte flags); //Reset handler for when the device is enabled using the 8042!
 
 typedef struct
 {
@@ -50,6 +51,7 @@ typedef struct
 	PS2OUT portwrite[2]; //Port Output handler!
 	PS2IN portread[2]; //Port Input has been read?
 	PS2PEEK portpeek[2]; //Port has data&peek function!
+	PS2ENABLEDHANDLER portenabledhandler[2]; //Port has enabled handler!
 	
 	//Direct feedback support!
 	byte port60toFirstPS2Output; //Redirect write to port 0x60 to input of first PS/2 device!
@@ -100,6 +102,7 @@ byte write_8042(word port, byte value); //Prototype for init port!
 byte read_8042(word port, byte *result); //Prototype for init port!
 
 //Registration of First and Second PS/2 controller!
+void register_PS2PortEnabled(byte port, PS2ENABLEDHANDLER enabledhandler);
 void register_PS2PortWrite(byte port, PS2OUT handler);
 void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler);
 

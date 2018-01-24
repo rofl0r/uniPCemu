@@ -396,6 +396,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
+		if (Controller8042.portenabledhandler[1]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[1](0); //Handle the hardware being turned on by it resetting!
+		}
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		input_lastwrite_8042(); //Force result to user!
@@ -457,6 +461,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xAE: //Enable first PS/2 port! No ACK!
 		Controller8042.data[0] &= ~0x10; //Enabled!
+		if (Controller8042.portenabledhandler[0]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[0](0); //Handle the hardware being turned on by it resetting!
+		}
 		break;
 	case 0xC0: //Read controller input port?
 		//Compaq:  Places status of input port in output buffer. Use this command only when the output buffer is empty
@@ -634,7 +642,10 @@ byte write_8042(word port, byte value)
 			}
 			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
 			{
-				resetKeyboard_8042(1); //Reset the keyboard manually! Execute an interrupt when reset!
+				if (likely(Controller8042.portenabledhandler[0])) //Valid handler for the port?
+				{
+					Controller8042.portenabledhandler[0](1); //Reset the keyboard manually! Execute an interrupt when reset!
+				}
 			}
 			Controller8042.PortB = (value&0xC0); //Save values for reference!
 			return 1;
@@ -801,4 +812,11 @@ void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler)
 	port &= 1;
 	Controller8042.portread[port] = handler; //Register!
 	Controller8042.portpeek[port] = peekhandler; //Peek handler!
+}
+
+void register_PS2PortEnabled(byte port, PS2ENABLEDHANDLER handler)
+{
+	if (__HW_DISABLED) return; //Abort!
+	port &= 1;
+	Controller8042.portenabledhandler[port] = handler; //Register!
 }
