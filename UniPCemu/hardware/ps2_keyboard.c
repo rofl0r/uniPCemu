@@ -169,7 +169,7 @@ void updatePS2Keyboard(double timepassed)
 					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
 					give_keyboard_output(0xFA); //Acnowledge!
 					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
-					Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear!
+					Keyboard.timeout = KEYBOARD_RESETTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					Keyboard.command = 0xFF; //Restore the command byte, so that we can continue!
 					Keyboard.has_command = 1; //We're stil executing a command!

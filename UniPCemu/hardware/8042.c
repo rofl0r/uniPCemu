@@ -60,6 +60,36 @@ void input_lastwrite_8042()
 	fifobuffer_gotolast(Controller8042.buffer); //Goto last!	
 }
 
+OPTINLINE void PS2_lowerirq(byte which)
+{
+	if (which) //Second port?
+	{
+		Controller8042.outputport &= ~0x20; //Lower second IRQ!
+		lowerirq(12); //Lower secondary IRQ!
+		acnowledgeIRQrequest(12); //Acnowledge!
+	}
+	else //First port?
+	{
+		Controller8042.outputport &= ~0x10; //Lower first IRQ!
+		lowerirq(1); //Lower primary IRQ!
+		acnowledgeIRQrequest(1); //Acnowledge!
+	}
+}
+
+OPTINLINE void PS2_raiseirq(byte which)
+{
+	if (which) //Second port?
+	{
+		Controller8042.outputport |= 0x20; //Raise second IRQ!
+		raiseirq(12); //Lower secondary IRQ!
+	}
+	else //First port?
+	{
+		Controller8042.outputport |= ~0x10; //Raise first IRQ!
+		raiseirq(1); //Lower primary IRQ!
+	}
+}
+
 byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 {
 	byte whatport;
@@ -146,21 +176,19 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 								Controller8042.status_buffer |= 0x20; //Set AUX bit!
 								if (PS2_SECONDPORTINTERRUPTENABLED(Controller8042))
 								{
-									lowerirq(12); //Lower secondary IRQ!
-									if (flags&1) raiseirq(12); //Raise secondary IRQ!
+									PS2_lowerirq(1); //Lower secondary IRQ!
+									if (flags&1) PS2_raiseirq(1); //Raise secondary IRQ!
 								}
 								else
 								{
 									if (flags&1)
 									{
-										lowerirq(12); //Lower secondary IRQ!
-										acnowledgeIRQrequest(12); //Acnowledge!
+										PS2_lowerirq(1); //Lower secondary IRQ!
 									}
 								}
 								if (flags&1)
 								{
-									lowerirq(1); //Lower primary IRQ!
-									acnowledgeIRQrequest(1); //Acnowledge!
+									PS2_lowerirq(0); //Lower primary IRQ!
 								}
 							}
 							else //Non-AUX?
@@ -169,21 +197,19 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 
 								if (PS2_FIRSTPORTINTERRUPTENABLED(Controller8042))
 								{
-									lowerirq(1); //Lower primary IRQ!
-									if (flags&1) raiseirq(1); //Raise primary IRQ!
+									PS2_lowerirq(0); //Lower primary IRQ!
+									if (flags&1) PS2_raiseirq(0); //Raise primary IRQ!
 								}
 								else
 								{
 									if (flags&1)
 									{
-										lowerirq(1); //Lower primary IRQ!
-										acnowledgeIRQrequest(1); //Acnowledge!
+										PS2_lowerirq(0); //Lower primary IRQ!
 									}
 								}
 								if (flags&1)
 								{
-									lowerirq(12); //Lower secondary IRQ!
-									acnowledgeIRQrequest(12); //Acnowledge!
+									PS2_lowerirq(1); //Lower secondary IRQ!
 								}
 							}
 							return 1; //We've received something!
@@ -639,6 +665,8 @@ byte write_8042(word port, byte value)
 			if (value & 0x80) //Clear interrupt flag and we're a XT system?
 			{
 				Controller8042.status_buffer &= ~0x21; //Clear output buffer full&AUX bits!
+				PS2_lowerirq(0); //Lower primary IRQ!
+				PS2_lowerirq(1); //Lower secondary IRQ!
 			}
 			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
 			{
@@ -686,6 +714,8 @@ byte read_8042(word port, byte *result)
 		}
 		if (is_XT == 0) //We're an AT?
 		{
+			PS2_lowerirq(0); //Lower primary IRQ!
+			PS2_lowerirq(1); //Lower secondary IRQ!
 			#ifdef LOG8042
 			if (force8042==0) //Not forced for initialization?
 			{
