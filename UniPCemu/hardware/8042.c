@@ -418,14 +418,18 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.data[0] |= 0x20; //Disabled!
 		break;
 	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
+		if ((Controller8042.data[0]&0x20)==0x20) //Was disabled?
+		{
+			if (Controller8042.portenabledhandler[1]) //Enabled handler?
+			{
+				Controller8042.portenabledhandler[1](2); //Handle the hardware being turned on by it resetting!
+			}
+		}
 		Controller8042.data[0] &= ~0x20; //Enabled!
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(0xFA); //ACK!
 		input_lastwrite_8042(); //Force 0xFA to user!
-		if (Controller8042.portenabledhandler[1]) //Enabled handler?
-		{
-			Controller8042.portenabledhandler[1](0); //Handle the hardware being turned on by it resetting!
-		}
+		
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		input_lastwrite_8042(); //Force result to user!
@@ -486,11 +490,14 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.data[0] |= 0x10; //Disabled!
 		break;
 	case 0xAE: //Enable first PS/2 port! No ACK!
-		Controller8042.data[0] &= ~0x10; //Enabled!
-		if (Controller8042.portenabledhandler[0]) //Enabled handler?
+		if ((Controller8042.data[0]&0x10)==0x10) //Was disabled?
 		{
-			Controller8042.portenabledhandler[0](0); //Handle the hardware being turned on by it resetting!
+			if (Controller8042.portenabledhandler[0]) //Enabled handler?
+			{
+				Controller8042.portenabledhandler[0](2); //Handle the hardware being turned on by it resetting!
+			}
 		}
+		Controller8042.data[0] &= ~0x10; //Enabled!
 		break;
 	case 0xC0: //Read controller input port?
 		//Compaq:  Places status of input port in output buffer. Use this command only when the output buffer is empty
