@@ -1568,6 +1568,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
+			FLOPPY.commandstep = 3; //Result phase!
+			FLOPPY_raiseIRQ(); //Entering result phase!
 			return; //Correct read!
 			floppy_errorReadID:
 			FLOPPY.ST0 = 0x40; //Error!
@@ -1580,6 +1582,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
+			FLOPPY.commandstep = 3; //Result phase!
+			FLOPPY_raiseIRQ(); //Entering result phase!
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
