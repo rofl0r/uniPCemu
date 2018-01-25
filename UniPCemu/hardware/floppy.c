@@ -1520,6 +1520,12 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				goto floppy_errorReadID; //Error out!
 			}
+			FLOPPY.ST0 = 0x00; //Clear ST0 by default!
+			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
+			FLOPPY_ST0_NOTREADYW(0); //Ready!
+			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
+			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]&1); //Head!
+			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Unit selected!
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinformation)) //Read the sector information too!
@@ -1532,9 +1538,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				{
 					FLOPPY.ST1 = 0x00; //Not found!
 					FLOPPY.ST2 = 0x00; //Not found!
-					FLOPPY_ST1_NOADDRESSMARKW(1);
-					FLOPPY_ST1_NODATAW(1); //We cannot find the ID!
 					FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
+					goto floppy_errorReadID; //Error out!
 				}
 			}
 			else //Normal disk? Generate valid data!
@@ -1547,14 +1552,12 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				{
 					if ((int_32)floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) >= (int_32)(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->KB * 1024)) //Invalid address within our image!
 					{
-						FLOPPY_ST1_NOADDRESSMARKW(1);
-						FLOPPY_ST1_NODATAW(1); //Invalid sector!
+						goto floppy_errorReadID; //Error out!
 					}
 				}
 				else //No geometry? Always error out!
 				{
-					FLOPPY_ST1_NOADDRESSMARKW(1);
-					FLOPPY_ST1_NODATAW(1); //Invalid sector!
+					goto floppy_errorReadID; //Error out!
 				}
 				FLOPPY.resultbuffer[6] = 2; //Always 512 byte sectors!
 			}
