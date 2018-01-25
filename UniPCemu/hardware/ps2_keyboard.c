@@ -54,7 +54,6 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 		Keyboard.command_step = 2;
 		Keyboard.has_command = 1;
 		Keyboard.timeout = KEYBOARD_BATTIMEOUT; //Executing BAT!
-		give_keyboard_output(0xAA); //Give OK status code!
 	}
 	Keyboard.last_send_byte = 0xAA; //Set last send byte!
 	loadKeyboardDefaults(); //Load our defaults!
@@ -64,7 +63,7 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 void resetKeyboard_8042(byte flags)
 {
 	input_lastwrite_keyboard(); //Force to user!
-	resetKeyboard(flags,0); //Reset us! Execute an interrupt as well!
+	resetKeyboard((flags&~2),((flags&2)?1:0)); //Reset us! Execute an interrupt as well!
 	input_lastwrite_keyboard(); //Force to user!
 }
 
