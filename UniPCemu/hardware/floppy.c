@@ -360,6 +360,7 @@ enum FloppyCommands
    READ_ID =                    10,	// generates IRQ6
    READ_DELETED_DATA =          12,
    FORMAT_TRACK =               13,     // *
+   DUMPREG =                    14, //extended controller only!
    SEEK =                       15,     // * seek both heads to cylinder X
    VERSION =                    16,	// * used during initialization, once
    SCAN_EQUAL =                 17,
@@ -1645,6 +1646,30 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[0] = (FLOPPY.Locked<<4); //Give the lock bit as a result!
 			FLOPPY.commandstep = 3; //We're starting the result phase!
 			break;
+		case DUMPREG: //Dumpreg command
+			FLOPPY.resultposition = 0; //Start our result phase!
+			FLOPPY.resultbuffer[0] = FLOPPY.currentcylinder[0]; //Give the cylinder as a result!
+			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[1]; //Give the cylinder as a result!
+			FLOPPY.resultbuffer[2] = FLOPPY.currentcylinder[2]; //Give the cylinder as a result!
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[3]; //Give the cylinder as a result!
+			FLOPPY.resultbuffer[4] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0]; //Give the cylinder as a result!
+			FLOPPY.resultbuffer[5] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1]; //Give the cylinder as a result!
+			if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR])
+			{
+				FLOPPY.resultbuffer[6] = (byte)((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT)&0xFF); //Give the cylinder size in sectors as a result!
+			}
+			else
+			{
+				FLOPPY.resultbuffer[6] = 0; //Give the sectors/track!
+			}
+			FLOPPY.commandstep = 3; //We're starting the result phase!
+			FLOPPY_raiseIRQ(); //Give the result!
+			break;
+		case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
+			FLOPPY.ST0 = 0x00; //OK!
+			FLOPPY.commandstep = 0; //Ready for a new command!
+			FLOPPY_raiseIRQ(); //Give the OK signal!
+			break;
 		case READ_TRACK: //Read complete track!
 		case WRITE_DELETED_DATA: //Write deleted sector
 		case READ_DELETED_DATA: //Read deleted sector
@@ -1699,6 +1724,8 @@ OPTINLINE void floppy_writeData(byte value)
 			switch (value) //What command?
 			{
 				case SENSE_INTERRUPT: //Check interrupt status
+				case DUMPREG: //Dumpreg command
+				case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
@@ -1726,6 +1753,10 @@ OPTINLINE void floppy_writeData(byte value)
 					break;
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DELETED_DATA: //Read deleted sector
+				case VERIFY:
+				case SCAN_EQUAL:
+				case SCAN_LOW_OR_EQUAL:
+				case SCAN_HIGH_OR_EQUAL:
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80; //Invalid command!
@@ -1797,7 +1828,7 @@ OPTINLINE byte floppy_readData()
 		0, //b
 		7, //c
 		7, //d
-		0, //e
+		7, //e
 		7, //f
 		1, //10
 		0, //11
