@@ -110,6 +110,8 @@ struct
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 	byte recalibratestepsleft[4]; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
 	byte seekdestination[4]; //Where to seek to?
+	byte seekrel[4]; //Seek relatively?
+	byte seekrelup[4]; //Seek relatively upwards(towards larger cylinders)?
 	byte MTMask; //Allow MT to be used in sector increase operations?
 	double DMArate, DMAratePending; //Current DMA transfer rate!
 } FLOPPY; //Our floppy drive data!
@@ -1503,6 +1505,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Start our timed execution!
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
+			FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MT; //Seek relative?
+			FLOPPY.seekrelup[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DoubleDensity; //Seek relative up(when seeking relatively)
 			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
@@ -1957,13 +1961,13 @@ void updateFloppy(double timepassed)
 								goto finishdrive; //Abort!
 							}
 						
-							if (FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive]) //Step out towards smaller cylinder numbers?
+							if ((FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekrelup[drive]==0) && FLOPPY.seekdestination[drive])) //Step out towards smaller cylinder numbers?
 							{
 								--FLOPPY.currentcylinder[drive]; //Step up!
 								if (FLOPPY.physicalcylinder[drive]) --FLOPPY.physicalcylinder[drive]; //Decrease when available!
 								movedcylinder = 1;
 							}
-							else if (FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive]) //Step in towards bigger cylinder numbers?
+							else if ((FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && FLOPPY.seekrelup[drive] && FLOPPY.seekdestination[drive])) //Step in towards bigger cylinder numbers?
 							{
 								++FLOPPY.currentcylinder[drive]; //Step down!
 								if (FLOPPY.physicalcylinder[drive]<FLOPPY.geometries[drive]->tracks) ++FLOPPY.physicalcylinder[drive]; //Increase when available!
@@ -1974,7 +1978,7 @@ void updateFloppy(double timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if ((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0)))) //Found and existant?
+							if (((+FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
 							{
 								FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
