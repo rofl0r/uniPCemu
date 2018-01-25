@@ -103,62 +103,58 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 {
 	byte channel; //Which channel to use?
 	if (__HW_DISABLED) return 0; //Abort!
-	if (!((port < 0x20) || ((port >= 0xC0) && (port <= 0xE0)) || ((port >= 0x80) && (port <= 0x9F)))) return 0; //Not our DMA!
-	byte controller = ((port & 0xC0)==0xC0) ? 1 : 0; //What controller?
+	if (!((port < 0x10) || ((port >= 0xC0) && (port <= 0xDE)) || ((port >= 0x80) && (port <= 0x8F)))) return 0; //Not our DMA!
+	byte controller = (((port & 0xC0)==0xC0) || ((port&0xF8)==0x88)) ? 1 : 0; //What controller?
 	byte reg = (byte)port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
-		reg -= 0xC0; //Take the base!
-		if (reg & 1) return 0; //Invalid register: not mapped!
-		reg >>= 1; //Every port is on a offset of 2!
-		//Now reg is on 1:1 mapping too!
+		if ((port&0xC0)==0xC0) //C0 mapping?
+		{
+			reg -= 0xC0; //Take the base!
+			if (reg & 1) return 0; //Invalid register: not mapped!
+			reg >>= 1; //Every port is on a offset of 2!
+			//Now reg is on 1:1 mapping too!
+		}
 	}
 	WaitSem(DMA_Lock)
-	switch (port) //What port?
+	if ((port>=0x80) && (port<=0x8F)) //Page registers?
 	{
-	//Extra 8 bits for addresses:
-	case 0x87: //
-		DMAController[0].DMAChannel[0].PageAddressRegister = value; //Set!
-		break;
-	case 0x84:
-	case 0x85:
-	case 0x86: //Extra on 286 BIOS?
-		DMAController[0].extrastorage[port-0x84] = value; //Set storage!
-		break;
-	case 0x80:
-		DMAController[0].extrastorage[3] = value; //Set storage!
-		break;
-	case 0x83: //
-		DMAController[0].DMAChannel[1].PageAddressRegister = value; //Set!
-		break;
-	case 0x81: //
-		DMAController[0].DMAChannel[2].PageAddressRegister = value; //Set!
-		break;
-	case 0x82: //
-		DMAController[0].DMAChannel[3].PageAddressRegister = value; //Set!
-		break;
-	//Extra 8 bits for addresses:
-	case 0x8F: //
-		DMAController[1].DMAChannel[0].PageAddressRegister = value; //Set!
-		break;
-	case 0x8C:
-	case 0x8D:
-	case 0x8E: //Extra on 286 BIOS?
-		DMAController[1].extrastorage[port-0x8C] = value; //Set storage!
-		break;
-	case 0x88: //Extra on 286 BIOS?
-		DMAController[1].extrastorage[3] = value; //Set storage!
-		break;
-	case 0x8B: //
-		DMAController[1].DMAChannel[1].PageAddressRegister = value; //Set!
-		break;
-	case 0x89: //
-		DMAController[1].DMAChannel[2].PageAddressRegister = value; //Set!
-		break;
-	case 0x8A: //
-		DMAController[1].DMAChannel[3].PageAddressRegister = value; //Set!
-		break;
-	default: //Non-page register!
+		reg -= 0x80; //Take the base!
+		if (controller) //Second controller?
+		{
+			reg -= 8; //Take the second controller port!
+		}
+		switch (reg) //What register?
+		{
+		//Extra 8 bits for addresses:
+		case 0x7: //
+			DMAController[controller].DMAChannel[0].PageAddressRegister = value; //Set!
+			break;
+		case 0x4:
+		case 0x5:
+		case 0x6: //Extra on 286 BIOS?
+			DMAController[controller].extrastorage[reg-0x4] = value; //Set storage!
+			break;
+		case 0x0:
+			DMAController[controller].extrastorage[3] = value; //Set storage!
+			break;
+		case 0x3: //
+			DMAController[controller].DMAChannel[1].PageAddressRegister = value; //Set!
+			break;
+		case 0x1: //
+			DMAController[controller].DMAChannel[2].PageAddressRegister = value; //Set!
+			break;
+		case 0x2: //
+			DMAController[controller].DMAChannel[3].PageAddressRegister = value; //Set!
+			break;
+		default:
+			PostSem(DMA_Lock) //Release!
+			return 0; //Invalid register!
+			break;
+		}
+	}
+	else //Non-page register!
+	{
 		switch (reg) //What register is selected?
 		{
 		case 0x00:
@@ -234,7 +230,6 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			return 0; //Invalid register!
 			break;
 		}
-		break;
 	}
 	PostSem(DMA_Lock)
 	return 1; //Correct register!
@@ -245,129 +240,117 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 	byte channel; //Which channel to use?
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!((port < 0x10) || ((port >= 0xC0) && (port <= 0xDE)) || ((port >= 0x80) && (port <= 0x8F)))) return 0; //Not our DMA!
-	byte controller = (port>=0xC0)?1:0; //What controller?
+	byte controller = (((port & 0xC0)==0xC0) || ((port&0xF8)==0x88)) ? 1 : 0; //What controller?
 	byte reg = (byte)port; //What register is selected, default to 1:1 mapping?
 	if (controller) //16-bit register (second DMA controller)?
 	{
-		reg -= 0xC0; //Take the base!
-		if (reg & 1) return 0; //Invalid register: not mapped!
-		reg >>= 1; //Every port is on a offset of 2!
-		//Now reg is on 1:1 mapping too!
+		if ((port&0xC0)==0xC0) //C0 mapping?
+		{
+			reg -= 0xC0; //Take the base!
+			if (reg & 1) return 0; //Invalid register: not mapped!
+			reg >>= 1; //Every port is on a offset of 2!
+			//Now reg is on 1:1 mapping too!
+		}
 	}
 	WaitSem(DMA_Lock)
 	byte ok = 0;
-	switch (port) //What port?
+	if ((port>=0x80) && (port<=0x8F)) //Page registers?
 	{
+		reg -= 0x80; //Take the base!
+		if (controller) //Second controller?
+		{
+			reg -= 8; //Take the second controller port!
+		}
+		switch (reg) //What register?
+		{
 		//Extra 8 bits for addresses:
-		case 0x84:
-		case 0x85:
-		case 0x86: //Extra on 286 BIOS?
-			*result = DMAController[0].extrastorage[port-0x84]; //Get storage!
+		case 0x7: //
+			*result = DMAController[controller].DMAChannel[0].PageAddressRegister; //Get!
 			ok = 1;
 			break;
-		case 0x87: //
-			*result = DMAController[0].DMAChannel[0].PageAddressRegister; //Get!
+		case 0x4:
+		case 0x5:
+		case 0x6: //Extra on 286 BIOS?
+			*result = DMAController[controller].extrastorage[reg-0x4]; //Get storage!
 			ok = 1;
 			break;
-		case 0x80:
-			*result = DMAController[0].extrastorage[3]; //Get storage!
+		case 0x0:
+			*result = DMAController[controller].extrastorage[3]; //Get storage!
 			ok = 1;
 			break;
-		case 0x83: //
-			*result = DMAController[0].DMAChannel[1].PageAddressRegister; //Get!
+		case 0x3: //
+			*result = DMAController[controller].DMAChannel[1].PageAddressRegister; //Get!
 			ok = 1;
 			break;
-		case 0x81: //
-			*result = DMAController[0].DMAChannel[2].PageAddressRegister; //Get!
+		case 0x1: //
+			*result = DMAController[controller].DMAChannel[2].PageAddressRegister; //Get!
 			ok = 1;
 			break;
-		case 0x82: //
-			*result = DMAController[0].DMAChannel[3].PageAddressRegister; //Get!
+		case 0x2: //
+			*result = DMAController[controller].DMAChannel[3].PageAddressRegister; //Get!
 			ok = 1;
 			break;
-		//Extra 8 bits for addresses:
-		case 0x8F: //
-			*result = DMAController[1].DMAChannel[0].PageAddressRegister; //Get!
-			ok = 1;
+		default: //Unknown port?
+			ok = 0; //Unknown port!
 			break;
-		case 0x8C:
-		case 0x8D:
-		case 0x8E: //Extra on 286 BIOS?
-			*result = DMAController[1].extrastorage[port-0x8C]; //Get storage!
-			ok = 1;
-			break;
-		case 0x88: //Extra on 286 BIOS?
-			*result = DMAController[1].extrastorage[3]; //Get storage!
-			ok = 1;
-			break;
-		case 0x8B: //
-			*result = DMAController[1].DMAChannel[1].PageAddressRegister; //Get!
-			ok = 1;
-			break;
-		case 0x89: //
-			*result = DMAController[1].DMAChannel[2].PageAddressRegister; //Get!
-			ok = 1;
-			break;
-		case 0x8A: //
-			*result = DMAController[1].DMAChannel[3].PageAddressRegister; //Get!
-			ok = 1;
-			break;
-		default: //Non-page register!
-			switch (reg) //What register is selected?
-			{
-				//Address/Count registers? Not listed as readable on osdev, but apparently the XT BIOS tries to read it back!
-				case 0x00:
-				case 0x02:
-				case 0x04:
-				case 0x06: //Address register?
-					channel = port>>1; //What channel?
-					if (DMAController[controller].FlipFlop) //High?
-					{
-						*result = ((DMAController[controller].DMAChannel[channel].CurrentAddressRegister>>8)&0xFF); //Set high nibble!
-					}
-					else //Low?
-					{
-						*result = (DMAController[controller].DMAChannel[channel].CurrentAddressRegister&0xFF); //Set low nibble!
-					}
-					DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
-					ok = 1;
-					break;
+		}
+	}
+	else //Non-page register?
+	{
+		switch (reg) //What register is selected?
+		{
+			//Address/Count registers? Not listed as readable on osdev, but apparently the XT BIOS tries to read it back!
+			case 0x00:
+			case 0x02:
+			case 0x04:
+			case 0x06: //Address register?
+				channel = port>>1; //What channel?
+				if (DMAController[controller].FlipFlop) //High?
+				{
+					*result = ((DMAController[controller].DMAChannel[channel].CurrentAddressRegister>>8)&0xFF); //Set high nibble!
+				}
+				else //Low?
+				{
+					*result = (DMAController[controller].DMAChannel[channel].CurrentAddressRegister&0xFF); //Set low nibble!
+				}
+				DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
+				ok = 1;
+				break;
 					
-				case 0x01:
-				case 0x03:
-				case 0x05:
-				case 0x07: //Count register?
-					channel = (port-1)>>1; //What channel?
-					if (DMAController[controller].FlipFlop) //High?
-					{
-						*result = ((DMAController[controller].DMAChannel[channel].CurrentCountRegister>>8)&0xFF); //Set high nibble!
-					}
-					else //Low?
-					{
-						*result = (DMAController[controller].DMAChannel[channel].CurrentCountRegister&0xFF); //Set low nibble!
-					}
-					DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
-					ok = 1;
-					break;
-				//Status registers! This is documented on osdev!
-				case 0x08: //Status Register!
-					*result = DMAController[controller].StatusRegister; //Get!
-					DMAController[controller].StatusRegister &= ~0xF; //Clear TC bits!
-					ok = 1;
-					break;
-				case 0x0D: //Intermediate Register!
-					*result = DMAController[controller].IntermediateRegister; //Get!
-					ok = 1;
-					break;
-				case 0x0F: //MultiChannel Mask Register!
-					*result = DMAController[controller].MultiChannelMaskRegister; //Get!
-					ok = 1;
-					break;
-				default: //Unknown port?
-					ok = 0; //Unknown port!
-					break;
-			}
-			break;
+			case 0x01:
+			case 0x03:
+			case 0x05:
+			case 0x07: //Count register?
+				channel = (port-1)>>1; //What channel?
+				if (DMAController[controller].FlipFlop) //High?
+				{
+					*result = ((DMAController[controller].DMAChannel[channel].CurrentCountRegister>>8)&0xFF); //Set high nibble!
+				}
+				else //Low?
+				{
+					*result = (DMAController[controller].DMAChannel[channel].CurrentCountRegister&0xFF); //Set low nibble!
+				}
+				DMAController[controller].FlipFlop = !DMAController[controller].FlipFlop; //Flipflop!
+				ok = 1;
+				break;
+			//Status registers! This is documented on osdev!
+			case 0x08: //Status Register!
+				*result = DMAController[controller].StatusRegister; //Get!
+				DMAController[controller].StatusRegister &= ~0xF; //Clear TC bits!
+				ok = 1;
+				break;
+			case 0x0D: //Intermediate Register!
+				*result = DMAController[controller].IntermediateRegister; //Get!
+				ok = 1;
+				break;
+			case 0x0F: //MultiChannel Mask Register!
+				*result = DMAController[controller].MultiChannelMaskRegister; //Get!
+				ok = 1;
+				break;
+			default: //Unknown port?
+				ok = 0; //Unknown port!
+				break;
+		}
 	}
 	PostSem(DMA_Lock)
 	return ok; //Give the result!
