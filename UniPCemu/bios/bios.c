@@ -392,11 +392,14 @@ void forceBIOSSave()
 
 extern byte is_XT; //Are we emulating a XT architecture?
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
+extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
 
 void autoDetectArchitecture()
 {
 	is_XT = (BIOS_Settings.architecture==ARCHITECTURE_XT); //XT architecture?
 	is_Compaq = 0; //Default to not being Compaq!
+	is_PS2 = 0; //Default to not being PS/2!
+
 	if (EMULATED_CPU >= CPU_80486) //Are we emulating a AT-only architecture CPU? 80386 is 32-bit, but there's the Inboard 386 for that to be emulated.
 	{
 		is_XT = 0; //We're forcing AT or PS/2 architecture!
@@ -405,6 +408,12 @@ void autoDetectArchitecture()
 	{
 		is_XT = 0; //No XT!
 		is_Compaq = 1; //Compaq!
+	}
+	if (BIOS_Settings.architecture==ARCHITECTURE_PS2) //PS/2 architecture?
+	{
+		is_PS2 = 1; //PS/2 extensions enabled!
+		is_XT = 0; //AT compatible!
+		is_Compaq = 1; //Compaq compatible!
 	}
 }
 
@@ -833,13 +842,21 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	BIOS_Settings.input_settings.gamingmode_joystick = (byte)get_private_profile_uint64("gamingmode","joystick",0,BIOS_Settings_file); //Use the joystick input instead of mapped input during gaming mode?
 
-	//PrimaryCMOS
-	BIOS_Settings.got_CMOS = (byte)get_private_profile_uint64("primaryCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
-	loadBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS"); //Load the CMOS from the file!
+	//XTCMOS
+	BIOS_Settings.got_XTCMOS = (byte)get_private_profile_uint64("XTCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.XTCMOS,"XTCMOS"); //Load the CMOS from the file!
+
+	//ATCMOS
+	BIOS_Settings.got_ATCMOS = (byte)get_private_profile_uint64("ATCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.ATCMOS,"ATCMOS"); //Load the CMOS from the file!
 
 	//CompaqCMOS
 	BIOS_Settings.got_CompaqCMOS = (byte)get_private_profile_uint64("CompaqCMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
 	loadBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS"); //The full saved CMOS!
+
+	//PS2CMOS
+	BIOS_Settings.got_PS2CMOS = (byte)get_private_profile_uint64("PS2CMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.PS2CMOS,"PS2CMOS"); //Load the CMOS from the file!
 
 	//BIOS settings have been loaded.
 
@@ -1089,7 +1106,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,"joystick",BIOS_Settings.input_settings.gamingmode_joystick,BIOS_Settings_file)) return 0; //Use the joystick input instead of mapped input during gaming mode?
 
-	//PrimaryCMOS
+	//CMOS
 	char cmos_comment[4096] = ""; //PrimaryCMOS comment!
 	strcat(cmos_comment,"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
 	strcat(cmos_comment,"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
@@ -1101,12 +1118,23 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(cmos_comment,"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0).");
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
-	if (!write_private_profile_uint64("primaryCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
-	if (!saveBIOSCMOS(&BIOS_Settings.CMOS,"primaryCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
+
+	//XTCMOS
+	if (!write_private_profile_uint64("XTCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_XTCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.XTCMOS,"ATCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
+
+	//ATCMOS
+	if (!write_private_profile_uint64("ATCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_ATCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.ATCMOS,"ATCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
 
 	//CompaqCMOS
 	if (!write_private_profile_uint64("CompaqCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_CompaqCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.CompaqCMOS,"CompaqCMOS",cmos_commentused)) return 0; //The full saved CMOS!
+
+	//PS2CMOS
+	if (!write_private_profile_uint64("PS2CMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_PS2CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.PS2CMOS,"CompaqCMOS",cmos_commentused)) return 0; //The full saved CMOS!
+
 
 	//Fully written!
 	return 1; //BIOS Written & saved successfully!

@@ -288,6 +288,12 @@ GPU_TEXTSURFACE *BIOS_Surface; //Our very own BIOS Surface!
 int advancedoptions = 0; //Number of advanced options!
 byte optioninfo[MENU_MAXITEMS]; //Option info for what option!
 
+//Current architecture that's running!
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
+extern byte is_XT; //Are we emulating a XT architecture?
+extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
+
+
 void allocBIOSMenu() //Stuff that take extra video memory etc. for seperated BIOS allocation (so before MMU, because it may take it all)!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -1773,9 +1779,11 @@ void BIOS_InitAdvancedText()
 	optioninfo[advancedoptions] = 3;
 	strcpy(menuoptions[advancedoptions++], "Input Settings");
 
-	optioninfo[advancedoptions] = 4; //Clear CMOS!
-	strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
-
+	if (((BIOS_Settings.got_ATCMOS) && (((is_Compaq|is_XT|is_PS2)==0))) || (BIOS_Settings.got_CompaqCMOS && (is_Compaq && (is_PS2==0)))  || (BIOS_Settings.got_XTCMOS && is_XT) || (BIOS_Settings.got_PS2CMOS && is_PS2)) //XT/AT/Compaq/PS/2 CMOS saved?
+	{
+		optioninfo[advancedoptions] = 4; //Clear CMOS!
+		strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
+	}
 
 	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
 	{
@@ -5549,33 +5557,83 @@ void BIOS_CPUSpeed() //CPU speed selection!
 }
 
 extern CMOS_Type CMOS; //The currently running CMOS!
-extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 void BIOS_ClearCMOS() //Clear the CMOS!
 {
 	byte emptycmos[128];
 	memset(&emptycmos, 0, sizeof(emptycmos)); //Empty CMOS for comparision!
-	if ((BIOS_Settings.got_CMOS) || (memcmp(&BIOS_Settings.CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+	if (is_PS2) //PS/2?
 	{
-		BIOS_Changed = 1; //We've changed!
-		reboot_needed |= 2; //We're needing a reboot!
+		if ((BIOS_Settings.got_PS2CMOS) || (memcmp(&BIOS_Settings.PS2CMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+		{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+		}
+		else
+		{
+			return; //NOP!
+		}
+	}
+	else if (is_Compaq)
+	{
+		if ((BIOS_Settings.got_CompaqCMOS) || (memcmp(&BIOS_Settings.CompaqCMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+		{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+		}
+		else
+		{
+			return; //NOP!
+		}
+	}
+	else if (is_XT)
+	{
+		if ((BIOS_Settings.got_XTCMOS) || (memcmp(&BIOS_Settings.XTCMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+		{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+		}
+		else
+		{
+			return; //NOP!
+		}
+	}
+	else //AT?
+	{
+		if ((BIOS_Settings.got_ATCMOS) || (memcmp(&BIOS_Settings.ATCMOS, emptycmos,sizeof(emptycmos)) != 0)) //Gotten a CMOS?
+		{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+		}
+		else
+		{
+			return; //NOP!
+		}
 	}
 	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
 	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear the data!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	if (is_Compaq) //Compaq?
+	if (is_PS2) //PS/2?
+	{
+		memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS));
+		BIOS_Settings.got_PS2CMOS = 0; //We haven't gotten a CMOS!
+	}
+	else if (is_Compaq)
 	{
 		memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS));
 		BIOS_Settings.got_CompaqCMOS = 0; //We haven't gotten a CMOS!
 	}
-	else //Normal CMOS?
+	else if (is_XT)
 	{
-		memset(&BIOS_Settings.CMOS, 0, sizeof(BIOS_Settings.CMOS));
-		BIOS_Settings.got_CMOS = 0; //We haven't gotten a CMOS!
+		memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS));
+		BIOS_Settings.got_XTCMOS = 0; //We haven't gotten a CMOS!
 	}
-	BIOS_Changed = 1; //We've changed!
-	reboot_needed |= 2; //We're needing a reboot!
+	else //AT?
+	{
+		memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS));
+		BIOS_Settings.got_ATCMOS = 0; //We haven't gotten a CMOS!
+	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
 }
 

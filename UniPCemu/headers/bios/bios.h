@@ -46,8 +46,8 @@ typedef struct
 	byte BIOSmenu_font; //The selected font for the BIOS menu!
 	byte firstrun; //Is this the first run of this BIOS?
 
-	CMOSDATA CMOS; //The full saved CMOS!
-	byte got_CMOS; //Gotten an CMOS?
+	CMOSDATA ATCMOS; //The full saved CMOS!
+	byte got_ATCMOS; //Gotten an CMOS?
 
 	byte executionmode; //What mode to execute in during runtime?
 	byte VGA_Mode; //Enable VGA NMI on precursors?
@@ -81,6 +81,12 @@ typedef struct
 	word modemlistenport; //What port does the modem need to listen on?
 	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
 	byte debugger_logregisters; //Are we to log registers when debugging?
+	//CMOS for XT systems!
+	CMOSDATA XTCMOS; //The full saved CMOS!
+	byte got_XTCMOS; //Gotten an CMOS?
+	//CMOS for PS/2 systems!
+	CMOSDATA PS2CMOS; //The full saved CMOS!
+	byte got_PS2CMOS; //Gotten an CMOS?
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:

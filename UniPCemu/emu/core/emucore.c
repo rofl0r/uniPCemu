@@ -309,6 +309,7 @@ byte useMPU; //Using the MPU-401?
 
 byte is_XT = 0; //Are we emulating an XT architecture?
 byte is_Compaq = 0; //Are we emulating an Compaq architecture?
+byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
 
 void initEMU(int full) //Init!
 {
@@ -461,7 +462,7 @@ void initEMU(int full) //Init!
 	BIOS_initKeyboard(); //Start up the keyboard!
 
 	debugrow("Initialising mouse...");
-	PS2_initMouse(BIOS_Settings.architecture>=ARCHITECTURE_PS2); //Start up the mouse! Not supported on the XT, AT, PS/2 and Compaq Deskpro 386!
+	PS2_initMouse(is_PS2); //Start up the mouse! Not supported on the XT, AT, PS/2 and Compaq Deskpro 386!
 
 	//Load all BIOS presets!
 	debugrow("Initializing 8253...");
@@ -507,7 +508,7 @@ void initEMU(int full) //Init!
 	initUART(); //Initialise the UART (COM ports)!
 
 	debugrow("Initialising serial mouse...");
-	initSERMouse(!(BIOS_Settings.architecture>=ARCHITECTURE_PS2)); //Initilialise the serial mouse for all supported platforms not using PS/2 mouse!
+	initSERMouse(!is_PS2); //Initilialise the serial mouse for all supported platforms not using PS/2 mouse!
 
 	debugrow("Initialising serial modem...");
 	initModem(1); //Initilialise the serial modem!

@@ -81,6 +81,8 @@ extern byte NMI; //NMI interrupt enabled?
 
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 extern byte is_Compaq; //Are we emulating a Compaq device?
+extern byte is_XT; //Are we emulating a XT device?
+extern byte is_PS2; //Are we emulating PS2 extensions?
 
 #define FLOPPY_NONE 0
 #define FLOPPY_360 1
@@ -516,20 +518,28 @@ OPTINLINE void CMOS_onWrite() //When written to CMOS!
 
 void loadCMOS()
 {
-	if (!(((BIOS_Settings.got_CMOS) && (is_Compaq==0)) || ((BIOS_Settings.got_CompaqCMOS) && is_Compaq))) //Compaq/AT CMOS?
+	if (!(((BIOS_Settings.got_ATCMOS) && (((is_Compaq|is_XT|is_PS2)==0))) || (BIOS_Settings.got_CompaqCMOS && (is_Compaq && (is_PS2==0)))  || (BIOS_Settings.got_XTCMOS && is_XT) || (BIOS_Settings.got_PS2CMOS && is_PS2))) //XT/AT/Compaq/PS/2 CMOS?
 	{
 		loadCMOSDefaults(); //Load our default requirements!
 		return;
 	}
 	else //Load BIOS CMOS!
 	{
-		if (is_Compaq) //Compaq?
+		if (is_PS2) //PS/2 CMOS?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.PS2CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
+		else if (is_Compaq) //Compaq?
 		{
 			memcpy(&CMOS.DATA, &BIOS_Settings.CompaqCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 		}
-		else //Normal CMOS?
+		else if (is_XT) //XT CMOS?
 		{
-			memcpy(&CMOS.DATA, &BIOS_Settings.CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+			memcpy(&CMOS.DATA, &BIOS_Settings.XTCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
+		else //AT CMOS?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.ATCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 		}
 	}
 
@@ -548,22 +558,32 @@ void loadCMOS()
 void saveCMOS()
 {
 	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
+	if (is_PS2) //PS/2 CMOS?
+	{
+		memcpy(&BIOS_Settings.PS2CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		BIOS_Settings.got_PS2CMOS = 1; //We've saved an CMOS!
+	}
 	if (is_Compaq) //Compaq?
 	{
 		memcpy(&BIOS_Settings.CompaqCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_CompaqCMOS = 1; //We've saved an CMOS!
 	}
-	else //Normal CMOS?
+	else if (is_XT) //XT CMOS?
 	{
-		memcpy(&BIOS_Settings.CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
-		BIOS_Settings.got_CMOS = 1; //We've saved an CMOS!
+		memcpy(&BIOS_Settings.XTCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		BIOS_Settings.got_XTCMOS = 1; //We've saved an CMOS!
+	}
+	else //AT CMOS?
+	{
+		memcpy(&BIOS_Settings.ATCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		BIOS_Settings.got_ATCMOS = 1; //We've saved an CMOS!
 	}
 	forceBIOSSave(); //Save the BIOS data!
 }
 
 byte XTRTC_translatetable[0x10] = {
-0x80, //00: 1/10000 seconds
-0x81, //01: 1/100 seconds
+0x80, //00: 1/1000 seconds
+0x81, //01: 1/100 and 1/10 seconds
 0x00, //02: seconds
 0x02, //03: minutes
 0x04, //04: hours
@@ -571,7 +591,7 @@ byte XTRTC_translatetable[0x10] = {
 0x07, //06: day of month
 0x08, //07: month
 0xFF, //08: RAM
-0x09, //09: year(RAM), unexistant on our chip, but map to year anyway!
+0x09, //09: RAM(1/100 and 1/10 second), but map to year for easy updating!
 0xFF, //0A: RAM
 0xFF, //0B: RAM
 0xFF, //0C: RAM
@@ -612,7 +632,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 				data = (CMOS.DATA.s10000&0xF0); //10000th seconds, high digit only!
 				break;
 			case 1: //s100?
-				data = CMOS.DATA.s100; //100th seconds!
+				data = CMOS.DATA.s100; //100th/10th seconds!
 				break;
 			default: //Unknown?
 				data = 0; //Unknown register!
@@ -634,53 +654,76 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		CMOS.ADDR = 0xD; //Reset address!
 		*result = data; //Give the data!
 		return 1;
-	//XT RTC support?
-	case 0x240: //1/10000 seconds
-	case 0x241: //1/100 seconds
+	//XT RTC support? MM58167B chip!
+	case 0x240: //1/10000 seconds with TIMER.COM v1.2; 1/1000 according to docs.
+	case 0x241: //1/100 seconds and 1/10 seconds
 	case 0x242: //seconds
 	case 0x243: //minutes
 	case 0x244: //hours
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
-	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
+	case 0x249: //1/100 seconds and 1/10 seconds latch according to docs, year in the case of TIMER.COM v1.2(HACK)!
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
-	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
+	//RAM latches!
+	case 0x248: //1/10000 seconds RAM latch according to documentation! Only high part is used!
+	case 0x24A: //seconds RAM latch
+	case 0x24B: //minutes RAM latch
+	case 0x24C: //hours RAM latch
+	case 0x24D: //day of week RAM latch
+	case 0x24E: //day of month RAM latch
+	case 0x24F: //month RAM latch
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
-		*result = CMOS.DATA.extraRAMdata[6]; //Map to month instead!
+		*result = CMOS.DATA.extraRAMdata[port-0x248]; //Map to month for port 248?
+		if (port==0x248) //High only?
+		{
+			*result &= 0xF0; //Mask off!
+		}
 		return 1;
 		break;
-	//Latches:
-	/*
-	case 0x249: //1/100 seconds
-	case 0x24A: //seconds
-	case 0x24B: //minutes
-	case 0x24C: //hours
-	case 0x24D: //day of week
-	case 0x24E: //day of month
-	case 0x24F: //month
-		*result = CMOS.DATA.extraRAMdata[port-0x248]; //Read the value directly into RAM!
-		break;
-	*/
-	//Rest registers of the chip:
+	//Control registers of the chip:
 	case 0x250: //Interrupt status Register
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
+		break;
 	case 0x251: //Interrupt control Register
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
+		break;
 	case 0x252: //Counter Reset
-	case 0x253: //Latch Reset
-	case 0x255: //"GO" Command
-	case 0x256: //Standby Interrupt
-	case 0x257: //Test Mode
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
+		break;
+	case 0x253: //Latch/RAM Reset
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		*result = 0; //Unimplemented atm!
 		return 1; //Simply supported for now(plain RAM read)!
 		break;
 	case 0x254: //Status Bit
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
-		*result = 0; //Not updating the status!
+		*result = 0; //Never updating the status(bit 0)!
 		return 1;
+		break;
+	case 0x255: //"GO" Command
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
+		break;
+	case 0x256: //Standby Interrupt
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
+		break;
+	case 0x257: //Test Mode
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		*result = 0; //Unimplemented atm!
+		return 1; //Simply supported for now(plain RAM read)!
 		break;
 	}
 	return 0; //None for now!
@@ -688,6 +731,7 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
+	byte temp;
 	byte isXT = 0;
 	switch (port)
 	{
@@ -740,8 +784,8 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 			case 0: //s10000?
 				CMOS.DATA.s10000 = (value&0xF0); //10000th seconds!
 				break;
-			case 1: //s100?
-				CMOS.DATA.s100 = value; //100th seconds!
+			case 1: //s100/s10?
+				CMOS.DATA.s100 = value; //100th/10th seconds!
 				break;
 			default: //Unknown?
 				//Unknown register! Can't write!
@@ -753,44 +797,69 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		return 1;
 		break;
 	//XT RTC support!
-	//case 0x240: //1/10000 seconds
-	case 0x241: //1/100 seconds
+	case 0x240: //1/10000 seconds with TIMER.COM v1.2; 1/1000 according to docs(correct: 10/10000=1/1000, but it's in the high nibble, low nibble disabled).
+	case 0x241: //1/100 seconds and 1/10 seconds
 	case 0x242: //seconds
 	case 0x243: //minutes
 	case 0x244: //hours
 	case 0x245: //day of week
 	case 0x246: //day of month
 	case 0x247: //month
-	case 0x249: //1/100 seconds, year in the case of TIMER.COM v1.2!
+	case 0x249: //1/100 seconds and 1/10 seconds latch according to docs, year in the case of TIMER.COM v1.2(HACK)!
 		if (is_XT==0) return 0; //Not existant on the AT and higher!
 		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port & 0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
-	case 0x248: //1/10000 seconds latch according to documentation, map to RAM for TIMER.COM v1.2!
-		if (is_XT == 0) return 0; //Not existant on the AT and higher!
-		CMOS.DATA.extraRAMdata[6] = value; //Map to month instead!
-		return 1;
-		break;
 	//Latches to XT CMOS RAM!
-	/*
-	case 0x24A: //seconds
-	case 0x24B: //minutes
-	case 0x24C: //hours
-	case 0x24D: //day of week
-	case 0x24E: //day of month
-	case 0x24F: //month
-		CMOS.DATA.extraRAMdata[port-0x248] = value; //Save the value directly into RAM!
+	//RAM latches!
+	case 0x248: //1/1000 seconds RAM latch according to documentation, map to RAM for TIMER.COM v1.2!
+		value &= 0xF0; //Mask off the low nibble, which doesn't exist!
+	case 0x24A: //seconds RAM latch
+	case 0x24B: //minutes RAM latch
+	case 0x24C: //hours RAM latch
+	case 0x24D: //day of week RAM latch
+	case 0x24E: //day of month RAM latch
+	case 0x24F: //month RAM latch
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		CMOS.DATA.extraRAMdata[port-0x248] = value; //Map to month for port 248 instead!
 		return 1;
 		break;
-	*/
 	//Rest registers of the chip:
-	case 0x250: //Interrupt status Register
+	case 0x250: //Interrupt status Register (R/O)
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x251: //Interrupt control Register
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x252: //Counter Reset
-	case 0x253: //Latch Reset
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
+	case 0x253: //Latch/RAM Reset
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x254: //Status Bit
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x255: //"GO" Command
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x256: //Standby Interrupt
+		if (is_XT == 0) return 0; //Not existant on the AT and higher!
+		//Unimplemented atm!
+		return 1;
+		break;
 	case 0x257: //Test Mode
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
 		//Unimplemented atm!
