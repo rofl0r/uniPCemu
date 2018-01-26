@@ -230,11 +230,11 @@ OPTINLINE byte epochtoaccuratetime(UniversalTimeOfDay *curtime, accuratetime *da
 	datetime->s10000 = (byte)((curtime->tv_usec%10000)/100); //100us=1/10000th second!
 
 	//Further is directly taken from the http://stackoverflow.com/questions/1692184/converting-epoch-time-to-real-date-time gmtime source code.
-	register unsigned long dayclock, dayno;
-	int year = EPOCH_YR;
+	uint_64 dayclock, dayno;
+	uint_32 year = EPOCH_YR;
 
-	dayclock = (unsigned long)curtime->tv_sec % SECS_DAY;
-	dayno = (unsigned long)curtime->tv_sec / SECS_DAY;
+	dayclock = (uint_64)curtime->tv_sec % SECS_DAY;
+	dayno = (uint_64)curtime->tv_sec / SECS_DAY;
 
 	datetime->second = dayclock % 60;
 	datetime->minute = (byte)((dayclock % 3600) / 60);
@@ -282,7 +282,7 @@ OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, UniversalTimeOfDay *da
 	//Now, only months etc. are left!
 	for (counter = curtime->month;counter>1;) //Process the months!
 	{
-		seconds += _ytab[leapyear][--counter]*DAYSIZE; //Add a month that has passed!
+		seconds += _ytab[leapyear][11-(--counter)]*DAYSIZE; //Add a month that has passed!
 	}
 	//Now only days, hours, minutes and seconds are left!
 	seconds += DAYSIZE*(curtime->day?(curtime->day-1):0); //Days start at 1!
@@ -290,7 +290,7 @@ OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, UniversalTimeOfDay *da
 	seconds += MINUTESIZE*curtime->minute;
 	seconds += curtime->second;
 
-	datetime->tv_sec = (uint_32)seconds; //The amount of seconds!
+	datetime->tv_sec = (uint_64)seconds; //The amount of seconds!
 	return 1; //Successfully converted!
 }
 
@@ -396,8 +396,8 @@ OPTINLINE byte applyDivergeance(accuratetime *curtime, int_64 divergeance_sec, i
 		applyingtime += (BIGGESTSINT)divergeance_usec; //Apply usec!
 
 		//Apply the resulting time!
-		timeval.tv_sec = (long)(applyingtime/1000000); //Time in seconds!
-		timeval.tv_usec = (long)(applyingtime%1000000); //We have the amount of microseconds left!
+		timeval.tv_sec = (uint_64)(applyingtime/1000000); //Time in seconds!
+		timeval.tv_usec = (uint_64)(applyingtime%1000000); //We have the amount of microseconds left!
 		if (epochtoaccuratetime(&timeval,curtime)) //Convert back to apply it to the current time!
 		{
 			return 1; //Success!
@@ -417,6 +417,13 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
 			calcDivergeance(&savedtime,&currenttime,&CMOS.DATA.timedivergeance,&CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
+			if (applyDivergeance(&currenttime,CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2)) //Try if we're OK!
+			{
+				if (memcmp(&savedtime,&currenttime,(size_t)((ptrnum)&currenttime.dst-(ptrnum)&currenttime))) //Different?
+				{
+					dolog("CMOS","Time divergeance overflow due to too late/early time to contain!");
+				}
+			}
 		}
 	}
 }
@@ -499,6 +506,10 @@ OPTINLINE void CMOS_onWrite() //When written to CMOS!
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
+	}
+	else if (CMOS.ADDR==0x32) //Century has been updated?
+	{
+		updateTimeDivergeance(); //Update the relative time compared to current time!
 	}
 	CMOS.Loaded = 1; //We're loaded now!
 }
@@ -694,11 +705,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 			value = encodeBCD8(value); //Encode the binary data!
 		}
 
-		if (CMOS.ADDR==0x32) //Century?
-		{
-			CMOS.DATA.centuryisbinary = (encodeBCD8(decodeBCD8(value))!=value)?1:0; //Do we require being used as binary?
-		}
-
 		//Write back the destination data!
 		if ((CMOS.ADDR & 0x80)==0x00) //Normal data?
 		{
@@ -721,6 +727,10 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 					dolog("debugger","Shutdown status: %02X",value); //Log the shutdown value!
 				}
 				CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
+				if (CMOS.ADDR==0x32) //Century?
+				{
+					CMOS.DATA.centuryisbinary = (encodeBCD8(decodeBCD8(value))!=value)?1:0; //Do we require being used as binary?
+				}
 			}
 		}
 		else
