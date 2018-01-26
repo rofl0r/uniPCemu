@@ -339,7 +339,7 @@ OPTINLINE byte decodeBCDhour(byte hour)
 OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
-	curtime->year += (CMOS.DATA.centuryisbinary?CMOS.DATA.DATA80.data[0x32]:decodeBCD8(CMOS.DATA.DATA80.data[0x32]))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
+	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ 19:decodeBCD8(CMOS.DATA.DATA80.data[0x32]))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
 	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
@@ -354,7 +354,7 @@ OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the cur
 OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
 	if (CMOS.DATA.centuryisbinary==0) CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //Encode when possible!
-	else CMOS.DATA.DATA80.data[0x32] = ((curtime->year/100)&0xFF); //The century with safety wrapping!
+	//else CMOS.DATA.DATA80.data[0x32] = ((curtime->year/100)&0xFF); //The century with safety wrapping!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
 	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
 	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
