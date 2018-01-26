@@ -1121,7 +1121,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//XTCMOS
 	if (!write_private_profile_uint64("XTCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_XTCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
-	if (!saveBIOSCMOS(&BIOS_Settings.XTCMOS,"ATCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
+	if (!saveBIOSCMOS(&BIOS_Settings.XTCMOS,"XTCMOS",cmos_commentused)) return 0; //Load the CMOS from the file!
 
 	//ATCMOS
 	if (!write_private_profile_uint64("ATCMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_ATCMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
@@ -1133,8 +1133,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//PS2CMOS
 	if (!write_private_profile_uint64("PS2CMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_PS2CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
-	if (!saveBIOSCMOS(&BIOS_Settings.PS2CMOS,"CompaqCMOS",cmos_commentused)) return 0; //The full saved CMOS!
-
+	if (!saveBIOSCMOS(&BIOS_Settings.PS2CMOS,"PS2CMOS",cmos_commentused)) return 0; //The full saved CMOS!
 
 	//Fully written!
 	return 1; //BIOS Written & saved successfully!
