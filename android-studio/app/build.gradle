@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply from: "$project.rootDir/../commonemuframework/script-git-version.gradle"
 android {
     compileSdkVersion 16
     buildToolsVersion "27.0.3"
@@ -22,11 +23,28 @@ android {
             path '../../android-project/jni/Android-androidstudio.mk'
         }
     }
+    
+    flavorDimensions "build"
+
     productFlavors {
+        product {
+            dimension "build"
+            minSdkVersion 10
+            applicationId 'com.unipcemu.app'
+            targetSdkVersion 16
+            versionCode gitVersionCode
+            versionName gitVersionName
+        }
+        dev {
+            dimension "build"
+            minSdkVersion 10
+            applicationId 'com.unipcemu.app'
+            targetSdkVersion 16
+            versionCode gitVersionCodeTime
+            versionName gitVersionName
+        }
     }
 }
 
 dependencies {
 }
-
-apply from: "$project.rootDir/../commonemuframework/script-git-version.gradle"
