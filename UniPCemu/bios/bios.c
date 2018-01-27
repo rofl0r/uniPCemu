@@ -713,6 +713,7 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	CMOS->s100 = (byte)get_private_profile_uint64(section,"s100",0,BIOS_Settings_file);
 	CMOS->s10000 = (byte)get_private_profile_uint64(section,"s10000",0,BIOS_Settings_file);
 	CMOS->centuryisbinary = (byte)get_private_profile_uint64(section,"centuryisbinary",0,BIOS_Settings_file);
+	CMOS->cycletiming = (byte)get_private_profile_uint64(section,"cycletiming",0,BIOS_Settings_file);
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		sprintf(field,"RAM%02X",index); //The field!
@@ -882,6 +883,7 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	if (!write_private_profile_uint64(section,section_comment,"s100",CMOS->s100,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section,section_comment,"s10000",CMOS->s10000,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section,section_comment,"centuryisbinary",CMOS->centuryisbinary,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section,section_comment,"cycletiming",CMOS->cycletiming,BIOS_Settings_file)) return 0;
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		sprintf(field,"RAM%02X",index); //The field!
@@ -1116,6 +1118,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(cmos_comment,"RAM[hexnumber]: The contents of the CMOS RAM location(0-255)\n");
 	strcat(cmos_comment,"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
 	strcat(cmos_comment,"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0).");
+	strcat(cmos_comment,"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.");
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
 

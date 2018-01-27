@@ -199,6 +199,7 @@ void BIOS_DebugState(); //State log!
 void BIOS_InboardInitialWaitstates(); //Inboard Initial Waitstates
 void BIOS_ClockingMode(); //Clocking Mode toggle!
 void BIOS_DebugRegisters(); //Debug registers log!
+void BIOS_CMOSTiming(); //Time the CMOS!
 
 
 
@@ -272,6 +273,7 @@ Handler BIOS_Menus[] =
 	,BIOS_InboardInitialWaitstates //Inboard Initial Waitstates is #64!
 	,BIOS_ClockingMode //Clocking Mode toggle is #65!
 	,BIOS_DebugRegisters //Log registers is #66!
+	,BIOS_CMOSTiming //Time the CMOS is #67!
 };
 
 //Not implemented?
@@ -1798,6 +1800,26 @@ void BIOS_InitAdvancedText()
 	optioninfo[advancedoptions] = 7; //Sync timekeeping!
 	strcpy(menuoptions[advancedoptions++],"Synchronize RTC");
 
+	CMOSDATA *currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+			currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+			currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+			currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}	
+	else //AT?
+	{
+			currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+
+	optioninfo[advancedoptions] = 8; //RTC mode!
+	sprintf(menuoptions[advancedoptions++], "RTC mode: %s", currentCMOS->cycletiming?"Cycle-accurate":"Realtime");
 }
 
 void BIOS_AdvancedMenu() //Manages the boot order etc!
@@ -1821,7 +1843,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 4:
 	case 5:
 	case 6:
-	case 7: //Valid option?
+	case 7:
+	case 8: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0:
@@ -1847,6 +1870,9 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 			break;
 		case 7: //Synchronize timekeeping?
 			BIOS_Menu = 61; //Reset timekeeping!
+			break;
+		case 8: //RTC mode?
+			BIOS_Menu = 67; //Reset timekeeping!
 			break;
 		}
 		break;
@@ -7129,4 +7155,69 @@ void BIOS_DebugRegisters()
 	BIOS_Settings.debugger_logregisters = !BIOS_Settings.debugger_logregisters;
 	BIOS_Changed = 1; //We're changed!
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_CMOSTiming() //Time the CMOS!
+{
+	if (is_PS2) //PS/2?
+	{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+	}
+	else if (is_Compaq)
+	{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+	}
+	else if (is_XT)
+	{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+	}
+	else //AT?
+	{
+			BIOS_Changed = 1; //We've changed!
+			reboot_needed |= 2; //We're needing a reboot!
+	}
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
+	CMOS.DATA.cycletiming = !CMOS.DATA.cycletiming; //Reverse!
+	unlock(LOCK_CPU); //We're finished with the main thread!
+	if (is_PS2) //PS/2?
+	{
+		if (!BIOS_Settings.got_PS2CMOS)
+		{
+			memset(&BIOS_Settings.PS2CMOS,0,sizeof(BIOS_Settings.PS2CMOS)); //Init!
+		}
+		BIOS_Settings.PS2CMOS.cycletiming = !BIOS_Settings.PS2CMOS.cycletiming; //Reverse!
+		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_Compaq)
+	{
+		if (!BIOS_Settings.got_CompaqCMOS)
+		{
+			memset(&BIOS_Settings.CompaqCMOS,0,sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+		}
+		BIOS_Settings.CompaqCMOS.cycletiming = !BIOS_Settings.CompaqCMOS.cycletiming; //Reverse!
+		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_XT)
+	{
+		if (!BIOS_Settings.got_XTCMOS)
+		{
+			memset(&BIOS_Settings.XTCMOS,0,sizeof(BIOS_Settings.XTCMOS)); //Init!
+		}
+		BIOS_Settings.XTCMOS.cycletiming = !BIOS_Settings.XTCMOS.cycletiming; //Reverse!
+		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
+	}
+	else //AT?
+	{
+		if (!BIOS_Settings.got_ATCMOS)
+		{
+			memset(&BIOS_Settings.ATCMOS,0,sizeof(BIOS_Settings.ATCMOS)); //Init!
+		}
+		BIOS_Settings.ATCMOS.cycletiming = !BIOS_Settings.ATCMOS.cycletiming; //Reverse!
+		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
+	}
+	BIOS_Menu = 8; //Goto Advanced Menu!
 }

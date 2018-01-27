@@ -414,8 +414,15 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 	UniversalTimeOfDay tp;
 	accuratetime savedtime,currenttime;
 	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
+	if (CMOS.DATA.cycletiming) //Time is according to emulated system?
+	{
+		tp.tv_sec = 0; //Relative!
+		tp.tv_usec = 0; //Relative!
+		goto updatetimecycleaccurateRTC; //Update time emulated using the RTC's normal functionality!
+	}
 	if (getUniversalTimeOfDay(&tp)==0) //Time gotten?
 	{
+		updatetimecycleaccurateRTC:
 		if (epochtoaccuratetime(&tp,&currenttime)) //Convert to accurate time!
 		{
 			calcDivergeance(&savedtime,&currenttime,&CMOS.DATA.timedivergeance,&CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
@@ -431,6 +438,8 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 }
 
 //Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
+double RTC_emulateddeltatiming = 0.0; //RTC remaining timing!
+double RTC_timetick = 0.0; //The tick length in ns of a RTC tick!
 OPTINLINE void RTC_updateDateTime()
 {
 	//Update the time itself at the highest frequency of 64kHz!
@@ -443,21 +452,43 @@ OPTINLINE void RTC_updateDateTime()
 	{
 		if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 		{
-			if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
+			if (CMOS.DATA.cycletiming==0) //Normal timing?
 			{
-				if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+				if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
 				{
-					//Apply time!
-					applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
-					CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+					applytimedivergeanceRTC:
+					if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
+					{
+						//Apply time!
+						applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
+						CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
+					}
 				}
+			}
+			else //Applying delta timing instead?
+			{
+				RTC_emulateddeltatiming += RTC_timetick; //Add time to tick!
+				CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
+				RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
+				double temp;
+				temp = (double)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
+				RTC_emulateddeltatiming += fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
+				if (temp>=1000000.0) //Overflow?
+				{
+					CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
+					temp = fmod(temp,1000000.0); //Remainder!
+				}
+				CMOS.DATA.timedivergeance2 = (int_64)temp; //us to store!
+				tp.tv_sec = 0; //Direct time!
+				tp.tv_usec = 0; //Direct time!
+				goto applytimedivergeanceRTC; //Apply the cycle-accurate time!
 			}
 		}
 	}
 	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
 }
 
-double RTC_timepassed = 0.0, RTC_timetick = 0.0;
+double RTC_timepassed = 0.0;
 void updateCMOS(double timepassed)
 {
 	RTC_timepassed += timepassed; //Add the time passed to get our time passed!
@@ -882,6 +913,6 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	register_PORTIN(&PORT_readCMOS);
 	register_PORTOUT(&PORT_writeCMOS);
 	XTMode = 0; //Default: not XT mode!
-	RTC_timepassed = 0.0; //Initialize our timing!
+	RTC_timepassed = RTC_emulateddeltatiming = 0.0; //Initialize our timing!
 	RTC_timetick = 1000000000.0/131072.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
 }
