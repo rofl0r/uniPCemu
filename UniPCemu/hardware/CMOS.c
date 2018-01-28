@@ -484,8 +484,8 @@ OPTINLINE void RTC_updateDateTime()
 				goto applytimedivergeanceRTC; //Apply the cycle-accurate time!
 			}
 		}
+		RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
 	}
-	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
 }
 
 double RTC_timepassed = 0.0;
