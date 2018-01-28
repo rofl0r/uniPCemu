@@ -47,7 +47,6 @@ typedef struct
 	uint_32 currentRate; //The current rate divider outputs(22-bits)!
 
 	byte SquareWave; //Square Wave Output!
-	byte UpdatingInterruptSquareWave; //Updating interrupt square wave generation!
 } CMOS_Type;
 
 //SRA
