@@ -153,7 +153,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 {
 	uint_32 oldrate, bitstoggled=0; //Old output!
 	oldrate = CMOS.currentRate; //Save the old output for comparision!
-	++CMOS.currentRate; //Increase the input divider to the next stage(22-bit divider at 64kHz(32kHz square wave))!
+	++CMOS.currentRate; //Increase the input divider to the next stage(22-bit divider at 32kHz(32kHz ticks))!
 	bitstoggled = CMOS.currentRate^oldrate; //What bits have been toggled!
 
 	if (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEPERIODICINTERRUPT) //Enabled?
@@ -173,7 +173,7 @@ OPTINLINE void RTC_Handler(byte lastsecond) //Handle RTC Timer Tick!
 		}
 	}
 
-	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEUPDATEENDEDINTERRUPT) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE) == 0) && (CMOS.UpdatingInterruptSquareWave == 0) && (dcc!=DIVIDERCHAIN_RESET)) //Enabled and updated?
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLEUPDATEENDEDINTERRUPT) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE) == 0) && (dcc!=DIVIDERCHAIN_RESET)) //Enabled and updated?
 	{
 		if (CMOS.DATA.DATA80.info.RTC_Seconds != lastsecond) //We're updated at all?
 		{
@@ -440,52 +440,49 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 //Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
 double RTC_emulateddeltatiming = 0.0; //RTC remaining timing!
 double RTC_timetick = 0.0; //The tick length in ns of a RTC tick!
-OPTINLINE void RTC_updateDateTime()
+OPTINLINE void RTC_updateDateTime() //Called at 32kHz!
 {
-	//Update the time itself at the highest frequency of 64kHz!
+	//Update the time itself at the highest frequency of 32kHz!
 	//Get time!
 	UniversalTimeOfDay tp;
 	accuratetime currenttime;
 	byte lastsecond = CMOS.DATA.DATA80.info.RTC_Seconds; //Previous second value for alarm!
-	CMOS.UpdatingInterruptSquareWave ^= 1; //Toggle the square wave to interrupt us!
-	if (CMOS.UpdatingInterruptSquareWave==0) //Toggled twice? Update us!
+	RTC_emulateddeltatiming += RTC_timetick; //Add time to tick!
+
+	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 	{
-		if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
+		if (CMOS.DATA.cycletiming==0) //Normal timing?
 		{
-			if (CMOS.DATA.cycletiming==0) //Normal timing?
+			if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
 			{
-				if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
+				applytimedivergeanceRTC:
+				if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
 				{
-					applytimedivergeanceRTC:
-					if (epochtoaccuratetime(&tp,&currenttime)) //Converted?
-					{
-						//Apply time!
-						applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
-						CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
-					}
+					//Apply time!
+					applyDivergeance(&currenttime, CMOS.DATA.timedivergeance,CMOS.DATA.timedivergeance2); //Apply the new time divergeance!
+					CMOS_encodetime(&currenttime); //Apply the new time to the CMOS!
 				}
-			}
-			else //Applying delta timing instead?
-			{
-				RTC_emulateddeltatiming += RTC_timetick; //Add time to tick!
-				CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
-				RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
-				double temp;
-				temp = (double)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
-				RTC_emulateddeltatiming += fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
-				if (temp>=1000000.0) //Overflow?
-				{
-					CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
-					temp = fmod(temp,1000000.0); //Remainder!
-				}
-				CMOS.DATA.timedivergeance2 = (int_64)temp; //us to store!
-				tp.tv_sec = 0; //Direct time!
-				tp.tv_usec = 0; //Direct time!
-				goto applytimedivergeanceRTC; //Apply the cycle-accurate time!
 			}
 		}
-		RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
+		else //Applying delta timing instead?
+		{
+			CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
+			RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
+			double temp;
+			temp = (double)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
+			RTC_emulateddeltatiming += fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
+			if (temp>=1000000.0) //Overflow?
+			{
+				CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
+				temp = fmod(temp,1000000.0); //Remainder!
+			}
+			CMOS.DATA.timedivergeance2 = (int_64)temp; //us to store!
+			tp.tv_sec = 0; //Direct time!
+			tp.tv_usec = 0; //Direct time!
+			goto applytimedivergeanceRTC; //Apply the cycle-accurate time!
+		}
 	}
+	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
 }
 
 double RTC_timepassed = 0.0;
@@ -517,7 +514,8 @@ uint_32 getGenericCMOSRate()
 			--rate; //Rate is one less: rates 1&2 become 0&1 for patching!
 			rate |= 8; //Convert rates 0&1 to rates 8&9!
 		}
-		--rate; //Rate is one less!
+		--rate; //We're oprating at a rate of 32kHz, not 64kHz, so double the rate! This can be done because register A is always >= 3 at this stage(after patching the 1&2 rates).
+		--rate; //Rate is one less(we're specifying a bit)!
 		return (1<<rate); //The tap to look at(as a binary number) for a square wave to change state!
 	}
 	else //We're disabled?
@@ -914,5 +912,5 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	register_PORTOUT(&PORT_writeCMOS);
 	XTMode = 0; //Default: not XT mode!
 	RTC_timepassed = RTC_emulateddeltatiming = 0.0; //Initialize our timing!
-	RTC_timetick = 1000000000.0/131072.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
+	RTC_timetick = 1000000000.0/32768.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
 }
