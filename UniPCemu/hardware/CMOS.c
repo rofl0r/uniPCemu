@@ -440,7 +440,7 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 //Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
 double RTC_emulateddeltatiming = 0.0; //RTC remaining timing!
 double RTC_timetick = 0.0; //The tick length in ns of a RTC tick!
-OPTINLINE void RTC_updateDateTime() //Called at 32kHz!
+void RTC_updateDateTime() //Called at 32kHz!
 {
 	//Update the time itself at the highest frequency of 32kHz!
 	//Get time!
@@ -464,13 +464,13 @@ OPTINLINE void RTC_updateDateTime() //Called at 32kHz!
 				}
 			}
 		}
-		else //Applying delta timing instead?
+		else //Applying delta timing instead(cycle-accurate timing)?
 		{
 			CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
 			RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
 			double temp;
 			temp = (double)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
-			RTC_emulateddeltatiming += fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
+			RTC_emulateddeltatiming = fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
 			if (temp>=1000000.0) //Overflow?
 			{
 				CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
