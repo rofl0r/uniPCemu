@@ -1766,7 +1766,7 @@ OPTINLINE void floppy_writeData(byte value)
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80; //Invalid command!
-					FLOPPY.commandstep = 0xFE; //Error: lockup!
+					FLOPPY.commandstep = 0xFF; //Error: lockup!
 					break;
 			}
 			break;
