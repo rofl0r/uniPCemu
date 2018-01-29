@@ -36,6 +36,22 @@ byte dcc = DIVIDERCHAIN_DISABLED; //Current divider chain!
 
 byte XTMode = 0;
 
+CMOS_Type CMOS;
+
+extern byte NMI; //NMI interrupt enabled?
+
+extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
+extern byte is_Compaq; //Are we emulating a Compaq device?
+extern byte is_XT; //Are we emulating a XT device?
+extern byte is_PS2; //Are we emulating PS2 extensions?
+
+#define FLOPPY_NONE 0
+#define FLOPPY_360 1
+#define FLOPPY_12 2
+#define FLOPPY_720 3
+#define FLOPPY_144 4
+#define FLOPPY_288 5
+
 OPTINLINE word decodeBCD(word bcd)
 {
 	INLINEREGISTER word temp, result=0;
@@ -67,29 +83,21 @@ OPTINLINE word encodeBCD(word value)
 
 OPTINLINE byte encodeBCD8(byte value)
 {
-	return (encodeBCD(value)&0xFF);
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY)==0) //BCD mode?
+	{
+		return (encodeBCD(value)&0xFF); //Encode it!
+	}
+	return value; //Binary mode!
 }
 
 OPTINLINE byte decodeBCD8(byte value)
 {
-	return (decodeBCD(value)&0xFF);
+	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY)==0) //BCD mode?
+	{
+		return (decodeBCD(value)&0xFF); //Decode it!
+	}
+	return value; //Binary mode!
 }
-
-CMOS_Type CMOS;
-
-extern byte NMI; //NMI interrupt enabled?
-
-extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
-extern byte is_Compaq; //Are we emulating a Compaq device?
-extern byte is_XT; //Are we emulating a XT device?
-extern byte is_PS2; //Are we emulating PS2 extensions?
-
-#define FLOPPY_NONE 0
-#define FLOPPY_360 1
-#define FLOPPY_12 2
-#define FLOPPY_720 3
-#define FLOPPY_144 4
-#define FLOPPY_288 5
 
 OPTINLINE void loadCMOSDefaults()
 {
@@ -676,10 +684,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			if ((data&0x70)&(CMOS.DATA.DATA80.info.STATUSREGISTERB&0x70)) data |= 0x80; //Set the IRQF bit when any interrupt is requested (PF==PIE==1, AF==AIE==1 or UF==UIE==1)
 			CMOS.DATA.DATA80.data[0x0C] = 0x00; //Clear the interrupt raised flags to allow new interrupts to fire! Used to be &=0xF, but according to Bochs, the entire register is cleared!
 		}
-		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert to binary?
-		{
-			data = decodeBCD8(data); //Decode the BCD data!
-		}
 		CMOS.ADDR = 0xD; //Reset address!
 		*result = data; //Give the data!
 		return 1;
@@ -762,6 +766,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
 	byte temp;
 	byte isXT = 0;
+	byte originalvalue;
 	switch (port)
 	{
 	case 0x70: //CMOS ADDR
@@ -773,10 +778,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
-		if ((isXT==0) && (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY) && (CMOS.ADDR<0xA)) //To convert from binary?
-		{
-			value = encodeBCD8(value); //Encode the binary data!
-		}
+		originalvalue = value; //Save original value for comparison!
 
 		//Write back the destination data!
 		if ((CMOS.ADDR & 0x80)==0x00) //Normal data?
