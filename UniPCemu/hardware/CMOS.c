@@ -317,22 +317,17 @@ OPTINLINE byte encodeBCDhour(byte hour)
 	byte result;
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
 	{
-		if (hour==0) //Midnight is 12AM, Noon=12PM, otherwise AM or PM.
+		if (hour==0) //Midnight is 12AM, otherwise AM or PM with half being 12 half based(0=12am, 1=1am, 12=0pm, 23=11pm).
 		{
 			hour = 12; //Midnight!
 			result = 0; //Midnight!
-		}
-		else if (hour==12) //Midnight is 12AM, Noon=12PM, otherwise AM or PM.
-		{
-			hour = 12; //Noon!
-			result = 0x80; //Noon!
 		}
 		else if (hour<12) //1:00-11:59:59 hour?
 		{
 			result = 0x00; //Clear the PM bit!
 			//Hour is taken directly!
 		}
-		else //13:00-23:59?
+		else //12:00-23:59?
 		{
 			result = 0x80; //We're PM!
 			hour -= 12; //Convert to PM hour!
@@ -350,7 +345,7 @@ OPTINLINE byte decodeBCDhour(byte hour)
 		result = (hour&0x80)?12:0; //PM vs AM!
 		hour &= 0x7F; //Take the remaining values without our PM bit!
 		hour = decodeBCD8(hour,1); //Decode the hour!
-		if (result==12) //12AM/PM is a special case!
+		if ((result==12) && (!result)) //12AM is a special case!
 		{
 			hour = 0; //We're Midnight/noon: convert it back!
 		}
