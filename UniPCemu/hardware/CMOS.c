@@ -301,15 +301,15 @@ OPTINLINE byte encodeBCDhour(byte hour)
 	byte result;
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
 	{
-		if (hour>=12) //12 hour+?
+		if ((hour>=12) || (!hour)) //12 hour+(includes midnight)?
 		{
 			result = 0x80; //Set the PM bit!
+			if (hour) hour -= 12; //Take 12 hour multiple(except midnight)!
 		}
 		else
 		{
 			result = 0x00; //We're AM!
 		}
-		hour -= 12; //Take 12 hour multiple!
 		if ((hour==0) && (result)) //12PM(midnight) is a special case!
 		{
 			hour = 12; //Special case: midnight!
@@ -329,7 +329,7 @@ OPTINLINE byte decodeBCDhour(byte hour)
 		hour = decodeBCD8(hour); //Decode the hour!
 		if ((hour==12) && result) //12PM is a special case!
 		{
-			hour = 0; //We're midnight: convert it back!
+			hour = result = 0; //We're midnight: convert it back!
 		}
 		result += hour; //Hour at AM or PM, so the 24-hour time!
 		return result;
