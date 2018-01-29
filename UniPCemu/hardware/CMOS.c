@@ -344,7 +344,7 @@ OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the cur
 	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ 19:decodeBCD8(CMOS.DATA.DATA80.data[0x32]))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
-	curtime->hour = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Hours); //H
+	curtime->hour = decodeBCDhour(CMOS.DATA.DATA80.info.RTC_Hours); //H
 	curtime->minute = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Minutes); //M
 	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds); //S
 	curtime->weekday = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DayOfWeek); //Day of week!
