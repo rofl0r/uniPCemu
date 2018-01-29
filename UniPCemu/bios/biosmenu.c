@@ -4862,6 +4862,10 @@ void BIOS_Architecture()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
+			if (((BIOS_Settings.architecture==ARCHITECTURE_XT) && (file!=ARCHITECTURE_XT))) //Switching from XT architecture? Memory will need to be updated!
+			{
+				BIOS_MemReAlloc(); //Reallocate memory for the new architecture, if needed!
+			}
 			BIOS_Settings.architecture = file; //Select PS/2 Mouse setting!
 			reboot_needed |= 1; //A reboot is needed when applied!
 		}
