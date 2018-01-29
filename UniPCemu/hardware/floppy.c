@@ -1898,14 +1898,11 @@ OPTINLINE byte floppy_readData()
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DELETED_DATA: //Read deleted sector
 				case FORMAT_TRACK: //Format sector
-				case SPECIFY: //Fix drive data
 				case SENSE_DRIVE_STATUS: //Check drive status
 				case RECALIBRATE: //Calibrate drive
 				case SENSE_INTERRUPT: //Check interrupt status
 				case READ_ID: //Read sector ID
-				case SEEK: //Seek/park head
 				case VERSION: //Version information!
-				case LOCK: //Lock command?
 					FLOPPY_LOGD("FLOPPY: Reading result byte %u/%u=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
