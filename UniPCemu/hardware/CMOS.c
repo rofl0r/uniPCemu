@@ -87,7 +87,7 @@ OPTINLINE byte encodeBCD8(byte value, byte is12hour)
 	{
 		if (is12hour) //12-hour format?
 		{
-			return ((encodeBCD(value&0x7F)&0x7F)|(value&0x80)); //Encode it!
+			return ((encodeBCD(value&0x7F)&0x7F)); //Encode it!
 		}
 		return (encodeBCD(value)&0xFF); //Encode it!
 	}
@@ -100,7 +100,7 @@ OPTINLINE byte decodeBCD8(byte value, byte is12hour)
 	{
 		if (is12hour) //12-hour format?
 		{
-			return ((decodeBCD(value&0x7F)&0x7F)|(value&0x80)); //Decode it!
+			return ((decodeBCD(value&0x7F)&0x7F)); //Decode it!
 		}
 		return (decodeBCD(value)&0xFF); //Decode it!
 	}
@@ -317,27 +317,27 @@ OPTINLINE byte encodeBCDhour(byte hour)
 	byte result;
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
 	{
-		if (hour==0) //Midnight is 12AM, 1:00=1AM etc. PM runs from 12:00 to 23:00.
+		if (hour==0) //Midnight is 12AM, Noon=12PM, otherwise AM or PM.
 		{
 			hour = 12; //Midnight!
 			result = 0; //Midnight!
+		}
+		else if (hour==12) //Midnight is 12AM, Noon=12PM, otherwise AM or PM.
+		{
+			hour = 12; //Noon!
+			result = 0x80; //Noon!
 		}
 		else if (hour<12) //1:00-11:59:59 hour?
 		{
 			result = 0x00; //Clear the PM bit!
 			//Hour is taken directly!
 		}
-		else //12:00-23:59?
+		else //13:00-23:59?
 		{
-			result = 0x00; //We're PM!
-			hour -= 12; //Convert to PM!
+			result = 0x80; //We're PM!
+			hour -= 12; //Convert to PM hour!
 		}
-		if ((hour==0) && (result)) //12PM(midnight) is a special case!
-		{
-			hour = 12; //Special case: midnight!
-		}
-		hour |= result; //Add back the result!
-		return encodeBCD8(hour,1); //Give the correct BCD with PM bit!
+		return (encodeBCD8(hour,1)|result); //Give the correct BCD with PM bit!
 	}
 	return encodeBCD8(hour,0); //Unmodified!
 }
@@ -350,15 +350,11 @@ OPTINLINE byte decodeBCDhour(byte hour)
 		result = (hour&0x80)?12:0; //PM vs AM!
 		hour &= 0x7F; //Take the remaining values without our PM bit!
 		hour = decodeBCD8(hour,1); //Decode the hour!
-		if (result) //12PM is a special case!
+		if (result==12) //12AM/PM is a special case!
 		{
-			hour = ((hour&0x7F)+12)%24; //We're PM: convert it back!
+			hour = 0; //We're Midnight/noon: convert it back!
 		}
-		else
-		{
-			result = hour; //Take hour directly!
-		}
-		return result;
+		return (result+hour); //12-hour half + hours = 24-hour hour!
 	}
 	return decodeBCD8(hour,0); //Unmodified!
 }
