@@ -547,6 +547,10 @@ OPTINLINE void CMOS_onWrite(byte oldSRB) //When written to CMOS!
 		CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
 		if ((CMOS.ADDR==0xB) && ((CMOS.DATA.DATA80.info.STATUSREGISTERB^oldSRB)&SRB_DSTENABLE)) //DST Changed?
 		{
+			if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) //Halting the clock? We're to use the current clock as a base instead!
+			{
+				updateTimeDivergeance(); //Update the time divergeance to the current time to make sure it's updated correctly!
+			}
 			CMOS.DATA.timedivergeance += (CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DSTENABLE)?3600:-3600; //Update the relative time compared to current time directly, to prevent drift!
 			CMOS_updateActualTime(); //Update the actual time to make sure it's updated with the new time values!
 		}
