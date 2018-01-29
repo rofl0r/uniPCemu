@@ -84,7 +84,7 @@ struct
 		};
 	} Configuration; //The data from the Configure command!
 	byte Locked; //Are we locked?
-	byte commandstep; //Current command step!
+	byte commandstep; //Current command step! 0=Command, 1=Parameter, 2=Data, 3=Result, 0xFD: Give result then lockup, 0xFE: Locked up, 0xFF: Give error code and reset.
 	byte commandbuffer[0x10000]; //Outgoing command buffer!
 	word commandposition; //What position in the command (starts with commandstep=commandposition=0).
 	byte databuffer[0x10000]; //Incoming data buffer!
@@ -735,12 +735,14 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			break;
 		}
 		break;
+	case 0xFD: //Give result and lockup?
 	case 3: //Result?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
+	case 0xFE: //Locked up?
 	case 0xFF: //Error?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
@@ -1487,7 +1489,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
 				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
 				FLOPPY.ST0 = 0x80; //Error!
-				FLOPPY.commandstep = 0xFF; //Error out!
+				FLOPPY.commandstep = 0xFD; //Error out! Lock up after reading result!
 				return; //Error out now!
 			}
 			
@@ -1764,7 +1766,7 @@ OPTINLINE void floppy_writeData(byte value)
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80; //Invalid command!
-					FLOPPY.commandstep = 0xFF; //Error!
+					FLOPPY.commandstep = 0xFE; //Error: lockup!
 					break;
 			}
 			break;
@@ -1915,8 +1917,16 @@ OPTINLINE byte floppy_readData()
 					break;
 			}
 			break;
+		case 0xFD: //Give result and lockup?
 		case 0xFF: //Error or reset result
-			FLOPPY.commandstep = 0; //Reset step!
+			if (FLOPPY.commandstep==0xFD) //Lock up now?
+			{
+				FLOPPY.commandstep = 0xFE; //Lockup!
+			}
+			else //Reset?
+			{
+				FLOPPY.commandstep = 0; //Reset step!
+			}
 			return FLOPPY.ST0; //Give ST0, containing an error!
 			break;
 		default:
