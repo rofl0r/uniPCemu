@@ -81,19 +81,27 @@ OPTINLINE word encodeBCD(word value)
 	return result;
 }
 
-OPTINLINE byte encodeBCD8(byte value)
+OPTINLINE byte encodeBCD8(byte value, byte is12hour)
 {
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY)==0) //BCD mode?
 	{
+		if (is12hour) //12-hour format?
+		{
+			return ((encodeBCD(value&0x7F)&0x7F)|(value&0x80)); //Encode it!
+		}
 		return (encodeBCD(value)&0xFF); //Encode it!
 	}
 	return value; //Binary mode!
 }
 
-OPTINLINE byte decodeBCD8(byte value)
+OPTINLINE byte decodeBCD8(byte value, byte is12hour)
 {
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_DATAMODEBINARY)==0) //BCD mode?
 	{
+		if (is12hour) //12-hour format?
+		{
+			return ((decodeBCD(value&0x7F)&0x7F)|(value&0x80)); //Decode it!
+		}
 		return (decodeBCD(value)&0xFF); //Decode it!
 	}
 	return value; //Binary mode!
@@ -309,22 +317,29 @@ OPTINLINE byte encodeBCDhour(byte hour)
 	byte result;
 	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) //Need translation to/from 12-hour mode?
 	{
-		if ((hour>=12) || (!hour)) //12 hour+(includes midnight)?
+		if (hour==0) //Midnight is 12AM, 1:00=1AM etc. PM runs from 12:00 to 23:00.
 		{
-			result = 0x80; //Set the PM bit!
-			if (hour) hour -= 12; //Take 12 hour multiple(except midnight)!
+			hour = 12; //Midnight!
+			result = 0; //Midnight!
 		}
-		else
+		else if (hour<12) //1:00-11:59:59 hour?
 		{
-			result = 0x00; //We're AM!
+			result = 0x00; //Clear the PM bit!
+			//Hour is taken directly!
+		}
+		else //12:00-23:59?
+		{
+			result = 0x00; //We're PM!
+			hour -= 12; //Convert to PM!
 		}
 		if ((hour==0) && (result)) //12PM(midnight) is a special case!
 		{
 			hour = 12; //Special case: midnight!
 		}
-		return (encodeBCD8(hour)|result); //Give the correct BCD with PM bit!
+		hour |= result; //Add back the result!
+		return encodeBCD8(hour,1); //Give the correct BCD with PM bit!
 	}
-	return encodeBCD8(hour); //Unmodified!
+	return encodeBCD8(hour,0); //Unmodified!
 }
 
 OPTINLINE byte decodeBCDhour(byte hour)
@@ -334,47 +349,50 @@ OPTINLINE byte decodeBCDhour(byte hour)
 	{
 		result = (hour&0x80)?12:0; //PM vs AM!
 		hour &= 0x7F; //Take the remaining values without our PM bit!
-		hour = decodeBCD8(hour); //Decode the hour!
-		if ((hour==12) && result) //12PM is a special case!
+		hour = decodeBCD8(hour,1); //Decode the hour!
+		if (result) //12PM is a special case!
 		{
-			hour = result = 0; //We're midnight: convert it back!
+			hour = ((hour&0x7F)+12)%24; //We're PM: convert it back!
 		}
-		result += hour; //Hour at AM or PM, so the 24-hour time!
+		else
+		{
+			result = hour; //Take hour directly!
+		}
 		return result;
 	}
-	return decodeBCD8(hour); //Unmodified!
+	return decodeBCD8(hour,0); //Unmodified!
 }
 
 //CMOS time encoding support!
 OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
-	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year); //The year to compare to!
-	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ 19:decodeBCD8(CMOS.DATA.DATA80.data[0x32]))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
-	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month); //The month to compare to!
-	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth); //The day to compare to!
+	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year,0); //The year to compare to!
+	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ 19:decodeBCD8(CMOS.DATA.DATA80.data[0x32],0))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
+	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month,0); //The month to compare to!
+	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth,0); //The day to compare to!
 	curtime->hour = decodeBCDhour(CMOS.DATA.DATA80.info.RTC_Hours); //H
-	curtime->minute = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Minutes); //M
-	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds); //S
-	curtime->weekday = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DayOfWeek); //Day of week!
-	curtime->s100 = decodeBCD8(CMOS.DATA.s100); //The 100th seconds!
-	curtime->s10000 = decodeBCD8(CMOS.DATA.s10000); //The 10000th seconds!
+	curtime->minute = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Minutes,0); //M
+	curtime->second = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Seconds,0); //S
+	curtime->weekday = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DayOfWeek,0); //Day of week!
+	curtime->s100 = decodeBCD8(CMOS.DATA.s100,0); //The 100th seconds!
+	curtime->s10000 = decodeBCD8(CMOS.DATA.s10000,0); //The 10000th seconds!
 	curtime->us = (curtime->s100*10000)+(curtime->s10000*100); //The same as above, make sure we match!
 }
 
 OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
-	if (CMOS.DATA.centuryisbinary==0) CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100); //Encode when possible!
+	if (CMOS.DATA.centuryisbinary==0) CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100,0); //Encode when possible!
 	//else CMOS.DATA.DATA80.data[0x32] = ((curtime->year/100)&0xFF); //The century with safety wrapping!
-	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100);
-	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month);
-	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day);
+	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100,0);
+	CMOS.DATA.DATA80.info.RTC_Month = encodeBCD8(curtime->month,0);
+	CMOS.DATA.DATA80.info.RTC_DateOfMonth = encodeBCD8(curtime->day,0);
 
 	CMOS.DATA.DATA80.info.RTC_Hours = encodeBCDhour(curtime->hour); //Hour has 12-hour format support!
-	CMOS.DATA.DATA80.info.RTC_Minutes = encodeBCD8(curtime->minute);
-	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second);
-	CMOS.DATA.DATA80.info.RTC_DayOfWeek = encodeBCD8(curtime->weekday); //The day of the week!
-	CMOS.DATA.s100 = encodeBCD8(curtime->s100); //The 100th seconds!
-	CMOS.DATA.s10000 = encodeBCD8(curtime->s10000); //The 10000th seconds!
+	CMOS.DATA.DATA80.info.RTC_Minutes = encodeBCD8(curtime->minute,0);
+	CMOS.DATA.DATA80.info.RTC_Seconds = encodeBCD8(curtime->second,0);
+	CMOS.DATA.DATA80.info.RTC_DayOfWeek = encodeBCD8(curtime->weekday,0); //The day of the week!
+	CMOS.DATA.s100 = encodeBCD8(curtime->s100,0); //The 100th seconds!
+	CMOS.DATA.s10000 = encodeBCD8(curtime->s10000,0); //The 10000th seconds!
 }
 
 //Divergeance support!
@@ -813,7 +831,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 				CMOS.DATA.DATA80.data[CMOS.ADDR] = value; //Give the data from the CMOS!
 				if (CMOS.ADDR==0x32) //Century?
 				{
-					CMOS.DATA.centuryisbinary = (encodeBCD8(decodeBCD8(value))!=value)?1:0; //Do we require being used as binary?
+					CMOS.DATA.centuryisbinary = (encodeBCD8(decodeBCD8(value,0),0)!=value)?1:0; //Do we require being used as binary?
 				}
 			}
 		}
