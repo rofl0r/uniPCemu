@@ -207,13 +207,13 @@ struct
 
 //ST2
 #define FLOPPY_ST2_NODATAADDRESSMASKDAMW(val) FLOPPY.ST2=((FLOPPY.ST2&~1)|((val)&1))
-#define FLOPPY_ST2_BADCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~2)|(((val)&1)<<1)
-#define FLOPPY_ST2_SEEKERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~4)|(((val)&1)<<2)
-#define FLOPPY_ST2_SEEKEQUALW(val) FLOPPY.ST2=((FLOPPY.ST2&~8)|(((val)&1)<<3)
-#define FLOPPY_ST2_WRONGCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x10)|(((val)&1)<<4)
-#define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|(((val)&1)<<5)
-#define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|(((val)&1)<<6)
-#define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|(((val)&1)<<7)
+#define FLOPPY_ST2_BADCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~2)|(((val)&1)<<1))
+#define FLOPPY_ST2_SEEKERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~4)|(((val)&1)<<2))
+#define FLOPPY_ST2_SEEKEQUALW(val) FLOPPY.ST2=((FLOPPY.ST2&~8)|(((val)&1)<<3))
+#define FLOPPY_ST2_WRONGCYCLINDERW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x10)|(((val)&1)<<4))
+#define FLOPPY_ST2_CRCERRORW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x20)|(((val)&1)<<5))
+#define FLOPPY_ST2_DELETEDADDRESSMARKW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x40)|(((val)&1)<<6))
+#define FLOPPY_ST2_UNUSEDW(val) FLOPPY.ST2=((FLOPPY.ST2&~0x80)|(((val)&1)<<7))
 
 //ST3
 #define FLOPPY_ST3_DRIVESELECTW(val) FLOPPY.ST3=((FLOPPY.ST3&~3)|((val)&3))
@@ -709,6 +709,9 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case FORMAT_TRACK: //Format sector?
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
+		case SCAN_EQUAL:
+		case SCAN_LOW_OR_EQUAL:
+		case SCAN_HIGH_OR_EQUAL:
 			FLOPPY_MSR_RQMW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			FLOPPY_MSR_NONDMAW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			break;
@@ -724,6 +727,9 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case WRITE_DATA: //Write sector?
 		case WRITE_DELETED_DATA: //Write deleted sector?
 		case FORMAT_TRACK: //Format sector?
+		case SCAN_EQUAL:
+		case SCAN_LOW_OR_EQUAL:
+		case SCAN_HIGH_OR_EQUAL:
 			FLOPPY_MSR_HAVEDATAFORCPUW(0); //We request data from the CPU!
 			break;
 		case READ_DATA: //Read sector?
@@ -879,6 +885,15 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
 	{
 		FLOPPY_LOGD("FLOPPY: Start transfer of data (DMA: %u)...",FLOPPY_useDMA())
+	}
+	switch (FLOPPY.commandbuffer[0]) //What kind of transfer?
+	{
+	case SCAN_EQUAL: //Equal mismatch?
+	case SCAN_LOW_OR_EQUAL: //Low or equal mismatch?
+	case SCAN_HIGH_OR_EQUAL: //High or equal mismatch?
+		FLOPPY_ST2_SEEKERRORW(0); //No seek error yet!
+		FLOPPY_ST2_SEEKEQUALW(1); //Equal by default: we're starting to match until we don't anymore!
+		break;
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if (FLOPPY_useDMA()) //DMA mode?
@@ -1392,6 +1407,9 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 		case READ_TRACK: //Read complete track
 		case READ_DATA: //Read sector
 		case READ_DELETED_DATA: //Read deleted sector
+		case SCAN_EQUAL:
+		case SCAN_LOW_OR_EQUAL:
+		case SCAN_HIGH_OR_EQUAL:
 			//We've finished reading the read data!
 			//updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully processed?
@@ -1435,6 +1453,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
 		case WRITE_DATA: //Write sector
+		case WRITE_DELETED_DATA: //Write deleted sector
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
@@ -1443,6 +1462,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppy_writesector(); //Start writing a sector!
 			break;
 		case READ_DATA: //Read sector
+		case READ_DELETED_DATA: //Read deleted sector
+		case SCAN_EQUAL:
+		case SCAN_LOW_OR_EQUAL:
+		case SCAN_HIGH_OR_EQUAL:
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
@@ -1677,8 +1700,6 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY_raiseIRQ(); //Give the OK signal!
 			break;
 		case READ_TRACK: //Read complete track!
-		case WRITE_DELETED_DATA: //Write deleted sector
-		case READ_DELETED_DATA: //Read deleted sector
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x40; //Invalid command!
 			break;
@@ -1693,8 +1714,49 @@ OPTINLINE void floppy_abnormalpolling()
 	FLOPPY.commandstep = 0xFF; //Error!
 }
 
+OPTINLINE void floppy_scanbyte(byte fdcbyte, byte cpubyte)
+{
+	//Bit 2=Seek error(ST3)
+	//Bit 3=Seek equal(ST3)
+	if ((FLOPPY.ST2&0xC)!=8) return; //Don't do anything on mismatch!
+	if ((fdcbyte==cpubyte) || (fdcbyte==0xFF) || (cpubyte==0xFF)) return; //Bytes match?
+	//Bytes do differ!
+	switch (FLOPPY.commandbuffer[0]) //What kind of mismatch?
+	{
+	case SCAN_EQUAL: //Equal mismatch?
+		FLOPPY_ST2_SEEKERRORW(1); //Seek error!
+		FLOPPY_ST2_SEEKEQUALW(0); //Not equal!
+		break;
+	case SCAN_LOW_OR_EQUAL: //Low or equal mismatch?
+		if (fdcbyte<cpubyte)
+		{
+			FLOPPY_ST2_SEEKERRORW(0);
+			FLOPPY_ST2_SEEKEQUALW(0);
+		}
+		if (fdcbyte>cpubyte)
+		{
+			FLOPPY_ST2_SEEKERRORW(1);
+			FLOPPY_ST2_SEEKEQUALW(0);
+		}
+		break;
+	case SCAN_HIGH_OR_EQUAL: //High or equal mismatch?
+		if (fdcbyte<cpubyte)
+		{
+			FLOPPY_ST2_SEEKERRORW(1);
+			FLOPPY_ST2_SEEKEQUALW(0);
+		}
+		if (fdcbyte>cpubyte)
+		{
+			FLOPPY_ST2_SEEKERRORW(0);
+			FLOPPY_ST2_SEEKEQUALW(0);
+		}
+		break;
+	}
+}
+
 OPTINLINE void floppy_writeData(byte value)
 {
+	byte isscan = 0; //We're not scanning something by default!
 	byte commandlength[0x20] = {
 		0, //0
 		0, //1
@@ -1712,9 +1774,25 @@ OPTINLINE void floppy_writeData(byte value)
 		5, //D
 		0, //E
 		2 //F
-		,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 //10-1F: Unsupported
+		,0 //10
+		,8 //11
+		,0 //12
+		,0 //13
+		,0 //14
+		,0 //15
+		,0 //16
+		,0 //17
+		,0 //18
+		,8 //19
+		,0 //1A
+		,0 //1B
+		,0 //1C
+		,8 //1D
+		,0 //1E
+		,0 //1F
 		};
 	//TODO: handle floppy writes!
+	isscan = 0; //Init scan type!
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
@@ -1738,7 +1816,9 @@ OPTINLINE void floppy_writeData(byte value)
 				case READ_TRACK: //Read complete track
 					FLOPPY.MTMask = 0; //Don't allow the MT bit to be applied during sector calculations!
 				case WRITE_DATA: //Write sector
+				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DATA: //Read sector
+				case READ_DELETED_DATA: //Read deleted sector
 				case SPECIFY: //Fix drive data
 				case SENSE_DRIVE_STATUS: //Check drive status
 				case RECALIBRATE: //Calibrate drive
@@ -1748,6 +1828,9 @@ OPTINLINE void floppy_writeData(byte value)
 				case VERSION: //Version
 				case CONFIGURE: //Configure
 				case LOCK: //Lock
+				case SCAN_EQUAL:
+				case SCAN_LOW_OR_EQUAL:
+				case SCAN_HIGH_OR_EQUAL:
 					FLOPPY.reset_pending = 0; //Stop pending reset if we're pending it: we become active!
 					if (FLOPPY.reset_pended) //Finished reset?
 					{
@@ -1757,12 +1840,7 @@ OPTINLINE void floppy_writeData(byte value)
 					}
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					break;
-				case WRITE_DELETED_DATA: //Write deleted sector
-				case READ_DELETED_DATA: //Read deleted sector
 				case VERIFY:
-				case SCAN_EQUAL:
-				case SCAN_LOW_OR_EQUAL:
-				case SCAN_HIGH_OR_EQUAL:
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80; //Invalid command!
@@ -1782,10 +1860,18 @@ OPTINLINE void floppy_writeData(byte value)
 		case 2: //Data
 			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
+				case SCAN_EQUAL:
+				case SCAN_LOW_OR_EQUAL:
+				case SCAN_HIGH_OR_EQUAL:
+					isscan = 1; //We're scanning instead!
+					floppy_scanbyte(FLOPPY.databuffer[FLOPPY.databufferposition++],value); //Execute the scanning!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case FORMAT_TRACK: //Format track
-					FLOPPY.databuffer[FLOPPY.databufferposition++] = value; //Set the command to use!
+					if (likely(isscan==0)) //Not Scanning? We're writing to the buffer!
+					{
+						FLOPPY.databuffer[FLOPPY.databufferposition++] = value; //Set the command to use!
+					}
 					if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 					{
 						floppy_executeData(); //Execute the command with the given data!
@@ -1837,7 +1923,7 @@ OPTINLINE byte floppy_readData()
 		7, //e
 		7, //f
 		1, //10
-		0, //11
+		7, //11
 		0, //12
 		0, //13
 		0, //14
@@ -1845,11 +1931,11 @@ OPTINLINE byte floppy_readData()
 		7, //16
 		0, //17
 		0, //18
-		0, //19
+		7, //19
 		0, //1a
 		0, //1b
 		0, //1c
-		0, //1d
+		7, //1d
 		0, //1e
 		0 //1f
 	};
@@ -1905,6 +1991,9 @@ OPTINLINE byte floppy_readData()
 				case SENSE_INTERRUPT: //Check interrupt status
 				case READ_ID: //Read sector ID
 				case VERSION: //Version information!
+				case SCAN_EQUAL:
+				case SCAN_LOW_OR_EQUAL:
+				case SCAN_HIGH_OR_EQUAL:
 					FLOPPY_LOGD("FLOPPY: Reading result byte %u/%u=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
