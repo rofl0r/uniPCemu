@@ -2092,7 +2092,7 @@ void updateFloppy(double timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if (((+FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
+							if (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
 							{
 								FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
