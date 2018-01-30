@@ -715,6 +715,10 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			FLOPPY_MSR_RQMW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			FLOPPY_MSR_NONDMAW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			break;
+		case VERIFY: //Verify doesn't transfer data directly!
+			FLOPPY_MSR_RQMW(0); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
+			FLOPPY_MSR_NONDMAW(0); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
+			break;
 		default: //Unknown command?
 			FLOPPY_MSR_RQMW(1); //Use no DMA by default, for safety!
 			FLOPPY_MSR_NONDMAW(0); //Use no DMA by default, for safety!
@@ -734,6 +738,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			break;
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
+		case VERIFY: //Verify doesn't transfer data directly!
 			FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 			break;
 		default: //Unknown direction?
@@ -896,13 +901,23 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 		break;
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
-	if (FLOPPY_useDMA()) //DMA mode?
+	if (FLOPPY.commandbuffer[0]==VERIFY) //Verify doesn't transfer data directly?
 	{
-		FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
 		FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
-		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
+		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
+		floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+		floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 	}
-	FLOPPY_dataReady(); //We have data to transfer!
+	else //Normal data transfer?
+	{
+		if (FLOPPY_useDMA()) //DMA mode?
+		{
+			FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
+			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
+		}
+		FLOPPY_dataReady(); //We have data to transfer!
+	}
 }
 
 //Physical floppy CHS emulation!
@@ -1410,6 +1425,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 		case SCAN_EQUAL:
 		case SCAN_LOW_OR_EQUAL:
 		case SCAN_HIGH_OR_EQUAL:
+		case VERIFY: //Verify doesn't transfer data directly!
 			//We've finished reading the read data!
 			//updateFloppyWriteProtected(0); //Try to read with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully processed?
@@ -1466,6 +1482,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case SCAN_EQUAL:
 		case SCAN_LOW_OR_EQUAL:
 		case SCAN_HIGH_OR_EQUAL:
+		case VERIFY: //Verify doesn't transfer data directly!
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
@@ -1818,6 +1835,7 @@ OPTINLINE void floppy_writeData(byte value)
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DATA: //Read sector
+				case VERIFY: //Verify
 				case READ_DELETED_DATA: //Read deleted sector
 				case SPECIFY: //Fix drive data
 				case SENSE_DRIVE_STATUS: //Check drive status
@@ -1840,7 +1858,6 @@ OPTINLINE void floppy_writeData(byte value)
 					}
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					break;
-				case VERIFY:
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80; //Invalid command!
@@ -1994,6 +2011,7 @@ OPTINLINE byte floppy_readData()
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
+				case VERIFY:
 					FLOPPY_LOGD("FLOPPY: Reading result byte %u/%u=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
@@ -2124,6 +2142,14 @@ void updateFloppy(double timepassed)
 								floppytimer[drive] = 0.0; //Don't time anymore!
 								goto finishdrive;
 							}
+							break;
+						case VERIFY: //Executing verify validation of data?
+							++FLOPPY.databufferposition; //Read data!
+							if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
+							{
+								floppy_executeData(); //Execute the data finished phrase!
+							}
+							//Continue while busy!
 							break;
 						default: //Unsupported command?
 							if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2) && (drive==FLOPPY_DOR_DRIVENUMBERR)) //DMA transfer busy on this channel?
