@@ -2147,7 +2147,9 @@ void updateFloppy(double timepassed)
 							++FLOPPY.databufferposition; //Read data!
 							if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 							{
+								floppytimer[drive] = 0.0; //Don't time anymore!
 								floppy_executeData(); //Execute the data finished phrase!
+								goto finishdrive; //Finish!
 							}
 							//Continue while busy!
 							break;
