@@ -44,6 +44,8 @@
 #define REQUEST_SUB3 0x60
 
 #define CPU286_WAITSTATE_DELAY 1
+//BUS delay is supposed to be 4 waitstates?
+#define CPU286_BUSWAITSTATE_DELAY 0
 
 BIU_type BIU[MAXCPUS]; //All possible BIUs!
 
@@ -490,7 +492,7 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	return 0; //We're fetched!
 }
 
-OPTINLINE byte BIU_processRequests(byte memory_waitstates)
+OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 {
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
@@ -502,11 +504,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				fulltransferMMUread:
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
 				BIU[activeCPU].currentresult |= (BIU_directrb((BIU[activeCPU].currentaddress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
-				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 					{
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 						BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 					}
 				}
@@ -514,7 +516,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+					{
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					}
 					goto fulltransferMMUread;
 				}
 				return 1; //Handled!
@@ -522,11 +528,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 			case REQUEST_MMUWRITE:
 				fulltransferMMUwrite:
 				BIU_directwb((BIU[activeCPU].currentaddress),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)); //Write directly to memory now!
-				BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
 					{
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 						BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 					}
 				}
@@ -534,7 +540,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+					{
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					}
 					goto fulltransferMMUwrite;
 				}
 				return 1; //Handled!
@@ -546,6 +556,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 					{
+						BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
 						BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 					}
 				}
@@ -553,7 +564,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+					{
+						BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
+						return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					}
 					goto fulltransferIOread;
 				}
 				return 1; //Handled!
@@ -564,6 +579,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
 					{
+						BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
 						BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 					}
 				}
@@ -571,7 +587,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 				{
 					BIU[activeCPU].currentrequest += REQUEST_SUB1; //Request next 8-bit half next(high byte)!
 					++BIU[activeCPU].currentaddress; //Next address!
-					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+					{
+						BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
+						return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+					}
 					goto fulltransferIOwrite;
 				}
 				return 1; //Handled!
@@ -601,6 +621,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 						{
+							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed?
@@ -611,7 +632,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					else
 					{
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+						{
+							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+							return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						}
 						goto fulltransferMMUread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
@@ -627,6 +652,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
+							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 							BIU_directwb((BIU[activeCPU].currentaddress),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
@@ -639,7 +665,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						BIU_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+						{
+							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+							return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						}
 						goto fulltransferMMUwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
@@ -668,6 +698,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
 						{
+							BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed?
@@ -678,7 +709,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					else
 					{
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+						{
+							BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
+							return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						}
 						goto fulltransferIOread; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
@@ -708,6 +743,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
+							BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed?
@@ -718,7 +754,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 					else
 					{
 						++BIU[activeCPU].currentaddress; //Next address!
-						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0)) return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
+						{
+							BIU[activeCPU].waitstateRAMremaining += bus_waitstates; //Apply the waitstates for the fetch!
+							return 1; //Handled, but broken up at this point due to the data bus not supporting transferring the rest of the word in one go!
+						}
 						goto fulltransferIOwrite; //Start Full transfer, when available?
 					}
 					return 1; //Handled!
@@ -736,7 +776,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates)
 byte CPU386_WAITSTATE_DELAY = 0; //386+ Waitstate, which is software-programmed?
 
 //BIU current state handling information used by below state handlers!
-byte memory_waitstates;
+byte memory_waitstates, bus_waitstates;
 CPU_CycleTimingInfo *cycleinfo;
 byte PIQ_RequiredSize,PIQ_CurrentBlockSize; //The required size for PIQ transfers!
 byte BIU_active; //Are we counted as active cycles?
@@ -744,7 +784,7 @@ byte BIU_numcyclesmask;
 
 OPTINLINE void BIU_WaitState() //General Waitstate handler!
 {
-	BIU[activeCPU].TState = 0xFF; //Waitstate RAM!
+	BIU[activeCPU].TState = 0xFF; //Waitstate RAM/BUS!
 	BIU_active = 0; //Count as inactive BIU: don't advance cycles!
 }
 
@@ -773,10 +813,10 @@ void BIU_cycle_VideoWaitState() //Video Waitstate active?
 	}
 }
 
-void BIU_cycle_WaitStateRAM() //Waiting for WaitState RAM?
+void BIU_cycle_WaitStateRAMBUS() //Waiting for WaitState RAM/BUS?
 {
 	BIU[activeCPU].stallingBUS = 0; //Not stalling BUS!
-	//WaitState RAM busy?
+	//WaitState RAM/BUS busy?
 	BIU_WaitState();
 	if (unlikely((--BIU[activeCPU].waitstateRAMremaining)==0)) //Ticked waitstate RAM to finish!
 	{
@@ -821,7 +861,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 			else
 			{
 				tryprefetch808X:
-				if (unlikely(BIU_processRequests(memory_waitstates))) //Processing a request?
+				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
 					++BIU[activeCPU].prefetchclock; //Tick!					
@@ -901,7 +941,7 @@ void BIU_cycle_active286()
 					PIQ_RequiredSize |= 2; //Minimum of 4 bytes required for a fetch to happen!
 					PIQ_CurrentBlockSize |= 4; //Apply 32-bit quantities as well, when allowed!
 				}
-				if (unlikely(BIU_processRequests(memory_waitstates))) //Processing a request?
+				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
 					++BIU[activeCPU].prefetchclock; //Tick!					
@@ -952,7 +992,7 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	}
 	else if (unlikely(((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask) && (BIU[activeCPU].waitstateRAMremaining))) //T2/4? Check for waitstate RAM first!
 	{
-		cycleinfo->currentTimingHandler = &BIU_cycle_WaitStateRAM; //We're stalling the BUS!		
+		cycleinfo->currentTimingHandler = &BIU_cycle_WaitStateRAMBUS; //We're stalling the BUS!		
 	}
 	else //Active cycle?
 	{
@@ -967,12 +1007,14 @@ void CPU_tickBIU()
 	byte cyclebackup,stallBUSbackup;
 	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
 
-	//Determine memory waitstate first!
+	//Determine memory/bus waitstate first!
 	memory_waitstates = 0;
+	bus_waitstates = 0;
 	BIU_active = 1; //We're active by default!
 	if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 	{
 		memory_waitstates += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+		bus_waitstates += CPU286_BUSWAITSTATE_DELAY; //Waitstate I/O!
 	}
 	else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
 	{
