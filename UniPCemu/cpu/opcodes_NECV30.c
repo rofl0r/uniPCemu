@@ -260,11 +260,14 @@ void CPU186_OP62()
 
 	static word bound_min, bound_max;
 	static word theval;
-	modrm_addoffset = 0; //No offset!
-	if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
-	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
-	modrm_addoffset = 2; //Max offset!
-	if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		modrm_addoffset = 0; //No offset!
+		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
+		modrm_addoffset = 2; //Max offset!
+		if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
+	}
 
 	modrm_addoffset = 0; //No offset!
 	if (CPU8086_instructionstepreadmodrmw(0,&theval,MODRM_src0)) return; //Read index!
