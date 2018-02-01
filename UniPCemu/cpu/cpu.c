@@ -1952,6 +1952,9 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 	return 0; //Not applied, because it's an unknown instruction!
 }
 
+extern BIU_type BIU[MAXCPUS]; //All possible BIUs!
+byte BIUresponsedummy = 0;
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	REPZ = 0; //Default to REP!
@@ -1987,6 +1990,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			CPU[activeCPU].cycles = 4; //Small cycle dummy! Must be greater than zero!
 			return; //Don't run the CPU: we're in a permanent reset state!
+		}
+
+		if (fifobuffer_freesize(BIU[activeCPU].responses)!=BIU[activeCPU].responses->size) //Starting an instruction with a response remaining?
+		{
+			dolog("CPU","Warning: starting instruction with BIU still having a result buffered! Previous instruction: %02X(0F:%i,ModRM:%02X)@%04X:%08x",CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU[activeCPU].previousmodrm,CPU_exec_CS,CPU_exec_EIP);
+			BIU_readResultb(&BIUresponsedummy); //Discard the result: we're logging but continuing on simply!
 		}
 
 		CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
