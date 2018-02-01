@@ -94,8 +94,7 @@ void CPU_flushPIQ(int_64 destaddr)
 //Internal helper functions for requests and responses!
 OPTINLINE byte BIU_haveRequest() //BIU: Does the BIU have a request?
 {
-	uint_32 request1;
-	return (peekfifobuffer32(BIU[activeCPU].requests,&request1) && (fifobuffer_freesize(BIU[activeCPU].responses)>=8)); //Do we have a request and enough size for a response?
+	return ((fifobuffer_freesize(BIU[activeCPU].requests)==0) && (fifobuffer_freesize(BIU[activeCPU].responses)==BIU[activeCPU].responses->size)); //Do we have a request and enough size for a response?
 }
 
 OPTINLINE byte BIU_readRequest(uint_32 *requesttype, uint_64 *payload1, uint_64 *payload2) //BIU: Read a request to process!
