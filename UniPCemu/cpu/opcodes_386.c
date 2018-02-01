@@ -633,12 +633,12 @@ OPTINLINE byte CPU80386_internal_INC32(uint_32 *reg)
 		return 1;
 	}
 	//Check for exceptions first!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (reg==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -686,12 +686,12 @@ OPTINLINE byte CPU80386_internal_DEC32(uint_32 *reg)
 	{
 		return 1;
 	}
-	if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!reg) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!reg) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (reg==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -789,11 +789,11 @@ OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -831,11 +831,11 @@ OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -874,11 +874,11 @@ OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 	{
 		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -911,11 +911,11 @@ OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 //For AND
 OPTINLINE byte CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 {
-	if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -954,11 +954,11 @@ OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return 1;
 	}
-	if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -996,11 +996,11 @@ OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte fla
 	{
 		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
@@ -1039,11 +1039,11 @@ OPTINLINE byte CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 	{
 		return 1;
 	}
-	if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
-	if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
+		if (!dest) if (modrm_check32(&params,MODRM_src0,1)) return 1; //Abort on fault!
+		if (!dest) if (modrm_check32(&params,MODRM_src0,0)) return 1; //Abort on fault!
 		if (dest==NULL) //Needs a read from memory?
 		{
 			if (CPU80386_internal_stepreadmodrmdw(0,&oper1d,MODRM_src0)) return 1;
