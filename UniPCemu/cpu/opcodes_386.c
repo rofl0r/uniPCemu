@@ -333,7 +333,7 @@ byte CPU80386_POPESP(word base)
 	uint_32 result;
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
-		if (CPU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,STACK_SEGMENT_DESCRIPTOR_B_BIT())==0) //Not ready?
+		if (CPU_request_MMUrdw(CPU_SEGMENT_SS,STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_ESP:REG_SP,!STACK_SEGMENT_DESCRIPTOR_B_BIT())==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
