@@ -481,7 +481,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Start Request!
+	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
 	{	
 		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
 		{
@@ -496,7 +496,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|2),1,getCPL(),1,2|0x10)) return; //Abort on fault!
 			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|3),1,getCPL(),1,3|0x10)) return; //Abort on fault!
 		}
-		++CPU[activeCPU].internalinstructionstep; //Finished check!
+		++CPU[activeCPU].instructionstep; //Finished check!
 	}
 
 	//Load the data from the used location!

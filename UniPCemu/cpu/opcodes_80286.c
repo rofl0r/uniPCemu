@@ -654,7 +654,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
-	if (CPU[activeCPU].internalinstructionstep==0) //First step? Start Request!
+	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
 	{
 		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
 		{
@@ -662,7 +662,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 			return;
 		}
 		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
-		++CPU[activeCPU].internalinstructionstep; //Finished check!
+		++CPU[activeCPU].instructionstep; //Finished check!
 	}
 
 	//Load the data from the used location!
