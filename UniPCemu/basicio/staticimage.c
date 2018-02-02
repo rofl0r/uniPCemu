@@ -5,6 +5,7 @@
 #include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
 #include "headers/emu/gpu/gpu_emu.h" //Text output support!
 #include "headers/hardware/ide.h" //Geometry support!
+#include "headers/emu/directorylist.h" //Directory list support.
 
 byte is_staticimage(char *filename)
 {
@@ -267,9 +268,8 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 byte deleteStaticImageCompletely(char *filename)
 {
 	byte format;
-	if (format = is_staticimage(filename)) //Gotten format?
+	if ((format = is_staticimage(filename))) //Gotten format?
 	{
-		FILE *f;
 		char fullfilename[256], fullfilenamebackup[256];
 		memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 		memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!

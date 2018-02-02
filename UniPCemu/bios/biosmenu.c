@@ -2789,7 +2789,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
 				GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
 				GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
-				FILEPOS sectornr;
+				FILEPOS sectornr=0;
 				EMU_gotoxy(0, 6); //Next row!
 				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 				EMU_unlocktext();

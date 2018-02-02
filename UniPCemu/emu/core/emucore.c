@@ -1069,7 +1069,7 @@ OPTINLINE byte coreHandler()
 		}
 
 		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
-		double MHZ14passed_ns;
+		double MHZ14passed_ns=0.0;
 		if (unlikely(MHZ14passed)) //14MHz to be ticked?
 		{
 			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!

@@ -779,7 +779,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
-	byte temp;
 	byte isXT = 0;
 	byte originalvalue;
 	byte oldSRB;
