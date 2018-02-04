@@ -13,7 +13,6 @@
 #include "headers/emu/debugger/debugger.h" //CPU debugger support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/cpu/protection.h"
-#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!
 
@@ -970,10 +969,6 @@ uint_32 customoffset; //Offset to use!
 //Help functions:
 OPTINLINE byte CPU8086_internal_INC16(word *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	//Check for exceptions first!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
@@ -1024,10 +1019,6 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 }
 OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
@@ -1078,10 +1069,6 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 
 OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
@@ -1131,10 +1118,6 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 }
 OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF;
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
@@ -1282,10 +1265,6 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 //For ADD
 OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1322,10 +1301,6 @@ OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 }
 OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1364,10 +1339,6 @@ OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 //For ADC
 OPTINLINE byte CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1404,10 +1375,6 @@ OPTINLINE byte CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 }
 OPTINLINE byte CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1447,10 +1414,6 @@ OPTINLINE byte CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 //For OR
 OPTINLINE byte CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1487,10 +1450,6 @@ OPTINLINE byte CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 }
 OPTINLINE byte CPU8086_internal_OR16(word *dest, word src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1604,10 +1563,6 @@ OPTINLINE byte CPU8086_internal_AND16(word *dest, word src, byte flags)
 //For SUB
 OPTINLINE byte CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1644,10 +1599,6 @@ OPTINLINE byte CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 }
 OPTINLINE byte CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1686,10 +1637,6 @@ OPTINLINE byte CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 //For SBB
 OPTINLINE byte CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1726,10 +1673,6 @@ OPTINLINE byte CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 }
 OPTINLINE byte CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1769,10 +1712,6 @@ OPTINLINE byte CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 //See AND, but XOR
 OPTINLINE byte CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1809,10 +1748,6 @@ OPTINLINE byte CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 }
 OPTINLINE byte CPU8086_internal_XOR16(word *dest, word src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -2088,10 +2023,6 @@ void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *rema
 //MOV
 OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
@@ -2228,10 +2159,6 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 
 OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{

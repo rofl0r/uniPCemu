@@ -13,7 +13,6 @@
 #include "headers/emu/debugger/debugger.h" //CPU debugger support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/cpu/protection.h"
-#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 #include "headers/cpu/cpu_OPNECV30.h" //80186+ support!
 #include "headers/cpu/cpu_OP80286.h" //80286+ support!
 #include "headers/cpu/biu.h" //BIU support!
@@ -628,10 +627,6 @@ Start of general 80386+ instruction handlers!
 //Help functions:
 OPTINLINE byte CPU80386_internal_INC32(uint_32 *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	//Check for exceptions first!
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
@@ -682,10 +677,6 @@ OPTINLINE byte CPU80386_internal_INC32(uint_32 *reg)
 }
 OPTINLINE byte CPU80386_internal_DEC32(uint_32 *reg)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	INLINEREGISTER byte tempCF = FLAG_CF; //CF isn't changed!
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
@@ -785,10 +776,6 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB32(uint_32 *dest, byte flags)
 //For ADD
 OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -827,10 +814,6 @@ OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte fla
 //For ADC
 OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -870,10 +853,6 @@ OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte fla
 //For OR
 OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -950,10 +929,6 @@ OPTINLINE byte CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 //For SUB
 OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -992,10 +967,6 @@ OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte fla
 //For SBB
 OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1035,10 +1006,6 @@ OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte fla
 //See AND, but XOR
 OPTINLINE byte CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step?
 	{
@@ -1262,10 +1229,6 @@ void CPU80386_internal_IDIV(uint_64 val, uint_32 divisor, uint_32 *quotient, uin
 //MOV
 OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
@@ -1402,10 +1365,6 @@ OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 
 OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{
@@ -1556,10 +1515,6 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 
 OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 {
-	if (MMU_invaddr())
-	{
-		return 1;
-	}
 	CPUPROT1
 	if (CPU[activeCPU].internalinstructionstep==0) //First step? Execution only!
 	{

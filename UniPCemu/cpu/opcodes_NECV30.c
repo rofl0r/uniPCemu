@@ -10,7 +10,6 @@
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 function specific compatibility!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
-#include "headers/mmu/mmuhandler.h" //MMU_invaddr support!
 #include "headers/cpu/flags.h" //Flags support!
 
 extern MODRM_PARAMS params;    //For getting all params!
@@ -62,10 +61,6 @@ extern uint_32 destEIP; //For control transfers!
 
 OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 version!
 {
-	if (MMU_invaddr())
-	{
-		return;
-	}
 	CPUPROT1
 		if (dest) //Register?
 		{
