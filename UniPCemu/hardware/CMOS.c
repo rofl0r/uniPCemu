@@ -657,7 +657,6 @@ extern byte is_XT; //Are we an XT machine?
 byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 {
 	byte data;
-	byte isXT = 0;
 	switch (port)
 	{
 	case 0x70: //CMOS_ADDR
@@ -713,7 +712,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 	case 0x247: //month
 	case 0x249: //1/100 seconds and 1/10 seconds latch according to docs, year in the case of TIMER.COM v1.2(HACK)!
 		if (is_XT == 0) return 0; //Not existant on the AT and higher!
-		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port&0xF]; //Translate the port to a compatible index!
 		goto readXTRTC; //Read the XT RTC!
 	//RAM latches!
@@ -779,8 +777,6 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 
 byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 {
-	byte isXT = 0;
-	byte originalvalue;
 	byte oldSRB;
 	switch (port)
 	{
@@ -793,7 +789,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
-		originalvalue = value; //Save original value for comparison!
 
 		oldSRB = CMOS.DATA.DATA80.info.STATUSREGISTERB; //Old SRB!
 
@@ -855,7 +850,6 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 	case 0x247: //month
 	case 0x249: //1/100 seconds and 1/10 seconds latch according to docs, year in the case of TIMER.COM v1.2(HACK)!
 		if (is_XT==0) return 0; //Not existant on the AT and higher!
-		isXT = 1; //From XT!
 		CMOS.ADDR = XTRTC_translatetable[port & 0xF]; //Translate the port to a compatible index!
 		goto writeXTRTC; //Read the XT RTC!
 	//Latches to XT CMOS RAM!

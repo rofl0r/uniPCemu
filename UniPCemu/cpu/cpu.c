@@ -21,6 +21,7 @@
 #include "headers/cpu/protecteddebugging.h" //Protected debugging support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution support!
+#include "headers/support/log.h" //Logging support!
 
 //ALL INTERRUPTS
 
