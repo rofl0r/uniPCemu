@@ -181,7 +181,7 @@ New opcodes for 80186+!
 void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
-	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,1,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,1,0)) return; //Abort on fault!
 	static word oldSP;
 	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU8086_PUSHw(0,&REG_AX,0)) return;
@@ -213,7 +213,7 @@ void CPU186_OP61()
 {
 	word dummy;
 	debugger_setcommand("POPA");
-	if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(8,0,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,0,0)) return; //Abort on fault!
 	if (CPU8086_POPw(0,&REG_DI,0)) return;
 	CPUPROT1
 	if (CPU8086_POPw(2,&REG_SI,0)) return;
@@ -285,7 +285,7 @@ void CPU186_OP68()
 {
 	word val = immw;    //PUSH Iz
 	debugger_setcommand("PUSH %04X",val);
-	if (checkStackAccess(1,1,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return; //PUSH!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -338,7 +338,7 @@ void CPU186_OP6A()
 	word val = immb; //Read the value!
 	if (val&0x80) val |= 0xFF00; //Sign-extend!
 	debugger_setcommand("PUSHB %02X",(val&0xFF)); //PUSH this!
-	if (checkStackAccess(1,1,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -391,7 +391,7 @@ void CPU186_OP6C()
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
 	static byte data;
-	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
 	if (CPU_PORT_IN_B(0,REG_DX,&data)) return; //Read the port!
 	CPUPROT1
 	if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSB
@@ -428,8 +428,11 @@ void CPU186_OP6D()
 	debugger_setcommand("INSW");
 	if (blockREP) return; //Disabled REP!
 	static word data;
-	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-	if (CPU[activeCPU].internalinstructionstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
+	}
 	if (CPU_PORT_IN_W(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
 	if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSW
@@ -466,7 +469,7 @@ void CPU186_OP6E()
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
 	static byte data;
-	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalmodrmstep==0)) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
 	if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSB
 	CPUPROT1
 	if (CPU_PORT_OUT_B(0,REG_DX,data)) return; //OUTS DX,Xb
@@ -503,8 +506,11 @@ void CPU186_OP6F()
 	debugger_setcommand("OUTSW");
 	if (blockREP) return; //Disabled REP!
 	static word data;
-	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-	if (CPU[activeCPU].internalmodrmstep==0) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalmodrmstep==0))
+	{
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
+	}
 	if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSW
 	CPUPROT1
 	if (CPU_PORT_OUT_W(0,REG_DX,data)) return;    //OUTS DX,Xz
@@ -643,14 +649,17 @@ void CPU186_OPC8()
 	nestlev &= 0x1F; //MOD 32!
 	if (EMULATED_CPU>CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 	{
-		if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
-		if (CPU[activeCPU].instructionstep==0) if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
+		if (unlikely(CPU[activeCPU].instructionstep==0)) 
+		{
+			if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
+			if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
+		}
 	}
 	ENTER_L = nestlev; //Set the nesting level used!
 	//according to http://www.felixcloutier.com/x86/ENTER.html
 	if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 	{
-		if (CPU[activeCPU].instructionstep==0) if (checkStackAccess(1,1,0)) return; //Abort on error!		
+		if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(1,1,0)) return; //Abort on error!		
 	}
 
 	/*
@@ -701,7 +710,7 @@ void CPU186_OPC9()
 {
 	word oldSP;
 	debugger_setcommand("LEAVE");
-	if (checkStackAccess(1,0,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	oldSP = REG_SP; //Backup SP!
 	REG_SP = REG_BP;    //LEAVE
 	if (CPU8086_POPw(0,&REG_BP,0)) //Not done yet?

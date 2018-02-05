@@ -493,7 +493,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	} LOADALLDATA;
 #include "headers/endpacked.h" //Finished!
 
-	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
+	if (unlikely(CPU[activeCPU].instructionstep==0)) //First step? Start Request!
 	{	
 		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
 		{
@@ -656,11 +656,11 @@ extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
 extern uint_32 instructionbufferd, instructionbufferd2; //For 32-bit read storage!
 
 //Push/pop FS/GS instructions.
-void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_FS,CPU_Operand_size[activeCPU])) return;/*PUSH FS*/CPU_apply286cycles(); /* Apply cycles */ } //PUSH FS
-void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU])) return; segmentWritten(CPU_SEGMENT_FS,instructionbufferw,0); CPU_apply286cycles(); /* Apply cycles */ } //POP FS
+void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_FS,CPU_Operand_size[activeCPU])) return;/*PUSH FS*/CPU_apply286cycles(); /* Apply cycles */ } //PUSH FS
+void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU])) return; segmentWritten(CPU_SEGMENT_FS,instructionbufferw,0); CPU_apply286cycles(); /* Apply cycles */ } //POP FS
 
-void CPU80386_OP0FA8() {modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_GS,CPU_Operand_size[activeCPU])) return;/*PUSH FS*/ CPU_apply286cycles(); /* Apply cycles */ } //PUSH GS
-void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/ if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU])) return ; segmentWritten(CPU_SEGMENT_GS,instructionbufferw,0); CPU_apply286cycles(); /* Apply cycles */ } //POP GS
+void CPU80386_OP0FA8() {modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_GS,CPU_Operand_size[activeCPU])) return;/*PUSH FS*/ CPU_apply286cycles(); /* Apply cycles */ } //PUSH GS
+void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU])) return ; segmentWritten(CPU_SEGMENT_GS,instructionbufferw,0); CPU_apply286cycles(); /* Apply cycles */ } //POP GS
 
 //L*S instructions
 
