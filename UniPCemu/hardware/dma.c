@@ -11,7 +11,7 @@ DMA Controller (8237A)
 #include "headers/cpu/cpu.h" //CPU support for BUS sharing!
 
 //Enable below define to patch the Floppy DMA to use Verify as Write to memory(for FDC reads), at the cost of accuracy.
-//#define FDCBOOT_HACK
+#define FDCBOOT_HACK
 
 #ifdef FDCBOOT_HACK
 #include "headers/hardware/floppy.h" //Floppy DMA hack for allowing booting from a FDC!
