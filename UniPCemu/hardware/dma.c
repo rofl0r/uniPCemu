@@ -10,10 +10,19 @@ DMA Controller (8237A)
 #include "headers/hardware/8237A.h" //Our own header!
 #include "headers/cpu/cpu.h" //CPU support for BUS sharing!
 
+//Enable below define to patch the Floppy DMA to use Verify as Write to memory(for FDC reads), at the cost of accuracy.
+//#define FDCBOOT_HACK
+
+#ifdef FDCBOOT_HACK
+#include "headers/hardware/floppy.h" //Floppy DMA hack for allowing booting from a FDC!
+#endif
+
 //Are we disabled?
 #define __HW_DISABLED 0
 
 SDL_sem *DMA_Lock = NULL;
+
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 typedef union
 {
@@ -646,6 +655,13 @@ void DMA_StateHandler_S3()
 	//Transfer data!
 	switch (DMAmoderegister.data&0xC)
 	{
+	case 0: //Verify? Never used on a PC?
+		#ifdef FDCBOOT_HACK
+		if ((DMAController[controller].DMAChannel[DMAchannel].DACKHandler!=&FLOPPY_DMADACK) || (is_Compaq!=1)) break; //Not FDC DMA? Verify mode!
+		#else
+		//Hack disabled, always verify!
+		break;
+		#endif
 	case 4: //Writing to memory? (Reading from device)
 		if (controller) //16-bits?
 		{
@@ -678,7 +694,6 @@ void DMA_StateHandler_S3()
 			}
 		}
 		break;
-	case 0: //Verify? Never used on a PC?
 	case 0xC: //Invalid?
 	default: //Invalid?
 		break;
