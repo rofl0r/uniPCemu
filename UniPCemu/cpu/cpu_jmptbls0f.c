@@ -323,13 +323,13 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	{ NULL, NULL }, //1Eh:
 	{ NULL, NULL }, //1Fh:
 	//0x20:
-	{ CPU80386_OP0F20, NULL },
-	{ CPU80386_OP0F21, NULL },
-	{ CPU80386_OP0F22, NULL },
-	{ CPU80386_OP0F23, NULL },
-	{ CPU80386_OP0F24, NULL },
+	{ CPU80386_OP0F_MOVCRn_modrmmodrm, NULL },
+	{ CPU80386_OP0F_MOVDRn_modrmmodrm, NULL },
+	{ CPU80386_OP0F_MOVCRn_modrmmodrm, NULL },
+	{ CPU80386_OP0F_MOVDRn_modrmmodrm, NULL },
+	{ CPU80386_OP0F_MOVTRn_modrmmodrm, NULL },
 	{ NULL, NULL },
-	{ CPU80386_OP0F26, NULL },
+	{ CPU80386_OP0F_MOVTRn_modrmmodrm, NULL },
 	{ NULL, NULL },
 	{ NULL, NULL },
 	{ NULL, NULL },

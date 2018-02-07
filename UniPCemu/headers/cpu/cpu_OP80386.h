@@ -217,12 +217,9 @@ void CPU80386_OP0F8F_32();
 //All remaining 0F opcodes
 
 //MOV [D/C]Rn instructions
-void CPU80386_OP0F20(); //MOV /r r32,CRn
-void CPU80386_OP0F21(); //MOV /r r32,DRn
-void CPU80386_OP0F22(); //MOV /r CRn,r32
-void CPU80386_OP0F23(); //MOV /r DRn,r32
-void CPU80386_OP0F24(); //MOV /r r32,TRn
-void CPU80386_OP0F26(); //MOV /r TRn,r32
+void CPU80386_OP0F_MOVCRn_modrmmodrm(); //MOV /r CRn/r32,r32/CRn
+void CPU80386_OP0F_MOVDRn_modrmmodrm(); //MOV /r DRn/r32,r32/DRn
+void CPU80386_OP0F_MOVTRn_modrmmodrm(); //MOV /r TRn/r32,r32/TRn
 
 //SETCC instructions
 void CPU80386_OP0F90(); //SETO r/m8
