@@ -2,7 +2,7 @@
 #include "headers/hardware/vga/vga_precalcs.h" //Precalcs!
 #include "headers/hardware/ports.h" //Ports!
 #include "headers/cpu/cpu.h" //NMI support!
-#include "headers/hardware/pic.h" //IRQ support!
+#include "headers/hardware/pic.h" //Interrupt lowering support!
 
 /*
 

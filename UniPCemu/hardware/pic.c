@@ -1,14 +1,9 @@
 #include "headers/types.h" //Basic type support!
 #include "headers/hardware/pic.h" //Basic data!
-#include "headers/cpu/cpu.h" //CPU support!
-
-/* Note: This is not a very complete i8259 interrupt controller
-   implementation, but for the purposes of a PC, it's acceptable. */
+#include "headers/hardware/ports.h" //Port support!
 
 //PIC Info: http://www.brokenthorn.com/Resources/OSDevPic.html
 
-#include "headers/hardware/pic.h" //Own typedefs etc.
-#include "headers/hardware/ports.h" //Port support!
 
 //Are we disabled?
 #define __HW_DISABLED 0

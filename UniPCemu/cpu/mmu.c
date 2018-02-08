@@ -1,6 +1,5 @@
 #include "headers/cpu/mmu.h" //Ourselves!
 #include "headers/cpu/cpu.h"
-#include "headers/cpu/memory_adressing.h" //Memory assist functions!
 #include "headers/cpu/paging.h" //Paging functions!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!

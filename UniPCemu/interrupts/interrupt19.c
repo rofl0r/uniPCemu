@@ -1,11 +1,8 @@
 #include "headers/types.h"
 #include "headers/bios/bios.h" //BOOT loader!
-#include "headers/cpu/interrupts.h" //BOOT loader!
-#include "headers/interrupts/interrupt18.h" //Interrupt 18h support!
-#include "headers/cpu/mmu.h" //MMU support!
-#include "headers/cpu/protection.h" //For CPU_segment_index!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/emu_main.h" //EMU_BIOSPOST support!
+#include "headers/cpu/cpu.h" //CPU_resetOP support!
 
 extern byte reset; //To reset the emulator?
 extern BIOS_Settings_TYPE BIOS_Settings; //Our BIOS Settings!

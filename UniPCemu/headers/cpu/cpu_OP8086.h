@@ -1,8 +1,6 @@
 #ifndef CPU_OP8086_H
 #define CPU_OP8086_H
 
-#include "headers/cpu/modrm.h" //MODR/M support!
-
 //8086 processor used opcodes:
 
 //Conditional JMPs opcodes:
@@ -229,50 +227,12 @@ void CPU8086_OPFD();
 void CPU8086_OPFE();
 void CPU8086_OPFF();
 
-//Stuff for CoProcessor minimum:
-
-
-/*void CPU8086_OPD9(); //For FPU!
-void CPU8086_OPDB(); //For FPU!
-void CPU8086_OPDD(); //For FPU!
-void CPU8086_OPDF(); //For FPU!
-*/
-
 void CPU8086_noCOOP(); //Coprosessor opcodes handler!
 
 //Extra support:
 word getLEA(MODRM_PARAMS *params);
 
 byte CPU086_int(byte interrupt); //Executes an hardware interrupt (from tbl). Returns 1 when finished, 0 when still busy.
-
-/*
-//For NECV30+
-
-void CPU8086_internal_RCL8(byte *dest, byte rotation);
-void CPU8086_internal_RCL16(word *dest, word rotation);
-
-//Shift right and carry flag to LSB
-void CPU8086_internal_RCR8(byte *dest, byte rotation);
-void CPU8086_internal_RCR16(word *dest, word rotation);
-
-
-void CPU8086_internal_ROL8(byte *dest, byte rotation);
-void CPU8086_internal_ROL16(word *dest, word rotation);
-
-//Shift right
-void CPU8086_internal_ROR8(byte *dest, byte rotation);
-void CPU8086_internal_ROR16(word *dest, word rotation);
-
-
-void CPU8086_internal_SHL8(byte *dest, byte rotation);
-void CPU8086_internal_SHL16(word *dest, word rotation);
-
-void CPU8086_internal_SHR8(byte *dest, byte rotation);
-void CPU8086_internal_SHR16(word *dest, word rotation);
-
-void CPU8086_internal_SAR8(byte *dest, byte rotation);
-void CPU8086_internal_SAR16(word *dest, word rotation);
-*/
 
 //For GRP Opcodes!
 byte CPU8086_internal_INC16(word *reg);

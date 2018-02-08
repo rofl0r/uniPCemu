@@ -5,7 +5,6 @@
 #include "headers/cpu/cpu_OP80386.h" //Unknown opcodes under 80386+ and more!
 #include "headers/cpu/cpu_OP80486.h" //Unknown opcodes under 80486+ and more!
 #include "headers/cpu/cpu_OP80586.h" //Unknown opcodes under 80586+ and more!
-#include "headers/emu/debugger/debugger.h" //Debugging support!
 
 //See normal opcode table, but for 0F opcodes!
 Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard interrupt jmptbl!

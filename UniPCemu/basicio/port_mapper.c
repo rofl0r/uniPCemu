@@ -1,7 +1,7 @@
 #include "headers/types.h" //Basic type comp.
 #include "headers/hardware/ports.h" //Basic type comp.
 #include "headers/support/log.h" //Logging support!
-#include "headers/cpu/cb_manager.h" //Callback support for handling CPU callbacks!
+#include "headers/cpu/cb_manager.h" //Callback support!
 
 /*
 

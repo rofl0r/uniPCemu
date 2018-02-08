@@ -12,8 +12,8 @@
 #include "headers/cpu/cpu_OP80286.h" //80286 support!
 #include "headers/cpu/cpu_OP80386.h" //80386 support!
 #include "headers/cpu/protection.h" //Protection support!
-#include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugger support for LOADALL!
+#include "headers/cpu/biu.h" //PIQ flushing support!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 

@@ -5,7 +5,7 @@
 #include "headers/cpu/mmu.h" //For wraparround 1/3/5/... MB! (A20 line)
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/locks.h" //Locking support!
-#include "headers/hardware/ps2_keyboard.h" //Keyboard support!
+#include "headers/cpu/cpu.h" //CPU reset support!
 
 //Are we disabled?
 #define __HW_DISABLED 0

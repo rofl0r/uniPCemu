@@ -3,7 +3,7 @@
 #include "headers/hardware/uart.h" //UART support for the COM port!
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/support/locks.h" //Locking support!
-#include "headers/bios/bios.h" //BIOS support!
+#include "headers/emu/input.h" //setMouseRate support!
 
 struct
 {

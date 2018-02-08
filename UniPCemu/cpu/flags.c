@@ -1,4 +1,7 @@
 #include "headers/types.h" //Basic types!
+#include "headers/cpu/cpu.h" //CPU!
+#include "headers/cpu/easyregs.h" //EASY Regs!
+
 byte parity[0x100] = { //All parity values!
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
@@ -9,9 +12,6 @@ byte parity[0x100] = { //All parity values!
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
 };
-
-#include "headers/cpu/cpu.h" //CPU!
-#include "headers/cpu/easyregs.h" //EASY Regs!
 
 //Sign and parity logic
 

@@ -872,9 +872,6 @@
     <ClInclude Include="headers\hardware\vga\vga_renderer.h">
       <Filter>Header Files\hardware\vga</Filter>
     </ClInclude>
-    <ClInclude Include="headers\cpu\memory_adressing.h">
-      <Filter>Header Files\cpu</Filter>
-    </ClInclude>
     <ClInclude Include="headers\cpu\mmu.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>

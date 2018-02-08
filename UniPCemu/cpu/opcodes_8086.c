@@ -1,17 +1,14 @@
 #include "headers/types.h" //Basic types
 #include "headers/cpu/cpu.h" //CPU needed!
-#include "headers/cpu/mmu.h" //MMU needed!
 #include "headers/cpu/easyregs.h" //Easy register compatibility!
 #include "headers/cpu/modrm.h" //MODR/M compatibility!
 #include "headers/support/signedness.h" //CPU support functions!
-#include "headers/hardware/ports.h" //Ports compatibility!
 #include "headers/cpu/cpu_OP8086.h" //Our own opcode presets!
 #include "headers/cpu/fpu_OP8087.h" //Our own opcode presets!
 #include "headers/cpu/flags.h" //Flag support!
 #include "headers/cpu/8086_grpOPs.h" //GRP Opcode extensions!
 #include "headers/cpu/interrupts.h" //Basic interrupt support!
-#include "headers/emu/debugger/debugger.h" //CPU debugger support!
-#include "headers/bios/bios.h" //BIOS support!
+#include "headers/emu/debugger/debugger.h" //CPU debugger support for INTdebugger8086!
 #include "headers/cpu/protection.h"
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!

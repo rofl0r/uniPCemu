@@ -2,6 +2,7 @@
 
 #include "headers/types.h"
 #include "headers/hardware/ports.h" //Full PORTIN/OUT compatibility!
+#include "headers/support/log.h" //Logging support!
 
 //Log unhandled port IN/OUT?
 //#define LOG_UNHANDLED_PORTS

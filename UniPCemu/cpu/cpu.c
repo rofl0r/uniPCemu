@@ -17,21 +17,10 @@
 #include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
 #include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
 #include "headers/cpu/easyregs.h" //Easy register support!
-#include "headers/cpu/memory_adressing.h" //CPU_MMU_start support!
 #include "headers/cpu/protecteddebugging.h" //Protected debugging support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution support!
 #include "headers/support/log.h" //Logging support!
-
-//ALL INTERRUPTS
-
-#include "headers/interrupts/interrupt05.h"
-#include "headers/interrupts/interrupt10.h"
-#include "headers/interrupts/interrupt11.h"
-#include "headers/interrupts/interrupt13.h"
-#include "headers/interrupts/interrupt16.h"
-#include "headers/interrupts/interrupt18.h"
-#include "headers/interrupts/interrupt19.h"
 
 //Waitstate delay on 80286.
 #define CPU286_WAITSTATE_DELAY 1

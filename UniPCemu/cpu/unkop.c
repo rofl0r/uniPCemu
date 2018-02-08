@@ -2,12 +2,9 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/emu/gpu/gpu.h" //Need GPU comp!
 #include "headers/cpu/cpu_OP8086.h" //8086 interrupt instruction support!
-#include "headers/bios/bios.h" //BIOS Support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/easyregs.h" //Easy register addressing!
 
-#include "headers/emu/gpu/gpu_emu.h" //GPU EMU support!
-#include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/timers.h" //Timer support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Fault raising support!

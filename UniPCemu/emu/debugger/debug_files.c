@@ -1,6 +1,5 @@
 #include "headers/types.h" //Basic types!
-#include "headers/cpu/cpu.h" //CPU!
-#include "headers/interrupts/interrupt10.h" //INT10 support!
+#include "headers/support/locks.h" //Lock support!
 #include "headers/support/log.h" //Log!
 #include "headers/emu/debugger/runromverify.h" //runROMVerify support!
 #include "headers/emu/emu_misc.h" //file support!

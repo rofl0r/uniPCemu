@@ -2,7 +2,6 @@
 #define MMU_H
 
 #include "headers/types.h"
-#include "headers/cpu/cpu.h" //Pointer support etc.
 
 typedef struct
 {

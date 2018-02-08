@@ -288,7 +288,6 @@
     <ClInclude Include="headers\cpu\flags.h" />
     <ClInclude Include="headers\cpu\fpu_OP8087.h" />
     <ClInclude Include="headers\cpu\interrupts.h" />
-    <ClInclude Include="headers\cpu\memory_adressing.h" />
     <ClInclude Include="headers\cpu\mmu.h" />
     <ClInclude Include="headers\cpu\modrm.h" />
     <ClInclude Include="headers\cpu\multitasking.h" />

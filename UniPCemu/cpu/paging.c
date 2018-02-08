@@ -7,7 +7,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/protection.h" //Fault raising support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
-#include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/biu.h" //Memory support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 

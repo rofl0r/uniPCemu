@@ -2,7 +2,6 @@
 #include "headers/basicio/dynamicimage.h" //Dynamic image support!
 #include "headers/basicio/staticimage.h" //Static image support!
 #include "headers/basicio/dskimage.h" //DSK image support!
-#include "headers/emu/gpu/gpu.h" //Need GPU support for creating images!
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support for requesting ejecting a disk!
 //Basic low level i/o functions!

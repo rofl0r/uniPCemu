@@ -3,9 +3,9 @@
 #include "headers/hardware/floppy.h" //Disk image size support!
 #include "headers/cpu/modrm.h" //MODR/M support for boot loader creation.
 #include "headers/emu/gpu/gpu_text.h" //For locking the text surface!
-#include "headers/emu/gpu/gpu_emu.h" //Text output support!
 #include "headers/hardware/ide.h" //Geometry support!
 #include "headers/emu/directorylist.h" //Directory list support.
+#include "headers/emu/gpu/gpu_emu.h" //Text locking and output support!
 
 byte is_staticimage(char *filename)
 {

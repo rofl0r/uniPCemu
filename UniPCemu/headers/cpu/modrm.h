@@ -2,7 +2,6 @@
 #define MODRM_H
 
 #include "headers/types.h" //Needs type support!
-#include "headers/cpu/cpu.h" //Need CPU support for types!
 
 //REG (depends on size specified by stack B-bit&opcode 66h&done with 'register' MOD (see below)):
 
@@ -125,6 +124,11 @@
 
 //register (Xl/Xx/eXx; e.g. al/ax/eax) source/dest. (see above for further specification!)
 #define MOD_REG 3
+
+#define SIB_BASE(SIB) (SIB&7)
+#define SIB_INDEX(SIB) ((SIB>>3)&7)
+#define SIB_SCALE(SIB) ((SIB>>6)&3)
+typedef byte SIBType; //SIB byte!
 
 //Struct containing the MODRM info:
 

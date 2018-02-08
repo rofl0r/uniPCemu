@@ -2,10 +2,6 @@
 #define STATE_H
 
 #include "headers/types.h" //Basic types!
-#include "headers/mmu/mmuhandler.h" //Types in memory!
-#include "headers/cpu/cpu.h" //CPU functionality!
-#include "headers/emu/gpu/gpu.h" //GPU functionality!
-#include "headers/hardware/vga/vga.h" //VGA functionality
 #include "headers/cpu/cb_manager.h" //Callbacks!
 
 typedef struct

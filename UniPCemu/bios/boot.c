@@ -6,7 +6,6 @@
 #include "headers/support/isoreader.h" //Need ISO reading comp!
 #include "headers/bios/bios.h" //Need BIOS comp!
 #include "headers/interrupts/interrupt13.h" //We need disk support!
-#include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/protection.h" //Protection support for segment register loading!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!

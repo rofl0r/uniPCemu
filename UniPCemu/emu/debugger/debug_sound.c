@@ -1,5 +1,4 @@
 #include "headers/hardware/ports.h" //Port support!
-#include "headers/hardware/vga/vga.h" //VGA support!
 #include "headers/hardware/8253.h" //PC speaker support!
 #include "headers/emu/threads.h" //Thread support!
 #include "headers/emu/sound.h" //Sound support for our callback!

@@ -3,6 +3,7 @@
 
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/cpu/modrm.h" //Modrm support!
+#include "headers/cpu/cpu.h" //CPU support!
 
 //BIOS Settings
 #ifndef BIOS_Settings

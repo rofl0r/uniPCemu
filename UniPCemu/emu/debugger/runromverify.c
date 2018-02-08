@@ -4,7 +4,6 @@
 #include "headers/emu/gpu/gpu.h"
 #include "headers/emu/timers.h"
 #include "headers/hardware/pic.h" //For interrupts!
-#include "headers/cpu/cpu_OP8086.h" //hardware interrupt function!
 #include "headers/support/log.h" //Log support!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/cpu/cb_manager.h" //CPU callback support!
@@ -15,7 +14,7 @@
 #include "headers/mmu/mmuhandler.h" //hasmemory support!
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/cpu/easyregs.h" //Flag support!
-#include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/biu.h" //PIQ flushing support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?

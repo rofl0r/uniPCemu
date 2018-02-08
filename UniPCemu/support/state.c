@@ -1,7 +1,6 @@
-#include "headers/hardware/vga/vga.h" //VGA support!
+#include "headers/emu/gpu/gpu.h" //GPU support!
 #include "headers/emu/state.h" //Our own data and support etc.
 #include "headers/support/crc32.h" //CRC32 support!
-#include "headers/cpu/cpu.h" //Basic CPU support!
 
 extern GPU_type GPU; //GPU!
 extern Handler CBHandlers[CB_MAX]; //Handlers!

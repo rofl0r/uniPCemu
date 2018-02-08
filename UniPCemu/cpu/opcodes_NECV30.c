@@ -8,7 +8,6 @@
 #include "headers/cpu/cpu_OP8086.h" //8086 function specific compatibility!
 #include "headers/cpu/8086_grpOPs.h" //GRP Opcode support (C0&C1 Opcodes!)
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 function specific compatibility!
-#include "headers/support/log.h" //Logging support!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/flags.h" //Flags support!
 

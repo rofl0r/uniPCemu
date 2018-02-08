@@ -3,10 +3,10 @@
 #include "headers/cpu/mmu.h" //MMU support!
 #include "headers/mmu/mmuhandler.h" //Our typedefs!
 #include "headers/support/zalloc.h" //Memory allocation!
-#include "headers/hardware/dram.h" //DRAM support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/fifobuffer.h" //Write buffer support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/hardware/dram.h" //DRAM_access support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!

@@ -1,7 +1,6 @@
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //I/O support!
 #include "headers/cpu/mmu.h" //MMU support!
-#include "headers/cpu/cpu.h" //CPU support!
 #include "headers/hardware/vga/vga.h" //VGA/EGA/CGA/MDA support!
 #include "headers/emu/emucore.h" //Speed change support!
 #include "headers/emu/debugger/debugger.h" //Debugging support for logging POST codes!

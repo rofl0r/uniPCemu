@@ -1,9 +1,4 @@
 #include "headers/types.h"
-#include "headers/bios/biosmenu.h" //For key support!
-#include "headers/cpu/mmu.h" //MMU support!
-#include "headers/cpu/protection.h" //For CPU_segment_index!
-#include "headers/emu/input.h" //Direct input support!
-#include "headers/cpu/easyregs.h" //Easy register support!
 //Boot failure.
 
 //Execute ROM BASIC which is at address 0F600h:0000h

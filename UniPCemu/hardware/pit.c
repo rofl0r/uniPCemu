@@ -15,7 +15,6 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 //PC speaker support functionality:
 #include "headers/support/sounddoublebuffer.h" //Sound double buffer support!
 #include "headers/support/wave.h" //Wave support!
-#include "headers/cpu/cpu.h" //XT vs AT support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/filters.h" //Filter support!
 

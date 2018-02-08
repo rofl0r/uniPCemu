@@ -2,7 +2,6 @@
 #include "headers/hardware/pic.h" //PIC!
 #include "headers/emu/timers.h" //Timing!
 #include "headers/support/log.h" //Logging support!
-#include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/support/highrestimer.h" //Time support!
