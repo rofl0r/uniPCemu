@@ -158,6 +158,7 @@ struct
 		double resetTiming;
 		double ReadyTiming; //Timing until we become ready after executing a command!
 		double IRQTimeout; //Timeout until we're to fire an IRQ!
+		byte resetSetsDefaults;
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -2508,7 +2509,10 @@ void ATA_reset(byte channel, byte slave)
 	ATA[channel].Drive[slave].command = 0; //Full reset!
 	ATA[channel].Drive[slave].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 	ATA[channel].Drive[slave].ATAPI_processingPACKET = 0; //Not processing any packet!
-	ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
+	if (ATA[channel].Drive[slave].resetSetsDefaults==0) //Allow resetting to defaults?
+	{
+		ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
+	}
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
 }
 
@@ -2857,6 +2861,12 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification(report medium change requests)!
 			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval |= 1; //Prevent Medium Removal, to facilitate Medium Change Requests!
 			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = !is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)]); //Allow disk insertion?
+			break;
+		case 0x66: //Soft Reset will not change feature selections to power-up defaults?
+			ATA[channel].Drive[ATA_activeDrive(channel)].resetSetsDefaults = 0; //Don't change to power-up defaults!
+			break;
+		case 0xCC: //Soft Reset will change feature selections to power-up defaults?
+			ATA[channel].Drive[ATA_activeDrive(channel)].resetSetsDefaults = 1; //Change to defaults when reset!
 			break;
 		default: //Invalid feature!
 #ifdef ATA_LOG
@@ -3479,6 +3489,7 @@ void initATA()
 	//First, detect HDDs!
 	memset(&ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
 	memset(&ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
+	ATA[0].Drive[0].resetSetsDefaults = ATA[0].Drive[1].resetSetsDefaults = ATA[1].Drive[0].resetSetsDefaults = ATA[1].Drive[1].resetSetsDefaults = 1; //Reset sets defaults by default after poweron!
 	byte CDROM_channel = 1; //CDROM is the second channel by default!
 	if (is_mounted(HDD0)) //Have HDD0?
 	{
