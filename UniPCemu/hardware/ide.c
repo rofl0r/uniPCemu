@@ -2948,6 +2948,10 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Hard disk?
+		{
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Not seeking anymore, since we're ready to run!
+		}
 		break;
 	case 1: //Transferring data IN?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
