@@ -2509,7 +2509,7 @@ void ATA_reset(byte channel, byte slave)
 	ATA[channel].Drive[slave].command = 0; //Full reset!
 	ATA[channel].Drive[slave].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
 	ATA[channel].Drive[slave].ATAPI_processingPACKET = 0; //Not processing any packet!
-	if (ATA[channel].Drive[slave].resetSetsDefaults==0) //Allow resetting to defaults?
+	if (ATA[channel].Drive[slave].resetSetsDefaults) //Allow resetting to defaults?
 	{
 		ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
 	}
