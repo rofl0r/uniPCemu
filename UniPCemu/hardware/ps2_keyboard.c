@@ -44,7 +44,8 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 {
 	if (__HW_DISABLED) return; //Abort!
 	FIFOBUFFER *oldbuffer = Keyboard.buffer; //Old buffer!
-	memset(&Keyboard,0,sizeof(Keyboard)); //Reset the controller!
+	if ((flags || (is_ATInit!=1))) //Not a enable by the 8042? We're executing the BAT(flags==0 and is_ATInit==1 is used when enabling the 8042 PS/2 port)!
+		memset(&Keyboard,0,sizeof(Keyboard)); //Reset the controller!
 	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
 	if (!is_ATInit)
@@ -54,16 +55,19 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 		Keyboard.has_command = 1;
 		Keyboard.timeout = KEYBOARD_BATTIMEOUT; //Executing BAT!
 	}
-	Keyboard.last_send_byte = 0xAA; //Set last send byte!
-	loadKeyboardDefaults(); //Load our defaults!
-	Keyboard.LEDS = 0; //Disable all LEDs, as part of the BAT!
+	if ((flags || (is_ATInit!=1))) //Not a enable by the 8042? We're executing the BAT(flags==0 and is_ATInit==1 is used when enabling the 8042 PS/2 port)!
+	{
+		Keyboard.last_send_byte = 0xAA; //Set last send byte!
+		loadKeyboardDefaults(); //Load our defaults!
+		Keyboard.LEDS = 0; //Disable all LEDs, as part of the BAT!
+	}
 }
 
 void resetKeyboard_8042(byte flags)
 {
-	input_lastwrite_keyboard(); //Force to user!
+	if ((flags&2)==0) input_lastwrite_keyboard(); //Force to user!
 	resetKeyboard((flags&~2),((flags&2)?1:0)); //Reset us! Execute an interrupt as well!
-	input_lastwrite_keyboard(); //Force to user!
+	if ((flags&2)==0) input_lastwrite_keyboard(); //Force to user!
 }
 
 float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat delay! (chars/second)
