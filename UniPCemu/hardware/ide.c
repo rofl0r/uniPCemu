@@ -2904,6 +2904,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidcommand;
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Sector count register is used!
+
+		//Hack for XT-IDE BIOS: Setting multiple mode on one drive sets them both!
+		ATA[channel].Drive[ATA_activeDrive(channel)^1].multiplesectors = ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors; //Set them both(not on real devices)!
+
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[59] = (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors?0x100:0)|(ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
