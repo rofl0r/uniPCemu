@@ -24,14 +24,9 @@ SDL_sem *DMA_Lock = NULL;
 
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
-typedef union
-{
-	byte data; //Mode register byte representation for easy reading/writing!
-} DMAModeRegister;
-
 typedef struct
 {
-	DMAModeRegister ModeRegister; //Our mode register!
+	byte ModeRegister; //Our mode register!
 	word CurrentAddressRegister; //Start address register!
 	word BaseAddressRegister; //Start address base register when resetting (base)! Written together with the start address!
 	word CurrentCountRegister; //Count register set by the user and counting!
@@ -207,7 +202,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			break;
 		case 0x09: //Request register!
 			//Set DREQs!
-			if (((DMAController[controller].DMAChannel[value&0x3].ModeRegister.data>>6)&3)==2) //Only in block mode we take requests?
+			if (((DMAController[controller].DMAChannel[value&0x3].ModeRegister>>6)&3)==2) //Only in block mode we take requests?
 			{
 				DMAController[controller].RequestRegister &= ~(1<<(value&0x3)); //Clear the bit!
 				DMAController[controller].RequestRegister |= (((value&0x4)>>2)<<(value&0x3)); //Set the software request bit!
@@ -218,7 +213,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			DMAController[controller].MultiChannelMaskRegister |= (((value&4)>>2)<<(value&3)); //Mask it if needed!
 			break;
 		case 0x0B: //Mode Register!
-			DMAController[controller].DMAChannel[value&0x3].ModeRegister.data = value; //Set!
+			DMAController[controller].DMAChannel[value&0x3].ModeRegister = value; //Set!
 			break;
 		case 0x0C: //Flip-Flop Reset Register!
 			DMAController[controller].FlipFlop = 0; //Reset!
@@ -415,9 +410,9 @@ void DMA_SampleDREQ() //Sample all DREQ lines for both controllers!
 				byte channel = (current & 3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
 
 				//Handle the current channel, since the controller is enabled!
-				DMAModeRegister moderegister;
-				moderegister.data = DMAController[controller].DMAChannel[channel].ModeRegister.data; //Read the mode register to use!
-				if (((moderegister.data>>6)&3)==3) goto skipdmachannel; //Skip channel: invalid! We don't process a cascade mode channel!
+				byte moderegister;
+				moderegister = DMAController[controller].DMAChannel[channel].ModeRegister; //Read the mode register to use!
+				if (((moderegister>>6)&3)==3) goto skipdmachannel; //Skip channel: invalid! We don't process a cascade mode channel!
 				{
 					if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
 					{
@@ -446,7 +441,7 @@ byte DMAcontroller; //The DMA controller of the current request!
 byte DMAchannel; //The DMA channel of the current request!
 byte DMAchannelindex; //The channel index of the current request!
 byte DMAprocessed; //Are we processed?
-DMAModeRegister DMAmoderegister; //The mode register of the current request!
+byte DMAmoderegister; //The mode register of the current request!
 
 void DMA_StateHandler_SI()
 {
@@ -468,8 +463,8 @@ void DMA_StateHandler_SI()
 			DMAcontroller = (channel>>2); //The controller!
 
 			byte processchannel = 0; //To process the channel?
-			DMAmoderegister.data = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister.data; //The mode register we're using from now on(or any other being overwritten for transfers)!
-			switch (((DMAmoderegister.data>>6)&3)) //What mode?
+			DMAmoderegister = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister; //The mode register we're using from now on(or any other being overwritten for transfers)!
+			switch (((DMAmoderegister>>6)&3)) //What mode?
 			{
 				case 0: //Demand mode?
 					//DREQ determines the transfer!
@@ -528,8 +523,8 @@ void DMA_StateHandler_S0()
 		if (DMAController[(channel>>2)].DREQ&MCMReversed) //Requested and not masking?
 		{
 			byte processchannel = 0; //To process the channel?
-			DMAmoderegister.data = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister.data; //The mode register we're using from now on(or any other being overwritten for transfers)!
-			switch (((DMAmoderegister.data>>6)&3)) //What mode?
+			DMAmoderegister = DMAController[(channel>>2)].DMAChannel[(channel&3)].ModeRegister; //The mode register we're using from now on(or any other being overwritten for transfers)!
+			switch (((DMAmoderegister>>6)&3)) //What mode?
 			{
 				case 0: //Demand mode?
 					//DREQ determines the transfer!
@@ -578,7 +573,7 @@ void DMA_StateHandler_S2()
 	{
 		DMAController[DMAcontroller].DMAChannel[DMAchannel].DACKHandler(); //Send a DACK to the hardware!
 	}
-	switch (((DMAmoderegister.data>>6)&3))
+	switch (((DMAmoderegister>>6)&3))
 	{
 		case 0: //Single transfer!
 		case 1: //Block transfer!
@@ -621,7 +616,7 @@ void DMA_StateHandler_S3()
 	address |= (DMAController[controller].DMAChannel[DMAchannel].PageAddressRegister<<16); //Apply page address to get the full address!
 				
 	//Process the address counter step: we've been processed and ready to move on!
-	if (DMAmoderegister.data&0x20) //Decrease address?
+	if (DMAmoderegister&0x20) //Decrease address?
 	{
 		--DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Decrease counter!
 	}
@@ -653,7 +648,7 @@ void DMA_StateHandler_S3()
 	}
 
 	//Transfer data!
-	switch (DMAmoderegister.data&0xC)
+	switch (DMAmoderegister&0xC)
 	{
 	case 0: //Verify? Never used on a PC?
 		#ifdef FDCBOOT_HACK
@@ -704,7 +699,7 @@ void DMA_StateHandler_S3()
 void DMA_StateHandler_S4()
 {
 	//S4: Reset enable for channel n if TC stop and TC are active. Deactivate commands. Deactivate DACKn, Mark and T0. Sample DRQn and HLDA. Resolve DRQn priorities. Reset HRQ if HLDA=0 or DRQ=0(Goto SI), else Goto S1.
-	switch ((DMAmoderegister.data>>6)&3) //What mode are we processing in?
+	switch ((DMAmoderegister>>6)&3) //What mode are we processing in?
 	{
 	case 0: //Demand Transfer Mode
 		if (DMAprocessed&FLAG_TC) //TC?
@@ -718,7 +713,7 @@ void DMA_StateHandler_S4()
 		if (DMAprocessed&FLAG_TC) //Complete on Terminal count?
 		{
 			DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished!
-			if ((DMAmoderegister.data&0x10)) //Auto?
+			if ((DMAmoderegister&0x10)) //Auto?
 			{
 				DMA_autoinit(DMAcontroller,DMAchannel); //Perform autoinit!
 			}
