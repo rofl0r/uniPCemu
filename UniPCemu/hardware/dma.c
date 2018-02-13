@@ -477,6 +477,9 @@ void DMA_StateHandler_SI()
 					processchannel = DMAController[DMAcontroller].DACK|DMAController[DMAcontroller].DREQ; //DREQ/DACK are requesting?
 					processchannel &= MCMReversed; //We're affected directly by the DACK!
 					break;
+				default: //Unknown mode?
+					processchannel = 0; //Don't process!
+					break;
 			}
 			
 			if (DMAController[DMAcontroller].RequestRegister&channelindex) //Requested?
@@ -537,6 +540,9 @@ void DMA_StateHandler_S0()
 					processchannel = DMAController[controller].DACK|DMAController[controller].DREQ; //DREQ/DACK are requesting?
 					processchannel &= MCMReversed; //We're affected directly by the DACK!
 					break;
+				default: //Unknown mode?
+					processchannel = 0; //Don't process!
+					break;
 			}
 			
 			if (DMAController[controller].RequestRegister&channelindex) //Requested?
@@ -581,6 +587,8 @@ void DMA_StateHandler_S2()
 			break;
 		case 2: //Demand transfer?
 			//Nothing happens: DREQ affects transfers directly!
+			break;
+		default: //Unknown mode?
 			break;
 	}
 	++DMA_S; //Proceed into the next DMA state: S3!
@@ -691,6 +699,7 @@ void DMA_StateHandler_S3()
 		break;
 	case 0xC: //Invalid?
 	default: //Invalid?
+		//Handle as a NOP!
 		break;
 	}
 	++DMA_S; //Proceed into the next DMA state: S4!
