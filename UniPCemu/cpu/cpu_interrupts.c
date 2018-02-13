@@ -136,6 +136,8 @@ byte NMIMasked = 0; //Are NMI masked?
 extern word CPU_exec_CS; //OPCode CS
 extern uint_32 CPU_exec_EIP; //OPCode EIP
 
+word IRET_IP=0, IRET_CS=0, IRET_FLAGS=0;
+
 void CPU_IRET()
 {
 	word V86SegRegs[4]; //All V86 mode segment registers!
@@ -147,13 +149,16 @@ void CPU_IRET()
 	{
 		tempSS = REG_SS;
 		//uint_32 backupESP = REG_ESP;
-		if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-		destEIP = CPU_POP16(CPU_Operand_size[activeCPU]); //POP IP!
-		segmentWritten(CPU_SEGMENT_CS,CPU_POP16(CPU_Operand_size[activeCPU]),3); //We're loading because of an IRET!
+		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(3,0,0)) { return; } ++CPU[activeCPU].stackchecked; } //3 Word POPs!
+		if (CPU8086_internal_POPw(0,&IRET_IP,0)) return; //POP IP!
+		if (CPU8086_internal_POPw(0,&IRET_CS,0)) return; //POP CS!
+		if (CPU8086_internal_POPw(0,&IRET_FLAGS,0)) return; //POP FLAGS!
+		destEIP = (uint_32)IRET_IP; //POP IP!
+		segmentWritten(CPU_SEGMENT_CS,IRET_CS,3); //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		if (CPU[activeCPU].faultraised==0) //No fault raised?
 		{
-			REG_FLAGS = CPU_POP16(CPU_Operand_size[activeCPU]); //Pop flags!
+			REG_FLAGS = IRET_FLAGS; //Pop flags!
 		}
 		#ifdef LOG_INTS
 		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!

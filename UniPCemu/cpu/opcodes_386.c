@@ -112,8 +112,11 @@ OPTINLINE void CPU80386_IRET()
 	CPUPROT1
 	CPU_IRET(); //IRET!
 	CPUPROT2
-	if (CPU_apply286cycles()) return; //80286+ cycles instead?
-	CPU[activeCPU].cycles_OP = 24; /*Timings!*/
+	if (CPU[activeCPU].executed) //Executed?
+	{
+		if (CPU_apply286cycles()) return; //80286+ cycles instead?
+		CPU[activeCPU].cycles_OP = 24; /*Timings!*/
+	}
 }
 
 /*
