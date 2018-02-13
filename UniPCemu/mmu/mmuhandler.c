@@ -467,7 +467,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		}
 		else
 		{
-			BIOSROM_LowMemoryBecomesHighMemory = 1; BIOSROM_DisableLowMemory = 0; //Low memory becomes high memory! Leave the BIOS ROM in place!
+			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory! Compaq RAM replaces ROM!
 		}
 		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
