@@ -213,7 +213,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			break;
 		case 0x0D: //Master Reset Register!
 			DMAController[controller].FlipFlop = 0; //Reset!
-			DMAController[controller].StatusRegister = 0; //Reset!
+			DMAController[controller].StatusRegister = 0; //Reset terminal count!
 			DMAController[controller].MultiChannelMaskRegister |= 0xF; //Set the masks!
 			break;
 		case 0x0E: //Mask Reset Register!
@@ -332,7 +332,7 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 				break;
 			//Status registers! This is documented on osdev!
 			case 0x08: //Status Register!
-				*result = DMAController[controller].StatusRegister; //Get!
+				*result = DMAController[controller].StatusRegister = ((DMAController[controller].StatusRegister&0xF)|(DMAController[controller].DREQ<<4)); //Take the TC bits and DREQ signal for the status!
 				DMAController[controller].StatusRegister &= ~0xF; //Clear TC bits!
 				ok = 1;
 				break;
