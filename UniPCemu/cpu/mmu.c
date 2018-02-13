@@ -373,7 +373,6 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 {
 	INLINEREGISTER uint_32 realaddress;
 	byte writewordbackup = writeword; //Save the old value first!
-	if (MMU.invaddr) return; //Abort!
 	if ((MMU.memory==NULL) || !MMU.size) //No mem?
 	{
 		//dolog("MMU","W:No memory present!");
