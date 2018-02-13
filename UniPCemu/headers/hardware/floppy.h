@@ -33,9 +33,4 @@ byte floppy_tracks(uint_64 floppy_size);
 byte floppy_sides(uint_64 floppy_size);
 uint_32 floppy_LBA(byte floppy, word side, word track, word sector);
 void updateFloppy(double timepassed);
-
-#ifdef FDCBOOT_HACK
-//For DMA hack:
-void FLOPPY_DMADACK(); //For processing DACK signal!
-#endif
 #endif
