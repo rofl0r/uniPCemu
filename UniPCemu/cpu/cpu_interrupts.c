@@ -148,10 +148,10 @@ void CPU_IRET()
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		//uint_32 backupESP = REG_ESP;
-		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(3,0,0)) { return; } ++CPU[activeCPU].stackchecked; } //3 Word POPs!
-		if (CPU8086_internal_POPw(0,&IRET_IP,0)) return; //POP IP!
-		if (CPU8086_internal_POPw(2,&IRET_CS,0)) return; //POP CS!
-		if (CPU8086_internal_POPw(4,&IRET_FLAGS,0)) return; //POP FLAGS!
+		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(3,0,CPU_Operand_size[activeCPU])) { return; } ++CPU[activeCPU].stackchecked; } //3 Word POPs!
+		if (CPU8086_internal_POPw(0,&IRET_IP,CPU_Operand_size[activeCPU])) return; //POP IP!
+		if (CPU8086_internal_POPw(2,&IRET_CS,CPU_Operand_size[activeCPU])) return; //POP CS!
+		if (CPU8086_internal_POPw(4,&IRET_FLAGS,CPU_Operand_size[activeCPU])) return; //POP FLAGS!
 		destEIP = (uint_32)IRET_IP; //POP IP!
 		segmentWritten(CPU_SEGMENT_CS,IRET_CS,3); //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
