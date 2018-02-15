@@ -226,8 +226,9 @@ void reset8042() //Reset 8042 up till loading BIOS!
 {
 	FIFOBUFFER *oldbuffer = Controller8042.buffer; //Our fifo buffer?
 	memset(&Controller8042,0,sizeof(Controller8042)); //Init to 0!
-	Controller8042.RAM[0] = 1; //Enable first port interrupt by default!
 	Controller8042.buffer = oldbuffer; //Restore buffer!
+	Controller8042.RAM[0] = is_XT?0x01:0x50; //Init default status! Disable first port and enable translation!
+	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 }
 
 double timing8042=0.0, timing8042_tick=0.0;
@@ -784,8 +785,6 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 	//First: initialise all hardware ports for emulating!
 	register_PORTOUT(&write_8042);
 	register_PORTIN(&read_8042);
-	Controller8042.RAM[0] = is_XT?0x01:0x50; //Init default status! Disable first port and enable translation!
-	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 	reset8042(); //First 8042 controller reset!
 	if (is_XT==0) //IBM AT? We're setting up the input port!
 	{
