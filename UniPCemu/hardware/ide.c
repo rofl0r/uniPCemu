@@ -940,10 +940,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[1] > 1) ? PCI_IDE.BAR[1]+2 : 0x3F6; //Give the BAR!
+		return (PCI_IDE.BAR[1] > 1) ? PCI_IDE.BAR[1] : 0x3F4; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[3] > 1) ? PCI_IDE.BAR[3]+2 : 0x376; //Give the BAR!
+		return (PCI_IDE.BAR[3] > 1) ? PCI_IDE.BAR[3] : 0x374; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -3030,11 +3030,11 @@ byte outATA8(word port, byte value)
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if (port == (getControlPORTaddress(channel))) goto port3_write;
+		if (port == ((getControlPORTaddress(channel))+2)) goto port3_write;
 		channel = 1; //Try secondary channel!
 		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if (port == (getControlPORTaddress(channel))) goto port3_write;
+			if (port == ((getControlPORTaddress(channel))+2)) goto port3_write;
 			return 0; //Not our port?
 		}
 	}
@@ -3106,7 +3106,7 @@ byte outATA8(word port, byte value)
 	}
 	return 0; //Safety!
 port3_write: //Special port #3?
-	port -= getControlPORTaddress(channel); //Get the port from the base!
+	port -= (getControlPORTaddress(channel)+2); //Get the port from the base!
 	if (!ATA_Drives[channel][ATA_activeDrive(channel)]) //Invalid drive?
 	{
 		return 1; //OK!
@@ -3182,11 +3182,11 @@ byte inATA8(word port, byte *result)
 	byte channel = 0; //What channel?
 	if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Primary channel?
 	{
-		if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)+1))) goto port3_read;
+		if ((port >= (getControlPORTaddress(channel)+2)) && (port <= (getControlPORTaddress(channel)+3))) goto port3_read;
 		channel = 1; //Try secondary channel!
 		if ((port<getPORTaddress(channel)) || (port>(getPORTaddress(channel) + 0x7))) //Secondary channel?
 		{
-			if ((port >= (getControlPORTaddress(channel))) && (port <= (getControlPORTaddress(channel)+1))) goto port3_read;
+			if ((port >= (getControlPORTaddress(channel)+2)) && (port <= (getControlPORTaddress(channel)+3))) goto port3_read;
 			return 0; //Not our port?
 		}
 	}
@@ -3268,7 +3268,7 @@ byte inATA8(word port, byte *result)
 	}
 	return 0; //Unsupported!
 port3_read: //Special port #3?
-	port -= getControlPORTaddress(channel); //Get the port from the base!
+	port -= (getControlPORTaddress(channel)+2); //Get the port from the base!
 	if (!ATA_Drives[channel][ATA_activeDrive(channel)]) //Invalid drive?
 	{
 		*result = 0; //Give 0: we're not present!
