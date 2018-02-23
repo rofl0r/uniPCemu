@@ -3409,8 +3409,8 @@ OPTINLINE byte CPU8086_internal_RETF(word popbytes, byte isimm)
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(2,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
 	if (CPU8086_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU8086_internal_POPw(2,&RETF_val,0)) return 1;
-	CPUPROT1
 	if (CPU8086_internal_POPw(4,&RETF_destCS,0)) return 1;
+	CPUPROT1
 	CPUPROT1
 	destEIP = RETF_val; //Load IP!
 	segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4); //CS changed, we're a RETF instruction!

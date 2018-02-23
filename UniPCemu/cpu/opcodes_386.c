@@ -2244,7 +2244,7 @@ OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
 	}
 	return 0;
 }
-extern word RETF_destCS; //Use 8086 location as well!
+uint_32 RETF_destCSd; //Use 8086 location as well!
 uint_32 RETFD_val; //Far return
 
 OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
@@ -2252,11 +2252,11 @@ OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(2,0,1)) return 1; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU80386_internal_POPdw(2,&RETFD_val)) return 1;
+	if (CPU80386_internal_POPdw(4,&RETF_destCSd,1)) return 1;
 	CPUPROT1
-	if (CPU8086_internal_POPw(4,&RETF_destCS,1)) return 1;
 	CPUPROT1
 	destEIP = RETFD_val; //Load IP!
-	segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4); //CS changed, we're a RETF instruction!
+	segmentWritten(CPU_SEGMENT_CS,RETF_destCSd,4); //CS changed, we're a RETF instruction!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	CPUPROT1
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
