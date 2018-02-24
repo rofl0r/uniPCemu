@@ -82,11 +82,11 @@ OPTINLINE void next_mousepacket() //Reads the next mouse packet, if any!
 OPTINLINE void flushPackets() //Flushes all mouse packets!
 {
 	if (__HW_DISABLED) return; //Abort!
-	while (Mouse.packets)
+	while (likely(Mouse.packets))
 	{
 		next_mousepacket(); //Flush all packets!
 	}
-	if (Mouse.lastpacket)
+	if (unlikely(Mouse.lastpacket))
 	{
 		freez((void **)&Mouse.lastpacket,sizeof(MOUSE_PACKET),"Mouse_FlushPacket");
 	}
@@ -97,7 +97,7 @@ OPTINLINE void flushPackets() //Flushes all mouse packets!
 OPTINLINE void resend_lastpacket() //Resends the last packet!
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (Mouse.lastpacket && !Mouse.packetindex) //Gotten a last packet and at the start of a packet?
+	if (likely(Mouse.lastpacket && !Mouse.packetindex)) //Gotten a last packet and at the start of a packet?
 	{
 		Mouse.packets = Mouse.lastpacket; //Resend the last packet!
 	}
@@ -108,7 +108,7 @@ OPTINLINE void resend_lastpacket() //Resends the last packet!
 OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
 {
 	if (__HW_DISABLED) return 1; //Abort!
-	if (Mouse.buttonstatus == packet->buttons) //Same button status?
+	if (likely(Mouse.buttonstatus == packet->buttons)) //Same button status?
 	{
 		if (!packet->xmove && !packet->ymove) //Nothing happened?
 		{
@@ -118,9 +118,9 @@ OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse p
 	}
 	Mouse.buttonstatus = packet->buttons; //Save the current button status!
 	MOUSE_PACKET *currentpacket = Mouse.packets; //Current packet!
-	if (Mouse.packets) //Already have one?
+	if (unlikely(Mouse.packets)) //Already have one?
 	{
-		while (currentpacket->next) //Gotten next?
+		while (likely(currentpacket->next)) //Gotten next?
 		{
 			currentpacket = (MOUSE_PACKET *)currentpacket->next; //Next packet!
 		}
@@ -137,7 +137,7 @@ OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse p
 byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated using zalloc!
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (!Mouse.supported) return 0; //PS/2 mouse not supported!
+	if (likely(Mouse.supported==0)) return 0; //PS/2 mouse not supported!
 	if (!PS2_SECONDPORTDISABLED(Controller8042)) //We're enabled?
 	{
 		if (add_mouse_packet(packet)) //Add a mouse packet, and according to timing!
@@ -180,10 +180,10 @@ OPTINLINE void resetPS2Mouse()
 
 void updatePS2Mouse(double timepassed)
 {
-	if (Mouse.timeout) //Gotten a timeout?
+	if (unlikely(Mouse.timeout)) //Gotten a timeout?
 	{
 		Mouse.timeout -= timepassed; //Pass some time!
-		if (Mouse.timeout <= 0.0) //Done?
+		if (unlikely(Mouse.timeout <= 0.0)) //Done?
 		{
 			Mouse.timeout = (double)0; //Finished!
 			switch (Mouse.command) //What command to execute?

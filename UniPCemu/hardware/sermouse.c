@@ -22,7 +22,7 @@ byte useSERMouse() //Serial mouse enabled?
 
 void SERmouse_packet_handler(MOUSE_PACKET *packet)
 {
-	if (((((packet->xmove) || (packet->ymove)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered) //Something to do and powered on?
+	if (unlikely(((((packet->xmove) || (packet->ymove)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered)) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?

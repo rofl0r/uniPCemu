@@ -16,6 +16,8 @@ byte IRQraised; //IRQ raised?
 } PARALLELPORT[4]; //All parallel ports!
 byte numparallelports = 0; //How many ports?
 
+double paralleltiming = 0.0, paralleltick = (double)0;
+
 void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelControlOUTHandler controlouthandler, ParallelControlINHandler controlinhandler, ParallelStatusHandler statushandler)
 {
 	PARALLELPORT[port].outputhandler = outputhandler;
@@ -32,32 +34,40 @@ void setParallelIRQ(byte port, byte raised)
 void tickParallel(double timepassed)
 {
 	INLINEREGISTER byte port=0;
-	if (numparallelports) //Something to do?
+	if (unlikely(numparallelports)) //Something to do?
 	{
-		do //Only process the ports we have!
+		paralleltiming += timepassed; //To tick!
+		if (unlikely((paralleltiming>=paralleltick) && paralleltick)) //Timed?
 		{
-			if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
+			do
 			{
-				if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
+				do //Only process the ports we have!
 				{
-					switch (port)
+					if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 					{
-						case 0: //IRQ 7!
-							raiseirq(7); //Throw the IRQ!
-							break;
-						case 1: //IRQ 6!
-							raiseirq(6); //Throw the IRQ!
-							break;
-						case 2: //IRQ 5!
-							raiseirq(5); //Throw the IRQ!
-						default: //unknown IRQ?
-							//Don't handle: we're an unknown IRQ!
-							break;
+						if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
+						{
+							switch (port)
+							{
+								case 0: //IRQ 7!
+									raiseirq(7); //Throw the IRQ!
+									break;
+								case 1: //IRQ 6!
+									raiseirq(6); //Throw the IRQ!
+									break;
+								case 2: //IRQ 5!
+									raiseirq(5); //Throw the IRQ!
+								default: //unknown IRQ?
+									//Don't handle: we're an unknown IRQ!
+									break;
+							}
+							PARALLELPORT[port].IRQraised |= 2; //Not raised anymore! Set to a special bit value to detect by software!
+						}
 					}
-					PARALLELPORT[port].IRQraised |= 2; //Not raised anymore! Set to a special bit value to detect by software!
-				}
-			}
-		} while (++port<numparallelports); //Loop while not done!
+				} while (++port<numparallelports); //Loop while not done!
+				paralleltiming -= paralleltick; //Ticked!
+			} while (paralleltiming>=paralleltick); //Tick as needed!
+		}
 	}
 }
 
@@ -184,5 +194,7 @@ void initParallelPorts(byte numports)
 	memset(&PARALLELPORT,0,sizeof(PARALLELPORT)); //Initialise our ports!
 	numparallelports = MIN(numports, NUMITEMS(PARALLELPORT)); //Set with safeguard!
 	register_PORTIN(&inparallel); //Register the read handler!
-	register_PORTOUT(&outparallel); //Register the write handler!	
+	register_PORTOUT(&outparallel); //Register the write handler!
+	paralleltiming = 0.0;
+	paralleltick = (1000000000.0/150000.0f); //150kBPS speed!
 }

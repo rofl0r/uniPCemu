@@ -130,7 +130,7 @@ void tickssourcecovox(double timepassed)
 	setParallelIRQ(0,ssource_full); //Set our interrupt status before rendering to detect!
 
 	ssourcetiming += timepassed; //Tick the sound source!
-	if (ssourcetiming>=ssourcetick) //Enough time passed to tick?
+	if (unlikely(ssourcetiming>=ssourcetick && ssourcetick)) //Enough time passed to tick?
 	{
 		do
 		{
@@ -152,7 +152,7 @@ void tickssourcecovox(double timepassed)
 	}
 	
 	covoxtiming += timepassed; //Tick the Covox Speech Thing!
-	if (covoxtiming>=covoxtick) //Enough time passed to tick?
+	if (unlikely((covoxtiming>=covoxtick) && covoxtick)) //Enough time passed to tick?
 	{
 		//Write both left and right channels at the destination to get the sample rate converted, since we don't have a input buffer(just a state at any moment in time)!
 		do

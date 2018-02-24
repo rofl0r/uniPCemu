@@ -1308,7 +1308,7 @@ void updateVGA(double timepassed, uint_32 MHZ14passed)
 		if (unlikely(Sequencer->extrastatus==0)) Sequencer->extrastatus = &getActiveVGA()->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
 
 		#ifdef LIMITVGA
-		if (passedcounter && currentVGASpeed) getnspassed(&VGA_test); //Still counting? Then count our interval!
+		if (unlikely(passedcounter && currentVGASpeed)) getnspassed(&VGA_test); //Still counting? Then count our interval!
 		#endif
 		do
 		{
@@ -1349,7 +1349,7 @@ void updateVGA(double timepassed, uint_32 MHZ14passed)
 		}
 
 		#ifdef LIMITVGA
-		if (passedcounter && currentVGASpeed) //Still counting?
+		if (unlikely(passedcounter && currentVGASpeed)) //Still counting?
 		{
 			limitcalc = getnspassed(&VGA_test); //How long have we taken?
 

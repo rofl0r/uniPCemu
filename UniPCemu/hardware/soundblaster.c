@@ -154,10 +154,10 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
 	//Check for pending IRQ request!
-	if (soundblaster_IRR > 0.0) //Requesting?
+	if (unlikely(soundblaster_IRR > 0.0)) //Requesting?
 	{
 		soundblaster_IRR -= timepassed; //Substract time!
-		if (soundblaster_IRR <= 0.0) //Expired?
+		if (unlikely(soundblaster_IRR <= 0.0)) //Expired?
 		{
 			//Execute Soft IRR after the requested timeout has passed!
 			writefifobuffer(SOUNDBLASTER.DSPindata, 0xAA); //Acnowledged!
@@ -166,10 +166,10 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		}
 	}
 
-	if (soundblaster_resettiming > 0.0) //Requesting?
+	if (unlikely(soundblaster_resettiming > 0.0)) //Requesting?
 	{
 		soundblaster_resettiming -= timepassed; //Substract time!
-		if (!(soundblaster_resettiming > 0.0)) //Expired?
+		if (unlikely(soundblaster_resettiming <= 0.0)) //Expired?
 		{
 			SoundBlaster_FinishedReset(); //Finished the reset!
 		}
@@ -184,13 +184,13 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	static float recordtime = 0.0f;
 	#endif
 
-	if (SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples) //Transaction busy?
+	if (unlikely(SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples)) //Transaction busy?
 	{
 		//Play audio normally using timed output!
-		if (soundblaster_sampletick) //Valid to time?
+		if (likely(soundblaster_sampletick)) //Valid to time?
 		{
 			soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
-			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
+			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0))) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
 				{
@@ -249,10 +249,10 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	else //Not requesting playback/recording?
 	{
 		//Record audio normally/silenced using timed output!
-		if (soundblaster_sampletick) //Sample ticking?
+		if (likely(soundblaster_sampletick)) //Sample ticking?
 		{
 			soundblaster_sampletiming += timepassed; //Tick time or real-time(for recording)!
-			if ((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0)) //Expired?
+			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0))) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
 				{
@@ -283,7 +283,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		}
 	}
 
-	if (SOUNDBLASTER.singen) //Diagnostic Sine wave generator enabled?
+	if (unlikely(SOUNDBLASTER.singen)) //Diagnostic Sine wave generator enabled?
 	{
 		sb_leftsample = sb_rightsample = 0x80+(byte)(sin(2 *PI*2000.0f*SOUNDBLASTER.singentime) * (float)0x7F); //Give a full wave at the requested speed!
 		SOUNDBLASTER.singentime += timepassed; //Tick the samples processed!
@@ -306,7 +306,7 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 	//Finally, render any rendered Sound Blaster output to the renderer at the correct rate!
 	//Sound Blaster sound output
 	soundblaster_soundtiming += MHZ14passed; //Get the amount of time passed!
-	if (soundblaster_soundtiming >= MHZ14_TICK)
+	if (unlikely(soundblaster_soundtiming >= MHZ14_TICK))
 	{
 		for (;soundblaster_soundtiming >= MHZ14_TICK;)
 		{

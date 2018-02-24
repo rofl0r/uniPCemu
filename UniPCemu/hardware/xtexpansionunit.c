@@ -19,13 +19,13 @@ struct
 
 void latchBUS(uint_32 address, uint_32 data)
 {
-	if (XTEXPANSIONUNIT.expansion_pending) //Pending expansion read/write?
+	if (unlikely(XTEXPANSIONUNIT.expansion_pending)) //Pending expansion read/write?
 	{
 		XTEXPANSIONUNIT.expansion_pending = 0; //Not pending anymore!
 		XTEXPANSIONUNIT.expansionaddress = address; //Save the current the address!
 		XTEXPANSIONUNIT.expansiondata = data; //Save the data!
 	}
-	if (XTEXPANSIONUNIT.receivercard_pending) //Pending receiver card read/write?
+	if (unlikely(XTEXPANSIONUNIT.receivercard_pending)) //Pending receiver card read/write?
 	{
 		XTEXPANSIONUNIT.receivercard_pending = 0; //Not pending anymore!
 		XTEXPANSIONUNIT.receivercardaddress = address; //Save the current the address!
@@ -36,7 +36,7 @@ void latchBUS(uint_32 address, uint_32 data)
 
 byte XTexpansionunit_readIO(word port, byte *result)
 {
-	if ((port&~7)!=0x210) return 0; //Not our ports?
+	if (likely((port&~7)!=0x210)) return 0; //Not our ports?
 	switch (port)
 	{
 		case 0x210: //Verify expansion bus data
@@ -68,7 +68,7 @@ byte XTexpansionunit_readIO(word port, byte *result)
 
 byte XTexpansionunit_writeIO(word port, byte value)
 {
-	if ((port&~7) != 0x210) return 0; //Not our ports?
+	if (likely((port&~7) != 0x210)) return 0; //Not our ports?
 	switch (port)
 	{
 		case 0x210: //Latch expansion bus data

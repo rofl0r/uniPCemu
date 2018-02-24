@@ -156,10 +156,10 @@ extern byte force8042; //Force 8042 style handling?
 
 void updatePS2Keyboard(double timepassed)
 {
-	if (Keyboard.timeout) //Gotten a timeout?
+	if (unlikely(Keyboard.timeout)) //Gotten a timeout?
 	{
 		Keyboard.timeout -= timepassed; //Pass some time!
-		if (Keyboard.timeout <= 0.0) //Done?
+		if (unlikely(Keyboard.timeout <= 0.0)) //Done?
 		{
 			if (Keyboard.has_command==0) //Nothing to be done?
 			{
