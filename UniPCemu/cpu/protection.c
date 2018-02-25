@@ -878,12 +878,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 
 	return dest; //Give the segment descriptor read from memory!
 }
+word segmentWritten_tempSS;
 
 void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	byte oldCPL= getCPL();
 	byte TSSSize, isDifferentCPL;
-	word tempSS;
 	uint_32 tempesp;
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -1004,17 +1004,18 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
+					if (CPU8086_POPw(6,&segmentWritten_tempSS,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //POPped?
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
 					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
-						REG_ESP = CPU_POP32();
+						if (CPU80386_POPdw(8,&REG_ESP)) return; //POP ESP!
 					}
 					else
 					{
-						REG_ESP = (uint_32)CPU_POP16(0);
+						if (CPU8086_POPw(8,&REG_SP,0)) return; //POP SP!
+						REG_ESP &= 0xFFFF; //Only keep what we need!
 					}
 				}
 			}
@@ -1023,9 +1024,9 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				if (getCPL()>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
 					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
-					tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
+					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Back to our calling stack!
+					segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0); //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return;
 					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
