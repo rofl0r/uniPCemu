@@ -4078,7 +4078,7 @@ void CPU8086_OP82() //GRP1 Eb,Ib (same as OP80)
 void CPU8086_OP83() //GRP1 Ev,Ib
 {
 	INLINEREGISTER word imm;
-	imm = immb;
+	imm = (word)immb;
 	if (imm&0x80) imm |= 0xFF00; //Sign extend!
 	if (cpudebugger) //Debugger on?
 	{

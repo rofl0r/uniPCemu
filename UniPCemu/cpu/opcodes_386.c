@@ -2836,7 +2836,7 @@ void CPU80386_OP81() //GRP1 Ev,Iv
 void CPU80386_OP83() //GRP1 Ev,Ib
 {
 	INLINEREGISTER uint_32 imm;
-	imm = immb;
+	imm = (uint_32)immb;
 	if (imm&0x80) imm |= 0xFFFFFF00; //Sign extend!
 	if (cpudebugger) //Debugger on?
 	{
