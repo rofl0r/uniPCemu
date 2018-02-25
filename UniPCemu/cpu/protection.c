@@ -10,6 +10,8 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution flow support!
+#include "headers/cpu/CPU_OP8086.h" //8086+ push/pop support!
+#include "headers/cpu/CPU_OP80386.h" //80386+ push/pop support!
 
 /*
 
@@ -1085,13 +1087,13 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
-				CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,1)) return;
+				if (CPU80386_internal_PUSHdw(2,&CPU[activeCPU].registers->EIP)) return;
 			}
 			else //16-bit?
 			{
-				CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
-				CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
+				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return;
+				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return;
 			}
 		}
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
