@@ -756,7 +756,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //98h:
 		{ NULL, NULL }, //99h:
 		{ NULL, NULL }, //9Ah:
-		{ NULL, NULL }, //9Bh:
+		{ FPU80287_OP9B, NULL }, //9Bh: CoProcessor: FWAIT
 		{ NULL, NULL }, //9Ch:
 		{ CPU286_OP9D, NULL }, //9Dh:
 		{ NULL, NULL }, //9Eh:
