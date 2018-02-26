@@ -2518,6 +2518,18 @@ void CPU_COOP_notavailable() //COProcessor not available!
 	THROWDESCNM(); //Same!
 }
 
+void THROWDESCMF() //#MF(Coprocessor Error) exception handler!
+{
+	//Point to opcode origins!
+	if (CPU_faultraised(EXCEPTION_COPROCESSORERROR)==0) //Throw #NM exception!
+	{
+		return; //Abort handling when needed!
+	}
+	CPU_resetOP(); //Reset instruction to start of instruction!
+	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORERROR,0,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
+}
+
 void CPU_unkOP() //General unknown OPcode handler!
 {
 	if (EMULATED_CPU>=CPU_NECV30) //Invalid opcode exception? 8086 just ignores the instruction and continues running!
