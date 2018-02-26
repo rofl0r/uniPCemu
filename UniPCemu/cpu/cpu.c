@@ -2501,16 +2501,21 @@ void CPU_BoundException() //Bound exception!
 	CPU_executionphase_startinterrupt(EXCEPTION_BOUNDSCHECK,0,-1); //Execute INT1 normally using current CS:(E)IP!
 }
 
-void CPU_COOP_notavailable() //COProcessor not available!
+void THROWDESCNM() //#NM exception handler!
 {
 	//Point to opcode origins!
-	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE)==0)
+	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE)==0) //Throw #NM exception!
 	{
 		return; //Abort handling when needed!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,0,-1); //Execute INT1 normally using current CS:(E)IP!
+	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,0,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
+}
+
+void CPU_COOP_notavailable() //COProcessor not available!
+{
+	THROWDESCNM(); //Same!
 }
 
 void CPU_unkOP() //General unknown OPcode handler!
