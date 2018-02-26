@@ -26,7 +26,7 @@ void FPU80287_OPDB();
 void FPU80287_OPDF();
 void FPU80287_OPDD();
 void FPU80287_OPD9();
-void FPU80286_OP9B(); //FWAIT
+void FPU80287_OP9B(); //FWAIT
 
 void FPU80287_noCOOP(); //Rest opcodes for the Escaped instructions!
 
