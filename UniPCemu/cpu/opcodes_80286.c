@@ -761,7 +761,7 @@ void FPU80287_OPDFE0() { debugger_setcommand("<UNKOP8087: FNINIT>"); }
 void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
 void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
 
-
+void CPU80286_OP9B() {modrm_generateInstructionTEXT("WAIT",0,0,PARAM_NONE);/*WAIT : wait for TEST pin activity. (UNIMPLEMENTED)*/ if (CPU[activeCPU].registers->CR0&0x20) { FPU80287_noCOOP(); return; /* Emulate! */ } /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE3){FPU80287_OPDBE3();} else{FPU80287_noCOOP();} CPUPROT2 }
 void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE0){FPU80287_OPDFE0();} else {FPU80287_noCOOP();} CPUPROT2 }
 void FPU80287_OPDD(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {FPU80287_noCOOP();} CPUPROT2 }
@@ -772,7 +772,7 @@ void FPU80287_noCOOP() {
 	if ((CPU[activeCPU].registers->CR0&CR0_EM) || ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched?
 	{
 		CPU_resetOP();
-		CPU_COOP_notavailable(); //Only on 286+!
+		THROWDESCNM(); //Only on 286+!
 	}
 	if (CPU_apply286cycles()==0) //No 286+? Apply the 80286+ cycles!
 	{
