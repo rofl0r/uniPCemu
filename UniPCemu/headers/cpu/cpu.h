@@ -1076,6 +1076,7 @@ void CPU_exDIV0(); //Division by 0!
 void CPU_exSingleStep(); //Single step (after the opcode only)
 void CPU_BoundException(); //Bound exception!
 void CPU_COOP_notavailable(); //COProcessor not available!
+void THROWDESCNM(); //#NM exception handler!
 
 void CPU_getint(byte intnr, word *segment, word *offset); //Set real mode IVT entry!
 
