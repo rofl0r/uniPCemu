@@ -757,9 +757,9 @@ void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 //FPU non-existant Coprocessor support!
 
 void FPU80287_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
-void FPU80287_OPDFE0() { debugger_setcommand("<UNKOP8087: FNINIT>"); }
-void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP8087: FNSTSW>"); }
-void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP8087: FNSTCW>"); }
+void FPU80287_OPDFE0() { debugger_setcommand("<UNKOP80287: FSTSW AX>"); }
+void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP80287: FNSTSW>"); }
+void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP80287: FNSTCW>"); }
 
 void FPU80287_OP9B() {modrm_generateInstructionTEXT("FWAIT",0,0,PARAM_NONE); if (CPU[activeCPU].registers->CR0&0x20) { THROWDESCMF(); return; /* #MF Fault! */ } /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE3){FPU80287_OPDBE3();} else{FPU80287_noCOOP();} CPUPROT2 }
