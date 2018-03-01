@@ -113,6 +113,7 @@ struct
 	byte seekrelup[4]; //Seek relatively upwards(towards larger cylinders)?
 	byte MTMask; //Allow MT to be used in sector increase operations?
 	double DMArate, DMAratePending; //Current DMA transfer rate!
+	byte RWRequestedCylinder; //Read/Write requested cylinder!
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -842,12 +843,17 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 
 			if (headoverflow) //Head overflown?
 			{
+				/*
 				++FLOPPY.currentcylinder[floppy]; //FDC too!
+				++FLOPPY.RWRequestedCylinder; //Cylinder to access?
 				if (++FLOPPY.physicalcylinder[floppy] >= FLOPPY.geometries[floppy]->tracks) //Track overflow?
 				{
 					FLOPPY.currentcylinder[floppy] = 0; //Reset track number!
 					FLOPPY.physicalcylinder[floppy] = 0; //Reset track number!
+					FLOPPY.RWRequestedCylinder = 0; //Cylinder to access?
 				}
+				*/
+				//Overflow doesn't tick the cylinder to another track!
 				updateST3(floppy); //Update ST3 only!
 			}
 		}
@@ -1041,6 +1047,11 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		goto floppy_errorread; //Error out!
 	}
 
+	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+	{
+		goto floppy_errorread; //Error out!
+	}
+
 	if (readdata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 	{
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
@@ -1126,6 +1137,11 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	else //Writeable disk?
 	{
 		//Check normal error conditions that applies to all disk images!
+		if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+		{
+			goto floppy_errorformat; //Error out!
+		}
+
 		if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 		{
 			floppy_errorformat:
@@ -1270,6 +1286,12 @@ OPTINLINE void floppy_executeWriteData()
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;					
 	}
+
+	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+	{
+		goto floppy_errorwrite; //Error out!
+	}
+
 	if (writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 	{
 		switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
@@ -1283,6 +1305,7 @@ OPTINLINE void floppy_executeWriteData()
 			break;
 		case 0: //OK?
 		default: //Unknown?
+			floppy_errorwrite:
 			FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 			FLOPPY_ST0_NOTREADYW(0); //We're ready!
@@ -1473,7 +1496,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case WRITE_DATA: //Write sector
 		case WRITE_DELETED_DATA: //Write deleted sector
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
-			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
+			FLOPPY.RWRequestedCylinder = FLOPPY.commandbuffer[2]; //Requested cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
 			updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
@@ -1486,7 +1509,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case SCAN_HIGH_OR_EQUAL:
 		case VERIFY: //Verify doesn't transfer data directly!
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
-			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Current cylinder!
+			FLOPPY.RWRequestedCylinder = FLOPPY.commandbuffer[2]; //Requested cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
 			updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
@@ -1587,6 +1610,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				goto floppy_errorReadID; //Error out!
 			}
+			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
 			FLOPPY.ST0 = 0x00; //Clear ST0 by default!
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
 			FLOPPY_ST0_NOTREADYW(0); //Ready!
@@ -2167,7 +2191,6 @@ void updateFloppy(double timepassed)
 							if (FLOPPY.physicalcylinder[drive]) //Not there yet?
 							{
 								--FLOPPY.physicalcylinder[drive]; //Step down!
-								if (FLOPPY.currentcylinder[drive]) --FLOPPY.currentcylinder[drive]; //Decrease our counter too, if any!
 							}
 							if (FLOPPY.physicalcylinder[drive] && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
 							{
