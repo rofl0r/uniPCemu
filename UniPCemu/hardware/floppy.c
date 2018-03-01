@@ -829,7 +829,8 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 				{
 					result = 0; //SPT finished!
 				}
-			
+			}
+
 			FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
 			//Apply Multi Track accordingly!
