@@ -4080,7 +4080,7 @@ void CPU386_OPC8()
 			{
 				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
 			}
-			if (CPU80386_internal_stepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,REG_BP-(temp16<<2),&ebpdata,1)) return; //Read data from memory to copy the stack!
+			if (CPU80386_internal_stepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,(STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<2),&ebpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
 			framestep += 2; //We're adding 2 immediately!
 			if (unlikely(CPU[activeCPU].internalinstructionstep==framestep)) //At the write back phase?
 			{
@@ -4104,16 +4104,46 @@ void CPU386_OPC8()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
-void CPU386_OPC9()
+void CPU386_OPC9_32()
 {
 	debugger_setcommand("LEAVE");
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
-		REG_ESP = REG_EBP; //LEAVE starting!
+		if (unlikely(STACK_SEGMENT_DESCRIPTOR_B_BIT())) //32-bit stack?
+		{
+			REG_ESP = REG_EBP; //LEAVE starting!
+		}
+		else
+		{
+			REG_SP = REG_BP; //LEAVE starting!
+		}
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU80386_POPdw(1,&REG_EBP)) //Not done yet?
+	{
+		return; //Abort!
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+}
+
+void CPU386_OPC9_16()
+{
+	debugger_setcommand("LEAVE");
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (CPU[activeCPU].instructionstep==0) //Starting?
+	{
+		if (unlikely(STACK_SEGMENT_DESCRIPTOR_B_BIT())) //32-bit stack?
+		{
+			REG_ESP = REG_EBP; //LEAVE starting!
+		}
+		else
+		{
+			REG_SP = REG_BP; //LEAVE starting!
+		}
+		++CPU[activeCPU].instructionstep; //Next step!
+	}
+	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!
 	}

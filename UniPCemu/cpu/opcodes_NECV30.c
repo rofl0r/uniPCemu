@@ -694,7 +694,7 @@ void CPU186_OPC8()
 			{
 				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
 			}
-			if (CPU8086_internal_stepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS,REG_BP-(temp16<<1),&bpdata,1)) return; //Read data from memory to copy the stack!
+			if (CPU8086_internal_stepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
 			framestep += 2; //We're adding 2 immediately!
 			if (CPU[activeCPU].internalinstructionstep==framestep) //At the write back phase?
 			{
