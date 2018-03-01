@@ -1547,7 +1547,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
 			FLOPPY_ST0_NOTREADYW(0); //We're ready again!
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
-			FLOPPY.resultbuffer[1] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
+			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
