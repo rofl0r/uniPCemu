@@ -2406,6 +2406,10 @@ void initFDC()
 {
 	density_forced = (is_XT==0); //Allow force density check if 286+ (non XT)!
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
+	FLOPPY.Configuration.data[0] = 0; //Default!
+	FLOPPY.Configuration.data[1] = 0x60; //Implied seek enable, FIFO disable, Drive polling mode enable, no treshold(0)
+	FLOPPY.Configuration.data[2] = 0; //No write precompensation!
+
 	//Initialise DMA controller settings for the FDC!
 	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!
 	registerDMA8(FLOPPY_DMA, &DMA_floppyread, &DMA_floppywrite); //Register our DMA channels!
