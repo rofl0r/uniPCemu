@@ -477,6 +477,12 @@ byte floppy_sides(uint_64 floppy_size)
 	return 0; //Unknown!
 }
 
+//Simple floppy recalibrate/seek action complete handlers!
+void FLOPPY_finishrecalibrate(byte drive);
+void FLOPPY_finishseek(byte drive);
+void FLOPPY_checkfinishtiming(byte drive);
+
+
 OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 {
 	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
@@ -1047,6 +1053,16 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		goto floppy_errorread; //Error out!
 	}
 
+	if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
+	{
+		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
+		{
+			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
+		}
+	}
+
 	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
 	{
 		goto floppy_errorread; //Error out!
@@ -1137,6 +1153,15 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	else //Writeable disk?
 	{
 		//Check normal error conditions that applies to all disk images!
+		if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
+		{
+			if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
+			{
+				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
+			}
+		}
 		if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
 		{
 			goto floppy_errorformat; //Error out!
@@ -1285,6 +1310,16 @@ OPTINLINE void floppy_executeWriteData()
 		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		return;					
+	}
+
+	if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
+	{
+		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
+		{
+			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
+		}
 	}
 
 	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
@@ -1477,10 +1512,6 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 			break;
 	}
 }
-
-void FLOPPY_finishrecalibrate(byte drive);
-void FLOPPY_finishseek(byte drive);
-void FLOPPY_checkfinishtiming(byte drive);
 
 OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
