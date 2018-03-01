@@ -157,7 +157,8 @@ void CPU386_OP6F();
 
 void CPU386_OPC1(); //GRP2 Ev,Ib
 
-void CPU386_OPC8(); //ENTER Iw,Ib
+void CPU386_OPC8_16(); //ENTER Iw,Ib
+void CPU386_OPC8_32(); //ENTER Iw,Ib
 void CPU386_OPC9_16(); //LEAVE
 void CPU386_OPC9_32(); //LEAVE
 

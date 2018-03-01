@@ -4036,7 +4036,7 @@ void CPU386_OPC1()
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!
-void CPU386_OPC8()
+void CPU386_OPC8_32()
 {
 	uint_32 temp16;    //ENTER Iw,Ib
 	word stacksize = immw;
@@ -4100,7 +4100,89 @@ void CPU386_OPC8()
 	}
 	
 	REG_EBP = frametemp;
-	REG_ESP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit stack?
+	{
+		REG_ESP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	}
+	else
+	{
+		REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	}
+	CPU_apply286cycles(); //Apply the 80286+ cycles!
+}
+
+void CPU386_OPC8_16()
+{
+	word temp16;    //ENTER Iw,Ib
+	word stacksize = immw;
+	byte nestlev = immb;
+	word bpdata;
+	debugger_setcommand("ENTER %04X,%02X",stacksize,nestlev);
+	nestlev &= 0x1F; //MOD 32!
+	if (EMULATED_CPU>CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+	{
+		if (unlikely(CPU[activeCPU].instructionstep==0)) 
+		{
+			if (checkStackAccess(1+nestlev,1,0)) return; //Abort on error!
+			if (checkENTERStackAccess((nestlev>1)?(nestlev-1):0,0)) return; //Abort on error!
+		}
+	}
+	ENTER_L = nestlev; //Set the nesting level used!
+	//according to http://www.felixcloutier.com/x86/ENTER.html
+	if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+	{
+		if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(1,1,0)) return; //Abort on error!		
+	}
+
+	/*
+	if (CPU[activeCPU].instructionstep==0) //Starting the instruction?
+	{
+		CPU[activeCPU].have_oldESP = 1; //We have an old ESP to jump back to!
+		CPU[activeCPU].oldESP = REG_ESP; //Back-up!
+	}
+	*/ //Done automatically at the start of an instruction!
+
+	if (CPU8086_PUSHw(0,&REG_BP,0)) return; //Busy pushing?
+	word frametemp = (word)CPU[activeCPU].oldESP; //Read the original value to start at(for stepping compatibility)!
+	word framestep,instructionstep;
+	instructionstep = 2; //We start at step 2 for the stack operations on instruction step!
+	framestep = 0; //We start at step 0 for the stack frame operations!
+	if (nestlev)
+	{
+		for (temp16=1; temp16<nestlev; ++temp16)
+		{
+			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+			{
+				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
+			}
+			if (CPU8086_internal_stepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
+			framestep += 2; //We're adding 2 immediately!
+			if (CPU[activeCPU].internalinstructionstep==framestep) //At the write back phase?
+			{
+				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+				{
+					if (checkStackAccess(1,1,0)) return; //Abort on error!
+				}
+				if (CPU8086_PUSHw(instructionstep,&bpdata,0)) return; //Write back!
+			}
+			instructionstep += 2; //Next instruction step base to process!
+		}
+		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+		{
+			if (checkStackAccess(1,1,0)) return; //Abort on error!		
+		}
+		if (CPU8086_PUSHw(instructionstep,&frametemp,0)) return; //Felixcloutier.com says frametemp, fake86 says Sp(incorrect).
+	}
+	
+	REG_BP = frametemp;
+	if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit stack?
+	{
+		REG_ESP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	}
+	else
+	{
+		REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
+	}
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
