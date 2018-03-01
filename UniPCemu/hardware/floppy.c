@@ -1456,6 +1456,10 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 	}
 }
 
+void FLOPPY_finishrecalibrate(byte drive);
+void FLOPPY_finishseek(byte drive);
+void FLOPPY_checkfinishtiming(byte drive);
+
 OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
@@ -1504,6 +1508,11 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			FLOPPY.recalibratestepsleft[FLOPPY_DOR_DRIVENUMBERR] = 79; //Up to 79 pulses!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
+			if (!FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Already there?
+			{
+				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
+				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+			}
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
@@ -1552,6 +1561,11 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
+			if (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
+			{
+				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
+				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+			}
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
 			FLOPPY.currenthead[FLOPPY.commandbuffer[1]&3] = (FLOPPY.commandbuffer[1]&4)>>2; //Set the new head from the parameters!
@@ -2041,6 +2055,43 @@ OPTINLINE byte floppy_readData()
 	return ~0; //Not used yet!
 }
 
+void FLOPPY_finishrecalibrate(byte drive)
+{
+	//Execute interrupt!
+	FLOPPY.currentcylinder[drive] = 0; //Goto cylinder #0 according to the FDC!
+	FLOPPY.ST0 = 0x20|drive; //Completed command!
+	updateST3(drive); //Update ST3 only!
+	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
+	{
+		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
+	} //We always report success!
+	updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
+	clearDiskChanged(); //Clear the disk changed flag for the new command!
+	FLOPPY_raiseIRQ(); //We're finished!
+	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+	floppytimer[drive] = 0.0; //Don't time anymore!
+}
+
+void FLOPPY_finishseek(byte drive)
+{
+	FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
+	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
+	updateST3(drive); //Update ST3 only!
+	FLOPPY_raiseIRQ(); //Finished executing phase!
+	clearDiskChanged(); //Clear the disk changed flag for the new command!
+	floppytimer[drive] = 0.0; //Don't time anymore!
+	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+}
+
+void FLOPPY_checkfinishtiming(byte drive)
+{
+	if (!floppytimer[drive]) //Finished timing?
+	{
+		floppytime[drive] = (double)0; //Clear the remaining time!
+		floppytiming &= ~(1<<drive); //We're not timing anymore on this drive!
+	}
+}
+
 //Timed floppy disk operations!
 void updateFloppy(double timepassed)
 {
@@ -2093,13 +2144,7 @@ void updateFloppy(double timepassed)
 							//Check if we're there!
 							if (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
 							{
-								FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
-								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
-								updateST3(drive); //Update ST3 only!
-								FLOPPY_raiseIRQ(); //Finished executing phase!
-								clearDiskChanged(); //Clear the disk changed flag for the new command!
-								floppytimer[drive] = 0.0; //Don't time anymore!
-								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
+								FLOPPY_finishseek(drive); //Finish!
 								goto finishdrive; //Give an error!
 							}
 							else if (movedcylinder==0) //Reached no destination?
@@ -2126,19 +2171,7 @@ void updateFloppy(double timepassed)
 							}
 							else //Finished? Track 0 might be found!
 							{
-								//Execute interrupt!
-								FLOPPY.currentcylinder[drive] = 0; //Goto cylinder #0 according to the FDC!
-								FLOPPY.ST0 = 0x20|drive; //Completed command!
-								updateST3(drive); //Update ST3 only!
-								if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
-								{
-									FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
-								} //We always report success!
-								updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
-								clearDiskChanged(); //Clear the disk changed flag for the new command!
-								FLOPPY_raiseIRQ(); //We're finished!
-								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
-								floppytimer[drive] = 0.0; //Don't time anymore!
+								FLOPPY_finishrecalibrate(drive); //Finish us!
 								goto finishdrive;
 							}
 							break;
@@ -2167,11 +2200,7 @@ void updateFloppy(double timepassed)
 					}
 				}
 				finishdrive:
-				if (!floppytimer[drive]) //Finished timing?
-				{
-					floppytime[drive] = (double)0; //Clear the remaining time!
-					floppytiming &= ~(1<<drive); //We're not timing anymore on this drive!
-				}
+				FLOPPY_checkfinishtiming(drive); //Check for finished timing!
 			}
 		} while (++drive<4); //Process all drives!
 	}
