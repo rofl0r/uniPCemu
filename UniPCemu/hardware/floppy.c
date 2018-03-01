@@ -2074,7 +2074,6 @@ void FLOPPY_finishrecalibrate(byte drive)
 
 void FLOPPY_finishseek(byte drive)
 {
-	FLOPPY.currentcylinder[drive] = FLOPPY.seekdestination[drive]; //Set the current cylinder!
 	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
 	updateST3(drive); //Update ST3 only!
 	FLOPPY_raiseIRQ(); //Finished executing phase!
