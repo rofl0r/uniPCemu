@@ -1513,6 +1513,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
 			}
+			else
+			{
+				clearDiskChanged(); //Clear the disk changed flag for the new command!
+			}
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
@@ -1565,6 +1569,10 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			{
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+			}
+			else
+			{
+				clearDiskChanged(); //Clear the disk changed flag for the new command!
 			}
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
@@ -2066,7 +2074,6 @@ void FLOPPY_finishrecalibrate(byte drive)
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	} //We always report success!
 	updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
-	clearDiskChanged(); //Clear the disk changed flag for the new command!
 	FLOPPY_raiseIRQ(); //We're finished!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 	floppytimer[drive] = 0.0; //Don't time anymore!
@@ -2077,7 +2084,6 @@ void FLOPPY_finishseek(byte drive)
 	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
 	updateST3(drive); //Update ST3 only!
 	FLOPPY_raiseIRQ(); //Finished executing phase!
-	clearDiskChanged(); //Clear the disk changed flag for the new command!
 	floppytimer[drive] = 0.0; //Don't time anymore!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 }
