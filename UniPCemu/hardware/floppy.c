@@ -829,7 +829,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 				{
 					result = 0; //SPT finished!
 				}
-			}
+			
 			FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
 			//Apply Multi Track accordingly!
@@ -847,19 +847,11 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 				headoverflow = 1; //We always overflow the head!
 			}
 
-			if (headoverflow) //Head overflown?
+			/*if (headoverflow) //Head overflown?
 			{
-				//Overflow doesn't tick the cylinder to another track?
-				++FLOPPY.currentcylinder[floppy]; //FDC too!
-				++FLOPPY.RWRequestedCylinder; //Cylinder to access?
-				if (++FLOPPY.physicalcylinder[floppy] >= FLOPPY.geometries[floppy]->tracks) //Track overflow?
-				{
-					FLOPPY.currentcylinder[floppy] = 0; //Reset track number!
-					FLOPPY.physicalcylinder[floppy] = 0; //Reset track number!
-					FLOPPY.RWRequestedCylinder = 0; //Cylinder to access?
-				}
-				updateST3(floppy); //Update ST3 only!
-			}
+				Overflow doesn't tick the cylinder to another track?
+			}*/
+			updateST3(floppy); //Update ST3 only!
 		}
 	}
 	
