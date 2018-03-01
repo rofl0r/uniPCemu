@@ -646,7 +646,6 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
 			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
 			memset(FLOPPY.currentcylinder, 0, sizeof(FLOPPY.currentcylinder)); //Clear the current cylinder of the FDC!
-			memset(FLOPPY.physicalcylinder, 0, sizeof(FLOPPY.physicalcylinder)); //Clear the current cylinder of the drive!
 			memset(FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
 			updateST3(0); //Update ST3 only!
 			FLOPPY.TC = 0; //Disable TC identifier!
