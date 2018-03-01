@@ -4111,8 +4111,9 @@ void CPU386_OPC9()
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		REG_ESP = REG_EBP; //LEAVE starting!
+		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	if (CPU80386_POPdw(0,&REG_EBP)) //Not done yet?
+	if (CPU80386_POPdw(1,&REG_EBP)) //Not done yet?
 	{
 		return; //Abort!
 	}

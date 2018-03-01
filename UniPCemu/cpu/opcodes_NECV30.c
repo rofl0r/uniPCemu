@@ -724,8 +724,9 @@ void CPU186_OPC9()
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		REG_SP = REG_BP; //LEAVE starting!
+		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	if (CPU8086_POPw(0,&REG_BP,0)) //Not done yet?
+	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!
 	}
