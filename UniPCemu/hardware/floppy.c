@@ -1609,7 +1609,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
+			if (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
 			{
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
@@ -2192,7 +2192,7 @@ void updateFloppy(double timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.MT==0)) || (FLOPPY.MT && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
+							if (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
 							{
 								FLOPPY_finishseek(drive); //Finish!
 								goto finishdrive; //Give an error!
