@@ -719,14 +719,14 @@ void CPU186_OPC8()
 }
 void CPU186_OPC9()
 {
-	word oldSP;
 	debugger_setcommand("LEAVE");
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
-	oldSP = REG_SP; //Backup SP!
-	REG_SP = REG_BP;    //LEAVE
+	if (CPU[activeCPU].instructionstep==0) //Starting?
+	{
+		REG_SP = REG_BP; //LEAVE starting!
+	}
 	if (CPU8086_POPw(0,&REG_BP,0)) //Not done yet?
 	{
-		REG_SP = oldSP; //Restore SP to retry later!
 		return; //Abort!
 	}
 	CPU_apply286cycles(); //Apply the 80286+ cycles!

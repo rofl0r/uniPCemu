@@ -4106,14 +4106,14 @@ void CPU386_OPC8()
 
 void CPU386_OPC9()
 {
-	uint_32 oldESP;
 	debugger_setcommand("LEAVE");
-	if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
-	oldESP = REG_ESP; //Backup SP!
-	REG_ESP = REG_EBP;    //LEAVE
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (CPU[activeCPU].instructionstep==0) //Starting?
+	{
+		REG_ESP = REG_EBP; //LEAVE starting!
+	}
 	if (CPU80386_POPdw(0,&REG_EBP)) //Not done yet?
 	{
-		REG_ESP = oldESP; //Restore ESP to retry later!
 		return; //Abort!
 	}
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
