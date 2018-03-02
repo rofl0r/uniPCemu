@@ -1608,7 +1608,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
+			if ((FLOPPY_DOR_DRIVENUMBERR<2) && ((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
 			{
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
@@ -2116,7 +2116,7 @@ void FLOPPY_finishrecalibrate(byte drive)
 	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
 	{
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
-	} //We always report success!
+	}
 	updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
 	FLOPPY_raiseIRQ(); //We're finished!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
@@ -2126,6 +2126,10 @@ void FLOPPY_finishrecalibrate(byte drive)
 void FLOPPY_finishseek(byte drive)
 {
 	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
+	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
+	{
+		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
+	}
 	updateST3(drive); //Update ST3 only!
 	FLOPPY_raiseIRQ(); //Finished executing phase!
 	floppytimer[drive] = 0.0; //Don't time anymore!
@@ -2191,7 +2195,7 @@ void updateFloppy(double timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
+							if ((drive<2) && ((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
 							{
 								FLOPPY_finishseek(drive); //Finish!
 								goto finishdrive; //Give an error!
@@ -2209,11 +2213,11 @@ void updateFloppy(double timepassed)
 							}
 							break;
 						case RECALIBRATE: //Calibrate drive
-							if (FLOPPY.physicalcylinder[drive]) //Not there yet?
+							if (FLOPPY.physicalcylinder[drive] && (drive<2)) //Not there yet?
 							{
 								--FLOPPY.physicalcylinder[drive]; //Step down!
 							}
-							if (FLOPPY.physicalcylinder[drive] && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
+							if (((FLOPPY.physicalcylinder[drive]) || (drive>=2)) && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
 							{
 								--FLOPPY.recalibratestepsleft[drive];
 							}
