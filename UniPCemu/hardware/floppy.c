@@ -2126,7 +2126,7 @@ void FLOPPY_finishrecalibrate(byte drive)
 void FLOPPY_finishseek(byte drive)
 {
 	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
-	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
+	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1)) //Motor not on or invalid drive(which can't finish the seek correctly and provide the signal for completion)?
 	{
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	}
