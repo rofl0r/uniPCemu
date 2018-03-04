@@ -817,7 +817,7 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 1; //Default: read/write more
-	byte headoverflow = 0; //Head overflown?
+	//byte headoverflow = 0; //Head overflown?
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
 		if (++FLOPPY.currentsector[floppy] > FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
@@ -839,13 +839,13 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 				if (FLOPPY.currenthead[floppy] >= FLOPPY.geometries[floppy]->sides) //Side overflow?
 				{
 					FLOPPY.currenthead[floppy] = 0; //Reset side number!
-					headoverflow = 1; //We've overflown the head!
+					//headoverflow = 1; //We've overflown the head!
 				}
 			}
-			else //Single head?
+			/*else //Single head?
 			{
 				headoverflow = 1; //We always overflow the head!
-			}
+			}*/
 
 			/*if (headoverflow) //Head overflown?
 			{
@@ -1608,7 +1608,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if ((FLOPPY_DOR_DRIVENUMBERR<2) && ((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0))) //Found and existant?
+			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
 			{
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
@@ -2195,7 +2195,7 @@ void updateFloppy(double timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if ((drive<2) && ((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0))) //Found and existant?
+							if ((drive<2) && (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0)))) //Found and existant?
 							{
 								FLOPPY_finishseek(drive); //Finish!
 								goto finishdrive; //Give an error!
