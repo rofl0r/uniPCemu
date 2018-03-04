@@ -683,7 +683,7 @@ OPTINLINE void modrm_actualdebuggerSZX(char *instruction)
 
 OPTINLINE void modrm_debugger16_8(char *instruction)
 {
-	if (cpudebugger)
+	if (unlikely(cpudebugger))
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
@@ -695,7 +695,7 @@ OPTINLINE void modrm_debugger16_8(char *instruction)
 
 OPTINLINE void modrm_debugger32_8(char *instruction)
 {
-	if (cpudebugger)
+	if (unlikely(cpudebugger))
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
@@ -707,7 +707,7 @@ OPTINLINE void modrm_debugger32_8(char *instruction)
 
 OPTINLINE void modrm_debugger16_16(char *instruction)
 {
-	if (cpudebugger)
+	if (unlikely(cpudebugger))
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
@@ -719,7 +719,7 @@ OPTINLINE void modrm_debugger16_16(char *instruction)
 
 OPTINLINE void modrm_debugger32_16(char *instruction)
 {
-	if (cpudebugger)
+	if (unlikely(cpudebugger))
 	{
 		cleardata(&modrm_param1[0],sizeof(modrm_param1));
 		cleardata(&modrm_param2[0],sizeof(modrm_param2));
@@ -1066,7 +1066,7 @@ void CPU80386_OP0FBA_16() {
 	{
 		case 4: //BT r/m16,imm8
 			//Debugger
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,MODRM_src0,&modrm_param1[0]);
@@ -1079,7 +1079,7 @@ void CPU80386_OP0FBA_16() {
 			CPU80386_BT16(instructionbufferw,immb);
 			break;
 		case 5: //BTS r/m16,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,MODRM_src0,&modrm_param1[0]);
@@ -1102,7 +1102,7 @@ void CPU80386_OP0FBA_16() {
 			if (CPU8086_instructionstepwritemodrmw(3,instructionbufferw,MODRM_src0,0)) return;
 			break;
 		case 6: //BTR r/m16,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,MODRM_src0,&modrm_param1[0]);
@@ -1125,7 +1125,7 @@ void CPU80386_OP0FBA_16() {
 			if (CPU8086_instructionstepwritemodrmw(3,instructionbufferw,MODRM_src0,0)) return;
 			break;
 		case 7: //BTC r/m16,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text16(&params,MODRM_src0,&modrm_param1[0]);
@@ -1162,7 +1162,7 @@ void CPU80386_OP0FBA_32() {
 	{
 		case 4: //BT r/m32,imm8
 			//Debugger
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text32(&params,MODRM_src0,&modrm_param1[0]);
@@ -1175,7 +1175,7 @@ void CPU80386_OP0FBA_32() {
 			CPU80386_BT32(instructionbufferd,immb);
 			break;
 		case 5: //BTS r/m32,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text32(&params,MODRM_src0,&modrm_param1[0]);
@@ -1198,7 +1198,7 @@ void CPU80386_OP0FBA_32() {
 			if (CPU80386_instructionstepwritemodrmdw(3,instructionbufferd,MODRM_src0)) return;
 			break;
 		case 6: //BTR r/m32,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text32(&params,MODRM_src0,&modrm_param1[0]);
@@ -1221,7 +1221,7 @@ void CPU80386_OP0FBA_32() {
 			if (CPU80386_instructionstepwritemodrmdw(3,instructionbufferd,MODRM_src0)) return;
 			break;
 		case 7: //BTC r/m32,imm8
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				cleardata(&modrm_param1[0],sizeof(modrm_param1));
 				modrm_text32(&params,MODRM_src0,&modrm_param1[0]);

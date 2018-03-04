@@ -2308,7 +2308,7 @@ extern byte XLAT_value; //XLAT
 
 OPTINLINE byte CPU80386_internal_XLAT()
 {
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
@@ -2633,7 +2633,7 @@ void CPU80386_OP9C() {modrm_generateInstructionTEXT("PUSHFD",0,0,PARAM_NONE);/*P
 
 void CPU80386_OP9D_16() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; } //#GP fault!
+	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3))) { THROWDESCGP(0,0,0); return; } //#GP fault!
 	static word tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
@@ -2648,7 +2648,7 @@ void CPU80386_OP9D_16() {
 
 void CPU80386_OP9D_32() {
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
-	if ((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)) { THROWDESCGP(0,0,0); return; }//#GP fault!
+	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3))) { THROWDESCGP(0,0,0); return; }//#GP fault!
 	static uint_32 tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
@@ -2764,63 +2764,63 @@ DEBUG: REALLY SUPPOSED TO HANDLE OP80-83 HERE?
 void CPU80386_OP81() //GRP1 Ev,Iv
 {
 	INLINEREGISTER uint_32 imm = imm32;
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1);
 	}
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //ADD
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADD %s,%08X",&modrm_param1,imm); //ADD Ed, Id
 		}
 		CPU80386_internal_ADD32(modrm_addr32(&params,MODRM_src0,0),imm,3); //ADD Eb, Id
 		break;
 	case 1: //OR
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("OR %s,%08X",&modrm_param1,imm); //OR Ed, Id
 		}
 		CPU80386_internal_OR32(modrm_addr32(&params,MODRM_src0,0),imm,3); //OR Eb, Id
 		break;
 	case 2: //ADC
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADC %s,%08X",&modrm_param1,imm); //ADC Ed, Id
 		}
 		CPU80386_internal_ADC32(modrm_addr32(&params,MODRM_src0,0),imm,3); //ADC Eb, Id
 		break;
 	case 3: //SBB
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SBB %s,%08X",&modrm_param1,imm); //SBB Ed, Id
 		}
 		CPU80386_internal_SBB32(modrm_addr32(&params,MODRM_src0,0),imm,3); //SBB Eb, Id
 		break;
 	case 4: //AND
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("AND %s,%08X",&modrm_param1,imm); //AND Ed, Id
 		}
 		CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),imm,3); //AND Eb, Id
 		break;
 	case 5: //SUB
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SUB %s,%08X",&modrm_param1,imm); //SUB Ed, Id
 		}
 		CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),imm,3); //SUB Eb, Id
 		break;
 	case 6: //XOR
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("XOR %s,%08X",&modrm_param1,imm); //XOR Ed, Id
 		}
 		CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),imm,3); //XOR Eb, Id
 		break;
 	case 7: //CMP
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("CMP %s,%08X",&modrm_param1,imm); //CMP Ed, Id
 		}
@@ -2838,63 +2838,63 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 	INLINEREGISTER uint_32 imm;
 	imm = (uint_32)immb;
 	if (imm&0x80) imm |= 0xFFFFFF00; //Sign extend!
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1);
 	}
 	switch (MODRM_REG(params.modrm)) //What function?
 	{
 	case 0: //ADD
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADD %s,%02X",&modrm_param1,immb); //ADD Ev, Ib
 		}
 		CPU80386_internal_ADD32(modrm_addr32(&params,MODRM_src0,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("OR %s,%02X",&modrm_param1,immb); //OR Ev, Ib
 		}
 		CPU80386_internal_OR32(modrm_addr32(&params,MODRM_src0,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADC %s,%02X",&modrm_param1,immb); //ADC Ev, Ib
 		}
 		CPU80386_internal_ADC32(modrm_addr32(&params,MODRM_src0,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SBB %s,%02X",&modrm_param1,immb); //SBB Ev, Ib
 		}
 		CPU80386_internal_SBB32(modrm_addr32(&params,MODRM_src0,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("AND %s,%02X",&modrm_param1,immb); //AND Ev, Ib
 		}
 		CPU80386_internal_AND32(modrm_addr32(&params,MODRM_src0,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SUB %s,%02X",&modrm_param1,immb); //SUB Ev, Ib
 		}
 		CPU80386_internal_SUB32(modrm_addr32(&params,MODRM_src0,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("XOR %s,%02X",&modrm_param1,immb); //XOR Ev, Ib
 		}
 		CPU80386_internal_XOR32(modrm_addr32(&params,MODRM_src0,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("CMP %s,%02X",&modrm_param1,immb); //CMP Ev, Ib
 		}
@@ -2913,7 +2913,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 	{
 	case 0: //POP
 		//Cycle-accurate emulation of the instruction!
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("POP",32,0,PARAM_MODRM_0); //POPW Ew
 		}
@@ -2937,7 +2937,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		}
 		break;
 	default: //Unknown opcode or special?
-		if (cpudebugger) //Debugger on?
+		if (unlikely(cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("Unknown opcode: 8F /%u",MODRM_REG(params.modrm)); //Error!
 		}
@@ -2949,7 +2949,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 void CPU80386_OPD1() //GRP2 Ev,1
 {
 	thereg = MODRM_REG(params.modrm);
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (MODRM_REG(params.modrm)) //What function?
@@ -2998,7 +2998,7 @@ void CPU80386_OPD1() //GRP2 Ev,1
 void CPU80386_OPD3() //GRP2 Ev,CL
 {
 	thereg = MODRM_REG(params.modrm);
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (MODRM_REG(params.modrm)) //What function?
@@ -3047,7 +3047,7 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 void CPU80386_OPF7() //GRP3b Ev
 {
 	thereg = MODRM_REG(params.modrm);
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -3110,7 +3110,7 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 void CPU80386_OPFF() //GRP5 Ev
 {
 	thereg = MODRM_REG(params.modrm);
-	if (cpudebugger) //Debugger on?
+	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (MODRM_REG(params.modrm)) //What function?

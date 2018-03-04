@@ -1054,7 +1054,7 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 #define signext32(value) ((((uint_32)value&0x8000)*0x1FFFE)|(uint_32)value)
 
 //Software access with protection!
-#define CPUPROT1 if(CPU[activeCPU].faultraised==0){
+#define CPUPROT1 if(likely(CPU[activeCPU].faultraised==0)){
 #define CPUPROT2 }
 
 #include "headers/cpu/interrupts.h" //Real interrupts!
