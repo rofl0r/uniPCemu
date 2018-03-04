@@ -2469,7 +2469,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	}
 	if (CPU_getprefix(0xF0)) //LOCK prefix used?
 	{
-		if ((timing->readwritebackinformation&0x400) && (param->info[timing->modrm_src0].isreg!=2) && (MODRM_REG(param->modrm)<5)) //Allow for reg 5-7 only!
+		if ((timing->readwritebackinformation&0x400) && (param->info[1].isreg!=2) && (MODRM_REG(param->modrm)<5)) //Allow for reg 5-7 only!
 		{
 			param->error = 1; //We've detected an error!		
 		}
@@ -2477,7 +2477,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		{
 			if (MODRM_REG(param->modrm)>4) //We're a lockable instruction?
 			{
-				if (param->info[timing->modrm_src0].isreg!=2) //Invalid access?
+				if (param->info[1].isreg!=2) //Invalid access?
 				{
 					param->error = 1; //We've detected an error!		
 				}
@@ -2494,7 +2494,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 			case 0x100: //Reg!=7 faults only!
 				if (MODRM_REG(param->modrm)!=7) //We're a lockable instruction?
 				{
-					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					if (param->info[1].isreg!=2) //Memory not accessed?
 					{
 						param->error = 1; //We've detected an error!		
 					}
@@ -2507,7 +2507,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 			case 0x200: //Reg 2 or 3 faults only!
 				if ((MODRM_REG(param->modrm)&0x6)==2) //We're a lockable instruction?
 				{
-					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					if (param->info[1].isreg!=2) //Memory not accessed?
 					{
 						param->error = 1; //We've detected an error!		
 					}
@@ -2531,7 +2531,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 				}
 				break;
 			default: //Normal behaviour?
-				if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+				if (param->info[1].isreg!=2) //Memory not accessed?
 				{
 					param->error = 1; //We've detected an error!
 				}
