@@ -1,3 +1,6 @@
 @echo off
-xcopy C:\SDL\SDL2\VisualC\x64\Release\SDL2.dll ..\..\projects_build\UniPCemu /Y>nul
-echo Dependencies are updated!
+set PROJECT=UniPCemu
+set whatarch=x64
+set SDL=SDL2
+set useNET=no
+call ../commonemuframework/generateDependenciesVC.bat
