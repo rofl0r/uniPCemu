@@ -715,6 +715,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL_net|Win32'">
     <ClCompile>
@@ -743,6 +749,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDLnet.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|Win32'">
     <ClCompile>
@@ -771,6 +783,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2_net|Win32'">
     <ClCompile>
@@ -799,6 +817,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL2net.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|Win32'">
     <ClCompile>
@@ -827,6 +851,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -855,6 +885,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL_net|Win32'">
     <ClCompile>
@@ -883,6 +919,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDLnet.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2|Win32'">
     <ClCompile>
@@ -909,6 +951,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2_net|Win32'">
     <ClCompile>
@@ -935,6 +983,12 @@
       <Command>call "$(ProjectDir)generateversion.bat"</Command>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC32SDL2net.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -957,6 +1011,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL_net|x64'">
     <ClCompile>
@@ -979,6 +1039,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDLnet.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2|x64'">
     <ClCompile>
@@ -1002,6 +1068,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2_net|x64'">
     <ClCompile>
@@ -1025,6 +1097,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL2net.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - SDL2 - VLD|x64'">
     <ClCompile>
@@ -1048,6 +1126,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -1069,6 +1153,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL_net|x64'">
     <ClCompile>
@@ -1090,6 +1180,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDLnet.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2|x64'">
     <ClCompile>
@@ -1114,6 +1210,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL2.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - SDL2_net|x64'">
     <ClCompile>
@@ -1138,6 +1240,12 @@
     <PreBuildEvent>
       <Message>Generating version information...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)generatedependenciesVC64SDL2net.bat"</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Generating dependencies...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
