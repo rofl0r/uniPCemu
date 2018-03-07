@@ -13,6 +13,9 @@
 #include "headers/cpu/CPU_OP8086.h" //8086+ push/pop support!
 #include "headers/cpu/CPU_OP80386.h" //80386+ push/pop support!
 
+//Log Virtual 8086 mode calls basic information?
+#define LOG_VIRTUALMODECALLS
+
 /*
 
 Basic CPU active segment value retrieval.
@@ -1410,6 +1413,8 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 	return 1; //OK!
 }
 
+extern byte immb; //For CPU_readOP result!
+
 byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
 {
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
@@ -1531,6 +1536,9 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			if (FLAG_V8 && ((newCPL!=oldCPL) && (newCPL!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
+				#ifdef LOG_VIRTUALMODECALLS
+				dolog("debugger","Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)",intnr,CPU[activeCPU].lastopcode,CPU[activeCPU].lastopcode0F,immb,REG_AX);
+				#endif
 				if (newCPL!=0) //Not switching to PL0?
 				{
 					THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
