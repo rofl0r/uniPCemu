@@ -1009,7 +1009,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Modem
 	char modem_comment[4096] = ""; //Sound comment!
-	strcat(modem_comment,"listenport: listen port to listen on when not connected(defaults to 23)\n");
+	sprintf(modem_comment,"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
