@@ -29,7 +29,7 @@ byte PIQSizes[2][NUMCPUS] = { //0=16/32-bit bus, 1=Reduced(8-bit/16-bit) bus whe
 
 byte BUSmasks[2][NUMCPUS] = { //0=16/32-bit bus, 1=Reduced bus when available!
 								{1,1,1,3,3,7},
-								{0,0,0,1,3,7} //Only 8088/80188 supported in 8-bit bus! 80386 supports 
+								{0,0,1,1,3,7} //Only 8088/80188 supported an 8-bit bus! Only 80386 supports a 16-bit bus reduction.
 							}; //The BUS sizes, expressed in masks on data (d)words for memory accesses. Apply settings for both 8-bit bus(8088/80188) and 16/32-bit bus (other CPUs)!
 
 //Structure: opcode_jmptbl[whatcpu][opcode][addresssize]
