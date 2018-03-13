@@ -3145,7 +3145,7 @@ void CPU80386_OPFF() //GRP5 Ev
 			break;
 		}
 	}
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
+	if (unlikely((CPU[activeCPU].internalinstructionstep==0) && (CPU[activeCPU].instructionstep==0))) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (MODRM_REG(params.modrm)>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
 	{
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
