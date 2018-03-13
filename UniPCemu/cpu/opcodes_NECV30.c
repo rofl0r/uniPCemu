@@ -337,9 +337,9 @@ void CPU186_OP69()
 
 void CPU186_OP6A()
 {
-	word val = immb; //Read the value!
+	word val = (word)immb; //Read the value!
 	if (val&0x80) val |= 0xFF00; //Sign-extend!
-	debugger_setcommand("PUSHB %02X",(val&0xFF)); //PUSH this!
+	debugger_setcommand("PUSH %02X",(val&0xFF)); //PUSH this!
 	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
@@ -365,7 +365,7 @@ void CPU186_OP6B()
 		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
 		*/
-			if (unlikely(CPU[activeCPU].internalmodrmstep))
+			if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 			{
 				if (modrm_check16(&params,1,1)) return; //Abort on fault!
 			}

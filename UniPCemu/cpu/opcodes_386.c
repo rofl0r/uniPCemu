@@ -3820,7 +3820,7 @@ void CPU386_OP69()
 		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
 		*/
-			if (unlikely(CPU[activeCPU].internalmodrmstep))
+			if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 			{
 				if (modrm_check32(&params,1,1)) return; //Abort on fault!
 			}
