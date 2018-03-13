@@ -1259,8 +1259,8 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 			switch (rights)
 			{
 			default: //Unknown status? Count #GP by default!
-			case 1: //#GP(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_GP((getcpumode()==CPU_MODE_PROTECTED)?0:-2); //Throw (pseudo) fault when not prefetching!
+			case 1: //#GP(0) or pseudo protection fault(Real/V86 mode(V86 mode only during limit range exceptions, otherwise error code 0))?
+				if (unlikely((forreading&0x10)==0)) CPU_GP(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?0:-2); //Throw (pseudo) fault when not prefetching!
 				return 1; //Error out!
 				break;
 			case 2: //#NP?
@@ -1268,7 +1268,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forread
 				return 1; //Error out!
 				break;
 			case 3: //#SS(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_StackFault((getcpumode()==CPU_MODE_PROTECTED)?0:-2); //Throw (pseudo) fault when not prefetching!
+				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?0:-2); //Throw (pseudo) fault when not prefetching!
 				return 1; //Error out!
 				break;
 			}
