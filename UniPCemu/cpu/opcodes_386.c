@@ -3570,14 +3570,14 @@ void op_grp5_32() {
 	case 3: //CALL Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
-		if (unlikely(CPU[activeCPU].internalinstructionstep==0))
+		if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 		{
 			modrm_addoffset = 0; //First IP!
 			if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 			modrm_addoffset = 4; //Then destination CS!
 			if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
-			modrm_addoffset = 0;
 		}
+		modrm_addoffset = 0;
 
 		destEIP = oper1d; //Get destination IP!
 		CPUPROT1
