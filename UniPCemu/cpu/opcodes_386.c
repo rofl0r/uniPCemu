@@ -1749,7 +1749,10 @@ OPTINLINE void CPU80386_internal_CWDE()
 	{
 		REG_EAX &= 0xFFFF;
 	}
-	CPU[activeCPU].cycles_OP = 2; //Clock cycles!
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP = 2; //Clock cycles!
+	}
 	CPUPROT2
 }
 OPTINLINE void CPU80386_internal_CDQ()
@@ -1763,7 +1766,10 @@ OPTINLINE void CPU80386_internal_CDQ()
 	{
 		REG_EDX = 0;
 	}
-	CPU[activeCPU].cycles_OP = 5; //Clock cycles!
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP = 5; //Clock cycles!
+	}
 	CPUPROT2
 }
 
