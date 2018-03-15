@@ -1101,6 +1101,18 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,1,0xBA,0xFF,0x06,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTS r/m32,imm8
 };
 
+/*
+
+Value for the immediate parameter(one before the last data):
+0=No parameters
+1,2,3=imm8/16/32 parameters(imm32 also used for ptr16:16, with low 16-bits being IP, high 16-bits being CS).
+5-7=See above(1-3), but restricted to modrm reg<2.
+8=imm16(stack size)+imm8(depth) (ENTER)
+9=imm64(ptr16:32 as immediate, first 32-bit(low) then 16-bit(high 32 bits)). Loads into imm64 as well as imm32(offset)/immw(segment).
+A=imm16/32(depending on address size). Used with opcodes A0-A3. Loads into immaddr32.
+
+*/
+
 CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 	{
 		{ //16-bit!
