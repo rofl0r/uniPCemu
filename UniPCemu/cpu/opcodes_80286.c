@@ -175,7 +175,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
-			segmentWritten(CPU_SEGMENT_LDTR,oper1,0); //Write the segment!
+			if (segmentWritten(CPU_SEGMENT_LDTR,oper1,0)) return; //Write the segment!
 		CPUPROT2
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -194,7 +194,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
-			segmentWritten(CPU_SEGMENT_TR, oper1, 0); //Write the segment!
+			if (segmentWritten(CPU_SEGMENT_TR, oper1, 0)) return; //Write the segment!
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
 		CPUPROT2
 		break;

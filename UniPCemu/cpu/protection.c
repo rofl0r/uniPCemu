@@ -883,7 +883,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word s
 }
 word segmentWritten_tempSS;
 
-void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
+byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	byte oldCPL= getCPL();
 	byte TSSSize, isDifferentCPL;
@@ -922,8 +922,8 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							TSS_StackPos += 4; //Take SS position!
 						}
 						CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-						segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()),0); //Read SS!
-						if (CPU[activeCPU].faultraised) return; //Abort on fault!
+						if (segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()),0)) return 1; //Read SS!
+						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 						if (TSSSize) //32-bit?
 						{
 							CPU[activeCPU].registers->ESP = stackval; //Apply the stack position!
@@ -1007,17 +1007,17 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (CPU8086_POPw(6,&segmentWritten_tempSS,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //POPped?
+					if (CPU8086_POPw(6,&segmentWritten_tempSS,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //POPped?
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0); //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return;
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return 1;
 					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
-						if (CPU80386_POPdw(8,&REG_ESP)) return; //POP ESP!
+						if (CPU80386_POPdw(8,&REG_ESP)) return 1; //POP ESP!
 					}
 					else
 					{
-						if (CPU8086_POPw(8,&REG_SP,0)) return; //POP SP!
+						if (CPU8086_POPw(8,&REG_SP,0)) return 1; //POP SP!
 						REG_ESP &= 0xFFFF; //Only keep what we need!
 					}
 				}
@@ -1026,11 +1026,11 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			{
 				if (getCPL()>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
-					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return; //First level IRET data?
+					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //First level IRET data?
 					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0); //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return;
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return 1;
 					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
 						tempesp = CPU_POP32();
@@ -1069,7 +1069,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							segdesc.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
 							if (SAVEDESCRIPTOR(segment,value,&segdesc)) //Save it back to RAM!
 							{
-								return; //Abort on fault!
+								return 1; //Abort on fault!
 							}
 							break;
 						default: //Invalid segment?
@@ -1091,13 +1091,13 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
-				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,1)) return;
-				if (CPU80386_internal_PUSHdw(2,&CPU[activeCPU].registers->EIP)) return;
+				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,1)) return 1;
+				if (CPU80386_internal_PUSHdw(2,&CPU[activeCPU].registers->EIP)) return 1;
 			}
 			else //16-bit?
 			{
-				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return;
-				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return;
+				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return 1;
+				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return 1;
 			}
 		}
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
@@ -1124,6 +1124,7 @@ void segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		}
 	}
 	//Real mode doesn't use the descriptors?
+	return 0; //No fault raised&continue!
 }
 
 int checkPrivilegedInstruction() //Allowed to run a privileged instruction?
@@ -1562,7 +1563,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 				//Switch Stack segment first!
 				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
-				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
+				if (segmentWritten(CPU_SEGMENT_SS,SS0,0)) return 0; //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
@@ -1588,11 +1589,11 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Load all Segment registers with zeroes!
 				segmentWritten(CPU_SEGMENT_DS,0,0); //Clear DS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				segmentWritten(CPU_SEGMENT_ES,0,0); //Clear ES!!
+				if (segmentWritten(CPU_SEGMENT_ES,0,0)) return 0; //Clear ES!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				segmentWritten(CPU_SEGMENT_FS,0,0); //Clear FS!!
+				if (segmentWritten(CPU_SEGMENT_FS,0,0)) return 0; //Clear FS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				segmentWritten(CPU_SEGMENT_GS,0,0); //Clear GS!!
+				if (segmentWritten(CPU_SEGMENT_GS,0,0)) return 0; //Clear GS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
 			else if ((newCPL!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
@@ -1609,7 +1610,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 				//Switch Stack segment first!
 				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
-				segmentWritten(CPU_SEGMENT_SS,SS0,0); //Write SS to switch stacks!!
+				if (segmentWritten(CPU_SEGMENT_SS,SS0,0)) return 0; //Write SS to switch stacks!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 				REG_ESP = ESP0; //Set the stack to point to the new stack location!
 
