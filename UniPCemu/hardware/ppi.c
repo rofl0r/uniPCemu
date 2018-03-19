@@ -22,7 +22,7 @@ extern byte NMI; //NMI control on XT support!
 extern byte is_XT; //Are we using XT architecture?
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
-byte readPPI62()
+byte readPPI63()
 {
 	byte result=0;
 	//Setup PPI62 as defined by System Control Port B!
@@ -53,7 +53,7 @@ byte readPPI62()
 	}
 	else
 	{
-		return PPI62; //Give the normal value!
+		return PPI63; //Give the normal value!
 	}
 	return result; //Give the switches requested, if any!
 }
@@ -69,14 +69,14 @@ byte PPI_readIO(word port, byte *result)
 	case 0x62: //PPI62?
 		if (is_XT) //Enabled?
 		{
-			*result = readPPI62(); //Read the value!
+			*result = PPI62; //Read the value!
 			return 1;
 		}
 		break;
 	case 0x63: //PPI63?
 		if (is_XT) //Enabled?
 		{
-			*result = PPI63; //Read the value!
+			*result = readPPI63(); //Read the value!
 			return 1;
 		}
 		break;
@@ -137,7 +137,7 @@ byte PPI_writeIO(word port, byte value)
 	case 0x62: //PPI62?
 		if (is_XT) //Enabled?
 		{
-			PPI62 = value; //Set the value!
+			PPI62 = (PPI62&0xC3)|(value&0x3C); //Set the bits that are changable!
 			return 1;
 		}
 		break;
