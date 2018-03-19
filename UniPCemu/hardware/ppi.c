@@ -22,39 +22,39 @@ extern byte NMI; //NMI control on XT support!
 extern byte is_XT; //Are we using XT architecture?
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
-byte readPPI63()
+byte readPPI62()
 {
 	byte result=0;
 	//Setup PPI62 as defined by System Control Port B!
-	if (is_XT) //XT machine?
+	if (SystemControlPortB&8) //Read high switches?
 	{
-		if (SystemControlPortB&8) //Read high switches?
+		//Bit0=Display 0
+		//Bit1=Display 1
+		//Bit2=Floppy drives in system(-1) low
+		//Bit3=Floppy drives in system(-1) high
+		if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
 		{
-			if (((getActiveVGA()->registers->specialCGAflags&0x81)==1)) //Pure CGA mode?
-			{
-				result |= 2; //First bit set: 80x25 CGA!
-			}
-			else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
-			{
-				result |= 3; //Both bits set: 80x25 MDA!
-			}
-			else //VGA?
-			{
-				//Leave PPI62 at zero for VGA: we're in need of auto detection!
-			}
-			result |= 4; //Two floppy drives installed!
+			result |= 2; //First bit set: 80x25 CGA!
 		}
-		else //Read low switches?
+		else if (((getActiveVGA()->registers->specialMDAflags&0x81)==1)) //Pure MDA mode?
 		{
-			result |= 1; //Two floppy drives installed!
+			result |= 3; //Both bits set: 80x25 MDA!
 		}
-		result |= (SystemControlPortB&0xC0); //Ram&IO channel check results!
-		//Timer 2 is handled by the keyboard controller!
+		else //VGA?
+		{
+			//Leave PPI62 at zero for VGA: we're in need of auto detection!
+		}
+		result |= 4; //Two floppy drives installed!
 	}
-	else
+	else //Read low switches?
 	{
-		return PPI63; //Give the normal value!
+		//Bit0=Loop on POST
+		//Bit1=Co-processor installed
+		//Bit2=Planar RAM size 0
+		//Bit3=Planar RAM size 1
+		result |= 0xD; //Don't loop on POST, no coprocessor, maximum RAM!
 	}
+	result |= (SystemControlPortB&0xC0); //Ram&IO channel check results!
 	return result; //Give the switches requested, if any!
 }
 
@@ -69,14 +69,14 @@ byte PPI_readIO(word port, byte *result)
 	case 0x62: //PPI62?
 		if (is_XT) //Enabled?
 		{
-			*result = PPI62; //Read the value!
+			*result = readPPI62(); //Read the value!
 			return 1;
 		}
 		break;
 	case 0x63: //PPI63?
 		if (is_XT) //Enabled?
 		{
-			*result = readPPI63(); //Read the value!
+			*result = PPI63; //Read the value(Command/mode register)!
 			return 1;
 		}
 		break;
@@ -148,7 +148,7 @@ byte PPI_writeIO(word port, byte value)
 	case 0x63: //PPI63?
 		if (is_XT) //Enabled?
 		{
-			PPI63 = value; //Set the value!
+			PPI63 = value; //Set the value(Command/mode register)!
 			return 1;
 		}
 		break;
