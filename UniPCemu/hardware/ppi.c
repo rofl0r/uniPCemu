@@ -245,7 +245,7 @@ byte PPI_writeIO(word port, byte value)
 
 void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeout)
 {
-	SystemControlPortB = 0x7F; //Reset system control port B!
+	SystemControlPortB = 0x3F; //Reset system control port B!
 	PPI62 = 0x00; //Set the default switches!
 	PPI63 = 0x00; //Set the default switches!
 	diagnosticsportoutput = 0x00; //Clear diagnostics port output!
