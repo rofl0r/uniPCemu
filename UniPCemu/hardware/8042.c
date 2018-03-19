@@ -677,9 +677,9 @@ byte write_8042(word port, byte value)
 				PS2_lowerirq(0); //Lower primary IRQ!
 				PS2_lowerirq(1); //Lower secondary IRQ!
 			}
-			if (((value^0x40)==(Controller8042.PortB&0x40))) //Set when unset?
+			if (((value^Controller8042.PortB)&0x40)) //Toggled hold keyboard clock low(0) or be active(1)?
 			{
-				if ((value)&0x40) //Set? We're enabling the controller!
+				if (value&0x40) //Set? We're enabling the controller!
 				{
 					if (likely(Controller8042.portenabledhandler[0])) //Valid handler for the port?
 					{
