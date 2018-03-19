@@ -54,7 +54,7 @@ byte readPPI62()
 		//Bit3=Planar RAM size 1
 		result |= 0xD; //Don't loop on POST, no coprocessor, maximum RAM!
 	}
-	result |= (SystemControlPortB&0xC0); //Ram&IO channel check results!
+	result |= (PPI62&0xC0); //Ram&IO channel check results!
 	return result; //Give the switches requested, if any!
 }
 
@@ -63,7 +63,14 @@ byte PPI_readIO(word port, byte *result)
 	switch (port) //Special register: System control port B!
 	{
 	case 0x61: //System control port B(ISA,EISA)?
-		*result = (SystemControlPortB&0xCC); //Read the value! Bits 0,1,4,5 are by the PIT! The rest is by the System Control Port B!
+		if (is_XT) //XT?
+		{
+			*result = ((PPI62&0xC0)|(SystemControlPortB&0xC)); //Read the value! Bits 0,1,4,5 are by the PIT! The rest is by the System Control Port B!
+		}
+		else //AT+?
+		{
+			*result = (SystemControlPortB&0xCC); //Read the value! Bits 0,1,4,5 are by the PIT! The rest is by the System Control Port B!
+		}
 		return 1;
 		break;
 	case 0x62: //PPI62?
