@@ -119,6 +119,10 @@ byte PPI_writeIO(word port, byte value)
 		{
 			SystemControlPortB = (value&0x3C)|(SystemControlPortB&0xC3); //Set the port, only the middle 4 bits(highest 2 bits is the keyboard controller) are used: bit 5=I/O check enable, bit 4=RAM parity check enable, bit 3=Read low switches, bit2=Turbo Switch is ours!
 			PPI62 &= ~(((((SystemControlPortB & 0x10) << 1)) | ((SystemControlPortB & 0x20) >> 1)) << 2); //Setting the enable(it's reversed in the AT BIOS) bits clears the status of it's corresponding error bit, according to the AT BIOS!
+			if (value & 0x80) //Acnowledge?
+			{
+				acnowledgeIRQrequest(0); //Acnowledge the IRQ, ignore any more IRQs until raised again!
+			}
 		}
 		else //Full set?
 		{

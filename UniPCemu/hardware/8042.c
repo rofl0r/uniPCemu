@@ -677,11 +677,19 @@ byte write_8042(word port, byte value)
 				PS2_lowerirq(0); //Lower primary IRQ!
 				PS2_lowerirq(1); //Lower secondary IRQ!
 			}
-			if (((value^0x40)==(Controller8042.PortB&0x40)) && ((value)&0x40)) //Set when unset?
+			if (((value^0x40)==(Controller8042.PortB&0x40))) //Set when unset?
 			{
-				if (likely(Controller8042.portenabledhandler[0])) //Valid handler for the port?
+				if ((value)&0x40) //Set? We're enabling the controller!
 				{
-					Controller8042.portenabledhandler[0](1); //Reset the keyboard manually! Execute an interrupt when reset!
+					if (likely(Controller8042.portenabledhandler[0])) //Valid handler for the port?
+					{
+						Controller8042.portenabledhandler[0](1); //Reset the keyboard manually! Execute an interrupt when reset!
+					}
+					Controller8042.data[0] &= ~0x20; //Enabled!
+				}
+				else //Keyboard line stuck low? Disable the controller!
+				{
+					Controller8042.data[0] |= 0x20; //Disabled!
 				}
 			}
 			Controller8042.PortB = (value&0xC0); //Save values for reference!
