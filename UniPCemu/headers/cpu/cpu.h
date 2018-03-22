@@ -433,7 +433,7 @@ AVL: available to the programmer:
 //Direction flag (DF): Used by string instr. to determine to process strings from end (DECR) or start (INCR).
 #define F_OVERFLOW 0x800
 //Overflow flag (OF): Indicates if the number placed in the detination operand overflowed, either too large or small. No overflow=Cleared.
-#define F_IOPREV 0x3000
+#define F_IOPL 0x3000
 //I/O Privilege Level (two bits long) (PL)
 #define F_NESTEDTASK 0x4000
 //Nested Task Flag (NT)
@@ -455,7 +455,7 @@ AVL: available to the programmer:
 #define F_TF F_TRAP
 #define F_IF F_INTERRUPT
 #define F_DF F_DIRECTION
-#define F_PL F_IOPREV
+#define F_PL F_IOPL
 #define F_NT F_NESTEDTASK
 #define F_RF F_RESUME
 
@@ -497,7 +497,7 @@ AVL: available to the programmer:
 #define FLAGREGR_UNMAPPEDHI(registers) (registers->EFLAGS>>22)&0x3FF
 
 //Write versions
-#define FLAGREGW_CF(registers,val) registers->FLAGS=((registers->FLAGS&~F_CF)|((val)&1))
+#define FLAGREGW_CF(registers,val) registers->FLAGS=((registers->FLAGS&~1)|((val)&1))
 //Unused. Value 1
 #define FLAGREGW_UNMAPPED2(registers,val) registers->FLAGS=(((registers->FLAGS&~2)|(((val)&1)<<1)))
 #define FLAGREGW_PF(registers,val) registers->FLAGS=(((registers->FLAGS&~4)|(((val)&1)<<2)))

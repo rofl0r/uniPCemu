@@ -1,59 +1,6 @@
 #ifndef CPU_EASYREGS_H
 #define CPU_EASYREGS_H
 
-//Overflow in implicit constant conversion?
-#define CHECK_SF(data) \
-				if (sizeof(data)==1) \
-				{ \
-					FLAGW_SF((data&0x80)>0); \
-				} \
-				else if (sizeof(data)==2) \
-				{ \
-					FLAGW_SF((data&0x8000)>0); \
-				} \
-				else if (sizeof(data)==4) \
-				{ \
-					FLAGW_SF((data&0x80000000)>0); \
-				}
-#define CHECK_ZF(data) FLAGW_ZF((data==0));
-//FLAG_PF: Low 8-bits only!
-#define CHECK_PF(data) \
-				if (sizeof(data)==1) \
-				{ \
-					FLAGW_PF(PARITY8(data)); \
-				} \
-				else if (sizeof(data)==2) \
-				{ \
-					FLAGW_PF(PARITY16(data&0xFF)); \
-				} \
-				else if (sizeof(data)==4) \
-				{ \
-					FLAGW_PF(PARITY32(data&0xFF)); \
-				}
-
-//HIER GEBLEVEN; nog te doen: FLAG_CF & FLAG_AF! (Carry flag & Adjust flag (carry or borrow to the low order four bits of AL))
-
-//Borrow from high byte!
-#define CHECK_CF(data,addition) FLAGW_CF((((((data+addition)^(data+addition))^addition)&(0x10<<((8*sizeof(addition))-1)))>0))
-//Borrow from half-byte!
-#define CHECK_AF(data,addition) FLAGW_AF((((((data+addition)^(data+addition))^addition)&0x10)>0))
-
-//FLAG_OF=Klaar!
-/*#define CHECK_OF(data,addition,ismultiplication) \
-				if (sizeof(data)==1) \
-				{ \
-					FLAG_OF = ismultiplication?(!multiplication_is_safe(data,addition,8)):(!addition_is_safe(data,addition,8)); \
-				} \
-				else if (sizeof(data)==2) \
-				{ \
-					FLAG_OF = ismultiplication?(!multiplication_is_safe(data,addition,16)):(!addition_is_safe(data,addition,16)); \
-				} \
-				else if (sizeof(data)==4) \
-				{ \
-					FLAG_OF = ismultiplication?(!multiplication_is_safe(data,addition,32)):(!addition_is_safe(data,addition,32)); \
-				}
-*/
-
 #ifndef parity
 extern byte parity[0x100]; //Our parity table!
 #endif
