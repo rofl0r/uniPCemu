@@ -571,7 +571,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{ NULL, NULL }, //04h:
 		{ NULL, NULL }, //05h:
 		{ NULL, NULL }, //06h:
-		{ NULL, NULL }, //07h:
+		{ unkOP0F_486, NULL }, //07h: LOADALL doesn't exist on 80486+ anymore!
 		{ CPU486_OP0F08, NULL }, //08h:
 		{ CPU486_OP0F09, NULL }, //09h:
 		{ NULL, NULL }, //0Ah:
