@@ -709,9 +709,9 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = (LOADALLDATA.fields.GDTR.basehigh<<2)|LOADALLDATA.fields.GDTR.baselow; //Base!
+	CPU[activeCPU].registers->GDTR.base = ((LOADALLDATA.fields.GDTR.basehigh&0xFF)<<16)|LOADALLDATA.fields.GDTR.baselow; //Base!
 	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.limit; //Limit
-	CPU[activeCPU].registers->IDTR.base = (LOADALLDATA.fields.IDTR.basehigh<<2)|LOADALLDATA.fields.IDTR.baselow; //Base!
+	CPU[activeCPU].registers->IDTR.base = ((LOADALLDATA.fields.IDTR.basehigh&0xFF)<<16)|LOADALLDATA.fields.IDTR.baselow; //Base!
 	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.limit; //Limit
 
 	//Load all descriptors directly without checks!
