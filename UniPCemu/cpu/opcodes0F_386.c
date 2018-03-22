@@ -523,7 +523,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Plain registers!
 	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
 	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
-	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
+	CPU[activeCPU].registers->EFLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
 	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.EIP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDTR; //LDT
 	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
@@ -535,8 +535,8 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->EBP = LOADALLDATA.fields.EBP; //BP
 	CPU[activeCPU].registers->ESP = LOADALLDATA.fields.ESP; //SP
 	CPU[activeCPU].registers->EBX = LOADALLDATA.fields.EBX; //BX
-	CPU[activeCPU].registers->EDX = LOADALLDATA.fields.ECX; //CX
-	CPU[activeCPU].registers->ECX = LOADALLDATA.fields.EDX; //DX
+	CPU[activeCPU].registers->EDX = LOADALLDATA.fields.EDX; //CX
+	CPU[activeCPU].registers->ECX = LOADALLDATA.fields.ECX; //DX
 	CPU[activeCPU].registers->EAX = LOADALLDATA.fields.EAX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!

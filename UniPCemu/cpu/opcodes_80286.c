@@ -701,8 +701,8 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->BP = LOADALLDATA.fields.BP; //BP
 	CPU[activeCPU].registers->SP = LOADALLDATA.fields.SP; //SP
 	CPU[activeCPU].registers->BX = LOADALLDATA.fields.BX; //BX
-	CPU[activeCPU].registers->DX = LOADALLDATA.fields.CX; //CX
-	CPU[activeCPU].registers->CX = LOADALLDATA.fields.DX; //DX
+	CPU[activeCPU].registers->DX = LOADALLDATA.fields.DX; //DX
+	CPU[activeCPU].registers->CX = LOADALLDATA.fields.CX; //CX
 	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!
