@@ -20,7 +20,7 @@ android {
     }
     externalNativeBuild {
         ndkBuild {
-            path '../../android-project/jni/Android-androidstudio.mk'
+            path '../../android-project/jni_androidstudio/Android-androidstudio.mk'
         }
     }
     
