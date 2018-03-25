@@ -25,10 +25,10 @@ This README would normally document whatever steps are necessary to get your app
 	- Make sure there is a compile directory parallel to the project directory(projects_build\unipcemu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows and by the Windows/Linux when building using the Makefile).
 * Dependencies
 	- See set up.
-* Adding the Android SDL2 build to the Android project
-	- Download the latest version of SDL2 from the project homepage. 
-	- Copy the **android-project\src\org** directory to **android-project/src**.
-	- Copy the **include** and **source** directories, as well as the **Android.mk** file to the **android-project/jni/SDL2** folder.
+* Adding the Android SDL2 build to the Android project(directories relative to the SDL2 root directory, e.g. SDL2-2.X.X)
+	- Download the latest source code version of SDL2 from the project homepage. 
+	- Copy the **android-project\src\org** (**android-project\app\src\main\java\org** for SDL2.0.8+) directory to **android-project/src**.
+	- Copy the **include** and **src** directories, as well as the **Android.mk** file to the **android-project/jni/SDL2** folder.
 * Adding Android SDL2_net to the Android project
 	- Download the latest version of SDL2_net from the project homepage.
 	- Copy all c/h files and **Android.mk** to a newly created directory **android-project\jni\SDL2_net** folder.
