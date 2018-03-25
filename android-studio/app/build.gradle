@@ -18,12 +18,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    externalNativeBuild {
-        ndkBuild {
-            path '../../android-project/jni_androidstudio/Android-androidstudio.mk'
-        }
-    }
-    
+
     flavorDimensions "build"
 
     productFlavors {
@@ -42,6 +37,11 @@ android {
             targetSdkVersion 16
             versionCode gitVersionCodeTime
             versionName gitVersionName
+        }
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path '../../android-project/jni_androidstudio/Android-androidstudio.mk'
         }
     }
 }
