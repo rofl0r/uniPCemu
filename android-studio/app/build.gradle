@@ -7,6 +7,15 @@ android {
         applicationId 'com.unipcemu.app'
         minSdkVersion 10
         targetSdkVersion 16
+        // Similar to other properties in the defaultConfig block,
+        // you can configure the ndk block for each product flavor
+        // in your build configuration.
+        ndk {
+            // Specifies the ABI configurations of your native
+            // libraries Gradle should build and package with your APK.
+            //SDL2 says: armeabi-v7a arm64-v8a x86 x86_64
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
     }
     buildTypes {
         release {
