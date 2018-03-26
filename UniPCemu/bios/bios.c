@@ -786,7 +786,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.usePCSpeaker = (byte)get_private_profile_uint64("sound","speaker",1,BIOS_Settings_file); //Emulate PC Speaker sound?
 	BIOS_Settings.useAdlib = (byte)get_private_profile_uint64("sound","adlib",1,BIOS_Settings_file); //Emulate Adlib?
 	BIOS_Settings.useLPTDAC = (byte)get_private_profile_uint64("sound","LPTDAC",1,BIOS_Settings_file); //Emulate Covox/Disney Sound Source?
-	get_private_profile_string("sound","soundfont","",&BIOS_Settings.SoundFont[0],sizeof(BIOS_Settings.SoundFont)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("sound","soundfont","",&BIOS_Settings.SoundFont[0],sizeof(BIOS_Settings.SoundFont),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound","directmidi",DEFAULT_DIRECTMIDIMODE,BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
 	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound","gameblaster",1,BIOS_Settings_file); //Emulate Game Blaster?
 	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound","gameblaster_volume",100,BIOS_Settings_file); //The Game Blaster volume knob!
@@ -797,16 +797,16 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem","listenport",DEFAULT_MODEMLISTENPORT,BIOS_Settings_file); //Modem listen port!
 
 	//Disks
-	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.floppy0_readonly = (byte)get_private_profile_uint64("disks","floppy0_readonly",0,BIOS_Settings_file);
-	get_private_profile_string("disks","floppy1","",&BIOS_Settings.floppy1[0],sizeof(BIOS_Settings.floppy1)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","floppy1","",&BIOS_Settings.floppy1[0],sizeof(BIOS_Settings.floppy1),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.floppy1_readonly = (byte)get_private_profile_uint64("disks","floppy1_readonly",0,BIOS_Settings_file);
-	get_private_profile_string("disks","hdd0","",&BIOS_Settings.hdd0[0],sizeof(BIOS_Settings.hdd0)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","hdd0","",&BIOS_Settings.hdd0[0],sizeof(BIOS_Settings.hdd0),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.hdd0_readonly = (byte)get_private_profile_uint64("disks","hdd0_readonly",0,BIOS_Settings_file);
-	get_private_profile_string("disks","hdd1","",&BIOS_Settings.hdd1[0],sizeof(BIOS_Settings.hdd1)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","hdd1","",&BIOS_Settings.hdd1[0],sizeof(BIOS_Settings.hdd1),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.hdd1_readonly = (byte)get_private_profile_uint64("disks","hdd1_readonly",0,BIOS_Settings_file);
-	get_private_profile_string("disks","cdrom0","",&BIOS_Settings.cdrom0[0],sizeof(BIOS_Settings.cdrom0)-1,BIOS_Settings_file); //Read entry!
-	get_private_profile_string("disks","cdrom1","",&BIOS_Settings.cdrom1[0],sizeof(BIOS_Settings.cdrom1)-1,BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","cdrom0","",&BIOS_Settings.cdrom0[0],sizeof(BIOS_Settings.cdrom0),BIOS_Settings_file); //Read entry!
+	get_private_profile_string("disks","cdrom1","",&BIOS_Settings.cdrom1[0],sizeof(BIOS_Settings.cdrom1),BIOS_Settings_file); //Read entry!
 
 
 	//BIOS
