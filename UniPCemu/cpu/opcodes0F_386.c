@@ -999,7 +999,7 @@ void CPU80386_BT32(uint_32 val, uint_32 bit)
 		overflow = (((s >> 31)&1)^FLAG_CF);
 		tempCF = FLAG_CF;
 		FLAGW_CF(s); //Save LSB!
-		s = ((s >> 1)&0x7FFFFFFFU) | (tempCF << 31);
+		s = ((s >> 1)&0x7FFFFFFFULL) | ((uint_64)tempCF << 31);
 	}
 	if (BST_cnt) FLAGW_OF(overflow);
 

@@ -556,7 +556,7 @@ result:
 
 SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *segmentval, byte isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
-	byte newCPL = getCPL(); //New CPL after switching! Default: no change!
+	//byte newCPL = getCPL(); //New CPL after switching! Default: no change!
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 	word originalval=*segmentval; //Back-up of the original segment value!
 	byte allowNP; //Allow #NP to be used?

@@ -901,6 +901,22 @@ extern char BOOT_ORDER_STRING[15][30]; //Boot order, string values!
 
 extern char colors[0x10][15]; //All 16 colors!
 
+//Comments to build:
+char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
+char machine_comment[4096] = ""; //Machine comment!
+char debugger_comment[4096] = ""; //Debugger comment!
+char video_comment[4096] = ""; //Video comment!
+char sound_comment[4096] = ""; //Sound comment!
+char modem_comment[4096] = ""; //Sound comment!
+char disks_comment[4096] = ""; //Disks comment!
+char bios_comment[4096] = ""; //BIOS comment!
+char currentstr[4096] = ""; //Current boot order to dump!
+char input_comment[4096] = ""; //Input comment!
+char gamingmode_comment[4096] = ""; //Gamingmode comment!
+char bioscomment_currentkey[4096] = "";
+char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
+char cmos_comment[4096] = ""; //PrimaryCMOS comment!
+
 int BIOS_SaveData() //Save BIOS settings!
 {
 	if (__HW_DISABLED) return 1; //Abort!
@@ -908,7 +924,6 @@ int BIOS_SaveData() //Save BIOS settings!
 	delete_file(NULL,BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
 
 	//General
-	char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
 	char *general_commentused=NULL;
 	if (general_comment[0]) general_commentused = &general_comment[0];
 	if (!write_private_profile_uint64("general",general_commentused,"version",BIOS_VERSION,BIOS_Settings_file)) return 0;
@@ -916,7 +931,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("general",general_commentused,"settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 
 	//Machine
-	char machine_comment[4096] = ""; //Machine comment!
+	memset(&machine_comment,0,sizeof(machine_comment)); //Init!
 	strcat(machine_comment,"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486\n");
 	strcat(machine_comment,"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
 	strcat(machine_comment,"memory: memory size in bytes\n");
@@ -945,7 +960,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("machine",machine_commentused,"inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 
 	//Debugger
-	char debugger_comment[4096] = ""; //Debugger comment!
+	memset(&debugger_comment,0,sizeof(debugger_comment)); //Init!
 	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
 	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
 	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
@@ -964,7 +979,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
 
 	//Video
-	char video_comment[4096] = ""; //Video comment!
+	memset(&video_comment,0,sizeof(video_comment)); //Init!
 	strcat(video_comment,"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
 	strcat(video_comment,"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
 	strcat(video_comment,"VRAM: Ammount of VRAM installed, in bytes\n");
@@ -985,7 +1000,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("video",video_commentused,"showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?
 
 	//Sound
-	char sound_comment[4096] = ""; //Sound comment!
+	memset(&sound_comment,0,sizeof(sound_comment)); //Init!
 	strcat(sound_comment,"speaker: 0=Disabled, 1=Enabled\n");
 	strcat(sound_comment,"adlib: 0=Disabled, 1=Enabled\n");
 	strcat(sound_comment,"LPTDAC: 0=Disabled, 1=Enabled\n");
@@ -1008,14 +1023,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("sound",sound_commentused,"soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
 
 	//Modem
-	char modem_comment[4096] = ""; //Sound comment!
+	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
 	sprintf(modem_comment,"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
 
 	//Disks
-	char disks_comment[4096] = ""; //Disks comment!
+	memset(&disks_comment,0,sizeof(disks_comment)); //Init!
 	strcat(disks_comment,"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
 	strcat(disks_comment,"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only");
 	char *disks_commentused=NULL;
@@ -1032,8 +1047,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_string("disks",disks_commentused,"cdrom1",&BIOS_Settings.cdrom1[0],BIOS_Settings_file)) return 0; //Read entry!
 
 	//BIOS
-	char bios_comment[4096] = ""; //BIOS comment!
-	char currentstr[4096] = ""; //Current boot order to dump!
+	memset(&bios_comment,0,sizeof(bios_comment)); //Init!
 	strcat(bios_comment,"bootorder: The boot order of the internal BIOS:\n");
 	byte currentitem;
 	for (currentitem=0;currentitem<NUMITEMS(BOOT_ORDER_STRING);++currentitem)
@@ -1046,7 +1060,9 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("bios",bios_commentused,"bootorder",BIOS_Settings.bootorder,BIOS_Settings_file)) return 0;
 
 	//Input
-	char input_comment[4096] = ""; //Input comment!
+	memset(&currentstr,0,sizeof(currentstr)); //Current boot order to dump!
+	memset(&gamingmode_comment,0,sizeof(gamingmode_comment)); //Gamingmode comment!
+	memset(&input_comment,0,sizeof(input_comment)); //Init!
 	strcat(input_comment,"analog_minrange: Minimum range for the analog stick to repond. 0-255\n");
 	strcat(input_comment,"Color codes are as follows:");
 	for (currentitem=0;currentitem<0x10;++currentitem)
@@ -1072,16 +1088,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialactivecolor",BIOS_Settings.input_settings.specialactivecolor,BIOS_Settings_file)) return 0;
 	
 	//Gamingmode
-	char gamingmode_comment[4096] = ""; //Gamingmode comment!
-	char currentkey[4096] = "";
-	memset(&currentkey,0,sizeof(currentkey)); //Init!
+	memset(&bioscomment_currentkey,0,sizeof(bioscomment_currentkey)); //Init!
 	for (currentitem=0;currentitem<104;++currentitem) //Give translations for all keys!
 	{
 		strcpy(currentstr,""); //Init current string!
-		strcpy(currentkey,""); //Init current string!
-		if (EMU_keyboard_handler_idtoname(currentitem,&currentkey[0])) //Name retrieved?
+		strcpy(bioscomment_currentkey,""); //Init current string!
+		if (EMU_keyboard_handler_idtoname(currentitem,&bioscomment_currentkey[0])) //Name retrieved?
 		{
-			sprintf(currentstr,"Key number %u is %s\n",currentitem,currentkey); //Generate a key row!
+			sprintf(currentstr,"Key number %u is %s\n",currentitem,bioscomment_currentkey); //Generate a key row!
 			strcat(gamingmode_comment,currentstr); //Add the key to the list!
 		}
 	}
@@ -1092,7 +1106,6 @@ int BIOS_SaveData() //Save BIOS settings!
 	strcat(gamingmode_comment,"joystick: 0=Normal gaming mode mapped input, 1=Joystick, Cross=Button 1, Circle=Button 2, 2=Joystick, Cross=Button 2, Circle=Button 1, 3=Joystick, Gravis Gamepad, 4=Joystick, Gravis Analog Pro, 5=Joystick, Logitech WingMan Extreme Digital");
 	char *gamingmode_commentused=NULL;
 	if (gamingmode_comment[0]) gamingmode_commentused = &gamingmode_comment[0];
-	char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
 	byte button;
 	char buttonstr[256];
 	memset(&buttonstr,0,sizeof(buttonstr)); //Init button string!
@@ -1109,7 +1122,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,"joystick",BIOS_Settings.input_settings.gamingmode_joystick,BIOS_Settings_file)) return 0; //Use the joystick input instead of mapped input during gaming mode?
 
 	//CMOS
-	char cmos_comment[4096] = ""; //PrimaryCMOS comment!
+	memset(&cmos_comment,0,sizeof(cmos_comment)); //Init!
 	strcat(cmos_comment,"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
 	strcat(cmos_comment,"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
 	strcat(cmos_comment,"TimeDivergeance_microseconds: Time to be added to get the emulated time, in microseconds.\n");

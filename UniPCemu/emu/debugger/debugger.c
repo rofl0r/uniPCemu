@@ -805,6 +805,7 @@ extern char DMA_States_text[6][256]; //DMA states!
 char executedinstruction[256];
 char statelog[256];
 char executedinstructionstatelog[2048];
+char fullcmd[65536];
 
 OPTINLINE static void debugger_autolog()
 {
@@ -859,7 +860,6 @@ OPTINLINE static void debugger_autolog()
 					dolog("debugger", "The CPU has raised an exception.");
 				}
 			}
-			char fullcmd[65536];
 			cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
 			int i; //A counter for opcode data dump!
 			if (!debugger_set) //No debugger set?

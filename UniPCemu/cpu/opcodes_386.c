@@ -3251,7 +3251,7 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
 		for (shift = 1; shift <= numcnt; shift++) {
 			FLAGW_CF(s); //Save LSB!
-			s = ((s >> 1)&0x7FFFFFFFU) | (FLAG_CF << 31);
+			s = ((s >> 1)&0x7FFFFFFFULL) | ((uint_64)FLAG_CF << 31);
 			overflow = ((s >> 31) ^ ((s >> 30) & 1));
 		}
 		if (maskcnt && (numcnt==0)) FLAGW_CF(s>>31); //Always sets CF, according to various sources?

@@ -2899,7 +2899,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			#endif
 			goto invalidcommand;
 		}
-		if ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount<<9)>sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
+		if ((((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount)<<9)>sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
 		{
 			goto invalidcommand;
 		}
