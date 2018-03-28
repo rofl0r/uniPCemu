@@ -49,7 +49,7 @@ void memory_BIUdirectwdw(uint_32 realaddress, uint_32 value) //Direct write to r
 //Pointer support (real mode only)!
 void *MMU_directptr(uint_32 address, uint_32 size) //Full ptr to real MMU memory!
 {
-	if ((address <= MMU.size) && ((address + size) <= MMU.size)) //Within our limits of flat memory and not paged?
+	if ((address < MMU.size) && ((address + size) <= MMU.size)) //Within our limits of flat memory and not paged?
 	{
 		return &MMU.memory[address]; //Give the memory's start!
 	}
