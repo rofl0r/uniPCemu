@@ -146,8 +146,11 @@ extern byte haswindowactive; //For detecting paused operation!
 
 void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
-	
+	#ifdef IS_FLOATDOUBLE
+	double dummy;
+	#else
 	DOUBLE dummy;
+	#endif
 	DOUBLE temp;
 	byte activeleft, activeright;
 	DOUBLE soundblaster_recordedpassed;

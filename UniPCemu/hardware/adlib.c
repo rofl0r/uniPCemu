@@ -583,7 +583,11 @@ OPTINLINE float adlibfreq(byte operatornumber) {
 }
 
 OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
+	#ifdef IS_FLOATDOUBLE
+	double dummy;
+	#else
 	DOUBLE dummy;
+	#endif
 	float t;
 	word result;
 	switch (signal) {
@@ -631,7 +635,11 @@ OPTINLINE void incop(byte operator, float frequency)
 {
 	if (operator==0xFF) return; //Invalid operator or ignoring timing increase!
 	float temp;
+	#ifdef IS_FLOATDOUBLE
+	double d;
+	#else
 	DOUBLE d;
+	#endif
 	adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = adlibop[operator].time*frequency; //Calculate for overflow!
