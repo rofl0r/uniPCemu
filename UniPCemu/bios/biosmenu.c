@@ -4601,11 +4601,11 @@ void BIOS_InitSoundText()
 
 	optioninfo[advancedoptions] = 7; //Sound Source Volume!
 	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %u",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
-	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
+	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
 
 	optioninfo[advancedoptions] = 8; //Game Blaster Volume!
 	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %u",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
-	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be double! This is the fix!
+	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
 
 	if (!EMU_RUNNING)
 	{

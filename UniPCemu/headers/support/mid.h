@@ -6,6 +6,6 @@
 //MIDI file player support!
 
 byte playMIDIFile(char *filename, byte showinfo); //Play a MIDI file, CIRCLE to stop playback! Cancelled/error loading returns 0, 1 on success playing.
-void updateMIDIPlayer(double timepassed); //Update the running MIDI player!
+void updateMIDIPlayer(DOUBLE timepassed); //Update the running MIDI player!
 
 #endif

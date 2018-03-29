@@ -106,5 +106,5 @@ void register_PS2PortEnabled(byte port, PS2ENABLEDHANDLER enabledhandler);
 void register_PS2PortWrite(byte port, PS2OUT handler);
 void register_PS2PortRead(byte port, PS2IN handler, PS2PEEK peekhandler);
 
-void update8042(double timepassed); //Update 8042 input/output timings!
+void update8042(DOUBLE timepassed); //Update 8042 input/output timings!
 #endif

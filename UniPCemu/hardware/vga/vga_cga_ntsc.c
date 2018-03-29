@@ -27,16 +27,16 @@ uint_32 templine[2048]; //Our temporary line!
 
 int CGA_Composite_Table[1024];
 
-double brightness = 0;
-double contrast = 100;
-double saturation = 100;
-double sharpness = 0;
-double hue_offset = 0;
+DOUBLE brightness = 0;
+DOUBLE contrast = 100;
+DOUBLE saturation = 100;
+DOUBLE sharpness = 0;
+DOUBLE hue_offset = 0;
 
 // New algorithm by reenigne
 // Works in all CGA modes/color settings and can simulate older and newer CGA revisions
 
-const double tau = 6.28318531; // == 2*pi
+const DOUBLE tau = 6.28318531; // == 2*pi
 
 unsigned char chroma_multiplexer[256] = {
 	  2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
@@ -56,18 +56,25 @@ unsigned char chroma_multiplexer[256] = {
 	 61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
 	198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252};
 
-double intensity[4] = {
+#ifdef IS_LONGDOUBLE
+DOUBLE intensity[4] = {
+	77.175381L, 88.654656L, 166.564623L, 174.228438L};
+
+#define NEW_CGA(c,i,r,g,b) (((c)/0.72L)*0.29L + ((i)/0.28L)*0.32L + ((r)/0.28L)*0.1L + ((g)/0.28L)*0.22L + ((b)/0.28L)*0.07L)
+#else
+DOUBLE intensity[4] = {
 	77.175381, 88.654656, 166.564623, 174.228438};
 
 #define NEW_CGA(c,i,r,g,b) (((c)/0.72)*0.29 + ((i)/0.28)*0.32 + ((r)/0.28)*0.1 + ((g)/0.28)*0.22 + ((b)/0.28)*0.07)
+#endif
 
-double mode_brightness;
-double mode_contrast;
-double mode_hue;
-double min_v;
-double max_v;
+DOUBLE mode_brightness;
+DOUBLE mode_contrast;
+DOUBLE mode_hue;
+DOUBLE min_v;
+DOUBLE max_v;
 
-double video_ri, video_rq, video_gi, video_gq, video_bi, video_bq;
+DOUBLE video_ri, video_rq, video_gi, video_gq, video_bi, video_bq;
 int video_sharpness;
 //int tandy_mode_control = 0; //Uses VGA directly by superfury
 
@@ -90,8 +97,8 @@ OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we acc
                 max_v = chroma_multiplexer[255] + intensity[3];
         }
         else {
-                double i0 = intensity[0];
-                double i3 = intensity[3];
+                DOUBLE i0 = intensity[0];
+                DOUBLE i3 = intensity[3];
                 min_v = NEW_CGA(chroma_multiplexer[0], i0, i0, i0, i0);
                 max_v = NEW_CGA(chroma_multiplexer[255], i3, i3, i3, i3);
         }
@@ -101,10 +108,17 @@ OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we acc
                 mode_hue = 14;
         else
                 mode_hue = 4;
-
+		#ifdef IS_LONGDOUBLE
+        mode_contrast *= contrast * (new_cga ? 1.2L : 1.0L)/100.0L;             // new CGA: 120%
+		#else
         mode_contrast *= contrast * (new_cga ? 1.2 : 1)/100;             // new CGA: 120%
+		#endif
         mode_brightness += (new_cga ? brightness-10 : brightness)*5;     // new CGA: -10
-        double mode_saturation = (new_cga ? 4.35 : 2.9)*saturation/100;  // new CGA: 150%
+		#ifdef IS_LONGDOUBLE
+        DOUBLE mode_saturation = (new_cga ? 4.35L : 2.9L)*saturation/100.0L;  // new CGA: 150%
+		#else
+        DOUBLE mode_saturation = (new_cga ? 4.35 : 2.9)*saturation/100.0;  // new CGA: 150%
+		#endif
 
         for (x = 0; x < 1024; ++x) {
                 int phase = x & 3;
@@ -116,38 +130,42 @@ OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we acc
                         rc = (right & 8) | ((right & 7) != 0 ? 7 : 0);
                         lc = (left & 8) | ((left & 7) != 0 ? 7 : 0);
                 }
-                double c =
+                DOUBLE c =
                         chroma_multiplexer[((lc & 7) << 5) | ((rc & 7) << 2) | phase];
-                double i = intensity[(left >> 3) | ((right >> 2) & 2)];
-                double v;
+                DOUBLE i = intensity[(left >> 3) | ((right >> 2) & 2)];
+                DOUBLE v;
                 if (!new_cga)
                         v = c + i;
                 else {
-                        double r = intensity[((left >> 2) & 1) | ((right >> 1) & 2)];
-                        double g = intensity[((left >> 1) & 1) | (right & 2)];
-                        double b = intensity[(left & 1) | ((right << 1) & 2)];
+                        DOUBLE r = intensity[((left >> 2) & 1) | ((right >> 1) & 2)];
+                        DOUBLE g = intensity[((left >> 1) & 1) | (right & 2)];
+                        DOUBLE b = intensity[(left & 1) | ((right << 1) & 2)];
                         v = NEW_CGA(c, i, r, g, b);
                 }
                 CGA_Composite_Table[x] = (int) (v*mode_contrast + mode_brightness);
         }
 
-        double i = CGA_Composite_Table[6*68] - CGA_Composite_Table[6*68 + 2];
-        double q = CGA_Composite_Table[6*68 + 1] - CGA_Composite_Table[6*68 + 3];
+        DOUBLE i = CGA_Composite_Table[6*68] - CGA_Composite_Table[6*68 + 2];
+        DOUBLE q = CGA_Composite_Table[6*68 + 1] - CGA_Composite_Table[6*68 + 3];
 
-        double a = tau*(33 + 90 + hue_offset + mode_hue)/360.0;
-        double c = cos(a);
-        double s = sin(a);
-        double r = 256*mode_saturation/sqrt(i*i+q*q);
+		#ifdef IS_LONGDOUBLE
+        DOUBLE a = tau*(33 + 90 + hue_offset + mode_hue)/360.0L;
+		#else
+        DOUBLE a = tau*(33 + 90 + hue_offset + mode_hue)/360.0;
+		#endif
+        DOUBLE c = cos(a);
+        DOUBLE s = sin(a);
+        DOUBLE r = 256*mode_saturation/sqrt(i*i+q*q);
 
-        double iq_adjust_i = -(i*c + q*s)*r;
-        double iq_adjust_q = (q*c - i*s)*r;
+        DOUBLE iq_adjust_i = -(i*c + q*s)*r;
+        DOUBLE iq_adjust_q = (q*c - i*s)*r;
 
-        static const double ri = 0.9563;
-        static const double rq = 0.6210;
-        static const double gi = -0.2721;
-        static const double gq = -0.6474;
-        static const double bi = -1.1069;
-        static const double bq = 1.7046;
+        static const DOUBLE ri = 0.9563;
+        static const DOUBLE rq = 0.6210;
+        static const DOUBLE gi = -0.2721;
+        static const DOUBLE gq = -0.6474;
+        static const DOUBLE bi = -1.1069;
+        static const DOUBLE bq = 1.7046;
 
         video_ri = (int) (ri*iq_adjust_i + rq*iq_adjust_q);
         video_rq = (int) (-ri*iq_adjust_q + rq*iq_adjust_i);
@@ -165,7 +183,7 @@ OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we acc
 }
 
 #if 0
-void configure_comp(double h, uint8_t n, uint8_t bw, uint8_t b1)
+void configure_comp(DOUBLE h, uint8_t n, uint8_t bw, uint8_t b1)
 {
 	hue_offset = h;
 	new_cga = n;
@@ -215,7 +233,7 @@ OPTINLINE void Composite_Process(Bit8u border, Bit32u blocks/*, bool doublewidth
         b = bp[0]; \
         c = i[0]+i[0]; \
         d = i[-1]+i[1]; \
-        y = ((c+d)<<8) + (int)(video_sharpness*(double)(c-d)); \
+        y = ((c+d)<<8) + (int)(video_sharpness*(DOUBLE)(c-d)); \
         rr = y + (int)(video_ri*(I)) + (int)(video_rq*(Q)); \
         gg = y + (int)(video_gi*(I)) + (int)(video_gq*(Q)); \
         bb = y + (int)(video_bi*(I)) + (int)(video_bq*(Q)); \

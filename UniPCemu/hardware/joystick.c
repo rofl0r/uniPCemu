@@ -6,9 +6,15 @@
 //Time until we time out!
 //R=(t-24.2)/0.011, where t is in microseconds(us). Our timing is in nanoseconds(1000us). r=0-100. R(max)=2200 ohm.
 //Thus, t(microseconds)=(R(ohms)*0.011)+24.2 microseconds.
+#ifdef IS_LONGDOUBLE
+#define OHMS (120000.0L/2.0L)
+#define POS2OHM(position) ((((DOUBLE)(position+1))/65535.0L)*OHMS)
+#define CALCTIMEOUT(position) (((24.2L+(POS2OHM(position)*0.011L)))*1000.0L)
+#else
 #define OHMS (120000.0/2.0)
-#define POS2OHM(position) ((((double)(position+1))/65535.0)*OHMS)
+#define POS2OHM(position) ((((DOUBLE)(position+1))/65535.0)*OHMS)
 #define CALCTIMEOUT(position) (((24.2+(POS2OHM(position)*0.011)))*1000.0)
+#endif
 
 //The size of the sequence to be supported!
 #define MAXSEQUENCESIZE 10
@@ -20,15 +26,15 @@ struct
 	byte buttons[2]; //Two button status for two joysticks!
 	sword Joystick_X[2]; //X location for two joysticks!
 	sword Joystick_Y[2]; //Y location for two joysticks!
-	double timeoutx[2]; //Keep line high while set(based on Joystick_X[0-1] when triggered)
-	double timeouty[2]; //Keep line high while set(based on Joystick_Y[0-1] when triggered)
+	DOUBLE timeoutx[2]; //Keep line high while set(based on Joystick_X[0-1] when triggered)
+	DOUBLE timeouty[2]; //Keep line high while set(based on Joystick_Y[0-1] when triggered)
 	byte timeout; //Timeout status of the four data lines(logic 0/1)! 1 for timed out(default state), 0 when timing!
 
 	//Digital mode timing support!
 	FIFOBUFFER *digitalmodesequence; //Digital sequence to check when pulsing when model=0.
-	double lasttiming; //Last write digital timing counter!
-	double digitaltiming; //Digital timing accumulated!
-	double digitaltiming_step; //The frequency of the digital timing(in ns, based on e.g. 100Hz signal).
+	DOUBLE lasttiming; //Last write digital timing counter!
+	DOUBLE digitaltiming; //Digital timing accumulated!
+	DOUBLE digitaltiming_step; //The frequency of the digital timing(in ns, based on e.g. 100Hz signal).
 	byte buttons2[6]; //Extended 6 buttons(digital joysticks)!
 	byte hats[4]; //Extended 4 hats(digital joysticks)!
 	sword axis[6]; //Extended 3 x/y axis(digital joysticks)!
@@ -84,7 +90,7 @@ void setJoystick_other(byte button1, byte button2, byte button3, byte button4, b
 	JOYSTICK.Joystick_Y[1] = analog2_y; //Joystick y axis!
 }
 
-void updateJoystick(double timepassed)
+void updateJoystick(DOUBLE timepassed)
 {
 	//Joystick timer!
 	if (JOYSTICK.timeout) //Timing?
@@ -277,7 +283,11 @@ byte joystick_writeIO(word port, byte value)
 					if (sequencepos==NUMITEMS(WingManDigitalSequence)) //Sequence pattern matched?
 					{
 						JOYSTICK.model = MODEL_LOGITECH_WINGMAN_EXTREME_DIGITAL; //Enter digital WingMan Digital's digital mode!
+						#ifdef IS_LONGDOUBLE
+						JOYSTICK.digitaltiming_step = 1000000000.0L/(100000.0L*2.0L); //We're a signal going 1-0 or 0-1 at 100kHz!
+						#else
 						JOYSTICK.digitaltiming_step = 1000000000.0/(100000.0*2.0); //We're a signal going 1-0 or 0-1 at 100kHz!
+						#endif
 					}
 					break;
 				}

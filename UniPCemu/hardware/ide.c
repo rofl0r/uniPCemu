@@ -104,9 +104,9 @@ struct
 		byte commandstatus; //Do we have a command?
 		byte multiplesectors; //How many sectors to transfer in multiple mode? 0=Disabled(according to the ATA-1 documentation)!
 		byte ATAPI_processingPACKET; //Are we processing a packet or data for the ATAPI device?
-		double ATAPI_PendingExecuteCommand; //How much time is left pending?
-		double ATAPI_PendingExecuteTransfer; //How much time is left pending for transfer timing?
-		double ATAPI_diskchangeTimeout; //Disk change timer!
+		DOUBLE ATAPI_PendingExecuteCommand; //How much time is left pending?
+		DOUBLE ATAPI_PendingExecuteTransfer; //How much time is left pending for transfer timing?
+		DOUBLE ATAPI_diskchangeTimeout; //Disk change timer!
 		byte ATAPI_diskchangeDirection; //What direction are we? Inserted or Removed!
 		byte ATAPI_diskchangepending; //Disk change pending until packet is given!
 		uint_32 ATAPI_bytecount; //How many data to transfer in one go at most!
@@ -155,9 +155,9 @@ struct
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
-		double resetTiming;
-		double ReadyTiming; //Timing until we become ready after executing a command!
-		double IRQTimeout; //Timeout until we're to fire an IRQ!
+		DOUBLE resetTiming;
+		DOUBLE ReadyTiming; //Timing until we become ready after executing a command!
+		DOUBLE IRQTimeout; //Timeout until we're to fire an IRQ!
 		byte resetSetsDefaults;
 	} Drive[2]; //Two drives!
 
@@ -167,7 +167,7 @@ struct
 	byte activedrive; //What drive are we currently?
 	byte DMAPending; //DMA pending?
 	byte TC; //Terminal count occurred in DMA transfer?
-	double driveselectTiming;
+	DOUBLE driveselectTiming;
 } ATA[2]; //Two channels of ATA drives!
 
 enum {
@@ -305,7 +305,7 @@ byte ATA_DrivesReverse[4][2]; //All Drive to ATA mounted drives conversion!
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
-OPTINLINE void ATA_IRQ(byte channel, byte slave, double timeout)
+OPTINLINE void ATA_IRQ(byte channel, byte slave, DOUBLE timeout)
 {
 	if (timeout) //Timeout specified to use?
 	{
@@ -457,7 +457,7 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
 			ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
-			ATA_IRQ(channel,drive,(double)0); //Raise an IRQ!
+			ATA_IRQ(channel,drive,(DOUBLE)0); //Raise an IRQ!
 		}
 		else //ATAPI drive might have something to do now?
 		{
@@ -643,7 +643,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 	return 1; //Continue the command normally?
 }
 
-void updateATA(double timepassed) //ATA timing!
+void updateATA(DOUBLE timepassed) //ATA timing!
 {
 	if (timepassed) //Anything passed?
 	{
@@ -713,8 +713,8 @@ void updateATA(double timepassed) //ATA timing!
 			ATA[0].Drive[0].IRQTimeout -= timepassed; //Time until timeout!
 			if (ATA[0].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
-				ATA[0].Drive[0].IRQTimeout = (double)0; //Timer finished!
-				ATA_IRQ(0,0,(double)0); //Finish timeout!
+				ATA[0].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_IRQ(0,0,(DOUBLE)0); //Finish timeout!
 			}
 		}
 
@@ -723,8 +723,8 @@ void updateATA(double timepassed) //ATA timing!
 			ATA[0].Drive[1].IRQTimeout -= timepassed; //Time until timeout!
 			if (ATA[0].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
-				ATA[0].Drive[1].IRQTimeout = (double)0; //Timer finished!
-				ATA_IRQ(0,1,(double)0); //Finish timeout!
+				ATA[0].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_IRQ(0,1,(DOUBLE)0); //Finish timeout!
 			}
 		}
 
@@ -733,8 +733,8 @@ void updateATA(double timepassed) //ATA timing!
 			ATA[1].Drive[0].IRQTimeout -= timepassed; //Time until timeout!
 			if (ATA[1].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
-				ATA[1].Drive[0].IRQTimeout = (double)0; //Timer finished!
-				ATA_IRQ(1,0,(double)0); //Finish timeout!
+				ATA[1].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_IRQ(1,0,(DOUBLE)0); //Finish timeout!
 			}
 		}
 
@@ -743,8 +743,8 @@ void updateATA(double timepassed) //ATA timing!
 			ATA[1].Drive[1].IRQTimeout -= timepassed; //Time until timeout!
 			if (ATA[1].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
-				ATA[1].Drive[1].IRQTimeout = (double)0; //Timer finished!
-				ATA_IRQ(1,1,(double)0); //Finish timeout!
+				ATA[1].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_IRQ(1,1,(DOUBLE)0); //Finish timeout!
 			}
 		}
 
@@ -871,7 +871,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,0); //Generate our reason!
-					ATA_IRQ(0,0,(double)0); //Raise an IRQ!
+					ATA_IRQ(0,0,(DOUBLE)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -885,7 +885,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(0,1); //Generate our reason!
-					ATA_IRQ(0,1,(double)0); //Raise an IRQ!
+					ATA_IRQ(0,1,(DOUBLE)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -899,7 +899,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,0); //Generate our reason!
-					ATA_IRQ(1,0,(double)0); //Raise an IRQ!
+					ATA_IRQ(1,0,(DOUBLE)0); //Raise an IRQ!
 				}
 			}
 		}
@@ -913,7 +913,7 @@ void updateATA(double timepassed) //ATA timing!
 				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
 					ATAPI_generateInterruptReason(1,1); //Generate our reason!
-					ATA_IRQ(1,1,(double)0); //Raise an IRQ!
+					ATA_IRQ(1,1,(DOUBLE)0); //Raise an IRQ!
 				}
 			}
 		}

@@ -37,7 +37,7 @@
 
 extern GPU_type GPU; //GPU!
 
-double VGA_clocks[4] = {
+DOUBLE VGA_clocks[4] = {
 			0.0, //25MHz: VGA standard clock
 			0.0, //28MHz: VGA standard clock
 			0.0, //external clock: not connected!
@@ -56,10 +56,10 @@ Renderer mini-optimizations.
 
 */
 
-double oldrate = 0.0f; //The old rate we're using!
+DOUBLE oldrate = 0.0f; //The old rate we're using!
 
-double VGA_timing = 0.0; //No timing yet!
-double VGA_debugtiming = 0.0; //Debug countdown if applyable!
+DOUBLE VGA_timing = 0.0; //No timing yet!
+DOUBLE VGA_debugtiming = 0.0; //Debug countdown if applyable!
 byte VGA_debugtiming_enabled = 0; //Are we applying right now?
 float VGA_rendertiming = 0.0f; //Time for the renderer to tick!
 
@@ -97,9 +97,9 @@ void initVGAclocks(byte extension)
 	VGA_clocks[3] = 0.0; //Unused!
 }
 
-double VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
+DOUBLE VGA_VerticalRefreshRate(VGA_Type *VGA) //Scanline speed for one line in Hz!
 {
-	double result=0.0;
+	DOUBLE result=0.0;
 	byte clock;
 	//Horizontal Refresh Rate=Clock Frequency (in Hz)/horizontal pixels
 	//Vertical Refresh rate=Horizontal Refresh Rate/total scan lines!
@@ -929,12 +929,16 @@ void changeRowTimer(VGA_Type *VGA) //Change the VGA row processing timer the amm
 	#ifdef __HW_DISABLED
 	return; //Disabled?
 	#endif
-	double rate;
+	DOUBLE rate;
 	rate = VGA_VerticalRefreshRate(VGA); //Get our rate first!
 	if (unlikely(rate!=oldrate)) //New rate has been specified?
 	{
 		oldrate = rate; //We've updated to this rate!
+		#ifdef IS_LONGDOUBLE
+		VGA_rendertiming = (float)(1000000000.0L/rate); //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
+		#else
 		VGA_rendertiming = (float)(1000000000.0/rate); //Handle this rate from now on! Keep us locked though to prevent screen updates messing with this!
+		#endif
 		adjustVGASpeed(); //Auto-adjust our speed!
 	}
 }
@@ -943,7 +947,11 @@ void VGA_initTimer()
 {
 	VGA_timing = 0.0f; //We're starting to run now!
 	oldrate = VGA_VerticalRefreshRate(getActiveVGA()); //Initialise the default rate!
+	#ifdef IS_LONGDOUBLE
+	VGA_rendertiming = (float)(1000000000.0L/oldrate); //Handle this rate from now on!
+	#else
 	VGA_rendertiming = (float)(1000000000.0/oldrate); //Handle this rate from now on!
+	#endif
 	initTicksHolder(&VGA_test);
 	adjustVGASpeed(); //Auto-adjust our speed!
 }
@@ -1251,7 +1259,7 @@ OPTINLINE static void VGA_Renderer(SEQ_DATA *Sequencer)
 }
 
 //CPU cycle locked version of VGA rendering!
-void updateVGA(double timepassed, uint_32 MHZ14passed)
+void updateVGA(DOUBLE timepassed, uint_32 MHZ14passed)
 {
 	#ifdef LIMITVGA
 	float limitcalc=0;

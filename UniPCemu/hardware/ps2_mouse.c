@@ -47,7 +47,7 @@ struct
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
 	byte supported; //PS/2 mouse supported on this system?
-	double timeout; //Timeout for reset commands!
+	DOUBLE timeout; //Timeout for reset commands!
 } Mouse; //Ourselves!
 
 OPTINLINE void give_mouse_output(byte data)
@@ -178,14 +178,14 @@ OPTINLINE void resetPS2Mouse()
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 }
 
-void updatePS2Mouse(double timepassed)
+void updatePS2Mouse(DOUBLE timepassed)
 {
 	if (unlikely(Mouse.timeout)) //Gotten a timeout?
 	{
 		Mouse.timeout -= timepassed; //Pass some time!
 		if (unlikely(Mouse.timeout <= 0.0)) //Done?
 		{
-			Mouse.timeout = (double)0; //Finished!
+			Mouse.timeout = (DOUBLE)0; //Finished!
 			switch (Mouse.command) //What command to execute?
 			{
 				case 0xFF:
@@ -207,7 +207,7 @@ void updatePS2Mouse(double timepassed)
 						Mouse.command_step = 3; //Step 3! Give the ID next!
 						break;
 					case 3: //ID mode?
-						Mouse.timeout = (double)0; //Finished!
+						Mouse.timeout = (DOUBLE)0; //Finished!
 						give_mouse_output(0x00); //Give the ID code: PS/2 mouse!
 						Mouse.command_step = 0; //Finished!
 						Mouse.has_command = 0; //Finished command!

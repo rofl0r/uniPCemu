@@ -51,7 +51,11 @@
 #define __GAMEBLASTER_VOLUME 100.0f
 
 //We're two times 6 channels mixed on left and right, so not 6 channels but 12 channels each!
+#ifdef IS_LONGDOUBLE
+#define __GAMEBLASTER_AMPLIFIER (1.0L/12.0L)
+#else
 #define __GAMEBLASTER_AMPLIFIER (1.0/12.0)
+#endif
 
 typedef struct
 {
@@ -133,7 +137,7 @@ struct
 	HIGHLOWPASSFILTER filter[2]; //Filter for left and right channels, low-pass type!
 	uint_32 baseclock; //Base clock to render at(up to bus rate of 14.31818MHz)!
 	FIFOBUFFER *rawsignal; //Raw output signal we're generating!
-	double samplesleft; //Samples left to process!
+	DOUBLE samplesleft; //Samples left to process!
 } GAMEBLASTER; //Our game blaster information!
 
 //Safety check of above defines to make sure we don't generate wrong samples(PWM without filter creates an invalid output when resampled)!
@@ -353,7 +357,11 @@ OPTINLINE void updateSAA1099RNGfrequency(SAA1099 *chip, byte channel)
 	byte channel2=channel|8;
 	if (unlikely(chip->noise[channel].freq!=chip->squarewave[channel2].freq)) //Frequency changed?
 	{
-		chip->squarewave[channel2].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->noise[channel].freq)); //New timeout!
+		#ifdef IS_LONGDOUBLE
+		chip->squarewave[channel2].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0L*chip->noise[channel].freq)); //New timeout!
+		#else
+		chip->squarewave[channel2].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0*chip->noise[channel].freq)); //New timeout!
+		#endif
 		chip->squarewave[channel2].timepoint = 0; //Reset the timepoint!
 		chip->squarewave[channel2].freq = chip->noise[channel].freq; //We're updated!
 	}
@@ -382,10 +390,18 @@ OPTINLINE void updateSAA1099frequency(SAA1099 *chip, byte channel) //on octave/f
 {
 	byte noisechannels[8] = {0,2,2,1,2,2,2,2}; //Noise channels to use!
 	channel &= 7; //Safety on channel!
-	chip->channels[channel].freq = (float)((double)((uint_64)(GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(double)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	#ifdef IS_LONGDOUBLE
+	chip->channels[channel].freq = (float)((DOUBLE)((uint_64)(GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(DOUBLE)(511.0L-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	#else
+	chip->channels[channel].freq = (float)((DOUBLE)((uint_64)(GAMEBLASTER.baseclock/512)<<chip->channels[channel].octave)/(DOUBLE)(511.0-chip->channels[channel].frequency)); //Calculate the current frequency to use!
+	#endif
 	if (unlikely(chip->channels[channel].freq!=chip->squarewave[channel].freq)) //Frequency changed?
 	{
-		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*chip->channels[channel].freq)); //New timeout!
+		#ifdef IS_LONGDOUBLE
+		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0L*(DOUBLE)chip->channels[channel].freq)); //New timeout!
+		#else
+		chip->squarewave[channel].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0*(DOUBLE)chip->channels[channel].freq)); //New timeout!
+		#endif
 		chip->squarewave[channel].timepoint = 0; //Reset!
 		chip->squarewave[channel].freq = chip->channels[channel].freq; //We're updated!
 	}
@@ -774,20 +790,20 @@ OPTINLINE void generateSAA1099sample(SAA1099 *chip, int_32 *leftsample, int_32 *
 uint_32 gameblaster_soundtiming=0;
 uint_32 gameblaster_rendertiming=0;
 
-double gameblaster_output_ticktiming; //Both current clocks!
-double gameblaster_output_tick = 0.0; //Time of a tick in the PC speaker sample!
+DOUBLE gameblaster_output_ticktiming; //Both current clocks!
+DOUBLE gameblaster_output_tick = 0.0; //Time of a tick in the PC speaker sample!
 
-double gameblaster_ticklength = 0.0; //Length of PIT samples to process every output sample!
+DOUBLE gameblaster_ticklength = 0.0; //Length of PIT samples to process every output sample!
 
 int_32 gb_leftsample[2], gb_rightsample[2]; //Two stereo samples!
 
-void updateGameBlaster(double timepassed, uint_32 MHZ14passed)
+void updateGameBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
 	//Output rendering information:
 	INLINEREGISTER uint_32 length; //Amount of samples to generate!
 	INLINEREGISTER uint_32 i;
 	uint_32 dutycyclei; //Input samples to process!
-	double tempf;
+	DOUBLE tempf;
 	uint_32 render_ticks; //A one shot tick!
 	int_32 currentsamplel,currentsampler; //Saved sample in the 1.19MHz samples!
 	float filtersamplel, filtersampler;
@@ -1048,14 +1064,25 @@ void initGameBlaster(word baseaddr)
 
 	GAMEBLASTER.storelatch[0] = GAMEBLASTER.storelatch[1] = 0xFF; //Initialise our latches!
 
-	gameblaster_output_tick = (1000000000.0 / (double)__GAMEBLASTER_SAMPLERATE); //Speaker tick!
-	gameblaster_ticklength = (1.0f / __GAMEBLASTER_SAMPLERATE)*__GAMEBLASTER_BASERATE; //Time to speaker sample ratio!
+	#ifdef IS_LONGDOUBLE
+	gameblaster_output_tick = (1000000000.0L / (DOUBLE)__GAMEBLASTER_SAMPLERATE); //Speaker tick!
+	gameblaster_ticklength = (1.0L / __GAMEBLASTER_SAMPLERATE)*__GAMEBLASTER_BASERATE; //Time to speaker sample ratio!
+	#else
+	gameblaster_output_tick = (1000000000.0 / (DOUBLE)__GAMEBLASTER_SAMPLERATE); //Speaker tick!
+	gameblaster_ticklength = (1.0 / __GAMEBLASTER_SAMPLERATE)*__GAMEBLASTER_BASERATE; //Time to speaker sample ratio!
+	#endif
 
 	AMPLIFIER = (float)__GAMEBLASTER_AMPLIFIER; //Set the amplifier to use!
 	GAMEBLASTER.baseclock = (uint_32)(MHZ14/2); //We're currently clocking at the sample rate!
+	#ifdef IS_LONGDOUBLE
+	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/(256.0L)); //~13982.xxxHz
+	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/(512.0L));
+	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/(1024.0L));
+	#else
 	noise_frequencies[0] = (float)((float)GAMEBLASTER.baseclock/(256.0)); //~13982.xxxHz
 	noise_frequencies[1] = (float)((float)GAMEBLASTER.baseclock/(512.0));
 	noise_frequencies[2] = (float)((float)GAMEBLASTER.baseclock/(1024.0));
+	#endif
 
 	initSoundFilter(&GAMEBLASTER.filter[0],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used left at nyquist!
 	initSoundFilter(&GAMEBLASTER.filter[1],0,(float)(__GAMEBLASTER_SAMPLERATE/2.0),(float)__GAMEBLASTER_BASERATE); //Low-pass filter used right at nyquist!
@@ -1067,7 +1094,7 @@ void initGameBlaster(word baseaddr)
 	*/
 #ifdef TESTWAVE
 	//Load test wave information for generating samples!
-	GAMEBLASTER.chips[0].squarewave[7].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(440.0f*2.0f)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[7].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(440.0f*2.0f)); //New timeout!
 	GAMEBLASTER.chips[0].squarewave[7].timepoint = 0; //Reset!
 	GAMEBLASTER.chips[0].squarewave[7].freq = 440.0f; //We're updated!
 
@@ -1126,10 +1153,10 @@ void initGameBlaster(word baseaddr)
 
 	#ifdef DEBUG_OUTPUT
 	//manually set a test frequency!
-	GAMEBLASTER.chips[0].squarewave[0].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[0].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0*DEBUG_OUTPUT)); //New timeout!
 	GAMEBLASTER.chips[0].squarewave[0].timepoint = 0; //Reset!
 	GAMEBLASTER.chips[0].channels[0].freq = GAMEBLASTER.chips[0].squarewave[0].freq = DEBUG_OUTPUT; //We're updated!
-	GAMEBLASTER.chips[0].squarewave[8].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(double)(2.0*DEBUG_OUTPUT)); //New timeout!
+	GAMEBLASTER.chips[0].squarewave[8].timeout = (uint_32)(__GAMEBLASTER_BASERATE/(DOUBLE)(2.0*DEBUG_OUTPUT)); //New timeout!
 	GAMEBLASTER.chips[0].squarewave[8].timepoint = 0; //Reset!
 	GAMEBLASTER.chips[0].squarewave[8].freq = DEBUG_OUTPUT; //We're updated!
 	outGameBlaster(GAMEBLASTER.baseaddr+1,0x00); //Channel 0 amplitude!

@@ -25,13 +25,13 @@ struct
 	byte ATcommand[256];
 	word ATcommandsize; //The amount of data sent!
 	byte escaping; //Are we trying to escape?
-	double timer; //A timer for detecting timeout!
-	double ringtimer; //Ringing timer!
-	double serverpolltimer; //Network connection request timer!
-	double networkdatatimer; //Network connection request timer!
+	DOUBLE timer; //A timer for detecting timeout!
+	DOUBLE ringtimer; //Ringing timer!
+	DOUBLE serverpolltimer; //Network connection request timer!
+	DOUBLE networkdatatimer; //Network connection request timer!
 
-	double serverpolltick; //How long it takes!
-	double networkpolltick;
+	DOUBLE serverpolltick; //How long it takes!
+	DOUBLE networkpolltick;
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -64,7 +64,7 @@ struct
 	byte carriagereturncharacter;
 	byte linefeedcharacter;
 	byte backspacecharacter;
-	double escapecodeguardtime;
+	DOUBLE escapecodeguardtime;
 	byte port; //What port are we allocated to?
 	byte canrecvdata; //Can we start receiving data to the UART?
 	byte linechanges; //For detecting line changes!
@@ -293,7 +293,11 @@ void modem_updateRegister(byte reg)
 			modem.backspacecharacter = modem.registers[reg]; //Escape!
 			break;
 		case 12: //Escape code guard time?
+			#ifdef IS_LONGDOUBLE
+			modem.escapecodeguardtime = (modem.registers[reg]*20000000.0L); //Set the escape code guard time, in nanoseconds!
+			#else
 			modem.escapecodeguardtime = (modem.registers[reg]*20000000.0); //Set the escape code guard time, in nanoseconds!
+			#endif
 			break;
 		default: //Unknown/unsupported?
 			break;
@@ -1202,8 +1206,13 @@ void initModem(byte enabled) //Initialise modem!
 			}
 			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
 			resetModem(0); //Reset the modem to the default state!
-			modem.serverpolltick = (1000000000.0/(double)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
-			modem.networkpolltick = (1000000000.0/(double)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
+			#ifdef IS_LONGDOUBLE
+			modem.serverpolltick = (1000000000.0L/(DOUBLE)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
+			modem.networkpolltick = (1000000000.0L/(DOUBLE)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
+			#else
+			modem.serverpolltick = (1000000000.0/(DOUBLE)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
+			modem.networkpolltick = (1000000000.0/(DOUBLE)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
+			#endif
 		}
 		else
 		{
@@ -1238,7 +1247,7 @@ void cleanModem()
 	//Nothing to do!
 }
 
-void updateModem(double timepassed) //Sound tick. Executes every instruction.
+void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
 	byte datatotransmit;
 	modem.timer += timepassed; //Add time to the timer!
@@ -1306,7 +1315,11 @@ void updateModem(double timepassed) //Sound tick. Executes every instruction.
 				}
 			}
 			modem_responseResult(MODEMRESULT_RING); //We're ringing!
+			#ifdef IS_LONGDOUBLE
+			modem.ringtimer += 3000000000.0L; //3s timer for every ring!
+			#else
 			modem.ringtimer += 3000000000.0; //3s timer for every ring!
+			#endif
 		}
 	}
 

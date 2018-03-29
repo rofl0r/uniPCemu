@@ -23,10 +23,17 @@
 
 //25MHz: VGA standard clock
 //#define VGA25MHZ (25.2 / 1.001)*1000000.0
+#ifdef IS_LONGDOUBLE
+#define VGA25MHZ 25175000.0L
+//28MHz: VGA standard clock
+//#define VGA28MHZ (28.35 / 1.001)*1000000.0
+#define VGA28MHZ 28322000.0L
+#else
 #define VGA25MHZ 25175000.0
 //28MHz: VGA standard clock
 //#define VGA28MHZ (28.35 / 1.001)*1000000.0
 #define VGA28MHZ 28322000.0
+#endif
 
 //Enable VGA I/O dump when recording? Also specifies the length to dump(in ns)!
 //#define VGAIODUMP 40000000.0f
@@ -378,7 +385,7 @@ typedef struct
 	byte enable_SVGA; //Enable SVGA? If >0, a SVGA extension is enabled. Then initialize it as needed!
 } VGA_Type; //VGA dataset!
 
-typedef double (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
+typedef DOUBLE (*VGA_clockrateextensionhandler)(VGA_Type *VGA); //The clock rate extension handler!
 typedef uint_32 (*VGA_addresswrapextensionhandler)(VGA_Type *VGA, uint_32 memoryaddress); //The DWord shift memory address extension handler!
 
 #ifndef IS_VGA

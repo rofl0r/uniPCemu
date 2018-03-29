@@ -19,7 +19,7 @@
 #define __COVOX_DBLBUFFER (4096*4)
 #define __COVOX_HWBUFFER (4096)
 
-double ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=0.0, covoxtick=0.0;
+DOUBLE ssourcetiming = 0.0f, covoxtiming = 0.0f, ssourcetick=0.0, covoxtick=0.0;
 byte ssource_ready = 0; //Are we running?
 FIFOBUFFER *ssourcestream = NULL; //Sound and covox source data stream and secondary buffer!
 SOUNDDOUBLEBUFFER ssource_soundbuffer, covox_soundbuffer; //Sound source and covox output buffers!
@@ -122,7 +122,7 @@ byte soundsource_covox_status()
 	return result; //We have an empty buffer!
 }
 
-void tickssourcecovox(double timepassed)
+void tickssourcecovox(DOUBLE timepassed)
 {
 	if (__HW_DISABLED) return; //We're disabled!
 	//HW emulation of ticking the sound source in CPU time!
@@ -216,6 +216,11 @@ void initSoundsource() {
 	}
 
 	//Our tick timings!
+	#ifdef IS_LONGDOUBLE
+	ssourcetick = (1000000000.0L / __SSOURCE_RATE);
+	covoxtick = (1000000000.0L / __COVOX_RATE);
+	#else
 	ssourcetick = (1000000000.0 / __SSOURCE_RATE);
 	covoxtick = (1000000000.0 / __COVOX_RATE);
+	#endif
 }

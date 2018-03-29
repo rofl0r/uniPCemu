@@ -70,7 +70,7 @@ struct
 	struct
 	{
 		byte data[2]; //Both data bytes!
-		double headloadtime, headunloadtime, steprate; //Current head load time, unload time and step rate for this drive!
+		DOUBLE headloadtime, headunloadtime, steprate; //Current head load time, unload time and step rate for this drive!
 	} DriveData[4]; //Specify for each of the 4 floppy drives!
 	union
 	{
@@ -112,7 +112,7 @@ struct
 	byte seekrel[4]; //Seek relatively?
 	byte seekrelup[4]; //Seek relatively upwards(towards larger cylinders)?
 	byte MTMask; //Allow MT to be used in sector increase operations?
-	double DMArate, DMAratePending; //Current DMA transfer rate!
+	DOUBLE DMArate, DMAratePending; //Current DMA transfer rate!
 	byte RWRequestedCylinder; //Read/Write requested cylinder!
 } FLOPPY; //Our floppy drive data!
 
@@ -228,8 +228,8 @@ struct
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
-double floppytimer[4] = {0.0,0.0,0.0,0.0}; //The timer for ticking floppy disk actions!
-double floppytime[4] = {0.0,0.0,0.0,0.0}; //Buffered floppy disk time!
+DOUBLE floppytimer[4] = {0.0,0.0,0.0,0.0}; //The timer for ticking floppy disk actions!
+DOUBLE floppytime[4] = {0.0,0.0,0.0,0.0}; //Buffered floppy disk time!
 byte floppytiming = 0; //Are we timing?
 byte currentfloppytimerstep[4] = {0,0,0,0}; //Current step to execute within the floppy disk timer process!
 
@@ -261,19 +261,41 @@ val 0h becomes 80h.
 
 */
 
-double floppy_steprate[4][0x10]; //All possible step rates!
-double floppy_headunloadtimerate[4][0x10]; //All possible head (un)load times!
-double floppy_headloadtimerate[4][0x80]; //All possible head load times!
+DOUBLE floppy_steprate[4][0x10]; //All possible step rates!
+DOUBLE floppy_headunloadtimerate[4][0x10]; //All possible head (un)load times!
+DOUBLE floppy_headloadtimerate[4][0x80]; //All possible head load times!
 
 void initFloppyRates()
 {
-	double steprate_base[4] = {0,0,0,0}; //The base to take, in ms!
-	double steprate_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
-	double headunloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
-	double headloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	DOUBLE steprate_base[4] = {0,0,0,0}; //The base to take, in ms!
+	DOUBLE steprate_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	DOUBLE headunloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
+	DOUBLE headloadtime_addition[4] = {0,0,0,0}; //The multiplier to add, in ms
 	//We initialize all floppy disk rates, in milliseconds!
 	//The order is of the rates is: 500k, 300k, 250k, 1M
 	//Step rate!
+	#ifdef IS_LONGDOUBLE
+	steprate_base[1] = 16.0L;
+	steprate_base[2] = 26.0L+(2.0L/3.0L);
+	steprate_base[3] = 32.0L;
+	steprate_base[0] = 8.0L;
+	steprate_addition[0] = 1.0L;
+	steprate_addition[1] = 1.0L+(2.0L/3.0L);
+	steprate_addition[2] = 2.0L;
+	steprate_addition[3] = 0.5L;
+
+	//Head Unload Time
+	headunloadtime_addition[0] = 16.0L;
+	headunloadtime_addition[1] = 26.0L+(2.0L/3.0L);
+	headunloadtime_addition[2] = 32.0L;
+	headunloadtime_addition[3] = 8.0L;
+
+	//Head Load Time
+	headloadtime_addition[0] = 2.0L;
+	headloadtime_addition[1] = 3.0L+(1.0L/3.0L);
+	headloadtime_addition[2] = 4.0L;
+	headloadtime_addition[3] = 1.0L;
+	#else
 	steprate_base[1] = 16.0;
 	steprate_base[2] = 26.0+(2.0/3.0);
 	steprate_base[3] = 32.0;
@@ -294,6 +316,7 @@ void initFloppyRates()
 	headloadtime_addition[1] = 3.0+(1.0/3.0);
 	headloadtime_addition[2] = 4.0;
 	headloadtime_addition[3] = 1.0;
+	#endif
 
 	//Now, to be based on the used data, calculate all used lookup tables!
 	byte rate,ratesel,usedrate;
@@ -302,45 +325,62 @@ void initFloppyRates()
 		for (rate=0;rate<0x10;++rate) //Process all rate timings for step rate&head unload time!
 		{
 			usedrate = rate?rate:0x10; //0 sets bit 4!
-			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
-			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
+			#ifdef IS_LONGDOUBLE
+			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)usedrate)*1000000.0L; //Time, in nanoseconds!
+			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0L; //Time, in nanoseconds!
+			#else
+			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)usedrate)*1000000.0; //Time, in nanoseconds!
+			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0; //Time, in nanoseconds!
+			#endif
 		}
 		for (rate=0;rate<0x80;++rate) //Process all rate timings for head load time!
 		{
 			usedrate = rate?rate:0x80; //0 sets bit 8!
-			floppy_headloadtimerate[ratesel][rate] = (headloadtime_addition[ratesel]*(double)usedrate)*1000000.0; //Time, in nanoseconds!
+			#ifdef IS_LONGDOUBLE
+			floppy_headloadtimerate[ratesel][rate] = (headloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0L; //Time, in nanoseconds!
+			#else
+			floppy_headloadtimerate[ratesel][rate] = (headloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0; //Time, in nanoseconds!
+			#endif
 		}
 	}
 }
 
 //Step rate is the duration between pulses of a Seek/Recalibrate command.
-OPTINLINE double FLOPPY_steprate(byte drivenumber)
+OPTINLINE DOUBLE FLOPPY_steprate(byte drivenumber)
 {
 	return floppy_steprate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_STEPRATER(drivenumber)]; //Look up the step rate for this disk!
 }
 
 //Head Load Time is applied when the head is unloaded and an operation doing anything with floppy media is executed(before data transfer).
-OPTINLINE double FLOPPY_headloadtimerate(byte drivenumber)
+OPTINLINE DOUBLE FLOPPY_headloadtimerate(byte drivenumber)
 {
 	return floppy_headloadtimerate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_HEADLOADTIMER(drivenumber)]; //Look up the head load time rate for this disk!
 }
 
 //Head Unload Time is the time after the read/write data operation, at which the head is unloaded.
-OPTINLINE double FLOPPY_headunloadtimerate(byte drivenumber)
+OPTINLINE DOUBLE FLOPPY_headunloadtimerate(byte drivenumber)
 {
 	return floppy_headunloadtimerate[FLOPPY_DSR_DRATESELR][FLOPPY_DRIVEDATA_HEADUNLOADTIMER(drivenumber)]; //Look up the head load time rate for this disk!
 }
 
 //Floppy sector reading rate, depending on RPM and Sectors per Track! Each round reads/writes a full track always! Gives the amount of nanoseconds per sector!
-OPTINLINE double FLOPPY_sectorrate(byte drivenumber)
+OPTINLINE DOUBLE FLOPPY_sectorrate(byte drivenumber)
 {
 	if (FLOPPY.geometries[drivenumber]) //Valid geometry?
 	{
-		return (60000000000.0/(double)FLOPPY.geometries[drivenumber]->RPM)/(double)FLOPPY.geometries[drivenumber]->SPT; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#ifdef IS_LONGDOUBLE
+		return (60000000000.0L/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/(DOUBLE)FLOPPY.geometries[drivenumber]->SPT; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#else
+		return (60000000000.0/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/(DOUBLE)FLOPPY.geometries[drivenumber]->SPT; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#endif
 	}
 	else //Default rate for unknown disk geometries!
 	{
-		return (60000000000.0/(double)300)/(double)80; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#ifdef IS_LONGDOUBLE
+		return (60000000000.0L/(DOUBLE)300)/(DOUBLE)80; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#else
+		return (60000000000.0/(DOUBLE)300)/(DOUBLE)80; //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		#endif
 	}
 }
 
@@ -578,7 +618,11 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 {
 	if (!FLOPPY.geometries[disk]) //Unknown geometry?
 	{
+		#ifdef IS_LONGDOUBLE
+		FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0L); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+		#else
 		FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+		#endif
 		return 1; //No disk geometry, so supported by default(unknown drive)!
 	}
 	byte supported = 0, current=0, currentrate;
@@ -588,7 +632,11 @@ OPTINLINE byte FLOPPY_supportsrate(byte disk)
 	{
 		if (currentrate==(supported&3))
 		{
+			#ifdef IS_LONGDOUBLE
+			FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0L); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+			#else
 			FLOPPY.DMAratePending = (FLOPPY_sectorrate(FLOPPY_DOR_DRIVENUMBERR)/512.0); //Set the rate used as active to transfer data one byte at a time, simply taken the sector rate!
+			#endif
 			return 1; //We're a supported rate!
 		}
 		supported  >>= 2; //Check next rate!
@@ -922,8 +970,8 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 
 //Physical floppy CHS emulation!
 /*
-double floppyCHStiming = 0.0; //CHS timing!
-void updateFloppy(double timepassed)
+DOUBLE floppyCHStiming = 0.0; //CHS timing!
+void updateFloppy(DOUBLE timepassed)
 {
 	byte timed = 0; //Are we timed?
 	//Use FLOPPY_steprate, FLOPPY_head(un)loadtimerate and FLOPPY_sectorrate(/bytespersector) to time all output!
@@ -2140,13 +2188,13 @@ void FLOPPY_checkfinishtiming(byte drive)
 {
 	if (!floppytimer[drive]) //Finished timing?
 	{
-		floppytime[drive] = (double)0; //Clear the remaining time!
+		floppytime[drive] = (DOUBLE)0; //Clear the remaining time!
 		floppytiming &= ~(1<<drive); //We're not timing anymore on this drive!
 	}
 }
 
 //Timed floppy disk operations!
-void updateFloppy(double timepassed)
+void updateFloppy(DOUBLE timepassed)
 {
 	byte drive=0; //Drive loop!
 	byte movedcylinder;

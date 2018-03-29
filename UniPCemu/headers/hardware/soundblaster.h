@@ -3,7 +3,7 @@
 
 void initSoundBlaster(word port, byte version);
 void doneSoundBlaster();
-void updateSoundBlaster(double timepassed, uint_32 MHZ14passed);
+void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed);
 
 
 #endif

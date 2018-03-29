@@ -29,7 +29,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 #define MEMORY_BLOCKSIZE_XT 0x4000
 #define MEMORY_BLOCKSIZE_AT_LOW 0x10000
 #define MEMORY_BLOCKSIZE_AT_HIGH 0x100000
-//What to leave for functions! 1MB for normal operations, plus 5 screens for VGA rendering resizing (2 screens for double sizing(never x&y together) and 1 screen for the final result)!
+//What to leave for functions! 1MB for normal operations, plus 5 screens for VGA rendering resizing (2 screens for doubled sizing(never x&y together) and 1 screen for the final result)!
 #define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
 
 //What file to use for saving the BIOS!

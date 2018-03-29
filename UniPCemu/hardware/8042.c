@@ -231,12 +231,12 @@ void reset8042() //Reset 8042 up till loading BIOS!
 	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 }
 
-double timing8042=0.0, timing8042_tick=0.0;
+DOUBLE timing8042=0.0, timing8042_tick=0.0;
 uint_64 clocks8042=0; //How many clock ticks are left?
 
 void commandwritten_8042(); //Prototype: A command has been written to the 8042 controller?
 
-void update8042(double timepassed) //Update 8042 input/output timings!
+void update8042(DOUBLE timepassed) //Update 8042 input/output timings!
 {
 	uint_64 clocks; //Clocks to tick!
 	//Sending costs 12 clocks(1 start bit, 8 data bits, 1 parity bit, 1 stop bit, 1 ACN bit), Receiving costs 11 clocks(1 start bit, 8 data bits, 1 parity bit, 1 stop bit)
@@ -833,7 +833,11 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 		}
 	}
 	timing8042 = 0.0; //Nothing yet!
+	#ifdef IS_LONGDOUBLE
+	timing8042_tick = 1000000000.0L/16700.0L; //16.7kHz signal!
+	#else
 	timing8042_tick = 1000000000.0/16700.0; //16.7kHz signal!
+	#endif
 }
 
 void BIOS_done8042()

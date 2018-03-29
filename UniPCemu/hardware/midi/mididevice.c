@@ -281,10 +281,10 @@ OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldel
 	if (modulationratiocents!=voice->modulationratiocents[filterindex]) //Different ratio?
 	{
 		voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
-		voice->modulationratiosamples[filterindex] = cents2samplesfactord((double)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
+		voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
 	}
 
-	samplepos = (int_64)((double)play_counter*voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
+	samplepos = (int_64)((DOUBLE)play_counter*voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
 
 	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
@@ -847,7 +847,11 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	if (attenuation>4320.0f) attenuation = 4320.0f; //Limit to max!
 	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 
-	voice->initialAttenuation = (float)dB2factor((((4320.0-(double)attenuation)*(96.0f/432.0f))/10.0),96.0); //We're converted to a rate of 960 cb!
+	#ifdef IS_LONGDOUBLE
+	voice->initialAttenuation = (float)dB2factor((((4320.0L-(DOUBLE)attenuation)*(96.0L/432.0L))/10.0L),96.0L); //We're converted to a rate of 960 cb!
+	#else
+	voice->initialAttenuation = (float)dB2factor((((4320.0-(DOUBLE)attenuation)*(96.0/432.0))/10.0),96.0); //We're converted to a rate of 960 cb!
+	#endif
 
 	//Determine panning!
 	panningtemp = 0.0f; //Default: no panning at all: centered!
@@ -992,8 +996,13 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 	}
 
 	//Setup default channel chorus/reverb!
+	#ifdef IS_LONGDOUBLE
+	voice->activechorusdepth[0] = 1.0L; //Always the same: produce full sound!
+	voice->activereverbdepth[0] = 1.0L; //Always the same: produce full sound!
+	#else
 	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
 	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
+	#endif
 	voice->chorusvol[0] = voice->activechorusdepth[0];
 	voice->reverbvol[0] = voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
 

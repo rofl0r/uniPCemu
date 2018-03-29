@@ -3,7 +3,7 @@
 
 void initATA();
 void cleanATA(); //ATA timing reset!
-void updateATA(double timepassed); //ATA timing!
+void updateATA(DOUBLE timepassed); //ATA timing!
 
 byte ATA_allowDiskChange(int disk, byte ejectRequested); //Are we allowing this disk to be changed?
 

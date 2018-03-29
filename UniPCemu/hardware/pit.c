@@ -58,7 +58,11 @@ PC SPEAKER
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
 #define MHZ14_RATE 12
+#ifdef IS_LONGDOUBLE
+#define TIME_RATE (MHZ14/12.0L)
+#else
 #define TIME_RATE (MHZ14/12.0)
+#endif
 
 //Run the low pass at the 72 raw samples rate instead (16571Hz)!
 //#undef SPEAKER_LOWPASS
@@ -81,10 +85,10 @@ byte enablespeaker = 0; //Are we sounding the PC speaker?
 	WAVEFILE *speakerlogduty = NULL; //The log file for the speaker output!
 #endif
 
-double speaker_ticktiming; //Both current clocks!
-double speaker_tick = 0.0; //Time of a tick in the PC speaker sample!
-double time_tick = 0.0; //Time of a tick in the PIT!
-double time_tickreverse = 0.0; //Reversed of time_tick(1/ticktime)!
+DOUBLE speaker_ticktiming; //Both current clocks!
+DOUBLE speaker_tick = 0.0; //Time of a tick in the PC speaker sample!
+DOUBLE time_tick = 0.0; //Time of a tick in the PIT!
+DOUBLE time_tickreverse = 0.0; //Reversed of time_tick(1/ticktime)!
 
 byte oldPCSpeakerPort = 0x00; //Backup for tracking channel 2 gate changes!
 byte PCSpeakerPort; //Port 0x61 for the PC Speaker! Bit0=Gate, Bit1=Data enable, bit 4=PIT1 output!
@@ -111,7 +115,7 @@ typedef struct
 
 	//Output generating timer!
 	float samples; //Output samples to process for the current audio tick!
-	double samplesleft; //Samples left to process!
+	DOUBLE samplesleft; //Samples left to process!
 	byte lastchannel_status; //Last recorded channel status
 	byte risetoggle; //Toggled bit 0 when we rise.
 	FIFOBUFFER *rawsignal; //The raw signal buffer for the oneshot mode!
@@ -178,12 +182,12 @@ OPTINLINE void wrapPITticker(byte channel)
 
 byte channel_reload[8] = {0,0,0,0,0,0,0,0}; //To reload the channel next cycle?
 
-double ticklength = 0.0; //Length of PIT samples to process every output sample!
+DOUBLE ticklength = 0.0; //Length of PIT samples to process every output sample!
 
 HIGHLOWPASSFILTER PCSpeakerFilter; //Our filter to use!
 float speaker_currentsample;
 
-void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers available!
+void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers available!
 {
 	if (__HW_DISABLED) return;
 	INLINEREGISTER uint_32 length; //Amount of samples to generate!
@@ -191,7 +195,7 @@ void tickPIT(double timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 	uint_32 dutycyclei; //Input samples to process!
 	INLINEREGISTER uint_32 tickcounter;
 	word oldvalue; //Old value before decrement!
-	double tempf;
+	DOUBLE tempf;
 	uint_32 render_ticks; //A one shot tick!
 	byte currentsample; //Saved sample in the 1.19MHz samples!
 	byte channel; //Current channel?
@@ -944,8 +948,13 @@ void init8253() {
 	register_PORTOUT(&out8254);
 	register_PORTIN(&in8254);
 
-	speaker_tick = (1000000000.0 / (double)SPEAKER_RATE); //Speaker tick!
-	ticklength = (1.0f / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
+	#ifdef IS_LONGDOUBLE
+	speaker_tick = (1000000000.0L / (DOUBLE)SPEAKER_RATE); //Speaker tick!
+	ticklength = (1.0L / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
+	#else
+	speaker_tick = (1000000000.0 / (DOUBLE)SPEAKER_RATE); //Speaker tick!
+	ticklength = (1.0 / SPEAKER_RATE)*TIME_RATE; //Time to speaker sample ratio!
+	#endif
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 	PCSpeakerPort = 0; //Init PC speaker port!
 	/*

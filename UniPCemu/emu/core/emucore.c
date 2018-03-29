@@ -87,25 +87,45 @@ which is at the first row of the IBM AT POST3 function.
 //CPU default clock speeds (in Hz)!
 
 //The clock speed of the 8086 (~14.31818MHz divided by 3)!
-#define CPU808X_CLOCK (MHZ14/3.0f)
-#define CPU808X_TURBO_CLOCK (MHZ14/3.0f)*2.1f
+#ifdef IS_LONGDOUBLE
+#define CPU808X_CLOCK (MHZ14/3.0L)
+#define CPU808X_TURBO_CLOCK (MHZ14/3.0L)*2.1L
+#else
+#define CPU808X_CLOCK (MHZ14/3.0)
+#define CPU808X_TURBO_CLOCK (MHZ14/3.0)*2.1
+#endif
 
 //80286 clock is set so that the DRAM refresh ends up with a count of F952h in CX.
 //Original 8086 timing adjustment:
 //#define CPU80286_CLOCK 7280500.0
 //The AT runs an 6MHz 80286(2nd revision)! Although most sources say 8 MHz(MIPS etc.), this is the third revision of the motherboard?
+#ifdef IS_LONGDOUBLE
+#define CPU80286_CLOCK 6000000.0L
+#else
 #define CPU80286_CLOCK 6000000.0
+#endif
 
 //Inboard 386 runs at 16MHz.
+#ifdef IS_LONGDOUBLE
+#define CPU80386_INBOARD_XT_CLOCK 16000000.0L
+// https://www.flickr.com/photos/11812307@N03/sets/72157643447132144/ says Inboard 386/AT runs at 32MHz.
+#define CPU80386_INBOARD_AT_CLOCK 32000000.0L
+#else
 #define CPU80386_INBOARD_XT_CLOCK 16000000.0
 // https://www.flickr.com/photos/11812307@N03/sets/72157643447132144/ says Inboard 386/AT runs at 32MHz.
 #define CPU80386_INBOARD_AT_CLOCK 32000000.0
+#endif
 
 //Compaq 386 runs at 16MHz.
+#ifdef IS_LONGDOUBLE
+#define CPU80386_COMPAQ_CLOCK 16000000.0L
+//Compaq Deskpro 486DX/33M runs at 33MHz.
+#define CPU80486_COMPAQ_CLOCK 33000000.0L
+#else
 #define CPU80386_COMPAQ_CLOCK 16000000.0
 //Compaq Deskpro 486DX/33M runs at 33MHz.
 #define CPU80486_COMPAQ_CLOCK 33000000.0
-
+#endif
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 10
 #define TIMEOUT_TIME 1000000
@@ -121,8 +141,8 @@ extern uint_32 romsize; //For checking if we're running a ROM!
 extern byte cpudebugger; //To debug the CPU?
 extern PIC i8259; //PIC processor!
 
-double MHZ14tick = (1000000000/(double)MHZ14); //Time of a 14 MHZ tick!
-double MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
+DOUBLE MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Time of a 14 MHZ tick!
+DOUBLE MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
 
 extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
 
@@ -315,7 +335,7 @@ void initEMU(int full) //Init!
 	char soundfont[256];
 	doneEMU(); //Make sure we're finished too!
 
-	MHZ14tick = (1000000000/(double)MHZ14); //Initialize the 14 MHZ tick timing!
+	MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Initialize the 14 MHZ tick timing!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
@@ -703,9 +723,9 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
 
-double last_timing = 0.0, timeemulated = 0.0; //Last timing!
+DOUBLE last_timing = 0.0, timeemulated = 0.0; //Last timing!
 
-double CPU_speed_cycle = 0.0; //808X signal cycles by default!
+DOUBLE CPU_speed_cycle = 0.0; //808X signal cycles by default!
 
 ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
@@ -737,7 +757,11 @@ extern byte TurboMode; //Are we in Turbo mode?
 void setCPUCycles(uint_32 cycles)
 {
 	//Actual clock cycles?
-	CPU_speed_cycle = 1000000000.0 / (float)(cycles*1000); //Apply the cycles in kHz!	
+	#ifdef IS_LONGDOUBLE
+	CPU_speed_cycle = 1000000000.0L / (DOUBLE)(cycles*1000); //Apply the cycles in kHz!	
+	#else
+	CPU_speed_cycle = 1000000000.0 / (DOUBLE)(cycles*1000); //Apply the cycles in kHz!	
+	#endif
 }
 
 void updateSpeedLimit()
@@ -765,11 +789,19 @@ void updateSpeedLimit()
 				{
 					if (is_Turbo) //Turbo speed instead?
 					{
+						#ifdef IS_LONGDOUBLE
+						CPU_speed_cycle = 1000000000.0L / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+						#else
 						CPU_speed_cycle = 1000000000.0 / CPU808X_TURBO_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+						#endif
 					}
 					else //Normal speed?
 					{
+						#ifdef IS_LONGDOUBLE
+						CPU_speed_cycle = 1000000000.0L/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+						#else
 						CPU_speed_cycle = 1000000000.0/CPU808X_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet!	
+						#endif
 					}
 				}
 				break;
@@ -802,11 +834,19 @@ void updateSpeedLimit()
 				{
 					if (is_Turbo) //Turbo speed instead?
 					{
+						#ifdef IS_LONGDOUBLE
+						CPU_speed_cycle = 1000000000.0L / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+						#else
 						CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //8086 CPU cycle length in us, since no other CPUs are known yet! Use the 10MHz Turbo version by default!					
+						#endif
 					}
 					else //Normal speed?
 					{
+						#ifdef IS_LONGDOUBLE
+						CPU_speed_cycle = 1000000000.0L / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+						#else
 						CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
+						#endif
 					}
 					if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU==CPU_80486)) || (is_Compaq==1)) //80386/80486 or Compaq?
 					{
@@ -814,19 +854,35 @@ void updateSpeedLimit()
 						{
 							if (is_XT) //Inboard 386/486 XT?
 							{
+								#ifdef IS_LONGDOUBLE
+								CPU_speed_cycle = 1000000000.0L / CPU80386_INBOARD_XT_CLOCK; //80386/80486 16MHz!
+								#else
 								CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_XT_CLOCK; //80386/80486 16MHz!
+								#endif
 							}
 							else //Inboard 386/486 AT?
 							{
+								#ifdef IS_LONGDOUBLE
+								CPU_speed_cycle = 1000000000.0L / CPU80386_INBOARD_AT_CLOCK; //80386/80486 32MHz(Type 3 motherboard)!
+								#else
 								CPU_speed_cycle = 1000000000.0 / CPU80386_INBOARD_AT_CLOCK; //80386/80486 32MHz(Type 3 motherboard)!
+								#endif
 							}
 						}
 						else if (is_Compaq==1) //Compaq Deskpro 386+?
 						{
+							#ifdef IS_LONGDOUBLE
+							CPU_speed_cycle = 1000000000.0L / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+							#else
 							CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
+							#endif
 							if (EMULATED_CPU==CPU_80486) //80486 default clock instead?
 							{
+								#ifdef IS_LONGDOUBLE
+								CPU_speed_cycle = 1000000000.0L / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
+								#else
 								CPU_speed_cycle = 1000000000.0 / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
+								#endif
 							}
 						}
 						//Use AT speed for AT compatiblity for AT architectures!
@@ -856,7 +912,7 @@ extern word CPU_exec_CS; //Executing CS for faults!
 
 extern byte allcleared;
 
-double currenttiming = 0.0; //Current timing spent to emulate!
+DOUBLE currenttiming = 0.0; //Current timing spent to emulate!
 
 extern byte Settings_request; //Settings requested to be executed?
 
@@ -879,7 +935,7 @@ OPTINLINE byte coreHandler()
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
-	double instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
+	DOUBLE instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
@@ -1068,7 +1124,7 @@ OPTINLINE byte coreHandler()
 		}
 
 		MMU_logging |= 2; //Are we logging hardware memory accesses(DMA etc)?
-		double MHZ14passed_ns=0.0;
+		DOUBLE MHZ14passed_ns=0.0;
 		if (unlikely(MHZ14passed)) //14MHz to be ticked?
 		{
 			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!

@@ -454,8 +454,8 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 }
 
 //Update the current Date/Time (based upon the refresh rate set) to the CMOS this runs at 64kHz!
-double RTC_emulateddeltatiming = 0.0; //RTC remaining timing!
-double RTC_timetick = 0.0; //The tick length in ns of a RTC tick!
+DOUBLE RTC_emulateddeltatiming = 0.0; //RTC remaining timing!
+DOUBLE RTC_timetick = 0.0; //The tick length in ns of a RTC tick!
 
 void CMOS_updateActualTime()
 {
@@ -476,15 +476,31 @@ void CMOS_updateActualTime()
 	}
 	else //Applying delta timing instead(cycle-accurate timing)?
 	{
+		#ifdef IS_LONGDOUBLE
+		CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0L; //Tick seconds!
+		RTC_emulateddeltatiming = fmodl(RTC_emulateddeltatiming,1000000000.0L); //Remainder!
+		#else
 		CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
 		RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
-		double temp;
-		temp = (double)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
-		RTC_emulateddeltatiming = fmod((double)RTC_emulateddeltatiming,1000.0); //Save remainder!
+		#endif
+		DOUBLE temp;
+		#ifdef IS_LONGDOUBLE
+		temp = (DOUBLE)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0L)); //Add what we can!
+		RTC_emulateddeltatiming = fmod((DOUBLE)RTC_emulateddeltatiming,1000.0L); //Save remainder!
+		if (temp>=1000000.0L) //Overflow?
+		#else
+		temp = (DOUBLE)(CMOS.DATA.timedivergeance2+(RTC_emulateddeltatiming/1000.0)); //Add what we can!
+		RTC_emulateddeltatiming = fmod((DOUBLE)RTC_emulateddeltatiming,1000.0); //Save remainder!
 		if (temp>=1000000.0) //Overflow?
+		#endif
 		{
+			#ifdef IS_LONGDOUBLE
+			CMOS.DATA.timedivergeance += (temp/1000000.0L); //Add second(s) on overflow!
+			temp = fmodl(temp,1000000.0L); //Remainder!
+			#else
 			CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
 			temp = fmod(temp,1000000.0); //Remainder!
+			#endif
 		}
 		CMOS.DATA.timedivergeance2 = (int_64)temp; //us to store!
 		tp.tv_sec = 0; //Direct time!
@@ -507,8 +523,8 @@ void RTC_updateDateTime() //Called at 32kHz!
 	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
 }
 
-double RTC_timepassed = 0.0;
-void updateCMOS(double timepassed)
+DOUBLE RTC_timepassed = 0.0;
+void updateCMOS(DOUBLE timepassed)
 {
 	RTC_timepassed += timepassed; //Add the time passed to get our time passed!
 	if (RTC_timetick) //Are we enabled?
@@ -924,5 +940,9 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	register_PORTOUT(&PORT_writeCMOS);
 	XTMode = 0; //Default: not XT mode!
 	RTC_timepassed = RTC_emulateddeltatiming = 0.0; //Initialize our timing!
+	#ifdef IS_LONGDOUBLE
+	RTC_timetick = 1000000000.0L/32768.0L; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
+	#else
 	RTC_timetick = 1000000000.0/32768.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
+	#endif
 }

@@ -16,7 +16,7 @@ byte IRQraised; //IRQ raised?
 } PARALLELPORT[4]; //All parallel ports!
 byte numparallelports = 0; //How many ports?
 
-double paralleltiming = 0.0, paralleltick = (double)0;
+DOUBLE paralleltiming = 0.0, paralleltick = (DOUBLE)0;
 
 void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelControlOUTHandler controlouthandler, ParallelControlINHandler controlinhandler, ParallelStatusHandler statushandler)
 {
@@ -31,7 +31,7 @@ void setParallelIRQ(byte port, byte raised)
 	PARALLELPORT[port].IRQraised = (PARALLELPORT[port].IRQraised&~1)|(raised&1); //Raise the IRQ from the hardware if set, lower when cleared!
 }
 
-void tickParallel(double timepassed)
+void tickParallel(DOUBLE timepassed)
 {
 	INLINEREGISTER byte port=0;
 	if (unlikely(numparallelports)) //Something to do?
@@ -196,5 +196,9 @@ void initParallelPorts(byte numports)
 	register_PORTIN(&inparallel); //Register the read handler!
 	register_PORTOUT(&outparallel); //Register the write handler!
 	paralleltiming = 0.0;
-	paralleltick = (1000000000.0/150000.0f); //150kBPS speed!
+	#ifdef IS_LONGDOUBLE
+	paralleltick = (1000000000.0L/150000.0L); //150kBPS speed!
+	#else
+	paralleltick = (1000000000.0/150000.0); //150kBPS speed!
+	#endif
 }

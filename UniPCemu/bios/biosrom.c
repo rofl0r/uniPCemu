@@ -33,7 +33,7 @@ byte OPTROM_pendingAA_1555[40]; //Pending write AA to 1555?
 byte OPTROM_pending55_0AAA[40]; //Pending write 55 to 0AAA?
 byte OPTROM_writeSequence_waitingforDisable[40]; //Waiting for disable command?
 byte OPTROM_writeenabled[40]; //Write enabled ROM?
-double OPTROM_writetimeout[40]; //Timeout until SDP is activated!
+DOUBLE OPTROM_writetimeout[40]; //Timeout until SDP is activated!
 byte OPTROM_timeoutused = 0;
 
 extern BIOS_Settings_TYPE BIOS_Settings;
@@ -637,7 +637,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	return 0; //No ROM here, allow read from nroaml memory!
 }
 
-void BIOSROM_updateTimers(double timepassed)
+void BIOSROM_updateTimers(DOUBLE timepassed)
 {
 	byte i, timersleft;
 	if (unlikely(OPTROM_timeoutused))
@@ -650,7 +650,7 @@ void BIOSROM_updateTimers(double timepassed)
 				OPTROM_writetimeout[i] -= timepassed; //Time passed!
 				if (unlikely(OPTROM_writetimeout[i]<=0.0)) //Expired?
 				{
-					OPTROM_writetimeout[i] = (double)0; //Finish state!
+					OPTROM_writetimeout[i] = (DOUBLE)0; //Finish state!
 					OPTROM_writeenabled[i] = 0; //Disable writes!
 				}
 				else timersleft = 1; //Still running?
@@ -724,7 +724,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 							case 0xA0: //Enable write protect!
 								OPTROM_writeSequence_waitingforDisable[i] = 0; //Not waiting anymore!
 								OPTROM_writeSequence[i] = 0; //Finished write sequence!
+								#ifdef IS_LONGDOUBLE
+								OPTROM_writetimeout[i] = 10000000.0L; //We're disabling writes to the EEPROM 10ms after this write, the same applies to the following writes!
+								#else
 								OPTROM_writetimeout[i] = 10000000.0; //We're disabling writes to the EEPROM 10ms after this write, the same applies to the following writes!
+								#endif
 								OPTROM_timeoutused = 1; //Timing!
 								OPTROM_pending55_0AAA[i] = OPTROM_pendingAA_1555[i] = 0; //Not pending anymore!
 								OPTROM_inhabitwrite = 1; //We're preventing us from writing!
@@ -793,7 +797,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					}
 					if (OPTROM_writetimeout[i]) //Timing?
 					{
+						#ifdef IS_LONGDOUBLE
+						OPTROM_writetimeout[i] = 10000000.0L; //Reset timer!
+						#else
 						OPTROM_writetimeout[i] = 10000000.0; //Reset timer!
+						#endif
 						OPTROM_timeoutused = 1; //Timing!
 					}
 					processPendingWrites:

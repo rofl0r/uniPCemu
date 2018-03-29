@@ -73,7 +73,7 @@ struct
 
 //Full Interrupt Identification Register!
 
-double UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
+DOUBLE UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
 
 byte allocatedUARTs;
 byte allocUARTport()
@@ -453,7 +453,7 @@ void UART_handleInputs() //Handle any input to the UART!
 	}
 }
 
-void updateUART(double timepassed)
+void updateUART(DOUBLE timepassed)
 {
 	byte UART; //Check all UARTs!
 	uint_32 clockticks; //The clock ticks to process!
@@ -461,7 +461,7 @@ void updateUART(double timepassed)
 	if (unlikely(UART_clock>=UART_clocktick)) //Ticking the UART clock?
 	{
 		clockticks = (uint_32)(UART_clock/UART_clocktick); //Divide the clock by the ticks to apply!
-		UART_clock -= (double)clockticks*UART_clocktick; //Rest the clocks!
+		UART_clock -= (DOUBLE)clockticks*UART_clocktick; //Rest the clocks!
 
 		//Check all UART received data!
 		for (UART=0;UART<4;++UART) //Check all UARTs!
@@ -524,6 +524,10 @@ void initUART() //Init software debugger!
 		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i >> 4,1); //We're not executing!
 	}
 	UART_clock = 0.0; //Init our clock!
+	#ifdef IS_LONGDOUBLE
+	UART_clocktick = 1000000000.0L/1843200.0L; //The clock of the UART ticking!
+	#else
 	UART_clocktick = 1000000000.0/1843200.0; //The clock of the UART ticking!
+	#endif
 	allocatedUARTs = 0; //Initialize the allocated UART number!
 }

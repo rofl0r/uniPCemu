@@ -107,12 +107,16 @@ OPTINLINE float calcfreq(uint_32 tempo, HEADER_CHNK *header)
 	return speed; //ticks per second!
 }
 
-double timing_pos_step = 0.0; //Step of a timing position, in nanoseconds!
+DOUBLE timing_pos_step = 0.0; //Step of a timing position, in nanoseconds!
 OPTINLINE void updateMIDTimer(HEADER_CHNK *header) //Request an update of our timer!
 {
 	if (calcfreq(activetempo, header)) //Valid frequency?
 	{
-		timing_pos_step = 1000000000.0/(double)calcfreq(activetempo, header); //Set the counter timer!
+		#ifdef IS_LONGDOUBLE
+		timing_pos_step = 1000000000.0L/(DOUBLE)calcfreq(activetempo, header); //Set the counter timer!
+		#else
+		timing_pos_step = 1000000000.0/(DOUBLE)calcfreq(activetempo, header); //Set the counter timer!
+		#endif
 	}
 	else
 	{
@@ -503,8 +507,8 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 
 extern byte coreshutdown; //Core is shutting down?
 
-double MID_timing = 0.0; //Timing of a playing MID file!
-void updateMIDIPlayer(double timepassed)
+DOUBLE MID_timing = 0.0; //Timing of a playing MID file!
+void updateMIDIPlayer(DOUBLE timepassed)
 {
 	uint_32 channel; //The current channel!
 	//Update any channels still playing!

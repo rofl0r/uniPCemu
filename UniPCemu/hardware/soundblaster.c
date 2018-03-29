@@ -67,7 +67,7 @@ struct
 	uint_32 silencesamples; //Silence samples left!
 	byte muted; //Is speaker output disabled?
 	byte singen; //Sine wave generator enabled?
-	double singentime; //Sine wave generator position in time!
+	DOUBLE singentime; //Sine wave generator position in time!
 	byte DMADisabled; //DMA not paused?
 	byte ADPCM_format; //Format of the ADPCM data, if used!
 	byte ADPCM_reference; //The current by of ADPCM is the reference?
@@ -79,7 +79,7 @@ struct
 	byte AutoInitBuf; //The buffered autoinit setting to be applied when starting!
 	word AutoInitBlockSize; //Auto-init block size, as set by the Set DMA Block Size command for Auto-Init commands!
 	byte TestRegister; //Sound Blaster 2.01+ Test register!
-	double frequency; //The frequency we're currently rendering at!
+	DOUBLE frequency; //The frequency we're currently rendering at!
 	byte DirectADC; //Special ADC condition for Sound Blaster prior to SB16!
 	TicksHolder recordingtimer; //Real-time recording support!
 	byte recordedsample; //Last recorded sample, updated real-time!
@@ -88,10 +88,10 @@ struct
 extern byte specialdebugger; //Enable special debugger input?
 
 uint_32 soundblaster_soundtiming = 0;
-double soundblaster_soundtick = 0.0;
-double soundblaster_sampletiming = 0.0, soundblaster_recordingtiming = 0.0, soundblaster_sampletick = 0.0;
+DOUBLE soundblaster_soundtick = 0.0;
+DOUBLE soundblaster_sampletiming = 0.0, soundblaster_recordingtiming = 0.0, soundblaster_sampletick = 0.0;
 
-double soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
+DOUBLE soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
 byte sb_leftsample=0x80, sb_rightsample=0x80; //Two stereo samples, silence by default!
 
@@ -144,13 +144,13 @@ void tickSoundBlasterRecording()
 
 extern byte haswindowactive; //For detecting paused operation!
 
-void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
+void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
 	
-	double dummy;
-	double temp;
+	DOUBLE dummy;
+	DOUBLE temp;
 	byte activeleft, activeright;
-	double soundblaster_recordedpassed;
+	DOUBLE soundblaster_recordedpassed;
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
 	//Check for pending IRQ request!
@@ -289,7 +289,11 @@ void updateSoundBlaster(double timepassed, uint_32 MHZ14passed)
 		SOUNDBLASTER.singentime += timepassed; //Tick the samples processed!
 		temp = SOUNDBLASTER.singentime*2000.0f; //Calculate for overflow!
 		if (temp >= 1.0) { //Overflow?
+			#ifdef IS_LONGDOUBLE
+			SOUNDBLASTER.singentime = modfl(temp, &dummy) / 2000.0f; //Protect against overflow by looping!
+			#else
 			SOUNDBLASTER.singentime = modf(temp, &dummy) / 2000.0f; //Protect against overflow by looping!
+			#endif
 		}
 	}
 
@@ -604,7 +608,11 @@ OPTINLINE void DSP_writeCommand(byte command)
 		break;
 	case 0xF2: //IRQ Request, 8-bit
 		SB_LOGCOMMAND
+		#ifdef IS_LONGDOUBLE
+		soundblaster_IRR = 10000.0L; //IRQ request in 10us, according to Dosbox!
+		#else
 		soundblaster_IRR = 10000.0; //IRQ request in 10us, according to Dosbox!
+		#endif
 		break;
 	case 0xF8: //Undocumented command according to Dosbox
 		SB_LOGCOMMAND
@@ -732,8 +740,13 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 	case 0x40: //Set Time Constant?
 		//timer rate: 1000000000.0 / __SOUNDBLASTER_SAMPLERATE
 		//TimeConstant = 256 - (1000000(us) / (SampleChannels * SampleRate)), where SampleChannels is 1 for non-SBPro.
-		SOUNDBLASTER.frequency = (1000000.0 / (double)(256 - data)); //Calculate the frequency to run at!
+		#ifdef IS_LONGDOUBLE
+		SOUNDBLASTER.frequency = (1000000.0L / (DOUBLE)(256 - data)); //Calculate the frequency to run at!
+		soundblaster_sampletick = 1000000000.0L/SOUNDBLASTER.frequency; //Tick at the sample rate!
+		#else
+		SOUNDBLASTER.frequency = (1000000.0 / (DOUBLE)(256 - data)); //Calculate the frequency to run at!
 		soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
+		#endif
 		SOUNDBLASTER.command = 0; //No command anymore!
 		break;
 	case 0x14: //DMA DAC, 8-bit
@@ -1021,7 +1034,11 @@ void DSP_reset(byte data)
 	else if (((data & 1) == 0) && (SOUNDBLASTER.reset == DSP_S_RESET)) //reset off?
 	{
 		SOUNDBLASTER.reset = DSP_S_RESET_WAIT; //Waiting for the reset to complete!
+		#ifdef IS_LONGDOUBLE
+		soundblaster_resettiming = 20000.0L; //20us until we're timed out!
+		#else
 		soundblaster_resettiming = 20000.0; //20us until we're timed out!
+		#endif
 	}
 }
 
@@ -1166,8 +1183,13 @@ void initSoundBlaster(word baseaddr, byte version)
 	lastresult = 0xAA; //Last result was 0xAA!
 	sb_leftsample = sb_rightsample = 0x80; //Default to silence!
 
-	SOUNDBLASTER.frequency = (1000000.0 / (double)(256 - 0)); //Calculate the frequency to run at!
+	#ifdef IS_LONGDOUBLE
+	SOUNDBLASTER.frequency = (1000000.0L / (DOUBLE)(256 - 0)); //Calculate the frequency to run at!
+	soundblaster_sampletick = 1000000000.0L/SOUNDBLASTER.frequency; //Tick at the sample rate!
+	#else
+	SOUNDBLASTER.frequency = (1000000.0 / (DOUBLE)(256 - 0)); //Calculate the frequency to run at!
 	soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
+	#endif
 
 
 	switch (version) //What version to emulate?

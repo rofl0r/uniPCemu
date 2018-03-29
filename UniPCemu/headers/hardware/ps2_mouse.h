@@ -4,7 +4,11 @@
 #include "headers/types.h" //Basic types!
 
 //Timeout between commands or parameters and results being buffered! Use 5ms timings!
+#ifdef IS_LONGDOUBLE
+#define MOUSE_DEFAULTTIMEOUT 100000.0L
+#else
 #define MOUSE_DEFAULTTIMEOUT 100000.0
+#endif
 
 typedef struct MOUSE_PACKET
 {
@@ -23,5 +27,5 @@ float HWmouse_getsamplerate(); //Which repeat rate to use after the repeat delay
 void EMU_enablemouse(byte enabled); //Enable mouse input (disable during EMU, enable during CPU emulation (not paused))?
 void BIOS_doneMouse(); //Finish the mouse.
 
-void updatePS2Mouse(double timepassed); //For stuff requiring timing!
+void updatePS2Mouse(DOUBLE timepassed); //For stuff requiring timing!
 #endif

@@ -7,6 +7,6 @@ void initModem(byte enabled); //Initialise modem!
 void doneModem(); //Finish modem!
 
 void cleanModem();
-void updateModem(double timepassed); //Sound tick. Executes every instruction.
+void updateModem(DOUBLE timepassed); //Sound tick. Executes every instruction.
 
 #endif

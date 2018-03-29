@@ -105,7 +105,7 @@ typedef struct
 	uint_32 datasize;
 	byte stoprunning;
 	byte droversion;
-	double currenttime; //Current time recorded!
+	DOUBLE currenttime; //Current time recorded!
 	byte timedirty; //Time needs to be updated?
 } DROPLAYER; //All data needed to play a DRO file!
 
@@ -324,7 +324,7 @@ void clearTime()
 float speedup = 1.0f; //How much speed to apply? 1.0=100% speed!
 DROPLAYER *droplayer = NULL; //No DRO file playing!
 
-void stepDROPlayer(double timepassed)
+void stepDROPlayer(DOUBLE timepassed)
 {
 	if (droplayer) //Are we playing anything?
 	{
@@ -451,7 +451,11 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	DROPLAYER playedfile; //A file to play!
 	playedfile.playtime = 0.0; //No time passed!
 	playedfile.currenttime = 0.0; //No time passed!
+	#ifdef IS_LONGDOUBLE
+	playedfile.oldplaytime = -1.0L; //Uninitialized = any negative time!
+	#else
 	playedfile.oldplaytime = -1.0; //Uninitialized = any negative time!
+	#endif
 	playedfile.value = playedfile.channel = 0;
 	playedfile.whatchip = 0;
 	playedfile.stoprunning = 0;

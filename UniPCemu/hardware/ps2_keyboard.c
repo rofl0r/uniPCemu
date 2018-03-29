@@ -154,7 +154,7 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 
 extern byte force8042; //Force 8042 style handling?
 
-void updatePS2Keyboard(double timepassed)
+void updatePS2Keyboard(DOUBLE timepassed)
 {
 	if (unlikely(Keyboard.timeout)) //Gotten a timeout?
 	{
@@ -163,7 +163,7 @@ void updatePS2Keyboard(double timepassed)
 		{
 			if (Keyboard.has_command==0) //Nothing to be done?
 			{
-				Keyboard.timeout = (double)0; //Stop timing: we're finished!
+				Keyboard.timeout = (DOUBLE)0; //Stop timing: we're finished!
 				return; //Not when no command!
 			}
 			switch (Keyboard.command) //What command?
@@ -181,7 +181,7 @@ void updatePS2Keyboard(double timepassed)
 					Keyboard.has_command = 1; //We're stil executing a command!
 					break;
 				case 2: //Final stage?
-					Keyboard.timeout = (double)0; //Finished!
+					Keyboard.timeout = (DOUBLE)0; //Finished!
 					give_keyboard_output(0xAA); //Give the result code!
 					Keyboard.command_step = 0; //Finished!
 					Keyboard.has_command = 0; //Finished command!
@@ -250,7 +250,7 @@ void updatePS2Keyboard(double timepassed)
 					}
 					else
 					{
-						Keyboard.timeout = (double)0; //No delay, stop automatic response!
+						Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 					}
 				}
 				break;
@@ -266,7 +266,7 @@ void updatePS2Keyboard(double timepassed)
 				give_keyboard_output(0xFE); //Unknown command!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
-				Keyboard.timeout = (double)0; //Finished!
+				Keyboard.timeout = (DOUBLE)0; //Finished!
 				break;
 			}
 		}

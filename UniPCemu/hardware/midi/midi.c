@@ -250,7 +250,7 @@ byte MIDI_IN()
 
 byte MPU_ready = 0;
 
-double MPU_ticktiming = 0.0, MPU_ticktick = 0.0;
+DOUBLE MPU_ticktiming = 0.0, MPU_ticktick = 0.0;
 Handler MPUTickHandler = NULL;
 
 byte initMPU(char *filename, byte use_direct_MIDI) //Initialise function!
@@ -292,7 +292,7 @@ void MPU401_Done() //Finish our MPU system! Custom by superfury1!
 	acnowledgeIRQrequest(is_XT?MPU_IRQ_XT:MPU_IRQ_AT); //Remove us fully!
 }
 
-void updateMPUTimer(double timepassed)
+void updateMPUTimer(DOUBLE timepassed)
 {
 	if (MPU_ticktick) //Are we timing anything?
 	{
@@ -308,7 +308,7 @@ void updateMPUTimer(double timepassed)
 	}
 }
 
-void setMPUTimer(double timeout, Handler handler)
+void setMPUTimer(DOUBLE timeout, Handler handler)
 {
 	if (MPU_ticktick==0) //New timing starting?
 	{

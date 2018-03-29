@@ -16,42 +16,42 @@
 #endif
 
 // From the depths of X86Config, probably inexact
-double ET4K_clockFreq[16] = {
+DOUBLE ET4K_clockFreq[16] = {
 	0.0, //25MHz: VGA standard clock
 	0.0, //28MHz: VGA standard clock
-	32400000.0f, //ET3/4000 clock!
-	35900000.0f, //ET3/4000 clock!
-	39900000.0f, //ET3/4000 clock!
-	44700000.0f, //ET3/4000 clock!
-	31400000.0f, //ET3/4000 clock!
-	37500000.0f, //ET3/4000 clock!
-	50000000.0f, //ET4000 clock!
-	56500000.0f, //ET4000 clock!
-	64900000.0f, //ET4000 clock!
-	71900000.0f, //ET4000 clock!
-	79900000.0f, //ET4000 clock!
-	89600000.0f, //ET4000 clock!
-	62800000.0f, //ET4000 clock!
-	74800000.0f //ET4000 clock!
+	32400000.0, //ET3/4000 clock!
+	35900000.0, //ET3/4000 clock!
+	39900000.0, //ET3/4000 clock!
+	44700000.0, //ET3/4000 clock!
+	31400000.0, //ET3/4000 clock!
+	37500000.0, //ET3/4000 clock!
+	50000000.0, //ET4000 clock!
+	56500000.0, //ET4000 clock!
+	64900000.0, //ET4000 clock!
+	71900000.0, //ET4000 clock!
+	79900000.0, //ET4000 clock!
+	89600000.0, //ET4000 clock!
+	62800000.0, //ET4000 clock!
+	74800000.0 //ET4000 clock!
 };
 
-double ET3K_clockFreq[16] = {
+DOUBLE ET3K_clockFreq[16] = {
 	0.0, //25MHz: VGA standard clock
 	0.0, //28MHz: VGA standard clock
-	32400000.0f, //ET3/4000 clock!
-	35900000.0f, //ET3/4000 clock!
-	39900000.0f, //ET3/4000 clock!
-	44700000.0f, //ET3/4000 clock!
-	31400000.0f, //ET3/4000 clock!
-	37500000.0f, //ET3/4000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f, //ET3000 clock!
-	0.0f //ET3000 clock!
+	32400000.0, //ET3/4000 clock!
+	35900000.0, //ET3/4000 clock!
+	39900000.0, //ET3/4000 clock!
+	44700000.0, //ET3/4000 clock!
+	31400000.0, //ET3/4000 clock!
+	37500000.0, //ET3/4000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0, //ET3000 clock!
+	0.0 //ET3000 clock!
 };
 
 extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
@@ -1273,24 +1273,36 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	#endif
 }
 
-double Tseng34k_clockMultiplier(VGA_Type *VGA)
+DOUBLE Tseng34k_clockMultiplier(VGA_Type *VGA)
 {
 	byte timingdivider = et34k_reg(et34k(VGA),3c4,07); //Get the divider info!
 	if (timingdivider&0x01) //Divide Master Clock Input by 4!
 	{
+		#ifdef IS_LONGDOUBLE
+		return 0.25L; //Divide by 4!
+		#else
 		return 0.25; //Divide by 4!
+		#endif
 	}
 	else if (timingdivider&0x40) //Divide Master Clock Input by 2!
 	{
+		#ifdef IS_LONGDOUBLE
+		return 0.5L; //Divide by 2!
+		#else
 		return 0.5; //Divide by 2!
+		#endif
 	}
 	//Normal Master clock?
+	#ifdef IS_LONGDOUBLE
+	return 1.0L; //Normal clock!
+	#else
 	return 1.0; //Normal clock!
+	#endif
 }
 
-extern double VGA_clocks[4]; //Normal VGA clocks!
+extern DOUBLE VGA_clocks[4]; //Normal VGA clocks!
 
-double Tseng34k_getClockRate(VGA_Type *VGA)
+DOUBLE Tseng34k_getClockRate(VGA_Type *VGA)
 {
 	byte clock_index;
 	if (!et34k(VGA)) return 0.0f; //Unregisterd ET4K!

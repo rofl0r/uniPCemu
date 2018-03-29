@@ -204,7 +204,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 {
 	FILEPOS sizeleft = size; //Init size left!
 	byte buffer[4096]; //Buffer!
-	double percentage;
+	DOUBLE percentage;
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
@@ -241,8 +241,8 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		{
 			sizeleft -= byteswritten; //Less left to write!
 			totalbyteswritten += byteswritten; //Add to the ammount processed!
-			percentage = (double)totalbyteswritten;
-			percentage /= (double)size;
+			percentage = (DOUBLE)totalbyteswritten;
+			percentage /= (DOUBLE)size;
 			percentage *= 100.0f;
 			EMU_locktext();
 			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!
@@ -308,7 +308,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 	size <<= 10; //Convert kb to Kilobytes of data!
 	sizeleft = size; //Load the size that's left!
 	byte buffer[1024]; //Buffer!
-	double percentage;
+	DOUBLE percentage;
 	FILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
@@ -455,8 +455,8 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 		{
 			sizeleft -= byteswritten; //Less left to write!
 			totalbyteswritten += byteswritten; //Add to the ammount processed!
-			percentage = (double)totalbyteswritten;
-			percentage /= (double)size;
+			percentage = (DOUBLE)totalbyteswritten;
+			percentage /= (DOUBLE)size;
 			percentage *= 100.0f;
 			EMU_locktext();
 			GPU_EMU_printscreen(percentagex,percentagey,"%2.1f%%",(float)percentage); //Show percentage!

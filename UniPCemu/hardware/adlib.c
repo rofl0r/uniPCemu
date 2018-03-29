@@ -60,10 +60,14 @@
 uint16_t baseport = 0x388; //Adlib address(w)/status(r) port, +1=Data port (write only)
 
 //Sample based information!
-double usesamplerate = 0.0; //The sample rate to use for output!
-double adlib_soundtick = 0.0; //The length of a sample in ns!
+DOUBLE usesamplerate = 0.0; //The sample rate to use for output!
+DOUBLE adlib_soundtick = 0.0; //The length of a sample in ns!
 //The length of a sample step:
-#define adlib_sampleLength (1.0f / (14318180.0f / 288.0f))
+#ifdef IS_LONGDOUBLE
+#define adlib_sampleLength (1.0L / (14318180.0L / 288.0L))
+#else
+#define adlib_sampleLength (1.0 / (14318180.0 / 288.0))
+#endif
 
 //Counter info
 float counter80 = 0.0f, counter320 = 0.0f; //Counter ticks!
@@ -73,7 +77,7 @@ byte timer80=0, timer320=0; //Timer variables for current timer ticks!
 byte adlibregmem[0xFF], adlibaddr = 0;
 
 word OPL2_ExpTable[0x100], OPL2_LogSinTable[0x100]; //The OPL2 Exponentional and Log-Sin tables!
-double OPL2_ExponentialLookup[0x10000]; //Full exponential lookup table!
+DOUBLE OPL2_ExponentialLookup[0x10000]; //Full exponential lookup table!
 float OPL2_ExponentialLookup2[0x10000]; //The full exponential lookup table, converted to -1 to +1 range!
 float OPL2_TremoloVibratoLookup[0x10000]; //The full tremolo/vibrato lookup table!
 
@@ -456,7 +460,7 @@ uint8_t inadlib (uint16_t portnum, byte *result) {
 
 OPTINLINE word OPL2SinWave(const float r)
 {
-	const float halfpi = (0.5*(float)PI); //Half PI!
+	const float halfpi = (0.5f*(float)PI); //Half PI!
 	const float halfpi1 = (1.0f/halfpi); //Half pi division factor!
 	INLINEREGISTER float index;
 	word entry; //The entry to convert!
@@ -491,19 +495,27 @@ OPTINLINE word OPL2SinWave(const float r)
 
 word MaximumExponential = 0; //Maximum exponential input!
 
-OPTINLINE double OPL2_Exponential_real(word v)
+OPTINLINE DOUBLE OPL2_Exponential_real(word v)
 {
 	//Exponential lookup also reverses the input, since it's a -logSin table!
 	//Exponent = x/256
 	//Significant = ExpTable[v%256]+1024
 	//Output = Significant * (2^Exponent)
-	double sign;
+	DOUBLE sign;
+	#ifdef IS_LONGDOUBLE
+	sign = (v&SIGNBIT) ? -1.0L : 1.0L; //Get the sign first before removing it! Reverse the sign to create proper output!
+	#else
 	sign = (v&SIGNBIT) ? -1.0 : 1.0; //Get the sign first before removing it! Reverse the sign to create proper output!
+	#endif
 	v &= SIGNMASK; //Sign off!
 	//Reverse the range given! Input 0=Maximum volume, Input max=No output.
 	if (v>MaximumExponential) v = MaximumExponential; //Limit to the maximum value available!
 	v = MaximumExponential-v; //Reverse our range to get the correct value!
-	return sign*(double)(OPL2_ExpTable[v & 0xFF] + 1024)*pow(2.0, (double)(v>>8)); //Lookup normally with the specified sign, mantissa(8 bits translated to 10 bits) and exponent(3 bits taken from the high part of the input)!
+	#ifdef IS_LONGDOUBLE
+	return sign*(DOUBLE)(OPL2_ExpTable[v & 0xFF] + 1024)*pow(2.0L, (DOUBLE)(v>>8)); //Lookup normally with the specified sign, mantissa(8 bits translated to 10 bits) and exponent(3 bits taken from the high part of the input)!
+	#else
+	return sign*(DOUBLE)(OPL2_ExpTable[v & 0xFF] + 1024)*pow(2.0, (DOUBLE)(v>>8)); //Lookup normally with the specified sign, mantissa(8 bits translated to 10 bits) and exponent(3 bits taken from the high part of the input)!
+	#endif
 }
 
 OPTINLINE float OPL2_Exponential(word v)
@@ -571,14 +583,18 @@ OPTINLINE float adlibfreq(byte operatornumber) {
 }
 
 OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
-	double dummy;
+	DOUBLE dummy;
 	float t;
 	word result;
 	switch (signal) {
 	case 0: //SINE?
 		return OPL2SinWave(frequencytime); //The sinus function!
 	default:
+		#ifdef IS_LONGDOUBLE
+		t = (float)modfl(frequencytime/PI2, &dummy); //Calculate rest for special signal information!
+		#else
 		t = (float)modf(frequencytime/PI2, &dummy); //Calculate rest for special signal information!
+		#endif
 		switch (signal) { //What special signal?
 		case 1: // Negative=0?
 			if (t >= 0.5f) return OPL2_LogSinTable[0]; //Negative=0!
@@ -615,12 +631,16 @@ OPTINLINE void incop(byte operator, float frequency)
 {
 	if (operator==0xFF) return; //Invalid operator or ignoring timing increase!
 	float temp;
-	double d;
+	DOUBLE d;
 	adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = adlibop[operator].time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
+		#ifdef IS_LONGDOUBLE
+		adlibop[operator].time = (float)modfl(temp, &d) / frequency;
+		#else
 		adlibop[operator].time = (float)modf(temp, &d) / frequency;
+		#endif
 	}
 }
 
@@ -690,7 +710,7 @@ float adlib_scaleFactor = 0.0f; //We're running 9 channels in a 16-bit space, so
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(fmodf((adlibop[operator].time*frequency),1.0)*((float)0x3D0)); //Give the 10-bits value
+	return (word)(fmodf((adlibop[operator].time*frequency),1.0f)*((float)0x3D0)); //Give the 10-bits value
 }
 
 word convertphase_real(word phase)
@@ -802,7 +822,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
-				result *= 0.5; //We only have half(two channels combined)!
+				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? Tom-tom uses Modulator, Cymbal uses Carrier signals.
@@ -830,7 +850,7 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 					immresult += result; //Apply the exponential!
 				}
 				result = immresult; //Load the resulting channel!
-				result *= 0.5; //We only have half(two channels combined)!
+				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 		}
@@ -1224,7 +1244,11 @@ void initAdlib()
 
 	//Initialize our timings!
 	adlib_scaleFactor = SHRT_MAX / (3000.0f*9.0f); //We're running 9 channels in a 16-bit space, so 1/9 of SHRT_MAX
+	#ifdef IS_LONGDOUBLE
+	usesamplerate = 14318180.0L / 288.0L; //The sample rate to use for output!
+	#else
 	usesamplerate = 14318180.0 / 288.0; //The sample rate to use for output!
+	#endif
 
 	int i;
 	for (i = 0; i < 9; i++)
@@ -1265,7 +1289,7 @@ void initAdlib()
 
 	//Find the maximum volume archievable with exponential lookups!
 	MaximumExponential = ((0x3F << 5) + (Silence << 3)) + OPL2_LogSinTable[0]; //Highest input to the LogSin input!
-	double maxresult=0.0,buffer=0.0;
+	DOUBLE maxresult=0.0,buffer=0.0;
 	uint_32 n=0;
 	do
 	{
@@ -1274,9 +1298,13 @@ void initAdlib()
 	} while (++n<0x10000); //Loop while not finished processing all possibilities!
 
 	maxresult = OPL2_Exponential_real(0); //Zero is maximum output to give!
-	double generalmodulatorfactor = 0.0f; //Modulation factor!
+	DOUBLE generalmodulatorfactor = 0.0f; //Modulation factor!
 	//Now, we know the biggest result given!
-	generalmodulatorfactor = (1.0/maxresult); //General modulation factor, as applied to both modulation methods!
+	#ifdef IS_LONGDOUBLE
+	generalmodulatorfactor = (1.0L/(DOUBLE)maxresult); //General modulation factor, as applied to both modulation methods!
+	#else
+	generalmodulatorfactor = (1.0/(DOUBLE)maxresult); //General modulation factor, as applied to both modulation methods!
+	#endif
 
 	n = 0; //Loop through again for te modified table!
 	do

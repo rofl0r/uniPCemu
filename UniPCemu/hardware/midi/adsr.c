@@ -269,52 +269,56 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 
 	//Now, calculate the length of each interval, in samples.
-	if (cents2samplesfactord((double)delay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)delay) < 0.0002f) //0.0001 sec?
 	{
 		delaylength = 0; //No delay!
 	}
 	else
 	{
-		delaylength = (uint_32)(sampleRate*cents2samplesfactord((double)delay)); //Calculate the ammount of samples!
+		delaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)delay)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactord((double)attack) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)attack) < 0.0002f) //0.0001 sec?
 	{
 		attacklength = 0; //No attack!
 	}
 	else
 	{
-		attacklength = (uint_32)(sampleRate*cents2samplesfactord((double)attack)); //Calculate the ammount of samples!
+		attacklength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)attack)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactord((double)hold) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)hold) < 0.0002f) //0.0001 sec?
 	{
 		holdlength = 0; //No hold!
 	}
 	else
 	{
-		holdlength = (uint_32)(sampleRate*cents2samplesfactord((double)hold)); //Calculate the ammount of samples!
+		holdlength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)hold)); //Calculate the ammount of samples!
 	}
-	holdlength = (uint_32)(holdlength*cents2samplesfactord((double)(holdenvfactor*relKeynum))); //Apply key number!
+	holdlength = (uint_32)(holdlength*cents2samplesfactord((DOUBLE)(holdenvfactor*relKeynum))); //Apply key number!
 
-	if (cents2samplesfactord((double)decay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)decay) < 0.0002f) //0.0001 sec?
 	{
 		decaylength = 0; //No decay!
 	}
 	else
 	{
-		decaylength = (uint_32)(sampleRate*cents2samplesfactord((double)decay)); //Calculate the ammount of samples!
+		decaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)decay)); //Calculate the ammount of samples!
 	}
-	decaylength = (uint_32)(decay*cents2samplesfactord((double)(decayenvfactor*relKeynum))); //Apply key number!
+	decaylength = (uint_32)(decay*cents2samplesfactord((DOUBLE)(decayenvfactor*relKeynum))); //Apply key number!
 
+	#ifdef IS_LONGDOUBLE
+	sustainfactor = (float)dB2factor(((1000.0L-sustain)/10.0L),100.0L); //We're on a rate of 1000 cb!
+	#else
 	sustainfactor = (float)dB2factor(((1000.0-sustain)/10.0),100.0); //We're on a rate of 1000 cb!
+	#endif
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 
-	if (cents2samplesfactord((double)release) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)release) < 0.0002f) //0.0001 sec?
 	{
 		releaselength = 0; //No release!
 	}
 	else
 	{
-		releaselength = (uint_32)(sampleRate*cents2samplesfactord((double)release)); //Calculate the ammount of samples!
+		releaselength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)release)); //Calculate the ammount of samples!
 	}
 	
 	//Now calculate the steps for the envelope!

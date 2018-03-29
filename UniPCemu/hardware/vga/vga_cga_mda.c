@@ -10,7 +10,11 @@
 //15.75MHz originally used, but seems to be 14.31818MHz according to reenigne.org and https://pineight.com/mw/index.php?title=Dot_clock_rates
 #define CGA_RATE MHZ14
 //MDA refresh rate!
+#ifdef IS_LONGDOUBLE
+#define MDA_RATE 16257000.0L
+#else
 #define MDA_RATE 16257000.0
+#endif
 
 byte int10_font_08[256 * 8] =
 {
@@ -853,9 +857,9 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	return result; //Give the signal!
 }
 
-double getCGAMDAClock(VGA_Type *VGA)
+DOUBLE getCGAMDAClock(VGA_Type *VGA)
 {
-	double result=0.0f; //The calculated clock speed! Default: not used!
+	DOUBLE result=0.0f; //The calculated clock speed! Default: not used!
 	VGA->precalcs.use14MHzclock = 0; //Default to normal clocking!
 	if (CGAMDAEMULATION_ENABLED_CRTC(VGA)) //Are we enabled?
 	{
@@ -1362,7 +1366,7 @@ void CGA_checklightpen(word currentlocation, byte is_lightpenlocation, byte is_l
 //I/O compatibility layer!
 
 #ifdef VGAIODUMP
-extern double VGA_debugtiming; //Debug countdown if applyable!
+extern DOUBLE VGA_debugtiming; //Debug countdown if applyable!
 extern byte VGA_debugtiming_enabled; //Are we applying right now?
 //CGA dumping support!
 OPTINLINE byte dumpCGAIO()
