@@ -865,7 +865,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	}
 	else if (getLoadedTYPE(&LOADEDDESCRIPTOR)==2) //System descriptor loaded?
 	{
-		if ((segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS) || (segment==CPU_SEGMENT_SS)) //System descriptor in invalid register?
+		if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS) || (segment==CPU_SEGMENT_SS)) //System descriptor in invalid register?
 		{
 			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
@@ -874,7 +874,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
 	{
-		if (is_gated==0){ //Non-gates doesn't change RPL(CPL) of CS!
+		if (is_gated==0) //Non-gates doesn't change RPL(CPL) of CS!
+		{
 			setRPL(*segmentval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
 			setRPL(originalval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
 		}
@@ -1158,67 +1159,46 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	INLINEREGISTER byte isvalid;
 	//First: type checking!
 
-	if (unlikely(GENERALSEGMENTPTR_P(descriptor)==0)) //Not present(invalid in the cache)?
+	if (unlikely(GENERALSEGMENTPTR_P(descriptor)==0)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
 	{
-		CPU_MMU_checkrights_cause = 2; //What cause?
+		CPU_MMU_checkrights_cause = 1; //What cause?
 		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
 	}
 
-	if (unlikely(getcpumode()==CPU_MODE_PROTECTED)) //Not real mode? Check rights!
+	//Basic access rights are always checked!
+	switch ((descriptor->AccessRights&0xE)) //What type of descriptor?
 	{
-		if (unlikely((segment != CPU_SEGMENT_CS) && (segment != CPU_SEGMENT_SS) && (!getDescriptorIndex(segmentval)) && ((segmentval&4)==0))) //Accessing memory with DS,ES,FS or GS, when they contain a NULL selector?
-		{
-			CPU_MMU_checkrights_cause = 1; //What cause?
-			return 1; //Error!
-		}
-		switch ((descriptor->AccessRights&0xE)) //What type of descriptor?
-		{
-			case 0: //Data, read-only
-			case 4: //Data(expand down), read-only
-			case 10: //Code, execute/read
-			case 14: //Code, execute/read, conforming
-				if (unlikely((forreading&~0x10)==0)) //Writing?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-			case 2: //Data, read/write
-			case 6: //Data(expand down), read/write
-				break; //Allow!
-			case 8: //Code, execute-only
-			case 12: //Code, execute-only, conforming
-				if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-		}
+		case 0: //Data, read-only
+		case 4: //Data(expand down), read-only
+		case 10: //Code, execute/read
+		case 14: //Code, execute/read, conforming
+			if (unlikely((forreading&~0x10)==0)) //Writing?
+			{
+				CPU_MMU_checkrights_cause = 3; //What cause?
+				return 1; //Error!
+			}
+			break; //Allow!
+		case 2: //Data, read/write
+		case 6: //Data(expand down), read/write
+			break; //Allow!
+		case 8: //Code, execute-only
+		case 12: //Code, execute-only, conforming
+			if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
+			{
+				CPU_MMU_checkrights_cause = 3; //What cause?
+				return 1; //Error!
+			}
+			break; //Allow!
 	}
 
 	//Next: limit checking!
-	if (unlikely(addrtest==0)) return 0; //No address test is to be performed!
-
-	//Execute address test?
+	if (likely(addrtest)) //Address test is to be performed?
 	{
+		//Execute address test?
 		uint_32 limits[2]; //What limit to apply?
 		limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
 		limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 		limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
-
-		/*
-		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
-		{
-			if (unlikely(is_offset16)) //16-bits offset? Set the high bits for compatibility!
-			{
-				if (unlikely(((SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask) && (EMULATED_CPU>=CPU_80386)))) //Large granularity?
-				{
-					offset |= 0xFFFF0000; //Convert to 32-bits for adding correctly in 32-bit cases!
-				}
-			}
-		}
-		*/ //16-bit access on a wrong granularity isn't special?
 
 		isvalid = (offset<=limit); //Valid address range!
 		isvalid ^= ((descriptor->AccessRights&0x1C)==0x14); //Apply expand-down data segment, if required, which reverses valid!
@@ -1238,12 +1218,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 		}
 	}
 
-	//Third: privilege levels & Restrict access to data!
-
 	//Don't perform rights checks: This is done when loading the segment register only!
-
-	//Fifth: Accessing data in Code segments?
-
 	return 0; //OK!
 }
 
