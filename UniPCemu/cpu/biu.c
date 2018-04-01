@@ -45,7 +45,7 @@
 
 #define CPU286_WAITSTATE_DELAY 1
 //BUS delay is supposed to be 4 waitstates?
-#define CPU286_BUSWAITSTATE_DELAY 0
+#define CPU286_BUSWAITSTATE_DELAY 1
 
 BIU_type BIU[MAXCPUS]; //All possible BIUs!
 
