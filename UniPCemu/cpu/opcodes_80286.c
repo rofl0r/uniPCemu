@@ -706,7 +706,6 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 	CPU_flushPIQ(-1); //We're jumping to another address!
-	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL!
 
 	//GDTR/IDTR registers!
 	CPU[activeCPU].registers->GDTR.base = ((LOADALLDATA.fields.GDTR.basehigh&0xFF)<<16)|LOADALLDATA.fields.GDTR.baselow; //Base!
@@ -721,6 +720,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
 	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TSSdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
+	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL determines CPL!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
