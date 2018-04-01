@@ -275,15 +275,15 @@ void initFloppyRates()
 	//The order is of the rates is: 500k, 300k, 250k, 1M
 	//Step rate!
 	#ifdef IS_LONGDOUBLE
-	steprate_base[1] = 16.0L;
-	steprate_base[2] = 26.0L+(2.0L/3.0L);
-	steprate_base[3] = 32.0L;
-	steprate_base[0] = 8.0L;
-	steprate_addition[0] = 1.0L;
-	steprate_addition[1] = 1.0L+(2.0L/3.0L);
-	steprate_addition[2] = 2.0L;
-	steprate_addition[3] = 0.5L;
-
+	steprate_base[0] = 16.0L;
+	steprate_base[1] = 26.0L+(2.0L/3.0L);
+	steprate_base[2] = 32.0L;
+	steprate_base[3] = 8.0L;
+	steprate_addition[0] = -1.0L;
+	steprate_addition[1] = -(1.0L+(2.0L/3.0L));
+	steprate_addition[2] = -2.0L;
+	steprate_addition[3] = -0.5L;
+	
 	//Head Unload Time
 	headunloadtime_addition[0] = 16.0L;
 	headunloadtime_addition[1] = 26.0L+(2.0L/3.0L);
@@ -296,15 +296,15 @@ void initFloppyRates()
 	headloadtime_addition[2] = 4.0L;
 	headloadtime_addition[3] = 1.0L;
 	#else
-	steprate_base[1] = 16.0;
-	steprate_base[2] = 26.0+(2.0/3.0);
-	steprate_base[3] = 32.0;
-	steprate_base[0] = 8.0;
-	steprate_addition[0] = 1.0;
-	steprate_addition[1] = 1.0+(2.0/3.0);
-	steprate_addition[2] = 2.0;
-	steprate_addition[3] = 0.5;
-
+	steprate_base[0] = 16.0;
+	steprate_base[1] = 26.0+(2.0/3.0);
+	steprate_base[2] = 32.0;
+	steprate_base[3] = 8.0;
+	steprate_addition[0] = -1.0;
+	steprate_addition[1] = -(1.0+(2.0/3.0));
+	steprate_addition[2] = -2.0;
+	steprate_addition[3] = -0.5;
+	
 	//Head Unload Time
 	headunloadtime_addition[0] = 16.0;
 	headunloadtime_addition[1] = 26.0+(2.0/3.0);
@@ -324,12 +324,12 @@ void initFloppyRates()
 	{
 		for (rate=0;rate<0x10;++rate) //Process all rate timings for step rate&head unload time!
 		{
-			usedrate = rate?rate:0x10; //0 sets bit 4!
+			usedrate = rate?rate:0x10; //0 sets bit 4 for head unload time!
 			#ifdef IS_LONGDOUBLE
-			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)usedrate)*1000000.0L; //Time, in nanoseconds!
+			floppy_steprate[ratesel][rate] = (steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)rate))*1000000.0L; //Time, in nanoseconds!
 			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0L; //Time, in nanoseconds!
 			#else
-			floppy_steprate[ratesel][rate] = steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)usedrate)*1000000.0; //Time, in nanoseconds!
+			floppy_steprate[ratesel][rate] = (steprate_base[ratesel]+(steprate_addition[ratesel]*(DOUBLE)rate))*1000000.0; //Time, in nanoseconds!
 			floppy_headunloadtimerate[ratesel][rate] = (headunloadtime_addition[ratesel]*(DOUBLE)usedrate)*1000000.0; //Time, in nanoseconds!
 			#endif
 		}
