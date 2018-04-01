@@ -1128,7 +1128,7 @@ OPTINLINE byte coreHandler()
 		if (unlikely(MHZ14passed)) //14MHz to be ticked?
 		{
 			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!
-			updateDMA(MHZ14passed); //Update the DMA timer!
+			updateDMA(MHZ14passed,0); //Update the DMA timer!
 			if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(MHZ14passed_ns,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
 			if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 			updateMouse(MHZ14passed_ns); //Tick the mouse timer if needed!
@@ -1149,6 +1149,7 @@ OPTINLINE byte coreHandler()
 			if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(0.0,MHZ14passed); //Update the video 14MHz timer, when running!
 		}
 		if (likely((CPU[activeCPU].halt&0x10)==0)) updateVGA(instructiontime,0); //Update the normal video timer, when running!
+		if (likely((CPU[activeCPU].halt&0x10)==0)) updateDMA(0,CPU[activeCPU].cycles); //Update the DMA timer, when running!
 		if (unlikely(MHZ14passed))
 		{
 			updateModem(MHZ14passed_ns); //Update the modem!

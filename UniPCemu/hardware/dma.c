@@ -750,6 +750,7 @@ void DMA_tick()
 }
 
 uint_32 DMA_timing = 0; //How much time has passed!
+byte DMA_halfCPUclock = 0; //Use half CPU clock instead?
 
 void initDMA()
 {
@@ -764,6 +765,7 @@ void initDMA()
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!
 
 	DMA_timing = 0; //Initialise DMA timing!
+	DMA_halfCPUclock = (EMULATED_CPU>=CPU_80286)?1:0; //Use half the CPU clock rate instead of base 4.77MHz clock?
 }
 
 void doneDMA()
@@ -776,18 +778,28 @@ void cleanDMA()
 	//Skip time passed!
 }
 
-void updateDMA(uint_32 MHZ14passed)
+void updateDMA(uint_32 MHZ14passed, uint_32 CPUcyclespassed)
 {
+	uint_32 timingpassed[2]; //Timing passed switch!
+	timingpassed[0] = MHZ14passed; //First option: 14MHz clock base!
+	timingpassed[1] = CPUcyclespassed; //Second option: CPU cycle base!
 	INLINEREGISTER uint_32 timing;
 	timing = DMA_timing; //Load current timing!
-	timing += MHZ14passed; //How many ticks have passed?
-	if (timing>=3) //To tick?
+	timing += timingpassed[DMA_halfCPUclock]; //How many ticks have passed?
+	if (unlikely((timing>=3) && (DMA_halfCPUclock==0))) //To tick at 14MHz rate?
 	{
 		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
 			timing -= 3; //Tick the DMA at 4.77MHz!
-		} while (timing>=3); //Continue ticking?
+		} while (likely(timing>=3)); //Continue ticking?
+	}
+	else if (unlikely(timing && DMA_halfCPUclock)) //To tick at half CPU clock rate?
+	{
+		do //While ticking?
+		{
+			DMA_tick(); //Tick the DMA!
+		} while (likely(--timing)); //Continue ticking?
 	}
 	DMA_timing = timing; //Save the new timing to use!
 }

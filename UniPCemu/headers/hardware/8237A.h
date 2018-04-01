@@ -17,7 +17,7 @@ void registerDMATick(byte channel, DMATickHandler DREQHandler, DMATickHandler DA
 void DMA_SetDREQ(byte channel, byte DREQ); //Set DREQ from hardware!
 
 //CPU related timing!
-void updateDMA(uint_32 MHZ14passed); //Tick the DMA controller when needed!
+void updateDMA(uint_32 MHZ14passed, uint_32 CPUcyclespassed); //Tick the DMA controller when needed!
 void cleanDMA(); //Skip all ticks up to now!
 
 #endif
