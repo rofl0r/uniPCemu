@@ -699,8 +699,8 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
 			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
-			memset(FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
-			memset(FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
+			memset(&FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
+			memset(&FLOPPY.currentsector, 1, sizeof(FLOPPY.currentsector)); //Clear the current sectors!
 			updateST3(0); //Update ST3 only!
 			FLOPPY.TC = 0; //Disable TC identifier!
 			if (FLOPPY.Locked==0) //Are we not locked? Perform stuff that's not locked during reset!
@@ -1240,7 +1240,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 			}
 
 			//Fill the sector buffer and write it!
-			memset(FLOPPY.databuffer, FLOPPY.commandbuffer[5], ((size_t)1 << sectorinfo.SectorSize)); //Clear our buffer with the fill byte!
+			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], ((size_t)1 << sectorinfo.SectorSize)); //Clear our buffer with the fill byte!
 			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
 			{
 				goto floppy_errorformat;
@@ -1254,7 +1254,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 				goto floppy_errorformat;
 				return; //Error!
 			}
-			memset(FLOPPY.databuffer, FLOPPY.commandbuffer[5], 512); //Clear our buffer with the fill byte!
+			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], 512); //Clear our buffer with the fill byte!
 			if (!writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]),512)) //Failed writing the formatted sector?
 			{
 				goto floppy_errorformat;
