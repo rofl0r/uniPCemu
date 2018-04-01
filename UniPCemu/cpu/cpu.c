@@ -1366,7 +1366,8 @@ void updateCPUmode() //Update the CPU mode!
 	{
 		if ((CPUmode==CPU_MODE_REAL) && (mode==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
 		{
-			CPU[activeCPU].CPL = 0; //Start at CPL 0!
+			//CPU[activeCPU].CPL = 0; //Start at CPL 0!
+			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
 		}
 		else if ((CPUmode!=CPU_MODE_REAL) && (mode==CPU_MODE_REAL)) //Switching from protected mode, back to real mode?
 		{
