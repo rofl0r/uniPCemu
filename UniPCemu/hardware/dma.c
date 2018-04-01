@@ -13,8 +13,6 @@ DMA Controller (8237A)
 //Are we disabled?
 #define __HW_DISABLED 0
 
-SDL_sem *DMA_Lock = NULL;
-
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
 typedef struct
@@ -62,18 +60,9 @@ DMAControllerTYPE DMAController[2]; //We have 2 DMA Controllers!
 
 extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
 
-void freeDMA(void)
-{
-	SDL_DestroySemaphore(DMA_Lock); //Free!
-}
-
 void initDMAControllers() //Init function for BIOS!
 {
 	if (__HW_DISABLED) return; //Abort!
-	if (!DMA_Lock)
-	{
-		DMA_Lock = SDL_CreateSemaphore(1);
-	}
 	memset(&DMAController[0],0,sizeof(DMAController[0])); //Init DMA Controller channels 0-3 (0 unused: for DRAM Refresh)
 	memset(&DMAController[1],0,sizeof(DMAController[1])); //Init DMA Controller channels 4-7 (4 unused: for DMA Controller coupling)
 	DMA_S = DMA_currenttick = 0; //Init channel state!
@@ -113,7 +102,6 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			//Now reg is on 1:1 mapping too!
 		}
 	}
-	WaitSem(DMA_Lock)
 	if ((port>=0x80) && (port<=0x8F)) //Page registers?
 	{
 		reg -= 0x80; //Take the base!
@@ -145,7 +133,6 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			DMAController[controller].DMAChannel[3].PageAddressRegister = value; //Set!
 			break;
 		default:
-			PostSem(DMA_Lock) //Release!
 			return 0; //Invalid register!
 			break;
 		}
@@ -223,12 +210,10 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			DMAController[controller].MultiChannelMaskRegister = value; //Set!
 			break;
 		default:
-			PostSem(DMA_Lock) //Release!
 			return 0; //Invalid register!
 			break;
 		}
 	}
-	PostSem(DMA_Lock)
 	return 1; //Correct register!
 }
 
@@ -249,7 +234,6 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 			//Now reg is on 1:1 mapping too!
 		}
 	}
-	WaitSem(DMA_Lock)
 	byte ok = 0;
 	if ((port>=0x80) && (port<=0x8F)) //Page registers?
 	{
@@ -349,7 +333,6 @@ byte DMA_ReadIO(word port, byte *result) //Handles IN instruction from CPU I/O p
 				break;
 		}
 	}
-	PostSem(DMA_Lock)
 	return ok; //Give the result!
 }
 
@@ -752,6 +735,10 @@ void DMA_tick()
 uint_32 DMA_timing = 0; //How much time has passed!
 byte DMA_halfCPUclock = 0; //Use half CPU clock instead?
 
+extern byte is_XT; //Are we emulating an XT architecture?
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
+extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
+
 void initDMA()
 {
 	doneDMA(); //Stop DMA if needed!
@@ -765,7 +752,7 @@ void initDMA()
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!
 
 	DMA_timing = 0; //Initialise DMA timing!
-	DMA_halfCPUclock = (EMULATED_CPU>=CPU_80286)?1:0; //Use half the CPU clock rate instead of base 4.77MHz clock?
+	DMA_halfCPUclock = ((is_XT==0) && !(is_Compaq|is_PS2))?1:0; //Use half the CPU clock rate instead of base 4.77MHz clock on AT architecture?
 }
 
 void doneDMA()
@@ -794,12 +781,12 @@ void updateDMA(uint_32 MHZ14passed, uint_32 CPUcyclespassed)
 			timing -= 3; //Tick the DMA at 4.77MHz!
 		} while (likely(timing>=3)); //Continue ticking?
 	}
-	else if (unlikely(timing && DMA_halfCPUclock)) //To tick at half CPU clock rate?
+	else if (unlikely((timing>=2) && DMA_halfCPUclock)) //To tick at half CPU clock rate?
 	{
 		do //While ticking?
 		{
 			DMA_tick(); //Tick the DMA!
-		} while (likely(--timing)); //Continue ticking?
+		} while (likely(timing-=2)); //Continue ticking?
 	}
 	DMA_timing = timing; //Save the new timing to use!
 }
