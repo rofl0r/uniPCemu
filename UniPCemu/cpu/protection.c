@@ -1049,13 +1049,6 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				}
 			}
 
-			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
-			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
-			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
-			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
-			{
-				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
-			}
 			if (segment==CPU_SEGMENT_TR) //Loading the Task Register? We're to mask us as busy!
 			{
 				if (isJMPorCALL==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
@@ -1069,6 +1062,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						case AVL_SYSTEM_BUSY_TSS32BIT:
 						case AVL_SYSTEM_BUSY_TSS16BIT:
 							THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+
 							break;
 						case AVL_SYSTEM_TSS32BIT:
 						case AVL_SYSTEM_TSS16BIT:
@@ -1084,7 +1078,14 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 				}
 			}
-			else if (segment == CPU_SEGMENT_CS) //CS register?
+			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
+			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
+			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
+			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+			{
+				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
+			}
+			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 				CPU_flushPIQ(-1); //We're jumping to another address!
