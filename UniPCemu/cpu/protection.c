@@ -1062,7 +1062,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						case AVL_SYSTEM_BUSY_TSS32BIT:
 						case AVL_SYSTEM_BUSY_TSS16BIT:
 							THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-
+							return 1; //Abort on fault!
 							break;
 						case AVL_SYSTEM_TSS32BIT:
 						case AVL_SYSTEM_TSS16BIT:
@@ -1073,6 +1073,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							}
 							break;
 						default: //Invalid segment?
+							THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+							return 1; //Abort on fault!
 							break; //Ignore!
 						}
 					}
