@@ -1053,30 +1053,27 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			{
 				if (isJMPorCALL==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
 				{
-					SEGDESCRIPTOR_TYPE segdesc;
-					CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights |= 2; //Mark not idle in our own descriptor!
-					if (LOADDESCRIPTOR(segment,value,&segdesc)) //Loaded descriptor for modification!
+					SEGDESCRIPTOR_TYPE savedescriptor;
+					switch (GENERALSEGMENT_TYPE(tempdescriptor)) //What kind of TSS?
 					{
-						switch (GENERALSEGMENT_TYPE(tempdescriptor)) //What kind of TSS?
+					case AVL_SYSTEM_BUSY_TSS32BIT:
+					case AVL_SYSTEM_BUSY_TSS16BIT:
+						THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						return 1; //Abort on fault!
+						break;
+					case AVL_SYSTEM_TSS32BIT:
+					case AVL_SYSTEM_TSS16BIT:
+						tempdescriptor.AccessRights |= 2; //Mark not idle in the RAM descriptor!
+						savedescriptor.DATA64 = tempdescriptor.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
+						if (SAVEDESCRIPTOR(segment,value,&savedescriptor)) //Save it back to RAM!
 						{
-						case AVL_SYSTEM_BUSY_TSS32BIT:
-						case AVL_SYSTEM_BUSY_TSS16BIT:
-							THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 							return 1; //Abort on fault!
-							break;
-						case AVL_SYSTEM_TSS32BIT:
-						case AVL_SYSTEM_TSS16BIT:
-							segdesc.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
-							if (SAVEDESCRIPTOR(segment,value,&segdesc)) //Save it back to RAM!
-							{
-								return 1; //Abort on fault!
-							}
-							break;
-						default: //Invalid segment?
-							THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-							return 1; //Abort on fault!
-							break; //Ignore!
 						}
+						break;
+					default: //Invalid segment descriptor to load into the TR register?
+						THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						return 1; //Abort on fault!
+						break; //Ignore!
 					}
 				}
 			}
