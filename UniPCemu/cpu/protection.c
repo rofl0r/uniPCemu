@@ -1065,7 +1065,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						tempdescriptor.AccessRights |= 2; //Mark not idle in the RAM descriptor!
 						savedescriptor.DATA64 = tempdescriptor.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
-						if (SAVEDESCRIPTOR(segment,value,&savedescriptor)) //Save it back to RAM!
+						if (SAVEDESCRIPTOR(segment,value,&savedescriptor)==0) //Save it back to RAM failed?
 						{
 							return 1; //Abort on fault!
 						}
