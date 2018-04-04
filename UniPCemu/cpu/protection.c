@@ -983,6 +983,12 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
 				}
 
+				if (EXECSEGMENTPTR_C(descriptor)) //Conforming segment?
+				{
+					CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
+				}
+				setRPL(value,getCPL()); //RPL of CS always becomes CPL!
+
 				if (hascallinterrupttaken_type==0xFF) //Not set yet?
 				{
 					if (CPU[activeCPU].faultraised==0) //OK?
