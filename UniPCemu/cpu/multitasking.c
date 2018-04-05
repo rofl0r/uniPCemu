@@ -121,6 +121,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	TSS286 TSS16;
 	TSS386 TSS32;
 	byte TSSSize = 0; //The TSS size!
+	byte dummy;
 
 	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
@@ -478,13 +479,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		descriptor_address += descriptor_index; //Make sure to index into the descriptor table!
-
-		int i;
-		for (i = 0;i<(int)sizeof(LDTsegdesc.descdata);) //Process the descriptor data!
-		{
-			LDTsegdesc.descdata[i++] = memory_BIUdirectrb(descriptor_address++); //Read a descriptor byte directly from flat memory!
-		}
+		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc); //Load it, ignore errors!
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
