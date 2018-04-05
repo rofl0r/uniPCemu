@@ -479,7 +479,9 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc); //Load it, ignore errors!
+		CPU[activeCPU].faultraised = 0; //No fault has been raised!
+		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc); //Load it, ignore errors?
+		if (unlikely(dummy && CPU[activeCPU].faultraised)) return 1; //Invalid LDT(due to being unpaged)?
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
