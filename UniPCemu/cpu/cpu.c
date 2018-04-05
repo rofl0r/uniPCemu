@@ -1366,14 +1366,13 @@ void updateCPUmode() //Update the CPU mode!
 	{
 		if ((CPUmode==CPU_MODE_REAL) && (mode==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
 		{
-			//CPU[activeCPU].CPL = 0; //Start at CPL 0!
 			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
 		}
-		else if ((CPUmode!=CPU_MODE_REAL) && (mode==CPU_MODE_REAL)) //Switching from protected mode, back to real mode?
+		else if ((CPUmode!=CPU_MODE_REAL) && (mode==CPU_MODE_REAL)) //Switching back to real mode?
 		{
 			CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
 		}
-		else if ((CPUmode==CPU_MODE_PROTECTED) && (mode==CPU_MODE_8086)) //Switching from protected mode to Virtual 8086 mode?
+		else if ((CPUmode!=CPU_MODE_8086) && (mode==CPU_MODE_8086)) //Switching to Virtual 8086 mode?
 		{
 			CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
 		}
