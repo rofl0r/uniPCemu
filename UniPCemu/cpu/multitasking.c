@@ -599,6 +599,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if ((errorcode!=-1) && (CPU[activeCPU].faultraised==0)) //Error code to be pushed on the stack?
 	{
+		if (checkStackAccess(1,1,SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]))) return 1; //Abort on fault!
 		if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
 		{
 			CPU_PUSH32(&errorcode32); //Push the error on the stack!
