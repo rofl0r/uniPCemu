@@ -624,6 +624,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			hascallinterrupttaken_type = OTHERGATE_NORMALTSS; //Normal TSS direct call!
 		}
 	}
+	CPU[activeCPU].executed = 1; //Task switch completed!
 	return 0; //Abort any running instruction operation, finish up!
 }
 
