@@ -93,7 +93,7 @@ OPTINLINE void MIDI_writeStatus(byte data) //Write a status byte to the MIDI dev
 					//Execute Reset!
 					MIDIDEV.command = -1;
 					MIDIDEV.bufferpos = 0;
-					memset(MIDIDEV.current.buffer,0,sizeof(MIDIDEV.current.buffer));
+					memset(&MIDIDEV.current.buffer,0,sizeof(MIDIDEV.current.buffer));
 					//We're reset!
 					MIDIDEVICE_addbuffer(0xFF,&MIDIDEV.current); //Add MIDI reset!
 					break;

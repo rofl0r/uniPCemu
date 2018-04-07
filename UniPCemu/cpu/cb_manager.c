@@ -85,7 +85,7 @@ void clearCBHandlers() //Reset callbacks!
 	{
 		CBHandlers[curhandler] = NULL; //Reset all handlers!
 	}
-	memset(CBTypes,0,sizeof(CBTypes)); //Init types to unused!
+	memset(&CBTypes,0,sizeof(CBTypes)); //Init types to unused!
 	currentcallback.hascallback = 0; //Reset use of callbacks by default!
 }
 

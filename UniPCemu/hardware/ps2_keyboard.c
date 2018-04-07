@@ -34,8 +34,8 @@ extern byte is_XT; //Are we emulating a XT class machine?
 OPTINLINE void loadKeyboardDefaults()
 {
 	//We set: rate/delay: 10.9cps/500ms; key types (all keys typematic/make/break) and scan code set (2)
-	memset(scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
-	memset(scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
+	memset(&scancodeset_typematic, 1, sizeof(scancodeset_typematic)); //Enable all typematic!
+	memset(&scancodeset_break, 1, sizeof(scancodeset_break)); //Enable all break!
 	Keyboard.typematic_rate_delay = 0x2B; //rate/delay: 10.9cps/500ms!
 	Keyboard.scancodeset = is_XT?0:1; //Scan code set 2 or 1, depending on the hardware(XT uses XT-style keyboard instead)!
 }
@@ -299,23 +299,23 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xFA: //Mode 3 change:
-		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
-		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
+		memset(&scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
+		memset(&scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF9: //Mode 3 change:
-		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
-		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
+		memset(&scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
+		memset(&scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF8: //Mode 3 change:
-		memset(scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
-		memset(scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
+		memset(&scancodeset_typematic,0,sizeof(scancodeset_typematic)); //Disable all typematic!
+		memset(&scancodeset_break,1,sizeof(scancodeset_break)); //Enable all break!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF7: //Set All Keys Typematic: every type is one character send only!
-		memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
-		memset(scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
+		memset(&scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Enable all typematic!
+		memset(&scancodeset_break,0,sizeof(scancodeset_break)); //Disable all break!
 		Keyboard.has_command = 0; //No command anymore!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
@@ -615,8 +615,8 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	register_PS2PortRead(0,&handle_keyboardread,&handle_keyboardpeek); //Read functionality!
 	register_PS2PortEnabled(0,&resetKeyboard_8042); //Port enabled handler!
 	Keyboard.buffer = allocfifobuffer(32,1); //Allocate a small keyboard buffer (originally 16, dosbox uses double buffer (release size=2 by default)!
-	memset(scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
-	memset(scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
+	memset(&scancodeset_typematic,1,sizeof(scancodeset_typematic)); //Typematic?
+	memset(&scancodeset_break,1,sizeof(scancodeset_break)); //Allow break codes?
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
 	if (is_XT==0) keyboardControllerInit(0); //Initialise the basic keyboard controller when allowed!

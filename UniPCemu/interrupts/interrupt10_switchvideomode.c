@@ -500,7 +500,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	IO_Write(0x3c2,misc_output);		//Setup for 3b4 or 3d4
 
 	/* Program Sequencer */
-	memset(seq_data,0,SEQ_REGS);
+	memset(&seq_data,0,SEQ_REGS);
 
 	seq_data[0] = 0x3;	// not reset
 	seq_data[1] = 0x21;	// screen still disabled, will be enabled at end of setmode
@@ -799,7 +799,7 @@ int INT10_Internal_SetVideoMode(word mode)
 	IO_Write(0x3c2,misc_output);
 
 	/* Program Graphics controller */
-	memset(gfx_data,0,GFX_REGS);
+	memset(&gfx_data,0,GFX_REGS);
 	gfx_data[0x7]=0xf;				/* Color don't care */
 	gfx_data[0x8]=0xff;				/* BitMask */
 	switch (CurMode->type)
@@ -837,7 +837,7 @@ int INT10_Internal_SetVideoMode(word mode)
 		IO_Write(0x3ce,ct);
 		IO_Write(0x3cf,gfx_data[ct]);
 	}
-	memset(att_data,0,ATT_REGS);
+	memset(&att_data,0,ATT_REGS);
 	att_data[0x12]=0xf;				//Always have all color planes enabled
 
 	/* Program Attribute Controller */

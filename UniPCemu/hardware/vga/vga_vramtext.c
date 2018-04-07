@@ -185,7 +185,7 @@ OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 	{
 		char row[10]; //9-character row for the letter!
 		char buf[2] = " "; //Zero terminated string!
-		memset(row,0,sizeof(row));
+		memset(&row,0,sizeof(row));
 		byte x = 0;
 		for (;;)
 		{

@@ -93,7 +93,7 @@ byte loadVGADump(byte mode)
 	memset(&controllerfilename,0,sizeof(controllerfilename)); //Init current filename!
 	sprintf(filename,"VGAdump/VGADMP%02X.",mode); //Base VGA dump filename!
 	//Now load all files!
-	memset(buffers,0,sizeof(buffers)); //Clear all buffers!
+	memset(&buffers,0,sizeof(buffers)); //Clear all buffers!
 	loaded = 1; //Default: we're fully loaded and existant!
 	for (controller=0;controller<NUMITEMS(controllerparts);++controller) //Load all files!
 	{

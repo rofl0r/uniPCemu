@@ -226,7 +226,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 		EMU_unlocktext();
 	}
 
-	memset(buffer, 0, sizeof(buffer)); //Clear!
+	memset(&buffer, 0, sizeof(buffer)); //Clear!
 
 	while (sizeleft) //Left?
 	{
@@ -330,7 +330,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 		if (!block) //First block?
 		{
 			//Create boot sector and first FAT entry!
-			memset(buffer, 0, sizeof(buffer)); //Clear!
+			memset(&buffer, 0, sizeof(buffer)); //Clear!
 			buffer[0] = 0xEB; //JMP 3E
 			buffer[1] = 0x3C;
 			buffer[2] = 0x90; //NOP!
@@ -441,7 +441,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 		}
 		else if (block==1) //Second block?
 		{
-			memset(buffer, 0, sizeof(buffer)); //Clear the buffer from now on!
+			memset(&buffer, 0, sizeof(buffer)); //Clear the buffer from now on!
 			block = 2; //Start plain data to 0!
 		}
 		byteswritten = emufwrite64(&buffer,1,sizeof(buffer),f); //We've processed some!

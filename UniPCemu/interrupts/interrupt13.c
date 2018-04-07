@@ -119,7 +119,7 @@ void int13_init(int floppy0, int floppy1, int hdd0, int hdd1, int cdrom0, int cd
 	//Reset disk parameter table to 0's
 
 	//Now set mounted drives according to set!
-	memset(mounteddrives,0xFF,sizeof(mounteddrives)); //Reset all to unmounted!
+	memset(&mounteddrives,0xFF,sizeof(mounteddrives)); //Reset all to unmounted!
 	
 	//Floppy=optional!
 	if (floppy0) //Floppy0?

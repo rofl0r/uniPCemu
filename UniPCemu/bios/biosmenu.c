@@ -957,8 +957,8 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 {
 	char buffer[1024]; //The buffered text!
 	char filler[1024]; //The filler data!
-	memset(buffer,'\0',sizeof(buffer)); //Init buffer to unused!
-	memset(filler,'\0',sizeof(filler)); //Init filler to unused!
+	memset(&buffer,'\0',sizeof(buffer)); //Init buffer to unused!
+	memset(&filler,'\0',sizeof(filler)); //Init filler to unused!
 	int i,j;
 	int max = safe_strlen(text,256); //Default: maximum the size of the destination!
 	if (max>maxlen) //More than maximum length?
@@ -2445,7 +2445,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					domkdir(diskpath);
-					memset(fullfilename,0,sizeof(fullfilename));
+					memset(&fullfilename,0,sizeof(fullfilename));
 					strcpy(fullfilename,diskpath);
 					strcat(fullfilename,"/");
 					strcat(fullfilename,filename);
@@ -2500,7 +2500,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					domkdir(diskpath);
-					memset(fullfilename, 0, sizeof(fullfilename));
+					memset(&fullfilename, 0, sizeof(fullfilename));
 					strcpy(fullfilename, diskpath);
 					strcat(fullfilename, "/");
 					strcat(fullfilename, filename);
@@ -2576,7 +2576,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				EMU_unlocktext();
 				FILEPOS sizecreated;
 				domkdir(diskpath);
-				memset(fullfilename, 0, sizeof(fullfilename));
+				memset(&fullfilename, 0, sizeof(fullfilename));
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
 				strcat(fullfilename, filename);
@@ -2799,7 +2799,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				byte firstupdate = 1; //First update!
 				FILE *dest;
 				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
-				memset(fullfilename, 0, sizeof(fullfilename));
+				memset(&fullfilename, 0, sizeof(fullfilename));
 				strcpy(fullfilename, diskpath);
 				strcat(fullfilename, "/");
 				strcat(fullfilename, filename);
@@ -2979,12 +2979,12 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			strcat(filename, ".tmp.sfdimg"); //Generate destination filename!
 
 			domkdir(diskpath);
-			memset(fullfilename, 0, sizeof(fullfilename));
+			memset(&fullfilename, 0, sizeof(fullfilename));
 			strcpy(fullfilename, diskpath);
 			strcat(fullfilename, "/");
 			strcat(fullfilename, filename);
 
-			memset(fulloriginalfilename, 0, sizeof(fulloriginalfilename));
+			memset(&fulloriginalfilename, 0, sizeof(fulloriginalfilename));
 			strcpy(fulloriginalfilename, diskpath);
 			strcat(fulloriginalfilename, "/");
 			strcat(fulloriginalfilename, filename);
@@ -3856,7 +3856,7 @@ void BIOS_addInputText(char *s, byte inputnumber)
 		}
 		if (input_key != -1) //Gotten a key?
 		{
-			memset(name, 0, sizeof(name)); //Init name!
+			memset(&name, 0, sizeof(name)); //Init name!
 			if (EMU_keyboard_handler_idtoname(input_key, &name[0]))
 			{
 				strcat(s, name); //Add the name of the key!
@@ -4760,7 +4760,7 @@ int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 byte sound_playSoundfile(byte showinfo)
 {
 	char songpath[256];
-	memset(songpath,0,sizeof(songpath)); //Init our path!
+	memset(&songpath,0,sizeof(songpath)); //Init our path!
 	Sound_file = 0; //Init selected file!
 	for (;;) //Music selection loop!
 	{
@@ -6015,7 +6015,7 @@ void BIOS_GenerateFloppyDisk()
 						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 						EMU_unlocktext();
 
-						memset(fullfilename, 0, sizeof(fullfilename));
+						memset(&fullfilename, 0, sizeof(fullfilename));
 						strcpy(fullfilename, diskpath);
 						strcat(fullfilename, "/");
 						strcat(fullfilename, filename);
