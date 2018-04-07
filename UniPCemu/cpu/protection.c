@@ -749,7 +749,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	if ((segment==CPU_SEGMENT_CS) && is_TSS) //Special stuff on CS, CPL, Task switch.
 	{
 		//Execute a normal task switch!
-		if (CPU_switchtask(segment,&LOADEDDESCRIPTOR,segmentval,*segmentval,isJMPorCALL,is_gated,0)) //Switching to a certain task?
+		if (CPU_executionphase_starttaskswitch(segment,&LOADEDDESCRIPTOR,segmentval,*segmentval,isJMPorCALL,is_gated,0)) //Switching to a certain task?
 		{
 			return NULL; //Error changing priviledges or anything else!
 		}
