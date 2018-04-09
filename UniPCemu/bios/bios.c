@@ -321,7 +321,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 								case '/': //Invalid? Take it off!
 									if (strlen(redirectdir)>1) //More possible? Check for special path specification(e.g. :// etc.)!
 									{
-										if (!is_textcharacter(redirectdir[strlen(redirectdir-2)])) //Not normal path?
+										if (!is_textcharacter(redirectdir[strlen(redirectdir)-2])) //Not normal path?
 										{
 											redirectdir[strlen(redirectdir)-1] = '\0'; //Take it off, we're specifying the final slash ourselves!
 											goto redirect_validpath;
