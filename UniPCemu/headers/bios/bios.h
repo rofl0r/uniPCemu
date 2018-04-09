@@ -258,4 +258,6 @@ void autoDetectArchitecture(); //Detect the architecture to use!
 
 void BIOS_ejectdisk(int disk); //Eject an ejectable disk?
 
+void BIOS_SoundStartStopRecording(); //Start/stop sound recording!
+
 #endif
