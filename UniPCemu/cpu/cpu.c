@@ -2333,8 +2333,6 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 	if (lookupTablesCPU==(int)EMULATED_CPU) return; //Already loaded? Don't reload when already ready to use!
 	lookupTablesCPU = (int)EMULATED_CPU; //We're loading the specified CPU to be active!
 
-	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
-
 	memset(&timing286lookup,0,sizeof(timing286lookup)); //Clear the entire list!
 
 	if (EMULATED_CPU<CPU_80286) //Not a capable CPU for these timings?
@@ -2342,6 +2340,7 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 		return; //No lookup table to apply, use an empty table!
 	}
 
+	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
 	for (CPUmode=0;CPUmode<4;++CPUmode) //All CPU modes! Real vs Protected is bit 0, 16-bit vs 32-bit is bit 1!
 	{
 		for (ismemory=0;ismemory<2;++ismemory) //All memory modes!
