@@ -457,8 +457,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	//Check and verify the LDT descriptor!
 	SEGDESCRIPTOR_TYPE LDTsegdesc;
-	uint_32 descriptor_address = 0;
-	descriptor_address = (LDTsegment & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = (LDTsegment&~0x7); //The full index within the descriptor table!
 
 	if (!(descriptor_index&~3)) //NULL segment loaded into LDTR? Special case: no LDT available!
