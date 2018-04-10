@@ -2053,7 +2053,6 @@ OPTINLINE byte CPU80386_internal_STOSD()
 			CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles!
 		}
 	}
-	++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	return 0;
 }
 //OK so far!

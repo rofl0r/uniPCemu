@@ -2883,7 +2883,6 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 			CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles!
 		}
 	}
-	++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	return 0;
 }
 
@@ -3092,7 +3091,6 @@ OPTINLINE byte CPU8086_internal_STOSW()
 			CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles!
 		}
 	}
-	++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	return 0;
 }
 //OK so far!
