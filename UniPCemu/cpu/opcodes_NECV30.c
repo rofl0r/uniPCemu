@@ -66,7 +66,10 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 			destEIP = REG_EIP; //Store (E)IP for safety!
 			modrm_updatedsegment(dest, val, 0); //Check for an updated segment!
 			CPUPROT1
-			*dest = val; //Write directly, if not errored out!
+			if (get_segment_index(dest)==-1) //Valid to write directly?
+			{
+				*dest = val; //Write directly, if not errored out!
+			}
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		}
