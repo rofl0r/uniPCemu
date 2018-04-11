@@ -2001,9 +2001,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 		//Now, starting the instruction preprocessing!
 		CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
-		CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 		if (!CPU[activeCPU].repeating) //Not repeating instructions?
 		{
+			CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 			//Save the last coordinates!
 			CPU_exec_lastCS = CPU_exec_CS;
 			CPU_exec_lastEIP = CPU_exec_EIP;
