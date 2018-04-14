@@ -1900,22 +1900,22 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		optioninfo[advancedoptions] = 0; //Reboot option!
 		if (!reboot_needed) //Running?
 		{
-			strcpy(menuoptions[advancedoptions++], "Save Changes & Resume emulation"); //Option #0!
+			strcpy(menuoptions[advancedoptions++], "Save changes & resume emulation"); //Option #0!
 		}
 		else
 		{
-			strcpy(menuoptions[advancedoptions++], "Save Changes & Reboot"); //Option #0!
+			strcpy(menuoptions[advancedoptions++], "Save changes & restart emulator"); //Option #0!
 		}
 	}
 
 	optioninfo[advancedoptions] = 1; //Discard option!
 	if ((reboot_needed&2)==0) //Able to continue running: Reboot is optional?
 	{
-		strcpy(menuoptions[advancedoptions++],"Discard Changes & Resume emulation"); //Option #1!
+		strcpy(menuoptions[advancedoptions++],"Discard changes & resume emulation"); //Option #1!
 	}
 	else
 	{
-		strcpy(menuoptions[advancedoptions++], "Discard Changes & Reboot"); //Option #1!
+		strcpy(menuoptions[advancedoptions++], "Discard changes & restart emulator"); //Option #1!
 	}
 
 	if (EMU_RUNNING) //Emulator is running?
@@ -1928,15 +1928,15 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		if ((reboot_needed&2)==0) //We're not a duplicate?
 		{
 			optioninfo[advancedoptions] = 5; //Restart emulator and enter BIOS menu option!
-			strcpy(menuoptions[advancedoptions++], "Restart emulator (discard changes)"); // Restart emulator and enter BIOS menu option!
+			strcpy(menuoptions[advancedoptions++], "Restart emulator (Discard changes)"); // Restart emulator and enter BIOS menu option!
 		}
 		if (BIOS_Changed) //We're a viable option?
 		{
 			optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
-			strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (save changes)"); // Restart emulator and enter BIOS menu option!
+			strcpy(menuoptions[advancedoptions++], "Restart emulator and enter settings menu (Save changes)"); // Restart emulator and enter BIOS menu option!
 		}
 		optioninfo[advancedoptions] = 6; //Restart emulator and enter BIOS menu option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter Settings menu (discard changes)"); // Restart emulator and enter BIOS menu option!
+		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter settings menu (Discard changes)"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
