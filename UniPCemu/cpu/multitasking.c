@@ -420,6 +420,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 		TSS_dirty = 1; //We're dirty!
 	}
+	else if (isJMPorCALL == 1) //JMP?
+	{
+		FLAGW_NT(0); //JMP incoming task: clear nested task flag!
+	}
 
 	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
