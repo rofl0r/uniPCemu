@@ -1599,7 +1599,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
 				return 0; //Abort on fault!
 			}
-			else if ((FLAG_V8==0) && (INTYPE==1)) //Privilege level changed in protected mode?
+			else if ((FLAG_V8==0) && (INTTYPE==1)) //Privilege level changed in protected mode?
 			{
 				word SS0;
 				uint_32 ESP0;
