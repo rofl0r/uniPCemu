@@ -1508,13 +1508,23 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				return 0;
 			}
 
-			if ((EXECSEGMENT_C(newdescriptor.desc) == 0) && (GENERALSEGMENT_DPL(newdescriptor.desc) < getCPL())) //Not enough rights, but conforming?
+			byte INTTYPE=0;
+
+			if ((EXECSEGMENT_C(newdescriptor.desc) == 0) && (GENERALSEGMENT_DPL(newdescriptor.desc)<getCPL())) //Not enough rights, but conforming?
 			{
-				//TODO
+				INTTYPE = 1; //Interrupt to inner privilege!
 			}
 			else
 			{
-				//Check permission? TODO!
+				if ((EXECSEGMENT_C(newdescriptor.desc)) || (GENERALSEGMENT_DPL(newdescriptor.desc)==getCPL())) //Not enough rights, but conforming?
+				{
+					INTTYPE = 2; //Interrupt to same privilege level!
+				}
+				else
+				{
+					THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+					return 0;
+				}
 			}
 
 			uint_32 EFLAGSbackup;
@@ -1523,7 +1533,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			byte newCPL;
 			newCPL = GENERALSEGMENT_DPL(newdescriptor.desc); //New CPL to use!
 
-			if (FLAG_V8 && ((newCPL!=oldCPL) && (newCPL!=3))) //Virtual 8086 mode to monitor switching to CPL 0?
+			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
 				#ifdef LOG_VIRTUALMODECALLS
 				dolog("debugger","Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)",intnr,CPU[activeCPU].lastopcode,CPU[activeCPU].lastopcode0F,immb,REG_AX);
@@ -1584,7 +1594,12 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				if (segmentWritten(CPU_SEGMENT_GS,0,0)) return 0; //Clear GS!!
 				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
 			}
-			else if ((newCPL!=oldCPL) && (FLAG_V8==0)) //Privilege level changed in protected mode?
+			else if (FLAG_V8) 
+			{
+				THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
+				return 0; //Abort on fault!
+			}
+			else if ((FLAG_V8==0) && (INTYPE==1)) //Privilege level changed in protected mode?
 			{
 				word SS0;
 				uint_32 ESP0;
@@ -1651,6 +1666,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!
 			}
+
+			if (INTTYPE==1) CPU[activeCPU].CPL = newCPL; //Privilege level changes!
+
+			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
 			CPU[activeCPU].registers->EIP = (idtentry.offsetlow | (idtentry.offsethigh << 16)); //The current OPCode: just jump to the address specified by the descriptor OR command!
 			CPU_flushPIQ(-1); //We're jumping to another address!
