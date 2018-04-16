@@ -22,6 +22,8 @@ extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are th
 
 extern uint_32 destEIP; //Destination address for CS JMP instruction!
 
+extern byte debugger_forceimmediatelogging; //Force immediate logging?
+
 void loadTSS16(TSS286 *TSS)
 {
 	word n;
@@ -29,8 +31,10 @@ void loadTSS16(TSS286 *TSS)
 	data16 = &TSS->BackLink; //Load all addresses as 16-bit values!
 	for (n = 0;n < sizeof(*TSS);n+=2) //Load our TSS!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
+	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
 void loadTSS32(TSS386 *TSS)
@@ -39,6 +43,7 @@ void loadTSS32(TSS386 *TSS)
 	word n;
 	uint_32 *data32;
 	word *data16;
+	debugger_forceimmediatelogging = 1; //Log!
 	TSS->BackLink = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
@@ -47,8 +52,10 @@ void loadTSS32(TSS386 *TSS)
 
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 4; //Next item!
+		debugger_forceimmediatelogging = 1; //Log!
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 4; //Next item!
 		++data32; //Skip the 32-bit item(the SS entry) accordingly!
@@ -57,18 +64,23 @@ void loadTSS32(TSS386 *TSS)
 	data32 = &TSS->CR3; //Start with CR3!
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	data16 = &TSS->ES; //Start with ES!
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	data16 = &TSS->T; //Start of the last data!
+	debugger_forceimmediatelogging = 1; //Log!
 	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25*4), 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	debugger_forceimmediatelogging = 1; //Log!
 	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25*4)+2, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
 void saveTSS16(TSS286 *TSS)
@@ -78,9 +90,11 @@ void saveTSS16(TSS286 *TSS)
 	data16 = &TSS->IP; //Start with IP!
 	for (n=((7*2));n<(sizeof(*TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
 	}
+	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
 void saveTSS32(TSS386 *TSS)
@@ -91,15 +105,18 @@ void saveTSS32(TSS386 *TSS)
 	data32 = &TSS->EIP; //Start with EIP!
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data32,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data32; //Next data!
 	}
 	data16 = &TSS->ES; //Start with ES!
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
+		debugger_forceimmediatelogging = 1; //Log!
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
 	}
+	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
 byte enableMMUbuffer; //To buffer the MMU writes?
