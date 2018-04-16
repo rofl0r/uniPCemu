@@ -1137,7 +1137,7 @@ void strcpy_padded(byte *buffer, byte sizeinbytes, byte *s)
 {
 	byte counter, data;
 	word length;
-	length = (word)strlen((char *)s); //Check the length for the copy!
+	length = (word)safestrlen((char *)s,sizeinbytes); //Check the length for the copy!
 	for (counter=0;counter<sizeinbytes;++counter) //Step words!
 	{
 		data = 0x20; //Initialize to unused!
@@ -3328,7 +3328,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 {
 	byte counter, lowbyte, highbyte;
 	word length;
-	length = (word)strlen((char *)s); //Check the length for the copy!
+	length = (word)safestrlen((char *)s,(sizeinwords<<1)); //Check the length for the copy!
 	for (counter=0;counter<sizeinwords;++counter) //Step words!
 	{
 		lowbyte = highbyte = 0x20; //Initialize to unused!
@@ -3423,10 +3423,10 @@ void ATA_DiskChanged(int disk)
 			}
 		}
 		memset(&newserial,0,sizeof(newserial));
-		strcpy(&newserial[0],(char *)&SERIAL[IS_CDROM][0]); //Copy the serial to use!
-		if (strlen(newserial)) //Any length at all?
+		safestrcpy(&newserial[0],sizeof(newserial),(char *)&SERIAL[IS_CDROM][0]); //Copy the serial to use!
+		if (safestrlen(newserial,sizeof(newserial))) //Any length at all?
 		{
-			newserial[strlen(newserial)-1] = 48+((disk_channel<<1)|disk_ATA); //Unique identifier for the disk, acting as the serial number!
+			newserial[safestrlen(newserial,sizeof(newserial))-1] = 48+((disk_channel<<1)|disk_ATA); //Unique identifier for the disk, acting as the serial number!
 		}
 		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,(byte *)newserial);
 		if (IS_CDROM==0)

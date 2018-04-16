@@ -120,7 +120,7 @@ byte MMU_registerWriteHandler(MMU_WHANDLER handler, char *module) //Register a w
 		{
 			MMUHANDLER.writehandlers[i] = handler; //Set the handler to use!
 			memset(&MMUHANDLER.modulew[i],0,sizeof(MMUHANDLER.modulew[i])); //Init module!
-			strcpy(MMUHANDLER.modulew[i],module); //Set module!
+			safestrcpy(MMUHANDLER.modulew[i],sizeof(MMUHANDLER.modulew[0]),module); //Set module!
 			MMUHANDLER_countwrites(); //Recount!
 			return 1; //Registered!
 		}
@@ -137,7 +137,7 @@ byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a re
 		{
 			MMUHANDLER.readhandlers[i] = handler; //Set the handler to use!
 			memset(&MMUHANDLER.moduler[i],0,sizeof(MMUHANDLER.moduler[i])); //Init module!
-			strcpy(MMUHANDLER.moduler[i],module); //Set module!
+			safestrcpy(MMUHANDLER.moduler[i],sizeof(MMUHANDLER.moduler[0]),module); //Set module!
 			MMUHANDLER_countreads(); //Recount!
 			return 1; //Registered!
 		}
@@ -604,7 +604,7 @@ void MMU_dumpmemory(char *filename) //Dump the memory to a file!
 {
 	char filenamefull[256];
 	cleardata(&filenamefull[0],sizeof(filenamefull)); //Clear memory!
-	sprintf(filenamefull,"%s/%s",capturepath,filename); //Capture path file!
+	snprintf(filenamefull,sizeof(filenamefull),"%s/%s",capturepath,filename); //Capture path file!
 	domkdir(capturepath); //Make sure we exist!
 	FILE *f;
 	f = fopen(filenamefull,"wb"); //Open file!

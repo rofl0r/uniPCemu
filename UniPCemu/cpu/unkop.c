@@ -20,7 +20,7 @@ void halt_modrm(char *message, ...) //Unknown modr/m?
 	char buffer[256]; //Going to contain our output data!
 	va_list args; //Going to contain the list!
 	va_start (args, message); //Start list!
-	vsprintf (buffer, message, args); //Compile list!
+	vsnprintf (&buffer[0],sizeof(buffer), message, args); //Compile list!
 	va_end (args); //Destroy list!
 	raiseError("modrm","Modr/m error: %s",buffer); //Shut the adress and opcode!
 	debugger_screen(); //Show debugger info!
@@ -45,7 +45,7 @@ void unkOP_8086() //Unknown opcode on 8086?
 	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	#ifdef UNKOP_SHUTDOWN
 	dolog("unkOP","Unknown 8086 opcode detected: %02X@%04X:%04X, Previous opcode: %02X(0F:%u)@%04X(Physical %08X):%04X",CPU[activeCPU].lastopcode,CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU[activeCPU].previousCSstart,CPU_exec_lastEIP); //Log our info!
 	dolog("unkOP","Possible cause: %s",debugger_command_text[0]?debugger_command_text:"unknown reason"); //Log the possible reason!
@@ -56,7 +56,7 @@ void unkOP_8086() //Unknown opcode on 8086?
 void unkOP_186() //Unknown opcode on 186+?
 {
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	debugger_setcommand("<NECV20/V30+ #UD(Possible cause:%s)>",tempbuf); //Command is unknown opcode!
 	//dolog("unkop","Unknown opcode on NECV30+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
@@ -76,7 +76,7 @@ void unkOP_186() //Unknown opcode on 186+?
 void unkOP0F_286() //0F unknown opcode handler on 286+?
 {
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	debugger_setcommand("<80286+ 0F #UD(Possible cause:%s)>",tempbuf); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
@@ -96,7 +96,7 @@ void unkOP0F_286() //0F unknown opcode handler on 286+?
 void unkOP0F_386() //0F unknown opcode handler on 386+?
 {
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	debugger_setcommand("<80386+ 0F #UD(Possible cause:%s)>",tempbuf); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
@@ -115,7 +115,7 @@ void unkOP0F_386() //0F unknown opcode handler on 386+?
 void unkOP0F_486() //0F unknown opcode handler on 486+?
 {
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	debugger_setcommand("<80486+ 0F #UD(Possible cause:%s)>",tempbuf); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!
@@ -134,7 +134,7 @@ void unkOP0F_486() //0F unknown opcode handler on 486+?
 void unkOP0F_586() //0F unknown opcode handler on 586+?
 {
 	memset(&tempbuf,0,sizeof(tempbuf)); //Clear buffer!
-	if (debugger_set) strcpy(tempbuf,debugger_command_text); //Save our string that's stored!
+	if (debugger_set) safestrcpy(tempbuf,sizeof(tempbuf),debugger_command_text); //Save our string that's stored!
 	debugger_setcommand("<80586+ 0F #UD(Possible cause:%s)>",tempbuf); //Command is unknown opcode!
 	//dolog("unkop","Unknown 0F opcode on 80286+: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
 	CPU_resetOP(); //Go back to the opcode itself!

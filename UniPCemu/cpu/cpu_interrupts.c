@@ -101,11 +101,11 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		cleardata(&errorcodestr[0],sizeof(errorcodestr)); //Clear the error code!
 		if (errorcode==-1) //No error code?
 		{
-			strcpy(errorcodestr,"-1");
+			safestrcpy(errorcodestr,sizeof(errorcodestr),"-1");
 		}
 		else
 		{
-			sprintf(errorcodestr,"%08X",(uint_32)errorcode); //The error code itself!
+			snprintf(errorcodestr,sizeof(errorcodestr),"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
 		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!

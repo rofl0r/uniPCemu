@@ -41,7 +41,7 @@ void printmsg(byte attribute, char *text, ...) //Print a message at page #0!
 
 	va_list args; //Going to contain the list!
 	va_start (args, text); //Start list!
-	vsprintf (msg, text, args); //Compile list!
+	vsnprintf (&msg[0],sizeof(msg), text, args); //Compile list!
 	va_end (args); //Destroy list, we're done with it!
 
 	byte length = safe_strlen(msg,sizeof(msg)); //Check the length!

@@ -298,8 +298,8 @@ void showTime(float playtime, float *oldplaytime)
 	static char playtimetext[256] = ""; //Time in text format!
 	if (playtime != *oldplaytime && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
 	{
-		convertTime(playtime/PLAYER_USINTERVAL, &playtimetext[0]); //Convert the time(in us)!
-		playtimetext[strlen(playtimetext)-9] = '\0'; //Cut off the timing past the second!
+		convertTime(playtime/PLAYER_USINTERVAL, &playtimetext[0],sizeof(playtimetext)); //Convert the time(in us)!
+		playtimetext[safestrlen(playtimetext,sizeof(playtimetext))-9] = '\0'; //Cut off the timing past the second!
 		GPU_text_locksurface(BIOS_Surface); //Lock!
 		GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
 		GPU_textprintf(BIOS_Surface, RGB(0xFF, 0xFF, 0xFF), RGB(0xBB, 0x00, 0x00), "Play time: %s", playtimetext); //Current play time!
@@ -312,10 +312,10 @@ void clearTime()
 {
 	static char playtimetext[256] = "";
 	GPU_text_locksurface(BIOS_Surface); //Lock!
-	convertTime(0, &playtimetext[0]); //Convert the time(in us)!
-	playtimetext[strlen(playtimetext) - 9] = '\0'; //Cut off the timing past the second!
+	convertTime(0, &playtimetext[0],sizeof(playtimetext)); //Convert the time(in us)!
+	playtimetext[safestrlen(playtimetext,sizeof(playtimetext)) - 9] = '\0'; //Cut off the timing past the second!
 	byte b;
-	for (b=0;b<strlen(playtimetext);) playtimetext[b++] = ' '; //Clear the text!
+	for (b=0;b<safestrlen(playtimetext,sizeof(playtimetext));) playtimetext[b++] = ' '; //Clear the text!
 	GPU_textgotoxy(BIOS_Surface,0, GPU_TEXTSURFACE_HEIGHT - 2); //Show playing init!
 	GPU_textprintf(BIOS_Surface, RGB(0x00, 0x00, 0x00), RGB(0x00, 0x00, 0x00), "           %s     ", playtimetext); //Clear the play time!
 	GPU_text_releasesurface(BIOS_Surface); //Lock!			

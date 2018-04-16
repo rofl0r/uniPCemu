@@ -410,9 +410,9 @@ void initEMU(int full) //Init!
 	if ((strcmp(BIOS_Settings.SoundFont,"")!=0) || (BIOS_Settings.useDirectMIDI)) //Gotten a soundfont?
 	{
 		memset(&soundfont,0,sizeof(soundfont)); //Init!
-		strcpy(soundfont,soundfontpath); //The path to the soundfont!
-		strcat(soundfont,"/");
-		strcat(soundfont,BIOS_Settings.SoundFont); //The full path to the soundfont!
+		safestrcpy(soundfont,sizeof(soundfont),soundfontpath); //The path to the soundfont!
+		safestrcat(soundfont,sizeof(soundfont),"/");
+		safestrcat(soundfont,sizeof(soundfont),BIOS_Settings.SoundFont); //The full path to the soundfont!
 		useMPU = 1; //Try to use the MPU!
 		if (!initMPU(&soundfont[0],BIOS_Settings.useDirectMIDI)) //Initialise our MPU! Use the selected soundfont!
 		{

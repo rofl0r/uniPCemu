@@ -91,14 +91,14 @@ byte loadVGADump(byte mode)
 	byte plane;
 	cleardata(&filename[0],sizeof(filename)); //Init base filename!
 	memset(&controllerfilename,0,sizeof(controllerfilename)); //Init current filename!
-	sprintf(filename,"VGAdump/VGADMP%02X.",mode); //Base VGA dump filename!
+	snprintf(filename,sizeof(filename),"VGAdump/VGADMP%02X.",mode); //Base VGA dump filename!
 	//Now load all files!
 	memset(&buffers,0,sizeof(buffers)); //Clear all buffers!
 	loaded = 1; //Default: we're fully loaded and existant!
 	for (controller=0;controller<NUMITEMS(controllerparts);++controller) //Load all files!
 	{
-		strcpy(controllerfilename[controller],filename); //Load base filename!
-		strcat(controllerfilename[controller],controllerparts[controller]); //Add the part for the full filename!
+		safestrcpy(controllerfilename[controller],sizeof(controllerfilename[0]),filename); //Load base filename!
+		safestrcat(controllerfilename[controller],sizeof(controllerfilename[0]),controllerparts[controller]); //Add the part for the full filename!
 		buffers[controller] = loadfile(controllerfilename[controller],&buffersizes[controller]); //Try and load the file!
 		if (!buffers[controller]) //Failed loading?
 		{

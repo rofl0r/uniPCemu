@@ -29,11 +29,11 @@ void DoDebugFiles() //Do the debug files!
 	DirListContainer_t dir;
 	char curdir[256], succeeddir[256];
 	cleardata(&curdir[0],sizeof(curdir));
-	strcpy(curdir, ROMpath); //Root dir!
-	strcat(curdir,"/debug"); //Debug directory!
+	safestrcpy(curdir,sizeof(curdir), ROMpath); //Root dir!
+	safestrcat(curdir,sizeof(curdir),"/debug"); //Debug directory!
 	cleardata(&succeeddir[0], sizeof(succeeddir));
-	strcpy(succeeddir, ROMpath); //Root dir!
-	strcat(succeeddir, "/debugsucceeded"); //Succeed directory!
+	safestrcpy(succeeddir,sizeof(succeeddir), ROMpath); //Root dir!
+	safestrcat(succeeddir,sizeof(succeeddir), "/debugsucceeded"); //Succeed directory!
 	if (!opendirlist(&dir,curdir,&direntry[0],&isfile))
     {
 		GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Error: verification directory was not found. (debug)");
@@ -53,11 +53,11 @@ void DoDebugFiles() //Do the debug files!
 		cleardata(&finish_name[0],sizeof(finish_name));
 		cleardata(&finish_nameres[0],sizeof(finish_nameres));
 		//Source files
-		sprintf(file_name,"%s/%s",curdir,direntry); //Original file!
-		sprintf(file_nameres,"%s/res_%s",curdir,direntry); //Result file!
+		snprintf(file_name,sizeof(file_name),"%s/%s",curdir,direntry); //Original file!
+		snprintf(file_nameres,sizeof(file_nameres),"%s/res_%s",curdir,direntry); //Result file!
 		//Succeeded files for moving!
-		sprintf(finish_name,"%s/%s",succeeddir,direntry); //Original file!
-		sprintf(finish_nameres,"%s/res_%s",succeeddir,direntry); //Result file!
+		snprintf(finish_name,sizeof(finish_name),"%s/%s",succeeddir,direntry); //Original file!
+		snprintf(finish_nameres,sizeof(finish_nameres),"%s/res_%s",succeeddir,direntry); //Result file!
 		if (file_exists(file_name) && file_exists(file_nameres)) //Not a result?
 		{
 			GPU_EMU_printscreen(0,GPU_TEXTSURFACE_HEIGHT-1,"Verifying %s...",file_name);

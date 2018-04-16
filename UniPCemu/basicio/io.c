@@ -84,15 +84,15 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	char oldfilename[256]; //Old filename!
 	memset(&oldfilename,0,sizeof(oldfilename)); //Init!
 	memset(&fullfilename,0,sizeof(fullfilename));
-	strcpy(fullfilename,diskpath); //Load the disk path!
-	strcat(fullfilename,"/");
-	strcat(fullfilename,filename); //The full filename to use!
+	safestrcpy(fullfilename,sizeof(fullfilename),diskpath); //Load the disk path!
+	safestrcat(fullfilename,sizeof(fullfilename),"/");
+	safestrcat(fullfilename,sizeof(fullfilename),filename); //The full filename to use!
 	if (strcmp(filename, "")==0) //No filename specified?
 	{
-		strcpy(fullfilename,""); //No filename = no path to file!
+		safestrcpy(fullfilename,sizeof(fullfilename),""); //No filename = no path to file!
 	}
 
-	strcpy(oldfilename,disks[device].filename); //Save the old filename!
+	safestrcpy(oldfilename,sizeof(oldfilename),disks[device].filename); //Save the old filename!
 
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	byte staticimage = 0;
@@ -109,7 +109,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	}
 
 	//Register the new disk to be assigned!
-	strcpy(disks[device].filename, fullfilename); //Set file!
+	safestrcpy(disks[device].filename,sizeof(disks[device].filename), fullfilename); //Set file!
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!
@@ -184,7 +184,7 @@ byte io_getgeometry(int device, word *cylinders, word *heads, word *SPT) //Get g
 	{
 		return FALSE; //Not supported!!
 	}
-	strcpy(dev,disks[device].filename); //Use floppy0!
+	safestrcpy(dev,sizeof(dev),disks[device].filename); //Use floppy0!
 
 	if (strcmp(dev,"")==0) //Failed to open or not assigned
 	{
@@ -244,7 +244,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 			return FALSE; //Out of bounds!
 		}
 	}
-	strcpy(dev,disks[device].filename); //Use floppy0!
+	safestrcpy(dev,sizeof(dev),disks[device].filename); //Use floppy0!
 
 	if (strcmp(dev,"")==0) //Failed to open or not assigned
 	{
@@ -341,7 +341,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 	//Load basic data!
 	basepos = disks[device].start;
 	readonly = disks[device].readonly;
-	strcpy(dev,disks[device].filename); //Use this!
+	safestrcpy(dev,sizeof(dev),disks[device].filename); //Use this!
 
 	if (strcmp(dev,"")==0) //Disk not found?
 	{

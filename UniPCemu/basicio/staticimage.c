@@ -33,14 +33,14 @@ byte is_staticimage(char *filename)
 		return 0; //Not static: invalid sector size!
 	}
 	memset(&sidefile,0,sizeof(sidefile));
-	strcpy(sidefile,filename);
-	strcat(sidefile,".bochs.txt"); //Bochs compatibility enabled?
+	safestrcpy(sidefile,sizeof(sidefile),filename);
+	safestrcat(sidefile,sizeof(sidefile),".bochs.txt"); //Bochs compatibility enabled?
 	if (file_exists(sidefile)) //Compatible mode?
 	{
 		return 1; //We're a static image: we're a multiple of 512 bytes and have contents!
 	}
-	strcpy(sidefile,filename);
-	strcat(sidefile,".unipcemu.txt"); //UniPCemu compatibility enabled?
+	safestrcpy(sidefile,sizeof(sidefile),filename);
+	safestrcat(sidefile,sizeof(sidefile),".unipcemu.txt"); //UniPCemu compatibility enabled?
 	if (file_exists(sidefile)) //Compatible mode?
 	{
 		return 2; //We're a static image: we're a multiple of 512 bytes and have contents(compatible mode)!
@@ -166,34 +166,34 @@ byte generateStaticImageFormat(char *filename, byte format)
 	char fullfilename[256], fullfilenamebackup[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 	memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!
-	strcpy(fullfilename,filename); //The filename!
-	strcpy(fullfilenamebackup,filename); //The filename!
+	safestrcpy(fullfilename,sizeof(fullfilename),filename); //The filename!
+	safestrcpy(fullfilenamebackup,sizeof(fullfilenamebackup),filename); //The filename!
 	switch (format) //Extra type conversion stuff?
 	{
 		case 1: //.bochs.txt
 			//Delete leftovers, if any!
-			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			safestrcat(fullfilename,sizeof(fullfilename),".unipcemu.txt"); //UniPCemu compatibility type!
 			delete_file(NULL,fullfilename); //Remove, if present!
-			strcpy(fullfilename,fullfilenamebackup); //Restore!
-			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			safestrcpy(fullfilename,sizeof(fullfilename),fullfilenamebackup); //Restore!
+			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
 			f = fopen(fullfilename,"wb");
 			if (!f) return 0; //Failed!
 			else fclose(f);
 			break;
 		case 2: //.unipcemu.txt
-			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
 			delete_file(NULL,fullfilename); //Remove, if present!
-			strcpy(fullfilename,fullfilenamebackup); //Restore!
-			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			safestrcpy(fullfilename,sizeof(fullfilename),fullfilenamebackup); //Restore!
+			safestrcat(fullfilename,sizeof(fullfilename),".unipcemu.txt"); //UniPCemu compatibility type!
 			f = fopen(fullfilename,"wb");
 			if (!f) return 0; //Failed!
 			else fclose(f);
 			break;
 		default: //Neither, remove all identifier files!
-			strcat(fullfilename,".bochs.txt"); //Bochs type!
+			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
 			delete_file(NULL,fullfilename); //Remove, if present!
-			strcpy(fullfilename,fullfilenamebackup); //Restore!
-			strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+			safestrcpy(fullfilename,sizeof(fullfilename),fullfilenamebackup); //Restore!
+			safestrcat(fullfilename,sizeof(fullfilename),".unipcemu.txt"); //UniPCemu compatibility type!
 			delete_file(NULL,fullfilename); //Remove, if present!
 			break;
 	}
@@ -211,10 +211,10 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	char originalfilename[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 	memset(&originalfilename[0],0,sizeof(originalfilename)); //Init!
-	strcpy(originalfilename,filename); //Backup!
-	strcpy(fullfilename,diskpath); //Disk path!
-	strcat(fullfilename,"/");
-	strcat(fullfilename,filename); //The full filename!
+	safestrcpy(originalfilename,sizeof(originalfilename),filename); //Backup!
+	safestrcpy(fullfilename,sizeof(fullfilename),diskpath); //Disk path!
+	safestrcat(fullfilename,sizeof(fullfilename),"/");
+	safestrcat(fullfilename,sizeof(fullfilename),filename); //The full filename!
 
 	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 
@@ -273,18 +273,18 @@ byte deleteStaticImageCompletely(char *filename)
 		char fullfilename[256], fullfilenamebackup[256];
 		memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 		memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!
-		strcpy(fullfilename,filename); //The filename!
-		strcpy(fullfilenamebackup,filename); //The filename!
+		safestrcpy(fullfilename,sizeof(fullfilename),filename); //The filename!
+		safestrcpy(fullfilenamebackup,sizeof(fullfilenamebackup),filename); //The filename!
 		switch (format) //Extra type conversion stuff?
 		{
 			case 1: //.bochs.txt
 				//Delete leftovers, if any!
-				strcat(fullfilename,".bochs.txt"); //Bochs type!
+				safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
 				if (!remove(fullfilenamebackup)) return 0; //Failed removing the disk image!
 				if (!remove(fullfilename)) return 0; //Failed removing the leftovers!
 				break;
 			case 2: //.unipcemu.txt
-				strcat(fullfilename,".unipcemu.txt"); //UniPCemu compatibility type!
+				safestrcat(fullfilename,sizeof(fullfilename),".unipcemu.txt"); //UniPCemu compatibility type!
 				if (!remove(fullfilenamebackup)) return 0; //Failed removing the disk image!
 				if (!remove(fullfilename)) return 0; //Failed removing the leftovers!
 				break;
@@ -313,9 +313,9 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
-	strcpy(fullfilename, diskpath); //Disk path!
-	strcat(fullfilename, "/");
-	strcat(fullfilename, filename); //The full filename!
+	safestrcpy(fullfilename,sizeof(fullfilename), diskpath); //Disk path!
+	safestrcat(fullfilename,sizeof(fullfilename), "/");
+	safestrcat(fullfilename,sizeof(fullfilename), filename); //The full filename!
 	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 	f = emufopen64(fullfilename,"wb"); //Generate file!
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?

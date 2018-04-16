@@ -275,9 +275,9 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 //Process the "boot sector"=boot image
 
 	cleardata(&fullfilename[0],sizeof(fullfilename)); //Init the filename!
-	strcpy(fullfilename,diskpath); //Disk path!
-	strcat(fullfilename,"/");
-	strcat(fullfilename,imagefile); //The full path of the image file!
+	safestrcpy(fullfilename,sizeof(fullfilename),diskpath); //Disk path!
+	safestrcat(fullfilename,sizeof(fullfilename),"/");
+	safestrcat(fullfilename,sizeof(fullfilename),imagefile); //The full path of the image file!
 
 	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 

@@ -82,7 +82,7 @@ byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
 void modem_responseString(byte *s, byte usecarriagereturn)
 {
 	word i, lengthtosend;
-	lengthtosend = (word)strlen((char *)s); //How long to send!
+	lengthtosend = (word)safestrlen((char *)s,256); //How long to send!
 	if (usecarriagereturn&1)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
@@ -101,7 +101,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 void modem_nrcpy(char *s, word size, word nr)
 {
 	memset(s,0,size);
-	sprintf(s,"%u%u%u",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
+	snprintf(s,size,"%u%u%u",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
 }
 void modem_responseResult(byte result) //What result to give!
 {
@@ -133,7 +133,7 @@ void modem_responseNumber(byte x)
 	if (modem.verbosemode&1) //Code format result?
 	{
 		memset(&s,0,sizeof(s));
-		sprintf(s,"%04u",x); //Convert to a string!
+		snprintf(s,sizeof(s),"%04u",x); //Convert to a string!
 		modem_responseString((byte *)&s,1); //Send the string to the user!
 	}
 	else
@@ -183,7 +183,7 @@ byte modem_connect(char *phonenumber)
 		return 0; //Not connected!
 	}
 	memset(&ipaddress,0,sizeof(ipaddress)); //Init IP address to translate!
-	if (strlen(phonenumber)>=9) //Valid length to convert IP addresses?
+	if (safestrlen(phonenumber,256)>=9) //Valid length to convert IP addresses?
 	{
 		p = phonenumber; //For scanning the phonenumber!
 		if (readIPnumber(&p,&a))
@@ -197,7 +197,7 @@ byte modem_connect(char *phonenumber)
 						if (*p=='\0') //EOS?
 						{
 							//Automatic port?
-							sprintf(ipaddress,"%u.%u.%u.%u",a,b,c,d); //Formulate the address!
+							snprintf(ipaddress,sizeof(ipaddress),"%u.%u.%u.%u",a,b,c,d); //Formulate the address!
 							port = modem.connectionport; //Use the default port as specified!
 						}
 						else if (*p==':') //Port might follow?
@@ -207,7 +207,7 @@ byte modem_connect(char *phonenumber)
 							{
 								return 0; //Fail: invalid port has been specified!
 							}
-							sprintf(ipaddress,"%u.%u.%u.%u",a,b,c,d);
+							snprintf(ipaddress,sizeof(ipaddress),"%u.%u.%u.%u",a,b,c,d);
 						}
 						else //Invalid?
 						{
@@ -239,7 +239,7 @@ byte modem_connect(char *phonenumber)
 		plainaddress: //A plain address after all?
 		if ((p = strrchr(phonenumber,':'))!=NULL) //Port is specified?
 		{
-			strcpy(ipaddress,phonenumber); //Raw IP with port!
+			safestrcpy(ipaddress,sizeof(ipaddress),phonenumber); //Raw IP with port!
 			ipaddress[(ptrnum)p-(ptrnum)phonenumber] = '\0'; //Cut off the port part!
 			++p; //Take the port itself!
 			if (sscanf(p,"%u",&port)==0) //Port incorrectly read?
@@ -249,7 +249,7 @@ byte modem_connect(char *phonenumber)
 		}
 		else //Raw address?
 		{
-			strcpy(ipaddress,phonenumber); //Use t
+			safestrcpy(ipaddress,sizeof(ipaddress),phonenumber); //Use t
 			port = modem.connectionport; //Use the default port as specified!
 		}
 	}
@@ -548,7 +548,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				--pos; //Retry analyzing!
 				break;
 			case 'L':
-				memcpy(&number,&modem.lastnumber,(strlen((char *)&modem.lastnumber[0])+1)); //Set the new number to roll!
+				memcpy(&number,&modem.lastnumber,(safestrlen((char *)&modem.lastnumber[0],sizeof(modem.lastnumber))+1)); //Set the new number to roll!
 				goto actondial;
 			case 'A': //Reverse to answer mode after dialing?
 				goto unsupporteddial; //Unsupported for now!
@@ -564,9 +564,9 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'P': //Pulse dial?
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
-				strcpy((char *)&number[0],(char *)&modem.ATcommand[pos]); //Set the number to dial!
+				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
 				memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //Init last number!
-				strcpy((char *)&modem.lastnumber,(char *)&number[0]); //Set the last number!
+				safestrcpy((char *)&modem.lastnumber,sizeof(modem.lastnumber),(char *)&number[0]); //Set the last number!
 				actondial: //Start dialing?
 				if (modem_connect(number))
 				{

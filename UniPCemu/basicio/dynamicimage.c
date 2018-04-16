@@ -725,9 +725,9 @@ FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int 
 
 	char fullfilename[256];
 	memset(&fullfilename,0,sizeof(fullfilename)); //Init!
-	strcpy(fullfilename, diskpath); //Disk path!
-	strcat(fullfilename, "/");
-	strcat(fullfilename, filename); //The full filename!
+	safestrcpy(fullfilename,sizeof(fullfilename), diskpath); //Disk path!
+	safestrcat(fullfilename,sizeof(fullfilename), "/");
+	safestrcat(fullfilename,sizeof(fullfilename), filename); //The full filename!
 
 	if ((percentagex!=-1) && (percentagey!=-1)) //To show percentage?
 	{

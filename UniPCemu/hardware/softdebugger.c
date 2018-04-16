@@ -379,7 +379,7 @@ OPTINLINE void debugger_flush()
 	{
 		dolog(softdebugger.data.outputfilename,softdebugger.writtendata); //Add the written data to the debugger on a new line!
 	}
-	strcpy(softdebugger.writtendata,""); //Clear the data again!
+	safestrcpy(softdebugger.writtendata,sizeof(softdebugger.writtendata),""); //Clear the data again!
 }
 
 OPTINLINE static void debugger_writecharacter(byte c) //Write a character to the debugger!
@@ -408,7 +408,7 @@ OPTINLINE static void debugger_writecharacter(byte c) //Write a character to the
 	}
 	else //Normal character?
 	{
-		sprintf(softdebugger.writtendata,"%s%c",softdebugger.writtendata,c); //Add to the debugged data!
+		snprintf(softdebugger.writtendata,sizeof(softdebugger.writtendata),"%s%c",softdebugger.writtendata,c); //Add to the debugged data!
 	}
 }
 
@@ -447,7 +447,7 @@ byte PORT_readCommand(word port, byte *result) //Read from the debugger port! Un
 	if (port != 0xEA) return 0; //Not our port!
 	if (!softdebugger.readcommand) //Undefined? Give our identifier followed by 0xFF!
 	{
-		if (softdebugger.identifier_pos<strlen(debugger_identifier)) //Not end-of-string?
+		if (softdebugger.identifier_pos<safestrlen(debugger_identifier,sizeof(debugger_identifier))) //Not end-of-string?
 		{
 			*result = debugger_identifier[softdebugger.identifier_pos++]; //Read a character from the identifier!
 		}
@@ -473,7 +473,7 @@ void BIOS_initDebugger() //Init software debugger!
 	register_PORTIN(&PORT_readCommand); //Read a command byte!
 	register_PORTOUT(&PORT_writeCommand); //Write a command byte!
 	cleardata(&softdebugger.data.outputfilename[0],sizeof(softdebugger.data.outputfilename)); //Init output filename!
-	strcpy(softdebugger.data.outputfilename,SOFTDEBUGGER_DEFAULTFILENAME); //We're logging to debugger by default!
+	safestrcpy(softdebugger.data.outputfilename,sizeof(softdebugger.data.outputfilename),SOFTDEBUGGER_DEFAULTFILENAME); //We're logging to debugger by default!
 	quitdebugger(); //First controller reset!
 }
 

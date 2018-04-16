@@ -711,7 +711,7 @@ byte BIOS_printscreen(word x, word y, byte attr, char *text, ...)
 	char buffer[256]; //Going to contain our output data!
 	va_list args; //Going to contain the list!
 	va_start(args, text); //Start list!
-	vsprintf(buffer, text, args); //Compile list!
+	vsnprintf(buffer,sizeof(buffer), text, args); //Compile list!
 
 	//Now display and return!
 	GPU_textgotoxy(BIOS_Surface,x,y); //Goto coordinates!
@@ -853,7 +853,7 @@ void addList(char *text)
 {
 	if (numlist<ITEMLIST_MAXITEMS) //Maximum not reached yet?
 	{
-		strcpy(itemlist[numlist++],text); //Add the item and increase!
+		safestrcpy(itemlist[numlist++],sizeof(itemlist[0]),text); //Add the item and increase!
 	}
 }
 
@@ -861,7 +861,7 @@ void addDirList(char *text)
 {
 	if (numdirlist<ITEMLIST_MAXITEMS) //Maximum not reached yet?
 	{
-		strcpy(dirlist[numdirlist++],text); //Add the item and increase!
+		safestrcpy(dirlist[numdirlist++],sizeof(dirlist[0]),text); //Add the item and increase!
 	}
 }
 
@@ -878,9 +878,9 @@ void sortDirList() //Sort the directory list!
 			{
 				if (strcmp(dirlist[curlisty],dirlist[curlisty+1])>0) //Different? We're past the string? We're to move the item up!
 				{
-					strcpy(&temp[0],&dirlist[curlisty+1][0]); //Load next item to swap in!
-					strcpy(&dirlist[curlisty+1][0],&dirlist[curlisty][0]); //Move the current item up!
-					strcpy(&dirlist[curlisty][0],&temp[0]); //Move the next item to the current item!
+					safestrcpy(&temp[0],sizeof(temp),&dirlist[curlisty+1][0]); //Load next item to swap in!
+					safestrcpy(&dirlist[curlisty+1][0],sizeof(dirlist[0]),&dirlist[curlisty][0]); //Move the current item up!
+					safestrcpy(&dirlist[curlisty][0],sizeof(dirlist[0]),&temp[0]); //Move the next item to the current item!
 				}
 			}
 		}
@@ -1117,9 +1117,9 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 {
 	char path[256];
 	memset(&path,0,sizeof(path));
-	strcpy(path,diskpath);
-	strcat(path,"/");
-	strcat(path,filename);
+	safestrcpy(path,sizeof(path),diskpath);
+	safestrcat(path,sizeof(path),"/");
+	safestrcat(path,sizeof(path),filename);
 	FILEPOS size;
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 	word c,h,s;
@@ -1189,7 +1189,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.floppy0,""); //Unmount!
+		safestrcpy(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0),""); //Unmount!
 		BIOS_Settings.floppy0_readonly = 0; //Not readonly!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1198,7 +1198,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		if (strcmp(BIOS_Settings.floppy0,itemlist[file])!=0) BIOS_Settings.floppy0_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.floppy0,itemlist[file]); //Use this file!
+		safestrcpy(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0),itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
@@ -1219,7 +1219,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
 		BIOS_Changed = 1; //Changed!
-		strcpy(BIOS_Settings.floppy1,""); //Unmount!
+		safestrcpy(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1),""); //Unmount!
 		BIOS_Settings.floppy0_readonly = 0; //Different resets readonly flag!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -1228,7 +1228,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	default: //File?
 		BIOS_Changed = 1; //Changed!
 		if (strcmp(BIOS_Settings.floppy1, itemlist[file]) != 0) BIOS_Settings.floppy1_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.floppy1,itemlist[file]); //Use this file!
+		safestrcpy(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1),itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
@@ -1252,7 +1252,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.hdd0,""); //Unmount!
+		safestrcpy(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0),""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
@@ -1261,7 +1261,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		if (strcmp(BIOS_Settings.hdd0, itemlist[file]) != 0) BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.hdd0,itemlist[file]); //Use this file!
+		safestrcpy(BIOS_Settings.hdd0,sizeof(BIOS_Settings.hdd0),itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
@@ -1285,7 +1285,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.hdd1,""); //Unmount!
+		safestrcpy(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1),""); //Unmount!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
@@ -1294,7 +1294,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		if (strcmp(BIOS_Settings.hdd1, itemlist[file]) != 0) BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
-		strcpy(BIOS_Settings.hdd1,itemlist[file]); //Use this file!
+		safestrcpy(BIOS_Settings.hdd1,sizeof(BIOS_Settings.hdd1),itemlist[file]); //Use this file!
 	}
 	BIOS_Menu = 1; //Return to image menu!
 }
@@ -1316,14 +1316,14 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 		case FILELIST_DEFAULT: //Unmount?
 		case FILELIST_NOFILES: //No files?
 			BIOS_Changed = 1; //Changed!
-			strcpy(BIOS_Settings.cdrom0,""); //Unmount!
+			safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0),""); //Unmount!
 			break;
 		case FILELIST_CANCEL: //Cancelled?
 			//We do nothing with the selected disk!
 			break; //Just calmly return!
 		default: //File?
 			BIOS_Changed = 1; //Changed!
-			strcpy(BIOS_Settings.cdrom0,itemlist[file]); //Use this file!
+			safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0),itemlist[file]); //Use this file!
 		}
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1337,14 +1337,14 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 	case FLOPPY0: //Floppy 0?
 		if (strcmp(BIOS_Settings.floppy0,"")==0) //Specified?
 		{
-			strcpy(BIOS_Settings.floppy0, ""); //Clear the option!
+			safestrcpy(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0), ""); //Clear the option!
 			ejected = 1; //We're ejected!
 		}
 		break;
 	case FLOPPY1: //Floppy 1?
 		if (strcmp(BIOS_Settings.floppy1, "")==0) //Specified?
 		{
-			strcpy(BIOS_Settings.floppy1, ""); //Clear the option!
+			safestrcpy(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1), ""); //Clear the option!
 			ejected = 1; //We're ejected!
 		}
 		break;
@@ -1353,7 +1353,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
-				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
+				safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0), ""); //Clear the option!
 				ejected = 1; //We're ejected!
 			}
 		}
@@ -1363,7 +1363,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
-				strcpy(BIOS_Settings.cdrom0, ""); //Clear the option!
+				safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1), ""); //Clear the option!
 				ejected = 1; //We're ejected!
 			}
 		}
@@ -1381,7 +1381,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
-	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
+	if (ATA_allowDiskChange(CDROM1,1)) //Allowed to change? Double as the eject button!
 	{
 		BIOS_Title("Mount Second CD-ROM");
 		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
@@ -1396,14 +1396,14 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 		case FILELIST_DEFAULT: //Unmount?
 		case FILELIST_NOFILES: //No files?
 			BIOS_Changed = 1; //Changed!
-			strcpy(BIOS_Settings.cdrom1,""); //Unmount!
+			safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1),""); //Unmount!
 			break;
 		case FILELIST_CANCEL: //Cancelled?
 			//We do nothing with the selected disk!
 			break; //Just calmly return!
 		default: //File?
 			BIOS_Changed = 1; //Changed!
-			strcpy(BIOS_Settings.cdrom1,itemlist[file]); //Use this file!
+			safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1),itemlist[file]); //Use this file!
 		}
 	}
 	BIOS_Menu = 1; //Return to image menu!
@@ -1420,93 +1420,93 @@ void BIOS_InitDisksText()
 	{
 		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
-	strcpy(menuoptions[0],"Floppy A: ");
-	strcpy(menuoptions[1],"Floppy B: ");
-	strcpy(menuoptions[2],"First HDD: ");
-	strcpy(menuoptions[3],"Second HDD: ");
-	strcpy(menuoptions[4],"First CD-ROM: ");
-	strcpy(menuoptions[5],"Second CD-ROM: ");
-	strcpy(menuoptions[6],"Generate Floppy Image");
-	strcpy(menuoptions[7],"Generate Static HDD Image");
-	strcpy(menuoptions[8],"Generate Dynamic HDD Image");
-	strcpy(menuoptions[9], "Convert static to dynamic HDD Image");
-	strcpy(menuoptions[10], "Convert dynamic to static HDD Image");
-	strcpy(menuoptions[11], "Defragment a dynamic HDD Image");
+	safestrcpy(menuoptions[0],sizeof(menuoptions[0]),"Floppy A: ");
+	safestrcpy(menuoptions[1],sizeof(menuoptions[0]),"Floppy B: ");
+	safestrcpy(menuoptions[2],sizeof(menuoptions[0]),"First HDD: ");
+	safestrcpy(menuoptions[3],sizeof(menuoptions[0]),"Second HDD: ");
+	safestrcpy(menuoptions[4],sizeof(menuoptions[0]),"First CD-ROM: ");
+	safestrcpy(menuoptions[5],sizeof(menuoptions[0]),"Second CD-ROM: ");
+	safestrcpy(menuoptions[6],sizeof(menuoptions[0]),"Generate Floppy Image");
+	safestrcpy(menuoptions[7],sizeof(menuoptions[0]),"Generate Static HDD Image");
+	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
+	safestrcpy(menuoptions[9],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
+	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
+	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
 
 //FLOPPY0
 	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
 	{
-		strcat(menuoptions[0],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[0],sizeof(menuoptions[0]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[0],BIOS_Settings.floppy0); //Add disk image!
+		safestrcat(menuoptions[0],sizeof(menuoptions[0]),BIOS_Settings.floppy0); //Add disk image!
 		if (BIOS_Settings.floppy0_readonly) //Read-only?
 		{
-			strcat(menuoptions[0]," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[0],sizeof(menuoptions[0])," <R>"); //Show readonly tag!
 		}
 	}
 
 //FLOPPY1
 	if (strcmp(BIOS_Settings.floppy1,"")==0) //No disk?
 	{
-		strcat(menuoptions[1],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[1],sizeof(menuoptions[1]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[1],BIOS_Settings.floppy1); //Add disk image!
+		safestrcat(menuoptions[1],sizeof(menuoptions[1]),BIOS_Settings.floppy1); //Add disk image!
 		if (BIOS_Settings.floppy1_readonly) //Read-only?
 		{
-			strcat(menuoptions[1]," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[1],sizeof(menuoptions[1])," <R>"); //Show readonly tag!
 		}
 	}
 
 //HDD0
 	if (strcmp(BIOS_Settings.hdd0,"")==0) //No disk?
 	{
-		strcat(menuoptions[2],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[2],sizeof(menuoptions[2]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[2],BIOS_Settings.hdd0); //Add disk image!
+		safestrcat(menuoptions[2],sizeof(menuoptions[2]),BIOS_Settings.hdd0); //Add disk image!
 		if (BIOS_Settings.hdd0_readonly) //Read-only?
 		{
-			strcat(menuoptions[2]," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[2],sizeof(menuoptions[2])," <R>"); //Show readonly tag!
 		}
 	}
 
 //HDD1
 	if (strcmp(BIOS_Settings.hdd1,"")==0) //No disk?
 	{
-		strcat(menuoptions[3],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[3],sizeof(menuoptions[3]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[3],BIOS_Settings.hdd1); //Add disk image!
+		safestrcat(menuoptions[3],sizeof(menuoptions[3]),BIOS_Settings.hdd1); //Add disk image!
 		if (BIOS_Settings.hdd1_readonly) //Read-only?
 		{
-			strcat(menuoptions[3]," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[3],sizeof(menuoptions[3])," <R>"); //Show readonly tag!
 		}
 	}
 
 //CDROM0
 	if (strcmp(BIOS_Settings.cdrom0,"")==0) //No disk?
 	{
-		strcat(menuoptions[4],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[4],sizeof(menuoptions[4]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[4],BIOS_Settings.cdrom0); //Add disk image!
+		safestrcat(menuoptions[4],sizeof(menuoptions[4]),BIOS_Settings.cdrom0); //Add disk image!
 	}
 
 //CDROM1
 	if (strcmp(BIOS_Settings.cdrom1,"")==0) //No disk?
 	{
-		strcat(menuoptions[5],"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[5],sizeof(menuoptions[5]),"<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		strcat(menuoptions[5],BIOS_Settings.cdrom1); //Add disk image!
+		safestrcat(menuoptions[5],sizeof(menuoptions[5]),BIOS_Settings.cdrom1); //Add disk image!
 	}
 }
 
@@ -1650,7 +1650,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
-		strcpy(itemlist[i],BOOT_ORDER_STRING[i]); //Set filename from options!
+		safestrcpy(itemlist[i],sizeof(itemlist[0]),BOOT_ORDER_STRING[i]); //Set filename from options!
 	}
 	if (BIOS_Settings.bootorder>=numlist)
 	{
@@ -1686,12 +1686,12 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[CPU_8086],"Intel 8086/8088"); //Set filename from options!
-	strcpy(itemlist[CPU_NECV30],"NEC V20/V30"); //Set filename from options!
-	strcpy(itemlist[CPU_80286], "Intel 80286"); //Set filename from options!
-	strcpy(itemlist[CPU_80386], "Intel 80386"); //Set filename from options!
-	strcpy(itemlist[CPU_80486], "Intel 80486"); //Set filename from options!
-	strcpy(itemlist[CPU_PENTIUM], "Intel Pentium(unfinished)"); //Set filename from options!
+	safestrcpy(itemlist[CPU_8086],sizeof(itemlist[0]),"Intel 8086/8088"); //Set filename from options!
+	safestrcpy(itemlist[CPU_NECV30],sizeof(itemlist[0]),"NEC V20/V30"); //Set filename from options!
+	safestrcpy(itemlist[CPU_80286],sizeof(itemlist[0]), "Intel 80286"); //Set filename from options!
+	safestrcpy(itemlist[CPU_80386],sizeof(itemlist[0]), "Intel 80386"); //Set filename from options!
+	safestrcpy(itemlist[CPU_80486],sizeof(itemlist[0]), "Intel 80486"); //Set filename from options!
+	safestrcpy(itemlist[CPU_PENTIUM],sizeof(itemlist[0]), "Intel Pentium(unfinished)"); //Set filename from options!
 	int current = 0;
 	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
 	{
@@ -1770,35 +1770,35 @@ void BIOS_InitAdvancedText()
 	}
 
 	optioninfo[advancedoptions] = 0; //CPU menu!
-	strcpy(menuoptions[advancedoptions++], "CPU Settings"); //Change installed CPU options!
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "CPU Settings"); //Change installed CPU options!
 
 	optioninfo[advancedoptions] = 1; //Video Settings
-	strcpy(menuoptions[advancedoptions++], "Video Settings");
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Video Settings");
 
 	optioninfo[advancedoptions] = 2; //Sound Settings
-	strcpy(menuoptions[advancedoptions++], "Sound Settings");
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Sound Settings");
 
 	optioninfo[advancedoptions] = 3;
-	strcpy(menuoptions[advancedoptions++], "Input Settings");
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Input Settings");
 
 	if (((BIOS_Settings.got_ATCMOS) && (((is_Compaq|is_XT|is_PS2)==0))) || (BIOS_Settings.got_CompaqCMOS && (is_Compaq && (is_PS2==0)))  || (BIOS_Settings.got_XTCMOS && is_XT) || (BIOS_Settings.got_PS2CMOS && is_PS2)) //XT/AT/Compaq/PS/2 CMOS saved?
 	{
 		optioninfo[advancedoptions] = 4; //Clear CMOS!
-		strcpy(menuoptions[advancedoptions++], "Clear CMOS data");
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Clear CMOS data");
 	}
 
 	if (!EMU_RUNNING) //Emulator not running (allow memory size change?)
 	{
 		optioninfo[advancedoptions] = 5; //Memory detect!
-		strcpy(menuoptions[advancedoptions++], "Redetect available memory");
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Redetect available memory");
 	}
 
 	optioninfo[advancedoptions] = 6; //Select BIOS Font!
-	strcpy(menuoptions[advancedoptions], "Settings menu Font: ");
-	strcat(menuoptions[advancedoptions++], ActiveBIOSPreset.name); //BIOS font selected!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Settings menu Font: ");
+	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), ActiveBIOSPreset.name); //BIOS font selected!
 
 	optioninfo[advancedoptions] = 7; //Sync timekeeping!
-	strcpy(menuoptions[advancedoptions++],"Synchronize RTC");
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Synchronize RTC");
 
 	CMOSDATA *currentCMOS;
 	if (is_PS2) //PS/2?
@@ -1819,7 +1819,7 @@ void BIOS_InitAdvancedText()
 	}
 
 	optioninfo[advancedoptions] = 8; //RTC mode!
-	sprintf(menuoptions[advancedoptions++], "RTC mode: %s", currentCMOS->cycletiming?"Cycle-accurate":"Realtime");
+	snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "RTC mode: %s", currentCMOS->cycletiming?"Cycle-accurate":"Realtime");
 }
 
 void BIOS_AdvancedMenu() //Manages the boot order etc!
@@ -1900,22 +1900,22 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		optioninfo[advancedoptions] = 0; //Reboot option!
 		if (!reboot_needed) //Running?
 		{
-			strcpy(menuoptions[advancedoptions++], "Save changes & resume emulation"); //Option #0!
+			safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Save changes & resume emulation"); //Option #0!
 		}
 		else
 		{
-			strcpy(menuoptions[advancedoptions++], "Save changes & restart emulator"); //Option #0!
+			safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Save changes & restart emulator"); //Option #0!
 		}
 	}
 
 	optioninfo[advancedoptions] = 1; //Discard option!
 	if ((reboot_needed&2)==0) //Able to continue running: Reboot is optional?
 	{
-		strcpy(menuoptions[advancedoptions++],"Discard changes & resume emulation"); //Option #1!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Discard changes & resume emulation"); //Option #1!
 	}
 	else
 	{
-		strcpy(menuoptions[advancedoptions++], "Discard changes & restart emulator"); //Option #1!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Discard changes & restart emulator"); //Option #1!
 	}
 
 	if (EMU_RUNNING) //Emulator is running?
@@ -1923,26 +1923,26 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		if ((!(BIOS_Changed && reboot_needed)) && BIOS_Changed) //We're not a duplicate?
 		{
 			optioninfo[advancedoptions] = 3; //Restart emulator option!
-			strcpy(menuoptions[advancedoptions++], "Restart emulator (Save changes)"); //Restart emulator option!
+			safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Restart emulator (Save changes)"); //Restart emulator option!
 		}
 		if ((reboot_needed&2)==0) //We're not a duplicate?
 		{
 			optioninfo[advancedoptions] = 5; //Restart emulator and enter BIOS menu option!
-			strcpy(menuoptions[advancedoptions++], "Restart emulator (Discard changes)"); // Restart emulator and enter BIOS menu option!
+			safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Restart emulator (Discard changes)"); // Restart emulator and enter BIOS menu option!
 		}
 		if (BIOS_Changed) //We're a viable option?
 		{
 			optioninfo[advancedoptions] = 4; //Restart emulator and enter BIOS menu option!
-			strcpy(menuoptions[advancedoptions++], "Restart emulator and enter settings menu (Save changes)"); // Restart emulator and enter BIOS menu option!
+			safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Restart emulator and enter settings menu (Save changes)"); // Restart emulator and enter BIOS menu option!
 		}
 		optioninfo[advancedoptions] = 6; //Restart emulator and enter BIOS menu option!
-		strcpy(menuoptions[advancedoptions++], "Restart emulator and enter settings menu (Discard changes)"); // Restart emulator and enter BIOS menu option!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Restart emulator and enter settings menu (Discard changes)"); // Restart emulator and enter BIOS menu option!
 	}
 	
 	if (!EMU_RUNNING) //Emulator isn't running?
 	{
 		optioninfo[advancedoptions] = 2; //Load defaults option!
-		strcpy(menuoptions[advancedoptions++],"Load Setting defaults"); //Load defaults option!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Load Setting defaults"); //Load defaults option!
 	}
 
 	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
@@ -2155,19 +2155,19 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				//We're a normal key hit?
 				else if (!strcmp(input, "bksp") || (!strcmp(input,"z") && (input_buffer_shift&SHIFTSTATUS_CTRL))) //Backspace OR CTRL-Z?
 				{
-					if (strlen(filename)) //Gotten length?
+					if (safestrlen(filename,maxlength+1)) //Gotten length?
 					{
-						filename[strlen(filename) - 1] = '\0'; //Make us one shorter!
+						filename[safestrlen(filename,maxlength+1) - 1] = '\0'; //Make us one shorter!
 					}
 				}
 				else if (!strcmp(input, "space")) //Space?
 				{
-					if (strlen(filename) < maxlength) //Not max?
+					if (safestrlen(filename,maxlength+1) < maxlength) //Not max?
 					{
-						strcat(filename, " "); //Add a space!
+						safestrcat(filename,(maxlength+1), " "); //Add a space!
 					}
 				}
-				else if (strlen(input) == 1) //Single character?
+				else if (safestrlen(input,sizeof(input)) == 1) //Single character?
 				{
 					if ((input[0] != '`') &&
 						(input[0] != '-') &&
@@ -2180,20 +2180,20 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 						(input[0] != ',') &&
 						(input[0] != '/')) //Not an invalid character?
 					{
-						if (strlen(filename) < maxlength) //Not max?
+						if (safestrlen(filename,maxlength+1) < maxlength) //Not max?
 						{
 							if (input_buffer_shift&SHIFTSTATUS_SHIFT) //Shift pressed?
 							{
 								if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
 								{
 									input[0] += (char)((int)'A' - (int)'a'); //Convert to uppercase!
-									strcat(filename, input); //Add the input to the filename!
+									safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
 								}
 								//Invalid uppercase is ignored!
 							}
 							else //Non-shift valid character?
 							{
-								strcat(filename, input); //Add the input to the filename!
+								safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
 							}
 						}
 					}
@@ -2265,20 +2265,20 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 				//We're a normal key hit?
 				else if (!strcmp(input, "bksp") || (!strcmp(input,"z") && (input_buffer_shift&SHIFTSTATUS_CTRL))) //Backspace OR CTRL-Z?
 				{
-					if (strlen(filename)) //Gotten length?
+					if (safestrlen(filename,maxlength+1)) //Gotten length?
 					{
-						filename[strlen(filename) - 1] = '\0'; //Make us one shorter!
+						filename[safestrlen(filename,maxlength+1) - 1] = '\0'; //Make us one shorter!
 					}
 				}
-				else if (strlen(input) == 1) //Single character?
+				else if (safestrlen(input,sizeof(input)) == 1) //Single character?
 				{
 					switch (input[0]) //Not an invalid character?
 					{
 					case 'i': //Ignore EIP?
 						input[0] = 'I'; //Convert to upper case!
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='I') || (filename[strlen(filename)-1]==':') || (filename[strlen(filename)-1]=='M')) //Special identifier that we're not allowed behind?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
 							{
 								break; //Abort!
 							}
@@ -2287,9 +2287,9 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						goto processinput; //process us!						
 					case 'm': //Ignore Address?
 						input[0] = 'M'; //Convert to upper case!
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='I') || (filename[strlen(filename)-1]==':') || (filename[strlen(filename)-1]=='M')) //Special identifier that we're not allowed behind?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
 							{
 								break; //Abort!
 							}
@@ -2298,9 +2298,9 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						goto processinput; //process us!						
 					case 'p': //Protected mode?
 						input[0] = 'P'; //Convert to upper case!
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':') || (filename[strlen(filename)-1]=='I') ||  (filename[strlen(filename)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') ||  (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -2309,9 +2309,9 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						goto processinput; //process us!
 					case 'v': //Virtual 8086 mode?
 						input[0] = 'V'; //Convert to upper case!
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':') || (filename[strlen(filename)-1]=='I') || (filename[strlen(filename)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -2321,9 +2321,9 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 					case ';':
 						if ((input_buffer_shift&SHIFTSTATUS_SHIFT)==0) break; //Shift not pressed?
 						input[0] = ':'; //We're a seperator instead!
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]==':') || (filename[strlen(filename)-1]=='I') || (filename[strlen(filename)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -2359,24 +2359,24 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 					case 'd':
 					case 'e':
 					case 'f':
-						if (strlen(filename)) //Something there?
+						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[strlen(filename)-1]=='P') || (filename[strlen(filename)-1]=='V') || (filename[strlen(filename)-1]=='I') || (filename[strlen(filename)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
 						}
 						processinput: //Process the input!
-						if (strlen(filename) < maxlength) //Not max?
+						if (safestrlen(filename,maxlength+1) < maxlength) //Not max?
 						{
 							if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
 							{
 								input[0] += (char)((int)'A' - (int)'a'); //Convert to uppercase!
-								strcat(filename, input); //Add the input to the filename!
+								safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
 							}
 							else //Non-shift valid character?
 							{
-								strcat(filename, input); //Add the input to the filename!
+								safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
 							}
 						}
 						break;
@@ -2417,7 +2417,7 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	memset(&filename[0],0,sizeof(filename)); //Init!
 	char title[256];
 	memset(&title,0,sizeof(title));
-	sprintf(title,"Generate Static(%s) HDD Image",((generateHDD_type==1)?"Bochs":((generateHDD_type==2)?"classic":"optimal")));
+	snprintf(title,sizeof(title),"Generate Static(%s) HDD Image",((generateHDD_type==1)?"Bochs":((generateHDD_type==2)?"classic":"optimal")));
 	BIOS_Title(title); //Full clear!
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto position for info!
@@ -2427,9 +2427,9 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 	{
 		if (strcmp(filename, "") != 0) //Got input?
 		{
-			if (strlen(filename) <= (255 - 4)) //Not too long?
+			if (safestrlen(filename,sizeof(filename)) <= (255 - 4)) //Not too long?
 			{
-				strcat(filename, ".img"); //Add the extension!
+				safestrcat(filename,sizeof(filename), ".img"); //Add the extension!
 				EMU_locktext();
 				EMU_gotoxy(0, 4); //Goto position for info!
 				GPU_EMU_printscreen(0, 4, "Filename: %s", filename); //Show the filename!
@@ -2446,9 +2446,9 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 					EMU_unlocktext();
 					domkdir(diskpath);
 					memset(&fullfilename,0,sizeof(fullfilename));
-					strcpy(fullfilename,diskpath);
-					strcat(fullfilename,"/");
-					strcat(fullfilename,filename);
+					safestrcpy(fullfilename,sizeof(fullfilename),diskpath);
+					safestrcat(fullfilename,sizeof(fullfilename),"/");
+					safestrcat(fullfilename,sizeof(fullfilename),filename);
 					generateStaticImage(filename, size, 18, 6, generateHDD_type); //Generate a static image, Bochs/Dosbox-compatible format!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
@@ -2468,7 +2468,7 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	char fullfilename[256]; //Full filename container!
 	char title[256];
 	memset(&title,0,sizeof(title));
-	sprintf(title,"Generate Dynamic(%s) HDD Image",((generateHDD_type==3)?"Bochs":((generateHDD_type==1)?"classic":"optimal")));
+	snprintf(title,sizeof(title),"Generate Dynamic(%s) HDD Image",((generateHDD_type==3)?"Bochs":((generateHDD_type==1)?"classic":"optimal")));
 	BIOS_Title(title);
 	char filename[256]; //Filename container!
 	memset(&filename[0],0,sizeof(filename)); //Init!
@@ -2481,9 +2481,9 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 	{
 		if (strcmp(filename, "") != 0) //Got input?
 		{
-			if (strlen(filename) <= (255 - 7)) //Not too long?
+			if (safestrlen(filename,sizeof(filename)) <= (255 - 7)) //Not too long?
 			{
-				strcat(filename, ".sfdimg"); //Add the extension!
+				safestrcat(filename,sizeof(filename), ".sfdimg"); //Add the extension!
 				EMU_locktext();
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				EMU_gotoxy(0, 4); //Goto position for info!
@@ -2501,9 +2501,9 @@ void BIOS_GenerateDynamicHDD() //Generate Static HDD Image!
 					EMU_unlocktext();
 					domkdir(diskpath);
 					memset(&fullfilename, 0, sizeof(fullfilename));
-					strcpy(fullfilename, diskpath);
-					strcat(fullfilename, "/");
-					strcat(fullfilename, filename);
+					safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
+					safestrcat(fullfilename,sizeof(fullfilename), "/");
+					safestrcat(fullfilename,sizeof(fullfilename), filename);
 					generateDynamicImage(filename, size, 18, 6, generateHDD_type); //Generate a dynamic image!
 					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
@@ -2551,7 +2551,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	default: //File?
-		strcpy(filename, itemlist[file]); //Use this file!
+		safestrcpy(filename,sizeof(filename), itemlist[file]); //Use this file!
 		if (strcmp(filename, "") != 0) //Got input?
 		{
 			BIOS_Title("Convert static to dynamic HDD Image"); //Full clear!
@@ -2564,9 +2564,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 			EMU_unlocktext();
 			char srcdisk[256];
 			memset(&srcdisk,0,sizeof(srcdisk));
-			strcpy(srcdisk,filename); //Save!
+			safestrcpy(srcdisk,sizeof(srcdisk),filename); //Save!
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
-			strcat(filename, ".sfdimg"); //Generate destination filename!
+			safestrcat(filename,sizeof(filename), ".sfdimg"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
 			if (size != 0) //Got size?
 			{
@@ -2577,9 +2577,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				FILEPOS sizecreated;
 				domkdir(diskpath);
 				memset(&fullfilename, 0, sizeof(fullfilename));
-				strcpy(fullfilename, diskpath);
-				strcat(fullfilename, "/");
-				strcat(fullfilename, filename);
+				safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
+				safestrcat(fullfilename,sizeof(fullfilename), "/");
+				safestrcat(fullfilename,sizeof(fullfilename), filename);
 				sizecreated = generateDynamicImage(filename, size, 18, 6,statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
 				if (sizecreated >= size) //Correct size?
 				{
@@ -2752,7 +2752,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	default: //File?
-		strcpy(filename, itemlist[file]); //Use this file!
+		safestrcpy(filename,sizeof(filename), itemlist[file]); //Use this file!
 		if (strcmp(filename, "") != 0) //Got input?
 		{
 			BIOS_Title("Convert dynamic to static HDD Image"); //Full clear!
@@ -2767,13 +2767,13 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 
 			byte dynamicimage_type;
 			memset(&fullfilename,0,sizeof(fullfilename)); //Init!
-			strcpy(fullfilename, diskpath); //Disk path!
-			strcat(fullfilename, "/");
-			strcat(fullfilename, filename); //The full filename!
+			safestrcpy(fullfilename,sizeof(fullfilename), diskpath); //Disk path!
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), filename); //The full filename!
 
 			dynamicimage_type = dynamictostatic_imagetype(fullfilename);
 
-			strcat(filename, ".img"); //Generate destination filename!
+			safestrcat(filename,sizeof(filename), ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
 			//dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
 			if (size != 0) //Got size?
@@ -2800,9 +2800,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				FILE *dest;
 				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 				memset(&fullfilename, 0, sizeof(fullfilename));
-				strcpy(fullfilename, diskpath);
-				strcat(fullfilename, "/");
-				strcat(fullfilename, filename);
+				safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
+				safestrcat(fullfilename,sizeof(fullfilename), "/");
+				safestrcat(fullfilename,sizeof(fullfilename), filename);
 
 				if (!generateStaticImageFormat(fullfilename,dynamicimage_type)) //Failed generating the format to use?
 				{
@@ -2962,7 +2962,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	case FILELIST_CANCEL: //Cancelled?
 		break;
 	default: //File?
-		strcpy(filename, itemlist[file]); //Use this file!
+		safestrcpy(filename,sizeof(filename), itemlist[file]); //Use this file!
 
 		if (strcmp(filename, "") != 0) //Got input?
 		{
@@ -2975,19 +2975,19 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
 			EMU_unlocktext();
 			cleardata(&originalfilename[0], sizeof(originalfilename)); //Init!
-			strcpy(originalfilename, filename); //The original filename!
-			strcat(filename, ".tmp.sfdimg"); //Generate destination filename!
+			safestrcpy(originalfilename,sizeof(originalfilename), filename); //The original filename!
+			safestrcat(filename,sizeof(filename), ".tmp.sfdimg"); //Generate destination filename!
 
 			domkdir(diskpath);
 			memset(&fullfilename, 0, sizeof(fullfilename));
-			strcpy(fullfilename, diskpath);
-			strcat(fullfilename, "/");
-			strcat(fullfilename, filename);
+			safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), filename);
 
 			memset(&fulloriginalfilename, 0, sizeof(fulloriginalfilename));
-			strcpy(fulloriginalfilename, diskpath);
-			strcat(fulloriginalfilename, "/");
-			strcat(fulloriginalfilename, filename);
+			safestrcpy(fulloriginalfilename,sizeof(fulloriginalfilename), diskpath);
+			safestrcat(fulloriginalfilename,sizeof(fulloriginalfilename), "/");
+			safestrcat(fulloriginalfilename,sizeof(fulloriginalfilename), filename);
 
 			size = dynamicimage_getsize(fulloriginalfilename); //Get the original size!
 			if (size != 0) //Got size?
@@ -3140,35 +3140,35 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 							cleardata(&errorlog[0],sizeof(errorlog)); //Clear the error log data!
 							if (error==2) //Position/status error?
 							{
-								sprintf(errorlog,"Position/status error: Source status: %i, Destination status: %i, Error source sector: %u, error destination sector: %u",srcstatus,deststatus,sectornr,destsectornr);
+								snprintf(errorlog,sizeof(errorlog),"Position/status error: Source status: %i, Destination status: %i, Error source sector: %u, error destination sector: %u",srcstatus,deststatus,sectornr,destsectornr);
 							}
 							switch (srcstatus) //What status?
 							{
 								case 0: //EOF reached?
-									strcat(errorlog,"\nSource: EOF"); //Finished transferring!
+									safestrcat(errorlog,sizeof(errorlog),"\nSource: EOF"); //Finished transferring!
 									break;
 								case -1: //Error in file?
-									strcat(errorlog,"\nSource: ERROR"); //Finished transferring!
+									safestrcat(errorlog,sizeof(errorlog),"\nSource: ERROR"); //Finished transferring!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
 								case 1: //Next sector to process?
-									sprintf(errorlog,"%s\nSource: sector %u",errorlog,sectornr); //This sector!
+									snprintf(errorlog,sizeof(errorlog),"%s\nSource: sector %u",errorlog,sectornr); //This sector!
 									break; //Continue running on the next sector to process!
 							}
 							switch (deststatus) //What status?
 							{
 								case 0: //EOF reached?
-									strcat(errorlog,"\nDestination: EOF"); //Finished transferring!
+									safestrcat(errorlog,sizeof(errorlog),"\nDestination: EOF"); //Finished transferring!
 									break;
 								case -1: //Error in file?
-									strcat(errorlog,"\nDestination: ERROR"); //Finished transferring!
+									safestrcat(errorlog,sizeof(errorlog),"\nDestination: ERROR"); //Finished transferring!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
 								case 1: //Next sector to process?
-									sprintf(errorlog,"%s\nDestination: sector %u",errorlog,sectornr); //This sector!
+									snprintf(errorlog,sizeof(errorlog),"%s\nDestination: sector %u",errorlog,sectornr); //This sector!
 									break; //Continue running on the next sector to process!
 							}
-							sprintf(errorlog,"%s\nPrevious source sector: %u\nPrevious destination sector: %u",errorlog,previoussectornr,previousdestsectornr); //Previous sector numbers!
+							snprintf(errorlog,sizeof(errorlog),"%s\nPrevious source sector: %u\nPrevious destination sector: %u",errorlog,previoussectornr,previousdestsectornr); //Previous sector numbers!
 							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition?sectorposition-1:0); //Error at this sector!
 							dolog(originalfilename, "\n%s",errorlog); //Error at this sector information!
 						}
@@ -3193,14 +3193,14 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 						switch (srcstatus) //What status?
 						{
 							case 0: //EOF reached?
-								strcat(errorlog,"Source: EOF"); //Finished transferring!
+								safestrcat(errorlog,sizeof(errorlog),"Source: EOF"); //Finished transferring!
 								break;
 							case -1: //Error in file?
-								strcat(errorlog,"Source: ERROR"); //Finished transferring!
+								safestrcat(errorlog,sizeof(errorlog),"Source: ERROR"); //Finished transferring!
 								break;
 							default: //Unknown?
 							case 1: //Next sector to process?
-								sprintf(errorlog,"Source: sector %u",sectornr); //This sector!
+								snprintf(errorlog,sizeof(errorlog),"Source: sector %u",sectornr); //This sector!
 								break; //Continue running on the next sector to process!
 						}
 						if (!remove(fullfilename)) //Defragmented file can be removed?
@@ -3231,10 +3231,10 @@ void BIOS_DebugMode()
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
 
-	strcpy(itemlist[DEBUGMODE_NONE],"Disabled"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_RTRIGGER],"Enabled, RTrigger=Step"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_STEP],"Enabled, Step through"); //Set filename from options!
-	strcpy(itemlist[DEBUGMODE_SHOW_RUN],"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGMODE_NONE],sizeof(itemlist[0]),"Disabled"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGMODE_RTRIGGER],sizeof(itemlist[0]),"Enabled, RTrigger=Step"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGMODE_STEP],sizeof(itemlist[0]),"Enabled, Step through"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGMODE_SHOW_RUN],sizeof(itemlist[0]),"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 
 	int current = 0;
 	switch (BIOS_Settings.debugmode) //What debug mode?
@@ -3293,12 +3293,12 @@ void BIOS_ExecutionMode()
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
-	strcpy(itemlist[EXECUTIONMODE_NONE], "Use emulator internal BIOS"); //Set filename from options!
-	strcpy(itemlist[EXECUTIONMODE_TEST], "Run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
-	strcpy(itemlist[EXECUTIONMODE_TESTROM], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
-	strcpy(itemlist[EXECUTIONMODE_VIDEOCARD], "Debug video card output"); //Set filename from options!
-	strcpy(itemlist[EXECUTIONMODE_BIOS], "Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*"); //Set filename from options!
-	strcpy(itemlist[EXECUTIONMODE_SOUND], "Run sound test"); //Debug sound test!
+	safestrcpy(itemlist[EXECUTIONMODE_NONE],sizeof(itemlist[0]), "Use emulator internal BIOS"); //Set filename from options!
+	safestrcpy(itemlist[EXECUTIONMODE_TEST],sizeof(itemlist[0]), "Run debug directory files, else TESTROM.DAT at 0000:0000"); //Set filename from options!
+	safestrcpy(itemlist[EXECUTIONMODE_TESTROM],sizeof(itemlist[0]), "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+	safestrcpy(itemlist[EXECUTIONMODE_VIDEOCARD],sizeof(itemlist[0]), "Debug video card output"); //Set filename from options!
+	safestrcpy(itemlist[EXECUTIONMODE_BIOS],sizeof(itemlist[0]), "Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*"); //Set filename from options!
+	safestrcpy(itemlist[EXECUTIONMODE_SOUND],sizeof(itemlist[0]), "Run sound test"); //Debug sound test!
 
 	int current = 0;
 	switch (BIOS_Settings.executionmode) //What execution mode?
@@ -3362,20 +3362,20 @@ void BIOS_DebugLog()
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
-	strcpy(itemlist[DEBUGGERLOG_NONE], "Don't log"); //Set filename from options!
-	strcpy(itemlist[DEBUGGERLOG_DEBUGGING], "Only when debugging"); //Set filename from options!
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS], "Always log"); //Set filename from options!
-	strcpy(itemlist[DEBUGGERLOG_INT],"Interrupt calls only");
-	strcpy(itemlist[DEBUGGERLOG_DIAGNOSTICCODES], "BIOS Diagnostic codes only");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_NOREGISTERS],"Always log, no register state");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP],"Always log, even during skipping");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE],"Always log, even during skipping, single line format");
-	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE],"Only when debugging, single line format");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED],"Always log, even during skipping, single line format, simplified");
-	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED],"Only when debugging, single line format, simplified");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT],"Always log, common log format");
-	strcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT],"Always log, even during skipping, common log format");
-	strcpy(itemlist[DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT],"Only when debugging, common log format");
+	safestrcpy(itemlist[DEBUGGERLOG_NONE],sizeof(itemlist[0]), "Don't log"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGGERLOG_DEBUGGING],sizeof(itemlist[0]), "Only when debugging"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS],sizeof(itemlist[0]), "Always log"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGGERLOG_INT],sizeof(itemlist[0]),"Interrupt calls only");
+	safestrcpy(itemlist[DEBUGGERLOG_DIAGNOSTICCODES],sizeof(itemlist[0]), "BIOS Diagnostic codes only");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_NOREGISTERS],sizeof(itemlist[0]),"Always log, no register state");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP],sizeof(itemlist[0]),"Always log, even during skipping");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE],sizeof(itemlist[0]),"Always log, even during skipping, single line format");
+	safestrcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE],sizeof(itemlist[0]),"Only when debugging, single line format");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED],sizeof(itemlist[0]),"Always log, even during skipping, single line format, simplified");
+	safestrcpy(itemlist[DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED],sizeof(itemlist[0]),"Only when debugging, single line format, simplified");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT],sizeof(itemlist[0]),"Always log, common log format");
+	safestrcpy(itemlist[DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT],sizeof(itemlist[0]),"Always log, even during skipping, common log format");
+	safestrcpy(itemlist[DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT],sizeof(itemlist[0]),"Only when debugging, common log format");
 
 	int current = 0;
 	switch (BIOS_Settings.debugger_log) //What debugger log mode?
@@ -3481,9 +3481,9 @@ void BIOS_DirectPlotSetting()
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0],"Disabled"); //Set filename from options!
-	strcpy(itemlist[1],"Automatic"); //Set filename from options!
-	strcpy(itemlist[2],"Forced"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]),"Disabled"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]),"Automatic"); //Set filename from options!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]),"Forced"); //Set filename from options!
 	if (BIOS_Settings.GPU_AllowDirectPlot >= numlist) //Invalid?
 	{
 		BIOS_Settings.GPU_AllowDirectPlot = DEFAULT_DIRECTPLOT; //Default!
@@ -3540,7 +3540,7 @@ void BIOS_FontSetting()
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
-		strcpy(itemlist[i],BIOSMenu_Fonts[i].name); //Use the name!
+		safestrcpy(itemlist[i],sizeof(itemlist[0]),BIOSMenu_Fonts[i].name); //Use the name!
 	}
 	int current = 0;
 	if (BIOS_Settings.BIOSmenu_font<NUMITEMS(BIOSMenu_Fonts)) //Valid font?
@@ -3594,13 +3594,13 @@ void BIOS_AspectRatio()
 		BIOS_Settings.aspectratio = DEFAULT_ASPECTRATIO; //Set the default!
 		BIOS_Changed = 1; //Changed!
 	}
-	strcpy(itemlist[0], "Fullscreen stretching"); //Set filename from options!
-	strcpy(itemlist[1], "Keep the same"); //Set filename from options!
-	strcpy(itemlist[2], "Force 4:3(VGA)"); //Set filename from options!
-	strcpy(itemlist[3], "Force CGA"); //Set filename from options!
-	strcpy(itemlist[4], "Force 4:3(SVGA 768p)"); //Set filename from options!
-	strcpy(itemlist[5], "Force 4:3(SVGA 1080p)"); //Set filename from options!
-	strcpy(itemlist[6], "Force 4K"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Fullscreen stretching"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Keep the same"); //Set filename from options!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]), "Force 4:3(VGA)"); //Set filename from options!
+	safestrcpy(itemlist[3],sizeof(itemlist[0]), "Force CGA"); //Set filename from options!
+	safestrcpy(itemlist[4],sizeof(itemlist[0]), "Force 4:3(SVGA 768p)"); //Set filename from options!
+	safestrcpy(itemlist[5],sizeof(itemlist[0]), "Force 4:3(SVGA 1080p)"); //Set filename from options!
+	safestrcpy(itemlist[6],sizeof(itemlist[0]), "Force 4K"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.aspectratio) //What direct plot?
 	{
@@ -3664,10 +3664,10 @@ void BIOS_BWMonitor()
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 
-	strcpy(itemlist[BWMONITOR_NONE], "Color"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_WHITE], "B/W monitor: white"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_GREEN], "B/W monitor: green"); //Set filename from options!
-	strcpy(itemlist[BWMONITOR_AMBER], "B/W monitor: amber"); //Set filename from options!
+	safestrcpy(itemlist[BWMONITOR_NONE],sizeof(itemlist[0]), "Color"); //Set filename from options!
+	safestrcpy(itemlist[BWMONITOR_WHITE],sizeof(itemlist[0]), "B/W monitor: white"); //Set filename from options!
+	safestrcpy(itemlist[BWMONITOR_GREEN],sizeof(itemlist[0]), "B/W monitor: green"); //Set filename from options!
+	safestrcpy(itemlist[BWMONITOR_AMBER],sizeof(itemlist[0]), "B/W monitor: amber"); //Set filename from options!
 
 	if (BIOS_Settings.bwmonitor>=numlist) //Invalid?
 	{
@@ -3737,32 +3737,32 @@ void BIOS_InitInputText()
 		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
-	strcpy(menuoptions[advancedoptions++], "Map gaming mode buttons"); //Gaming mode buttons!
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Map gaming mode buttons"); //Gaming mode buttons!
 	optioninfo[advancedoptions] = 1; //Keyboard colors!
-	strcpy(menuoptions[advancedoptions++], "Assign keyboard colors"); //Assign keyboard colors!
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Assign keyboard colors"); //Assign keyboard colors!
 
 setJoysticktext: //For fixing it!
 	optioninfo[advancedoptions] = 2; //Joystick!
-	strcpy(menuoptions[advancedoptions], "Gaming mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Gaming mode: ");
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //Joystick?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Normal gaming mode mapped input");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Normal gaming mode mapped input");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Joystick, Cross=Button 1, Circle=Button 2");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Joystick, Cross=Button 1, Circle=Button 2");
 		break;
 	case 2:
-		strcat(menuoptions[advancedoptions++], "Joystick, Cross=Button 2, Circle=Button 1");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Joystick, Cross=Button 2, Circle=Button 1");
 		break;
 	case 3:
-		strcat(menuoptions[advancedoptions++], "Joystick, Gravis Gamepad");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Joystick, Gravis Gamepad");
 		break;
 	case 4:
-		strcat(menuoptions[advancedoptions++], "Joystick, Gravis Analog Pro");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Joystick, Gravis Analog Pro");
 		break;
 	case 5:
-		strcat(menuoptions[advancedoptions++], "Joystick, Logitech WingMan Extreme Digital");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Joystick, Logitech WingMan Extreme Digital");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.input_settings.gamingmode_joystick = 0; //Reset/Fix!
@@ -3774,7 +3774,7 @@ setJoysticktext: //For fixing it!
 #ifndef SDL2
 #if !defined(IS_PSP) && !defined(ANDROID)
 	optioninfo[advancedoptions] = 3; //Reconnect joystick
-	strcpy(menuoptions[advancedoptions++], "Detect joystick"); //Detect the new joystick!
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Detect joystick"); //Detect the new joystick!
 #endif
 #endif
 }
@@ -3815,7 +3815,7 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	}
 }
 
-void BIOS_addInputText(char *s, byte inputnumber)
+void BIOS_addInputText(char *s, byte inputnumber, uint_32 size)
 {
 	int input_key;
 	byte shiftstatus;
@@ -3831,27 +3831,27 @@ void BIOS_addInputText(char *s, byte inputnumber)
 		{
 			if (shiftstatus&SHIFTSTATUS_CTRL)
 			{
-				strcat(s, "Ctrl");
+				safestrcat(s,size, "Ctrl");
 				if ((shiftstatus&SHIFTSTATUS_CTRL)!=shiftstatus) //More?
 				{
-					strcat(s, "-"); //Seperator!
+					safestrcat(s,size, "-"); //Seperator!
 				}
 			}
 			if (shiftstatus&SHIFTSTATUS_ALT)
 			{
-				strcat(s, "Alt");
+				safestrcat(s,size, "Alt");
 				if ((shiftstatus&(SHIFTSTATUS_CTRL | SHIFTSTATUS_ALT)) != shiftstatus) //More?
 				{
-					strcat(s, "-"); //Seperator!
+					safestrcat(s,size, "-"); //Seperator!
 				}
 			}
 			if (shiftstatus&SHIFTSTATUS_SHIFT)
 			{
-				strcat(s, "Shift");
+				safestrcat(s,size, "Shift");
 			}
 			if ((input_key != -1) || mousestatus) //Gotten a key/mouse?
 			{
-				strcat(s, "-"); //Seperator!
+				safestrcat(s,size, "-"); //Seperator!
 			}
 		}
 		if (input_key != -1) //Gotten a key?
@@ -3859,44 +3859,44 @@ void BIOS_addInputText(char *s, byte inputnumber)
 			memset(&name, 0, sizeof(name)); //Init name!
 			if (EMU_keyboard_handler_idtoname(input_key, &name[0]))
 			{
-				strcat(s, name); //Add the name of the key!
+				safestrcat(s,size, name); //Add the name of the key!
 			}
 			else
 			{
-				strcat(s, "<Unidentified key>");
+				safestrcat(s,size, "<Unidentified key>");
 			}
 			if (mousestatus)
 			{
-				strcat(s, "-"); //Seperator!
+				safestrcat(s,size, "-"); //Seperator!
 			}
 		}
 		if (mousestatus) //Gotten a mouse input?
 		{
 			if (mousestatus&1) //Left button?
 			{
-				strcat(s,"Mouse left");
+				safestrcat(s,size,"Mouse left");
 				if ((mousestatus&1)!=mousestatus) //More buttons?
 				{
-					strcat(s,"-"); //Seperator!
+					safestrcat(s,size,"-"); //Seperator!
 				}
 			}
 			if (mousestatus&2) //Right button?
 			{
-				strcat(s,"Mouse right");
+				safestrcat(s,size,"Mouse right");
 				if ((mousestatus&3)!=mousestatus) //More buttons?
 				{
-					strcat(s,"-");
+					safestrcat(s,size,"-");
 				}
 			}
 			if (mousestatus&4) //Middle button?
 			{
-				strcat(s,"Mouse middle");
+				safestrcat(s,size,"Mouse middle");
 			}
 		}
 	}
 	else
 	{
-		strcat(s, "<Unassigned>"); //Not assigned!
+		safestrcat(s,size, "<Unassigned>"); //Not assigned!
 	}
 }
 
@@ -3911,64 +3911,64 @@ void BIOS_InitGamingModeButtonsText()
 		switch (i) //What key?
 		{
 			case GAMEMODE_START:
-				strcpy(menuoptions[advancedoptions], "Start:        "); //Gaming mode buttons!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Start:        "); //Gaming mode buttons!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_LEFT:
-				strcpy(menuoptions[advancedoptions], "Left:         "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Left:         "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_UP:
-				strcpy(menuoptions[advancedoptions], "Up:           "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Up:           "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_RIGHT:
-				strcpy(menuoptions[advancedoptions], "Right:        "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Right:        "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_DOWN:
-				strcpy(menuoptions[advancedoptions], "Down:         "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Down:         "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_LTRIGGER:
-				strcpy(menuoptions[advancedoptions], "L:            "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "L:            "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_RTRIGGER:
-				strcpy(menuoptions[advancedoptions], "R:            "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "R:            "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_TRIANGLE:
-				strcpy(menuoptions[advancedoptions], "Triangle:     "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Triangle:     "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_CIRCLE:
-				strcpy(menuoptions[advancedoptions], "Circle:       "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Circle:       "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_CROSS:
-				strcpy(menuoptions[advancedoptions], "Cross:        "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Cross:        "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_SQUARE:
-				strcpy(menuoptions[advancedoptions], "Square:       "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Square:       "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_ANALOGLEFT:
-				strcpy(menuoptions[advancedoptions], "Analog left:  "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Analog left:  "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_ANALOGUP:
-				strcpy(menuoptions[advancedoptions], "Analog up:    "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Analog up:    "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_ANALOGRIGHT:
-				strcpy(menuoptions[advancedoptions], "Analog right: "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Analog right: "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			case GAMEMODE_ANALOGDOWN:
-				strcpy(menuoptions[advancedoptions], "Analog down:  "); //Assign keyboard colors!
-				BIOS_addInputText(&menuoptions[advancedoptions++][0], i);
+				safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Analog down:  "); //Assign keyboard colors!
+				BIOS_addInputText(&menuoptions[advancedoptions++][0], i,sizeof(menuoptions[0]));
 				break;
 			default: //Unknown? Don't handle unknown cases!
 				break;
@@ -4043,15 +4043,15 @@ void BIOS_gamingModeButtonsMenu() //Manage stuff concerning input.
 }
 
 char colors[0x10][15] = { "Black", "Blue", "Green", "Cyan", "Red", "Magenta", "Brown", "Light gray", "Dark gray", "Bright blue", "Bright green", "Bright cyan", "Bright red", "Bright magenta", "Yellow", "White" }; //Set color from options!
-void BIOS_addColorText(char *s, byte color)
+void BIOS_addColorText(char *s, byte color, uint_32 size)
 {
 	if (color < 0x10) //Valid color?
 	{
-		strcat(s, colors[color]); //Take the color!
+		safestrcat(s,size, colors[color]); //Take the color!
 	}
 	else
 	{
-		strcat(s, "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set color from options!
+		safestrcat(s,size, "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set color from options!
 	}
 }
 
@@ -4064,23 +4064,23 @@ void BIOS_InitKeyboardColorsText()
 		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
 	optioninfo[advancedoptions] = 0; //Gaming mode buttons!
-	strcpy(menuoptions[advancedoptions], "Text font color: "); //Gaming mode buttons!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[0]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Text font color: "); //Gaming mode buttons!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[0],sizeof(menuoptions[0])); //First color!
 	optioninfo[advancedoptions] = 1; //Keyboard colors!
-	strcpy(menuoptions[advancedoptions], "Text border color: "); //Assign keyboard colors!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[1]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Text border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[1],sizeof(menuoptions[0])); //First color!
 	optioninfo[advancedoptions] = 2; //Keyboard colors!
-	strcpy(menuoptions[advancedoptions], "Text active border color: "); //Assign keyboard colors!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[2]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Text active border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[2],sizeof(menuoptions[0])); //First color!
 	optioninfo[advancedoptions] = 3; //Gaming mode buttons!
-	strcpy(menuoptions[advancedoptions], "LED Font color: "); //Gaming mode buttons!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[3]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "LED Font color: "); //Gaming mode buttons!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[3],sizeof(menuoptions[0])); //First color!
 	optioninfo[advancedoptions] = 4; //Keyboard colors!
-	strcpy(menuoptions[advancedoptions], "LED border color: "); //Assign keyboard colors!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[4]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "LED border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[4],sizeof(menuoptions[0])); //First color!
 	optioninfo[advancedoptions] = 5; //Keyboard colors!
-	strcpy(menuoptions[advancedoptions], "LED active border color: "); //Assign keyboard colors!
-	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[5]); //First color!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "LED active border color: "); //Assign keyboard colors!
+	BIOS_addColorText(&menuoptions[advancedoptions++][0], BIOS_Settings.input_settings.colors[5],sizeof(menuoptions[0])); //First color!
 }
 
 byte gamingKeyboardColor = 0;
@@ -4118,7 +4118,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 	for (i = 0; i<numlist; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
-		strcpy(itemlist[i], &colors[i][0]); //Set the color to use!
+		safestrcpy(itemlist[i],sizeof(itemlist[0]), &colors[i][0]); //Set the color to use!
 	}
 
 	int current = 0;
@@ -4197,15 +4197,15 @@ void BIOS_VGAModeSetting()
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0],"Pure VGA"); //Set filename from options!
-	strcpy(itemlist[1],"VGA with NMI"); //Set filename from options!
-	strcpy(itemlist[2],"VGA with CGA"); //Special CGA compatibility mode!
-	strcpy(itemlist[3],"VGA with MDA"); //Special MDA compatibility mode!
-	strcpy(itemlist[4],"Pure CGA"); //Special CGA pure mode!
-	strcpy(itemlist[5],"Pure MDA"); //Special MDA pure mode!
-	strcpy(itemlist[6],"Tseng ET4000"); //Tseng ET4000 card!
-	strcpy(itemlist[7],"Tseng ET3000"); //Tseng ET4000 card!
-	strcpy(itemlist[8],"Pure EGA"); //EGA card!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]),"Pure VGA"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]),"VGA with NMI"); //Set filename from options!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]),"VGA with CGA"); //Special CGA compatibility mode!
+	safestrcpy(itemlist[3],sizeof(itemlist[0]),"VGA with MDA"); //Special MDA compatibility mode!
+	safestrcpy(itemlist[4],sizeof(itemlist[0]),"Pure CGA"); //Special CGA pure mode!
+	safestrcpy(itemlist[5],sizeof(itemlist[0]),"Pure MDA"); //Special MDA pure mode!
+	safestrcpy(itemlist[6],sizeof(itemlist[0]),"Tseng ET4000"); //Tseng ET4000 card!
+	safestrcpy(itemlist[7],sizeof(itemlist[0]),"Tseng ET3000"); //Tseng ET4000 card!
+	safestrcpy(itemlist[8],sizeof(itemlist[0]),"Pure EGA"); //EGA card!
 
 	int current = 0;
 	switch (BIOS_Settings.VGA_Mode) //What setting?
@@ -4276,18 +4276,18 @@ void BIOS_InitVideoSettingsText()
 	}
 
 	optioninfo[advancedoptions] = 0; //We're direct plot setting!
-	strcpy(menuoptions[advancedoptions],"VGA Direct Plot: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]),"VGA Direct Plot: ");
 setdirectplottext: //For fixing it!
 	switch (BIOS_Settings.GPU_AllowDirectPlot) //What direct plot setting?
 	{
 	case 2: //Forced?
-		strcat(menuoptions[advancedoptions++],"Forced");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Forced");
 		break;
 	case 1: //Yes?
-		strcat(menuoptions[advancedoptions++],"Automatic");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Automatic");
 		break;
 	case 0: //No?
-		strcat(menuoptions[advancedoptions++],"Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Disabled");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.GPU_AllowDirectPlot = 0; //Reset/Fix!
@@ -4298,29 +4298,29 @@ setdirectplottext: //For fixing it!
 
 setaspectratiotext:
 	optioninfo[advancedoptions] = 4; //Keep aspect ratio!
-	strcpy(menuoptions[advancedoptions], "Aspect ratio: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Aspect ratio: ");
 	switch (BIOS_Settings.aspectratio) //Keep aspect ratio?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Fullscreen stretching");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Fullscreen stretching");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Keep the same");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Keep the same");
 		break;
 	case 2:
-		strcat(menuoptions[advancedoptions++], "Force 4:3(VGA)");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Force 4:3(VGA)");
 		break;
 	case 3:
-		strcat(menuoptions[advancedoptions++], "Force CGA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Force CGA");
 		break;
 	case 4:
-		strcat(menuoptions[advancedoptions++], "Force 4:3(SVGA 768p)");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Force 4:3(SVGA 768p)");
 		break;
 	case 5:
-		strcat(menuoptions[advancedoptions++], "Force 4:3(SVGA 1080p)");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Force 4:3(SVGA 1080p)");
 		break;
 	case 6:
-		strcat(menuoptions[advancedoptions++], "Force 4K");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Force 4K");
 		break;
 	default:
 		BIOS_Settings.aspectratio = 0; //Reset/Fix!
@@ -4331,20 +4331,20 @@ setaspectratiotext:
 
 setmonitortext: //For fixing it!
 	optioninfo[advancedoptions] = 1; //Monitor!
-	strcpy(menuoptions[advancedoptions], "Monitor: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Monitor: ");
 	switch (BIOS_Settings.bwmonitor) //B/W monitor?
 	{
 	case BWMONITOR_WHITE:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: white");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "B/W monitor: white");
 		break;
 	case BWMONITOR_GREEN:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: green");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "B/W monitor: green");
 		break;
 	case BWMONITOR_AMBER:
-		strcat(menuoptions[advancedoptions++], "B/W monitor: amber");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "B/W monitor: amber");
 		break;
 	case BWMONITOR_NONE:
-		strcat(menuoptions[advancedoptions++], "Color monitor");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Color monitor");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.bwmonitor = 0; //Reset/Fix!
@@ -4355,35 +4355,35 @@ setmonitortext: //For fixing it!
 
 setVGAModetext: //For fixing it!
 	optioninfo[advancedoptions] = 2; //VGA Mode!
-	strcpy(menuoptions[advancedoptions], "VGA Mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "VGA Mode: ");
 	switch (BIOS_Settings.VGA_Mode) //VGA Mode?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Pure VGA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Pure VGA");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "VGA with NMI");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "VGA with NMI");
 		break;
 	case 2:
-		strcat(menuoptions[advancedoptions++], "VGA with CGA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "VGA with CGA");
 		break;
 	case 3:
-		strcat(menuoptions[advancedoptions++], "VGA with MDA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "VGA with MDA");
 		break;
 	case 4:
-		strcat(menuoptions[advancedoptions++], "Pure CGA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Pure CGA");
 		break;
 	case 5:
-		strcat(menuoptions[advancedoptions++], "Pure MDA");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Pure MDA");
 		break;
 	case 6:
-		strcat(menuoptions[advancedoptions++], "Tseng ET4000"); //Tseng ET4000 SVGA card!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Tseng ET4000"); //Tseng ET4000 SVGA card!
 		break;
 	case 7:
-		strcat(menuoptions[advancedoptions++], "Tseng ET3000"); //Tseng ET3000 SVGA card!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Tseng ET3000"); //Tseng ET3000 SVGA card!
 		break;
 	case 8:
-		strcat(menuoptions[advancedoptions++], "Pure EGA"); //EGA card!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Pure EGA"); //EGA card!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.VGA_Mode = DEFAULT_VIDEOCARD; //Reset/Fix!
@@ -4394,20 +4394,20 @@ setVGAModetext: //For fixing it!
 
 setCGAModeltext: //For fixing it!
 	optioninfo[advancedoptions] = 3; //CGA Model!
-	strcpy(menuoptions[advancedoptions], "CGA Model: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CGA Model: ");
 	switch (BIOS_Settings.CGAModel) //CGA Model?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Old-style RGB");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Old-style RGB");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Old-style NTSC");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Old-style NTSC");
 		break;
 	case 2:
-		strcat(menuoptions[advancedoptions++], "New-style RGB");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "New-style RGB");
 		break;
 	case 3:
-		strcat(menuoptions[advancedoptions++], "New-style NTSC");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "New-style NTSC");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.CGAModel = DEFAULT_CGAMODEL; //Reset/Fix!
@@ -4417,34 +4417,34 @@ setCGAModeltext: //For fixing it!
 	}
 
 	optioninfo[advancedoptions] = 5; //Show framerate!
-	strcpy(menuoptions[advancedoptions], "Show framerate: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Show framerate: ");
 	if (BIOS_Settings.ShowFramerate)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 	}
 
 	optioninfo[advancedoptions] = 6; //VGA Synchronization!
-	strcpy(menuoptions[advancedoptions], "VGA Synchronization: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "VGA Synchronization: ");
 	switch (BIOS_Settings.VGASynchronization)
 	{
 		default: //Unknown?
 		case 0: //Old synchronization method?
-			strcat(menuoptions[advancedoptions++], "Old synchronization depending on host");
+			safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Old synchronization depending on host");
 			break;
 		case 1: //Synchronize depending on the Host?
-			strcat(menuoptions[advancedoptions++], "Synchronize depending on host");
+			safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Synchronize depending on host");
 			break;
 		case 2: //Full CPU synchronization?
-			strcat(menuoptions[advancedoptions++], "Full CPU synchronization");
+			safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Full CPU synchronization");
 			break;
 	}
 
 	optioninfo[advancedoptions] = 7; //Dump VGA!
-	strcpy(menuoptions[advancedoptions++],"Dump VGA");
+	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Dump VGA");
 }
 
 void BIOS_VideoSettingsMenu() //Manage stuff concerning input.
@@ -4512,87 +4512,87 @@ void BIOS_InitSoundText()
 	}
 
 	optioninfo[advancedoptions] = 0; //MPU Soundfont!
-	strcpy(menuoptions[advancedoptions], "MPU Soundfont: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "MPU Soundfont: ");
 	if (strcmp(BIOS_Settings.SoundFont, "") != 0)
 	{
-		strcat(menuoptions[advancedoptions++], BIOS_Settings.SoundFont); //The selected soundfont!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), BIOS_Settings.SoundFont); //The selected soundfont!
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "<None>");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<None>");
 	}
 
 	if (directMIDISupported()) //Direct MIDI is supported?
 	{
 		optioninfo[advancedoptions] = 1; //Game Blaster!
-		strcpy(menuoptions[advancedoptions], "Direct MIDI Passthrough: ");
+		safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Direct MIDI Passthrough: ");
 		if (BIOS_Settings.useDirectMIDI)
 		{
-			strcat(menuoptions[advancedoptions++], "Enabled");
+			safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
 		}
 		else
 		{
-			strcat(menuoptions[advancedoptions++], "Disabled");
+			safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 		}
 	}
 
 	optioninfo[advancedoptions] = 2; //PC Speaker!
-	strcpy(menuoptions[advancedoptions], "PC Speaker: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "PC Speaker: ");
 	if (BIOS_Settings.usePCSpeaker)
 	{
-		strcat(menuoptions[advancedoptions++], "Sound");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Sound");
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "No sound");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "No sound");
 	}
 
 	optioninfo[advancedoptions] = 3; //Adlib!
-	strcpy(menuoptions[advancedoptions], "Adlib: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Adlib: ");
 	if (BIOS_Settings.useAdlib)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 	}
 
 	optioninfo[advancedoptions] = 4; //LPT DAC!
-	strcpy(menuoptions[advancedoptions], "LPT DAC: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "LPT DAC: ");
 	if (BIOS_Settings.useLPTDAC)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 	}
 
 	optioninfo[advancedoptions] = 5; //Game Blaster!
-	strcpy(menuoptions[advancedoptions], "Game Blaster: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Game Blaster: ");
 	if (BIOS_Settings.useGameBlaster)
 	{
-		strcat(menuoptions[advancedoptions++], "Enabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
 	}
 	else
 	{
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 	}
 
 	optioninfo[advancedoptions] = 6; //Sound Blaster!
-	strcpy(menuoptions[advancedoptions], "Sound Blaster: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Sound Blaster: ");
 	redetectSoundBlaster:
 	switch (BIOS_Settings.useSoundBlaster)
 	{
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Version 1.5");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Version 1.5");
 		break;
 	case 2:
-		strcat(menuoptions[advancedoptions++], "Version 2.0");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Version 2.0");
 		break;
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Disabled");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 		break;
 	default:
 		BIOS_Settings.useSoundBlaster = DEFAULT_SOUNDBLASTER;
@@ -4600,27 +4600,27 @@ void BIOS_InitSoundText()
 	}
 
 	optioninfo[advancedoptions] = 7; //Sound Source Volume!
-	sprintf(menuoptions[advancedoptions],"Sound Source Volume: %u",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
-	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
+	snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Sound Source Volume: %u",(int)(BIOS_Settings.SoundSource_Volume)); //Sound source volume as a whole number!
+	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
 
 	optioninfo[advancedoptions] = 8; //Game Blaster Volume!
-	sprintf(menuoptions[advancedoptions],"Game Blaster Volume: %u",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
-	strcat(menuoptions[advancedoptions++],"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
+	snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Game Blaster Volume: %u",(int)(BIOS_Settings.GameBlaster_Volume)); //Sound source volume as a whole number!
+	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"%%"); //The percentage sign goes wrong with sprintf! Also, when converted to text layer we need to be doubled! This is the fix!
 
 	if (!EMU_RUNNING)
 	{
 		optioninfo[advancedoptions] = 9; //Music player!
-		strcpy(menuoptions[advancedoptions++], "Music Player");
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Music Player");
 	}
 
 	optioninfo[advancedoptions] = 10; //Start/stop recording sound!
 	if (!sound_isRecording()) //Not recording yet?
 	{
-		strcpy(menuoptions[advancedoptions++], "Start recording sound"); //Sound source volume as a whole number!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Start recording sound"); //Sound source volume as a whole number!
 	}
 	else
 	{
-		strcpy(menuoptions[advancedoptions++], "Stop recording sound"); //Sound source volume as a whole number!
+		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Stop recording sound"); //Sound source volume as a whole number!
 	}
 }
 
@@ -4707,7 +4707,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 		{
 			BIOS_Changed = 1; //Changed!
 			reboot_needed |= 1; //We need to reboot!
-			strcpy(BIOS_Settings.SoundFont, ""); //Unmount!
+			safestrcpy(BIOS_Settings.SoundFont,sizeof(BIOS_Settings.SoundFont), ""); //Unmount!
 		}
 		break;
 	case FILELIST_CANCEL: //Cancelled?
@@ -4719,7 +4719,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 			BIOS_Changed = 1; //Changed!
 			reboot_needed |= 1; //We need to reboot!
 		}
-		strcpy(BIOS_Settings.SoundFont, itemlist[file]); //Use this file!
+		safestrcpy(BIOS_Settings.SoundFont,sizeof(BIOS_Settings.SoundFont), itemlist[file]); //Use this file!
 		break;
 	}
 	BIOS_Menu = 31; //Return to the Sound menu!
@@ -4784,16 +4784,16 @@ byte sound_playSoundfile(byte showinfo)
 		//Play the MIDI file!
 		if (isext(&itemlist[Sound_file][0],"mid|midi")) //MIDI file?
 		{
-			strcpy(songpath,musicpath); //Load the path!
-			strcat(songpath,"/");
-			strcat(songpath,itemlist[Sound_file]); //The full filename!
+			safestrcpy(songpath,sizeof(songpath),musicpath); //Load the path!
+			safestrcat(songpath,sizeof(songpath),"/");
+			safestrcat(songpath,sizeof(songpath),itemlist[Sound_file]); //The full filename!
 			playMIDIFile(&songpath[0], showinfo); //Play the MIDI file!
 		}
 		else if (isext(&itemlist[Sound_file][0],"dro")) //DRO file?
 		{
-			strcpy(songpath, musicpath); //Load the path!
-			strcat(songpath, "/");
-			strcat(songpath, itemlist[Sound_file]); //The full filename!
+			safestrcpy(songpath,sizeof(songpath), musicpath); //Load the path!
+			safestrcat(songpath,sizeof(songpath), "/");
+			safestrcat(songpath,sizeof(songpath), itemlist[Sound_file]); //The full filename!
 			playDROFile(&songpath[0], showinfo); //Play the DRO file!
 		}
 		EMU_locktext();
@@ -4823,10 +4823,10 @@ void BIOS_Architecture()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[ARCHITECTURE_XT], "XT"); //Set filename from options!
-	strcpy(itemlist[ARCHITECTURE_AT], "AT"); //Set filename from options!
-	strcpy(itemlist[ARCHITECTURE_PS2], "PS/2"); //Set filename from options!
-	strcpy(itemlist[ARCHITECTURE_COMPAQ], "Compaq Deskpro 386"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_XT],sizeof(itemlist[0]), "XT"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_AT],sizeof(itemlist[0]), "AT"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_PS2],sizeof(itemlist[0]), "PS/2"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_COMPAQ],sizeof(itemlist[0]), "Compaq Deskpro 386"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.architecture) //What setting?
 	{
@@ -4884,41 +4884,41 @@ void BIOS_InitCPUText()
 	}
 
 	optioninfo[advancedoptions] = 0; //Installed CPU!
-	strcpy(menuoptions[advancedoptions], "Installed CPU: "); //Change installed CPU!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Installed CPU: "); //Change installed CPU!
 	switch (BIOS_Settings.emulated_CPU) //8086?
 	{
 	case CPU_8086: //8086?
-		strcat(menuoptions[advancedoptions++], "Intel 8086/8088"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel 8086/8088"); //Add installed CPU!
 		break;
 	case CPU_NECV30: //NEC V20/V30?
-		strcat(menuoptions[advancedoptions++], "NEC V20/V30"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "NEC V20/V30"); //Add installed CPU!
 		break;
 	case CPU_80286: //80286?
-		strcat(menuoptions[advancedoptions++], "Intel 80286"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel 80286"); //Add installed CPU!
 		break;
 	case CPU_80386: //80386?
-		strcat(menuoptions[advancedoptions++], "Intel 80386"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel 80386"); //Add installed CPU!
 		break;
 	case CPU_80486: //80486?
-		strcat(menuoptions[advancedoptions++], "Intel 80486"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel 80486"); //Add installed CPU!
 		break;
 	case CPU_PENTIUM: //PENTIUM?
-		strcat(menuoptions[advancedoptions++], "Intel Pentium(unfinished)"); //Add installed CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel Pentium(unfinished)"); //Add installed CPU!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
 		break;
 	}
 setDataBusSize: //For fixing it!
 	optioninfo[advancedoptions] = 1; //Data bus size!
-	strcpy(menuoptions[advancedoptions], "Data bus size: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Data bus size: ");
 	switch (BIOS_Settings.DataBusSize) //Data bus size?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Full sized data bus of 16/32-bits");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Full sized data bus of 16/32-bits");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "Reduced data bus size");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Reduced data bus size");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.DataBusSize = 0; //Reset/Fix!
@@ -4928,41 +4928,41 @@ setDataBusSize: //For fixing it!
 	}
 
 	optioninfo[advancedoptions] = 2; //Change CPU speed!
-	strcpy(menuoptions[advancedoptions], "CPU Speed: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CPU Speed: ");
 	switch (BIOS_Settings.CPUSpeed) //What CPU speed limit?
 	{
 	case 0: //Default cycles?
-		strcat(menuoptions[advancedoptions++], "Default"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Default"); //Default!
 		break;
 	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles",menuoptions[advancedoptions],BIOS_Settings.CPUSpeed); //Cycle limit!
+		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sLimited to %u cycles",menuoptions[advancedoptions],BIOS_Settings.CPUSpeed); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
 
 	optioninfo[advancedoptions] = 3; //Change Turbo CPU speed!
-	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Turbo CPU Speed: ");
 	switch (BIOS_Settings.TurboCPUSpeed) //What Turbo CPU speed limit?
 	{
 	case 0: //Default cycles?
-		strcat(menuoptions[advancedoptions++], "Default"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Default"); //Default!
 		break;
 	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sLimited to %u cycles", menuoptions[advancedoptions], BIOS_Settings.TurboCPUSpeed); //Cycle limit!
+		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sLimited to %u cycles", menuoptions[advancedoptions], BIOS_Settings.TurboCPUSpeed); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
 
 	fixTurboCPUToggle:
 	optioninfo[advancedoptions] = 4; //Change Turbo CPU option!
-	strcpy(menuoptions[advancedoptions], "Turbo CPU Speed Mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Turbo CPU Speed Mode: ");
 	switch (BIOS_Settings.useTurboSpeed) //What Turbo CPU speed limit?
 	{
 	case 0: //Disabled?
-		strcat(menuoptions[advancedoptions++], "Disabled"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled"); //Default!
 		break;
 	case 1: //Enabled?
-		strcat(menuoptions[advancedoptions++], "Enabled"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled"); //Default!
 		break;
 	default: //Limited cycles?
 		BIOS_Settings.useTurboSpeed = 0; //Disable!
@@ -4973,14 +4973,14 @@ setDataBusSize: //For fixing it!
 
 	fixClockingMode:
 	optioninfo[advancedoptions] = 5; //Change Turbo CPU option!
-	strcpy(menuoptions[advancedoptions], "Clocking mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Clocking mode: ");
 	switch (BIOS_Settings.clockingmode) //What clocking mode?
 	{
 	case CLOCKINGMODE_CYCLEACCURATE: //Disabled?
-		strcat(menuoptions[advancedoptions++], "Cycle-accurate clock"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Cycle-accurate clock"); //Default!
 		break;
 	case CLOCKINGMODE_IPSCLOCK: //Enabled?
-		strcat(menuoptions[advancedoptions++], "IPS clock"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "IPS clock"); //Default!
 		break;
 	default: //Limited cycles?
 		BIOS_Settings.clockingmode = CLOCKINGMODE_CYCLEACCURATE; //Default!
@@ -4991,14 +4991,14 @@ setDataBusSize: //For fixing it!
 
 setShowCPUSpeed:
 	optioninfo[advancedoptions] = 6; //Change CPU speed!
-	strcpy(menuoptions[advancedoptions], "Show CPU Speed: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
 	{
 	case 0: //No?
-		strcat(menuoptions[advancedoptions++], "Disabled"); //Disabled!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled"); //Disabled!
 		break;
 	case 1: //Yes?
-		strcat(menuoptions[advancedoptions++], "Enabled"); //Enabled!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled"); //Enabled!
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.ShowCPUSpeed = 0; //Reset/Fix!
@@ -5008,135 +5008,135 @@ setShowCPUSpeed:
 	}
 
 	optioninfo[advancedoptions] = 7; //Boot Order!
-	strcpy(menuoptions[advancedoptions], "Boot Order: "); //Change boot order!
-	strcat(menuoptions[advancedoptions++], BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Boot Order: "); //Change boot order!
+	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
 	optioninfo[advancedoptions] = 8; //Execution mode!
-	strcpy(menuoptions[advancedoptions], "Execution mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
 	case EXECUTIONMODE_NONE:
-		strcat(menuoptions[advancedoptions++], "Use emulator internal BIOS"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Use emulator internal BIOS"); //Set filename from options!
 		break;
 	case EXECUTIONMODE_TEST:
-		strcat(menuoptions[advancedoptions++], "Run debug directory files"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Run debug directory files"); //Set filename from options!
 		break;
 	case EXECUTIONMODE_TESTROM:
-		strcat(menuoptions[advancedoptions++], "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Run TESTROM.DAT at 0000:0000"); //Set filename from options!
 		break;
 	case EXECUTIONMODE_VIDEOCARD:
-		strcat(menuoptions[advancedoptions++], "Debug video card output"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Debug video card output"); //Set filename from options!
 		break;
 	case EXECUTIONMODE_BIOS:
-		strcat(menuoptions[advancedoptions++], "Load BIOS from ROM directory."); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Load BIOS from ROM directory."); //Set filename from options!
 		break;
 	case EXECUTIONMODE_SOUND:
-		strcat(menuoptions[advancedoptions++], "Run sound test"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Run sound test"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
 		break;
 	}
 
 	optioninfo[advancedoptions] = 9; //Debug mode!
-	strcpy(menuoptions[advancedoptions], "Debug mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debug mode: ");
 	switch (BIOS_Settings.debugmode) //What debug mode is active?
 	{
 	case DEBUGMODE_NONE:
-		strcat(menuoptions[advancedoptions++], "No debugger enabled"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "No debugger enabled"); //Set filename from options!
 		break;
 	case DEBUGMODE_RTRIGGER:
-		strcat(menuoptions[advancedoptions++], "Enabled, RTrigger=Step"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, RTrigger=Step"); //Set filename from options!
 		break;
 	case DEBUGMODE_STEP:
-		strcat(menuoptions[advancedoptions++], "Enabled, Step through"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, Step through"); //Set filename from options!
 		break;
 	case DEBUGMODE_SHOW_RUN:
-		strcat(menuoptions[advancedoptions++], "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
 		break;
 	}
 
 	optioninfo[advancedoptions] = 10; //We're debug log setting!
-	strcpy(menuoptions[advancedoptions], "Debugger log: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
 	case DEBUGGERLOG_NONE: //None
-		strcat(menuoptions[advancedoptions++], "Don't log"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Don't log"); //Set filename from options!
 		break;
 	case DEBUGGERLOG_DEBUGGING: //Only when debugging
-		strcat(menuoptions[advancedoptions++], "Only when debugging"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Only when debugging"); //Set filename from options!
 		break;
 	case DEBUGGERLOG_ALWAYS: //Always
-		strcat(menuoptions[advancedoptions++], "Always log"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log"); //Set filename from options!
 		break;
 	case DEBUGGERLOG_INT: //Interrupt calls only
-		strcat(menuoptions[advancedoptions++], "Interrupt calls only");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Interrupt calls only");
 		break;
 	case DEBUGGERLOG_DIAGNOSTICCODES: //Diagnostic codes only
-		strcat(menuoptions[advancedoptions++], "BIOS Diagnostic codes only");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "BIOS Diagnostic codes only");
 		break;
 	case DEBUGGERLOG_ALWAYS_NOREGISTERS: //Always, no register state!
-		strcat(menuoptions[advancedoptions++], "Always log, no register state");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, no register state");
 		break;
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP:
-		strcat(menuoptions[advancedoptions++], "Always log, even during skipping");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, even during skipping");
 		break;
 	case DEBUGGERLOG_ALWAYS_SINGLELINE:
-		strcat(menuoptions[advancedoptions++], "Always log, even during skipping, single line format");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, even during skipping, single line format");
 		break;
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE: //Only when debugging, single line format
-		strcat(menuoptions[advancedoptions++], "Only when debugging, single line format");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Only when debugging, single line format");
 		break;
 	case DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED:
-		strcat(menuoptions[advancedoptions++], "Always log, even during skipping, single line format, simplified");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, even during skipping, single line format, simplified");
 		break;
 	case DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED: //Only when debugging, single line format
-		strcat(menuoptions[advancedoptions++], "Only when debugging, single line format, simplified");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Only when debugging, single line format, simplified");
 		break;
 	case DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT: //Always log, common log format
-		strcat(menuoptions[advancedoptions++], "Always log, common log format");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, common log format");
 		break;
 	case DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT: //Always log, even during skipping, common log format
-		strcat(menuoptions[advancedoptions++], "Always log, even during skipping, common log format");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Always log, even during skipping, common log format");
 		break;
 	case DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT: //Only when debugging, common log format
-		strcat(menuoptions[advancedoptions++], "Only when debugging, common log format");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Only when debugging, common log format");
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "Never"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Never"); //Set filename from options!
 		break;
 	}
 
 	optioninfo[advancedoptions] = 11; //We're debug log setting!
-	strcpy(menuoptions[advancedoptions], "Debugger state log: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger state log: ");
 	switch (BIOS_Settings.debugger_logstates)
 	{
 	case DEBUGGERSTATELOG_DISABLED: //None
-		strcat(menuoptions[advancedoptions++], "Disabled"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled"); //Set filename from options!
 		break;
 	case DEBUGGERSTATELOG_ENABLED: //Only when debugging
-		strcat(menuoptions[advancedoptions++], "Enabled"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
 		break;
 	}
 
 	optioninfo[advancedoptions] = 12; //We're debug log setting!
-	strcpy(menuoptions[advancedoptions], "Debugger register log: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger register log: ");
 	switch (BIOS_Settings.debugger_logregisters)
 	{
 	case DEBUGGERSTATELOG_DISABLED: //None
-		strcat(menuoptions[advancedoptions++], "Disabled"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled"); //Set filename from options!
 		break;
 	case DEBUGGERSTATELOG_ENABLED: //Only when debugging
-		strcat(menuoptions[advancedoptions++], "Enabled"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled"); //Set filename from options!
 		break;
 	default:
-		strcat(menuoptions[advancedoptions++], "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
 		break;
 	}
 
@@ -5144,89 +5144,89 @@ setShowCPUSpeed:
 	optioninfo[advancedoptions] = 13; //We're diagnostics output!
 	if (BIOS_Settings.diagnosticsportoutput_breakpoint>=0) //Diagnostics breakpoint specified?
 	{
-		sprintf(menuoptions[advancedoptions++], "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
+		snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
 	}
 	else
 	{
-		sprintf(menuoptions[advancedoptions++],"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
+		snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 	}
 
 	optioninfo[advancedoptions] = 14; //Change Diagnostics Port Breakpoint Timeout!
-	strcpy(menuoptions[advancedoptions], "Diagnostics Port Breakpoint Timeout: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Diagnostics Port Breakpoint Timeout: ");
 	switch (BIOS_Settings.diagnosticsportoutput_timeout) //What Diagnostics Port Breakpoint Timeout?
 	{
 	case 0: //Default cycles?
-		strcat(menuoptions[advancedoptions++], "First instruction"); //Default!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "First instruction"); //Default!
 		break;
 	default: //Limited cycles?
-		sprintf(menuoptions[advancedoptions], "%sAt " LONGLONGSPRINTF " instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)(BIOS_Settings.diagnosticsportoutput_timeout+1))); //Cycle limit!
+		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sAt " LONGLONGSPRINTF " instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)(BIOS_Settings.diagnosticsportoutput_timeout+1))); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
 
 	optioninfo[advancedoptions] = 15; //Breakpoint!
-	strcpy(menuoptions[advancedoptions], "Breakpoint: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
-			strcat(menuoptions[advancedoptions],"Not set"); //seg16:offs16 default!
+			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
 			break;
 		case 1: //Real mode?
-			sprintf(menuoptions[advancedoptions],"%s%04X:%04X",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%04X",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
 			}
 			break;
 		case 2: //Protected mode?
-			sprintf(menuoptions[advancedoptions],"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
-			sprintf(menuoptions[advancedoptions],"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(menuoptions[advancedoptions],"M"); //Ignore Address!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(menuoptions[advancedoptions],"I"); //Ignore EIP!
+				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
 			}
 			break;
 		default: //Just in case!
-			strcat(menuoptions[advancedoptions], "<UNKNOWN. CHECK SETTINGS VERSION>");
+			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
 			break;
 	}
 	++advancedoptions; //Increase after!
 
 setArchitecture: //For fixing it!
 	optioninfo[advancedoptions] = 16; //Architecture!
-	strcpy(menuoptions[advancedoptions], "Architecture: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
 	case ARCHITECTURE_XT:
-		strcat(menuoptions[advancedoptions++], "XT");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "XT");
 		break;
 	case ARCHITECTURE_AT:
-		strcat(menuoptions[advancedoptions++], "AT");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "AT");
 		break;
 	case ARCHITECTURE_PS2:
-		strcat(menuoptions[advancedoptions++], "PS/2");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "PS/2");
 		break;
 	case ARCHITECTURE_COMPAQ:
-		strcat(menuoptions[advancedoptions++], "Compaq Deskpro 386");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.architecture = ARCHITECTURE_XT; //Reset/Fix!
@@ -5237,17 +5237,17 @@ setArchitecture: //For fixing it!
 
 setBIOSROMmode: //For fixing it!
 	optioninfo[advancedoptions] = 17; //BIOS ROM mode!
-	strcpy(menuoptions[advancedoptions], "BIOS ROM mode: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "BIOS ROM mode: ");
 	switch (BIOS_Settings.BIOSROMmode) //What architecture?
 	{
 	case BIOSROMMODE_NORMAL:
-		strcat(menuoptions[advancedoptions++], "Normal BIOS ROM");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Normal BIOS ROM");
 		break;
 	case BIOSROMMODE_DIAGNOSTICS:
-		strcat(menuoptions[advancedoptions++], "Diagnostic ROM");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Diagnostic ROM");
 		break;
 	case BIOSROMMODE_UROMS:
-		strcat(menuoptions[advancedoptions++], "Enforce normal U-ROMs");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enforce normal U-ROMs");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.BIOSROMmode = DEFAULT_BIOSROMMODE; //Reset/Fix!
@@ -5258,14 +5258,14 @@ setBIOSROMmode: //For fixing it!
 
 setInboardInitialWaitstates: //For fixing it!
 	optioninfo[advancedoptions] = 18; //Inboard Initial Waitstates!
-	strcpy(menuoptions[advancedoptions], "Inboard Initial Waitstates: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Inboard Initial Waitstates: ");
 	switch (BIOS_Settings.InboardInitialWaitstates) //What architecture?
 	{
 	case 0:
-		strcat(menuoptions[advancedoptions++], "Default waitstates");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Default waitstates");
 		break;
 	case 1:
-		strcat(menuoptions[advancedoptions++], "No waitstates");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "No waitstates");
 		break;
 	default: //Error: fix it!
 		BIOS_Settings.InboardInitialWaitstates = DEFAULT_INBOARDINITIALWAITSTATES; //Reset/Fix!
@@ -5817,8 +5817,8 @@ void BIOS_DataBusSizeSetting()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Full sized data bus of 16/32-bits"); //Set filename from options!
-	strcpy(itemlist[1], "Reduced data bus size"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Full sized data bus of 16/32-bits"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Reduced data bus size"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.DataBusSize) //What setting?
 	{
@@ -5926,20 +5926,20 @@ void BIOS_GenerateFloppyDisk()
 				{
 					if (floppygeometries[i].KB%10) //3 digits?
 					{
-						sprintf(itemlist[i],"%01.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else if (floppygeometries[i].KB%100) //2 digits?
 					{
-						sprintf(itemlist[i],"%01.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else //1 digit?
 					{
-						sprintf(itemlist[i],"%01.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 				}
 				else //Whole MB?
 				{
-					sprintf(itemlist[i],"%uMB disk 3.5\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
+					snprintf(itemlist[i],sizeof(itemlist[0]),"%uMB disk 3.5\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
 				}
 			}
 			else //5.25"?
@@ -5948,20 +5948,20 @@ void BIOS_GenerateFloppyDisk()
 				{
 					if (floppygeometries[i].KB%10) //3 digits?
 					{
-						sprintf(itemlist[i],"%01.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else if (floppygeometries[i].KB%100) //2 digits?
 					{
-						sprintf(itemlist[i],"%01.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 					else //1 digit?
 					{
-						sprintf(itemlist[i],"%01.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
+						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
 					}
 				}
 				else //Whole MB?
 				{
-					sprintf(itemlist[i],"%uMB disk 5.25\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
+					snprintf(itemlist[i],sizeof(itemlist[0]),"%uMB disk 5.25\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
 				}
 			}
 		}
@@ -5969,11 +5969,11 @@ void BIOS_GenerateFloppyDisk()
 		{
 			if (floppygeometries[i].measurement) //3.5"?
 			{
-				sprintf(itemlist[i],"%uKB disk 3.5\"",floppygeometries[i].KB); //Disk!
+				snprintf(itemlist[i],sizeof(itemlist[0]),"%uKB disk 3.5\"",floppygeometries[i].KB); //Disk!
 			}
 			else //5.25"?
 			{
-				sprintf(itemlist[i],"%uKB disk 5.25\"",floppygeometries[i].KB); //Disk!
+				snprintf(itemlist[i],sizeof(itemlist[0]),"%uKB disk 5.25\"",floppygeometries[i].KB); //Disk!
 			}
 		}
 	}
@@ -5997,9 +5997,9 @@ void BIOS_GenerateFloppyDisk()
 		{
 			if (strcmp(filename, "") != 0) //Got input?
 			{
-				if (strlen(filename) <= (255 - 4)) //Not too long?
+				if (safestrlen(filename,sizeof(filename)) <= (255 - 4)) //Not too long?
 				{
-					strcat(filename, ".img"); //Add the extension!
+					safestrcat(filename,sizeof(filename), ".img"); //Add the extension!
 					EMU_locktext();
 					EMU_gotoxy(0, 5); //Goto position for info!
 					GPU_EMU_printscreen(0, 5, "Filename: %s", filename); //Show the filename!
@@ -6016,9 +6016,9 @@ void BIOS_GenerateFloppyDisk()
 						EMU_unlocktext();
 
 						memset(&fullfilename, 0, sizeof(fullfilename));
-						strcpy(fullfilename, diskpath);
-						strcat(fullfilename, "/");
-						strcat(fullfilename, filename);
+						safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
+						safestrcat(fullfilename,sizeof(fullfilename), "/");
+						safestrcat(fullfilename,sizeof(fullfilename), filename);
 
 						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
@@ -6079,9 +6079,9 @@ void BIOS_VGASynchronization()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Old synchronization depending on host"); //Set filename from options!
-	strcpy(itemlist[1], "Synchronize depending on host"); //Set filename from options!
-	strcpy(itemlist[2], "Full CPU synchronization"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Old synchronization depending on host"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Synchronize depending on host"); //Set filename from options!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]), "Full CPU synchronization"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.VGASynchronization) //What setting?
 	{
@@ -6144,27 +6144,27 @@ void BIOS_DumpVGA()
 	if (VGA) //Valid VGA?
 	{
 		domkdir(capturepath); //Make sure to create the directory we need!
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_vram.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_vram.dat"); //The full filename!
 		f = fopen(fullfilename,"wb");
 		if (f)
 		{
 			fwrite(VGA->VRAM,1,VGA->VRAM_size,f); //Write the VRAM to the file!
 			fclose(f); //We've written the VRAM to the file!
 		}
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_graphregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_graphregs.dat"); //The full filename!
 		f = fopen(fullfilename,"wb");
 		if (f)
 		{
 			fwrite(&VGA->registers->GraphicsRegisters.DATA,1,sizeof(VGA->registers->GraphicsRegisters.DATA),f);
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_seqregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_seqregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		if (f)
 		{
@@ -6172,9 +6172,9 @@ void BIOS_DumpVGA()
 			fclose(f); //We've written the Sequencer Registers to the file!
 		}
 
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_attrregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_attrregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		if (f)
 		{
@@ -6182,9 +6182,9 @@ void BIOS_DumpVGA()
 			fclose(f); //We've written the Attribute Controller Registers to the file!
 		}
 
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_crtcregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_crtcregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		if (f)
 		{
@@ -6192,9 +6192,9 @@ void BIOS_DumpVGA()
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
 
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_dacregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_dacregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		if (f)
 		{
@@ -6210,46 +6210,46 @@ void BIOS_DumpVGA()
 			fclose(f); //We've written the Graphics Registers to the file!
 		}
 		
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_colorregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_colorregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		fwrite(&VGA->registers->ColorRegisters,1,sizeof(VGA->registers->ColorRegisters),f); //Literal color registers!
 		fclose(f);
 
-		strcpy(fullfilename, capturepath); //Disk path!
-		strcat(fullfilename, "/");
-		strcat(fullfilename, "vga_externalregs.dat"); //The full filename!
+		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+		safestrcat(fullfilename,sizeof(fullfilename), "/");
+		safestrcat(fullfilename,sizeof(fullfilename), "vga_externalregs.dat"); //The full filename!
 		f = fopen(fullfilename, "wb");
 		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
 		fclose(f);
 
 		if (VGA->registers->specialCGAflags&1) //CGA compatiblity enabled?
 		{
-			strcpy(fullfilename, capturepath); //Disk path!
-			strcat(fullfilename, "/");
-			strcat(fullfilename, "vga_cgamdacrtcregs.dat"); //The full filename!
+			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgamdacrtcregs.dat"); //The full filename!
 			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
 			fclose(f);
 
-			strcpy(fullfilename, capturepath); //Disk path!
-			strcat(fullfilename, "/");
-			strcat(fullfilename, "vga_cgamodecontrol.dat"); //The full filename!
+			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgamodecontrol.dat"); //The full filename!
 			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
 			fclose(f);
 			
-			strcpy(fullfilename, capturepath); //Disk path!
-			strcat(fullfilename, "/");
-			strcat(fullfilename, "vga_cgapaletteregister.dat"); //The full filename!
+			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgapaletteregister.dat"); //The full filename!
 			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
 			fclose(f);
 
-			strcpy(fullfilename, capturepath); //Disk path!
-			strcat(fullfilename, "/");
-			strcat(fullfilename, "vga_mdamodecontrol.dat"); //The full filename!
+			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+			safestrcat(fullfilename,sizeof(fullfilename), "/");
+			safestrcat(fullfilename,sizeof(fullfilename), "vga_mdamodecontrol.dat"); //The full filename!
 			f = fopen(fullfilename, "wb");
 			fwrite(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
 			fclose(f);
@@ -6267,9 +6267,9 @@ void BIOS_DumpVGA()
 			switch (VGA->enable_SVGA) //What SVGA is emulated?
 			{
 			case 1: //ET4000?
-				strcpy(fullfilename, capturepath); //Disk path!
-				strcat(fullfilename, "/");
-				strcat(fullfilename, "vga_et4000.dat"); //The full filename!
+				safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+				safestrcat(fullfilename,sizeof(fullfilename), "/");
+				safestrcat(fullfilename,sizeof(fullfilename), "vga_et4000.dat"); //The full filename!
 				f = fopen(fullfilename, "wb");
 				fwrite(&et34k(VGA)->store_et4k_3d4_31,1,1,f); //Register 31h!
 				fwrite(&et34k(VGA)->store_et4k_3d4_32,1,1,f); //Register 32h!
@@ -6281,9 +6281,9 @@ void BIOS_DumpVGA()
 				fwrite(&et34k(VGA)->store_et4k_3d4_3f,1,1,f); //Register 3fh!
 				break;
 			case 2: //ET3000?
-				strcpy(fullfilename, capturepath); //Disk path!
-				strcat(fullfilename, "/");
-				strcat(fullfilename, "vga_et3000.dat"); //The full filename!
+				safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
+				safestrcat(fullfilename,sizeof(fullfilename), "/");
+				safestrcat(fullfilename,sizeof(fullfilename), "vga_et3000.dat"); //The full filename!
 				f = fopen(fullfilename, "wb");
 				fwrite(&et34k(VGA)->store_et3k_3d4_1b,1,1,f); //Register 1bh!
 				fwrite(&et34k(VGA)->store_et3k_3d4_1c,1,1,f); //Register 1ch!
@@ -6362,10 +6362,10 @@ void BIOS_CGAModel()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Old-style RGB"); //Old-style RGB!
-	strcpy(itemlist[1], "Old-style NTSC"); //Old-style NTSC!
-	strcpy(itemlist[2], "New-style RGB"); //New-style RGB!
-	strcpy(itemlist[3], "New-style NTSC"); //New-style NTSC!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Old-style RGB"); //Old-style RGB!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Old-style NTSC"); //Old-style NTSC!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]), "New-style RGB"); //New-style RGB!
+	safestrcpy(itemlist[3],sizeof(itemlist[0]), "New-style NTSC"); //New-style NTSC!
 	int current = 0;
 	switch (BIOS_Settings.CGAModel) //What setting?
 	{
@@ -6422,12 +6422,12 @@ void BIOS_gamingmodeJoystick()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Normal gaming mode mapped input"); //Default to mapped input!
-	strcpy(itemlist[1], "Joystick, Cross=Button 1, Circle=Button 2"); //Joystick: Cross=Button 1, Circle=Button 2!
-	strcpy(itemlist[2], "Joystick, Cross=Button 2, Circle=Button 1"); //Joystick: Cross=Button 2, Circle=Button 1!
-	strcpy(itemlist[3], "Joystick, Gravis Gamepad"); //Gravis Gamepad!
-	strcpy(itemlist[4], "Joystick, Gravis Analog Pro"); //Gravis Analog Pro!
-	strcpy(itemlist[5], "Joystick, Logitech WingMan Extreme Digital"); //Logitech WingMan Extreme Digital!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Normal gaming mode mapped input"); //Default to mapped input!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Joystick, Cross=Button 1, Circle=Button 2"); //Joystick: Cross=Button 1, Circle=Button 2!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]), "Joystick, Cross=Button 2, Circle=Button 1"); //Joystick: Cross=Button 2, Circle=Button 1!
+	safestrcpy(itemlist[3],sizeof(itemlist[0]), "Joystick, Gravis Gamepad"); //Gravis Gamepad!
+	safestrcpy(itemlist[4],sizeof(itemlist[0]), "Joystick, Gravis Analog Pro"); //Gravis Analog Pro!
+	safestrcpy(itemlist[5],sizeof(itemlist[0]), "Joystick, Logitech WingMan Extreme Digital"); //Logitech WingMan Extreme Digital!
 	int current = 0;
 	switch (BIOS_Settings.input_settings.gamingmode_joystick) //What setting?
 	{
@@ -6529,9 +6529,9 @@ void BIOS_useSoundBlaster()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Disabled"); //Set filename from options!
-	strcpy(itemlist[1], "Version 1.5"); //Set filename from options!
-	strcpy(itemlist[2], "Version 2.0"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Disabled"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Version 1.5"); //Set filename from options!
+	safestrcpy(itemlist[2],sizeof(itemlist[0]), "Version 2.0"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.useSoundBlaster) //What setting?
 	{
@@ -6898,47 +6898,47 @@ void BIOS_breakpoint()
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
-			sprintf(breakpointstr,"%04X:%04X",0,0); //seg16:offs16 default!
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",0,0); //seg16:offs16 default!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(breakpointstr,"M"); //Ignore mode!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
 			break;
 		case 1: //Real mode?
-			sprintf(breakpointstr,"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(breakpointstr,"M"); //Ignore mode!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
 			break;
 		case 2: //Protected mode?
-			sprintf(breakpointstr,"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(breakpointstr,"M"); //Ignore mode!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
-			sprintf(breakpointstr,"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
-				strcat(breakpointstr,"M"); //Ignore mode!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
-				strcat(breakpointstr,"I"); //Ignore EIP!
+				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
 			break;
 		default: //Just in case!
@@ -6965,20 +6965,20 @@ void BIOS_breakpoint()
 		{
 			//Convert the string back into our valid numbers for storage!
 			mode = 1; //Default to real mode!
-			ignoreEIP = (breakpointstr[strlen(breakpointstr)-1]=='I'); //Ignore EIP?
-			if (ignoreEIP) breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
-			ignoreAddress = (breakpointstr[strlen(breakpointstr)-1]=='M'); //Ignore address?
-			if (ignoreAddress) breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
-			switch (breakpointstr[strlen(breakpointstr)-1]) //Identifier for the mode?
+			ignoreEIP = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
+			if (ignoreEIP) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
+			ignoreAddress = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='M'); //Ignore address?
+			if (ignoreAddress) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
+			switch (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]) //Identifier for the mode?
 			{
 				case 'P': //Protected mode?
 					mode = 2; //Protected mode!
-					breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
+					breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 					maxoffsetsize = 8; //We're up to 8 hexadecimal values in this mode!
 					goto handlemode;
 				case 'V': //Virtual 8086 mode?
 					mode = 3; //Virtual 8086 mode!
-					breakpointstr[strlen(breakpointstr)-1] = '\0'; //Take off the mode identifier!
+					breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 				default: //Real mode?
 					handlemode: //Handle the other modes!
 					temp = &breakpointstr[0]; //First character!
@@ -7047,9 +7047,9 @@ void BIOS_ROMMode()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[BIOSROMMODE_NORMAL], "Normal BIOS ROM"); //Set filename from options!
-	strcpy(itemlist[BIOSROMMODE_DIAGNOSTICS], "Diagnostic ROM"); //Set filename from options!
-	strcpy(itemlist[BIOSROMMODE_UROMS], "Enforce normal U-ROMs"); //Set filename from options!
+	safestrcpy(itemlist[BIOSROMMODE_NORMAL],sizeof(itemlist[0]), "Normal BIOS ROM"); //Set filename from options!
+	safestrcpy(itemlist[BIOSROMMODE_DIAGNOSTICS],sizeof(itemlist[0]), "Diagnostic ROM"); //Set filename from options!
+	safestrcpy(itemlist[BIOSROMMODE_UROMS],sizeof(itemlist[0]), "Enforce normal U-ROMs"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.BIOSROMmode) //What setting?
 	{
@@ -7105,8 +7105,8 @@ void BIOS_InboardInitialWaitstates()
 	{
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
-	strcpy(itemlist[0], "Default waitstates"); //Set filename from options!
-	strcpy(itemlist[1], "No waitstates"); //Set filename from options!
+	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Default waitstates"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "No waitstates"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.InboardInitialWaitstates) //What setting?
 	{

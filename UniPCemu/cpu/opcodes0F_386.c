@@ -676,8 +676,8 @@ OPTINLINE void modrm_actualdebuggerSZX(char *instruction)
 {
 	char result[256];
 	cleardata(&result[0],sizeof(result));
-	strcpy(result,instruction); //Set the instruction!
-	strcat(result," %s,%s"); //2 params!
+	safestrcpy(result,sizeof(result),instruction); //Set the instruction!
+	safestrcat(result,sizeof(result)," %s,%s"); //2 params!
 	debugger_setcommand(result,modrm_param1,modrm_param2);
 }
 

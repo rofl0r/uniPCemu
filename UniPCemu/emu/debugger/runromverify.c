@@ -45,8 +45,8 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
 	char filename2[256];
 	cleardata(&filename2[0],sizeof(filename2)); //Clear the filename!
-	strcpy(filename2,filename); //Set the filename to use!
-	strcat(filename2,".hwint.txt"); //Use HW interrupts? Simple text file will do!
+	safestrcpy(filename2,sizeof(filename2),filename); //Set the filename to use!
+	safestrcat(filename2,sizeof(filename2),".hwint.txt"); //Use HW interrupts? Simple text file will do!
 	useHWInterrupts = file_exists(filename2); //Use hardware interrupts when specified!
 	dolog("debugger","RunROMVerify...");
 	FILE *f;

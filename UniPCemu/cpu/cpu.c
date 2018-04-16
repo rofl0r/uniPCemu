@@ -309,7 +309,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 		//Process debugger!
 		char result[256];
 		cleardata(&result[0],sizeof(result));
-		strcpy(result,instruction); //Set the instruction!
+		safestrcpy(result,sizeof(result),instruction); //Set the instruction!
 		switch (type)
 		{
 			case PARAM_MODRM1: //Param1 only?
@@ -370,66 +370,66 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 				break;
 			case PARAM_MODRM_0:
 			case PARAM_MODRM1: //Param1 only?
-				strcat(result," %s"); //1 param!
+				safestrcat(result,sizeof(result)," %s"); //1 param!
 				debugger_setcommand(result,modrm_param1);
 				break;
 			case PARAM_MODRM_1:
 			case PARAM_MODRM2: //Param2 only?
-				strcat(result," %s"); //1 param!
+				safestrcat(result,sizeof(result)," %s"); //1 param!
 				debugger_setcommand(result,modrm_param2);
 				break;
 			case PARAM_MODRM_01:
 			case PARAM_MODRM12: //param1,param2
-				strcat(result," %s,%s"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s"); //2 params!
 				debugger_setcommand(result,modrm_param1,modrm_param2);
 				break;
 			case PARAM_MODRM_01_IMM8:
 			case PARAM_MODRM12_IMM8: //param1,param2,imm8
-				strcat(result," %s,%s,%02X"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s,%02X"); //2 params!
 				debugger_setcommand(result,modrm_param1,modrm_param2,paramdata);
 				break;
 			case PARAM_MODRM_01_CL:
 			case PARAM_MODRM12_CL: //param1,param2,CL
-				strcat(result," %s,%s,CL"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s,CL"); //2 params!
 				debugger_setcommand(result,modrm_param1,modrm_param2);
 				break;
 			case PARAM_MODRM_10:
 			case PARAM_MODRM21: //param2,param1
-				strcat(result," %s,%s"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s"); //2 params!
 				debugger_setcommand(result,modrm_param2,modrm_param1);
 				break;
 			case PARAM_MODRM_10_IMM8:
 			case PARAM_MODRM21_IMM8: //param2,param1,imm8
-				strcat(result," %s,%s,%02X"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s,%02X"); //2 params!
 				debugger_setcommand(result,modrm_param2,modrm_param1,paramdata);
 				break;
 			case PARAM_MODRM_10_CL:
 			case PARAM_MODRM21_CL: //param2,param1,CL
-				strcat(result," %s,%s,CL"); //2 params!
+				safestrcat(result,sizeof(result)," %s,%s,CL"); //2 params!
 				debugger_setcommand(result,modrm_param2,modrm_param1);
 				break;
 			case PARAM_IMM8: //imm8
-				strcat(result," %02X"); //1 param!
+				safestrcat(result,sizeof(result)," %02X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM8_PARAM: //imm8
-				strcat(result,"%02X"); //1 param!
+				safestrcat(result,sizeof(result),"%02X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM16: //imm16
-				strcat(result," %04X"); //1 param!
+				safestrcat(result,sizeof(result)," %04X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM16_PARAM: //imm16
-				strcat(result,"%04X"); //1 param!
+				safestrcat(result,sizeof(result),"%04X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM32: //imm32
-				strcat(result," %08X"); //1 param!
+				safestrcat(result,sizeof(result)," %08X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			case PARAM_IMM32_PARAM: //imm32
-				strcat(result,"%08X"); //1 param!
+				safestrcat(result,sizeof(result),"%08X"); //1 param!
 				debugger_setcommand(result,paramdata);
 				break;
 			default: //Unknown?

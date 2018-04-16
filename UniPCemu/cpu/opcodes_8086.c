@@ -5214,7 +5214,7 @@ void op_grp3_16() {
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1 = signext(oper1b); oper2 = signext(oper2b);
-	//sprintf(msg, "  Oper1: %04X    Oper2: %04X\n", oper1, oper2); print(msg);
+	//snprintf(msg,sizeof(msg), "  Oper1: %04X    Oper2: %04X\n", oper1, oper2); print(msg);
 	switch (thereg) {
 	case 0: case 1: //TEST
 		CPU8086_internal_TEST16(oper1, immw, 3);

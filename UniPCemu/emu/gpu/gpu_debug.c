@@ -14,11 +14,11 @@ void dumpscreen()
 	f = fopen("SCREEN.TXT","w"); //Open file!
 	char lb[3];
 	cleardata(&lb[0],sizeof(lb));
-	strcpy(lb,"\r\n"); //Line break!
+	safestrcpy(lb,sizeof(lb),"\r\n"); //Line break!
 
 	char message[256];
 	cleardata(&message[0],sizeof(message)); //Init!
-	sprintf(message,"Screen width: %u",getscreenwidth());
+	snprintf(message,sizeof(message),"Screen width: %u",getscreenwidth());
 
 	fwrite(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!

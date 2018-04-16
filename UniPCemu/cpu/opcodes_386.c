@@ -3436,7 +3436,7 @@ void op_grp3_32() {
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1d = signext(oper1b); oper2d = signext(oper2b);
-	//sprintf(msg, "  oper1d: %04X    oper2d: %04X\n", oper1d, oper2d); print(msg);
+	//snprintf(msg,sizeof(msg), "  oper1d: %04X    oper2d: %04X\n", oper1d, oper2d); print(msg);
 	switch (thereg) {
 	case 0: case 1: //TEST
 		CPU80386_internal_TEST32(oper1d, imm32, 3);

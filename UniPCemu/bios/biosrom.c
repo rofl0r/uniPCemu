@@ -52,16 +52,16 @@ uint_32 BIOSROM_BASE_XT = 0xF0000; //XT BIOS ROM base!
 
 extern byte is_Compaq; //Are we emulating a Compaq device?
 
-void scanROM(char *device, char *filename)
+void scanROM(char *device, char *filename, uint_32 size)
 {
 	//Special case: 32-bit uses Compaq ROMs!
-	sprintf(filename, "%s/%s.%s.BIN", ROMpath,device,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+	snprintf(filename,size, "%s/%s.%s.BIN", ROMpath,device,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
 	if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 	{
-		sprintf(filename, "%s/%s.%s.BIN", ROMpath,device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+		snprintf(filename,size, "%s/%s.%s.BIN", ROMpath,device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
 		if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 		{
-			sprintf(filename,"%s/%s.BIN",ROMpath,device); //CGA ROM!
+			snprintf(filename,size,"%s/%s.BIN",ROMpath,device); //CGA ROM!
 		}
 	}
 }
@@ -83,18 +83,18 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location<0x20000);i++) //Process all ROMS we can process!
 	{
 		FILE *f;
-		char filename[100];
+		char filename[256];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
 		if (i) //Not Graphics Adapter ROM?
 		{
 			//Default!
-			sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT")), i); //Create the filename for the ROM for the architecture!
+			snprintf(filename,sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT")), i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				sprintf(filename, "%s/OPTROM.%s.%u.BIN", ROMpath,is_XT?"XT":"AT", i); //Create the filename for the ROM for the architecture!
+				snprintf(filename,sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath,is_XT?"XT":"AT", i); //Create the filename for the ROM for the architecture!
 				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 				{
-					sprintf(filename, "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+					snprintf(filename,sizeof(filename), "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
 				}
 			}
 		}
@@ -103,18 +103,18 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			ISVGA = 0; //No VGA!
 			if (BIOS_Settings.VGA_Mode==4) //Pure CGA?
 			{
-				scanROM("CGAROM",&filename[0]); //Scan for a CGA ROM!
+				scanROM("CGAROM",&filename[0],sizeof(filename)); //Scan for a CGA ROM!
 			}
 			else if (BIOS_Settings.VGA_Mode==5) //Pure MDA?
 			{
-				scanROM("MDAROM",&filename[0]); //Scan for a MDA ROM!
+				scanROM("MDAROM",&filename[0],sizeof(filename)); //Scan for a MDA ROM!
 			}
 			else
 			{	
 				ISVGA = 1; //We're a VGA!
 				if (BIOS_Settings.VGA_Mode==6) //ET4000?
 				{
-					scanROM("ET4000",&filename[0]); //Scan for a ET4000 ROM!
+					scanROM("ET4000",&filename[0],sizeof(filename)); //Scan for a ET4000 ROM!
 					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full ET4000?
 					{
@@ -123,12 +123,12 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					}
 					else //VGA ROM?
 					{
-						strcpy(filename, ""); //VGA ROM!
+						safestrcpy(filename,sizeof(filename), ""); //VGA ROM!
 					}
 				}
 				else if (BIOS_Settings.VGA_Mode == 7) //ET3000?
 				{
-					scanROM("ET3000",&filename[0]); //Scan for a ET3000 ROM!
+					scanROM("ET3000",&filename[0],sizeof(filename)); //Scan for a ET3000 ROM!
 					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full ET3000?
 					{
@@ -137,12 +137,12 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					}
 					else //VGA ROM?
 					{
-						strcpy(filename, ""); //VGA ROM!
+						safestrcpy(filename,sizeof(filename), ""); //VGA ROM!
 					}
 				}
 				else if (BIOS_Settings.VGA_Mode == 8) //EGA?
 				{
-					scanROM("EGAROM",&filename[0]); //Scan for a EGA ROM!
+					scanROM("EGAROM",&filename[0],sizeof(filename)); //Scan for a EGA ROM!
 					//Provide emulator fallback support!
 					if (file_exists(filename)) //Full EGA?
 					{
@@ -151,12 +151,12 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					}
 					else //VGA ROM?
 					{
-						strcpy(filename, ""); //VGA ROM!
+						safestrcpy(filename,sizeof(filename), ""); //VGA ROM!
 					}
 				}
 				else //Plain VGA?
 				{
-					scanROM("VGAROM",&filename[0]); //Scan for a VGA ROM!
+					scanROM("VGAROM",&filename[0],sizeof(filename)); //Scan for a VGA ROM!
 				}
 			}
 		}
@@ -221,7 +221,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			
 			OPTROM_location[i] = location; //The option ROM location we're loaded at!
 			cleardata(&OPTROM_filename[i][0],sizeof(OPTROM_filename[i])); //Init filename!
-			strcpy(OPTROM_filename[i],filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
+			safestrcpy(OPTROM_filename[i],sizeof(OPTROM_filename[0]),filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
 
 			location += OPTROM_size[i]; //Next ROM position!
 			OPTROM_location[i] |= ((uint_64)location<<32); //The end location of the option ROM!
@@ -245,9 +245,9 @@ void BIOS_freeOPTROMS()
 	{
 		if (OPT_ROMS[i]) //Loaded?
 		{
-			char filename[100];
+			char filename[256];
 			memset(&filename,0,sizeof(filename)); //Clear/init!
-			strcpy(filename,OPTROM_filename[i]); //Set the filename from the loaded ROM!
+			safestrcpy(filename,sizeof(filename),OPTROM_filename[i]); //Set the filename from the loaded ROM!
 			freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Release the OPT ROM!
 		}
 	}
@@ -274,11 +274,11 @@ int BIOS_load_ROM(byte nr)
 	{
 		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-			sprintf(filename,"%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!		
+			snprintf(filename,sizeof(filename),"%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!		
 		}
 		else //Normal mode?
 		{
-			sprintf(filename,"%s/BIOSROM.32.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!		
+			snprintf(filename,sizeof(filename),"%s/BIOSROM.32.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!		
 		}
 		tryext = 1; //We're trying an extension!
 	}
@@ -286,11 +286,11 @@ int BIOS_load_ROM(byte nr)
 	{
 		if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-			sprintf(filename,"%s/BIOSROM.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"%s/BIOSROM.U%u.DIAGNOSTICS.BIN",ROMpath,nr); //Create the filename for the ROM!
 		}
 		else
 		{
-			sprintf(filename,"%s/BIOSROM.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"%s/BIOSROM.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!
 		}
 	}
 	f = fopen(filename,"rb");
@@ -404,18 +404,18 @@ byte ROM_doubling = 0; //Double the ROM?
 int BIOS_load_custom(char *path, char *rom)
 {
 	FILE *f;
-	char filename[100];
+	char filename[256];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 	if (!path)
 	{
-		strcpy(filename,ROMpath); //Where to find our ROM!
+		safestrcpy(filename,sizeof(filename),ROMpath); //Where to find our ROM!
 	}
 	else
 	{
-		strcpy(filename, path); //Where to find our ROM!
+		safestrcpy(filename,sizeof(filename), path); //Where to find our ROM!
 	}
-	if (strcmp(filename, "") != 0) strcat(filename, "/"); //Only a seperator when not empty!
-	strcat(filename,rom); //Create the filename for the ROM!
+	if (strcmp(filename, "") != 0) safestrcat(filename,sizeof(filename), "/"); //Only a seperator when not empty!
+	safestrcat(filename,sizeof(filename),rom); //Create the filename for the ROM!
 	f = fopen(filename,"rb");
 	if (!f)
 	{
@@ -439,7 +439,7 @@ int BIOS_load_custom(char *path, char *rom)
 			return 0; //Failed to read!
 		}
 		fclose(f); //Close the file!
-		strcpy(customROMname,filename); //Custom ROM name for easy dealloc!
+		safestrcpy(customROMname,sizeof(customROMname),filename); //Custom ROM name for easy dealloc!
 		//Update the base address to use for this CPU!
 		ROM_doubling = 0; //Default: no ROM doubling!
 		if (BIOS_custom_ROM_size<=0x8000) //Safe to double?
@@ -470,22 +470,22 @@ void BIOS_free_ROM(byte nr)
 	{
 		if (BIOS_ROMS_ext[nr]&2) //Diagnostic ROM?
 		{
-			sprintf(filename,"BIOSROM.32.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"BIOSROM.32.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
 		}
 		else //Normal ROM?
 		{
-			sprintf(filename,"BIOSROM.32.U%u.BIN",nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"BIOSROM.32.U%u.BIN",nr); //Create the filename for the ROM!
 		}
 	}
 	else
 	{
 		if (BIOS_ROMS_ext[nr]&2) //Diagnostic ROM?
 		{
-			sprintf(filename,"BIOSROM.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"BIOSROM.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
 		}
 		else //Normal ROM?
 		{
-			sprintf(filename,"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+			snprintf(filename,sizeof(filename),"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
 		}
 	}
 	if (BIOS_ROM_size[nr]) //Has size?
@@ -496,13 +496,13 @@ void BIOS_free_ROM(byte nr)
 
 void BIOS_free_custom(char *rom)
 {
-	char filename[100];
+	char filename[256];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 	if (rom==NULL) //NULL ROM (Autodetect)?
 	{
 		rom = &customROMname[0]; //Use custom ROM name!
 	}
-	strcpy(filename,rom); //Create the filename for the ROM!
+	safestrcpy(filename,sizeof(filename),rom); //Create the filename for the ROM!
 	if (BIOS_custom_ROM_size) //Has size?
 	{
 		freez((void **)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Release the BIOS ROM!
@@ -532,8 +532,8 @@ void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purpose
 	if (BIOS_custom_ROM == &EMU_BIOS[0]) //We're our own BIOS?
 	{
 		memset(&path,0,sizeof(path));
-		strcpy(path,ROMpath); //Current ROM path!
-		strcat(path,"/SYSROM.DMP.BIN"); //Dump path!
+		safestrcpy(path,sizeof(path),ROMpath); //Current ROM path!
+		safestrcat(path,sizeof(path),"/SYSROM.DMP.BIN"); //Dump path!
 		//Dump our own BIOS ROM!
 		FILE *f;
 		f = fopen(path, "wb");
@@ -1179,8 +1179,8 @@ void BIOSROM_dumpBIOS()
 		byte data;
 		char filename[2][100];
 		memset(&filename[0],0,sizeof(filename)); //Clear/init!
-		sprintf(filename[0], "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
-		sprintf(filename[1], "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[0],sizeof(filename), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[1],sizeof(filename), "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
 
 		f = fopen(filename[0],"wb");
 		if (!f) return;

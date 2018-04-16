@@ -120,40 +120,40 @@ void dump_CRTCTiming()
 	lockVGA(); //We don't want to corrupt the renderer's data!
 	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.rowstatus);i++)
 	{
-		sprintf(information,"Row #%u=",i); //Current row!
+		snprintf(information,sizeof(information),"Row #%u=",i); //Current row!
 		word status;
 		status = getActiveVGA()->CRTC.rowstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_VTOTAL)
 		{
-			sprintf(information,"%s+VTOTAL",information); //Add!
+			snprintf(information,sizeof(information),"%s+VTOTAL",information); //Add!
 		}
 		if (status&VGA_SIGNAL_VRETRACESTART)
 		{
-			sprintf(information,"%s+VRETRACESTART",information); //Add!
+			snprintf(information,sizeof(information),"%s+VRETRACESTART",information); //Add!
 		}
 		if (status&VGA_SIGNAL_VRETRACEEND)
 		{
-			sprintf(information,"%s+VRETRACEEND",information); //Add!
+			snprintf(information,sizeof(information),"%s+VRETRACEEND",information); //Add!
 		}
 		if (status&VGA_SIGNAL_VBLANKSTART)
 		{
-			sprintf(information,"%s+VBLANKSTART",information); //Add!
+			snprintf(information,sizeof(information),"%s+VBLANKSTART",information); //Add!
 		}
 		if (status&VGA_SIGNAL_VBLANKEND)
 		{
-			sprintf(information,"%s+VBLANKEND",information); //Add!
+			snprintf(information,sizeof(information),"%s+VBLANKEND",information); //Add!
 		}
 		if (status&VGA_VACTIVEDISPLAY)
 		{
-			sprintf(information,"%s+VACTIVEDISPLAY",information); //Add!
+			snprintf(information,sizeof(information),"%s+VACTIVEDISPLAY",information); //Add!
 		}
 		if (status&VGA_OVERSCAN)
 		{
-			sprintf(information,"%s+OVERSCAN",information); //Add!
+			snprintf(information,sizeof(information),"%s+OVERSCAN",information); //Add!
 		}
 		if (status&VGA_SIGNAL_VSYNCRESET)
 		{
-			sprintf(information,"%s+VSYNCRESET",information); //Add!
+			snprintf(information,sizeof(information),"%s+VSYNCRESET",information); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_VTOTAL) break; //Total reached? Don't look any further!
@@ -161,53 +161,53 @@ void dump_CRTCTiming()
 
 	for (i=0;i<NUMITEMS(getActiveVGA()->CRTC.colstatus);i++)
 	{
-		sprintf(information,"Col #%u=",i); //Current row!
+		snprintf(information,sizeof(information),"Col #%u=",i); //Current row!
 		word status, extrahorizontalstatus;
 		status = getActiveVGA()->CRTC.colstatus[i]; //Read the status for the column!
 		extrahorizontalstatus = getActiveVGA()->CRTC.extrahorizontalstatus[i]; //Read the extra status for the column!
 		if (status&VGA_SIGNAL_HTOTAL)
 		{
-			sprintf(information,"%s+HTOTAL",information); //Add!
+			snprintf(information,sizeof(information),"%s+HTOTAL",information); //Add!
 		}
 		if (status&VGA_SIGNAL_HRETRACESTART)
 		{
-			sprintf(information,"%s+HRETRACESTART",information); //Add!
+			snprintf(information,sizeof(information),"%s+HRETRACESTART",information); //Add!
 		}
 		if (status&VGA_SIGNAL_HRETRACEEND)
 		{
-			sprintf(information,"%s+HRETRACEEND",information); //Add!
+			snprintf(information,sizeof(information),"%s+HRETRACEEND",information); //Add!
 		}
 		if (status&VGA_SIGNAL_HBLANKSTART)
 		{
-			sprintf(information,"%s+HBLANKSTART",information); //Add!
+			snprintf(information,sizeof(information),"%s+HBLANKSTART",information); //Add!
 		}
 		if (status&VGA_SIGNAL_HBLANKEND)
 		{
-			sprintf(information,"%s+HBLANKEND",information); //Add!
+			snprintf(information,sizeof(information),"%s+HBLANKEND",information); //Add!
 		}
 		if (status&VGA_HACTIVEDISPLAY)
 		{
-			sprintf(information,"%s+HACTIVEDISPLAY",information); //Add!
+			snprintf(information,sizeof(information),"%s+HACTIVEDISPLAY",information); //Add!
 		}
 		if (status&VGA_OVERSCAN)
 		{
-			sprintf(information,"%s+OVERSCAN",information); //Add!
+			snprintf(information,sizeof(information),"%s+OVERSCAN",information); //Add!
 		}
 		if (status&VGA_SIGNAL_HSYNCRESET)
 		{
-			sprintf(information,"%s+HSYNCRESET",information); //Add!
+			snprintf(information,sizeof(information),"%s+HSYNCRESET",information); //Add!
 		}
 		if (extrahorizontalstatus & 1)
 		{
-			sprintf(information,"%s+WRITEBACK",information); //Add!
+			snprintf(information,sizeof(information),"%s+WRITEBACK",information); //Add!
 		}
 		if (extrahorizontalstatus & 2)
 		{
-			sprintf(information, "%s+HALFCLOCK", information); //Add!
+			snprintf(information,sizeof(information), "%s+HALFCLOCK", information); //Add!
 		}
 		if (extrahorizontalstatus & 4)
 		{
-			sprintf(information, "%s+WHOLECLOCK", information); //Add!
+			snprintf(information,sizeof(information), "%s+WHOLECLOCK", information); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL)

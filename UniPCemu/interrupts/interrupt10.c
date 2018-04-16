@@ -2262,7 +2262,7 @@ void int10_dumpscreen() //Dump screen to file!
 
 	char lb[3];
 	cleardata(&lb[0],sizeof(lb));
-	strcpy(lb,"\r\n"); //Line break!
+	safestrcpy(lb,sizeof(lb),"\r\n"); //Line break!
 
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Write a line break first!
 

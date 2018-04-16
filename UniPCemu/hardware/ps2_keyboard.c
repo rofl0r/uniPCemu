@@ -107,7 +107,7 @@ int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with 
 {
 	if (id<(int)NUMITEMS(keys_names)) //Valid?
 	{
-		strcpy(name,keys_names[id]); //Set name!
+		safestrcpy(name,256,keys_names[id]); //Set name!
 		return 1; //Gotten!
 	}
 	return 0; //Unknown!

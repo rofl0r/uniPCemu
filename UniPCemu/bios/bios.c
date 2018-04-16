@@ -55,20 +55,20 @@ extern char ROMpath[256];
 void BIOS_updateDirectories()
 {
 #ifdef ANDROID
-	strcpy(diskpath,UniPCEmu_root_dir); //Root dir!
-	strcat(diskpath,"/");
-	strcpy(soundfontpath,diskpath); //Clone!
-	strcpy(musicpath,diskpath); //Clone!
-	strcpy(capturepath,diskpath); //Clone!
-	strcpy(logpath,diskpath); //Clone!
-	strcpy(ROMpath,diskpath); //Clone!
+	safestrcpy(diskpath,sizeof(diskpath),UniPCEmu_root_dir); //Root dir!
+	safestrcat(diskpath,sizeof(diskpath),"/");
+	safestrcpy(soundfontpath,sizeof(soundfontpath),diskpath); //Clone!
+	safestrcpy(musicpath,sizeof(musicpath),diskpath); //Clone!
+	safestrcpy(capturepath,sizeof(capturepath),diskpath); //Clone!
+	safestrcpy(logpath,sizeof(logpath),diskpath); //Clone!
+	safestrcpy(ROMpath,sizeof(ROMpath),diskpath); //Clone!
 	//Now, create the actual subdirs!
-	strcat(diskpath,"disks");
-	strcat(soundfontpath,"soundfonts");
-	strcat(musicpath,"music");
-	strcat(capturepath,"captures");
-	strcat(logpath,"logs");
-	strcat(ROMpath,"ROM"); //ROM directory to use!
+	safestrcat(diskpath,sizeof(diskpath),"disks");
+	safestrcat(soundfontpath,sizeof(soundfontpath),"soundfonts");
+	safestrcat(musicpath,sizeof(musicpath),"music");
+	safestrcat(capturepath,sizeof(capturepath),"captures");
+	safestrcat(logpath,sizeof(logpath),"logs");
+	safestrcat(ROMpath,sizeof(ROMpath),"ROM"); //ROM directory to use!
 	//Now, all paths are loaded! Ready to run!
 #endif
 }
@@ -86,9 +86,9 @@ byte is_writablepath(char *path)
 	char fullpath[256];
 	FILE *f;
 	memset(&fullpath,0,sizeof(fullpath)); //init!
-	strcpy(fullpath,path); //Set the path!
-	strcat(fullpath,"/"); //Add directory seperator!
-	strcat(fullpath,"writable.txt"); //test file!
+	safestrcpy(fullpath,sizeof(fullpath),path); //Set the path!
+	safestrcat(fullpath,sizeof(fullpath),"/"); //Add directory seperator!
+	safestrcat(fullpath,sizeof(fullpath),"writable.txt"); //test file!
 	f = fopen(fullpath,"wb");
 	if (f)
 	{
@@ -174,15 +174,15 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			//Check the currently loaded path for writability!
 			if (is_writablepath(environment)) //Writable?
 			{
-				strcpy(UniPCEmu_root_dir,environment); //Root path of the disk!
+				safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir),environment); //Root path of the disk!
 				if (multipathseperator!=-1) //To revert multiple path seperator?
 				{
 					environment[multipathseperator] = ':'; //Restore the path seperator from the EOS!
 				}
 				//Root directory loaded!
-				strcat(UniPCEmu_root_dir,"/UniPCemu"); //Our storage path!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir),"/UniPCemu"); //Our storage path!
 				domkdir(UniPCEmu_root_dir); //Make sure to create our parent directory, if needed!
-				strcat(UniPCEmu_root_dir,"/files"); //Subdirectory to store the files!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir),"/files"); //Subdirectory to store the files!
 				goto finishpathsetting;
 			}
 			//To check the next path?
@@ -198,62 +198,62 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		scanAndroiddefaultpath:
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
-			strcpy(UniPCEmu_root_dir, getenv("SDCARD")); //path!
-			strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
+			safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir) getenv("SDCARD")); //path!
+			safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), "/Android/data/com.unipcemu.app/files");
 		#else
 			if ((environment = SDL_getenv("SDCARD"))!=NULL) //Autodetected?
 			{
-				strcpy(UniPCEmu_root_dir, environment); //path!
-				strcat(UniPCEmu_root_dir, "/Android/data/com.unipcemu.app/files");
+				safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), environment); //path!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), "/Android/data/com.unipcemu.app/files");
 			}
 			else if (SDL_AndroidGetExternalStorageState() == (SDL_ANDROID_EXTERNAL_STORAGE_WRITE | SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 			{
 				if (SDL_AndroidGetExternalStoragePath()) //Try external.
 				{
-					strcpy(UniPCEmu_root_dir, SDL_AndroidGetExternalStoragePath()); //External path!
+					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), SDL_AndroidGetExternalStoragePath()); //External path!
 				}
 				else if (SDL_AndroidGetInternalStoragePath()) //Try internal.
 				{
-					strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
+					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), SDL_AndroidGetInternalStoragePath()); //Internal path!
 				}
 			}
 			else
 			{
 				if (SDL_AndroidGetInternalStoragePath()) //Try internal.
 				{
-					strcpy(UniPCEmu_root_dir, SDL_AndroidGetInternalStoragePath()); //Internal path!
+					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), SDL_AndroidGetInternalStoragePath()); //Internal path!
 				}
 			}
 		#endif
 
 		finishpathsetting:
-		strcpy(BIOS_Settings_file,UniPCEmu_root_dir); //Our settings file location!
-		strcat(BIOS_Settings_file,"/"); //Inside the directory!
-		strcat(BIOS_Settings_file,DEFAULT_SETTINGS_FILE); //Our settings file!
+		safestrcpy(BIOS_Settings_file,sizeof(BIOS_Settings_file),UniPCEmu_root_dir); //Our settings file location!
+		safestrcat(BIOS_Settings_file,sizeof(BIOS_Settings_file),"/"); //Inside the directory!
+		safestrcat(BIOS_Settings_file,sizeof(BIOS_Settings_file),DEFAULT_SETTINGS_FILE); //Our settings file!
 		domkdir(UniPCEmu_root_dir); //Auto-create our root directory!
 		BIOS_updateDirectories(); //Update all directories!
 		//Normal devices? Don't detect!
 
 		//Check for redirection to apply!
 		memset(&redirectdir,0,sizeof(redirectdir)); //Init!
-		strcpy(redirectdir,UniPCEmu_root_dir); //Check for redirects!
-		strcat(redirectdir,"/"); //Inside the directory!
-		strcat(redirectdir,DEFAULT_REDIRECT_FILE); //Our redirect file!
+		safestrcpy(redirectdir,sizeof(redirectdir),UniPCEmu_root_dir); //Check for redirects!
+		safestrcat(redirectdir,sizeof(redirectdir),"/"); //Inside the directory!
+		safestrcat(redirectdir,sizeof(redirectdir),DEFAULT_REDIRECT_FILE); //Our redirect file!
 		#ifdef LOG_REDIRECT
 		char temppath[256];
 		memset(&temppath,0,sizeof(temppath)); //Set log path!
-		strcpy(temppath,logpath); //Set log path!
-		strcat(temppath,"/"); //Inside the directory!
-		strcat(temppath,DEFAULT_REDIRECT_FILE); //Log file for testing!
+		safestrcpy(temppath,sizeof(temppath),logpath); //Set log path!
+		safestrcat(temppath,sizeof(temppath),"/"); //Inside the directory!
+		safestrcat(temppath,sizeof(temppath),DEFAULT_REDIRECT_FILE); //Log file for testing!
 		char buffer[256];
 		FILE *f2;
 		char lb[2] = {0xD,0xA}; //Line break!
 		memset(&buffer,0,sizeof(buffer)); //Init buffer!
-		sprintf(buffer,"Redirect file: %s",redirectdir);
+		snprintf(buffer,sizeof(buffer),"Redirect file: %s",redirectdir);
 		f2 = fopen(temppath,"wb"); //Log the filename!
 		if (f2) //Valid?
 		{
-			fwrite(&buffer,1,strlen(buffer),f2); //Log!
+			fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 			fwrite(&lb,1,sizeof(lb),f2); //Line break!
 			fclose(f2); //Close!
 		}
@@ -262,11 +262,11 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		{
 			#ifdef LOG_REDIRECT
 			memset(&buffer,0,sizeof(buffer)); //Init buffer!
-			sprintf(buffer,"Attempting redirect...");
+			snprintf(buffer,sizeof(buffer),"Attempting redirect...");
 			f2 = fopen(temppath,"ab"); //Log the filename!
 			if (f2) //Valid?
 			{
-				fwrite(&buffer,1,strlen(buffer),f2); //Log!
+				fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 				fwrite(&lb,1,sizeof(lb),f2); //Line break!
 				fclose(f2); //Close!
 			}
@@ -276,11 +276,11 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			{
 				#ifdef LOG_REDIRECT
 				memset(&buffer,0,sizeof(buffer)); //Init buffer!
-				sprintf(buffer,"Valid file!");
+				snprintf(buffer,sizeof(buffer),"Valid file!");
 				f2 = fopen(temppath,"ab"); //Log the filename!
 				if (f2) //Valid?
 				{
-					fwrite(&buffer,1,strlen(buffer),f2); //Log!
+					fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 					fwrite(&lb,1,sizeof(lb),f2); //Line break!
 					fclose(f2); //Close!
 				}
@@ -290,11 +290,11 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				{
 					#ifdef LOG_REDIRECT
 					memset(&buffer,0,sizeof(buffer)); //Init buffer!
-					sprintf(buffer,"Valid size!");
+					snprintf(buffer,sizeof(buffer),"Valid size!");
 					f2 = fopen(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
 					{
-						fwrite(&buffer,1,strlen(buffer),f2); //Log!
+						fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 						fwrite(&lb,1,sizeof(lb),f2); //Line break!
 						fclose(f2); //Close!
 					}
@@ -305,42 +305,42 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					{
 						#ifdef LOG_REDIRECT
 						memset(&buffer,0,sizeof(buffer)); //Init buffer!
-						sprintf(buffer,"Valid content!");
+						snprintf(buffer,sizeof(buffer),"Valid content!");
 						f2 = fopen(temppath,"ab"); //Log the filename!
 						if (f2) //Valid?
 						{
-							fwrite(&buffer,1,strlen(buffer),f2); //Log!
+							fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 							fwrite(&lb,1,sizeof(lb),f2); //Line break!
 							fclose(f2); //Close!
 						}
 						#endif
-						for (;strlen(redirectdir);) //Valid to process?
+						for (;safestrlen(redirectdir,sizeof(redirectdir));) //Valid to process?
 						{
-							switch (redirectdir[strlen(redirectdir)-1]) //What is the final character?
+							switch (redirectdir[safestrlen(redirectdir,sizeof(redirectdir))-1]) //What is the final character?
 							{
 								case '/': //Invalid? Take it off!
-									if (strlen(redirectdir)>1) //More possible? Check for special path specification(e.g. :// etc.)!
+									if (safestrlen(redirectdir,sizeof(redirectdir))>1) //More possible? Check for special path specification(e.g. :// etc.)!
 									{
-										if (!is_textcharacter(redirectdir[strlen(redirectdir)-2])) //Not normal path?
+										if (!is_textcharacter(redirectdir[safestrlen(redirectdir,sizeof(redirectdir))-2])) //Not normal path?
 										{
-											redirectdir[strlen(redirectdir)-1] = '\0'; //Take it off, we're specifying the final slash ourselves!
+											redirectdir[safestrlen(redirectdir,sizeof(redirectdir))-1] = '\0'; //Take it off, we're specifying the final slash ourselves!
 											goto redirect_validpath;
 										}
 									}
 									//Invalid normal path: handle normally!
 								case '\n':
 								case '\r':
-									redirectdir[strlen(redirectdir)-1] = '\0'; //Take it off!
+									redirectdir[safestrlen(redirectdir,sizeof(redirectdir))-1] = '\0'; //Take it off!
 									break;
 								default:
 									redirect_validpath: //Apply valid directory for a root domain!
 									#ifdef LOG_REDIRECT
 									memset(&buffer,0,sizeof(buffer)); //Init buffer!
-									sprintf(buffer,"Trying: Redirecting to: %s",redirectdir); //Where are we redirecting to?
+									snprintf(buffer,sizeof(buffer),"Trying: Redirecting to: %s",redirectdir); //Where are we redirecting to?
 									f2 = fopen(temppath,"ab"); //Log the filename!
 									if (f2) //Valid?
 									{
-										fwrite(&buffer,1,strlen(buffer),f2); //Log!
+										fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 										fwrite(&lb,1,sizeof(lb),f2); //Line break!
 										fclose(f2); //Close!
 									}
@@ -366,14 +366,14 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				#endif
 				if (is_redirected && redirectdir[0]) //To redirect?
 				{
-					strcpy(UniPCEmu_root_dir,redirectdir); //The new path to use!
+					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir),redirectdir); //The new path to use!
 					#ifdef LOG_REDIRECT
 					memset(&buffer,0,sizeof(buffer)); //Init buffer!
-					sprintf(buffer,"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
+					snprintf(buffer,sizeof(buffer),"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
 					f2 = fopen(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
 					{
-						fwrite(&buffer,1,strlen(buffer),f2); //Log!
+						fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
 						fwrite(&lb,1,sizeof(lb),f2); //Line break!
 						fclose(f2); //Close!
 					}
@@ -452,8 +452,8 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	#endif
 	char limitfilename[256];
 	memset(&limitfilename,0,sizeof(limitfilename)); //Init!
-	strcpy(limitfilename,UniPCEmu_root_dir); //Root directory!
-	strcat(limitfilename,"/memorylimit.txt"); //Limit file path!
+	safestrcpy(limitfilename,sizeof(limitfilename),UniPCEmu_root_dir); //Root directory!
+	safestrcat(limitfilename,sizeof(limitfilename),"/memorylimit.txt"); //Limit file path!
 
 	if (file_exists(limitfilename)) //Limit specified?
 	{
@@ -716,12 +716,12 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	CMOS->cycletiming = (byte)get_private_profile_uint64(section,"cycletiming",0,BIOS_Settings_file);
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
-		sprintf(field,"RAM%02X",index); //The field!
+		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
 		CMOS->DATA80.data[index] = (byte)get_private_profile_uint64(section,&field[0],0,BIOS_Settings_file);
 	}
 	for (index=0;index<NUMITEMS(CMOS->extraRAMdata);++index) //Process extra RAM data!
 	{
-		sprintf(field,"extraRAM%02X",index); //The field!
+		snprintf(field,sizeof(field),"extraRAM%02X",index); //The field!
 		CMOS->extraRAMdata[index] = (byte)get_private_profile_uint64(section,&field[0],0,BIOS_Settings_file);
 	}
 }
@@ -833,11 +833,11 @@ void BIOS_LoadData() //Load BIOS settings!
 	memset(&buttonstr,0,sizeof(buttonstr)); //Init button string!
 	for (button=0;button<15;++button) //Process all buttons!
 	{
-		sprintf(buttonstr,"gamingmode_map_%s_key",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_key",buttons[button]);
 		BIOS_Settings.input_settings.keyboard_gamemodemappings[button] = (sword)get_private_profile_int64("gamingmode",buttonstr,-1,BIOS_Settings_file);
-		sprintf(buttonstr,"gamingmode_map_%s_shiftstate",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_shiftstate",buttons[button]);
 		BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[button] = (byte)get_private_profile_uint64("gamingmode",buttonstr,0,BIOS_Settings_file);
-		sprintf(buttonstr,"gamingmode_map_%s_mousebuttons",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_mousebuttons",buttons[button]);
 		BIOS_Settings.input_settings.mouse_gamemodemappings[button] = (byte)get_private_profile_uint64("gamingmode",buttonstr,0,BIOS_Settings_file);
 	}
 
@@ -886,12 +886,12 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	if (!write_private_profile_uint64(section,section_comment,"cycletiming",CMOS->cycletiming,BIOS_Settings_file)) return 0;
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
-		sprintf(field,"RAM%02X",index); //The field!
+		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
 		if (!write_private_profile_uint64(section,section_comment,&field[0],CMOS->DATA80.data[index],BIOS_Settings_file)) return 0;
 	}
 	for (index=0;index<NUMITEMS(CMOS->extraRAMdata);++index) //Process extra RAM data!
 	{
-		sprintf(field,"extraRAM%02X",index); //The field!
+		snprintf(field,sizeof(field),"extraRAM%02X",index); //The field!
 		if (!write_private_profile_uint64(section,section_comment,&field[0],CMOS->extraRAMdata[index],BIOS_Settings_file)) return 0;
 	}
 	return 1; //Successfully written!
@@ -932,18 +932,18 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Machine
 	memset(&machine_comment,0,sizeof(machine_comment)); //Init!
-	strcat(machine_comment,"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486\n");
-	strcat(machine_comment,"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
-	strcat(machine_comment,"memory: memory size in bytes\n");
-	strcat(machine_comment,"architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=PS/2\n");
-	strcat(machine_comment,"executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
-	strcat(machine_comment,"cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
-	strcat(machine_comment,"showcpuspeed: 0=Don't show, 1=Show\n");
-	strcat(machine_comment,"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
-	strcat(machine_comment,"useturbocpuspeed: 0=Don't use, 1=Use\n");
-	strcat(machine_comment,"clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
-	strcat(machine_comment,"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
-	strcat(machine_comment,"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
+	safestrcat(machine_comment,sizeof(machine_comment),"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"memory: memory size in bytes\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=PS/2\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"showcpuspeed: 0=Don't show, 1=Show\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"useturbocpuspeed: 0=Don't use, 1=Use\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
+	safestrcat(machine_comment,sizeof(machine_comment),"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
 	char *machine_commentused=NULL;
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];
 	if (!write_private_profile_uint64("machine",machine_commentused,"cpu",BIOS_Settings.emulated_CPU,BIOS_Settings_file)) return 0;
@@ -961,13 +961,13 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Debugger
 	memset(&debugger_comment,0,sizeof(debugger_comment)); //Init!
-	strcat(debugger_comment,"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
-	strcat(debugger_comment,"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
-	strcat(debugger_comment,"logstates: 0=Disabled, 1=Enabled\n");
-	strcat(debugger_comment,"logregisters: 0=Disabled, 1=Enabled\n");
-	strcat(debugger_comment,"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
-	strcat(debugger_comment,"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
-	strcat(debugger_comment,"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"logstates: 0=Disabled, 1=Enabled\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"logregisters: 0=Disabled, 1=Enabled\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
 	char *debugger_commentused=NULL;
 	if (debugger_comment[0]) debugger_commentused = &debugger_comment[0];
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
@@ -980,14 +980,14 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Video
 	memset(&video_comment,0,sizeof(video_comment)); //Init!
-	strcat(video_comment,"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
-	strcat(video_comment,"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
-	strcat(video_comment,"VRAM: Ammount of VRAM installed, in bytes\n");
-	strcat(video_comment,"synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
-	strcat(video_comment,"directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
-	strcat(video_comment,"aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
-	strcat(video_comment,"bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
-	strcat(video_comment,"showframerate: 0=Disabled, otherwise Enabled");
+	safestrcat(video_comment,sizeof(video_comment),"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
+	safestrcat(video_comment,sizeof(video_comment),"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
+	safestrcat(video_comment,sizeof(video_comment),"VRAM: Ammount of VRAM installed, in bytes\n");
+	safestrcat(video_comment,sizeof(video_comment),"synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
+	safestrcat(video_comment,sizeof(video_comment),"directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
+	safestrcat(video_comment,sizeof(video_comment),"aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
+	safestrcat(video_comment,sizeof(video_comment),"bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
+	safestrcat(video_comment,sizeof(video_comment),"showframerate: 0=Disabled, otherwise Enabled");
 	char *video_commentused=NULL;
 	if (video_comment[0]) video_commentused = &video_comment[0];
 	if (!write_private_profile_uint64("video",video_commentused,"videocard",BIOS_Settings.VGA_Mode,BIOS_Settings_file)) return 0; //Enable VGA NMI on precursors?
@@ -1001,15 +1001,15 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Sound
 	memset(&sound_comment,0,sizeof(sound_comment)); //Init!
-	strcat(sound_comment,"speaker: 0=Disabled, 1=Enabled\n");
-	strcat(sound_comment,"adlib: 0=Disabled, 1=Enabled\n");
-	strcat(sound_comment,"LPTDAC: 0=Disabled, 1=Enabled\n");
-	strcat(sound_comment,"soundfont: The path to the soundfont file. Empty for none.\n");
-	strcat(sound_comment,"directmidi: 0=Disabled, 1=Enabled\n");
-	strcat(sound_comment,"gameblaster: 0=Disabled, 1=Enabled\n");
-	strcat(sound_comment,"gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
-	strcat(sound_comment,"soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
-	strcat(sound_comment,"soundsource_volume: Volume of the sound source, in percent(>=0)");
+	safestrcat(sound_comment,sizeof(sound_comment),"speaker: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"adlib: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"LPTDAC: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"soundfont: The path to the soundfont file. Empty for none.\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"directmidi: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"gameblaster: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
+	safestrcat(sound_comment,sizeof(sound_comment),"soundsource_volume: Volume of the sound source, in percent(>=0)");
 	char *sound_commentused=NULL;
 	if (sound_comment[0]) sound_commentused = &sound_comment[0];
 	if (!write_private_profile_uint64("sound",sound_commentused,"speaker",BIOS_Settings.usePCSpeaker,BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
@@ -1024,15 +1024,15 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Modem
 	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
-	sprintf(modem_comment,"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
+	snprintf(modem_comment,sizeof(modem_comment),"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
 
 	//Disks
 	memset(&disks_comment,0,sizeof(disks_comment)); //Init!
-	strcat(disks_comment,"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
-	strcat(disks_comment,"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only");
+	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
+	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only");
 	char *disks_commentused=NULL;
 	if (disks_comment[0]) disks_commentused = &disks_comment[0];
 	if (!write_private_profile_string("disks",disks_commentused,"floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
@@ -1048,12 +1048,12 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//BIOS
 	memset(&bios_comment,0,sizeof(bios_comment)); //Init!
-	strcat(bios_comment,"bootorder: The boot order of the internal BIOS:\n");
+	safestrcat(bios_comment,sizeof(bios_comment),"bootorder: The boot order of the internal BIOS:\n");
 	byte currentitem;
 	for (currentitem=0;currentitem<NUMITEMS(BOOT_ORDER_STRING);++currentitem)
 	{
-		sprintf(currentstr,"%u=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
-		strcat(bios_comment,currentstr); //Add the string!
+		snprintf(currentstr,sizeof(currentstr),"%u=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
+		safestrcat(bios_comment,sizeof(bios_comment),currentstr); //Add the string!
 	}
 	char *bios_commentused=NULL;
 	if (bios_comment[0]) bios_commentused = &bios_comment[0];
@@ -1063,20 +1063,20 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&currentstr,0,sizeof(currentstr)); //Current boot order to dump!
 	memset(&gamingmode_comment,0,sizeof(gamingmode_comment)); //Gamingmode comment!
 	memset(&input_comment,0,sizeof(input_comment)); //Init!
-	strcat(input_comment,"analog_minrange: Minimum range for the analog stick to repond. 0-255\n");
-	strcat(input_comment,"Color codes are as follows:");
+	safestrcat(input_comment,sizeof(input_comment),"analog_minrange: Minimum range for the analog stick to repond. 0-255\n");
+	safestrcat(input_comment,sizeof(input_comment),"Color codes are as follows:");
 	for (currentitem=0;currentitem<0x10;++currentitem)
 	{
-		sprintf(currentstr,"\n%u=%s",currentitem,colors[currentitem]); //A description of all colors!
-		strcat(input_comment,currentstr); //Add the string!
+		snprintf(currentstr,sizeof(currentstr),"\n%u=%s",currentitem,colors[currentitem]); //A description of all colors!
+		safestrcat(input_comment,sizeof(input_comment),currentstr); //Add the string!
 	}
-	strcat(input_comment,"\n\n"); //Empty line!
-	strcat(input_comment,"keyboard_fontcolor: font color for the (PSP) OSK.\n");
-	strcat(input_comment,"keyboard_bordercolor: border color for the (PSP) OSK.\n");
-	strcat(input_comment,"keyboard_activecolor: active color for the (PSP) OSK. Also color of pressed keys on the touch OSK.\n");
-	strcat(input_comment,"keyboard_specialcolor: font color for the LEDs.\n");
-	strcat(input_comment,"keyboard_specialbordercolor: border color for the LEDs.\n");
-	strcat(input_comment,"keyboard_specialactivecolor: active color for the LEDs.\n");
+	safestrcat(input_comment,sizeof(input_comment),"\n\n"); //Empty line!
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_fontcolor: font color for the (PSP) OSK.\n");
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_bordercolor: border color for the (PSP) OSK.\n");
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_activecolor: active color for the (PSP) OSK. Also color of pressed keys on the touch OSK.\n");
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_specialcolor: font color for the LEDs.\n");
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_specialbordercolor: border color for the LEDs.\n");
+	safestrcat(input_comment,sizeof(input_comment),"keyboard_specialactivecolor: active color for the LEDs.\n");
 	char *input_commentused=NULL;
 	if (input_comment[0]) input_commentused = &input_comment[0];
 	if (!write_private_profile_uint64("input",input_commentused,"analog_minrange",BIOS_Settings.input_settings.analog_minrange,BIOS_Settings_file)) return 0; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
@@ -1091,19 +1091,19 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&bioscomment_currentkey,0,sizeof(bioscomment_currentkey)); //Init!
 	for (currentitem=0;currentitem<104;++currentitem) //Give translations for all keys!
 	{
-		strcpy(currentstr,""); //Init current string!
-		strcpy(bioscomment_currentkey,""); //Init current string!
+		safestrcpy(currentstr,sizeof(currentstr),""); //Init current string!
+		safestrcpy(bioscomment_currentkey,sizeof(bioscomment_currentkey),""); //Init current string!
 		if (EMU_keyboard_handler_idtoname(currentitem,&bioscomment_currentkey[0])) //Name retrieved?
 		{
-			sprintf(currentstr,"Key number %u is %s\n",currentitem,bioscomment_currentkey); //Generate a key row!
-			strcat(gamingmode_comment,currentstr); //Add the key to the list!
+			snprintf(currentstr,sizeof(currentstr),"Key number %u is %s\n",currentitem,bioscomment_currentkey); //Generate a key row!
+			safestrcat(gamingmode_comment,sizeof(gamingmode_comment),currentstr); //Add the key to the list!
 		}
 	}
-	strcat(gamingmode_comment,"gamingmode_map_[key]_key: The key to be mapped. -1 for unmapped. Otherwise, the key number(0-103)\n");
-	sprintf(currentstr,"gamingmode_map_[key]_shiftstate: The summed state of ctrl/alt/shift keys to be pressed. %u=Ctrl, %u=Alt, %u=Shift. 0/empty=None.\n",SHIFTSTATUS_CTRL,SHIFTSTATUS_ALT,SHIFTSTATUS_SHIFT);
-	strcat(gamingmode_comment,currentstr);
-	strcat(gamingmode_comment,"gamingmode_map_[key]_mousebuttons: The summed state of mouse buttons to be pressed(0=None pressed, 1=Left, 2=Right, 4=Middle).\n");
-	strcat(gamingmode_comment,"joystick: 0=Normal gaming mode mapped input, 1=Joystick, Cross=Button 1, Circle=Button 2, 2=Joystick, Cross=Button 2, Circle=Button 1, 3=Joystick, Gravis Gamepad, 4=Joystick, Gravis Analog Pro, 5=Joystick, Logitech WingMan Extreme Digital");
+	safestrcat(gamingmode_comment,sizeof(gamingmode_comment),"gamingmode_map_[key]_key: The key to be mapped. -1 for unmapped. Otherwise, the key number(0-103)\n");
+	snprintf(currentstr,sizeof(currentstr),"gamingmode_map_[key]_shiftstate: The summed state of ctrl/alt/shift keys to be pressed. %u=Ctrl, %u=Alt, %u=Shift. 0/empty=None.\n",SHIFTSTATUS_CTRL,SHIFTSTATUS_ALT,SHIFTSTATUS_SHIFT);
+	safestrcat(gamingmode_comment,sizeof(gamingmode_comment),currentstr);
+	safestrcat(gamingmode_comment,sizeof(gamingmode_comment),"gamingmode_map_[key]_mousebuttons: The summed state of mouse buttons to be pressed(0=None pressed, 1=Left, 2=Right, 4=Middle).\n");
+	safestrcat(gamingmode_comment,sizeof(gamingmode_comment),"joystick: 0=Normal gaming mode mapped input, 1=Joystick, Cross=Button 1, Circle=Button 2, 2=Joystick, Cross=Button 2, Circle=Button 1, 3=Joystick, Gravis Gamepad, 4=Joystick, Gravis Analog Pro, 5=Joystick, Logitech WingMan Extreme Digital");
 	char *gamingmode_commentused=NULL;
 	if (gamingmode_comment[0]) gamingmode_commentused = &gamingmode_comment[0];
 	byte button;
@@ -1111,11 +1111,11 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&buttonstr,0,sizeof(buttonstr)); //Init button string!
 	for (button=0;button<15;++button) //Process all buttons!
 	{
-		sprintf(buttonstr,"gamingmode_map_%s_key",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_key",buttons[button]);
 		if (!write_private_profile_int64("gamingmode",gamingmode_commentused,buttonstr,BIOS_Settings.input_settings.keyboard_gamemodemappings[button],BIOS_Settings_file)) return 0;
-		sprintf(buttonstr,"gamingmode_map_%s_shiftstate",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_shiftstate",buttons[button]);
 		if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,buttonstr,BIOS_Settings.input_settings.keyboard_gamemodemappings_alt[button],BIOS_Settings_file)) return 0;
-		sprintf(buttonstr,"gamingmode_map_%s_mousebuttons",buttons[button]);
+		snprintf(buttonstr,sizeof(buttonstr),"gamingmode_map_%s_mousebuttons",buttons[button]);
 		if (!write_private_profile_uint64("gamingmode",gamingmode_commentused,buttonstr,BIOS_Settings.input_settings.mouse_gamemodemappings[button],BIOS_Settings_file)) return 0;
 	}
 
@@ -1123,15 +1123,15 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//CMOS
 	memset(&cmos_comment,0,sizeof(cmos_comment)); //Init!
-	strcat(cmos_comment,"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
-	strcat(cmos_comment,"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
-	strcat(cmos_comment,"TimeDivergeance_microseconds: Time to be added to get the emulated time, in microseconds.\n");
-	strcat(cmos_comment,"s100: 100th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
-	strcat(cmos_comment,"s10000: 10000th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
-	strcat(cmos_comment,"RAM[hexnumber]: The contents of the CMOS RAM location(0-255)\n");
-	strcat(cmos_comment,"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
-	strcat(cmos_comment,"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0).");
-	strcat(cmos_comment,"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"TimeDivergeance_microseconds: Time to be added to get the emulated time, in microseconds.\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"s100: 100th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"s10000: 10000th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"RAM[hexnumber]: The contents of the CMOS RAM location(0-255)\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0).");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.");
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
 
@@ -1244,9 +1244,9 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	if (BIOS_Settings.SoundFont[0]) //Gotten a soundfont set?
 	{
 		memset(&soundfont, 0, sizeof(soundfont)); //Init!
-		strcpy(soundfont, soundfontpath); //The path to the soundfont!
-		strcat(soundfont, "/");
-		strcat(soundfont, BIOS_Settings.SoundFont); //The full path to the soundfont!
+		safestrcpy(soundfont,sizeof(soundfont), soundfontpath); //The path to the soundfont!
+		safestrcat(soundfont,sizeof(soundfont), "/");
+		safestrcat(soundfont,sizeof(soundfont), BIOS_Settings.SoundFont); //The full path to the soundfont!
 		if (!FILE_EXISTS(soundfont)) //Not found?
 		{
 			memset(BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont)); //Invalid soundfont!

@@ -123,9 +123,9 @@ void dumpVGATextFonts()
 		}
 	}
 	domkdir(capturepath); //Make sure we can log!
-	strcpy(fullfilename, capturepath); //Capture path!
-	strcat(fullfilename, "/");
-	strcat(fullfilename, "VRAMText"); //The full filename!
+	safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Capture path!
+	safestrcat(fullfilename,sizeof(fullfilename), "/");
+	safestrcat(fullfilename,sizeof(fullfilename), "VRAMText"); //The full filename!
 	writeBMP(fullfilename,&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
 }
 
@@ -190,7 +190,7 @@ OPTINLINE void VGA_dumpchar(VGA_Type *VGA, byte c)
 		for (;;)
 		{
 			buf[0] = getcharxy(VGA,0xF,c,x,y)?'X':' '; //Load character pixel!
-			strcat(row,buf); //The character to use!
+			safestrcat(row,sizeof(row),buf); //The character to use!
 			if (unlikely(++x>=maxx)) goto nexty;
 		}
 		nexty:

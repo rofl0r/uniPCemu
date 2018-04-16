@@ -200,7 +200,7 @@ byte PPI_writeIO(word port, byte value)
 				platform[5] = 'Q';
 				platform[6] = 0;
 			}
-			sprintf(platformfile,"%s/POSTCODE.%s.TXT",ROMpath,platform); //Generate our filename to search for!
+			snprintf(platformfile,sizeof(platformfile),"%s/POSTCODE.%s.TXT",ROMpath,platform); //Generate our filename to search for!
 			memset(&codetranslation,0,sizeof(codetranslation)); //Initialize to no code!
 			beforetranslation[0] = beforetranslation[1] = 0; //Init to none!
 			f = fopen(platformfile,"rb"); //Open the platform file!
