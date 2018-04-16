@@ -182,7 +182,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				//Root directory loaded!
 				safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir),"/UniPCemu"); //Our storage path!
 				domkdir(UniPCEmu_root_dir); //Make sure to create our parent directory, if needed!
-				safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir),"/files"); //Subdirectory to store the files!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir),"/files"); //Subdirectory to store the files!
 				goto finishpathsetting;
 			}
 			//To check the next path?
@@ -198,19 +198,19 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		scanAndroiddefaultpath:
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
-			safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir) getenv("SDCARD")); //path!
-			safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), "/Android/data/com.unipcemu.app/files");
+			safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir) getenv("SDCARD")); //path!
+			safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), "/Android/data/com.unipcemu.app/files");
 		#else
 			if ((environment = SDL_getenv("SDCARD"))!=NULL) //Autodetected?
 			{
-				safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), environment); //path!
-				safestrcat(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), "/Android/data/com.unipcemu.app/files");
+				safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), environment); //path!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), "/Android/data/com.unipcemu.app/files");
 			}
 			else if (SDL_AndroidGetExternalStorageState() == (SDL_ANDROID_EXTERNAL_STORAGE_WRITE | SDL_ANDROID_EXTERNAL_STORAGE_READ)) //External settings exist?
 			{
 				if (SDL_AndroidGetExternalStoragePath()) //Try external.
 				{
-					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCemu_root_dir), SDL_AndroidGetExternalStoragePath()); //External path!
+					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), SDL_AndroidGetExternalStoragePath()); //External path!
 				}
 				else if (SDL_AndroidGetInternalStoragePath()) //Try internal.
 				{
