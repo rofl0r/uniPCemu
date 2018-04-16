@@ -374,7 +374,7 @@ byte memory_readlinear(uint_32 address, byte *result)
 
 byte memory_writelinear(uint_32 address, byte value)
 {
-	memory_BIUdirectwb(address,value); //Write the address!
+	Paging_directwb(-1,address,value,0,0,0); //Write the address!
 	return 0; //No error!
 }
 
