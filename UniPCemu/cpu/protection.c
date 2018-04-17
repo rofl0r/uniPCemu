@@ -143,6 +143,13 @@ void CPU_onResettingFault()
 		REG_FS = CPU[activeCPU].oldSegmentFS; //Restore ESP to it's original value!
 		REG_GS = CPU[activeCPU].oldSegmentGS; //Restore ESP to it's original value!
 	}
+	if (CPU[activeCPU].have_oldTR) //Returning the TR to it's old value?
+	{
+		CPU[activeCPU].registers->TR = CPU[activeCPU].oldTR;
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],&CPU[activeCPU].oldTRdesc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore segment descriptor!
+		CPU[activeCPU].SEG_base[CPU_SEGMENT_TR] = CPU[activeCPU].oldTRbase;
+		CPU[activeCPU].have_oldTR = 0; //We've been reversed manually!
+	}
 }
 
 void CPU_saveFaultData() //Prepare for a fault by saving all required data!

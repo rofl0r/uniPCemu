@@ -410,6 +410,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		dolog("debugger","Switching active TSS to segment selector %04X",destinationtask);
 	}
 
+
+	//Backup the entire TR descriptor!
+	memcpy(&CPU[activeCPU].oldTRdesc,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],sizeof(TRbackup)); //Backup TR segment descriptor!
+	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
+	CPU[activeCPU].oldTRbase = CPU[activeCPU].SEG_base[CPU_SEGMENT_TR];
+	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
+
 	segmentWritten(CPU_SEGMENT_TR,destinationtask,0); //Execute the task switch itself, loading our new descriptor!
 	if (CPU[activeCPU].faultraised) return 1; //Abort on fault: invalid(or busy) task we're switching to!
 
@@ -564,20 +571,15 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		FLAGW_NT(0); //JMP incoming task: clear nested task flag!
 	}
 
-	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
-	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
-	//No last: we're entering a task that has this information, so no return point is given!
-	CPU_exec_lastCS = CPU_exec_CS;
-	CPU_exec_lastEIP = CPU_exec_lastEIP;
-
 	if (TSS_dirty) //Destination TSS dirty?
 	{
 		if (debugger_logging()) //Are we logging?
 		{
 			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).",CPU[activeCPU].registers->TR);
 		}
+
 		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink,0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+
 		if (TSSSize) //32-bit TSS?
 		{
 			saveTSS32(&TSS32); //Save the TSS!
@@ -587,6 +589,14 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			saveTSS16(&TSS16); //Save the TSS!
 		}
 	}
+
+	CPU[activeCPU].have_oldTR = 0; //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
+	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
+	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+	//No last: we're entering a task that has this information, so no return point is given!
+	CPU_exec_lastCS = CPU_exec_CS;
+	CPU_exec_lastEIP = CPU_exec_lastEIP;
 
 	//Update the x86 debugger, if needed!
 	protectedModeDebugger_taskswitch(); //Apply any action required for a task switch!
