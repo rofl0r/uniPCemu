@@ -412,7 +412,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 
 	//Backup the entire TR descriptor!
-	memcpy(&CPU[activeCPU].oldTRdesc,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],sizeof(TRbackup)); //Backup TR segment descriptor!
+	memcpy(&CPU[activeCPU].oldTRdesc,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
 	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
 	CPU[activeCPU].oldTRbase = CPU[activeCPU].SEG_base[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
@@ -476,17 +476,17 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		dolog("debugger","Checking for backlink to TSS %04X",oldtask);
 	}
 
-	if ((isJMPorCALL == 2) && oldtask) //CALL?
+	if (isJMPorCALL == 2) //CALL?
 	{
 		if (TSSSize) //32-bit TSS?
 		{
 			TSS32.BackLink = oldtask; //Save the old task as a backlink in the new task!
-			TSS_dirty = 1; //We're dirty!
+			TSS_dirty |= 1; //We're dirty(backlink)!
 		}
 		else //16-bit TSS?
 		{
 			TSS16.BackLink = oldtask; //Save the old task as a backlink in the new task!
-			TSS_dirty = 1; //We're dirty!
+			TSS_dirty |= 1; //We're dirty(backlink)!
 		}
 	}
 
@@ -553,7 +553,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if ((isJMPorCALL == 2) && oldtask) //CALL?
+	if (isJMPorCALL == 2) //CALL?
 	{
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
 		if (TSSSize) //32-bit TSS?
@@ -564,11 +564,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		{
 			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS; //Save the new flag!
 		}
-		TSS_dirty = 1; //We're dirty!
-	}
-	else if (isJMPorCALL == 1) //JMP?
-	{
-		FLAGW_NT(0); //JMP incoming task: clear nested task flag!
+		TSS_dirty |= 2; //We're dirty((E)FLAGS)!
 	}
 
 	if (TSS_dirty) //Destination TSS dirty?
@@ -578,17 +574,22 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).",CPU[activeCPU].registers->TR);
 		}
 
-		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink,0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+		if (TSS_dirty&1) MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink,0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 
-		if (TSSSize) //32-bit TSS?
+		if (TSS_dirty&2) //Dirty (E)FLAGS?
 		{
-			saveTSS32(&TSS32); //Save the TSS!
-		}
-		else //16-bit TSS?
-		{
-			saveTSS16(&TSS16); //Save the TSS!
+			if (TSSSize) //32-bit TSS?
+			{
+				saveTSS32(&TSS32); //Save the TSS!
+			}
+			else //16-bit TSS?
+			{
+				saveTSS16(&TSS16); //Save the TSS!
+			}
 		}
 	}
+
+	//At this point, the basic task switch is complete. All that remains is loading all segment descriptors as required!
 
 	CPU[activeCPU].have_oldTR = 0; //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
 	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
