@@ -330,7 +330,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			if (checksaveTSS16()) return 1; //Abort on error!
 		}
 
-		if (isJMPorCALL != 2) //Not a call? Stop being busy to switch to another task(or ourselves)!
+		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
@@ -476,7 +476,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		dolog("debugger","Checking for backlink to TSS %04X",oldtask);
 	}
 
-	if (isJMPorCALL == 2) //CALL?
+	if ((isJMPorCALL|0x80) == 0x82) //CALL?
 	{
 		if (TSSSize) //32-bit TSS?
 		{
@@ -553,7 +553,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if (isJMPorCALL == 2) //CALL?
+	if ((isJMPorCALL|0x80) == 0x82) //CALL?
 	{
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
 		if (TSSSize) //32-bit TSS?
