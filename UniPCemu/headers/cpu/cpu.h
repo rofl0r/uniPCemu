@@ -925,6 +925,10 @@ typedef struct PACKED
 	word oldSegmentFS, oldSegmentGS, oldSegmentDS, oldSegmentES; //Back-up of the segment registers to restore during faults!
 	byte have_oldEFLAGS;
 	uint_32 oldEFLAGS;
+	byte have_oldTR; //TR backup to restore on faults!
+	word oldTR;
+	uint_32 oldTRbase;
+	SEGMENT_DESCRIPTOR oldTRdesc;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?
