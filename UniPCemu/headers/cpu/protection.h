@@ -51,4 +51,6 @@ void CPU_onResettingFault(); //When resetting the current instruction for a faul
 
 void CPU_AC(int_64 errorcode); //Alignment check fault!
 
+byte switchStacks(byte newCPL); //Returns 1 on error, 0 on success!
+
 #endif

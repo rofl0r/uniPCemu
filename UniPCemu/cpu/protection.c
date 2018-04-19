@@ -922,28 +922,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						TSSSize = 1; //32-bit TSS!
 					case AVL_SYSTEM_BUSY_TSS16BIT:
 					case AVL_SYSTEM_TSS16BIT:
-						TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
-						TSS_StackPos += (4<<TSSSize)*GENERALSEGMENTPTR_DPL(descriptor); //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
-						stackval = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
-						if (TSSSize) //32-bit?
-						{
-							TSS_StackPos += 8; //Take SS position!
-						}
-						else
-						{
-							TSS_StackPos += 4; //Take SS position!
-						}
-						CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-						if (segmentWritten(CPU_SEGMENT_SS,MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()),0)) return 1; //Read SS!
-						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-						if (TSSSize) //32-bit?
-						{
-							CPU[activeCPU].registers->ESP = stackval; //Apply the stack position!
-						}
-						else
-						{
-							CPU[activeCPU].registers->SP = (word)stackval; //Apply the stack position!
-						}
+						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
+
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
 						for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
 						{
@@ -1410,6 +1390,47 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 
 extern byte immb; //For CPU_readOP result!
 
+byte switchStacks(byte newCPL)
+{
+	word SSn;
+	uint_32 ESPn;
+	byte TSSSize;
+	TSSSize = 0; //Default to 16-bit TSS!
+	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
+	{
+	case AVL_SYSTEM_BUSY_TSS32BIT:
+	case AVL_SYSTEM_TSS32BIT:
+		TSSSize = 1; //32-bit TSS!
+	case AVL_SYSTEM_BUSY_TSS16BIT:
+	case AVL_SYSTEM_TSS16BIT:
+		TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
+		TSS_StackPos += (4<<TSSSize)*newCPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
+		ESPn = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
+		if (TSSSize) //32-bit?
+		{
+			TSS_StackPos += 8; //Take SS position!
+		}
+		else
+		{
+			TSS_StackPos += 4; //Take SS position!
+		}
+		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
+		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0)) return 1; //Read SS!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
+		if (TSSSize) //32-bit?
+		{
+			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
+		}
+		else
+		{
+			CPU[activeCPU].registers->SP = (word)ESPn; //Apply the stack position!
+		}
+	default: //Unknown TSS?
+		break; //No switching for now!
+	}
+}
+
 byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
 {
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
@@ -1549,12 +1570,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 					return 0; //Abort on fault!
 				}
 
-				word SS0;
-				uint_32 ESP0;
-
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<3)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x4+(newCPL<<3)),0,0); //ESP0-2
-
 				//Now, switch to the new EFLAGS!
 				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
 				updateCPUmode(); //Update the CPU mode!
@@ -1565,11 +1580,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
-				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
-				if (segmentWritten(CPU_SEGMENT_SS,SS0,0)) return 0; //Write SS to switch stacks!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				REG_ESP = ESP0; //Set the stack to point to the new stack location!
-
+				if (switchStacks(newCPL)) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
 				if (is32bit) //32-bit gate?
 				{
@@ -1606,21 +1617,12 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 			else if ((FLAG_V8==0) && (INTTYPE==1)) //Privilege level changed in protected mode?
 			{
-				word SS0;
-				uint_32 ESP0;
-
-				SS0 = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x8+(newCPL<<3)),0,0); //SS0-2
-				ESP0 = MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,(0x4+(newCPL<<3)),0,0); //ESP0-2
-
 				//Unlike the other case, we're still in protected mode!
 				//We're back in protected mode now!
 				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
-				CPU[activeCPU].faultraised = 0; //No fault raised anymore!
-				if (segmentWritten(CPU_SEGMENT_SS,SS0,0)) return 0; //Write SS to switch stacks!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				REG_ESP = ESP0; //Set the stack to point to the new stack location!
+				if (switchStacks(newCPL)) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
 				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
