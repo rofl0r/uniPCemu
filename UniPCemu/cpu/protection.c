@@ -1165,29 +1165,32 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	}
 
 	//Basic access rights are always checked!
-	switch ((descriptor->AccessRights&0xE)) //What type of descriptor?
+	if (GENERALSEGMENTPTR_S(descriptor)) //System segment? Check for additional type information!
 	{
-		case 0: //Data, read-only
-		case 4: //Data(expand down), read-only
-		case 10: //Code, execute/read
-		case 14: //Code, execute/read, conforming
-			if (unlikely((forreading&~0x10)==0)) //Writing?
-			{
-				CPU_MMU_checkrights_cause = 3; //What cause?
-				return 1; //Error!
-			}
-			break; //Allow!
-		case 2: //Data, read/write
-		case 6: //Data(expand down), read/write
-			break; //Allow!
-		case 8: //Code, execute-only
-		case 12: //Code, execute-only, conforming
-			if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
-			{
-				CPU_MMU_checkrights_cause = 3; //What cause?
-				return 1; //Error!
-			}
-			break; //Allow!
+		switch ((descriptor->AccessRights&0xE)) //What type of descriptor?
+		{
+			case 0: //Data, read-only
+			case 4: //Data(expand down), read-only
+			case 10: //Code, execute/read
+			case 14: //Code, execute/read, conforming
+				if (unlikely((forreading&~0x10)==0)) //Writing?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!
+				}
+				break; //Allow!
+			case 2: //Data, read/write
+			case 6: //Data(expand down), read/write
+				break; //Allow!
+			case 8: //Code, execute-only
+			case 12: //Code, execute-only, conforming
+				if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
+				{
+					CPU_MMU_checkrights_cause = 3; //What cause?
+					return 1; //Error!
+				}
+				break; //Allow!
+		}
 	}
 
 	//Next: limit checking!
