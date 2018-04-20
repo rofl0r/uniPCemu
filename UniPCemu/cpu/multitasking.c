@@ -39,9 +39,8 @@ void loadTSS16(TSS286 *TSS)
 
 byte checkloadTSS16()
 {
-	TSS286 TSS;
 	word n;
-	for (n = 0;n < sizeof(TSS);n+=2) //Load our TSS!
+	for (n = 0;n < 0x2C;n+=2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
@@ -163,9 +162,8 @@ void saveTSS16(TSS286 *TSS)
 
 byte checksaveTSS16()
 {
-	TSS286 TSS;
 	word n;
-	for (n=((7*2));n<(sizeof(TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
+	for (n=((7*2));n<(0x2C-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
