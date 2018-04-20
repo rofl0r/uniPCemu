@@ -1417,14 +1417,7 @@ byte switchStacks(byte newCPL)
 		TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
 		TSS_StackPos += (4<<TSSSize)*newCPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
 		ESPn = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
-		if (TSSSize) //32-bit?
-		{
-			TSS_StackPos += 4; //Take SS position!
-		}
-		else
-		{
-			TSS_StackPos += 2; //Take SS position!
-		}
+		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
 		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 		if (segmentWritten(CPU_SEGMENT_SS,SSn,0)) return 1; //Read SS!
