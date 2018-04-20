@@ -100,7 +100,6 @@ byte checkloadTSS32()
 {
 	byte ssspreg;
 	word n;
-	TSS386 TSS;
 	debugger_forceimmediatelogging = 1; //Log!
 	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!

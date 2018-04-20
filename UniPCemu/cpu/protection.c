@@ -912,7 +912,6 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		isDifferentCPL = 0; //Default: same CPL!
 		SEGMENT_DESCRIPTOR tempdescriptor;
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,&tempdescriptor,&value,isJMPorCALL,&isDifferentCPL); //Read the segment!
-		byte TSS_StackPos;
 		uint_32 stackval;
 		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
