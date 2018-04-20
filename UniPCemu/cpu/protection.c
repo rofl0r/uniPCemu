@@ -1402,6 +1402,7 @@ byte switchStacks(byte newCPL)
 	word SSn;
 	uint_32 ESPn;
 	byte TSSSize;
+	word TSS_StackPos;
 	TSSSize = 0; //Default to 16-bit TSS!
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
 	{
@@ -1436,6 +1437,7 @@ byte switchStacks(byte newCPL)
 	default: //Unknown TSS?
 		break; //No switching for now!
 	}
+	return 0; //OK!
 }
 
 byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
