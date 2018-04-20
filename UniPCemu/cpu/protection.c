@@ -435,7 +435,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 			int i;
 			for (i=0;i<(int)sizeof(container->descdata);++i)
 			{
-				if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+				if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 				{
 					return 0; //Error out!
 				}
@@ -535,7 +535,7 @@ byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	int i;
 	for (i = 0;i<(int)sizeof(container->descdata);++i) //Process the descriptor data!
 	{
-		if (checkDirectMMUaccess(descriptor_address++,0,getCPL())) //Error in the paging unit?
+		if (checkDirectMMUaccess(descriptor_address++,0,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
 			return 0; //Error out!
 		}
@@ -1364,7 +1364,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *containe
 		int i;
 		for (i=0;i<(int)sizeof(container->descdata);++i)
 		{
-			if (checkDirectMMUaccess(descriptor_address++,1,getCPL())) //Error in the paging unit?
+			if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 			{
 				return 1; //Error out!
 			}
@@ -1466,7 +1466,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	IDTENTRY idtentry; //The loaded IVT entry!
 	for (left=0;left<(int)sizeof(idtentry.descdata);++left)
 	{
-		if (checkDirectMMUaccess(base++,1,getCPL())) //Error in the paging unit?
+		if (checkDirectMMUaccess(base++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
 			return 1; //Error out!
 		}
