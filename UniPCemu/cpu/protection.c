@@ -1419,11 +1419,11 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
 		if (TSSSize) //32-bit?
 		{
-			TSS_StackPos += 8; //Take SS position!
+			TSS_StackPos += 4; //Take SS position!
 		}
 		else
 		{
-			TSS_StackPos += 4; //Take SS position!
+			TSS_StackPos += 2; //Take SS position!
 		}
 		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
 		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
