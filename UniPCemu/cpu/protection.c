@@ -1150,12 +1150,26 @@ MMU: Memory limit!
 
 */
 
+OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_32 offset)
+{
+	//Execute address test?
+	INLINEREGISTER byte isvalid;
+	INLINEREGISTER uint_32 limit; //The limit!
+	uint_32 limits[2]; //What limit to apply?
+	limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
+	limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+	limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
+
+	isvalid = (offset<=limit); //Valid address range!
+	isvalid ^= ((descriptor->AccessRights&0x1C)==0x14); //Apply expand-down data segment, if required, which reverses valid!
+	isvalid &= 1; //Only 1-bit testing!
+	return isvalid; //Are we valid?
+}
+
 byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
-	INLINEREGISTER uint_32 limit; //The limit!
-	INLINEREGISTER byte isvalid;
 	//First: type checking!
 
 	if (unlikely(GENERALSEGMENTPTR_P(descriptor)==0)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
@@ -1196,16 +1210,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forre
 	//Next: limit checking!
 	if (likely(addrtest)) //Address test is to be performed?
 	{
-		//Execute address test?
-		uint_32 limits[2]; //What limit to apply?
-		limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
-		limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-		limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
-
-		isvalid = (offset<=limit); //Valid address range!
-		isvalid ^= ((descriptor->AccessRights&0x1C)==0x14); //Apply expand-down data segment, if required, which reverses valid!
-		isvalid &= 1; //Only 1-bit testing!
-		if (likely(isvalid)) return 0; //OK? We're finished!
+		if (likely(verifyLimit(descriptor,offset))) return 0; //OK? We're finished!
 		//Not valid?
 		{
 			CPU_MMU_checkrights_cause = 6; //What cause?
@@ -1533,7 +1538,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
-			if ((idtentry.offsetlow | (idtentry.offsethigh << 16)) > (newdescriptor.desc.limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(newdescriptor.desc) << 16))) //Limit exceeded?
+
+			//Calculate and check the limit!
+
+			if (verifyLimit(&newdescriptor.desc,(idtentry.offsetlow | (idtentry.offsethigh << 16)))==0) //Limit exceeded?
 			{
 				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
