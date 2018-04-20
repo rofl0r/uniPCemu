@@ -52,7 +52,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 
 //Direct memory support for the CPU!
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL); //Check direct memory access before applying the writes below!
-void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup);
-byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index);
+void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup, byte CPL);
+byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index, byte CPL);
 
 #endif

@@ -223,13 +223,13 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 extern byte MMU_logging; //Are we logging?
 extern uint_32 wrapaddr[2]; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
-byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index)
+byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index, byte CPL)
 {
 	byte result;
 	uint_32 originaladdr;
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = mappage(realaddress,0,getCPL()); //Map it using the paging mechanism!
+		realaddress = mappage(realaddress,0,CPL); //Map it using the paging mechanism!
 	}
 
 	if (segdesc!=-1) //Normal memory access by the CPU itself?
@@ -257,11 +257,11 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	return result; //Give the result!
 }
 
-void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup)
+void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup, byte CPL)
 {
 	if (is_paging()) //Are we paging?
 	{
-		realaddress = mappage(realaddress,1,getCPL()); //Map it using the paging mechanism!
+		realaddress = mappage(realaddress,1,CPL); //Map it using the paging mechanism!
 	}
 
 	if (segdesc!=-1) //Normal memory access?
@@ -321,7 +321,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
-	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
+	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,getCPL()); //Read through the paging unit and hardware layer!
 	processBUS(realaddress, index, result); //Process us on the BUS!
 
 	if (unlikely(MMU_logging==1)) //To log?
@@ -346,7 +346,7 @@ OPTINLINE byte MMU_BIU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, 
 
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
-	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index); //Read through the paging unit and hardware layer!
+	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,getCPL()); //Read through the paging unit and hardware layer!
 	processBUS(realaddress, index, result); //Process us on the BUS!
 	return result; //Give the result!
 }
@@ -393,7 +393,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 	}
 
 	processBUS(realaddress, index, val); //Process us on the BUS!
-	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup); //Write through the paging unit and hardware layer!
+	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup,getCPL()); //Write through the paging unit and hardware layer!
 }
 
 OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word val, byte index, byte is_offset16) //Set adress (word)!

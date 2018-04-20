@@ -378,7 +378,7 @@ extern byte debugger_forceimmediatelogging; //Force immediate logging?
 byte memory_readlinear(uint_32 address, byte *result)
 {
 	debugger_forceimmediatelogging = 1; //Log!
-	*result = Paging_directrb(-1,address,0,0,0); //Read the address!
+	*result = Paging_directrb(-1,address,0,0,0,0); //Read the address!
 	debugger_forceimmediatelogging = 0; //Don't log anymore!
 	return 0; //No error!
 }
@@ -386,7 +386,7 @@ byte memory_readlinear(uint_32 address, byte *result)
 byte memory_writelinear(uint_32 address, byte value)
 {
 	debugger_forceimmediatelogging = 1; //Log!
-	Paging_directwb(-1,address,value,0,0,0); //Write the address!
+	Paging_directwb(-1,address,value,0,0,0,0); //Write the address!
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //No error!
 }
