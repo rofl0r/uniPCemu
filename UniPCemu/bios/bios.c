@@ -961,7 +961,7 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Debugger
 	memset(&debugger_comment,0,sizeof(debugger_comment)); //Init!
-	safestrcat(debugger_comment,sizeof(debugger_comment),"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons, 4=Enabled, just run, don't show, ignore shoulder buttons\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"logstates: 0=Disabled, 1=Enabled\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"logregisters: 0=Disabled, 1=Enabled\n");

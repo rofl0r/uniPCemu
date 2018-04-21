@@ -98,6 +98,9 @@ typedef struct
 #define DEBUGMODE_STEP 2
 //Show, just run, ignore RTRIGGER buttons.
 #define DEBUGMODE_SHOW_RUN 3
+//Don't show, just run, ignore RTRIGGER buttons.
+#define DEBUGMODE_NOSHOW_RUN 4
+
 
 //Debugger log:
 //None:

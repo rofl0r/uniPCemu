@@ -3225,7 +3225,7 @@ void BIOS_DebugMode()
 	GPU_EMU_printscreen(0,4,"Debug mode: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 4; //Amount of Debug modes!
+	numlist = 5; //Amount of Debug modes!
 	for (i=0; i<numlist; i++) //Process options!
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
@@ -3235,6 +3235,7 @@ void BIOS_DebugMode()
 	safestrcpy(itemlist[DEBUGMODE_RTRIGGER],sizeof(itemlist[0]),"Enabled, RTrigger=Step"); //Set filename from options!
 	safestrcpy(itemlist[DEBUGMODE_STEP],sizeof(itemlist[0]),"Enabled, Step through"); //Set filename from options!
 	safestrcpy(itemlist[DEBUGMODE_SHOW_RUN],sizeof(itemlist[0]),"Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+	safestrcpy(itemlist[DEBUGMODE_NOSHOW_RUN],sizeof(itemlist[0]),"Enabled, just run, don't show, ignore shoulder buttons"); //Set filename from options!
 
 	int current = 0;
 	switch (BIOS_Settings.debugmode) //What debug mode?
@@ -3243,6 +3244,7 @@ void BIOS_DebugMode()
 	case DEBUGMODE_RTRIGGER: //Valid
 	case DEBUGMODE_STEP: //Valid
 	case DEBUGMODE_SHOW_RUN: //Valid
+	case DEBUGMODE_NOSHOW_RUN: //Valid
 		current = BIOS_Settings.debugmode; //Valid: use!
 		break;
 	default: //Invalid
@@ -3267,6 +3269,7 @@ void BIOS_DebugMode()
 	case DEBUGMODE_RTRIGGER:
 	case DEBUGMODE_STEP:
 	case DEBUGMODE_SHOW_RUN:
+	case DEBUGMODE_NOSHOW_RUN:
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
@@ -5053,6 +5056,9 @@ setShowCPUSpeed:
 		break;
 	case DEBUGMODE_SHOW_RUN:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
+		break;
+	case DEBUGMODE_NOSHOW_RUN:
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, don´t show, ignore shoulder buttons"); //Set filename from options!
 		break;
 	default:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");

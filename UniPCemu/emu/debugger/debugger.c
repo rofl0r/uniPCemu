@@ -1439,7 +1439,7 @@ extern byte didJump; //Did we jump this instruction?
 
 void debugger_step() //Processes the debugging step!
 {
-	if (debugger_thread) //Debugger not running yet?
+	if (unlikely(debugger_thread)) //Debugger not running yet?
 	{
 		if (threadRunning(debugger_thread)) //Still running?
 		{
@@ -1450,12 +1450,12 @@ void debugger_step() //Processes the debugging step!
 	debugger_loggingtimestamp = ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))?0:1; //Are we to log time too? Not with common log format!
 	debugger_thread = NULL; //Not a running thread!
 	debugger_autolog(); //Log when enabled!
-	if (CPU[activeCPU].executed) //Are we executed?
+	if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 	{
-		if (debugging()) //Debugging step or single step enforced?
+		if (unlikely(debugging())) //Debugging step or single step enforced?
 		{
-			if (shuttingdown()) return; //Don't when shutting down!
-			if (skipstep) //Finished?
+			if (unlikely(shuttingdown())) return; //Don't when shutting down!
+			if (unlikely(skipstep)) //Finished?
 			{
 				if (!CPU[activeCPU].repeating && (skipstep==1)) //Finished repeating?
 				{
@@ -1477,16 +1477,19 @@ void debugger_step() //Processes the debugging step!
 					skipstep = 0; //We're finished!
 				}
 			}
-			if (skipopcodes) //Skipping?
+			if (unlikely(skipopcodes)) //Skipping?
 			{
 				--skipopcodes; //Skipped one opcode!
 			}
-			if ((!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) && (skipstep!=4)) //To debug when not skipping repeating or skipping opcodes?
+			if (unlikely((!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) && (skipstep!=4))) //To debug when not skipping repeating or skipping opcodes?
 			{
-				debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
+				if (unlikely(!(DEBUGGER_KEEP_NOSHOW_RUNNING))) //Are we to show the debugger at all(not explicitly disabled)?
+				{
+					debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
+				}
 			}
 		} //Step mode?
-		if (singlestep>1) //Start single-stepping from the next instruction?
+		if (unlikely(singlestep>1)) //Start single-stepping from the next instruction?
 		{
 			--singlestep; //Start single-stepping the next X instruction!
 		}
