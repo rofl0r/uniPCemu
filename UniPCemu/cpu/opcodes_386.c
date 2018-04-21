@@ -2661,7 +2661,7 @@ void CPU80386_OP9D_32() {
 	{
 		if (FLAG_PL==3) //IOPL 3?
 		{
-			tempflags = ((tempflags&~0x3000)|(REG_EFLAGS&0x3000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+			tempflags = ((tempflags&~0x1B3000)|(REG_EFLAGS&0x1B3000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
 		} //Otherwise, fault is raised!
 	}
 	else //Protected/real mode?
@@ -2672,7 +2672,7 @@ void CPU80386_OP9D_32() {
 		}
 		else
 		{
-			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* Ignore any changes to the VIP/VIF are cleared. Ignore any changes to VM! */			
+			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */			
 		}
 	}
 	REG_EFLAGS = tempflags;
