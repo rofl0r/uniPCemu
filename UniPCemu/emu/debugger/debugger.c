@@ -118,6 +118,7 @@ OPTINLINE byte debugging() //Debugging?
 	}
 	else
 	{
+		if (likely(BIOS_Settings.debugmode==DEBUGMODE_NOSHOW_RUN)) return 0; //Disabled when executing the noshow run!
 		lock(LOCK_INPUT);
 		if ((psp_keypressed(BUTTON_RTRIGGER) || (DEBUGGER_ALWAYS_STEP > 0))) //Forced step?
 		{
@@ -1486,6 +1487,10 @@ void debugger_step() //Processes the debugging step!
 				if (unlikely(!(DEBUGGER_KEEP_NOSHOW_RUNNING))) //Are we to show the debugger at all(not explicitly disabled)?
 				{
 					debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
+				}
+				else if (unlikely(DEBUGGER_KEEP_NOSHOW_RUNNING && (singlestep==1))) //To stop anyway?
+				{
+					singlestep = 0; //We're finishing the single step anyway, ignoring!
 				}
 			}
 		} //Step mode?
