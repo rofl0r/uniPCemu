@@ -2019,17 +2019,20 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
-			if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
+			if (CPU[activeCPU].allowInterrupts) //Do we allow interrupts(and traps) to be fired?
 			{
-				return; //Protected mode debugger activated! Don't fetch or execute!
-			}
-			if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) && CPU[activeCPU].registers->TR) //Active task?
-			{
-				if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
+				if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
 				{
-					SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-					CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
-					return; //Abort!
+					return; //Protected mode debugger activated! Don't fetch or execute!
+				}
+				if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) && CPU[activeCPU].registers->TR) //Active task?
+				{
+					if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
+					{
+						SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
+						CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
+						return; //Abort!
+					}
 				}
 			}
 		}
