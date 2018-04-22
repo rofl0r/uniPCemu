@@ -1041,13 +1041,9 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			}
 			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
 			{
-				if (MAX(getCPL(),getRPL(value))>oldCPL) //Stack needs to be restored when returning to outer privilege level!
+				if (getRPL(value)>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
 					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //First level IRET data?
-					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
-					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return 1;
 					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
 					{
 						tempesp = CPU_POP32();
@@ -1056,6 +1052,11 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					{
 						tempesp = CPU_POP16(0);
 					}
+
+					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
+					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (CPU[activeCPU].faultraised) return 1;
 					REG_ESP = tempesp;
 				}
 			}
