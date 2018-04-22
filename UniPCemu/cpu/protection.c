@@ -775,7 +775,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Conforming segment?
 		{
-			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)<getCPL()) //Target DPL must be less-or-equal to the CPL.
+			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)<MAX(getCPL(),getRPL(*segmentval)))) //Target DPL must be less-or-equal to the CPL.
 			{
 				THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
@@ -783,7 +783,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Non-conforming segment?
 		{
-			if (!privilegedone && GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Check for equal only when using Gate Descriptors?
+			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=MAX(getCPL(),getRPL(*segmentval)))) //Check for equal only when using Gate Descriptors?
 			{
 				THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
