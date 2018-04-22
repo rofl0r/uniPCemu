@@ -1053,7 +1053,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
 					}
 
-					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
+					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
