@@ -901,6 +901,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	return dest; //Give the segment descriptor read from memory!
 }
 word segmentWritten_tempSS;
+extern word RETF_popbytes; //How many to pop?
 
 byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
@@ -918,7 +919,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 2)) //CALL needs pushed data on the stack?
 			{
-				if (CALLGATE_NUMARGUMENTS) //Stack switch is required?
+				if (isDifferentCPL) //Stack switch is required?
 				{
 					TSSSize = 0; //Default to 16-bit TSS!
 					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
@@ -929,13 +930,27 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_BUSY_TSS16BIT:
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
+						
+						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abprt pn error!
+
+						if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
+						{
+							CPU_PUSH32(&CPU[activeCPU].oldESP);
+						}
+						else
+						{
+							word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
+							CPU_PUSH16(&temp,0);
+						}
+						CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
 
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
 						for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
 						{
 							if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
 							{
-								if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ TSSSize && (EMULATED_CPU>=CPU_80386)) //32-bit stack to push to?
+								if (checkStackAccess(1,1,CPU_Operand_size[activeCPU])) return 1; //Abprt pn error!
+								if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ CPU_Operand_size[activeCPU]) //32-bit stack to push to?
 								{
 									CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
 								}
@@ -949,20 +964,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 				}
 				
-				if (isDifferentCPL) //CPL changed?
-				{
-					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
-					{
-						CPU_PUSH32(&CPU[activeCPU].oldESP);
-					}
-					else
-					{
-						word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
-						CPU_PUSH16(&temp,0);
-					}
-					CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
-				}
-				
+				if (checkStackAccess(2,1,CPU_Operand_size[activeCPU])) return 1; //Abprt on error!
+
 				//Push the old address to the new stack!
 				if (CPU_Operand_size[activeCPU]) //32-bit?
 				{
@@ -998,6 +1001,16 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			}
 			else if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 4)) //RETF needs popped data on the stack?
 			{
+				if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+				{
+					REG_ESP += RETF_popbytes; //Process ESP!
+				}
+				else
+				{
+					REG_SP += RETF_popbytes; //Process SP!
+				}
+				RETF_popbytes = 0; //Nothimg to pop anymore!
+
 				if (oldCPL!=getRPL(value)) //CPL changed?
 				{
 					//Privilege change!

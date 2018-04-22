@@ -2251,6 +2251,7 @@ OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
 }
 extern word RETF_destCS; //Use 8086 location as well!
 uint_32 RETFD_val; //Far return
+extern word RETF_popbytes; //How many to pop?
 
 OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
 {
@@ -2261,16 +2262,17 @@ OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
 	CPUPROT1
 	CPUPROT1
 	destEIP = RETFD_val; //Load IP!
+	RETF_popbytes = popbytes; //Allow modification!
 	if (segmentWritten(CPU_SEGMENT_CS,RETF_destCS,4)) return 1; //CS changed, we're a RETF instruction!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	CPUPROT1
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
 	{
-		REG_ESP += popbytes; //Process ESP!
+		REG_ESP += RETF_popbytes; //Process ESP!
 	}
 	else
 	{
-		REG_SP += popbytes; //Process SP!
+		REG_SP += RETF_popbytes; //Process SP!
 	}
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
