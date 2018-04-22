@@ -1028,7 +1028,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			}
 			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
 			{
-				if (getCPL()>oldCPL) //Stack needs to be restored when returning to outer privilege level!
+				if (MAX(getCPL(),getRPL(value))>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
 					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //First level IRET data?
 					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
