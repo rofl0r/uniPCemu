@@ -1043,14 +1043,14 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			{
 				if (getRPL(value)>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
-					if (checkStackAccess(2,0,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //First level IRET data?
-					if (CODE_SEGMENT_DESCRIPTOR_D_BIT())
+					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU])) return 1; //First level IRET data?
+					if (CPU_Operand_size[activeCPU])
 					{
 						tempesp = CPU_POP32();
 					}
 					else
 					{
-						tempesp = CPU_POP16(0);
+						tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
 					}
 
 					segmentWritten_tempSS = CPU_POP16(CODE_SEGMENT_DESCRIPTOR_D_BIT());
