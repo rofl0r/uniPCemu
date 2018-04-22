@@ -1011,7 +1011,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				}
 				RETF_popbytes = 0; //Nothimg to pop anymore!
 
-				if (oldCPL!=getRPL(value)) //CPL changed?
+				if (oldCPL<getRPL(value)) //CPL changed?
 				{
 					//Privilege change!
 					//Backup the old stack data!
