@@ -585,27 +585,36 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 		return NULL; //Error, by specified reason!
 	}
-	allowNP = (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0); //Allow segment to be marked non-present?
+	allowNP = ((segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS)); //Allow segment to be marked non-present(exception: values 0-3 with data segments)?
 	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
 	byte privilegedone = 0; //Privilege already calculated?
 	byte is_gated = 0;
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
 
-	if (((*segmentval&~3)==0) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_SS))) //NULL GDT segment when not allowed?
+	if (((*segmentval&~3)==0)) //NULL GDT segment when not allowed?
 	{
 		if (segment==CPU_SEGMENT_LDTR) //in LDTR? We're valid!
 		{
+			memset(&LOADEDDESCRIPTOR,0,sizeof(LOADEDDESCRIPTOR)); //Allow!
 			goto validLDTR; //Skip all checks, and check out as valid! We're allowed on the LDTR only!
 		}
 		else //Skip checks: we're invalid to check any further!
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
-			return NULL; //Error, by specified reason!			
+			if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_SS)) //Not allowed?
+			{
+				THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+				return NULL; //Error, by specified reason!
+			}
+			else if (allowNP)
+			{
+				memset(&LOADEDDESCRIPTOR,0,sizeof(LOADEDDESCRIPTOR)); //Allow!
+				goto validLDTR; //Load NULL descriptor!
+			}
 		}
 	}
 
-	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_LDTR) || (*segmentval&~3) || (isGateDescriptor(&LOADEDDESCRIPTOR))) && (allowNP==0)) //Not present loaded into non-data segment register?
+	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR.desc)==0) //Not present loaded into non-data segment register?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
