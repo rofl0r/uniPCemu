@@ -887,7 +887,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
 	{
-		if (is_gated==0) //Non-gates doesn't change RPL(CPL) of CS!
+		if ((is_gated==0) && (isJMPorCALL!=3) && (isJMPorCALL!=4)) //Non-gates doesn't change RPL(CPL) of CS! IRET does change RPL!
 		{
 			setRPL(*segmentval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
 			setRPL(originalval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
