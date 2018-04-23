@@ -915,7 +915,7 @@ extern word RETF_popbytes; //How many to pop?
 byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
 	byte oldCPL= getCPL();
-	byte TSSSize, isDifferentCPL;
+	byte isDifferentCPL;
 	uint_32 tempesp;
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -930,12 +930,12 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			{
 				if (isDifferentCPL) //Stack switch is required?
 				{
-					TSSSize = 0; //Default to 16-bit TSS!
+					//TSSSize = 0; //Default to 16-bit TSS!
 					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_TSS32BIT:
-						TSSSize = 1; //32-bit TSS!
+						//TSSSize = 1; //32-bit TSS!
 					case AVL_SYSTEM_BUSY_TSS16BIT:
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
