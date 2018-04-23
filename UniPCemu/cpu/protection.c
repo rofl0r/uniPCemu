@@ -949,11 +949,15 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
 	{
-		if ((is_gated==0) && ((isJMPorCALL==3) || (isJMPorCALL==4))) //Non-gates doesn't change RPL(CPL) of CS! IRET&RETF does change CPL!
+		//Non-gates doesn't change RPL(CPL) of CS! (IRET?&)RETF does change CPL here(already done beforehand)!
+		if ((is_gated==0) && (isJMPorCALL==4)) //RETF changes privilege level?
 		{
-			CPU[activeCPU].CPL = MAX(getRPL(*segmentval),getCPL()); //Lower CPL!
-			setRPL(*segmentval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
-			setRPL(originalval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
+			if (getRPL(*segmentval)>getCPL()) //Lowered?
+			{
+				CPU[activeCPU].CPL = getRPL(*segmentval); //New CPL, lowered!
+				setRPL(*segmentval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
+				setRPL(originalval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
+			}
 		}
 	}
 
