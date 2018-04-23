@@ -800,7 +800,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 	}
 
-	if ((segment == CPU_SEGMENT_CS) && (getLoadedTYPE(&GATEDESCRIPTOR) == -1) && (is_gated)) //Gated CS?
+	if ((segment == CPU_SEGMENT_CS) && (isGateDescriptor(&GATEDESCRIPTOR) == 1) && (is_gated)) //Gated CS?
 	{
 		switch (GENERALSEGMENT_TYPE(GATEDESCRIPTOR.desc)) //What type of gate are we using?
 		{
