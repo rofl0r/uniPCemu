@@ -1082,6 +1082,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					CPU[activeCPU].oldSS = REG_SS; //Backup!
 					*/ //Dont automatically at the start of an instruction!
 
+					CPU[activeCPU].CPL = getRPL(value); //New privilege level!
+
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (CPU8086_POPw(6,&segmentWritten_tempSS,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //POPped?
