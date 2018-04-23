@@ -855,7 +855,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				//Now, copy the stack arguments!
 
 				*isdifferentCPL = 1; //We're a different level!
-				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
+				arguments = CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.desc.ParamCnt&0x1F); //Amount of parameters!
 				CPU[activeCPU].CallGateParamCount = 0; //Initialize the amount of arguments that we're storing!
 				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault!
 				for (;arguments--;) //Copy as many arguments as needed!
