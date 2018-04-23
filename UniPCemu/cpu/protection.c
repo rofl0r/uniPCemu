@@ -842,7 +842,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			}
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
-			fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack to transfer!
+			CPU[activeCPU].CallGateParamCount = 0; //Clear our stack to transfer!
 			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
 			{
 				//Backup the old stack data!
@@ -856,22 +856,40 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 				*isdifferentCPL = 1; //We're a different level!
 				arguments = CALLGATE_NUMARGUMENTS =  GATEDESCRIPTOR.desc.ParamCnt; //Amount of parameters!
+				CPU[activeCPU].CallGateParamCount = 0; //Initialize the amount of arguments that we're storing!
+				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault!
 				for (;arguments--;) //Copy as many arguments as needed!
 				{
 					if (callgatetype==2) //32-bit source?
 					{
-						argument = CPU_POP32(); //POP 32-bit argument!
+						argument = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 32-bit argument!
+						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
+						{
+							CPU[activeCPU].registers->ESP += 4; //Increase!
+						}
+						else //16-bits?
+						{
+							CPU[activeCPU].registers->SP += 4; //Increase!
+						}
 					}
 					else //16-bit source?
 					{
-						argument = (uint_32)CPU_POP16(0); //POP 16-bit argument!
+						argument = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 16-bit argument!
+						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
+						{
+							CPU[activeCPU].registers->ESP += 2; //Increase!
+						}
+						else //16-bits?
+						{
+							CPU[activeCPU].registers->SP += 2; //Increase!
+						}
 					}
 					if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
 					{
-						fifobuffer_clear(CPU[activeCPU].CallGateStack); //Clear our stack!
+						CPU[activeCPU].CallGateParamCount = 0; //Clear our stack!
 						return NULL; //Abort!
 					}
-					writefifobuffer32(CPU[activeCPU].CallGateStack,argument); //Add the argument to the call gate buffer to transfer to the new stack!
+					CPU[activeCPU].CallGateStack[CPU[activeCPU].CallGateParamCount++] = argument; //Add the argument to the call gate buffer to transfer to the new stack! Implement us as a LIFO for transfers!
 				}
 			}
 		}
@@ -973,7 +991,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
 						
-						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abprt pn error!
+						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abort on error!
 
 						if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
 						{
@@ -987,26 +1005,24 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
 
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
-						for (;fifobuffer_freesize(CPU[activeCPU].CallGateStack);) //Process the CALL Gate Stack!
+						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU_Operand_size[activeCPU])) return 1; //Abort on error!
+						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
 						{
-							if (readfifobuffer32(CPU[activeCPU].CallGateStack,&stackval)) //Read the value to transfer?
+							stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
+							if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ CPU_Operand_size[activeCPU]) //32-bit stack to push to?
 							{
-								if (checkStackAccess(1,1,CPU_Operand_size[activeCPU])) return 1; //Abprt pn error!
-								if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ CPU_Operand_size[activeCPU]) //32-bit stack to push to?
-								{
-									CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
-								}
-								else //16-bit?
-								{
-									stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
-									CPU_PUSH16(&stackval16,0); //Push the 16-bit stack value to the new stack!
-								}
+								CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
+							}
+							else //16-bit?
+							{
+								stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
+								CPU_PUSH16(&stackval16,0); //Push the 16-bit stack value to the new stack!
 							}
 						}
 					}
 				}
 				
-				if (checkStackAccess(2,1,CPU_Operand_size[activeCPU])) return 1; //Abprt on error!
+				if (checkStackAccess(2,1,CPU_Operand_size[activeCPU])) return 1; //Abort on error!
 
 				//Push the old address to the new stack!
 				if (CPU_Operand_size[activeCPU]) //32-bit?

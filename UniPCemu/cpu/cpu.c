@@ -934,7 +934,6 @@ void resetCPU() //Initialises the currently selected CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_timings_tbl(); //Generate the timings tables for all CPU's!
 	CPU_initLookupTables(); //Initialize our timing lookup tables!
-	CPU[activeCPU].CallGateStack = allocfifobuffer(32<<2,0); //Non-lockable 32-bit 32 arguments FIFO buffer for call gate stack parameter copy!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
 	#endif
@@ -1328,7 +1327,6 @@ void doneCPU() //Finish the CPU!
 {
 	free_CPUregisters(); //Finish the allocated registers!
 	CPU_doneBIU(); //Finish the BIU!
-	free_fifobuffer(&CPU[activeCPU].CallGateStack); //Release our Call Gate Stack space!
 	memset(&CPU[activeCPU],0,sizeof(CPU[activeCPU])); //Initilialize the CPU to known state!
 }
 

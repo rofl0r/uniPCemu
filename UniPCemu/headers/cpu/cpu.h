@@ -912,7 +912,8 @@ typedef struct PACKED
 	byte G_Mask; //G bit mask when used for 16 vs 32-bits!
 
 	//For stack argument copying of call gates!
-	FIFOBUFFER *CallGateStack; //Arguments to copy!
+	uint_32 CallGateStack[256]; //Arguments to copy!
+	word CallGateParamCount;
 	byte is_reset; //Are we a reset CPU?
 	byte permanentreset; //Are we in a permanent reset lock?
 
