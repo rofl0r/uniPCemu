@@ -954,7 +954,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			setRPL(*segmentval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
 			setRPL(originalval,CPU[activeCPU].CPL); //Only gated loads(CALL gates) can change RPL(active lowest CPL in CS). Otherwise, it keeps the old RPL.
 		}
-		CPU[activeCPU].CPL = MAX(getRPL(originalval),getCPL()); //New privilege level is the lowest of CPL and RPL!
 	}
 
 	validLDTR:
