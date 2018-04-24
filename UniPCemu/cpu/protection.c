@@ -682,7 +682,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Normal descriptor?
 		{
-			if (isJMPorCALL == 1 && !EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //JMP to a nonconforming segment?
+			if ((isJMPorCALL == 1) && !EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //JMP to a nonconforming segment?
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc) != getCPL()) //Different CPL?
 				{
@@ -845,7 +845,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			CPU[activeCPU].CallGateParamCount = 0; //Clear our stack to transfer!
 			CPU[activeCPU].CallGateSize = (callgatetype==2)?1:0; //32-bit vs 16-bit call gate!
 
-			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
+			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) && (isJMPorCALL==2)) //Stack switch required (with CALL only)?
 			{
 				//Backup the old stack data!
 				/*
@@ -989,9 +989,9 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
-			if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 2)) //CALL needs pushed data on the stack?
+			if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL == 2)||(isJMPorCALL==1))) //JMP/CALL needs pushed data on the stack?
 			{
-				if (isDifferentCPL==1) //Stack switch is required?
+				if ((isDifferentCPL==1) && (isJMPorCALL == 2)) //Stack switch is required with CALL only?
 				{
 					//TSSSize = 0; //Default to 16-bit TSS!
 					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
@@ -1005,7 +1005,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						
 						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abort on error!
 
-						if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
+						if (/*CPU_Operand_size[activeCPU]*/ CPU[activeCPU].CallGateSize)
 						{
 							CPU_PUSH32(&CPU[activeCPU].oldESP);
 						}
@@ -1014,7 +1014,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
 							CPU_PUSH16(&temp,0);
 						}
-						CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
+						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
 						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
@@ -1031,26 +1031,30 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 								CPU_PUSH16(&stackval16,0); //Push the 16-bit stack value to the new stack!
 							}
 						}
+						break;
 					}
 				}
-				else if (isDifferentCPL!=2) //Unchanging CPL? Take call size from operand size!
+				else if (isDifferentCPL==0) //Unchanging CPL? Take call size from operand size!
 				{
 					CPU[activeCPU].CallGateSize = CPU_Operand_size[activeCPU]; //Use the call instruction size!
 				}
 				//Else, call by call gate size!
 				
-				if (checkStackAccess(2,1,CPU_Operand_size[activeCPU])) return 1; //Abort on error!
+				if (isJMPorCALL==2) //CALL pushes return address!
+				{
+					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 
-				//Push the old address to the new stack!
-				if (CPU[activeCPU].CallGateSize) //32-bit?
-				{
-					CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
-					CPU_PUSH32(&CPU[activeCPU].registers->EIP);
-				}
-				else //16-bit?
-				{
-					CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
-					CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
+					//Push the old address to the new stack!
+					if (CPU[activeCPU].CallGateSize) //32-bit?
+					{
+						CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
+						CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+					}
+					else //16-bit?
+					{
+						CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
+						CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
+					}
 				}
 
 				if (EXECSEGMENTPTR_C(descriptor)) //Conforming segment?
