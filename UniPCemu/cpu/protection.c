@@ -989,7 +989,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
-			if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL == 2)||(isJMPorCALL==1))) //JMP/CALL needs pushed data on the stack?
+			if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL == 2) || (isJMPorCALL==1))) //JMP(with call gate)/CALL needs pushed data on the stack?
 			{
 				if ((isDifferentCPL==1) && (isJMPorCALL == 2)) //Stack switch is required with CALL only?
 				{
@@ -1057,7 +1057,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 				}
 
-				if (EXECSEGMENTPTR_C(descriptor)) //Conforming segment?
+				if ((EXECSEGMENTPTR_C(descriptor)==0) && (isDifferentCPL==1)) //Non-Conforming segment, call gate and more privilege?
 				{
 					CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
 				}
