@@ -46,7 +46,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 				if (type==PROTECTEDMODEDEBUGGER_TYPE_EXECUTION) //Executing fires immediately(fault)!
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,DR,1,1); //Set this trap to fire!
-					SETBITS(CPU[activeCPU].registers->DR6,15,1,0); //Clear bit 15, the new task's T-bit!
+					SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
 					CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 					return 1; //Triggered!
 				}
@@ -69,8 +69,9 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 		{
 			for (DR=0;DR<4;++DR) //Check any exception that's occurred!
 			{
-				SETBITS(CPU[activeCPU].registers->DR6,GETBITS(CPU[activeCPU].debuggerFaultRaised,DR,1),1,1); //We're trapping this/these data breakpoint(s)!
+				SETBITS(CPU[activeCPU].registers->DR6,DR,1,(GETBITS(CPU[activeCPU].debuggerFaultRaised,DR,1)|GETBITS(CPU[activeCPU].registers->DR6,DR,1))); //We're trapping this/these data breakpoint(s), set if so, otherwise, leave alone!
 			}
+			SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
 			CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 		}
 		else //Successful completion of an instruction?
