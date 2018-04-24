@@ -597,7 +597,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU_exec_lastEIP = CPU_exec_lastEIP;
 
 	//Update the x86 debugger, if needed!
-	protectedModeDebugger_taskswitch(); //Apply any action required for a task switch!
+	protectedModeDebugger_taskswitching(); //Apply any action required for a task switch!
 
 	updateCPUmode(); //Make sure the CPU mode is updated, according to the task!
 
@@ -769,12 +769,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,0,1,0)&1) //Trace bit set? Cause a debug exception when this context is run?
 	{
-		if (CPU_faultraised(EXCEPTION_DEBUG)) //We're raising a fault!
-		{
-			SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
-			CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-3); //Call the interrupt, no error code!
-			return; //Abort!
-		}
+		protectedModeDebugger_taskswitched(); //Finished task switch!
 	}
 
 	if (hascallinterrupttaken_type==0xFF) //Not set yet?

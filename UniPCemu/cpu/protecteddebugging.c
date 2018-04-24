@@ -92,8 +92,18 @@ byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at me
 	return 0; //Not supported yet!
 }
 
-void protectedModeDebugger_taskswitch() //Task switched?
+void protectedModeDebugger_taskswitching() //Task switched?
 {
 	//Clear the local debugger breakpoints(bits 0,2,4,6 of DR7)
 	CPU[activeCPU].registers->DR7 &= ~0x55; //Clear bits 0,2,4,6 on any task switch!
+}
+
+void protectedModeDebugger_taskswitched()
+{
+	if (CPU_faultraised(EXCEPTION_DEBUG)) //We're raising a fault!
+	{
+		SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
+		CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-3); //Call the interrupt, no error code!
+		return; //Abort!
+	}
 }
