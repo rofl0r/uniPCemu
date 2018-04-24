@@ -843,6 +843,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
 			CPU[activeCPU].CallGateParamCount = 0; //Clear our stack to transfer!
+			CPU[activeCPU].CallGateSize = (callgatetype==2)?1:0; //32-bit vs 16-bit call gate!
+
 			if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)!=getCPL()) //Stack switch required?
 			{
 				//Backup the old stack data!
@@ -893,6 +895,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				}
 
 				CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc); //Changing privilege to this!
+			}
+			else
+			{
+				*isdifferentCPL = 2; //Indicate call gate determines operand size!
 			}
 		}
 	}
@@ -985,7 +991,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 2)) //CALL needs pushed data on the stack?
 			{
-				if (isDifferentCPL) //Stack switch is required?
+				if (isDifferentCPL==1) //Stack switch is required?
 				{
 					//TSSSize = 0; //Default to 16-bit TSS!
 					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
@@ -1011,11 +1017,11 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS to return!
 
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
-						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU_Operand_size[activeCPU])) return 1; //Abort on error!
+						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
 						{
 							stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
-							if (/*(CODE_SEGMENT_DESCRIPTOR_D_BIT())*/ CPU_Operand_size[activeCPU]) //32-bit stack to push to?
+							if (CPU[activeCPU].CallGateSize) //32-bit stack to push to?
 							{
 								CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
 							}
@@ -1027,11 +1033,16 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						}
 					}
 				}
+				else if (isDifferentCPL!=2) //Unchanging CPL? Take call size from operand size!
+				{
+					CPU[activeCPU].CallGateSize = CPU_Operand_size[activeCPU]; //Use the call instruction size!
+				}
+				//Else, call by call gate size!
 				
 				if (checkStackAccess(2,1,CPU_Operand_size[activeCPU])) return 1; //Abort on error!
 
 				//Push the old address to the new stack!
-				if (CPU_Operand_size[activeCPU]) //32-bit?
+				if (CPU[activeCPU].CallGateSize) //32-bit?
 				{
 					CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
 					CPU_PUSH32(&CPU[activeCPU].registers->EIP);
@@ -1052,7 +1063,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					if (CPU[activeCPU].faultraised==0) //OK?
 					{
-						if (isDifferentCPL) //Different CPL?
+						if (isDifferentCPL==1) //Different CPL?
 						{
 							hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 						}
@@ -1090,11 +1101,11 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (CPU8086_POPw(6,&segmentWritten_tempSS,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //POPped?
+					if (CPU8086_POPw(6,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
-					if (/*CPU_Operand_size[activeCPU]*/ CODE_SEGMENT_DESCRIPTOR_D_BIT())
+					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
 						if (CPU80386_POPdw(8,&REG_ESP)) return 1; //POP ESP!
 					}

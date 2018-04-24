@@ -914,6 +914,7 @@ typedef struct PACKED
 	//For stack argument copying of call gates!
 	uint_32 CallGateStack[256]; //Arguments to copy!
 	word CallGateParamCount;
+	byte CallGateSize; //The size of the data to copy!
 	byte is_reset; //Are we a reset CPU?
 	byte permanentreset; //Are we in a permanent reset lock?
 
