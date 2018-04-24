@@ -202,6 +202,11 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 		}
 	}
 	#endif
+	if (errorcode==-3) //Special value for T-bit in TSS being triggered?
+	{
+		CPU_executionphaseinterrupt_errorcode = -1; //No error code, fault!
+		return; //Don't execute right away to prevent looping because of T-bit in debugger TSS.
+	}
 	CPU_OP(); //Execute right away for simple timing compatility!
 }
 
