@@ -47,7 +47,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,DR,1,1); //Set this trap to fire!
 					SETBITS(CPU[activeCPU].registers->DR6,15,1,0); //Clear bit 15, the new task's T-bit!
-					CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
+					CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 					return 1; //Triggered!
 				}
 				else //Data is a trap: report after executing!
@@ -71,7 +71,7 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 			{
 				SETBITS(CPU[activeCPU].registers->DR6,GETBITS(CPU[activeCPU].debuggerFaultRaised,DR,1),1,1); //We're trapping this/these data breakpoint(s)!
 			}
-			CPU_executionphase_startinterrupt(1,0,-1); //Call the interrupt, no error code!
+			CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 		}
 		else //Successful completion of an instruction?
 		{
