@@ -279,11 +279,11 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,index|((isprefetch&1)<<3)); //Read from MMU/hardware!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED|((isprefetch&1)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED|(((index&8)>>3)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 
 	return result; //Give the result!

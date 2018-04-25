@@ -444,7 +444,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	}
 	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
 	{
-		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAMLOGMEMORY|(((index&8)>>3)<<ACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAMLOGMEMORY|(((index&8)>>3)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 	return result; //Give existant memory!
 }
