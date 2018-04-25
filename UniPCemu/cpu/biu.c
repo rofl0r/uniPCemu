@@ -342,7 +342,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	{
 		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism!		
 	}
-	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0|LOGMEMORYACCESS_PREFETCHBIT)); //Add the next byte from memory into the buffer!
+	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0|8)); //Add the next byte from memory into the buffer!
 	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
 	{
 		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
