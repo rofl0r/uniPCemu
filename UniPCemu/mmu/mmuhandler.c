@@ -528,7 +528,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	}
 	if (unlikely((MMU_logging==1) || (specialdebugger && (realaddress>=0x100000)))) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT); //Log it!
+		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT|(((index&8)>>3)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 	return data;
 }
