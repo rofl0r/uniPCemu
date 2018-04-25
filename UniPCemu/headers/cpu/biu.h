@@ -77,7 +77,7 @@ void BIU_directww(uint_32 realaddress, word value, byte index); //Direct write t
 uint_32 BIU_directrdw(uint_32 realaddress, byte index);
 void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index);
 
-byte memory_BIUdirectrb(uint_32 realaddress); //Direct read from real memory (with real data direct)!
+byte memory_BIUdirectrb(uint_32 realaddress, byte isorefetch); //Direct read from real memory (with real data direct)!
 word memory_BIUdirectrw(uint_32 realaddress); //Direct read from real memory (with real data direct)!
 uint_32 memory_BIUdirectrdw(uint_32 realaddress); //Direct read from real memory (with real data direct)!
 void memory_BIUdirectwb(uint_32 realaddress, byte value); //Direct write to real memory (with real data direct)!
