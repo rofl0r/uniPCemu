@@ -276,6 +276,7 @@ void CPU_IRET()
 			}
 			else //Normal protected mode return?
 			{
+				if (getCPL()) tempEFLAGS = (tempEFLAGS&F_IOPL)|(REG_EFLAGS&~F_IOPL); //Disallow IOPL being changed!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
 				CPU_flushPIQ(-1); //We're jumping to another address!
