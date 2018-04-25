@@ -247,7 +247,7 @@ void CPU_IRET()
 			tempCS = CPU_POP16(CPU_Operand_size[activeCPU]); //CS to be loaded!
 			if (CPU_Operand_size[activeCPU]) //32-bit mode?
 			{
-				tempEFLAGS = CPU_POP32(); //Pop flags!
+				tempEFLAGS = CPU_POP32(); //Pop eflags!
 			}
 			else
 			{
@@ -276,7 +276,11 @@ void CPU_IRET()
 			}
 			else //Normal protected mode return?
 			{
+				if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
+				//Check unchanging bits!
 				if (getCPL()) tempEFLAGS = (tempEFLAGS&~F_IOPL)|(REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
+				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IOPL being changed!
+				//Flags are OK now!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
 				CPU_flushPIQ(-1); //We're jumping to another address!
