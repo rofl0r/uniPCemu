@@ -62,5 +62,9 @@ byte debugger_forceEIP(); //Force EIP to be used for debugging?
 #define LOGMEMORYACCESS_DIRECT 2
 #define LOGMEMORYACCESS_RAM 3
 #define LOGMEMORYACCESS_RAM_LOGMMUALL 4
+//Or'ed with the above values!
+#define LOGMEMORYACCESS_PREFETCHBITSHIFT 3
+#define LOGMEMORYACCESS_PREFETCH 8
+
 
 #endif

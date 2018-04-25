@@ -268,7 +268,7 @@ extern MMU_type MMU; //MMU support!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
-byte BIU_directrb(uint_32 realaddress, byte index, byte isprefetch)
+byte BIU_directrb(uint_32 realaddress, byte index)
 {
 	uint_32 originaladdr;
 	byte result;
@@ -279,11 +279,11 @@ byte BIU_directrb(uint_32 realaddress, byte index, byte isprefetch)
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,index|((isprefetch&1)<<3)); //Read from MMU/hardware!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED); //Log it!
+		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED|((isprefetch&1)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 
 	return result; //Give the result!
@@ -308,7 +308,7 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 
 word BIU_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
-	return BIU_directrb(realaddress, index, 0) | (BIU_directrb(realaddress + 1, index | 1, 0) << 8); //Get data, wrap arround!
+	return BIU_directrb(realaddress, index) | (BIU_directrb(realaddress + 1, index | 1) << 8); //Get data, wrap arround!
 }
 
 void BIU_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
@@ -342,7 +342,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	{
 		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism!		
 	}
-	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0, 1)); //Add the next byte from memory into the buffer!
+	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0|LOGMEMORYACCESS_PREFETCHBIT)); //Add the next byte from memory into the buffer!
 	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
 	{
 		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
@@ -502,7 +502,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 			case REQUEST_MMUREAD:
 				fulltransferMMUread:
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
-				BIU[activeCPU].currentresult |= (BIU_directrb((BIU[activeCPU].currentaddress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8),0)<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				BIU[activeCPU].currentresult |= (BIU_directrb((BIU[activeCPU].currentaddress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -615,7 +615,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
 					}
 					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
-					BIU[activeCPU].currentresult = ((BIU_directrb((BIU[activeCPU].currentaddress),0,0))<<BIU_access_readshift[0]); //Read first byte!
+					BIU[activeCPU].currentresult = ((BIU_directrb((BIU[activeCPU].currentaddress),0))<<BIU_access_readshift[0]); //Read first byte!
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
