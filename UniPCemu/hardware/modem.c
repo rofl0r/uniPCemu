@@ -7,6 +7,262 @@
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/tcphelper.h" //TCP support!
 
+/*
+
+Packet server support!
+
+*/
+
+/* packet.c: functions to interface with libpcap/winpcap for ethernet emulation. */
+
+byte PacketServer_running = 0; //Is the packet server running(disables all emulation but hardware)?
+uint8_t maclocal[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //The MAC address of the modem we're emulating!
+FIFOBUFFER *packetserver_receivebuffer = NULL; //When receiving anything!
+byte *packetserver_transmitbuffer = NULL; //When sending a packet, this contains the currently built decoded data, which is already decoded!
+uint_32 packetserver_transmitlength = 0; //How much has been built?
+uint_32 packetserver_transmitsize = 0; //How much has been allocated so far, allocated in whole chunks?
+byte packetserver_transmitstate = 0; //Transmit state for processing escaped values!
+
+//End of frame byte!
+#define SLIP_END 0xC0
+//Escape byte!
+#define SLIP_ESC 0xDB
+//END is being send(send after ESC)
+#define SLIP_ESC_END 0xDC
+//ESC is being send(send after ESC)
+#define SLIP_ESC_ESC 0xDD
+
+#ifdef PACKETSERVER_ENABLED
+struct netstruct { //Supported, thus use!
+#else
+struct {
+#endif
+	uint16_t pktlen;
+	byte *packet; //Current packet received!
+} net;
+
+uint_32 packetserver_packetpos; //Current pos of sending said packet!
+
+#ifdef PACKETSERVER_ENABLED
+#define HAVE_REMOTE
+#define WPCAP
+#include <pcap.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifndef _WIN32
+#define PCAP_OPENFLAG_PROMISCUOUS 1
+#endif
+
+uint8_t ethif=255, net_enabled = 0;
+uint8_t dopktrecv = 0;
+uint16_t rcvseg, rcvoff, hdrlen, handpkt;
+
+pcap_if_t *alldevs;
+pcap_if_t *d;
+pcap_t *adhandle;
+const u_char *pktdata;
+struct pcap_pkthdr *hdr;
+int inum;
+uint16_t curhandle = 0;
+char errbuf[PCAP_ERRBUF_SIZE];
+uint8_t maclocal_default[6] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x13, 0x37 }; //The MAC address of the modem we're emulating!
+
+void initPcap() {
+	memset(&net,0,sizeof(net)); //Init!
+	int i=0;
+
+	/*
+
+	Custom by superfury
+
+	*/
+
+	if ((BIOS_Settings.ethernetcard==-1) || (BIOS_Settings.ethernetcard<0) || (BIOS_Settings.ethernetcard>255)) //No ethernet card to emulate?
+	{
+		PacketServer_running = 0; //We're not using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
+		return; //Disable ethernet emulation!
+	}
+	ethif = BIOS_Settings.ethernetcard; //What ethernet card to use?
+
+	//Load MAC address!
+	int values[6];
+
+	if( 6 == sscanf( BIOS_Settings.MACaddress, "%x:%x:%x:%x:%x:%x%*c",
+		&values[0], &values[1], &values[2],
+		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
+	{
+		/* convert to uint8_t */
+		for( i = 0; i < 6; ++i )
+			maclocal[i] = (uint8_t) values[i]; //MAC address parts!
+	}
+	else
+	{
+		memcpy(&maclocal,&maclocal_default,sizeof(maclocal)); //Copy the default MAC address to use!
+	}
+
+	dolog("ethernetcard","MAC address of receiver: %02x:%02x:%02:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
+
+	packetserver_receivebuffer = allocfifobuffer(2,0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+	packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+
+	PacketServer_running = 1; //We're using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
+
+	/*
+
+	End of custom!
+
+	*/
+
+	i = 0; //Init!
+
+	dolog("ethernetcard","Obtaining NIC list via libpcap...");
+
+	/* Retrieve the device list from the local machine */
+#if defined(_WIN32)
+	if (pcap_findalldevs_ex (PCAP_SRC_IF_STRING, NULL /* auth is not needed */, &alldevs, errbuf) == -1)
+#else
+	if (pcap_findalldevs (&alldevs, errbuf) == -1)
+#endif
+		{
+			dolog("ethernetcard","Error in pcap_findalldevs_ex: %s", errbuf);
+			exit (1);
+		}
+
+	/* Print the list */
+	for (d= alldevs; d != NULL; d= d->next) {
+			i++;
+			if (ethif==255) {
+					dolog("ethernetcard","%d. %s", i, d->name);
+					if (d->description) {
+							dolog("ethernetcard"," (%s)", d->description);
+						}
+					else {
+							dolog("ethernetcard"," (No description available)");
+						}
+				}
+		}
+
+	if (i == 0) {
+			dolog("ethernetcard","No interfaces found! Make sure WinPcap is installed.");
+			return;
+		}
+
+	if (ethif==255) exit (0); //Failed: no ethernet card to use!
+	else inum = ethif;
+	dolog("ethernetcard","Using network interface %u.", ethif);
+
+
+	if (inum < 1 || inum > i) {
+			dolog("ethernetcard","Interface number out of range.");
+			/* Free the device list */
+			pcap_freealldevs (alldevs);
+			return;
+		}
+
+	/* Jump to the selected adapter */
+	for (d=alldevs, i=0; ((i< inum-1) && d) ; d=d->next, i++);
+
+	/* Open the device */
+#ifdef _WIN32
+	if ( (adhandle= pcap_open (d->name, 65536, PCAP_OPENFLAG_PROMISCUOUS, -1, NULL, errbuf) ) == NULL)
+#else
+	if ( (adhandle= pcap_open_live (d->name, 65535, 1, -1, NULL) ) == NULL)
+#endif
+		{
+			dolog("ethernetcard","Unable to open the adapter. %s is not supported by WinPcap", d->name);
+			/* Free the device list */
+			pcap_freealldevs (alldevs);
+			return;
+		}
+
+	dolog("ethernetcard","Ethernet bridge on %s...", d->description);
+
+	/* At this point, we don't need any more the device list. Free it */
+	pcap_freealldevs (alldevs);
+	pcap_enabled = 1;
+}
+
+void fetchpackets_pcap() { //Handle any packets to process!
+	if (net_enabled) //Enabled?
+	{
+		//Cannot receive until buffer cleared!
+		if (net.packet==NULL) //Can we receive anything?
+		{
+			if (pcap_next_ex (adhandle, &hdr, &pktdata) <=0) return;
+			if (hdr->len==0) return;
+
+			net.packet = zalloc(hdr->len,"MODEM_PACKET");
+			if (net.packet) //Allocated?
+			{
+				memcpy(net.packet, &pktdata[0], hdr->len);
+				net.pktlen = (uint16_t) hdr->len;
+				if (verbose) {
+						dolog("ethernetcards","Received packet of %u bytes.", net.pktlen);
+				}
+				//Packet received!
+				return;
+			}
+		}
+	}
+}
+
+void sendpkt_pcap (uint8_t *src, uint16_t len) {
+	if (net_enabled) //Enabled?
+	{
+		pcap_sendpacket (adhandle, src, len);
+	}
+}
+
+void termPcap()
+{
+	if (net.packet)
+	{
+		freez(net.packet,net.pktlen,"MODEM_PACKET"); //Cleanup!
+	}
+	if (packetserver_receivebuffer)
+	{
+		free_fifobuffer(&packetserver_receivebuffer); //Cleanup!
+	}
+	if (packetserver_transmitbuffer && packetserver_transmitsize) //Gotten a send buffer allocated?
+	{
+		freez(&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
+		if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Nothing allocated anymore!
+	}
+}
+#else
+//Not supported?
+void initPcap() //Unsupported!
+{
+	memset(&net,0,sizeof(net)); //Init!
+}
+void sendpkt_pcap (uint8_t *src, uint16_t len)
+{
+}
+void fetchpackets_pcap() //Handle any packets to process!
+{
+}
+void termPcap()
+{
+}
+#endif
+
+void terminatePacketServer() //Cleanup the packet server after being disconnected!
+{
+	fifobuffer_clear(packetserver_receivebuffer); //Clear the receive buffer!
+	freez(&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
+	if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Clear!
+}
+
+void initPacketServer() //Initialize the packet server for use when connected to!
+{
+	terminatePacketServer(); //First, make sure we're terminated properly!
+	packetserver_transmitsize = 1024; //Initialize transmit buffer!
+	packetserver_transmitbuffer = zalloc(packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
+	packetserver_transmitlength = 0; //Nothing buffered yet!
+	packetserver_transmitstate = 0; //Initialize transmitter state to the default state!
+}
+
 #define MODEM_BUFFERSIZE 256
 
 #define MODEM_SERVERPOLLFREQUENCY 1000
@@ -145,6 +401,7 @@ void modem_responseNumber(byte x)
 byte modem_sendData(byte value) //Send data to the connected device!
 {
 	//Handle sent data!
+	if (PacketServer_running) return 0; //Not OK to send data this way!
 	return writefifobuffer(modem.outputbuffer,value); //Try to write to the output buffer!
 }
 
@@ -172,7 +429,8 @@ byte modem_connect(char *phonenumber)
 	byte a,b,c,d;
 	char *p; //For normal port resolving!
 	unsigned int port;
-	if (modem.ringing && (phonenumber==NULL)) //Are we ringing and accepting it?
+	if (PacketServer_running) return 0; //Never connect the modem emulation when we're running as a packet server!
+	if (modem.ringing && (phonenumber==NULL) && (PacketServer_running==0)) //Are we ringing and accepting it?
 	{
 		modem.ringing = 0; //Not ringing anymore!
 		modem.connected = 1; //We're connected!
@@ -182,6 +440,7 @@ byte modem_connect(char *phonenumber)
 	{
 		return 0; //Not connected!
 	}
+	if (PacketServer_running) return 0; //Don't accept when the packet server is running instead!
 	memset(&ipaddress,0,sizeof(ipaddress)); //Init IP address to translate!
 	if (safestrlen(phonenumber,256)>=9) //Valid length to convert IP addresses?
 	{
@@ -264,7 +523,7 @@ byte modem_connect(char *phonenumber)
 void modem_hangup() //Hang up, if possible!
 {
 	TCPServer_restart(); //Start into the server mode!
-	modem.connected = 0; //Not connected anymore!
+	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
 	modem.offhook = 0; //We're on-hook!
 }
@@ -356,9 +615,9 @@ byte resetModem(byte state)
 	modem.flowcontrol = 0; //Default flow control!
 	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
 	modem.offhook = 0; //On-hook!
-	if (modem.connected) //Are we still connected?
+	if (modem.connected&1) //Are we still connected?
 	{
-		modem.connected = 0; //Disconnect!
+		modem.connected &= ~1; //Disconnect!
 		modem_responseResult(MODEMRESULT_NOCARRIER); //Report no carrier!
 		TCPServer_restart(); //Start into the server mode!
 	}
@@ -396,7 +655,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 			case 2: //Full reset, hangup?
 				resetModem(0); //Reset!
-				if (modem.connected || modem.ringing) //Are we connected?
+				if ((modem.connected&1) || modem.ringing) //Are we connected?
 				{
 					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
 					modem_hangup(); //Hang up!
@@ -418,7 +677,7 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?(modem.connected?2:0):2)|(modem.ringing?4:0)|((modem.connected||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
+	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):2)|(modem.ringing?4:0)|(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring, 3=Carrier detect!
 }
 
 byte modem_readData()
@@ -653,7 +912,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				{
 					//if ((n0==0) && modem.offhook)
 					modem.offhook = n0?1:0; //Set the hook status or hang up!
-					if (((modem.connected || modem.ringing)&&(!modem.offhook)) || (modem.offhook && (!(modem.connected||modem.ringing)))) //Disconnected or still ringing/connected?
+					if ((((modem.connected&1) || modem.ringing)&&(!modem.offhook)) || (modem.offhook && (!((modem.connected&1)||modem.ringing)))) //Disconnected or still ringing/connected?
 					{
 						if (modem.offhook==0) //On-hook?
 						{
@@ -902,7 +1161,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case '0':
 				n0 = 0;
 				doATO:
-				if (modem.connected) //Cpnnected?
+				if (modem.connected&1) //Connected?
 					modem.datamode = 2; //Return to data mode!
 				else
 				{
@@ -1240,11 +1499,36 @@ void doneModem() //Finish modem!
 	}
 	TCP_DisconnectClientServer(); //Disconnect, if needed!
 	stopTCPServer(); //Stop the TCP server!
+	terminatePacketServer(); //Stop the packet server, if used!
 }
 
 void cleanModem()
 {
 	//Nothing to do!
+}
+
+byte packetServerAddWriteQueue(byte data) //Try to add something to the write queue!
+{
+	byte *newbuffer;
+	if (packetserver_transmitlength>=packetserver_transmitsize) //We need to expand the buffer?
+	{
+		newbuffer = zalloc(packetserver_transmitsize+1024,"MODEM_SENDPACKET",NULL); //Try to allocate a larger buffer!
+		if (newbuffer) //Allocated larger buffer?
+		{
+			memcpy(newbuffer,packetserver_transmitbuffer,packetserver_transmitsize); //Copy the new data over to the larger buffer!
+			freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Release the old buffer!
+			packetserver_transmitbuffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
+			packetserver_transmitsize += 1024; //We've been increased to this larger buffer!
+			packetserver_transmitbuffer[packetserver_transmitlength++] = data; //Add the data to the buffer!
+			return 1; //Success!
+		}
+	}
+	else //Normal buffer usage?
+	{
+		packetserver_transmitbuffer[packetserver_transmitlength++] = data; //Add the data to the buffer!
+		return 1; //Success!
+	}
+	return 0; //Failed!
 }
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
@@ -1287,15 +1571,24 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		}
 		if (acceptTCPServer()) //Are we connected to?
 		{
-			if ((modem.linechanges&1)==0) //Not able to accept?
+			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
 			{
 				TCPServer_restart(modem.connectionport); //Restart into the TCP server!
 			}
 			else //Able to accept?
 			{
-				modem.ringing = 1; //We start ringing!
-				modem.registers[1] = 0; //Reset ring counter!
-				modem.ringtimer = timepassed; //Automatic time timer, start immediately!
+				if (PacketServer_running) //Packet server is running?
+				{
+					modem.connected = 2; //Connect as packet server instead, we start answering manually instead of the emulated modem!
+					modem.ringing = 0; //Never ring!
+					initPacketServer(); //Initialize the packet server to be used!
+				}
+				else //Normal behaviour: start ringing!
+				{
+					modem.ringing = 1; //We start ringing!
+					modem.registers[1] = 0; //Reset ring counter!
+					modem.ringtimer = timepassed; //Automatic time timer, start immediately!
+				}
 			}
 		}
 	}
@@ -1329,8 +1622,117 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		for (;modem.networkdatatimer>=modem.networkpolltick;) //While polling!
 		{
 			modem.networkdatatimer -= modem.networkpolltick; //Timing this byte by byte!
+			if (net.packet && !modem.connected) //Received a packet while not listening?
+			{
+				freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!				
+			}
 			if (modem.connected || modem.ringing) //Are we connected?
 			{
+				if (modem.connected==2) //Running the packet server?
+				{
+					//Handle packet server packet data transfers into the inputdatabuffer/outputbuffer to the network!
+					if (packetserver_receivebuffer) //Properly allocated?
+					{
+						if (net.packet) //Packet has been received? Try to start transmit it!
+						{
+							if (fifobuffer_freesize(packetserver_receivebuffer)>=2) //Valid to produce more data?
+							{
+								//Convert the buffer into transmittable bytes using the proper encoding!
+								if (packetserver_packetpos<net.pktlen) //Not finished yet?
+								{
+									//Start transmitting data into the buffer, according to the protocol!
+									datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
+									if (datatotransmit==SLIP_END) //End byte?
+									{
+										writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
+										writefifobuffer(packetserver_receivebuffer,SLIP_ESC_END); //END raw data!
+									}
+									else if (datatotransmit==SLIP_ESC) //ESC byte?
+									{
+										writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
+										writefifobuffer(packetserver_receivebuffer,SLIP_ESC_ESC); //ESC raw data!
+									}
+									else //Normal data?
+									{
+										writefifobuffer(packetserver_receivebuffer,datatotransmit); //Unescaped!
+									}
+								}
+								else //Finished transferring a frame?
+								{
+									writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
+									freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
+								}
+							}
+						}
+						
+						//Transmit the encoded packet buffer to the client!
+						if (fifobuffer_freesize(modem.outputbuffer) && peekfifobuffer(packetserver_receivebuffer,&datatotransmit)) //Able to transmit something?
+						{
+							for (;fifobuffer_freesize(modem.outputbuffer) && peekfifobuffer(packetserver_receivebuffer,&datatotransmit);) //Can we still transmit something more?
+							{
+								if (writefifobuffer(modem.outputbuffer,datatotransmit)) //Transmitted?
+								{
+									datatotransmit = readfifobuffer(packetserver_receivebuffer,&datatotransmit); //Discard the data that's being transmitted!
+								}
+							}
+						}
+
+						//Handle transmitting packets(with automatically increasing buffer sizing, as a packet can be received of any size theoretically)!
+						if (peekfifobuffer(modem.inputdatabuffer,&datatotransmit)) //Is anything transmitted yet?
+						{
+							if (datatotransmit==SLIP_END) //End-of-frame? Send the frame!
+							{
+								readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet END!
+								//Clean up the packet container!
+								if (packetserver_transmitlength) //Anything buffered?
+								{
+									//Send the frame to the server, if we're able to!
+									if (packetserver_transmitlength<=0xFFFF) //Within length range?
+									{
+										sendpkt_pcap(packetserver_transmitbuffer,packetserver_transmitsize); //Send the packet!
+									}
+
+									//Now, cleanup the buffered frame!
+									freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Free 
+									packetserver_transmitsize = 1024; //How large is out transmit buffer!
+									packetserver_transmitbuffer = zalloc(1024,"MODEM_SENDPACKET",NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+								}
+								packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+								packetserver_transmitstate = 0; //Not escaped anymore!
+							}
+							else if (datatotransmit==SLIP_ESC) //Escaped something?
+							{
+								readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Discard, as it's processed!
+								packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
+							}
+							else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_END)) //END sent?
+							{
+								if (packetServerAddWriteQueue(SLIP_END)) //Added to the queue?
+								{
+									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+									packetserver_transmitstate = 0; //We're not escaping something anymore!
+								}
+							}
+							else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_ESC)) //ESC sent?
+							{
+								if (packetServerAddWriteQueue(SLIP_ESC)) //Added to the queue?
+								{
+									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+									packetserver_transmitstate = 0; //We're not escaping something anymore!
+								}
+							}
+							else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
+							{
+								if (packetServerAddWriteQueue(datatotransmit)) //Added to the queue?
+								{
+									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+									packetserver_transmitstate = 0; //We're not escaping something anymore!
+								}
+							}
+						}
+					}
+				}
+
 				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
 				{
 					switch (TCP_SendData(datatotransmit)) //Send the data?
@@ -1338,9 +1740,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					case 0: //Failed to send?
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart the server!
-						modem_responseResult(MODEMRESULT_NOCARRIER);
-						modem.datamode = 0; //Drop out of data mode!
-						modem.ringing = 0; //Not ringing anymore!
+						if (PacketServer_running==0) //Not running a packet server?
+						{
+							modem_responseResult(MODEMRESULT_NOCARRIER);
+							modem.datamode = 0; //Drop out of data mode!
+							modem.ringing = 0; //Not ringing anymore!
+						}
+						else //Disconnect from packet server?
+						{
+							terminatePacketServer(); //Clean up the packet server!
+						}
 						break; //Abort!
 					case 1: //Sent?
 						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
@@ -1361,9 +1770,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					case -1: //Disconnected?
 						modem.connected = 0; //Not connected anymore!
 						TCPServer_restart(modem.connectionport); //Restart server!
-						modem_responseResult(MODEMRESULT_NOCARRIER);
-						modem.datamode = 0; //Drop out of data mode!
-						modem.ringing = 0; //Not ringing anymore!
+						if (PacketServer_running==0) //Not running a packet server?
+						{
+							modem_responseResult(MODEMRESULT_NOCARRIER);
+							modem.datamode = 0; //Drop out of data mode!
+							modem.ringing = 0; //Not ringing anymore!
+						}
+						else //Disconnect from packet server?
+						{
+							terminatePacketServer(); //Clean up the packet server!
+						}
 						break;
 					default: //Unknown function?
 						break;

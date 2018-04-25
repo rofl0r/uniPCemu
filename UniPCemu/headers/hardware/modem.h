@@ -8,5 +8,7 @@ void doneModem(); //Finish modem!
 
 void cleanModem();
 void updateModem(DOUBLE timepassed); //Sound tick. Executes every instruction.
+void initPcap(); //PCAP initialization, when supported!
+void termPcap(); //PCAP termination, when supported!
 
 #endif

@@ -795,6 +795,10 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	//Modem
 	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem","listenport",DEFAULT_MODEMLISTENPORT,BIOS_Settings_file); //Modem listen port!
+#ifdef PACKETSERVER_ENABLED
+	BIOS_Settings.ETHERNETSERVER_SETTINGS.ethernetcard = get_private_profile_int64("modem","ethernetcard",-1,BIOS_Settings_file); //Ethernet card to use!
+	get_private_profile_string("modem","MACaddress","",&BIOS_Settings.ETHERNETSERVER_SETTINGS.MACaddress[0],sizeof(BIOS_Settings.MACaddress),BIOS_Settings_file); //Read entry!
+#endif
 
 	//Disks
 	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0),BIOS_Settings_file); //Read entry!
@@ -1025,9 +1029,18 @@ int BIOS_SaveData() //Save BIOS settings!
 	//Modem
 	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
 	snprintf(modem_comment,sizeof(modem_comment),"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
+#ifdef PACKETSERVER_ENABLED
+	safestrcat(modem_comment,sizeof(modem_comment),"ethernetcard: -1 for disabled(use normal emulation), 0-254 for selected network card, 255 to generate a list of network cards to select\m");
+	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %u:%u:%u:%u:%u:u)\n",DEFAULT_MODEMLISTENPORT);
+	safestrcat(modem_comment,sizeof(modem_comment),currentstr); //MAC address information!
+#endif
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
+#ifdef PACKETSERVER_ENABLED
+	if (!write_private_profile_int64("modem",modem_commentused,"ethernetcard",BIOS_Settings.ETHERNETSERVER_SETTINGS.ethernetcard,BIOS_Settings_file)) return 0; //Ethernet card to use!
+	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",BIOS_Settings.ETHERNETSERVER_SETTINGS.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
+#endif
 
 	//Disks
 	memset(&disks_comment,0,sizeof(disks_comment)); //Init!

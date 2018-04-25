@@ -87,6 +87,13 @@ typedef struct
 	//CMOS for PS/2 systems!
 	CMOSDATA PS2CMOS; //The full saved CMOS!
 	byte got_PS2CMOS; //Gotten an CMOS?
+#ifdef PACKETSERVER_ENABLED
+	struct
+	{
+	int_64 ethernetcard; //What adapter to use? 255=List adapters!
+	CharacterType MACaddress[256]; //MAC address, hexadecimal characters only!
+	} ETHERNETSERVER_SETTINGS;
+#endif
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:
