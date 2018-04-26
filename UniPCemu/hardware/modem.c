@@ -292,7 +292,7 @@ void termPcap()
 void terminatePacketServer() //Cleanup the packet server after being disconnected!
 {
 	fifobuffer_clear(packetserver_receivebuffer); //Clear the receive buffer!
-	freez(&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
+	freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
 	if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Clear!
 }
 

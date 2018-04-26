@@ -9,7 +9,7 @@
 #define PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE 0x03
 
 byte checkProtectedModeDebugger(uint_32 linearaddress, byte type); //Access at memory/IO port?
-void protectedModeDebugger_taskswitch(); //Task switched?
+void protectedModeDebugger_taskswitching(); //Task switched?
 void checkProtectedModeDebuggerAfter(); //Check after instruction for the protected mode debugger!
 void protectedModeDebugger_taskswitched(); //Handle task switch debugger!
 
