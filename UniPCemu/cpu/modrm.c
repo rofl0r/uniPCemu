@@ -928,7 +928,7 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 //First the decoders:
 
 //is_base: 1=Base, 0=Index
-OPTINLINE uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, byte is_base, char *result,uint_32 resultsize, byte *useSS)
+uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, byte is_base, char *result,uint_32 resultsize, byte *useSS)
 {
 	uint_32 disprel=0;
 	uint_32 effectivedisp;
