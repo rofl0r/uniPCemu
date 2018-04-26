@@ -6,6 +6,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/tcphelper.h" //TCP support!
+#include "headers/support/log.h" //Logging support for errors!
 
 #if defined(PACKETSERVER_ENABLED)
 #define HAVE_REMOTE
@@ -22,6 +23,8 @@
 Packet server support!
 
 */
+
+extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 
 /* packet.c: functions to interface with libpcap/winpcap for ethernet emulation. */
 
@@ -75,7 +78,7 @@ uint_32 packetserver_packetpos; //Current pos of sending said packet!
 #define PCAP_OPENFLAG_PROMISCUOUS 1
 #endif
 
-uint8_t ethif=255, net_enabled = 0;
+uint8_t ethif=255, pcap_enabled = 0;
 uint8_t dopktrecv = 0;
 uint16_t rcvseg, rcvoff, hdrlen, handpkt;
 
@@ -88,6 +91,7 @@ int inum;
 uint16_t curhandle = 0;
 char errbuf[PCAP_ERRBUF_SIZE];
 uint8_t maclocal_default[6] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x13, 0x37 }; //The MAC address of the modem we're emulating!
+byte pcap_verbose = 0;
 
 void initPcap() {
 	memset(&net,0,sizeof(net)); //Init!
@@ -100,16 +104,16 @@ void initPcap() {
 	*/
 	PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 
-	if ((BIOS_Settings.ethernetcard==-1) || (BIOS_Settings.ethernetcard<0) || (BIOS_Settings.ethernetcard>255)) //No ethernet card to emulate?
+	if ((BIOS_Settings.ethernetserver_settings.ethernetcard==-1) || (BIOS_Settings.ethernetserver_settings.ethernetcard<0) || (BIOS_Settings.ethernetserver_settings.ethernetcard>255)) //No ethernet card to emulate?
 	{
 		return; //Disable ethernet emulation!
 	}
-	ethif = BIOS_Settings.ethernetcard; //What ethernet card to use?
+	ethif = BIOS_Settings.ethernetserver_settings.ethernetcard; //What ethernet card to use?
 
 	//Load MAC address!
 	int values[6];
 
-	if( 6 == sscanf( BIOS_Settings.MACaddress, "%x:%x:%x:%x:%x:%x%*c",
+	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.MACaddress, "%x:%x:%x:%x:%x:%x%*c",
 		&values[0], &values[1], &values[2],
 		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
 	{
@@ -122,7 +126,7 @@ void initPcap() {
 		memcpy(&maclocal,&maclocal_default,sizeof(maclocal)); //Copy the default MAC address to use!
 	}
 
-	if( 6 == sscanf( BIOS_Settings.gatewayMACaddress, "%x:%x:%x:%x:%x:%x%*c",
+	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.gatewayMACaddress, "%x:%x:%x:%x:%x:%x%*c",
 		&values[0], &values[1], &values[2],
 		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
 	{
@@ -222,7 +226,7 @@ void initPcap() {
 }
 
 void fetchpackets_pcap() { //Handle any packets to process!
-	if (net_enabled) //Enabled?
+	if (pcap_enabled) //Enabled?
 	{
 		//Cannot receive until buffer cleared!
 		if (net.packet==NULL) //Can we receive anything?
@@ -230,12 +234,12 @@ void fetchpackets_pcap() { //Handle any packets to process!
 			if (pcap_next_ex (adhandle, &hdr, &pktdata) <=0) return;
 			if (hdr->len==0) return;
 
-			net.packet = zalloc(hdr->len,"MODEM_PACKET");
+			net.packet = zalloc(hdr->len,"MODEM_PACKET",NULL);
 			if (net.packet) //Allocated?
 			{
 				memcpy(net.packet, &pktdata[0], hdr->len);
 				net.pktlen = (uint16_t) hdr->len;
-				if (verbose) {
+				if (pcap_verbose) {
 						dolog("ethernetcards","Received packet of %u bytes.", net.pktlen);
 				}
 				//Packet received!
@@ -246,7 +250,7 @@ void fetchpackets_pcap() { //Handle any packets to process!
 }
 
 void sendpkt_pcap (uint8_t *src, uint16_t len) {
-	if (net_enabled) //Enabled?
+	if (pcap_enabled) //Enabled?
 	{
 		pcap_sendpacket (adhandle, src, len);
 	}
@@ -256,7 +260,7 @@ void termPcap()
 {
 	if (net.packet)
 	{
-		freez(net.packet,net.pktlen,"MODEM_PACKET"); //Cleanup!
+		freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Cleanup!
 	}
 	if (packetserver_receivebuffer)
 	{
@@ -264,7 +268,7 @@ void termPcap()
 	}
 	if (packetserver_transmitbuffer && packetserver_transmitsize) //Gotten a send buffer allocated?
 	{
-		freez(&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
+		freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
 		if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Nothing allocated anymore!
 	}
 	if (pcap_enabled)
@@ -1479,8 +1483,6 @@ void modem_writeData(byte value)
 		}
 	}
 }
-
-extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 
 void initModem(byte enabled) //Initialise modem!
 {

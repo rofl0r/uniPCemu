@@ -11,6 +11,15 @@
 //BIOS Version!
 #define BIOS_VERSION 1
 
+#ifdef PACKETSERVER_ENABLED
+typedef struct
+{
+	int_64 ethernetcard; //What adapter to use? 255=List adapters!
+	CharacterType MACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
+	CharacterType gatewayMACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
+} ETHERNETSERVER_SETTINGS_TYPE;
+#endif
+
 typedef struct
 {
 	byte version; //The version number of the BIOS; should match with current version number!
@@ -88,12 +97,7 @@ typedef struct
 	CMOSDATA PS2CMOS; //The full saved CMOS!
 	byte got_PS2CMOS; //Gotten an CMOS?
 #ifdef PACKETSERVER_ENABLED
-	struct
-	{
-	int_64 ethernetcard; //What adapter to use? 255=List adapters!
-	CharacterType MACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
-	CharacterType GatewayMACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
-	} ETHERNETSERVER_SETTINGS;
+	ETHERNETSERVER_SETTINGS_TYPE ethernetserver_settings;
 #endif
 } BIOS_Settings_TYPE; //BIOS Settings!
 
