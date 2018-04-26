@@ -265,6 +265,10 @@ void termPcap()
 		freez(&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
 		if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Nothing allocated anymore!
 	}
+	if (pcap_enabled)
+	{
+		pcap_close(adhandle); //Close the capture/transmit device!
+	}
 }
 #else
 //Not supported?
