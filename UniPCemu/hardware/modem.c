@@ -96,10 +96,10 @@ void initPcap() {
 	Custom by superfury
 
 	*/
+	PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 
 	if ((BIOS_Settings.ethernetcard==-1) || (BIOS_Settings.ethernetcard<0) || (BIOS_Settings.ethernetcard>255)) //No ethernet card to emulate?
 	{
-		PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 		return; //Disable ethernet emulation!
 	}
 	ethif = BIOS_Settings.ethernetcard; //What ethernet card to use?
@@ -133,7 +133,6 @@ void initPcap() {
 		memset(&packetserver_gatewayMAC,0,sizeof(packetserver_gatewayMAC)); //Nothing!
 		//We don't have the required addresses! Log and abort!
 		dolog("ethernetcard", "Gateway MAC address is required on this platform! Aborting server installation!");
-		PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 		return; //Disable ethernet emulation!
 	}
 	
@@ -143,8 +142,6 @@ void initPcap() {
 
 	packetserver_receivebuffer = allocfifobuffer(2,0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
 	packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
-
-	PacketServer_running = 1; //We're using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
 
 	/*
 
@@ -219,6 +216,7 @@ void initPcap() {
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs (alldevs);
 	pcap_enabled = 1;
+	PacketServer_running = 1; //We're using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
 }
 
 void fetchpackets_pcap() { //Handle any packets to process!
