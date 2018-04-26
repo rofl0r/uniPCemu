@@ -113,7 +113,7 @@ void initPcap() {
 	//Load MAC address!
 	int values[6];
 
-	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.MACaddress, "%x:%x:%x:%x:%x:%x%*c",
+	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.MACaddress, "%02x:%02x:%02x:%02x:%02x:%02x%*c",
 		&values[0], &values[1], &values[2],
 		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
 	{
@@ -125,8 +125,7 @@ void initPcap() {
 	{
 		memcpy(&maclocal,&maclocal_default,sizeof(maclocal)); //Copy the default MAC address to use!
 	}
-
-	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.gatewayMACaddress, "%x:%x:%x:%x:%x:%x%*c",
+	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.gatewayMACaddress, "%02x:%02x:%02x:%02x:%02x:%02x%*c",
 		&values[0], &values[1], &values[2],
 		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
 	{
@@ -144,7 +143,8 @@ void initPcap() {
 	
 	memcpy(&packetserver_sourceMAC,&maclocal,sizeof(packetserver_sourceMAC)); //Load sender MAC to become active!
 
-	dolog("ethernetcard","MAC address of receiver: %02x:%02x:%02:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
+	dolog("ethernetcard","Receiver MAC address: %02x:%02x:%02x:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
+	dolog("ethernetcard","Gateway MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]); //Log loaded address!
 
 	packetserver_receivebuffer = allocfifobuffer(2,0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
 	packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
