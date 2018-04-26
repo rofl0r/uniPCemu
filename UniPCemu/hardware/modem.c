@@ -219,6 +219,15 @@ void initPcap() {
 
 	dolog("ethernetcard","Ethernet bridge on %s...", d->description);
 
+	if (pcap_datalink(adhandle)!=DLT_EN10MB) //Invalid link layer?
+	{
+		dolog("ethernetcard","Ethernet card unsupported: Ethernet card is required! %s is unsupported!", d->description);
+		/* Free the device list */
+		pcap_freealldevs (alldevs);
+		pcap_close(adhandle); //Close the handle!
+		return;		
+	}
+
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs (alldevs);
 	pcap_enabled = 1;
