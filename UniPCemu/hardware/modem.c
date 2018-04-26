@@ -33,6 +33,7 @@ byte packetserver_transmitstate = 0; //Transmit state for processing escaped val
 byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 
+
 //End of frame byte!
 #define SLIP_END 0xC0
 //Escape byte!
@@ -50,6 +51,19 @@ struct {
 	uint16_t pktlen;
 	byte *packet; //Current packet received!
 } net;
+
+#include "headers/packed.h"
+typedef union PACKED
+{
+	struct
+	{
+		byte dst[6]; //Destination MAC!
+		byte src[6]; //Source MAC!
+		word type; //What kind of packet!
+	};
+	byte data[14]; //The data!
+} ETHERNETHEADER;
+#include "headers/endpacked.h"
 
 uint_32 packetserver_packetpos; //Current pos of sending said packet!
 
@@ -1555,19 +1569,6 @@ byte packetServerAddWriteQueue(byte data) //Try to add something to the write qu
 	return 0; //Failed!
 }
 
-#include "headers/packed.h"
-typedef union PACKED
-{
-	struct
-	{
-		byte dst[6]; //Destination MAC!
-		byte src[6]; //Source MAC!
-		word type; //What kind of packet!
-	};
-	byte data[14]; //The data!
-} ETHERNETHEADER;
-#include "headers/endpacked.h"
-
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
 	byte datatotransmit;
@@ -1675,30 +1676,56 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						{
 							if (fifobuffer_freesize(packetserver_receivebuffer)>=2) //Valid to produce more data?
 							{
-								//Convert the buffer into transmittable bytes using the proper encoding!
-								if (packetserver_packetpos<net.pktlen) //Not finished yet?
+								if (packetserver_packetpos==0) //New packet?
 								{
-									//Start transmitting data into the buffer, according to the protocol!
-									datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
-									if (datatotransmit==SLIP_END) //End byte?
+									if (net.pktlen>sizeof(ethernetheader.data)) //Length OK(at least one byte of content)?
 									{
-										writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
-										writefifobuffer(packetserver_receivebuffer,SLIP_ESC_END); //END raw data!
+										memcpy(&ethernetheader.data,net.packet,sizeof(ethernetheader.data)); //Copy for inspection!
+										if (ethernetheader.type!=SDL_SwapBE32(0x0800)) //Invalid type?
+										{
+											goto invalidpacket; //Invalid packet!
+										}
+										if (memcmp(&ethernetheader.dst,packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) //Invalid destination?
+										{
+											goto invalidpacket; //Invalid packet!
+										}
+										//Valid packet! Receive it!
+										packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
 									}
-									else if (datatotransmit==SLIP_ESC) //ESC byte?
+									else //Invalid length?
 									{
-										writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
-										writefifobuffer(packetserver_receivebuffer,SLIP_ESC_ESC); //ESC raw data!
-									}
-									else //Normal data?
-									{
-										writefifobuffer(packetserver_receivebuffer,datatotransmit); //Unescaped!
+										invalidpacket:
+										//Discard the invalid packet!
+										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
 									}
 								}
-								else //Finished transferring a frame?
+								if (net.packet) //Still a valid packet to send?
 								{
-									writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
-									freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
+									//Convert the buffer into transmittable bytes using the proper encoding!
+									if (packetserver_packetpos<net.pktlen) //Not finished yet?
+									{
+										//Start transmitting data into the buffer, according to the protocol!
+										datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
+										if (datatotransmit==SLIP_END) //End byte?
+										{
+											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
+											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_END); //END raw data!
+										}
+										else if (datatotransmit==SLIP_ESC) //ESC byte?
+										{
+											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
+											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_ESC); //ESC raw data!
+										}
+										else //Normal data?
+										{
+											writefifobuffer(packetserver_receivebuffer,datatotransmit); //Unescaped!
+										}
+									}
+									else //Finished transferring a frame?
+									{
+										writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
+										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
+									}
 								}
 							}
 						}
