@@ -9,7 +9,9 @@
 
 #if defined(PACKETSERVER_ENABLED)
 #define HAVE_REMOTE
+#ifdef IS_WINDOWS
 #define WPCAP
+#endif
 #include <pcap.h>
 #include <stdint.h>
 #include <stdlib.h>
