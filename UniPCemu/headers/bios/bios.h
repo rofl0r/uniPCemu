@@ -91,7 +91,8 @@ typedef struct
 	struct
 	{
 	int_64 ethernetcard; //What adapter to use? 255=List adapters!
-	CharacterType MACaddress[256]; //MAC address, hexadecimal characters only!
+	CharacterType MACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
+	CharacterType GatewayMACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
 	} ETHERNETSERVER_SETTINGS;
 #endif
 } BIOS_Settings_TYPE; //BIOS Settings!

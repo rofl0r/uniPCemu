@@ -7,6 +7,14 @@
 #include "headers/bios/bios.h" //BIOS support!
 #include "headers/support/tcphelper.h" //TCP support!
 
+#if defined(PACKETSERVER_ENABLED)
+#define HAVE_REMOTE
+#define WPCAP
+#include <pcap.h>
+#include <stdint.h>
+#include <stdlib.h>
+#endif
+
 /*
 
 Packet server support!
@@ -22,6 +30,8 @@ byte *packetserver_transmitbuffer = NULL; //When sending a packet, this contains
 uint_32 packetserver_transmitlength = 0; //How much has been built?
 uint_32 packetserver_transmitsize = 0; //How much has been allocated so far, allocated in whole chunks?
 byte packetserver_transmitstate = 0; //Transmit state for processing escaped values!
+byte packetserver_sourceMAC[6]; //Our MAC to send from!
+byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 
 //End of frame byte!
 #define SLIP_END 0xC0
@@ -43,13 +53,8 @@ struct {
 
 uint_32 packetserver_packetpos; //Current pos of sending said packet!
 
-#ifdef PACKETSERVER_ENABLED
-#define HAVE_REMOTE
-#define WPCAP
-#include <pcap.h>
-#include <stdint.h>
-#include <stdlib.h>
-
+//Supported and enabled the packet setver?
+#if defined(PACKETSERVER_ENABLED)
 #ifndef _WIN32
 #define PCAP_OPENFLAG_PROMISCUOUS 1
 #endif
@@ -80,7 +85,7 @@ void initPcap() {
 
 	if ((BIOS_Settings.ethernetcard==-1) || (BIOS_Settings.ethernetcard<0) || (BIOS_Settings.ethernetcard>255)) //No ethernet card to emulate?
 	{
-		PacketServer_running = 0; //We're not using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
+		PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 		return; //Disable ethernet emulation!
 	}
 	ethif = BIOS_Settings.ethernetcard; //What ethernet card to use?
@@ -100,6 +105,25 @@ void initPcap() {
 	{
 		memcpy(&maclocal,&maclocal_default,sizeof(maclocal)); //Copy the default MAC address to use!
 	}
+
+	if( 6 == sscanf( BIOS_Settings.gatewayMACaddress, "%x:%x:%x:%x:%x:%x%*c",
+		&values[0], &values[1], &values[2],
+		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
+	{
+		/* convert to uint8_t */
+		for( i = 0; i < 6; ++i )
+			packetserver_gatewayMAC[i] = (uint8_t) values[i]; //MAC address parts!
+	}
+	else
+	{
+		memset(&packetserver_gatewayMAC,0,sizeof(packetserver_gatewayMAC)); //Nothing!
+		//We don't have the required addresses! Log and abort!
+		dolog("ethernetcard", "Gateway MAC address is required on this platform! Aborting server installation!");
+		PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
+		return; //Disable ethernet emulation!
+	}
+	
+	memcpy(&packetserver_sourceMAC,&maclocal,sizeof(packetserver_sourceMAC)); //Load sender MAC to become active!
 
 	dolog("ethernetcard","MAC address of receiver: %02x:%02x:%02:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
 
@@ -1531,9 +1555,23 @@ byte packetServerAddWriteQueue(byte data) //Try to add something to the write qu
 	return 0; //Failed!
 }
 
+#include "headers/packed.h"
+typedef union PACKED
+{
+	struct
+	{
+		byte dst[6]; //Destination MAC!
+		byte src[6]; //Source MAC!
+		word type; //What kind of packet!
+	};
+	byte data[14]; //The data!
+} ETHERNETHEADER;
+#include "headers/endpacked.h"
+
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
 	byte datatotransmit;
+	ETHERNETHEADER ethernetheader;
 	modem.timer += timepassed; //Add time to the timer!
 	if (modem.datamode && modem.escaping) //Data mode and escapes buffered?
 	{
@@ -1680,11 +1718,34 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						//Handle transmitting packets(with automatically increasing buffer sizing, as a packet can be received of any size theoretically)!
 						if (peekfifobuffer(modem.inputdatabuffer,&datatotransmit)) //Is anything transmitted yet?
 						{
+							if (packetserver_transmitlength==0) //We might need to create an ethernet header?
+							{
+								//Build an ethernet header, platform dependent!
+								//Use the data provided by the settings!
+								byte b;
+								for (b=0;b<6;++b) //Process MAC addresses!
+								{
+									ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
+									ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
+								}
+								ethernetheader.type = SDL_SwapBE32(0x0800); //We're an IP packet!
+								for (b=0;b<14;++b) //Use the provided ethernet packet header!
+								{
+									if (!packetServerAddWriteQueue(ethernetheader.data[b])) //Failed to add?
+									{
+										break; //Stop adding!
+									}
+								}
+								if (packetserver_transmitlength!=14) //Failed to generate header?
+								{
+									packetserver_transmitlength = 0; //Abort the packet generation!
+								}
+							}
 							if (datatotransmit==SLIP_END) //End-of-frame? Send the frame!
 							{
 								readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet END!
 								//Clean up the packet container!
-								if (packetserver_transmitlength) //Anything buffered?
+								if (packetserver_transmitlength>=sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
 								{
 									//Send the frame to the server, if we're able to!
 									if (packetserver_transmitlength<=0xFFFF) //Within length range?
@@ -1705,28 +1766,34 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Discard, as it's processed!
 								packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
 							}
-							else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_END)) //END sent?
+							else //Active data?
 							{
-								if (packetServerAddWriteQueue(SLIP_END)) //Added to the queue?
+								if (packetserver_transmitlength) //Gotten a valid packet?
 								{
-									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-									packetserver_transmitstate = 0; //We're not escaping something anymore!
-								}
-							}
-							else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_ESC)) //ESC sent?
-							{
-								if (packetServerAddWriteQueue(SLIP_ESC)) //Added to the queue?
-								{
-									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-									packetserver_transmitstate = 0; //We're not escaping something anymore!
-								}
-							}
-							else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
-							{
-								if (packetServerAddWriteQueue(datatotransmit)) //Added to the queue?
-								{
-									readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-									packetserver_transmitstate = 0; //We're not escaping something anymore!
+									if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_END)) //END sent?
+									{
+										if (packetServerAddWriteQueue(SLIP_END)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+											packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
+									}
+									else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_ESC)) //ESC sent?
+									{
+										if (packetServerAddWriteQueue(SLIP_ESC)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+											packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
+									}
+									else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
+									{
+										if (packetServerAddWriteQueue(datatotransmit)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
+											packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
+									}
 								}
 							}
 						}

@@ -798,6 +798,7 @@ void BIOS_LoadData() //Load BIOS settings!
 #ifdef PACKETSERVER_ENABLED
 	BIOS_Settings.ETHERNETSERVER_SETTINGS.ethernetcard = get_private_profile_int64("modem","ethernetcard",-1,BIOS_Settings_file); //Ethernet card to use!
 	get_private_profile_string("modem","MACaddress","",&BIOS_Settings.ETHERNETSERVER_SETTINGS.MACaddress[0],sizeof(BIOS_Settings.MACaddress),BIOS_Settings_file); //Read entry!
+	get_private_profile_string("modem","gatewayMACaddress","",&BIOS_Settings.ETHERNETSERVER_SETTINGS.gatewayMACaddress[0],sizeof(BIOS_Settings.gatewayMACaddress),BIOS_Settings_file); //Read entry!
 #endif
 
 	//Disks
@@ -921,6 +922,10 @@ char bioscomment_currentkey[4096] = "";
 char buttons[15][256] = {"start","left","up","right","down","ltrigger","rtrigger","triangle","circle","cross","square","analogleft","analogup","analogright","analogdown"}; //The names of all mappable buttons!
 char cmos_comment[4096] = ""; //PrimaryCMOS comment!
 
+#ifdef PACKETSERVER_ENABLED
+extern uint8_t maclocal_default[6]; //Default MAC of the sender!
+#endif
+
 int BIOS_SaveData() //Save BIOS settings!
 {
 	if (__HW_DISABLED) return 1; //Abort!
@@ -1030,16 +1035,18 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
 	snprintf(modem_comment,sizeof(modem_comment),"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
 #ifdef PACKETSERVER_ENABLED
-	safestrcat(modem_comment,sizeof(modem_comment),"ethernetcard: -1 for disabled(use normal emulation), 0-254 for selected network card, 255 to generate a list of network cards to select\m");
-	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %u:%u:%u:%u:%u:u)\n",DEFAULT_MODEMLISTENPORT);
+	safestrcat(modem_comment,sizeof(modem_comment),"ethernetcard: -1 for disabled(use normal emulation), 0-254 for selected network card, 255 to generate a list of network cards to select\n");
+	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %u:%u:%u:%u:%u:u)\n",maclocal_default[0],maclocal_default[1],maclocal_default[2],maclocal_default[3],maclocal_default[4],maclocal_default[5]);
 	safestrcat(modem_comment,sizeof(modem_comment),currentstr); //MAC address information!
+	safestrcat(modem_comment,sizeof(modem_comment),"gatewayMACaddress: gateway MAC address to send/receive packets on\n");
 #endif
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
 #ifdef PACKETSERVER_ENABLED
 	if (!write_private_profile_int64("modem",modem_commentused,"ethernetcard",BIOS_Settings.ETHERNETSERVER_SETTINGS.ethernetcard,BIOS_Settings_file)) return 0; //Ethernet card to use!
-	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",BIOS_Settings.ETHERNETSERVER_SETTINGS.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",&BIOS_Settings.ETHERNETSERVER_SETTINGS.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem",modem_commentused,"gatewayMACaddress",&BIOS_Settings.ETHERNETSERVER_SETTINGS.GatewayMACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
 #endif
 
 	//Disks
