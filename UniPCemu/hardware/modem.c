@@ -1842,6 +1842,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					}
 				}
 
+				fetchpackets_pcap(); //Handle any packets that need fetching!
+
 				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
 				{
 					switch (TCP_SendData(datatotransmit)) //Send the data?
