@@ -1588,6 +1588,31 @@ byte packetServerAddWriteQueue(byte data) //Try to add something to the write qu
 	return 0; //Failed!
 }
 
+void logpacket(byte send, byte *buffer, uint_32 size)
+{
+	char outbuffer[0x20001]; //Buffer for storin the data!
+	char filename[256]; //For storing the raw packet that's sent!
+	uint_32 i;
+	char adding[3];
+	memset(&filename,0,sizeof(filename));
+	memset(&outbuffer,0,sizeof(outbuffer));
+	memset(&adding,0,sizeof(adding));
+	for (i=0;i<size;++i)
+	{
+		snprintf(adding,sizeof(adding),"%02X",buffer[i]); //Set and ...
+		safestrcat(outbuffer,sizeof(outbuffer),adding); //... Add!
+	}
+	if (send)
+	{
+		dolog("ethernetcard","Sending packet:");
+	}
+	else
+	{
+		dolog("ethernetcard","Receiving packet:");
+	}
+	dolog("ethernetcard","%s",outbuffer); //What's received/sent!
+}
+
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
 	byte datatotransmit;
@@ -1702,25 +1727,26 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										memcpy(&ethernetheader.data,net.packet,sizeof(ethernetheader.data)); //Copy for inspection!
 										if (ethernetheader.type!=SDL_SwapBE16(0x0800)) //Invalid type?
 										{
-											dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
+											//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
 										}
 										if ((memcmp(&ethernetheader.dst,packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_allMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
 										{
-											dolog("ethernetcard","Discarding destination."); //Showing why we discard!
+											//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
 										}
 										//Valid packet! Receive it!
 										packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
-										dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
+										//dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
 									}
 									else //Invalid length?
 									{
-										dolog("ethernetcard","Discarding invalid packet size: %u...",net.pktlen); //Log it!
+										//dolog("ethernetcard","Discarding invalid packet size: %u...",net.pktlen); //Log it!
 										invalidpacket:
 										//Discard the invalid packet!
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
-										dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
+										//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
+										net.packet = NULL; //No packet!
 									}
 								}
 								if (net.packet) //Still a valid packet to send?
@@ -1732,27 +1758,29 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
 										if (datatotransmit==SLIP_END) //End byte?
 										{
-											dolog("ethernetcard","transmitting escaped SLIP END to client");
+											//dolog("ethernetcard","transmitting escaped SLIP END to client");
 											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
 											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_END); //END raw data!
 										}
 										else if (datatotransmit==SLIP_ESC) //ESC byte?
 										{
-											dolog("ethernetcard","transmitting escaped SLIP ESC to client");
+											//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
 											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
 											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_ESC); //ESC raw data!
 										}
 										else //Normal data?
 										{
-											dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
+											//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
 											writefifobuffer(packetserver_receivebuffer,datatotransmit); //Unescaped!
 										}
 									}
 									else //Finished transferring a frame?
 									{
-										dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer");
+										//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
 										writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
+										logpacket(0,net.packet,net.pktlen); //Log it!
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
+										net.packet = NULL; //Discard the packet anyway, no matter what!
 									}
 								}
 							}
@@ -1765,7 +1793,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								if (writefifobuffer(modem.outputbuffer,datatotransmit)) //Transmitted?
 								{
-									dolog("ethernetcard","transmitted SLIP data to client: %02X",datatotransmit);
+									//dolog("ethernetcard","transmitted SLIP data to client: %02X",datatotransmit);
 									datatotransmit = readfifobuffer(packetserver_receivebuffer,&datatotransmit); //Discard the data that's being transmitted!
 								}
 							}
@@ -1777,7 +1805,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					{
 						if (packetserver_transmitlength==0) //We might need to create an ethernet header?
 						{
-							dolog("ethernetcard","allocating new buffer for the new packet to transmit to server. Generating ethernet header...");
 							//Build an ethernet header, platform dependent!
 							//Use the data provided by the settings!
 							byte b;
@@ -1796,30 +1823,31 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 							if (packetserver_transmitlength!=14) //Failed to generate header?
 							{
-								dolog("ethernetcard","Transmit initialization failed. Resetting transmitter!");
+								dolog("ethernetcard","Error: Transmit initialization failed. Resetting transmitter!");
 								packetserver_transmitlength = 0; //Abort the packet generation!
 							}
 							else
 							{
-								dolog("ethernetcard","Header for transmitting to the server has been setup!");
+								//dolog("ethernetcard","Header for transmitting to the server has been setup!");
 							}
 						}
 						if (datatotransmit==SLIP_END) //End-of-frame? Send the frame!
 						{
-							dolog("ethernetcard","End-of-packet received! Parsing packet(size: %u) to send!",packetserver_transmitlength);
 							readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet END!
 							//Clean up the packet container!
-							if (packetserver_transmitlength>=sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
+							if (packetserver_transmitlength>sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
 							{
 								//Send the frame to the server, if we're able to!
 								if (packetserver_transmitlength<=0xFFFF) //Within length range?
 								{
-									dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
-									sendpkt_pcap(packetserver_transmitbuffer,packetserver_transmitsize); //Send the packet!
+									//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
+									logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
+
+									sendpkt_pcap(packetserver_transmitbuffer,packetserver_transmitlength); //Send the packet!
 								}
 								else
 								{
-									dolog("ethernetcard","Can't send packet: packet is too large to send(size: %u)!",packetserver_transmitlength);									
+									dolog("ethernetcard","Error: Can't send packet: packet is too large to send(size: %u)!",packetserver_transmitlength);									
 								}
 
 								//Now, cleanup the buffered frame!
@@ -1829,7 +1857,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 							else
 							{
-								dolog("ethernetcard","Not enough buffered to send to the server!");
+								dolog("ethernetcard","Error: Not enough buffered to send to the server(size: %u)!",packetserver_transmitlength);
 							}
 							packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
 							packetserver_transmitstate = 0; //Not escaped anymore!
