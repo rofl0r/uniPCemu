@@ -36,8 +36,8 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			byte highbits;
 			byte xmove, ymove;
 			//Translate our movement to valid values if needed!
-			xmove = ((packet->xmove)<0)?((MAX(packet->xmove,-0x80)&0x7F)|0x80):(MIN(packet->xmove,0x7F)&0x7F); //X movement data!
-			ymove = ((packet->ymove)<0)?((MAX(packet->ymove,-0x80)&0x7F)|0x80):(MIN(packet->ymove,0x7F)&0x7F); //Y movement data!
+			xmove = signed2unsigned8(MAX(MIN(packet->xmove,0x7F),-0x80)); //Limit!
+			ymove = signed2unsigned8(MAX(MIN(packet->ymove,0x7F),-0x80)); //Limit!
 
 			if (SERMouse.movement==0) //Not gotten movement masked?
 			{
