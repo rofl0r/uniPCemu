@@ -48,6 +48,9 @@ word packetserver_stage_byte = 0; //Byte of data within the current stage(else, 
 byte packetserver_stage_byte_overflown = 0; //Overflown?
 char packetserver_stage_str[4096]; //Buffer containing output data for a stage
 byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
+DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing something!
+//How much to delay before sending a message while authenticating?
+#define PACKETSERVER_MESSAGE_DELAY 10000000.0
 
 //Different stages of the auth process:
 //Ready stage 
@@ -1976,13 +1979,19 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"username:");
 							packetserver_stage_byte = 0; //Init to start of string!
 							packetserver_credentials_invalid = 0; //No invalid field detected yet!
+							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}
-						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 							{
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
+								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								{
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
+								}
 							}
 						}
 					}
@@ -1996,24 +2005,28 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							packetserver_stage_byte = 0; //Init to start filling!
 							packetserver_stage_byte_overflown = 0; //Not yet overflown!
 						}
-						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
+						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
+							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
-								packetserver_username[packetserver_stage_byte] = '\0'; //Finish the string!
-								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
-							}
-							else
-							{
-								if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_username)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
+								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
-									packetserver_stage_byte_overflown = 1; //Overflow detected!
+									packetserver_username[packetserver_stage_byte] = '\0'; //Finish the string!
+									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
 								}
-								else //Valid content to add?
+								else
 								{
-									packetserver_username[packetserver_stage_byte++] = textinputfield; //Add input!
+									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_username)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									{
+										packetserver_stage_byte_overflown = 1; //Overflow detected!
+									}
+									else //Valid content to add?
+									{
+										packetserver_username[packetserver_stage_byte++] = textinputfield; //Add input!
+									}
 								}
 							}
 						}
@@ -2026,13 +2039,19 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"password:");
 							packetserver_stage_byte = 0; //Init to start of string!
+							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}
-						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 							{
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
+								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								{
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
+								}
 							}
 						}
 					}
@@ -2045,24 +2064,28 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							packetserver_stage_byte = 0; //Init to start filling!
 							packetserver_stage_byte_overflown = 0; //Not yet overflown!
 						}
-						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
+						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
+							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
-								packetserver_password[packetserver_stage_byte] = '\0'; //Finish the string!
-								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
-							}
-							else
-							{
-								if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_password)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
+								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
-									packetserver_stage_byte_overflown = 1; //Overflow detected!
+									packetserver_password[packetserver_stage_byte] = '\0'; //Finish the string!
+									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
 								}
-								else //Valid content to add?
+								else
 								{
-									packetserver_password[packetserver_stage_byte++] = textinputfield; //Add input!
+									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_password)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									{
+										packetserver_stage_byte_overflown = 1; //Overflow detected!
+									}
+									else //Valid content to add?
+									{
+										packetserver_password[packetserver_stage_byte++] = textinputfield; //Add input!
+									}
 								}
 							}
 						}
@@ -2075,13 +2098,19 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"protocol:");
 							packetserver_stage_byte = 0; //Init to start of string!
+							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}
-						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 							{
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
+								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								{
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
+								}
 							}
 						}
 					}
@@ -2100,29 +2129,33 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 #endif
 						}
-						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
+						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
+							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
-								packetserver_protocol[packetserver_stage_byte] = '\0'; //Finish the string!
-								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								if (packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
-								if (packetserver_authenticate()) //Authenticated?
+								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
+								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
-									packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
+									packetserver_protocol[packetserver_stage_byte] = '\0'; //Finish the string!
+									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									if (packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
+									if (packetserver_authenticate()) //Authenticated?
+									{
+										packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
+									}
+									else goto packetserver_autherror; //Authentication error!
 								}
-								else goto packetserver_autherror; //Authentication error!
-							}
-							else
-							{
-								if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_protocol)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+								else
 								{
-									packetserver_stage_byte_overflown = 1; //Overflow detected!
-								}
-								else //Valid content to add?
-								{
-									packetserver_protocol[packetserver_stage_byte++] = textinputfield; //Add input!
+									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_protocol)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									{
+										packetserver_stage_byte_overflown = 1; //Overflow detected!
+									}
+									else //Valid content to add?
+									{
+										packetserver_protocol[packetserver_stage_byte++] = textinputfield; //Add input!
+									}
 								}
 							}
 						}
@@ -2133,15 +2166,21 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x:%02x\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\n",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
+							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"\r\nMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\n",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
 							packetserver_stage_byte = 0; //Init to start of string!
+							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}
-						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 							{
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_READY;
+								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								{
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_READY;
+								}
 							}
 						}
 					}
@@ -2151,15 +2190,21 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\nCONNECTED\n");
+							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\rCONNECTED\r");
 							packetserver_stage_byte = 0; //Init to start of string!
+							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}
-						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 							{
-								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
+								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								{
+									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
+								}
 							}
 						}
 					}
