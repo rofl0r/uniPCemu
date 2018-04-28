@@ -357,12 +357,34 @@ void initPacketServer() //Initialize the packet server for use when connected to
 	packetserver_transmitlength = 0; //Nothing buffered yet!
 	packetserver_transmitstate = 0; //Initialize transmitter state to the default state!
 	packetserver_stage = PACKETSTAGE_INIT; //Initial state when connected.
+#ifdef PACKETSERVER_ENABLED
+	if (BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0]) //Gotten credentials?
+	{
+		packetserver_stage = PACKETSTAGE_INIT_PASSWORD; //Initial state when connected: ask for credentials too.
+	}
+#endif
 	packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Reset stage byte: uninitialized!
 }
 
 byte packetserver_authenticate()
 {
-	return 0; //TODO: Compare username(case-insensitive), password and protocol(case-insensitive)  to valid credentials!
+	if (strcmp(packetserver_protocol,"slip")==0) //Valid protocol?
+	{
+#ifdef PACKETSERVER_ENABLED
+		if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
+		{
+			return 1; //Always valid: no credentials required!
+		}
+		else
+		{
+			if (!(strcmp(BIOS_Settings.ethernetserver_settings.username,packetserver_username)||strcmp(BIOS_Settings.ethernetserver_settings.password,packetserver_password))) //Gotten no credentials?
+			{
+				return 1; //Valid credentials!
+			}
+		}
+#endif
+	}
+	return 0; //Invalid credentials!
 }
 
 #define MODEM_BUFFERSIZE 256
@@ -2071,6 +2093,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							memset(&packetserver_protocol,0,sizeof(packetserver_protocol));
 							packetserver_stage_byte = 0; //Init to start filling!
 							packetserver_stage_byte_overflown = 0; //Not yet overflown!
+#ifdef PACKETSERVER_ENABLED
+							if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
+							{
+								packetserver_credentials_invalid = 0; //Init!
+							}
+#endif
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{

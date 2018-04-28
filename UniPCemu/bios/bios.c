@@ -799,6 +799,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.ethernetserver_settings.ethernetcard = get_private_profile_int64("modem","ethernetcard",-1,BIOS_Settings_file); //Ethernet card to use!
 	get_private_profile_string("modem","MACaddress","",&BIOS_Settings.ethernetserver_settings.MACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.MACaddress),BIOS_Settings_file); //Read entry!
 	get_private_profile_string("modem","gatewayMACaddress","",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.gatewayMACaddress),BIOS_Settings_file); //Read entry!
+	get_private_profile_string("modem","username","",&BIOS_Settings.ethernetserver_settings.username[0],sizeof(BIOS_Settings.ethernetserver_settings.username),BIOS_Settings_file); //Read entry!
+	get_private_profile_string("modem","password","",&BIOS_Settings.ethernetserver_settings.password[0],sizeof(BIOS_Settings.ethernetserver_settings.password),BIOS_Settings_file); //Read entry!
 #endif
 
 	//Disks
@@ -1040,6 +1042,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %02x:%02x:%02x:%02x:%02x:%02x)\n",maclocal_default[0],maclocal_default[1],maclocal_default[2],maclocal_default[3],maclocal_default[4],maclocal_default[5]);
 	safestrcat(modem_comment,sizeof(modem_comment),currentstr); //MAC address information!
 	safestrcat(modem_comment,sizeof(modem_comment),"gatewayMACaddress: gateway MAC address to send/receive packets on\n");
+	safestrcat(modem_comment,sizeof(modem_comment),"username: set username and password to non-empty values for a credential protected server\n");
+	safestrcat(modem_comment,sizeof(modem_comment),"password: set username and password to non-empty values for a credential protected server\n");
 #endif
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
@@ -1048,6 +1052,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_int64("modem",modem_commentused,"ethernetcard",BIOS_Settings.ethernetserver_settings.ethernetcard,BIOS_Settings_file)) return 0; //Ethernet card to use!
 	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",&BIOS_Settings.ethernetserver_settings.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
 	if (!write_private_profile_string("modem",modem_commentused,"gatewayMACaddress",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem",modem_commentused,"username",&BIOS_Settings.ethernetserver_settings.username[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem",modem_commentused,"password",&BIOS_Settings.ethernetserver_settings.password[0],BIOS_Settings_file)) return 0; //MAC address to use!
 #endif
 
 	//Disks
