@@ -50,7 +50,7 @@ char packetserver_stage_str[4096]; //Buffer containing output data for a stage
 byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
 DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing something!
 //How much to delay before sending a message while authenticating?
-#define PACKETSERVER_MESSAGE_DELAY 1000000.0
+#define PACKETSERVER_MESSAGE_DELAY 10000000.0
 
 //Different stages of the auth process:
 //Ready stage 
