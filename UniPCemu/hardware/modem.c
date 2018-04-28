@@ -1998,7 +1998,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if (textinputfield=='\n') //Finished?
 							{
 								packetserver_username[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
@@ -2047,7 +2047,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if (textinputfield=='\n') //Finished?
 							{
 								packetserver_password[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
@@ -2073,7 +2073,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"username:");
+							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"protocol:");
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
@@ -2102,7 +2102,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if (textinputfield=='\n') //Finished?
 							{
 								packetserver_protocol[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
@@ -2133,7 +2133,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x:%02x\rgatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
+							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x:%02x\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\n",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
@@ -2151,7 +2151,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\rCONNECTED\r");
+							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\nCONNECTED\n");
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
