@@ -54,9 +54,9 @@ proc main
    ; unique enough that we'll only pick it up when the menu is ready to
    ; accept a command.
 
-   string username_prompt    = "username:"        ; username prompt
-   string password_prompt    = "password:"      ; password prompt
-   string protocol_prompt    = "protocol:"      ; protocol prompt
+   string username_prompt    = "sername:"        ; username prompt
+   string password_prompt    = "assword:"      ; password prompt
+   string protocol_prompt    = "rotocol:"      ; protocol prompt
 
    ; these are the informational messages printed by SLIP server. Might be possible to autoconfigure?
    string ipaddress_message = "IPaddress:"
@@ -77,28 +77,28 @@ proc main
 goto start
 
 do_username:
-    transmit $USERID + "<cr>"
+    transmit $USERID
+    transmit "<cr>"
     goto start
 
-do_passwd:
+do_password:
     ; Note here that we transmit the password with the 'raw' modifier,
     ; to make sure that special characters such as '^' and '\' are not
     ; translated by Dial-Up Networking to represent "special" control
     ; characters.
     transmit $PASSWORD, raw
-    ; note that we fall through to do_enter
     transmit "<cr>"
     goto start
 
 do_protocol:
-    transmit "slip<cr>"
+    transmit "slip" + "<cr>"
     goto start
 
 do_ipaddress:
 
     ; Get the IP address assigned to us by SLIP
     if $SUCCESS then
-        set ipaddr getip
+        ;set ipaddr getip
     endif
     goto start
 
@@ -127,18 +127,16 @@ do_gatewaymacaddress:
     goto start
 
 do_ready:
-    if $SUCCESS then
-        sliping = TRUE
-    endif
+    sliping = TRUE
 
     ; Note that we fall through to our main loop here,
     ; which will exit if we are successful.
 
 start:
    while !sliping do
-       waitfor username_prompt     then do_username,
-               password_prompt  then do_password,
-               protocol_prompt  then do_protocol,
+       waitfor username_prompt then do_username,
+               password_prompt then do_password,
+               protocol_prompt then do_protocol,
                ipaddress_message then do_ipaddress,
                macaddress_message then do_macaddress,
                gatewayipaddress_message then do_gatewayipaddress,
