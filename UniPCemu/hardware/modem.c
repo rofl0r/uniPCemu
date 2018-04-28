@@ -42,25 +42,25 @@ byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 //Authentication data!
 byte packetserver_username[256]; //Username(settings must match)
 byte packetserver_password[256]; //Password(settings must match)
-byte packetserver_service[256]; //Service(slip). Hangup when sent with username&password not matching setting.
+byte packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
 byte packetserver_stage = 0; //Current login/service/packet(connected and authenticated state).
 word packetserver_stage_byte = 0; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
-byte packetserver_stage_byte_overflow = 0; //Overflown?
+byte packetserver_stage_byte_overflown = 0; //Overflown?
 byte packetserver_stage_str[4096]; //Buffer containing output data for a stage
 byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
 
 //Different stages of the auth process:
 //Ready stage 
 //QueryUsername: Sending username request
-#define PACKETSTAGE_QUERYUSERNAME 1
+#define PACKETSTAGE_REQUESTUSERNAME 1
 //EnterUsername: Entering username
 #define PACKETSTAGE_ENTERUSERNAME 2
 //QueryPassword: Sending password request
-#define PACKETSTAGE_QUERYPASSWORD 3
+#define PACKETSTAGE_REQUESTPASSWORD 3
 //EnterPassword: Entering password
 #define PACKETSTAGE_ENTERPASSWORD 4
 //QueryProtocol: Sending protocol request
-#define PACKETSTAGE_QUERYPROTOCOL 5
+#define PACKETSTAGE_REQUESTPROTOCOL 5
 //EnterProtocol: Entering protocol
 #define PACKETSTAGE_ENTERPROTOCOL 6
 //Information: IP&MAC autoconfig. Terminates connection when earlier stages invalidate.
@@ -70,7 +70,7 @@ byte packetserver_credentials_invalid = 0; //Marked invalid by username/password
 //SLIP: Transferring SLIP data
 #define PACKETSTAGE_SLIP 9
 //Initial packet stage without credentials
-#define PACKETSTAGE_INIT PACKETSTAGE_INFORMATION
+#define PACKETSTAGE_INIT PACKETSTAGE_REQUESTPROTOCOL
 //Initial packet stage with credentials
 #define PACKETSTAGE_INIT_PASSWORD PACKETSTAGE_REQUESTUSERNAME
 //Packet stage initializing
@@ -1757,7 +1757,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 			{
 				if (modem.connected==2) //Running the packet server?
 				{
-					if (packetserver_stage!=PACKETSTAGE_SLIP) goto skipSLIP; //Don'f handle SLIP!
+					if (packetserver_stage!=PACKETSTAGE_SLIP) goto skipSLIP; //Don't handle SLIP!
 					//Handle packet server packet data transfers into the inputdatabuffer/outputbuffer to the network!
 					if (packetserver_receivebuffer) //Properly allocated?
 					{
@@ -1943,21 +1943,21 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 						}
 					}
-					skipslip: //SLIP isn't available?
+					skipSLIP: //SLIP isn't available?
 
 					//Handle an authentication stage
 					if (packetserver_stage==PACKETSTAGE_REQUESTUSERNAME)
 					{
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
-							memset(&packerserver_stage_str,0,sizeof(packerserver_stage_str));
+							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"username:");
 							packetserver_stage_byte = 0; //Init to start of string!
 							packetserver_credentials_invalid = 0; //No invalid field detected yet!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str)) //Finished?
+							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 							{
 								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
 								packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
@@ -2001,13 +2001,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					{
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
-							memset(&packerserver_stage_str,0,sizeof(packerserver_stage_str));
+							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"password:");
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str)) //Finished?
+							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 							{
 								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
 								packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
@@ -2050,13 +2050,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					{
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
-							memset(&packerserver_stage_str,0,sizeof(packerserver_stage_str));
+							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"username:");
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str)) //Finished?
+							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 							{
 								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
 								packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
@@ -2104,13 +2104,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					{
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
-							memset(&packerserver_stage_str,0,sizeof(packerserver_stage_str));
+							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str)) //Finished?
+							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 							{
 								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
 								packetserver_stage = PACKETSTAGE_READY;
@@ -2122,13 +2122,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					{
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
-							memset(&packerserver_stage_str,0,sizeof(packerserver_stage_str));
+							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
 						{
-							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str)) //Finished?
+							if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 							{
 								packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
 								packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
