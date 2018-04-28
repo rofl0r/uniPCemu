@@ -4,6 +4,7 @@
 #include "headers/support/fifobuffer.h" //FIFO buffer support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/emu/input.h" //setMouseRate support!
+#include "headers/support/signedness.h" //Sign conversion support!
 
 struct
 {
