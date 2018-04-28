@@ -1998,7 +1998,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 							{
 								packetserver_username[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
@@ -2047,7 +2047,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 							{
 								packetserver_password[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
@@ -2102,7 +2102,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (readfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (textinputfield=='\r') //Finished?
+							if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 							{
 								packetserver_protocol[packetserver_stage_byte] = '\0'; //Finish the string!
 								packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
