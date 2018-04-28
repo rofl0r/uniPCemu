@@ -40,13 +40,13 @@ byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 
 //Authentication data!
-byte packetserver_username[256]; //Username(settings must match)
-byte packetserver_password[256]; //Password(settings must match)
-byte packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
+char packetserver_username[256]; //Username(settings must match)
+char packetserver_password[256]; //Password(settings must match)
+char packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
 byte packetserver_stage = 0; //Current login/service/packet(connected and authenticated state).
 word packetserver_stage_byte = 0; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
 byte packetserver_stage_byte_overflown = 0; //Overflown?
-byte packetserver_stage_str[4096]; //Buffer containing output data for a stage
+char packetserver_stage_str[4096]; //Buffer containing output data for a stage
 byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
 
 //Different stages of the auth process:
@@ -2105,7 +2105,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
+							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x:%02x\rgatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
@@ -2123,7 +2123,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"MACaddress:%02x:%02x:%02x:%02x:%02x\r",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
+							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\rCONNECTED\r");
 							packetserver_stage_byte = 0; //Init to start of string!
 						}
 						if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
