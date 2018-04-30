@@ -563,7 +563,7 @@ OPTINLINE void EMU_CPU_getCursorScanlines(byte *start, byte *end)
 	*end = MMU_rb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, 0,1); //Get end line!
 }
 
-OPTINLINE void EMU_CPU_setCursorScanlines(byte start, byte end)
+void EMU_CPU_setCursorScanlines(byte start, byte end)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte start2, end2;
@@ -713,7 +713,7 @@ OPTINLINE void int10_vram_readcharacter(byte x, byte y, byte page, byte *charact
 	}
 }
 
-OPTINLINE void emu_setactivedisplaypage(byte page) //Set active display page!
+void emu_setactivedisplaypage(byte page) //Set active display page!
 {
 	if (__HW_DISABLED) return; //Abort!
 	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,page,1); //Active video page!
