@@ -98,7 +98,7 @@ do_ipaddress:
 
     ; Get the IP address assigned to us by SLIP
     if $SUCCESS then
-        ;set ipaddr getip
+        set ipaddr getip
     endif
     goto start
 
