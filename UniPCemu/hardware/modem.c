@@ -388,7 +388,6 @@ void termPcap()
 
 void terminatePacketServer() //Cleanup the packet server after being disconnected!
 {
-	dolog("ethernetcard","Connection by client has been terminated or initialized!");
 	fifobuffer_clear(packetserver_receivebuffer); //Clear the receive buffer!
 	freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
 	if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Clear!
@@ -397,7 +396,6 @@ void terminatePacketServer() //Cleanup the packet server after being disconnecte
 void initPacketServer() //Initialize the packet server for use when connected to!
 {
 	terminatePacketServer(); //First, make sure we're terminated properly!
-	dolog("ethernetcard","Connection by client has been started!");
 	packetserver_transmitsize = 1024; //Initialize transmit buffer!
 	packetserver_transmitbuffer = zalloc(packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
 	packetserver_transmitlength = 0; //Nothing buffered yet!
@@ -1683,7 +1681,6 @@ byte packetServerAddWriteQueue(byte data) //Try to add something to the write qu
 		newbuffer = zalloc(packetserver_transmitsize+1024,"MODEM_SENDPACKET",NULL); //Try to allocate a larger buffer!
 		if (newbuffer) //Allocated larger buffer?
 		{
-			dolog("ethernetcard","extending transmit buffer because of buffer shortage(%u)!",packetserver_transmitsize+1024);
 			memcpy(newbuffer,packetserver_transmitbuffer,packetserver_transmitsize); //Copy the new data over to the larger buffer!
 			freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Release the old buffer!
 			packetserver_transmitbuffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
@@ -1901,7 +1898,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									{
 										//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
 										writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
-										logpacket(0,net.packet,net.pktlen); //Log it!
+										//logpacket(0,net.packet,net.pktlen); //Log it!
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
 										net.packet = NULL; //Discard the packet anyway, no matter what!
 										packetserver_packetpos = 0; //Reset packet position!
@@ -1965,7 +1962,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								if (packetserver_transmitlength<=0xFFFF) //Within length range?
 								{
 									//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
-									logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
+									//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
 
 									sendpkt_pcap(packetserver_transmitbuffer,packetserver_transmitlength); //Send the packet!
 								}
