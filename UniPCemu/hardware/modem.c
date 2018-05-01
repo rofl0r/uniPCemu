@@ -33,6 +33,7 @@ uint8_t maclocal[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //The MAC address 
 uint8_t packetserver_allMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; //The MAC address of the modem we're emulating!
 FIFOBUFFER *packetserver_receivebuffer = NULL; //When receiving anything!
 byte *packetserver_transmitbuffer = NULL; //When sending a packet, this contains the currently built decoded data, which is already decoded!
+uint_32 packetserver_bytesleft = 0;
 uint_32 packetserver_transmitlength = 0; //How much has been built?
 uint_32 packetserver_transmitsize = 0; //How much has been allocated so far, allocated in whole chunks?
 byte packetserver_transmitstate = 0; //Transmit state for processing escaped values!
@@ -1852,6 +1853,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										//Valid packet! Receive it!
 										packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
 										//dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
+										packetserver_bytesleft = MIN(net.pktlen - packetserver_packetpos, SDL_SwapBE16(*((word *)&net.packet[sizeof(ethernetheader.data)+2]))); //How much is left to send?
 									}
 									else //Invalid length?
 									{
@@ -1866,9 +1868,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								if (net.packet) //Still a valid packet to send?
 								{
 									//Convert the buffer into transmittable bytes using the proper encoding!
-									if (packetserver_packetpos<net.pktlen) //Not finished yet?
+									if (packetserver_bytesleft) //Not finished yet?
 									{
 										//Start transmitting data into the buffer, according to the protocol!
+										--packetserver_bytesleft;
 										datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
 										if (datatotransmit==SLIP_END) //End byte?
 										{
