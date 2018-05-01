@@ -30,7 +30,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 
 byte PacketServer_running = 0; //Is the packet server running(disables all emulation but hardware)?
 uint8_t maclocal[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //The MAC address of the modem we're emulating!
-uint8_t packetserver_allMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; //The MAC address of the modem we're emulating!
+uint8_t packetserver_broadcastMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; //The MAC address of the modem we're emulating!
 FIFOBUFFER *packetserver_receivebuffer = NULL; //When receiving anything!
 byte *packetserver_transmitbuffer = NULL; //When sending a packet, this contains the currently built decoded data, which is already decoded!
 uint_32 packetserver_bytesleft = 0;
@@ -40,6 +40,7 @@ byte packetserver_transmitstate = 0; //Transmit state for processing escaped val
 byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 byte packetserver_staticIP[4] = { 0,0,0,0 }; //Static IP to use?
+byte packetserver_broadcastIP[4] = { 0xFF,0xFF,0xFF,0xFF }; //Broadcast IP to use?
 byte packetserver_useStaticIP = 0; //Use static IP?
 char packetserver_staticIPstr[256] = ""; //Static IP, string format
 
@@ -1842,14 +1843,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
 										}
-										if ((memcmp(&ethernetheader.dst,packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_allMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
+										if ((memcmp(&ethernetheader.dst,packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_broadcastMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
 										{
 											//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
 										}
 										if (packetserver_useStaticIP) //IP filter?
 										{
-											if (memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) //Static IP mismatch?
+											if ((memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) && (memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
 											{
 												goto invalidpacket; //Invalid packet!
 											}
