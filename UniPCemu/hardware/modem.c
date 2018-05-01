@@ -197,7 +197,7 @@ void initPcap() {
 	memset(&packetserver_staticIP, 0, sizeof(packetserver_staticIP));
 	packetserver_useStaticIP = 0; //Default to unused!
 
-	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 9) //Valid length to convert IP addresses?
+	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 12) //Valid length to convert IP addresses?
 	{
 		p = &BIOS_Settings.ethernetserver_settings.IPaddress[0]; //For scanning the IP!
 		if (readIPnumber(&p, &IPnumbers[0]))
@@ -607,7 +607,7 @@ byte modem_connect(char *phonenumber)
 	}
 	if (PacketServer_running) return 0; //Don't accept when the packet server is running instead!
 	memset(&ipaddress,0,sizeof(ipaddress)); //Init IP address to translate!
-	if (safestrlen(phonenumber,256)>=9) //Valid length to convert IP addresses?
+	if (safestrlen(phonenumber,256)>=12) //Valid length to convert IP addresses?
 	{
 		p = phonenumber; //For scanning the phonenumber!
 		if (readIPnumber(&p,&a))
