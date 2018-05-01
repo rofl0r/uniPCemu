@@ -117,6 +117,8 @@ typedef union PACKED
 
 uint_32 packetserver_packetpos; //Current pos of sending said packet!
 
+byte readIPnumber(char **x, byte *number); //Prototype!
+
 //Supported and enabled the packet setver?
 #if defined(PACKETSERVER_ENABLED)
 #ifndef _WIN32
@@ -142,7 +144,7 @@ void initPcap() {
 	memset(&net,0,sizeof(net)); //Init!
 	int i=0;
 	char *p;
-	byte a, b, c, d;
+	byte IPnumbers[4];
 
 	/*
 
@@ -192,27 +194,24 @@ void initPcap() {
 
 	memset(&packetserver_staticIPstr, 0, sizeof(packetserver_staticIPstr));
 	memset(&packetserver_staticIP, 0, sizeof(packetserver_staticIP));
-	packetserver_useStaticIP = 0; //Defauot to unused!
+	packetserver_useStaticIP = 0; //Default to unused!
 
 	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 9) //Valid length to convert IP addresses?
 	{
 		p = &BIOS_Settings.ethernetserver_settings.IPaddress[0]; //For scanning the IP!
-		if (readIPnumber(&p, &a))
+		if (readIPnumber(&p, &IPnumbers[0]))
 		{
-			if (readIPnumber(&p, &b))
+			if (readIPnumber(&p, &IPnumbers[1]))
 			{
-				if (readIPnumber(&p, &c))
+				if (readIPnumber(&p, &IPnumbers[2]))
 				{
-					if (readIPnumber(&p, &d))
+					if (readIPnumber(&p, &IPnumbers[3]))
 					{
 						if (*p == '\0') //EOS?
 						{
 							//Automatic port?
-							snprintf(packetserver_staticIPstr, sizeof(packetserver_staticIPstr), "%u.%u.%u.%u", a, b, c, d); //Formulate the address!
-							packetserver_staticIP[0] = a;
-							packetserver_staticIP[1] = b;
-							packetserver_staticIP[2] = c;
-							packetserver_staticIP[3] = d;
+							snprintf(packetserver_staticIPstr, sizeof(packetserver_staticIPstr), "%u.%u.%u.%u", IPnumbers[0], IPnumbers[1], IPnumbers[2], IPnumbers[3]); //Formulate the address!
+							memcpy(&packetserver_staticIP, &IPnumbers, 4); //Set read IP!
 							packetserver_useStaticIP = 1; //Static IP set!
 						}
 					}
