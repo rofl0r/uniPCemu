@@ -801,6 +801,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	get_private_profile_string("modem","gatewayMACaddress","",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.gatewayMACaddress),BIOS_Settings_file); //Read entry!
 	get_private_profile_string("modem","username","",&BIOS_Settings.ethernetserver_settings.username[0],sizeof(BIOS_Settings.ethernetserver_settings.username),BIOS_Settings_file); //Read entry!
 	get_private_profile_string("modem","password","",&BIOS_Settings.ethernetserver_settings.password[0],sizeof(BIOS_Settings.ethernetserver_settings.password),BIOS_Settings_file); //Read entry!
+	get_private_profile_string("modem" "IPaddress", "",&BIOS_Settings.ethernetserver_settings.IPaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.IPaddress),BIOS_Settings_file); //Read entry!
 #endif
 
 	//Disks
@@ -1044,6 +1045,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(modem_comment,sizeof(modem_comment),"gatewayMACaddress: gateway MAC address to send/receive packets on\n");
 	safestrcat(modem_comment,sizeof(modem_comment),"username: set username and password to non-empty values for a credential protected server\n");
 	safestrcat(modem_comment,sizeof(modem_comment),"password: set username and password to non-empty values for a credential protected server\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "IPaddress: static IP address to use for this NIC (account)\n");
 #endif
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
@@ -1054,6 +1056,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_string("modem",modem_commentused,"gatewayMACaddress",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
 	if (!write_private_profile_string("modem",modem_commentused,"username",&BIOS_Settings.ethernetserver_settings.username[0],BIOS_Settings_file)) return 0; //MAC address to use!
 	if (!write_private_profile_string("modem",modem_commentused,"password",&BIOS_Settings.ethernetserver_settings.password[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem", modem_commentused,"IPaddress",&BIOS_Settings.ethernetserver_settings.IPaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
 #endif
 
 	//Disks

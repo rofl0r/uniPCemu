@@ -38,6 +38,9 @@ uint_32 packetserver_transmitsize = 0; //How much has been allocated so far, all
 byte packetserver_transmitstate = 0; //Transmit state for processing escaped values!
 byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
+byte packetserver_staticIP[4] = { 0,0,0,0 }; //Static IP to use?
+byte packetserver_useStaticIP = 0; //Use static IP?
+char packetserver_staticIPstr[256] = ""; //Static IP, string format
 
 //Authentication data!
 char packetserver_username[256]; //Username(settings must match)
@@ -48,6 +51,7 @@ word packetserver_stage_byte = 0; //Byte of data within the current stage(else, 
 byte packetserver_stage_byte_overflown = 0; //Overflown?
 char packetserver_stage_str[4096]; //Buffer containing output data for a stage
 byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
+char packetserver_staticIPstr_information[256] = "";
 DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing something!
 //How much to delay before sending a message while authenticating?
 #define PACKETSERVER_MESSAGE_DELAY 10000000.0
@@ -137,6 +141,8 @@ byte pcap_verbose = 0;
 void initPcap() {
 	memset(&net,0,sizeof(net)); //Init!
 	int i=0;
+	char *p;
+	byte a, b, c, d;
 
 	/*
 
@@ -183,6 +189,38 @@ void initPcap() {
 	}
 	
 	memcpy(&packetserver_sourceMAC,&maclocal,sizeof(packetserver_sourceMAC)); //Load sender MAC to become active!
+
+	memset(&packetserver_staticIPstr, 0, sizeof(packetserver_staticIPstr));
+	memset(&packetserver_staticIP, 0, sizeof(packetserver_staticIP));
+	packetserver_useStaticIP = 0; //Defauot to unused!
+
+	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 9) //Valid length to convert IP addresses?
+	{
+		p = &BIOS_Settings.ethernetserver_settings.IPaddress[0]; //For scanning the IP!
+		if (readIPnumber(&p, &a))
+		{
+			if (readIPnumber(&p, &b))
+			{
+				if (readIPnumber(&p, &c))
+				{
+					if (readIPnumber(&p, &d))
+					{
+						if (*p == '\0') //EOS?
+						{
+							//Automatic port?
+							snprintf(packetserver_staticIPstr, sizeof(packetserver_staticIPstr), "%u.%u.%u.%u", a, b, c, d); //Formulate the address!
+							packetserver_staticIP[0] = a;
+							packetserver_staticIP[1] = b;
+							packetserver_staticIP[2] = c;
+							packetserver_staticIP[3] = d;
+							packetserver_useStaticIP = 1; //Static IP set!
+						}
+					}
+				}
+			}
+		}
+	}
+
 
 	dolog("ethernetcard","Receiver MAC address: %02x:%02x:%02x:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
 	dolog("ethernetcard","Gateway MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]); //Log loaded address!
@@ -1792,7 +1830,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								if (packetserver_packetpos==0) //New packet?
 								{
-									if (net.pktlen>sizeof(ethernetheader.data)) //Length OK(at least one byte of content)?
+									if (net.pktlen>(sizeof(ethernetheader.data)+20)) //Length OK(at least one byte of data and complete IP header)?
 									{
 										memcpy(&ethernetheader.data,net.packet,sizeof(ethernetheader.data)); //Copy for inspection!
 										if (ethernetheader.type!=SDL_SwapBE16(0x0800)) //Invalid type?
@@ -1804,6 +1842,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										{
 											//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
+										}
+										if (packetserver_useStaticIP) //IP filter?
+										{
+											if (memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) //Static IP mismatch?
+											{
+												goto invalidpacket; //Invalid packet!
+											}
 										}
 										//Valid packet! Receive it!
 										packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
@@ -2167,6 +2212,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						{
 							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
 							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"\r\nMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\n",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
+							if (packetserver_useStaticIP) //IP filter?
+							{
+								memset(&packetserver_staticIPstr_information,0,sizeof(packetserver_staticIPstr_information));
+								snprintf(packetserver_staticIPstr_information,sizeof(packetserver_staticIPstr_information),"IPaddress:%s\r\n",packetserver_staticIPstr); //Static IP!
+								safestrcat(packetserver_stage_str,sizeof(packetserver_stage_str),packetserver_staticIPstr_information); //Inform about the static IP!
+							}
 							packetserver_stage_byte = 0; //Init to start of string!
 							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 						}

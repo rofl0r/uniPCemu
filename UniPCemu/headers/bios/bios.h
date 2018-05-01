@@ -19,6 +19,7 @@ typedef struct
 	CharacterType gatewayMACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
 	CharacterType username[256]; //Credentials username
 	CharacterType password[256]; //Credentials password
+	CharacterType IPaddress[256]; //Credentials IP address
 } ETHERNETSERVER_SETTINGS_TYPE;
 #endif
 
