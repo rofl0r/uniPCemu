@@ -224,6 +224,10 @@ void initPcap() {
 
 	dolog("ethernetcard","Receiver MAC address: %02x:%02x:%02x:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
 	dolog("ethernetcard","Gateway MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]); //Log loaded address!
+	if (packetserver_useStaticIP) //Static IP configured?
+	{
+		dolog("ethernetcard","Static IP configured: %s(%02x%02x%02x%02x)",packetserver_staticIPstr,packetserver_staticIP[0],packetserver_staticIP[1],packetserver_staticIP[2],packetserver_staticIP[3]); //Log it!
+	}
 
 	packetserver_receivebuffer = allocfifobuffer(2,0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
 	packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
