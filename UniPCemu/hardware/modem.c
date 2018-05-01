@@ -1843,7 +1843,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
 										}
-										if ((memcmp(&ethernetheader.dst,packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_broadcastMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
+										if ((memcmp(&ethernetheader.dst,&packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_broadcastMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
 										{
 											//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 											goto invalidpacket; //Invalid packet!
@@ -1868,6 +1868,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
 										//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
 										net.packet = NULL; //No packet!
+										packetserver_packetpos = 0; //Reset packet position!
 									}
 								}
 								if (net.packet) //Still a valid packet to send?
@@ -1903,6 +1904,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										logpacket(0,net.packet,net.pktlen); //Log it!
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
 										net.packet = NULL; //Discard the packet anyway, no matter what!
+										packetserver_packetpos = 0; //Reset packet position!
 									}
 								}
 							}
