@@ -408,6 +408,14 @@ void initPacketServer() //Initialize the packet server for use when connected to
 	}
 #endif
 	packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Reset stage byte: uninitialized!
+	if (net.packet)
+	{
+		freez((void **)&net.packet, net.pktlen, "MODEM_PACKET"); //Release the buffered packet: we're a new client!
+		net.packet = NULL; //No packet anymore!
+	}
+	packetserver_packetpos = 0; //No packet buffered anymore! New connections must read a new packet!
+	fifobuffer_clear(modem.inputdatabuffer); //Nothing is received yet!
+	fifobuffer_clear(modem.outputbuffer); //Nothing is sent yet!
 }
 
 byte packetserver_authenticate()
