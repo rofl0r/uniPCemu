@@ -119,6 +119,70 @@ typedef union PACKED
 
 uint_32 packetserver_packetpos; //Current pos of sending said packet!
 
+//Normal modem operations!
+#define MODEM_BUFFERSIZE 256
+
+#define MODEM_SERVERPOLLFREQUENCY 1000
+#define MODEM_DATATRANSFERFREQUENCY 57600
+
+struct
+{
+	byte supported; //Are we supported?
+	FIFOBUFFER *inputbuffer; //The input buffer!
+	FIFOBUFFER *inputdatabuffer; //The input buffer, data mode only!
+	FIFOBUFFER *outputbuffer; //The output buffer!
+	byte datamode; //1=Data mode, 0=Command mode!
+	byte connected; //Are we connected?
+	word connectionport; //What port to connect to by default?
+	byte previousATCommand[256]; //Copy of the command for use with "A/" command!
+	byte ATcommand[256];
+	word ATcommandsize; //The amount of data sent!
+	byte escaping; //Are we trying to escape?
+	DOUBLE timer; //A timer for detecting timeout!
+	DOUBLE ringtimer; //Ringing timer!
+	DOUBLE serverpolltimer; //Network connection request timer!
+	DOUBLE networkdatatimer; //Network connection request timer!
+
+	DOUBLE serverpolltick; //How long it takes!
+	DOUBLE networkpolltick;
+
+	//Various parameters used!
+	byte communicationstandard; //What communication standard!
+	byte echomode; //Echo everything back to use user?
+	byte offhook; //1: Off hook(disconnected), 2=Off hook(connected), otherwise on-hook(disconnected)!
+	byte verbosemode; //Verbose mode: 0=Numeric result codes, 1=Text result codes, 2=Quiet mode(no response).
+	byte speakervolume; //Speaker volume!
+	byte speakercontrol; //0=Always off, 1=On until carrier detected, 2=Always on, 3=On only while answering.
+	byte callprogressmethod; //Call progress method:
+	byte lastnumber[256]; //Last-dialed number!
+	byte currentregister; //What register is selected?
+	byte registers[256]; //All possible registers!
+	byte flowcontrol;
+	/*
+	0=Blind dial and no busy detect. CONNECT message when established.
+	1=Blind dial and no busy detect. Connection speed in BPS added to CONNECT string.
+	2=Dial tone detection, but no busy detection. Connection speed in BPS added to the CONNECT string.
+	3=Blind dial, but busy detection. Connection speed in BPS appended to the CONNECT string.
+	4=Dial tone detection and busy tone detection. Connection speed in BPS appended to the CONNECT string.
+	*/
+
+	//Active status emulated for the modem!
+	byte ringing; //Are we ringing?
+	byte DTROffResponse; //Default: full reset!
+	byte DSRisConnectionEstablished; //Default: assert high always!
+	byte DCDisCarrier;
+	byte CTSAlwaysActive; //Default: always active!
+
+	byte escapecharacter;
+	byte carriagereturncharacter;
+	byte linefeedcharacter;
+	byte backspacecharacter;
+	DOUBLE escapecodeguardtime;
+	byte port; //What port are we allocated to?
+	byte canrecvdata; //Can we start receiving data to the UART?
+	byte linechanges; //For detecting line changes!
+} modem;
+
 byte readIPnumber(char **x, byte *number); //Prototype!
 
 //Supported and enabled the packet setver?
@@ -438,69 +502,6 @@ byte packetserver_authenticate()
 	}
 	return 0; //Invalid credentials!
 }
-
-#define MODEM_BUFFERSIZE 256
-
-#define MODEM_SERVERPOLLFREQUENCY 1000
-#define MODEM_DATATRANSFERFREQUENCY 57600
-
-struct
-{
-	byte supported; //Are we supported?
-	FIFOBUFFER *inputbuffer; //The input buffer!
-	FIFOBUFFER *inputdatabuffer; //The input buffer, data mode only!
-	FIFOBUFFER *outputbuffer; //The output buffer!
-	byte datamode; //1=Data mode, 0=Command mode!
-	byte connected; //Are we connected?
-	word connectionport; //What port to connect to by default?
-	byte previousATCommand[256]; //Copy of the command for use with "A/" command!
-	byte ATcommand[256];
-	word ATcommandsize; //The amount of data sent!
-	byte escaping; //Are we trying to escape?
-	DOUBLE timer; //A timer for detecting timeout!
-	DOUBLE ringtimer; //Ringing timer!
-	DOUBLE serverpolltimer; //Network connection request timer!
-	DOUBLE networkdatatimer; //Network connection request timer!
-
-	DOUBLE serverpolltick; //How long it takes!
-	DOUBLE networkpolltick;
-
-	//Various parameters used!
-	byte communicationstandard; //What communication standard!
-	byte echomode; //Echo everything back to use user?
-	byte offhook; //1: Off hook(disconnected), 2=Off hook(connected), otherwise on-hook(disconnected)!
-	byte verbosemode; //Verbose mode: 0=Numeric result codes, 1=Text result codes, 2=Quiet mode(no response).
-	byte speakervolume; //Speaker volume!
-	byte speakercontrol; //0=Always off, 1=On until carrier detected, 2=Always on, 3=On only while answering.
-	byte callprogressmethod; //Call progress method:
-	byte lastnumber[256]; //Last-dialed number!
-	byte currentregister; //What register is selected?
-	byte registers[256]; //All possible registers!
-	byte flowcontrol;
-	/*
-	0=Blind dial and no busy detect. CONNECT message when established.
-	1=Blind dial and no busy detect. Connection speed in BPS added to CONNECT string.
-	2=Dial tone detection, but no busy detection. Connection speed in BPS added to the CONNECT string.
-	3=Blind dial, but busy detection. Connection speed in BPS appended to the CONNECT string.
-	4=Dial tone detection and busy tone detection. Connection speed in BPS appended to the CONNECT string.
-	*/
-
-	//Active status emulated for the modem!
-	byte ringing; //Are we ringing?
-	byte DTROffResponse; //Default: full reset!
-	byte DSRisConnectionEstablished; //Default: assert high always!
-	byte DCDisCarrier;
-	byte CTSAlwaysActive; //Default: always active!
-
-	byte escapecharacter;
-	byte carriagereturncharacter;
-	byte linefeedcharacter;
-	byte backspacecharacter;
-	DOUBLE escapecodeguardtime;
-	byte port; //What port are we allocated to?
-	byte canrecvdata; //Can we start receiving data to the UART?
-	byte linechanges; //For detecting line changes!
-} modem;
 
 byte ATresultsString[6][256] = {"ERROR","OK","CONNECT","RING","NO DIALTONE","NO CARRIER"}; //All possible results!
 byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
