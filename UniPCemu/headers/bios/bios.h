@@ -102,6 +102,7 @@ typedef struct
 #ifdef PACKETSERVER_ENABLED
 	ETHERNETSERVER_SETTINGS_TYPE ethernetserver_settings;
 #endif
+	CharacterType phonebook[10][256]; //A full phonebook for the modem!
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:

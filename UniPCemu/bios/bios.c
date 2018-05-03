@@ -726,11 +726,15 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	}
 }
 
+char phonebookentry[256] = "";
+
 void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
 	FILE *f;
 	byte defaultsapplied = 0; //Defaults have been applied?
+	byte c;
+	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
 	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!
 
@@ -795,6 +799,12 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	//Modem
 	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem","listenport",DEFAULT_MODEMLISTENPORT,BIOS_Settings_file); //Modem listen port!
+	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
+	{
+		snprintf(phonebookentry, sizeof(phonebookentry), "phonebook%u", c); //The entry to use!
+		get_private_profile_string("modem", phonebookentry, "", &BIOS_Settings.phonebook[c][0], sizeof(BIOS_Settings.phonebook[0]), BIOS_Settings_file); //Read entry!
+	}
+
 #ifdef PACKETSERVER_ENABLED
 	BIOS_Settings.ethernetserver_settings.ethernetcard = get_private_profile_int64("modem","ethernetcard",-1,BIOS_Settings_file); //Ethernet card to use!
 	get_private_profile_string("modem","MACaddress","",&BIOS_Settings.ethernetserver_settings.MACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.MACaddress),BIOS_Settings_file); //Read entry!
@@ -828,7 +838,6 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0xFF,BIOS_Settings_file);
-	byte c;
 	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
 	{
 		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor(c); //Set default color when invalid!
@@ -931,7 +940,9 @@ extern uint8_t maclocal_default[6]; //Default MAC of the sender!
 
 int BIOS_SaveData() //Save BIOS settings!
 {
+	byte c;
 	if (__HW_DISABLED) return 1; //Abort!
+	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
 	delete_file(NULL,BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
 
@@ -1038,6 +1049,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
 	memset(currentstr,0,sizeof(currentstr)); //Init!
 	snprintf(modem_comment,sizeof(modem_comment),"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
+	snprintf(currentstr, sizeof(currentstr), "phonebook0-%u: Phonebook entry #n\n", (byte)(NUMITEMS(BIOS_Settings.phonebook)-1)); //Information about the phonebook!
+	safestrcat(modem_comment, sizeof(modem_comment), currentstr); //MAC address information!
 #ifdef PACKETSERVER_ENABLED
 	safestrcat(modem_comment,sizeof(modem_comment),"ethernetcard: -1 for disabled(use normal emulation), 0-254 selected and use a network card, 255 to generate a list of network cards to select\n");
 	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %02x:%02x:%02x:%02x:%02x:%02x)\n",maclocal_default[0],maclocal_default[1],maclocal_default[2],maclocal_default[3],maclocal_default[4],maclocal_default[5]);
@@ -1050,6 +1063,11 @@ int BIOS_SaveData() //Save BIOS settings!
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
 	if (!write_private_profile_uint64("modem",modem_commentused,"listenport",BIOS_Settings.modemlistenport,BIOS_Settings_file)) return 0; //Modem listen port!
+	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
+	{
+		snprintf(phonebookentry, sizeof(phonebookentry), "phonebook%u", c); //The entry to use!
+		if (!write_private_profile_string("modem",modem_commentused,phonebookentry,&BIOS_Settings.phonebook[c][0],BIOS_Settings_file)) return 0; //Entry!
+	}
 #ifdef PACKETSERVER_ENABLED
 	if (!write_private_profile_int64("modem",modem_commentused,"ethernetcard",BIOS_Settings.ethernetserver_settings.ethernetcard,BIOS_Settings_file)) return 0; //Ethernet card to use!
 	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",&BIOS_Settings.ethernetserver_settings.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!

@@ -949,7 +949,9 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	}
 	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
 	verbosemodepending = modem.verbosemode; //Save the old verbose mode, to detect and apply changes after the command is successfully completed!
-	word pos=2; //Position to read!
+	word pos=2,posbackup; //Position to read!
+	byte SETGET = 0;
+	char *c = &BIOS_Settings.phonebook[0][0]; //Phone book support
 	for (;;) //Parse the command!
 	{
 		switch (modem.ATcommand[pos++]) //What command?
@@ -985,6 +987,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			}
 			break;
 		case 'D': //Dial?
+			do_ATD: //Phonebook ATD!
 			switch (modem.ATcommand[pos++]) //What dial command?
 			{
 			case 0: //EOS?
@@ -1027,6 +1030,31 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				modem.verbosemode = verbosemodepending; //New verbose mode, if set!
 				return; //Nothing follows the phone number!
 				break;
+			case 'S': //Dial phonebook?
+				posbackup = pos; //Save for returning later!
+				if (modemcommand_readNumber(&pos, &n0)) //Read the number?
+				{
+					pos = posbackup; //Reverse to the dial command!
+					--pos; //Return to the dial command!
+					if (n0 > 10) goto invalidPhonebookNumberDial;
+					safestrcpy((char *)&modem.ATcommand[pos],sizeof(modem.ATcommand)-pos,&BIOS_Settings.phonebook[n0][0]); //Select the phonebook entry based on the number to dial!
+					if (modem.ATcommand[pos] != 'S') //Not another phonebook entry?
+					{
+						goto do_ATD; //Retry with the new command!
+					}
+					else //Dial phonebook to phonebook? Forbidden!
+					{
+						invalidPhonebookNumberDial: //Dialing invalid number?
+						modem_responseResult(MODEMRESULT_ERROR);
+					}
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR);
+					return; //Abort!
+				}
+				break;
+
 			default: //Unsupported?
 				--pos; //Retry analyzing!
 				unsupporteddial: //Unsupported dial function?
@@ -1480,8 +1508,74 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				}
 				break;
 			case 'F': //Load defaults?
-				n0 = 0; //Defautl configuration!
+				n0 = 0; //Default configuration!
 				goto doATZ; //Execute ATZ!
+			case 'Z': //Z special?
+				n0 = 10; //Default: acnowledge!
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '\0': //EOS?
+					goto handlePhoneNumberEntry; //Acnowledge!
+					//Ignore!
+					break;
+				case '0': //Set stored number?
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9': //Might be phonebook?
+					n0 = (modem.ATcommand[pos - 1])-(byte)'0'; //Find the number that's to use!
+					c = &BIOS_Settings.phonebook[n0][0]; //The phonebook entry we've selected!
+					SETGET = 0; //Default: invalid!
+					switch (modem.ATcommand[pos++]) //SET/GET detection!
+					{
+					case '?': //GET?
+						SETGET = 1; //GET!
+						goto handlePhoneNumberEntry;
+						break;
+					case '=': //SET?
+						SETGET = 2; //SET!
+						goto handlePhoneNumberEntry;
+						break;
+					default: //Invalid command!
+						n0 = 10; //Simple acnowledge!
+						goto handlePhoneNumberEntry;
+						break;
+					}
+					break;
+				default:
+					n0 = 10; //Invalid phonebook entry!
+					handlePhoneNumberEntry: //Handle a phone number dictionary entry!
+					if (n0<10) //Valid?
+					{
+						switch (SETGET) //What kind of set/get?
+						{
+						case 1: //GET?
+							modem_responseString((byte *)&BIOS_Settings.phonebook[n0], 1); //Give the phonenumber!
+							break;
+						case 2: //SET?
+							memset(&BIOS_Settings.phonebook[n0], 0, sizeof(BIOS_Settings.phonebook[0])); //Init the phonebook entry!
+							safestrcpy(BIOS_Settings.phonebook[n0], sizeof(BIOS_Settings.phonebook[0]), c); //Set the phonebook entry!
+							break;
+						default:
+							goto ignorePhonebookSETGET;
+							break;
+						}
+					}
+					else
+					{
+						ignorePhonebookSETGET:
+						modem_responseResult(MODEMRESULT_OK); //Simple OK for your troubles!
+						return; //Abort!
+					}
+					break;
+				}
+				break;
+
 			case 'K': //Flow control?
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
