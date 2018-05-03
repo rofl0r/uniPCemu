@@ -1671,7 +1671,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
 				#ifdef LOG_VIRTUALMODECALLS
-				dolog("debugger","Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)",intnr,CPU[activeCPU].lastopcode,CPU[activeCPU].lastopcode0F,immb,REG_AX);
+				if (debugger_logging())
+				{
+					dolog("debugger", "Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)", intnr, CPU[activeCPU].lastopcode, CPU[activeCPU].lastopcode0F, immb, REG_AX);
+				}
 				#endif
 				if (newCPL!=0) //Not switching to PL0?
 				{
