@@ -24,6 +24,13 @@ Packet server support!
 
 */
 
+#ifdef IS_PSP
+#ifndef SDL_SwapBE16
+//PSP doesn't support SDL_SwapBE16
+#define SDL_SwapBE16(x) (((x>>8)&0xFF)|((x&0xFF)<<8))
+#endif
+#endif
+
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 
 /* packet.c: functions to interface with libpcap/winpcap for ethernet emulation. */
