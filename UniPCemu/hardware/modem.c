@@ -1011,6 +1011,33 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
 				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
+				char *n;
+				if (safestrlen((char *)&number[0],sizeof(number)) < 2 && number[0]) //Maybe a phone book entry? This is for easy compatiblity for quick dial functionality on unsupported software!
+				{
+					posbackup = pos; //Save the position!
+					if (modemcommand_readNumber(&pos, &n0)) //Read a phonebook entry?
+					{
+						if (modem.ATcommand[pos] == '\0') //End of string? We're a quick dial!
+						{
+							if (n0 < 10) //Valid quick dial?
+							{
+								goto handleQuickDial; //Handle the quick dial number!
+							}
+							else
+							{
+								pos = posbackup; //Return to where we were! It's a normal phonenumber!
+							}
+						}
+						else
+						{
+							pos = posbackup; //Return to where we were! It's a normal phonenumber!
+						}
+					}
+					else
+					{
+						pos = posbackup; //Return to where we were! It's a normal phonenumber!
+					}
+				}
 				memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //Init last number!
 				safestrcpy((char *)&modem.lastnumber,sizeof(modem.lastnumber),(char *)&number[0]); //Set the last number!
 				actondial: //Start dialing?
@@ -1034,6 +1061,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				posbackup = pos; //Save for returning later!
 				if (modemcommand_readNumber(&pos, &n0)) //Read the number?
 				{
+					handleQuickDial: //Handle a quick dial!
 					pos = posbackup; //Reverse to the dial command!
 					--pos; //Return to the dial command!
 					if (n0 > 10) goto invalidPhonebookNumberDial;
