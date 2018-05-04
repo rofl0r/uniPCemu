@@ -429,6 +429,57 @@ byte CPU80386_instructionstepwritemodrmdw(word base, uint_32 value, byte paramnr
 	return 0; //Ready to process further! We're loaded!
 }
 
+byte CPU80386_instructionstepwritedirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16)
+{
+	uint_32 dummy;
+	if (CPU[activeCPU].modrmstep == base) //First step? Request!
+	{
+		if (CPU_request_MMUwdw(segment, offset, val, is_offset16) == 0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].modrmstep; //Next step!
+	}
+	if (CPU[activeCPU].modrmstep == (base + 1))
+	{
+		if (BIU_readResultdw(&dummy) == 0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].modrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
+byte CPU80386_instructionstepreaddirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16)
+{
+	if (CPU[activeCPU].modrmstep == base) //First step? Request!
+	{
+		if (CPU_request_MMUrdw(segment, offset, is_offset16) == 0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].modrmstep; //Next step!
+	}
+	if (CPU[activeCPU].modrmstep == (base + 1))
+	{
+		if (BIU_readResultdw(result) == 0) //Not ready?
+		{
+			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
+			CPU[activeCPU].executed = 0; //Not executed!
+			return 1; //Keep running!
+		}
+		++CPU[activeCPU].modrmstep; //Next step!
+	}
+	return 0; //Ready to process further! We're loaded!
+}
+
 //Now, the internal variants of the functions above!
 
 byte CPU80386_internal_stepreadmodrmdw(word base, uint_32 *result, byte paramnr)
@@ -2686,12 +2737,12 @@ void CPU80386_OP9D_32() {
 //Different addressing modes affect us! Combine operand size and address size into new versions of the instructions, where needed!
 //16/32 depending on address size!
 //A0 32-bits address version with 8-bit reg
-OPTINLINE void CPU80386_OPA0_8exec_addr32() {debugger_setcommand("MOV AL,byte %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AL,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; } if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferb,0)) return; CPU80386_internal_MOV8(&REG_AL,instructionbufferb,1);/*MOV AL,[imm32]*/ }
+OPTINLINE void CPU80386_OPA0_8exec_addr32() {debugger_setcommand("MOV AL,byte %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AL,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0)) return; } if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferb,0)) return; CPU80386_internal_MOV8(&REG_AL,instructionbufferb,1);/*MOV AL,[imm32]*/ }
 
 //A1 16/32-bits address version with 16/32-bit reg
-OPTINLINE void CPU80386_OPA1_16exec_addr32() {debugger_setcommand("MOV AX,word %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; } if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferw,0)) return; CPU80386_internal_MOV16(&REG_AX,instructionbufferw,1);/*MOV AX,[imm32]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOV EAX,dword %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; } if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferd,1)) return; CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm16]*/ }
-OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOV EAX,dword %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; } if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferd,0)) return; CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm32]*/ }
+OPTINLINE void CPU80386_OPA1_16exec_addr32() {debugger_setcommand("MOV AX,word %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; } if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferw,0)) return; CPU80386_internal_MOV16(&REG_AX,instructionbufferw,1);/*MOV AX,[imm32]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr16() {debugger_setcommand("MOV EAX,dword %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; } if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferd,1)) return; CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm16]*/ }
+OPTINLINE void CPU80386_OPA1_32exec_addr32() {debugger_setcommand("MOV EAX,dword %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/ if (unlikely(CPU[activeCPU].internalinstructionstep==0)) { if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; } if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),immaddr32,&instructionbufferd,0)) return; CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm32]*/ }
 
 //A2 32-bits address version with 8-bit reg
 OPTINLINE void CPU80386_OPA2_8exec_addr32() {debugger_setcommand("MOV byte %s:[%08X],AL",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV [imm32],AL*/ custommem = 1; customoffset = immaddr32; CPU80386_internal_MOV8(NULL,REG_AL,1);/*MOV [imm32],AL*/ custommem = 0; }
@@ -3556,7 +3607,7 @@ void op_grp5_32() {
 		break;
 	case 2: //CALL Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } //Abort when needed!
-		if (CPU80386_internal_PUSHdw(0,&REG_EIP)) return;
+		if (CPU80386_PUSHdw(2,&REG_EIP)) return;
 		CPU_JMPabs(oper1d);
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
@@ -3587,7 +3638,7 @@ void op_grp5_32() {
 		destEIP = oper1d; //Get destination IP!
 		CPUPROT1
 		modrm_addoffset = 4; //Then destination CS!
-		if (CPU8086_internal_stepreadmodrmw(0,&destCS,MODRM_src0)) return; //Get destination CS!
+		if (CPU8086_instructionstepreadmodrmw(2,&destCS,MODRM_src0)) return; //Get destination CS!
 		CPUPROT1
 		modrm_addoffset = 0;
 		if (CPU80386_CALLF(destCS,destEIP)) return; //Call the destination address!
@@ -3639,7 +3690,7 @@ void op_grp5_32() {
 		CPUPROT1
 		destEIP = oper1d; //Convert to EIP!
 		modrm_addoffset = 4; //Then destination CS!
-		if (CPU8086_internal_stepreadmodrmw(0,&destCS,MODRM_src0)) return; //Get destination CS!
+		if (CPU8086_instructionstepreadmodrmw(2,&destCS,MODRM_src0)) return; //Get destination CS!
 		modrm_addoffset = 0;
 		CPUPROT1
 		if (segmentWritten(CPU_SEGMENT_CS, destCS, 1)) return;
@@ -3663,7 +3714,7 @@ void op_grp5_32() {
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; }
-		if (CPU80386_internal_PUSHdw(0,&oper1d)) return;
+		if (CPU80386_PUSHdw(2,&oper1d)) return;
 		CPUPROT1
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{

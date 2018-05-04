@@ -1075,7 +1075,7 @@ extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard 
 OPTINLINE void CPU_resetInstructionSteps()
 {
 	//Prepare for a (repeated) instruction to execute!
-	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 }
 
 uint_32 last_eip;

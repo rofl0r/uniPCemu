@@ -934,7 +934,7 @@ typedef struct PACKED
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?
-	word instructionstep, internalinstructionstep, internalmodrmstep, internalinterruptstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
+	word instructionstep, internalinstructionstep, modrmstep, internalmodrmstep, internalinterruptstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
 	byte pushbusy; //Is a push operation busy?
 	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
 	byte resetPending; //Is a CPU reset pending?
