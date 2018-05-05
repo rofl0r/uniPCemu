@@ -53,8 +53,12 @@ extern byte PIQSizes[2][NUMCPUS]; //The PIQ buffer sizes!
 extern byte BUSmasks[2][NUMCPUS]; //The bus masks, for applying 8/16/32-bit data buses to the memory accesses!
 byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188) or 16-bit when possible(286+)!
 byte CPU_databusmask = 0; //The mask from the BUSmasks lookup table!
+Handler BIU_activeCycleHandler = NULL;
+byte BIU_is_486 = 0;
 
 extern byte cpudebugger; //To debug the CPU?
+
+void detectBIUactiveCycleHandler(); //For detecting the cycle handler to use for this CPU!
 
 void CPU_initBIU()
 {
@@ -70,6 +74,8 @@ void CPU_initBIU()
 	CPU_databusmask = BUSmasks[CPU_databussize][EMULATED_CPU]; //Our data bus mask we use for splitting memory chunks!
 	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
 	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU_is_486 = (EMULATED_CPU >= CPU_80486); //486+ handling?
+	detectBIUactiveCycleHandler(); //Detect the active cycle handler to use!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
 	CPU_flushPIQ(-1); //Init us to start!
 }
@@ -1045,18 +1051,23 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_StallingBUS; //We're stalling the BUS!
 	}
-	else if (unlikely((CPU[activeCPU].halt & 0xC) && (((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||(EMULATED_CPU>=CPU_80486)))) //CGA wait state is active?
+	else if (unlikely((CPU[activeCPU].halt & 0xC) && (((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||BIU_is_486))) //CGA wait state is active?
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_VideoWaitState; //We're stalling the BUS!		
 	}
-	else if (unlikely((((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||(EMULATED_CPU>=CPU_80486)) && (BIU[activeCPU].waitstateRAMremaining))) //T2/4? Check for waitstate RAM first!
+	else if (unlikely((((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||BIU_is_486) && (BIU[activeCPU].waitstateRAMremaining))) //T2/4? Check for waitstate RAM first!
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_WaitStateRAMBUS; //We're stalling the BUS!		
 	}
 	else //Active cycle?
 	{
-		cycleinfo->currentTimingHandler = (EMULATED_CPU>CPU_NECV30)?((EMULATED_CPU>=CPU_80486)?&BIU_cycle_active486:&BIU_cycle_active286):&BIU_cycle_active8086; //Active CPU cycle!
+		cycleinfo->currentTimingHandler = BIU_activeCycleHandler; //Active CPU cycle!
 	}
+}
+
+void detectBIUactiveCycleHandler()
+{
+	BIU_activeCycleHandler = (EMULATED_CPU > CPU_NECV30) ? (BIU_is_486 ? &BIU_cycle_active486 : &BIU_cycle_active286) : &BIU_cycle_active8086; //What cycle handler are we to use?
 }
 
 byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
