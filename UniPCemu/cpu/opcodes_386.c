@@ -3530,6 +3530,7 @@ void op_grp3_32() {
 		temp1.val64 = (uint64_t)oper1d * (uint64_t)REG_EAX;
 		REG_EAX = temp1.val32;
 		REG_EDX = temp1.val32high;
+		flag_log32(temp1.val32); //Flags!
 		if (REG_EDX) { FLAGW_CF(1); FLAGW_OF(1); }
 		else { FLAGW_CF(0); FLAGW_OF(0); }
 
@@ -3562,6 +3563,7 @@ void op_grp3_32() {
 		temp3.val64s *= temp2.val64s; //Signed multiplication!
 		REG_EAX = temp3.val32; //into register ax
 		REG_EDX = temp3.val32high; //into register dx
+		flag_log32(temp3.val32); //Flags!
 		if (((temp3.val64>>31)==0ULL) || ((temp3.val64>>31)==0x1FFFFFFFFULL)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //Same!
@@ -3894,6 +3896,7 @@ void CPU386_OP69()
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
 		CPU_CIMUL(instructionbufferd,32,imm32,32,&IMULresult,32); //Execute!
+		flag_log32(IMULresult); //Flags!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
@@ -3949,6 +3952,7 @@ void CPU386_OP6B()
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
 		CPU_CIMUL(instructionbufferd,32,immb,8,&IMULresult,32); //Execute!
+		flag_log32(IMULresult); //Flags!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!

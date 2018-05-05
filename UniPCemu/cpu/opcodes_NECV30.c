@@ -331,6 +331,7 @@ void CPU186_OP69()
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
 		CPU_CIMUL(instructionbufferw,16,immw,16,&IMULresult,16); //Immediate word is second/third parameter!
+		flag_log16(IMULresult & 0xFFFF); //Flags!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!
@@ -386,6 +387,7 @@ void CPU186_OP6B()
 	if (CPU[activeCPU].instructionstep==1) //Second step?
 	{
 		CPU_CIMUL(instructionbufferw,16,immb,8,&IMULresult,16); //Immediate word is second/third parameter!
+		flag_log16(IMULresult & 0xFFFF); //Flags!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		//We're writing to the register always, so no normal writeback!
 		++CPU[activeCPU].instructionstep; //Next step!

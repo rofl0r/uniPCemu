@@ -5178,7 +5178,7 @@ void op_grp3_8() {
 
 		FLAGW_CF(FLAG_OF); //Same!
 		tempAL = FLAG_ZF; //Backup!
-		flag_szp8(REG_AL);
+		flag_log16(temp3.val16); //Flags!
 		if (EMULATED_CPU==CPU_8086) //8086 only?
 		{
 			FLAGW_ZF(tempAL); //Restore Zero flag!
@@ -5212,6 +5212,7 @@ void op_grp3_8() {
 		temp3.val32s = temp1.val32s; //Load and...
 		temp3.val32s *= temp2.val32s; //Multiply!
 		REG_AX = temp3.val16; //Load into AX!
+		flag_log16(temp3.val16); //Flags!
 		FLAGW_SF((temp3.val16&0x80)>>7); //Sign!
 		FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 		if (((temp3.val16&0xFF80)==0) || ((temp3.val16&0xFF80)==0xFF80))
@@ -5359,6 +5360,7 @@ void op_grp3_16() {
 		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
 		REG_AX = temp1.val16;
 		REG_DX = temp1.val16high;
+		flag_log32(temp3.val32); //Flags!
 		if (temp1.val16high==0) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
@@ -5396,6 +5398,7 @@ void op_grp3_16() {
 		temp3.val32s *= temp2.val32s; //Signed multiplication!
 		REG_AX = temp3.val16; //into register ax
 		REG_DX = temp3.val16high; //into register dx
+		flag_log32(temp3.val32); //Flags!
 		if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
