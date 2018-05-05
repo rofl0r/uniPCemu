@@ -965,11 +965,11 @@ void BIU_cycle_active286()
 				}
 			}
 		}
-		else if (likely(cycleinfo->curcycle)) //Busy transfer?
+		else if (likely(cycleinfo->curcycle && (EMULATED_CPU < CPU_80486))) //Busy transfer(not on 80486+)?
 		{
 			++BIU[activeCPU].prefetchclock; //Tick running transfer T-cycle!
 		}
-		if (unlikely((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1) && (CPU[activeCPU].BUSactive==1))) //Finishing transfer on T1?
+		if (unlikely((((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1)) || (EMULATED_CPU >= CPU_80486)) && (CPU[activeCPU].BUSactive==1))) //Finishing transfer on T1(80486+ finishes in 1 cycle)?
 		{
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
