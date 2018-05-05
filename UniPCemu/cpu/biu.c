@@ -957,7 +957,10 @@ void BIU_cycle_active286()
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					BIU[activeCPU].requestready = 0; //We're starting a request!
-					++BIU[activeCPU].prefetchclock; //Tick!					
+					if (likely(EMULATED_CPU < CPU_80486)) //More than 1 cycle state?
+					{
+						++BIU[activeCPU].prefetchclock; //Tick!					
+					}
 				}
 				else //Nothing to do?
 				{
