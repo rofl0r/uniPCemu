@@ -912,7 +912,7 @@ void BIU_cycle_active286()
 		{
 			--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
 			BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
-			if (unlikely((CPU[activeCPU].BUSactive==1) && (EMULATED_CPU<CPU_80486))) //We're active?
+			if (unlikely(CPU[activeCPU].BUSactive==1)) //We're active?
 			{
 				if (unlikely((BIU[activeCPU].prefetchclock&1)!=0)) //Not T1 yet?
 				{
@@ -921,11 +921,6 @@ void BIU_cycle_active286()
 						CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 					}
 				}
-			}
-			else if (EMULATED_CPU >= CPU_80486) //80486 has 1-cycle execution always!
-			{
-				BIU_active = 0; //Count as inactive BUS: don't advance cycles!
-				CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			}
 		}
 		else if (unlikely((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0))) //T1 while not busy? Start transfer, if possible!
@@ -944,10 +939,7 @@ void BIU_cycle_active286()
 				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
-					if (likely(EMULATED_CPU < CPU_80486)) //More than 1 cycle state?
-					{
-						++BIU[activeCPU].prefetchclock; //Tick!
-					}
+					++BIU[activeCPU].prefetchclock; //Tick!
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
@@ -961,10 +953,7 @@ void BIU_cycle_active286()
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					BIU[activeCPU].requestready = 0; //We're starting a request!
-					if (likely(EMULATED_CPU < CPU_80486)) //More than 1 cycle state?
-					{
-						++BIU[activeCPU].prefetchclock; //Tick!					
-					}
+					++BIU[activeCPU].prefetchclock; //Tick!					
 				}
 				else //Nothing to do?
 				{
@@ -972,11 +961,75 @@ void BIU_cycle_active286()
 				}
 			}
 		}
-		else if (likely(cycleinfo->curcycle && (EMULATED_CPU < CPU_80486))) //Busy transfer(not on 80486+)?
+		else if (likely(cycleinfo->curcycle)) //Busy transfer(not on 80486+)?
 		{
 			++BIU[activeCPU].prefetchclock; //Tick running transfer T-cycle!
 		}
-		if (unlikely((((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1)) || (EMULATED_CPU >= CPU_80486)) && (CPU[activeCPU].BUSactive==1))) //Finishing transfer on T1(80486+ finishes in 1 cycle)?
+		if (unlikely(((cycleinfo->curcycle==1) && ((BIU[activeCPU].prefetchclock&1)!=1)) && (CPU[activeCPU].BUSactive==1))) //Finishing transfer on T1(80486+ finishes in 1 cycle)?
+		{
+			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+		}
+		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
+	}
+	BIU_detectCycle(); //Detect the next cycle!
+}
+
+void BIU_cycle_active486()
+{
+	if (unlikely(CPU[activeCPU].BUSactive == 2)) //Handling a DRAM refresh? We're idling on DMA!
+	{
+		++CPU[activeCPU].cycles_Prefetch_DMA;
+		BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
+		BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+	}
+	else //Active CPU cycle?
+	{
+		cycleinfo->curcycle = (BIU[activeCPU].prefetchclock & 1); //Current cycle!
+		if (unlikely(cycleinfo->cycles_stallBIU)) //To stall?
+		{
+			--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
+			BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
+			BIU_active = 0; //Count as inactive BUS: don't advance cycles!
+			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+		}
+		else if (unlikely((cycleinfo->curcycle == 0) && (CPU[activeCPU].BUSactive == 0))) //T1 while not busy? Start transfer, if possible!
+		{
+			if (unlikely(cycleinfo->prefetchcycles)) { --cycleinfo->prefetchcycles; goto tryprefetch80286; }
+			else
+			{
+			tryprefetch80286:
+				PIQ_RequiredSize = 1; //Minimum of 2 bytes required for a fetch to happen!
+				PIQ_CurrentBlockSize = 3; //We're blocking after 1 byte access when at an odd address!
+				if (EMULATED_CPU >= CPU_80386) //386+?
+				{
+					PIQ_RequiredSize |= 2; //Minimum of 4 bytes required for a fetch to happen!
+					PIQ_CurrentBlockSize |= 4; //Apply 32-bit quantities as well, when allowed!
+				}
+				if (unlikely(BIU_processRequests(memory_waitstates, bus_waitstates))) //Processing a request?
+				{
+					BIU[activeCPU].requestready = 0; //We're starting a request!
+				}
+				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
+				{
+					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
+					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
+					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+					{
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+					}
+					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+					BIU[activeCPU].requestready = 0; //We're starting a request!
+				}
+				else //Nothing to do?
+				{
+					BIU[activeCPU].stallingBUS = 2; //Stalling!
+				}
+			}
+		}
+		if (likely(CPU[activeCPU].BUSactive == 1)) //Finishing transfer on T1(80486+ finishes in 1 cycle)?
 		{
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
@@ -1002,7 +1055,7 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	}
 	else //Active cycle?
 	{
-		cycleinfo->currentTimingHandler = (EMULATED_CPU>CPU_NECV30)?&BIU_cycle_active286:&BIU_cycle_active8086; //Active CPU cycle!
+		cycleinfo->currentTimingHandler = (EMULATED_CPU>CPU_NECV30)?((EMULATED_CPU>=CPU_80486)?&BIU_cycle_active486:&BIU_cycle_active286):&BIU_cycle_active8086; //Active CPU cycle!
 	}
 }
 
