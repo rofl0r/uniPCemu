@@ -922,9 +922,10 @@ void BIU_cycle_active286()
 					}
 				}
 			}
-			else
+			else if (EMULATED_CPU >= CPU_80486) //80486 has 1-cycle execution always!
 			{
-				BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+				BIU_active = 0; //Count as inactive BUS: don't advance cycles!
+				CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			}
 		}
 		else if (unlikely((cycleinfo->curcycle==0) && (CPU[activeCPU].BUSactive==0))) //T1 while not busy? Start transfer, if possible!
