@@ -912,7 +912,7 @@ void BIU_cycle_active286()
 		{
 			--cycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
 			BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
-			if (unlikely(CPU[activeCPU].BUSactive==1)) //We're active?
+			if (unlikely((CPU[activeCPU].BUSactive==1) && (EMULATED_CPU<CPU_80486))) //We're active?
 			{
 				if (unlikely((BIU[activeCPU].prefetchclock&1)!=0)) //Not T1 yet?
 				{
@@ -944,7 +944,10 @@ void BIU_cycle_active286()
 				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
-					++BIU[activeCPU].prefetchclock; //Tick!					
+					if (likely(EMULATED_CPU < CPU_80486)) //More than 1 cycle state?
+					{
+						++BIU[activeCPU].prefetchclock; //Tick!
+					}
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
@@ -989,11 +992,11 @@ void BIU_detectCycle() //Detect the cycle to execute!
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_StallingBUS; //We're stalling the BUS!
 	}
-	else if (unlikely((CPU[activeCPU].halt & 0xC) && ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask))) //CGA wait state is active?
+	else if (unlikely((CPU[activeCPU].halt & 0xC) && (((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||(EMULATED_CPU>=CPU_80486)))) //CGA wait state is active?
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_VideoWaitState; //We're stalling the BUS!		
 	}
-	else if (unlikely(((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask) && (BIU[activeCPU].waitstateRAMremaining))) //T2/4? Check for waitstate RAM first!
+	else if (unlikely((((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)==BIU_numcyclesmask)||(EMULATED_CPU>=CPU_80486)) && (BIU[activeCPU].waitstateRAMremaining))) //T2/4? Check for waitstate RAM first!
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_WaitStateRAMBUS; //We're stalling the BUS!		
 	}
