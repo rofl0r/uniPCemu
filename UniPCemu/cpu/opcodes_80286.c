@@ -682,7 +682,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.dataw);++readindex) //Load all registers in the correct format!
 	{
-		if (CPU8086_internal_stepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_instructionstepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!

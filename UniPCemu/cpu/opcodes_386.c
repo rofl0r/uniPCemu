@@ -3878,11 +3878,11 @@ void CPU386_OP69()
 		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
 		*/
-			if (unlikely(CPU[activeCPU].internalmodrmstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check32(&params,1,1)) return; //Abort on fault!
 			}
-			if (CPU80386_internal_stepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
+			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
 		/*}
 		else
@@ -3934,11 +3934,11 @@ void CPU386_OP6B()
 		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
 		{
 		*/
-			if (unlikely(CPU[activeCPU].internalmodrmstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check32(&params,1,1)) return; //Abort on fault!
 			}
-			if (CPU80386_internal_stepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
+			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; //Read R/M!
 			temp1.val32high = 0; //Clear high part by default!
 		/*}
 		else
@@ -3975,7 +3975,7 @@ void CPU386_OP6D()
 	}
 	if (CPU_PORT_IN_D(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
+	if (CPU80386_instructionstepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -4009,14 +4009,14 @@ void CPU386_OP6F()
 	debugger_setcommand("OUTSD");
 	if (blockREP) return; //Disabled REP!
 	static uint_32 data;
-	if (unlikely(CPU[activeCPU].internalmodrmstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+2,1,getCPL(),!CPU_Address_size[activeCPU],2|0x10)) return; //Abort on fault!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+3,1,getCPL(),!CPU_Address_size[activeCPU],3|0x10)) return; //Abort on fault!
 	}
-	if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSD
+	if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSD
 	CPUPROT1
 	if (CPU_PORT_OUT_D(0,REG_DX,data)) return;    //OUTS DX,Xz
 	CPUPROT1
@@ -4138,18 +4138,18 @@ void CPU386_OPC8_32()
 		{
 			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 			{
-				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
+				if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
 			}
-			if (CPU80386_internal_stepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,(STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<2),&ebpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
+			if (CPU80386_instructionstepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,(STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<2),&ebpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
 			framestep += 2; //We're adding 2 immediately!
-			if (unlikely(CPU[activeCPU].internalinstructionstep==framestep)) //At the write back phase?
+			if (unlikely(CPU[activeCPU].instructionstep==instructionstep)) //At the write back phase?
 			{
 				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 				{
 					if (checkStackAccess(1,1,1)) return; //Abort on error!
 				}
-				if (CPU80386_PUSHdw(instructionstep,&ebpdata)) return; //Write back!
 			}
+			if (CPU80386_PUSHdw(instructionstep, &ebpdata)) return; //Write back!
 			instructionstep += 2; //Next instruction step base to process!
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
@@ -4213,18 +4213,18 @@ void CPU386_OPC8_16()
 		{
 			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 			{
-				if (CPU[activeCPU].internalinstructionstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
+				if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
 			}
-			if (CPU8086_internal_stepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
+			if (CPU8086_instructionstepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
 			framestep += 2; //We're adding 2 immediately!
-			if (CPU[activeCPU].internalinstructionstep==framestep) //At the write back phase?
+			if (CPU[activeCPU].instructionstep==instructionstep) //At the write back phase?
 			{
 				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 				{
 					if (checkStackAccess(1,1,0)) return; //Abort on error!
 				}
-				if (CPU8086_PUSHw(instructionstep,&bpdata,0)) return; //Write back!
 			}
+			if (CPU8086_PUSHw(instructionstep, &bpdata, 0)) return; //Write back!
 			instructionstep += 2; //Next instruction step base to process!
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!

@@ -510,7 +510,7 @@ byte CPU8086_internal_delayBIUidle(word base, byte cycles)
 byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //Base=Start instruction step, result=Pointer to the result container!
 {
 	byte BIUtype;
-	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
 		if ((BIUtype = modrm_read8_BIU(&params,paramnr,result))==0) //Not ready?
 		{
@@ -518,13 +518,13 @@ byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 		if (BIUtype==2) //Register?
 		{
-			++CPU[activeCPU].instructionstep; //Skip next step!
+			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
 	}
-	if (CPU[activeCPU].instructionstep==(base+1))
+	if (CPU[activeCPU].modrmstep==(base+1))
 	{
 		if (BIU_readResultb(result)==0) //Not ready?
 		{
@@ -532,7 +532,7 @@ byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
@@ -540,7 +540,7 @@ byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //
 byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr)
 {
 	byte BIUtype;
-	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
 		if ((BIUtype = modrm_read16_BIU(&params,paramnr,result))==0) //Not ready?
 		{
@@ -548,13 +548,13 @@ byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 		if (BIUtype==2) //Register?
 		{
-			++CPU[activeCPU].instructionstep; //Skip next step!
+			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
 	}
-	if (CPU[activeCPU].instructionstep==(base+1))
+	if (CPU[activeCPU].modrmstep==(base+1))
 	{
 		if (BIU_readResultw(result)==0) //Not ready?
 		{
@@ -562,7 +562,7 @@ byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
@@ -571,7 +571,7 @@ byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr) //B
 {
 	byte dummy;
 	byte BIUtype;
-	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
 		if ((BIUtype = modrm_write8_BIU(&params,paramnr,value))==0) //Not ready?
 		{
@@ -579,13 +579,13 @@ byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr) //B
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 		if (BIUtype==2) //Register?
 		{
-			++CPU[activeCPU].instructionstep; //Skip next step!
+			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
 	}
-	if (CPU[activeCPU].instructionstep==(base+1))
+	if (CPU[activeCPU].modrmstep==(base+1))
 	{
 		if (BIU_readResultb(&dummy)==0) //Not ready?
 		{
@@ -593,7 +593,7 @@ byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr) //B
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
@@ -602,7 +602,7 @@ byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byt
 {
 	word dummy;
 	byte BIUtype;
-	if (CPU[activeCPU].instructionstep==base) //First step? Request!
+	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
 		if ((BIUtype = modrm_write16_BIU(&params,paramnr,value,isJMPorCALL))==0) //Not ready?
 		{
@@ -610,13 +610,13 @@ byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byt
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 		if (BIUtype==2) //Register?
 		{
-			++CPU[activeCPU].instructionstep; //Skip next step!
+			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
 	}
-	if (CPU[activeCPU].instructionstep==(base+1))
+	if (CPU[activeCPU].modrmstep==(base+1))
 	{
 		if (BIU_readResultw(&dummy)==0) //Not ready?
 		{
@@ -624,7 +624,7 @@ byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byt
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
-		++CPU[activeCPU].instructionstep; //Next step!
+		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	return 0; //Ready to process further! We're loaded!
 }
