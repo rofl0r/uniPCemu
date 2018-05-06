@@ -3609,7 +3609,7 @@ void op_grp5_32() {
 		break;
 	case 2: //CALL Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } //Abort when needed!
-		if (CPU80386_PUSHdw(2,&REG_EIP)) return;
+		if (CPU80386_PUSHdw(0,&REG_EIP)) return;
 		CPU_JMPabs(oper1d);
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
@@ -3716,7 +3716,7 @@ void op_grp5_32() {
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; }
-		if (CPU80386_PUSHdw(2,&oper1d)) return;
+		if (CPU80386_PUSHdw(0,&oper1d)) return;
 		CPUPROT1
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
