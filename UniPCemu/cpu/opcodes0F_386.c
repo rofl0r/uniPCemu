@@ -516,7 +516,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES literal for now!
 	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex) //Load all remaining data in default byte order!
 	{
-		if (CPU80386_internal_stepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALLDATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU80386_instructionstepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALLDATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
