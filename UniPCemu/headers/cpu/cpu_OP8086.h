@@ -262,6 +262,10 @@ byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr); /
 byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr);
 byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
 byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byte isJMPorCALL);
+byte CPU8086_instructionstepwritedirectb(word base, sword segment, word segval, uint_32 offset, byte val, byte is_offset16);
+byte CPU8086_instructionstepwritedirectw(word base, sword segment, word segval, uint_32 offset, word val, byte is_offset16);
+byte CPU8086_instructionstepreaddirectb(word base, sword segment, word segval, uint_32 offset, byte *result, byte is_offset16);
+byte CPU8086_instructionstepreaddirectw(word base, sword segment, word segval, uint_32 offset, word *result, byte is_offset16);
 byte CPU8086_internal_stepreadmodrmb(word base, byte *result, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!
 byte CPU8086_internal_stepreadmodrmw(word base, word *result, byte paramnr);
 byte CPU8086_internal_stepwritemodrmb(word base, byte value, byte paramnr); //Base=Start instruction step, result=Pointer to the result container!

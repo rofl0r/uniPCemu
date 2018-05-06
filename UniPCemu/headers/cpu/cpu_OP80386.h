@@ -324,6 +324,8 @@ byte CPU80386_POPESP(word base);
 
 byte CPU80386_instructionstepreadmodrmdw(word base, uint_32 *result, byte paramnr);
 byte CPU80386_instructionstepwritemodrmdw(word base, uint_32 value, byte paramnr);
+byte CPU80386_instructionstepwritedirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16);
+byte CPU80386_instructionstepreaddirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
 //Now, the internal variants of the functions above!
 byte CPU80386_internal_stepreadmodrmdw(word base, uint_32 *result, byte paramnr);
 byte CPU80386_internal_stepwritedirectdw(word base, sword segment, word segval, uint_32 offset, uint_32 val, byte is_offset16);
