@@ -100,7 +100,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 			unkOP0F_386();
 			return; //Abort!
 		}
-		if (unlikely(CPU[activeCPU].instructionstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==0))
 		{
 			modrm_addoffset = 0;
 			if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
@@ -125,7 +125,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 			return; //Abort!
 		}
 
-		if (unlikely(CPU[activeCPU].instructionstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==0))
 		{
 			modrm_addoffset = 0;
 			if (modrm_check16(&params,MODRM_src0,0)) return; //Abort on fault!
@@ -157,7 +157,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 			return; //Abort!
 		}
 
-		if (unlikely(CPU[activeCPU].instructionstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==0))
 		{
 			modrm_addoffset = 0;
 			if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
@@ -191,7 +191,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 			return; //Abort!
 		}
 
-		if (unlikely(CPU[activeCPU].instructionstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==0))
 		{
 			modrm_addoffset = 0;
 			if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
@@ -237,7 +237,7 @@ void CPU386_OP0F02() //LAR /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LAR", 32, 0, PARAM_MODRM_01); //Our instruction text!
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor)) //Load the descriptor!
@@ -269,7 +269,7 @@ void CPU386_OP0F02() //LAR /r
 				}
 				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].instructionstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
@@ -284,7 +284,10 @@ void CPU386_OP0F02() //LAR /r
 		}
 		else //Couldn't be loaded?
 		{
-			FLAGW_ZF(0); //Default: not loaded!
+			if (CPU[activeCPU].faultraised == 0)
+			{
+				FLAGW_ZF(0); //Default: not loaded!
+			}
 		}
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
@@ -302,7 +305,7 @@ void CPU386_OP0F03() //LSL /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LSL", 32, 0, PARAM_MODRM_01); //Our instruction text!
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor)) //Load the descriptor!
@@ -342,7 +345,7 @@ void CPU386_OP0F03() //LSL /r
 
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].instructionstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
@@ -357,7 +360,10 @@ void CPU386_OP0F03() //LSL /r
 		}
 		else //Couldn't be loaded?
 		{
-			FLAGW_ZF(0); //Default: not loaded!
+			if (CPU[activeCPU].faultraised == 0)
+			{
+				FLAGW_ZF(0); //Default: not loaded!
+			}
 		}
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPUPROT2
@@ -631,22 +637,22 @@ G: (!FLAG_ZF && (FLAG_SF==FLAG_OF))
 
 */
 
-void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_OF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETO r/m8
-void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_OF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNO r/m8
-void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_CF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETC r/m8
-void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETAE r/m8
-void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_ZF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETE r/m8
-void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_ZF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNE r/m8
-void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETNA",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNA r/m8
-void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETA",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_CF|FLAG_ZF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETA r/m8
-void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_SF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETS r/m8
-void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNS r/m8
-void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_PF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETP r/m8
-void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_PF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNP r/m8
-void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^FLAG_OF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETL r/m8
-void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETGE r/m8
-void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETLE r/m8
-void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(((FLAG_SF^FLAG_OF)^1)&(FLAG_ZF^1)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETG r/m8
+void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_OF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETO r/m8
+void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_OF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNO r/m8
+void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_CF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETC r/m8
+void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETAE r/m8
+void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_ZF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETE r/m8
+void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_ZF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNE r/m8
+void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETNA",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNA r/m8
+void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETA",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_CF|FLAG_ZF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETA r/m8
+void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_SF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETS r/m8
+void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNS r/m8
+void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_PF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETP r/m8
+void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_PF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNP r/m8
+void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^FLAG_OF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETL r/m8
+void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETGE r/m8
+void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETLE r/m8
+void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(((FLAG_SF^FLAG_OF)^1)&(FLAG_ZF^1)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETG r/m8
 
 extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
 extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
@@ -731,17 +737,17 @@ OPTINLINE void modrm_debugger32_16(char *instruction)
 
 //MOVS/ZX instructions.
 
-void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferb,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m8
-void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferb,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m8
+void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferb,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferb,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m8
 
-void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferw,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferw,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m16
+void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferw,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferw,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m16
 
-void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed8(instructionbufferb)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m8
-void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed8(instructionbufferb)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m8
+void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed8(instructionbufferb)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed8(instructionbufferb)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed16(instructionbufferw)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSX"); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed16(instructionbufferw)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed16(instructionbufferw)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed16(instructionbufferw)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m16
 
 extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
 
@@ -912,29 +918,29 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 	}
 }
 
-void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHLD /r r/m16,r16,imm8
-void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHLD /r r/m32,r32,imm8
-void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHLD /r r/m16,r16,CL
-void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHLD /r r/m32,r32,CL
+void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHLD /r r/m32,r32,imm8
+void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHLD /r r/m32,r32,CL
 
-void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHRD /r r/m16,r16,imm8
-void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHRD /r r/m32,r32,imm8
-void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHRD /r r/m16,r16,CL
-void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1)) return; if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1)) return; if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHRD /r r/m32,r32,CL
 
 //IMUL instruction
 
 extern uint_32 IMULresult;
 void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 	modrm_generateInstructionTEXT("IMUL",16,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0)) //Starting instruction?
+	if (unlikely(CPU[activeCPU].modrmstep==0)) //Starting instruction?
 	{
 		if (modrm_check16(&params,MODRM_src0,0)) return;
 		if (modrm_check16(&params,MODRM_src1,1)) return;
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src1)) return;
-	if (CPU[activeCPU].instructionstep==4) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		CPU_CIMUL((uint_32)instructionbufferw,16,(uint_32)instructionbufferw2,16,&IMULresult,16); //Execute!
 		CPU_apply286cycles(); /* Apply cycles */
@@ -942,18 +948,18 @@ void CPU80386_OP0FAF_16() { //IMUL /r r16,r/m16
 		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
-	if (CPU8086_instructionstepwritemodrmw(5,(IMULresult&0xFFFF),MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmw(4,(IMULresult&0xFFFF),MODRM_src0,0)) return;
 }
 void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 	modrm_generateInstructionTEXT("IMUL",32,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0)) //Starting instruction?
+	if (unlikely(CPU[activeCPU].modrmstep==0)) //Starting instruction?
 	{
 		if (modrm_check32(&params,MODRM_src0,0)) return;
 		if (modrm_check32(&params,MODRM_src1,1)) return;
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src1)) return;
-	if (CPU[activeCPU].instructionstep==4) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		CPU_CIMUL(instructionbufferd,32,instructionbufferd2,32,&IMULresult,32); //Execute!
 		CPU_apply286cycles(); /* Apply cycles */
@@ -961,7 +967,7 @@ void CPU80386_OP0FAF_32() { //IMUL /r r32,r/m32
 		CPU[activeCPU].executed = 0; //Still running!
 		return; //Time us!
 	}
-	if (CPU80386_instructionstepwritemodrmdw(5,IMULresult,MODRM_src0)) return;
+	if (CPU80386_instructionstepwritemodrmdw(4,IMULresult,MODRM_src0)) return;
 }
 
 //Bit test(and set/clear/complement) instructions
@@ -1048,14 +1054,14 @@ void CPU80386_BTC32(uint_32 *val, uint_32 bit)
 	CPU_apply286cycles(); /* Apply cycles */
 }
 
-void CPU80386_OP0FA3_16() {modrm_generateInstructionTEXT("BT",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].instructionstep==2)) if (modrm_check16(&params,MODRM_src0,1)) return; if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; CPU80386_BT16(instructionbufferw2,instructionbufferw);} //BT /r r/m16,r16
-void CPU80386_OP0FA3_32() {modrm_generateInstructionTEXT("BT",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].instructionstep==2)) if (modrm_check32(&params,MODRM_src0,1)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; CPU80386_BT32(instructionbufferd2,instructionbufferd);} //BT /r r/m32,r32
+void CPU80386_OP0FA3_16() {modrm_generateInstructionTEXT("BT",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check16(&params,MODRM_src0,1)) return; if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; CPU80386_BT16(instructionbufferw2,instructionbufferw);} //BT /r r/m16,r16
+void CPU80386_OP0FA3_32() {modrm_generateInstructionTEXT("BT",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,1)) return; if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; CPU80386_BT32(instructionbufferd2,instructionbufferd);} //BT /r r/m32,r32
 
-void CPU80386_OP0FAB_16() {modrm_generateInstructionTEXT("BTS",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].instructionstep==2)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTS16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,MODRM_src0,0)) return; } //BTS /r r/m16,r16
-void CPU80386_OP0FAB_32() {modrm_generateInstructionTEXT("BTS",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].instructionstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTS32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,MODRM_src0)) return; } //BTS /r r/m32,r32
+void CPU80386_OP0FAB_16() {modrm_generateInstructionTEXT("BTS",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTS16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; } //BTS /r r/m16,r16
+void CPU80386_OP0FAB_32() {modrm_generateInstructionTEXT("BTS",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTS32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTS /r r/m32,r32
 
-void CPU80386_OP0FB3_16() {modrm_generateInstructionTEXT("BTR",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].instructionstep==2)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTR16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,MODRM_src0,0)) return;} //BTR /r r/m16,r16
-void CPU80386_OP0FB3_32() {modrm_generateInstructionTEXT("BTR",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].instructionstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTR32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,MODRM_src0)) return; } //BTR /r r/m32,r32
+void CPU80386_OP0FB3_16() {modrm_generateInstructionTEXT("BTR",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTR16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return;} //BTR /r r/m16,r16
+void CPU80386_OP0FB3_32() {modrm_generateInstructionTEXT("BTR",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTR32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTR /r r/m32,r32
 
 void CPU80386_OP0FBA_16() {
 	thereg = MODRM_REG(params.modrm);
@@ -1074,7 +1080,7 @@ void CPU80386_OP0FBA_16() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
-			if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check16(&params,MODRM_src0,1)) return;
+			if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check16(&params,MODRM_src0,1)) return;
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 			CPU80386_BT16(instructionbufferw,immb);
 			break;
@@ -1087,19 +1093,19 @@ void CPU80386_OP0FBA_16() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check16(&params,MODRM_src0,1)) return;
 				if (modrm_check16(&params,MODRM_src0,0)) return;
 			}
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTS16(&instructionbufferw,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU8086_instructionstepwritemodrmw(3,instructionbufferw,MODRM_src0,0)) return;
+			if (CPU8086_instructionstepwritemodrmw(2,instructionbufferw,MODRM_src0,0)) return;
 			break;
 		case 6: //BTR r/m16,imm8
 			if (unlikely(cpudebugger))
@@ -1110,19 +1116,19 @@ void CPU80386_OP0FBA_16() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check16(&params,MODRM_src0,1)) return;
 				if (modrm_check16(&params,MODRM_src0,0)) return;
 			}
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTR16(&instructionbufferw,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU8086_instructionstepwritemodrmw(3,instructionbufferw,MODRM_src0,0)) return;
+			if (CPU8086_instructionstepwritemodrmw(2,instructionbufferw,MODRM_src0,0)) return;
 			break;
 		case 7: //BTC r/m16,imm8
 			if (unlikely(cpudebugger))
@@ -1133,19 +1139,19 @@ void CPU80386_OP0FBA_16() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check16(&params,MODRM_src0,1)) return;
 				if (modrm_check16(&params,MODRM_src0,0)) return;
 			}
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTC16(&instructionbufferw,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU8086_instructionstepwritemodrmw(3,instructionbufferw,MODRM_src0,0)) return;
+			if (CPU8086_instructionstepwritemodrmw(2,instructionbufferw,MODRM_src0,0)) return;
 			break;
 		default: //Unknown instruction?
 			unkOP0F_386(); //Unknown instruction!
@@ -1170,7 +1176,7 @@ void CPU80386_OP0FBA_32() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>4)<<1);
-			if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return;
+			if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return;
 			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 			CPU80386_BT32(instructionbufferd,immb);
 			break;
@@ -1183,19 +1189,19 @@ void CPU80386_OP0FBA_32() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>5)<<2);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check32(&params,MODRM_src0,1)) return;
 				if (modrm_check32(&params,MODRM_src0,0)) return;
 			}
 			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTS32(&instructionbufferd,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU80386_instructionstepwritemodrmdw(3,instructionbufferd,MODRM_src0)) return;
+			if (CPU80386_instructionstepwritemodrmdw(2,instructionbufferd,MODRM_src0)) return;
 			break;
 		case 6: //BTR r/m32,imm8
 			if (unlikely(cpudebugger))
@@ -1206,19 +1212,19 @@ void CPU80386_OP0FBA_32() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>5)<<2);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check32(&params,MODRM_src0,1)) return;
 				if (modrm_check32(&params,MODRM_src0,0)) return;
 			}
 			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTR32(&instructionbufferd,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU80386_instructionstepwritemodrmdw(3,instructionbufferd,MODRM_src0)) return;
+			if (CPU80386_instructionstepwritemodrmdw(2,instructionbufferd,MODRM_src0)) return;
 			break;
 		case 7: //BTC r/m32,imm8
 			if (unlikely(cpudebugger))
@@ -1229,19 +1235,19 @@ void CPU80386_OP0FBA_32() {
 			}
 			//Actual execution!
 			modrm_addoffset = ((immb>>5)<<2);
-			if (unlikely(CPU[activeCPU].instructionstep==0))
+			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check32(&params,MODRM_src0,1)) return;
 				if (modrm_check32(&params,MODRM_src0,0)) return;
 			}
 			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-			if (CPU[activeCPU].instructionstep==2)
+			if (CPU[activeCPU].instructionstep==0)
 			{
 				CPU80386_BTC32(&instructionbufferd,immb);
 				++CPU[activeCPU].instructionstep;
 				if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; }
 			}
-			if (CPU80386_instructionstepwritemodrmdw(3,instructionbufferd,MODRM_src0)) return;
+			if (CPU80386_instructionstepwritemodrmdw(2,instructionbufferd,MODRM_src0)) return;
 			break;
 		default: //Unknown instruction?
 			unkOP0F_386(); //Unknown instruction!
@@ -1249,15 +1255,15 @@ void CPU80386_OP0FBA_32() {
 	}
 }
 
-void CPU80386_OP0FBB_16() {modrm_generateInstructionTEXT("BTC",16,0,PARAM_MODRM12); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTC16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,MODRM_src0,0)) return; } //BTC /r r/m16,r16
-void CPU80386_OP0FBB_32() {modrm_generateInstructionTEXT("BTC",32,0,PARAM_MODRM12); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].instructionstep==0)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==4) { CPU80386_BTC32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,MODRM_src0)) return; } //BTC /r r/m32,r32
+void CPU80386_OP0FBB_16() {modrm_generateInstructionTEXT("BTC",16,0,PARAM_MODRM12); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,1)) return; if (modrm_check16(&params,MODRM_src0,0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTC16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; } //BTC /r r/m16,r16
+void CPU80386_OP0FBB_32() {modrm_generateInstructionTEXT("BTC",32,0,PARAM_MODRM12); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTC32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTC /r r/m32,r32
 
 //Bit scan instructions
 
 void CPU80386_OP0FBC_16() {
 	word temp;
 	modrm_generateInstructionTEXT("BSF",16,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check16(&params,MODRM_src1,1)) return;
 		if (modrm_check16(&params,MODRM_src0,0)) return;
@@ -1272,7 +1278,7 @@ void CPU80386_OP0FBC_16() {
 	else
 	{
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==4) //Executing?
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 0;
@@ -1288,13 +1294,13 @@ void CPU80386_OP0FBC_16() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
 		}
-		if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,MODRM_src0,0)) return; //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; //Write the result!
 	}
 } //BSF /r r16,r/m16
 void CPU80386_OP0FBC_32() {
 	uint_32 temp;
 	modrm_generateInstructionTEXT("BSF",32,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check32(&params,MODRM_src1,1)) return;
 		if (modrm_check32(&params,MODRM_src0,0)) return;
@@ -1309,7 +1315,7 @@ void CPU80386_OP0FBC_32() {
 	else
 	{
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==4) //Executing?
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 0;
@@ -1325,14 +1331,14 @@ void CPU80386_OP0FBC_32() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
 		}
-		if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,MODRM_src0)) return; //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; //Write the result!
 	}
 } //BSF /r r32,r/m32
 
 void CPU80386_OP0FBD_16() {
 	word temp;
 	modrm_generateInstructionTEXT("BSR",16,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check16(&params,MODRM_src1,1)) return;
 		if (modrm_check16(&params,MODRM_src1,0)) return;
@@ -1347,7 +1353,7 @@ void CPU80386_OP0FBD_16() {
 	else
 	{
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==4) //Executing?
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 15;
@@ -1362,13 +1368,13 @@ void CPU80386_OP0FBD_16() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
 		}
-		if (CPU8086_instructionstepwritemodrmw(5,instructionbufferw2,MODRM_src0,0)) return; //Write the result!
+		if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; //Write the result!
 	}
 } //BSR /r r16,r/m16
 void CPU80386_OP0FBD_32() {
 	uint_32 temp;
 	modrm_generateInstructionTEXT("BSR",32,0,PARAM_MODRM12);
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check32(&params,MODRM_src1,1)) return;
 		if (modrm_check32(&params,MODRM_src1,0)) return;
@@ -1383,7 +1389,7 @@ void CPU80386_OP0FBD_32() {
 	else
 	{
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; //Read dest!
-		if (CPU[activeCPU].instructionstep==4) //Executing?
+		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
 			FLAGW_ZF(0);
 			temp = 31;
@@ -1398,6 +1404,6 @@ void CPU80386_OP0FBD_32() {
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
 		}
-		if (CPU80386_instructionstepwritemodrmdw(5,instructionbufferd2,MODRM_src0)) return; //Write the result!
+		if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; //Write the result!
 	}
 } //BSR /r r32,r/m32

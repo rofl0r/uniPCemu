@@ -257,7 +257,7 @@ void CPU186_OP62()
 
 	static word bound_min, bound_max;
 	static word theval;
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		modrm_addoffset = 0; //No offset!
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort on fault!
@@ -553,7 +553,7 @@ void CPU186_OP6F()
 }
 
 word temp8Edata;
-void CPU186_OP8E() { if (params.info[MODRM_src0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0,PARAM_MODRM_01); if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check16(&params,MODRM_src1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src0].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
+void CPU186_OP8E() { if (params.info[MODRM_src0].reg16==CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ {unkOP_186(); return;} modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0,PARAM_MODRM_01); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check16(&params,MODRM_src1,1)) return; if (CPU8086_instructionstepreadmodrmw(0,&temp8Edata,MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src0].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
 
 void CPU186_OPC0()
 {
@@ -589,19 +589,19 @@ void CPU186_OPC0()
 			break;
 	}
 
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1b = instructionbufferb;
 		res8 = op_grp2_8(oper2b,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU8086_instructionstepwritemodrmb(3,res8,MODRM_src0)) return;
+	if (CPU8086_instructionstepwritemodrmb(2,res8,MODRM_src0)) return;
 } //GRP2 Eb,Ib
 
 void CPU186_OPC1()
@@ -639,19 +639,19 @@ void CPU186_OPC1()
 			break;
 	}
 	
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1 = instructionbufferw;
 		res16 = op_grp2_16((byte)oper2,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU8086_instructionstepwritemodrmw(3,res16,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmw(2,res16,MODRM_src0,0)) return;
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!

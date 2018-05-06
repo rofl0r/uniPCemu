@@ -2880,7 +2880,7 @@ void CPU80386_OP81() //GRP1 Ev,Iv
 		{
 			debugger_setcommand("CMP %s,%08X",&modrm_param1,imm); //CMP Ed, Id
 		}
-		if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 		CMP_dw(instructionbufferd,imm,3); //CMP Eb, Id
 		break;
@@ -2954,7 +2954,7 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 		{
 			debugger_setcommand("CMP %s,%02X",&modrm_param1,immb); //CMP Ev, Ib
 		}
-		if (unlikely(CPU[activeCPU].instructionstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 		CMP_dw(instructionbufferd,imm,3); //CMP Eb, Id
 		break;
@@ -2979,7 +2979,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		//Execution step!
 		if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU80386_POPdw(2,&value)) return; //POP first!
-		if (CPU80386_instructionstepwritemodrmdw(4,value,MODRM_src0)) return; //POP r/m32
+		if (CPU80386_instructionstepwritemodrmdw(0,value,MODRM_src0)) return; //POP r/m32
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(params)) //Mem?
@@ -3036,19 +3036,19 @@ void CPU80386_OPD1() //GRP2 Ev,1
 			break;
 		}
 	}
-	if (unlikely(CPU[activeCPU].instructionstep==0)) 
+	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32(1,0); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 }
 
 void CPU80386_OPD3() //GRP2 Ev,CL
@@ -3085,19 +3085,19 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 			break;
 		}
 	}
-	if (unlikely(CPU[activeCPU].instructionstep==0)) 
+	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32(REG_CL,1); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 }
 
 void CPU80386_OPF7() //GRP3b Ev
@@ -3134,7 +3134,7 @@ void CPU80386_OPF7() //GRP3b Ev
 			break;
 		}
 	}
-	if (unlikely(CPU[activeCPU].instructionstep==0)) 
+	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if ((thereg>1) && (thereg<4)) //NOT/NEG?
@@ -3143,7 +3143,7 @@ void CPU80386_OPF7() //GRP3b Ev
 		}
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1d = instructionbufferd;
 		op_grp3_32();
@@ -3152,7 +3152,7 @@ void CPU80386_OPF7() //GRP3b Ev
 	}
 	if ((thereg>1) && (thereg<4)) //NOT/NEG?
 	{
-		if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 	}
 }
 //All OK up till here.
@@ -3201,7 +3201,7 @@ void CPU80386_OPFF() //GRP5 Ev
 			break;
 		}
 	}
-	if (unlikely((CPU[activeCPU].internalinstructionstep==0) && (CPU[activeCPU].instructionstep==0))) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
+	if (unlikely((CPU[activeCPU].modrmstep==0) && (CPU[activeCPU].internalmodrmstep==0) && (CPU[activeCPU].instructionstep==0))) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 	if (MODRM_REG(params.modrm)>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
 	{
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
@@ -3628,7 +3628,7 @@ void op_grp5_32() {
 	case 3: //CALL Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
-		if (unlikely(CPU[activeCPU].internalmodrmstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==0))
 		{
 			modrm_addoffset = 0; //First IP!
 			if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
@@ -3679,7 +3679,7 @@ void op_grp5_32() {
 		break;
 	case 5: //JMP Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
-		if (unlikely(CPU[activeCPU].internalmodrmstep==0)) //Starting and to check?
+		if (unlikely(CPU[activeCPU].modrmstep==0)) //Starting and to check?
 		{
 			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset,1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
 			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, info.mem_offset+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
@@ -3820,7 +3820,7 @@ void CPU386_OP62()
 
 	static uint_32 bound_min, bound_max;
 	static uint_32 theval;
-	if (unlikely(CPU[activeCPU].instructionstep==0)) 
+	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		modrm_addoffset = 0; //No offset!
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort on fault!
@@ -4080,19 +4080,19 @@ void CPU386_OPC1()
 			break;
 	}
 	
-	if (unlikely(CPU[activeCPU].instructionstep==0))
+	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
-	if (CPU[activeCPU].instructionstep==2) //Execution step?
+	if (CPU[activeCPU].instructionstep==0) //Execution step?
 	{
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32((byte)oper2d,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
 	}
-	if (CPU80386_instructionstepwritemodrmdw(3,res32,MODRM_src0)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 } //GRP2 Ev,Ib
 
 extern byte ENTER_L; //Level value of the ENTER instruction!
