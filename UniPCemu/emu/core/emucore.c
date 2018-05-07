@@ -127,7 +127,7 @@ which is at the first row of the IBM AT POST3 function.
 #define CPU80486_COMPAQ_CLOCK 33000000.0
 #endif
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
-#define TIMEOUT_INTERVAL 10
+#define TIMEOUT_INTERVAL 100
 #define TIMEOUT_TIME 1000000
 
 //Allow GPU rendering (to show graphics)?
@@ -1162,7 +1162,11 @@ OPTINLINE byte coreHandler()
 		{
 			timeout = TIMEOUT_INTERVAL; //Reset the timeout to check the next time!
 			currenttiming += getnspassed(&CPU_timing); //Check for passed time!
-			if (currenttiming >= timeoutCPUtime) break; //Timeout? We're not fast enough to run at full speed!
+			if (unlikely(currenttiming >= timeoutCPUtime)) //Timeout? We're not fast enough to run at full speed!
+			{
+				last_timing = currentCPUtime; //Discard any time we can't keep up!
+				break;
+			}
 		}
 	} //CPU cycle loop!
 
