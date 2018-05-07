@@ -1011,7 +1011,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
 				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
-				char *n;
 				if (safestrlen((char *)&number[0],sizeof(number)) < 2 && number[0]) //Maybe a phone book entry? This is for easy compatiblity for quick dial functionality on unsupported software!
 				{
 					posbackup = pos; //Save the position!
