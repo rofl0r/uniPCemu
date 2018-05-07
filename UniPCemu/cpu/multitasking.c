@@ -554,6 +554,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->GS = TSS32.GS;
 		CPU[activeCPU].registers->EIP = TSS32.EIP;
 		CPU[activeCPU].registers->SS = TSS32.SS; //Default stack to use: the old stack!
+		CPU[activeCPU].registers->LDTR = TSS32.LDT;
 		LDTsegment = TSS32.LDT; //LDT used!
 		Paging_clearTLB(); //Clear the TLB: CR3 has been changed!
 	}
@@ -574,6 +575,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		CPU[activeCPU].registers->ES = TSS16.ES;
 		CPU[activeCPU].registers->EIP = (uint_32)TSS16.IP;
 		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
+		CPU[activeCPU].registers->LDTR = TSS16.LDT;
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
