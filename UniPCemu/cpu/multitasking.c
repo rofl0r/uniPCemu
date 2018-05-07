@@ -253,7 +253,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		return 1; //Error out!
 	}
 
-	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR->desc)) //Check the type of descriptor we're executing!
+	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR->desc)) //Check the type of descriptor we're switching to!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 		//busy = 1;
@@ -266,12 +266,12 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		TSSSize = 1; //32-bit TSS!
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
-			goto invalidsrctask; //Thow #GP!
+			goto invaliddsttask; //Thow #GP!
 		}
 		break;
 	default: //Invalid descriptor!
-		invalidsrctask:
-		THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
+		invaliddsttask:
+		THROWDESCGP(destinationtask,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 1; //Error out!
 	}
 
@@ -293,6 +293,38 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	//Now going to switch to the current task, save the registers etc in the current task!
 
+	if (isJMPorCALL == 3) //IRET?
+	{
+		if ((LOADEDDESCRIPTOR->desc.AccessRights & 2) == 0) //Destination task is available?
+		{
+			CPU_TSSFault(destinationtask, (errorcode != -1) ? (errorcode & 1) : 0, (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
+			return 1; //Error out!
+		}
+	}
+
+	//Check and prepare source task information!
+	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're switching from!
+	{
+	case AVL_SYSTEM_BUSY_TSS16BIT:
+		//busy = 1;
+	case AVL_SYSTEM_TSS16BIT:
+		TSSSize = 0; //16-bit TSS!
+		break;
+	case AVL_SYSTEM_BUSY_TSS32BIT:
+		//busy = 1;
+	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
+		TSSSize = 1; //32-bit TSS!
+		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
+		{
+			goto invalidsrctask; //Thow #GP!
+		}
+		break;
+	default: //Invalid descriptor!
+	invalidsrctask:
+		THROWDESCGP(CPU[activeCPU].registers->TR, 1, (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
+		return 1; //Error out!
+	}
+
 	if (TSSSize) //32-bit TSS?
 	{
 		memset(&TSS32,0,sizeof(TSS32)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
@@ -302,16 +334,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		memset(&TSS16, 0, sizeof(TSS16)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
-	if (isJMPorCALL==3) //IRET?
-	{
-		if ((LOADEDDESCRIPTOR->desc.AccessRights&2)==0) //Destination task is available?
-		{
-			CPU_TSSFault(destinationtask,(errorcode!=-1)?(errorcode&1):0,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
-			return 1; //Error out!
-		}
-	}
-
-	if (CPU[activeCPU].registers->TR) //Valid task to switch FROM?
+	if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Valid task to switch FROM?
 	{
 		if (debugger_logging()) //Are we logging?
 		{
@@ -396,6 +419,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		{
 			saveTSS16(&TSS16); //Save us!
 		}
+	}
+	else //Invalid task to switch FROM?
+	{
+		goto invalidsrctask; //Invalid source task!
 	}
 
 	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
