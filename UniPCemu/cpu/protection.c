@@ -751,7 +751,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && !(EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR.desc) && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc))) || //We are a lower privilege level and non-conforming?
+		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && ((!(EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR.desc) && EXECSEGMENT_C(LOADEDDESCRIPTOR.desc) && getLoadedTYPE(&LOADEDDESCRIPTOR)==1)))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR.desc)) && //We must be at the same privilege level?
 			!(EXECSEGMENT_C(LOADEDDESCRIPTOR.desc)) //Not conforming checking further ahead makes sure that we don't double check things?
 			)
