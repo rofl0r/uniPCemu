@@ -353,7 +353,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
-			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)) //Loaded old container?
+			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)) //Loaded old container?
 			{
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
 				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc)==0) //Save the new status into the old descriptor!
@@ -658,7 +658,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		}
 
 		CPU[activeCPU].faultraised = 0; //No fault has been raised!
-		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc); //Load it, ignore errors?
+		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0); //Load it, ignore errors?
 		if (unlikely((dummy==0) && CPU[activeCPU].faultraised)) return 1; //Invalid LDT(due to being unpaged)?
 
 		//Now the LDT entry is loaded for testing!
@@ -730,7 +730,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		SPPtr = &TSS16.SP;
 	}
 
-	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment!
+	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 	if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	if (TSSSize) //32-bit?
 	{

@@ -209,7 +209,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
-			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor,0)) //Load the descriptor!
 			{
 				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor.desc, 0,1)==0) //Check without address test!
 				{
@@ -238,7 +238,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			SEGDESCRIPTOR_TYPE verdescriptor;
-			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+			if (LOADDESCRIPTOR(-1, oper1, &verdescriptor,0)) //Load the descriptor!
 			{
 				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor.desc, 0,1)==0) //Check without address test!
 				{
@@ -464,7 +464,7 @@ void CPU286_OP0F02() //LAR /r
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
-		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor,0)) //Load the descriptor!
 		{
 			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
 			{
@@ -532,7 +532,7 @@ void CPU286_OP0F03() //LSL /r
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check16(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
-		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor)) //Load the descriptor!
+		if (LOADDESCRIPTOR(-1, oper1, &verdescriptor,0)) //Load the descriptor!
 		{
 			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask); //What granularity are we?
 			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))

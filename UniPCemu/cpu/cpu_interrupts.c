@@ -217,7 +217,7 @@ void CPU_IRET()
 			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
 			word desttask;
 			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
-			if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
+			if (!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
 				CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return; //Error, by specified reason!

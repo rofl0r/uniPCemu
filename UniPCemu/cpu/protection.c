@@ -391,7 +391,7 @@ byte memory_writelinear(uint_32 address, byte value)
 	return 0; //No error!
 }
 
-byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container) //Result: 0=#GP, 1=container=descriptor.
+byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
@@ -480,7 +480,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	if ((segment==CPU_SEGMENT_SS) && //SS is...
 		((getLoadedTYPE(container)==1) || //An executable segment? OR
 		(!getLoadedTYPE(container) && (DATASEGMENT_W(container->desc)==0)) || //Read-only DATA segment? OR
-		(getCPL()!=GENERALSEGMENT_DPL(container->desc)) //Not the same privilege?
+		(((getCPL()!=GENERALSEGMENT_DPL(container->desc)) && ((isJMPorCALL&0x80)==0))) //Not the same privilege(when checking for privilege) as CPL?
 		)
 		)
 	{
@@ -491,7 +491,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 }
 
 //Result: 1=OK, 0=Error!
-byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
+byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL)
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
@@ -520,7 +520,7 @@ byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container)
 	SEGDESCRIPTOR_TYPE tempcontainer;
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
-		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer)) //Loaded the old container?
+		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,isJMPorCALL)) //Loaded the old container?
 		{
 			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
 			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
@@ -580,7 +580,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We're an invalid TSS to execute!
 	}
 
-	if (!LOADDESCRIPTOR(segment,*segmentval,&LOADEDDESCRIPTOR)) //Error loading current descriptor?
+	if (!LOADDESCRIPTOR(segment,*segmentval,&LOADEDDESCRIPTOR,isJMPorCALL)) //Error loading current descriptor?
 	{
 		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 		return NULL; //Error, by specified reason!
@@ -661,7 +661,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
 		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
-		if (!LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR)) //Error loading current descriptor?
+		if (!LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL)) //Error loading current descriptor?
 		{
 			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //Error, by specified reason!
@@ -1107,7 +1107,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (CPU8086_POPw(6,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0x80)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
@@ -1138,7 +1138,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0x80)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
 					REG_ESP = tempesp;
 				}
@@ -1160,7 +1160,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						tempdescriptor.AccessRights |= 2; //Mark not idle in the RAM descriptor!
 						savedescriptor.DATA64 = tempdescriptor.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
-						if (SAVEDESCRIPTOR(segment,value,&savedescriptor)==0) //Save it back to RAM failed?
+						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)==0) //Save it back to RAM failed?
 						{
 							return 1; //Abort on fault!
 						}
@@ -1525,7 +1525,7 @@ byte switchStacks(byte newCPL)
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
 		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0)) return 1; //Read SS!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (TSSSize) //32-bit?
 		{
@@ -1611,7 +1611,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	{
 	case IDTENTRY_TASKGATE: //32-bit task gate?
 		desttask = idtentry.selector; //Read the destination task!
-		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
+		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
 			THROWDESCGP(desttask,1,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
 			return 0; //Error, by specified reason!

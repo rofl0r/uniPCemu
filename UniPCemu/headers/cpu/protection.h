@@ -34,7 +34,7 @@ void THROWDESCSP(word segmentval, byte external, byte tbl);
 void THROWDESCNP(word segmentval, byte external, byte tbl);
 
 //Internal usage by the protection modules!
-byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container);
+byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL);
 byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container); //Save a loaded descriptor back to memory!
 
 byte checkPortRights(word port); //Are we allowed to not use this port?
