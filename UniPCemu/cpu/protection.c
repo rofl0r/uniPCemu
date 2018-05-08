@@ -1525,7 +1525,7 @@ byte switchStacks(byte newCPL)
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
 		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (TSSSize) //32-bit?
 		{
