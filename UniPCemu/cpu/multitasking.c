@@ -765,6 +765,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 		segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x80); //Load reg!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+		segmentWritten(CPU_SEGMENT_FS, 0, 0x80); //Load reg: FS is unusable!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+		segmentWritten(CPU_SEGMENT_GS, 0, 0x80); //Load reg: GS is unusable!
+		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	}
 
 	//All segments are valid and readable!
