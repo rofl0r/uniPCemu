@@ -1346,10 +1346,32 @@ void CPU_resetMode() //Resets the mode!
 }
 
 byte CPUmode = CPU_MODE_REAL; //The current CPU mode!
+const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
+
+void updateCPL() //Update the CPL to be the currently loaded CPL!
+{
+	byte mode = 0; //Buffer new mode to start using for comparison!
+	mode = FLAG_V8; //VM86 mode?
+	mode <<= 1;
+	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
+	mode = modes[mode]; //What is the new set mode, if changed?
+	//Determine CPL based on the mode!
+	if (mode == CPU_MODE_PROTECTED) //Switching from real mode to protected mode?
+	{
+		CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
+	}
+	else if (mode == CPU_MODE_8086) //Switching to Virtual 8086 mode?
+	{
+		CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
+	}
+	else //Switching back to real mode?
+	{
+		CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
+	}
+}
 
 void updateCPUmode() //Update the CPU mode!
 {
-	static const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 	byte mode = 0; //Buffer new mode to start using for comparison!
 	if (!CPU[activeCPU].registers)
 	{
@@ -1359,18 +1381,18 @@ void updateCPUmode() //Update the CPU mode!
 	mode = FLAG_V8; //VM86 mode?
 	mode <<= 1;
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
-	mode = modes[mode]; //What is the newly set mode, if changed?
+	mode = modes[mode]; //What is the new set mode, if changed?
 	if (unlikely(mode!=CPUmode)) //Mode changed?
 	{
-		if ((CPUmode==CPU_MODE_REAL) && (mode==CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
+		if ((CPUmode == CPU_MODE_REAL) && (mode == CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
 		{
 			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
 		}
-		else if ((CPUmode!=CPU_MODE_REAL) && (mode==CPU_MODE_REAL)) //Switching back to real mode?
+		else if ((CPUmode != CPU_MODE_REAL) && (mode == CPU_MODE_REAL)) //Switching back to real mode?
 		{
 			CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
 		}
-		else if ((CPUmode!=CPU_MODE_8086) && (mode==CPU_MODE_8086)) //Switching to Virtual 8086 mode?
+		else if ((CPUmode != CPU_MODE_8086) && (mode == CPU_MODE_8086)) //Switching to Virtual 8086 mode?
 		{
 			CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
 		}

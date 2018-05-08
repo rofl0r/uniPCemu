@@ -1227,7 +1227,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		}
 		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 		{
-			updateCPUmode(); //Update the CPL according to the mode!
+			updateCPL(); //Update the CPL according to the mode!
 		}
 	}
 	//Real mode doesn't use the descriptors?
