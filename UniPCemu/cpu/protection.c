@@ -1225,6 +1225,10 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(-1); //We're jumping to another address!
 		}
+		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
+		{
+			updateCPUmode(); //Update the CPL according to the mode!
+		}
 	}
 	//Real mode doesn't use the descriptors?
 	return 0; //No fault raised&continue!
