@@ -239,8 +239,8 @@ typedef struct
 
 int compareageentry( const void* a, const void* b)
 {
-     AGEENTRY *int_a = ( (AGEENTRY*) a );
-     AGEENTRY *int_b = ( (AGEENTRY*) b );
+     INLINEREGISTER AGEENTRY *int_a = ( (AGEENTRY*) a );
+     INLINEREGISTER AGEENTRY *int_b = ( (AGEENTRY*) b );
 
      if ( int_a->age == int_b->age ) return 0;
      else if ( int_a->age < int_b->age ) return -1;
