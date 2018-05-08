@@ -809,7 +809,7 @@ char fullcmd[65536];
 
 OPTINLINE static void debugger_autolog()
 {
-	if (CPU[activeCPU].executed) //Are we executed?
+	if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 	{
 		if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat) && (!debuggerHLT))
 		{
@@ -818,7 +818,7 @@ OPTINLINE static void debugger_autolog()
 		forcerepeat = 0; //Don't force repeats anymore if forcing!
 	}
 
-	if (debugger_logging()) //To log?
+	if (unlikely(debugger_logging())) //To log?
 	{
 		log_timestampbackup = log_logtimestamp(2); //Save state!
 		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?

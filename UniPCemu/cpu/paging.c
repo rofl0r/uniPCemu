@@ -249,21 +249,22 @@ int compareageentry( const void* a, const void* b)
 void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
 	AGEENTRY sortarray[8];
-	byte x,y;
+	INLINEREGISTER byte x,y;
 	x = 0;
 	//Age bit 3 is assigned to become 8+(invalid/unused, which is moved to the end with value assigned 0)!
-	for (x=0;x<8;++x)
+	do
 	{
 		sortarray[x].age = ((sbyte)(((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3))+(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
 		sortarray[x].entry = x; //What entry are we?
-	}
+	} while (++x<8);
 	qsort(&sortarray,8,sizeof(AGEENTRY),&compareageentry); //Sort the entries!
 	y = 0; //Initialize the age to apply!
-	for (x=0;x<8;++x) //Apply the new order!
+	x = 0;
+	do //Apply the new order!
 	{
 		CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = (y>>(sortarray[x].age&8)); //Generated age or unused age(0)!
 		++y; //Next when valid entry!
-	}
+	} while (++x<8);
 }
 
 void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
@@ -282,12 +283,12 @@ void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_
 
 byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 *result)
 {
-	byte TLB_set;
+	INLINEREGISTER byte TLB_set;
 	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
-	uint_32 TAG;
+	INLINEREGISTER uint_32 TAG;
 	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
-	byte entry;
-	for (entry=0;entry<8;++entry) //Check all entries!
+	INLINEREGISTER byte entry=0;
+	do //Check all entries!
 	{
 		if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG==TAG)) //Found?
 		{
@@ -299,7 +300,7 @@ byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_3
 			}
 			return 1; //Found!
 		}
-	}
+	} while (++entry<8);
 	return 0; //Not found!
 }
 
