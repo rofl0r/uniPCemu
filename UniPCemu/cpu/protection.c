@@ -1107,7 +1107,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (CPU8086_POPw(6,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0x80)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
@@ -1138,7 +1138,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0x80)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (CPU[activeCPU].faultraised) return 1;
 					REG_ESP = tempesp;
 				}
