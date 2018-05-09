@@ -239,12 +239,7 @@ typedef struct
 
 int compareageentry( const void* a, const void* b)
 {
-     INLINEREGISTER AGEENTRY *int_a = ( (AGEENTRY*) a );
-     INLINEREGISTER AGEENTRY *int_b = ( (AGEENTRY*) b );
-
-     if ( int_a->age == int_b->age ) return 0;
-     else if ( int_a->age < int_b->age ) return -1;
-     else return 1;
+	return (((AGEENTRY *)a)->age - ((AGEENTRY *)b)->age); //Give the result of the comparison!
 }
 void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
