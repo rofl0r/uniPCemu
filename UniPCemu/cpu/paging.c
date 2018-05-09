@@ -8,6 +8,7 @@
 #include "headers/cpu/protection.h" //Fault raising support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
 #include "headers/cpu/biu.h" //Memory support!
+#include "headers/support/signedness.h" //Sign support!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -231,33 +232,42 @@ byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 	return (((logicaladdress&0xFFFFF000)|1)==((TAG&0xFFFFF000)|(TAG&1))); //The used TAG matches on address and availability only! Ignore US/RW!
 }
 
-typedef struct
-{
-	sbyte age; //The age to sort!
-	byte entry; //Entry index into the entries!
-} AGEENTRY;
+//Build for age entry!
+#define AGEENTRY_AGEENTRY(age,entry) (signed2unsigned8(age)|(entry<<8))
+//What to sort by!
+#define AGEENTRY_SORT(entry) unsigned2signed8(entry)
+//Deconstruct for age entry!
+#define AGEENTRY_AGE(entry) unsigned2signed8(entry)
+#define AGEENTRY_ENTRY(entry) (entry>>8)
 
-int compareageentry( const void* a, const void* b)
-{
-	return (((AGEENTRY *)a)->age - ((AGEENTRY *)b)->age); //Give the result of the comparison!
-}
+#define SWAP(a,b) if (AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a])) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
+
 void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
-	AGEENTRY sortarray[8];
+	word sortarray[8];
+	INLINEREGISTER word tmp;
 	INLINEREGISTER byte x,y;
 	x = 0;
 	//Age bit 3 is assigned to become 8+(invalid/unused, which is moved to the end with value assigned 0)!
 	do
 	{
-		sortarray[x].age = ((sbyte)(((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3))+(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age); //Move unused entries to the end!
-		sortarray[x].entry = x; //What entry are we?
+		sortarray[x]= AGEENTRY_AGEENTRY(((sbyte)(((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3))+(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age),x); //Move unused entries to the end and what entry are we!
 	} while (++x<8);
-	qsort(&sortarray,8,sizeof(AGEENTRY),&compareageentry); //Sort the entries!
-	y = 0; //Initialize the age to apply!
-	x = 0;
+
+	//Sort the 8 items! Bose-Nelson Algorithm! Created using http://jgamble.ripco.net/cgi-bin/nw.cgi?inputs=8&algorithm=best&output=svg
+	SWAP(0,1); SWAP(2,3); SWAP(4,5) SWAP(6,7);
+	SWAP(0,2); SWAP(1,3); SWAP(4,6); SWAP(5,7);
+	SWAP(1,2); SWAP(5,6); SWAP(0,4); SWAP(3,7);
+	SWAP(1,5); SWAP(2,6);
+	SWAP(1,4); SWAP(3,6);
+	SWAP(2,4); SWAP(3,5);
+	SWAP(3,4);
+
+	y = 0; //Initialize the aged entry to apply!
+	x = 0; //Initialize the sorted entry location/age to apply!
 	do //Apply the new order!
 	{
-		CPU[activeCPU].Paging_TLB.TLB[TLB_set][sortarray[x].entry].age = (y>>(sortarray[x].age&8)); //Generated age or unused age(0)!
+		CPU[activeCPU].Paging_TLB.TLB[TLB_set][AGEENTRY_ENTRY(sortarray[x])].age = (y>>(AGEENTRY_AGE(sortarray[x])&8)); //Generated age or unused age(0)!
 		++y; //Next when valid entry!
 	} while (++x<8);
 }
