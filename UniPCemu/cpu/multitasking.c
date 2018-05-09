@@ -428,7 +428,6 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
 
 	//Now, load all the registers required as needed!
-	CPU[activeCPU].faultraised = 0; //We have no fault raised: we need this to run the segment change!
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","Switching active TSS to segment selector %04X",destinationtask);
@@ -441,8 +440,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU[activeCPU].oldTRbase = CPU[activeCPU].SEG_base[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 
-	segmentWritten(CPU_SEGMENT_TR,destinationtask,0); //Execute the task switch itself, loading our new descriptor!
-	if (CPU[activeCPU].faultraised) return 1; //Abort on fault: invalid(or busy) task we're switching to!
+	if (segmentWritten(CPU_SEGMENT_TR,destinationtask,0)) return 1; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
 
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
@@ -657,9 +655,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		CPU[activeCPU].faultraised = 0; //No fault has been raised!
 		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0); //Load it, ignore errors?
-		if (unlikely((dummy==0) && CPU[activeCPU].faultraised)) return 1; //Invalid LDT(due to being unpaged)?
+		if (unlikely(dummy==0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
@@ -698,14 +695,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
-		segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0); //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0)) return 1; //Load CS!
 	}
 	else
 	{
-		segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0); //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0)) return 1; //Load CS!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
-	if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR,(errorcode!=-1)?(errorcode&1):0,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
@@ -730,8 +726,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		SPPtr = &TSS16.SP;
 	}
 
-	segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0); //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
-	if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0)) return 1; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 	if (TSSSize) //32-bit?
 	{
 		CPU[activeCPU].registers->ESP = *ESPPtr;
@@ -750,25 +745,17 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 	if (TSSSize) //32-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x80)) return 1; //Load reg!
 	}
 	else //16-bit?
 	{
-		segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x80); //Load reg!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_FS, 0, 0x80); //Load reg: FS is unusable!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
-		segmentWritten(CPU_SEGMENT_GS, 0, 0x80); //Load reg: GS is unusable!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault raised!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x80)) return 1; //Load reg: FS is unusable!
+		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x80)) return 1; //Load reg: GS is unusable!
 	}
 
 	//All segments are valid and readable!
@@ -781,7 +768,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
 
-	if ((errorcode>=0) && (CPU[activeCPU].faultraised==0)) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
+	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
 	{
 		if (checkStackAccess(1,1,SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]))) return 1; //Abort on fault!
 		if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
@@ -792,10 +779,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		{
 			CPU_PUSH16(&errorcode16,0); //Push the error on the stack!
 		}
-		if (CPU[activeCPU].faultraised==0) //OK?
-		{
-			hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-		}
+		hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 	}
 
 	CPU[activeCPU].faultlevel = 0; //Clear the fault level: the new task has no faults by default!

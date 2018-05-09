@@ -111,7 +111,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
 		if (debugger_logging()) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
-		segmentWritten(CPU_SEGMENT_CS,destCS,0); //Interrupt to position CS:EIP/CS:IP in table.
+		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		CPU[activeCPU].executed = 1; //We've executed: process the next instruction!
 
@@ -153,12 +153,9 @@ void CPU_IRET()
 		if (CPU8086_internal_POPw(2,&IRET_CS,CPU_Operand_size[activeCPU])) return; //POP CS!
 		if (CPU8086_internal_POPw(4,&IRET_FLAGS,CPU_Operand_size[activeCPU])) return; //POP FLAGS!
 		destEIP = (uint_32)IRET_IP; //POP IP!
-		segmentWritten(CPU_SEGMENT_CS,IRET_CS,3); //We're loading because of an IRET!
+		if (segmentWritten(CPU_SEGMENT_CS, IRET_CS, 3)) return; //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
-		if (CPU[activeCPU].faultraised==0) //No fault raised?
-		{
-			REG_FLAGS = IRET_FLAGS; //Pop flags!
-		}
+		REG_FLAGS = IRET_FLAGS; //Pop flags!
 		#ifdef LOG_INTS
 		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
@@ -185,8 +182,7 @@ void CPU_IRET()
 					destEIP = CPU_POP32();
 					tempCS = (CPU_POP32()&0xFFFF);
 					tempEFLAGS = CPU_POP32();
-					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
-					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
 					//VM&IOPL aren't changed by the POP!
 					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
@@ -197,8 +193,7 @@ void CPU_IRET()
 					destEIP = CPU_POP16(0);
 					tempCS = CPU_POP16(0);
 					tempEFLAGS = CPU_POP16(0);
-					segmentWritten(CPU_SEGMENT_CS,tempCS,3); //Jump to the CS, IRET style!
-					if (CPU[activeCPU].faultraised) return; //Abort on fault!
+					if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
 					//VM&IOPL aren't changed by the POP!
 					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
@@ -266,13 +261,13 @@ void CPU_IRET()
 				REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
 				updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
 				//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
-				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
-				segmentWritten(CPU_SEGMENT_SS,tempSS,0); //Load SS!
+				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
+				if (segmentWritten(CPU_SEGMENT_SS,tempSS,0)) return; //Load SS!
 				REG_ESP = tempesp; //Set the new ESP of the V86 task!
-				segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0); //Load ES!
-				segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0); //Load DS!
-				segmentWritten(CPU_SEGMENT_FS,V86SegRegs[2],0); //Load FS!
-				segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0); //Load GS!
+				if (segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0)) return; //Load ES!
+				if (segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0)) return; //Load DS!
+				if (segmentWritten(CPU_SEGMENT_FS, V86SegRegs[2], 0)) return; //Load FS!
+				if (segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0)) return; //Load GS!
 			}
 			else //Normal protected mode return?
 			{
@@ -282,7 +277,7 @@ void CPU_IRET()
 				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IOPL being changed!
 				//Flags are OK now!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
-				segmentWritten(CPU_SEGMENT_CS,tempCS,3); //We're loading because of an IRET!
+				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 				CPU_flushPIQ(-1); //We're jumping to another address!
 			}
 		}

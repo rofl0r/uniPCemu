@@ -111,7 +111,7 @@ void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check 
 	int index = get_segment_index(location); //Get the index!
 	if (index!=-1) //Gotten?
 	{
-		segmentWritten(index,value,isJMPorCALL); //Update when possible!
+		if (segmentWritten(index,value,isJMPorCALL)) return; //Update when possible!
 	}
 }
 

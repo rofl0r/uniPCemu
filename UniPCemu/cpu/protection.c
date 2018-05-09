@@ -886,11 +886,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 							CPU[activeCPU].registers->SP += 2; //Increase!
 						}
 					}
-					if (CPU[activeCPU].faultraised) //Fault was raised reading source parameters?
-					{
-						CPU[activeCPU].CallGateParamCount = 0; //Clear our stack!
-						return NULL; //Abort!
-					}
 					CPU[activeCPU].CallGateStack[CPU[activeCPU].CallGateParamCount++] = argument; //Add the argument to the call gate buffer to transfer to the new stack! Implement us as a LIFO for transfers!
 				}
 
@@ -1065,17 +1060,14 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 				if (hascallinterrupttaken_type==0xFF) //Not set yet?
 				{
-					if (CPU[activeCPU].faultraised==0) //OK?
+					if (isDifferentCPL==1) //Different CPL?
 					{
-						if (isDifferentCPL==1) //Different CPL?
-						{
-							hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-						}
-						else //Same CPL call gate?
-						{
-							hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
-						}
-					}		
+						hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+					}
+					else //Same CPL call gate?
+					{
+						hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
+					}
 				}
 			}
 			else if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 4)) //RETF needs popped data on the stack?
@@ -1106,9 +1098,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (CPU8086_POPw(6,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
-					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return 1;
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
 						if (CPU80386_POPdw(8,&REG_ESP)) return 1; //POP ESP!
@@ -1137,9 +1127,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					CPU[activeCPU].CPL = getRPL(value); //New CPL!
 
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
-					CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
-					if (CPU[activeCPU].faultraised) return 1;
 					REG_ESP = tempesp;
 				}
 			}
@@ -1524,9 +1512,7 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
-		CPU[activeCPU].faultraised = 0; //Default: no fault has been raised!
 		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
-		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
@@ -1717,14 +1703,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				//Other registers are the normal variants!
 
 				//Load all Segment registers with zeroes!
-				segmentWritten(CPU_SEGMENT_DS,0,0); //Clear DS!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_ES,0,0)) return 0; //Clear ES!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_FS,0,0)) return 0; //Clear FS!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_GS,0,0)) return 0; //Clear GS!!
-				if (CPU[activeCPU].faultraised) return 0; //Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_DS,0,0)) return 0; //Clear DS! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_ES,0,0)) return 0; //Clear ES! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_FS,0,0)) return 0; //Clear FS! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_GS,0,0)) return 0; //Clear GS! Abort on fault!
 			}
 			else if (FLAG_V8) 
 			{
@@ -1761,7 +1743,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
 			}
 
-			CPU[activeCPU].faultraised = 0; //Reset fault detection algorithm!
 			if (is32bit)
 			{
 				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
@@ -1805,7 +1786,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				FLAGW_IF(0); //No interrupts!
 			}
 
-			if ((errorcode!=-1) && (errorcode!=-2)) //Error code specified?
+			if ((errorcode>=0)) //Error code specified?
 			{
 				if (/*SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask*/ is32bit) //32-bit task?
 				{
@@ -1817,10 +1798,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 				}
 			}
 
-			if (CPU[activeCPU].faultraised==0) //OK?
-			{
-				hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
-			}
+			hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 			return 1; //OK!
 			break;
