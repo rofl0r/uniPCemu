@@ -118,12 +118,21 @@ void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplic
 	temp3.val64s = temp1.val64s; //Load and...
 	temp3.val64s *= temp2.val64s; //Signed multiplication!
 	temp2.val64 = signextend64(temp3.val64,resultsize); //For checking for overflow and giving the correct result!
+	switch (resultsize) //What result size?
+	{
+	default:
+	case 8: flag_szp8((byte)temp2.val64); break;
+	case 16: flag_szp16((word)temp2.val64); break;
+	case 32: flag_szp32((uint_32)temp2.val64); break;
+	}
 	if (temp3.val64s==temp2.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
+	/*
 	FLAGW_SF((temp3.val64&0x8000000000000000ULL)>>63); //Sign!
 	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val64==0)?1:0); //Set the zero flag!	
+	*/
 	*result = (uint_32)temp2.val64; //Save the result, truncated to used size as 64-bit sign extension!
 }
 
