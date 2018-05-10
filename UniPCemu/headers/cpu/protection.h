@@ -33,9 +33,9 @@ void THROWDESCGP(word segmentval, byte external, byte tbl);
 void THROWDESCSP(word segmentval, byte external, byte tbl);
 void THROWDESCNP(word segmentval, byte external, byte tbl);
 
-//Internal usage by the protection modules!
-byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL);
-byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL); //Save a loaded descriptor back to memory!
+//Internal usage by the protection modules! Result: 1=OK, 0=Error out by caller, -1=Already errored out, abort error handling(caused by Paging Unit faulting)!
+sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, word isJMPorCALL); //Bits 8-15 of isJMPorCALL are reserved, only 8-bit can be supplied by others than SAVEDESCRIPTOR!
+sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL); //Save a loaded descriptor back to memory!
 
 byte checkPortRights(word port); //Are we allowed to not use this port?
 byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?

@@ -391,8 +391,9 @@ byte memory_writelinear(uint_32 address, byte value)
 	return 0; //No error!
 }
 
-byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
+sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
+	int result;
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
@@ -437,7 +438,7 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container,
 			{
 				if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 				{
-					return 0; //Error out!
+					return -1; //Error out!
 				}
 			}
 			descriptor_address -= sizeof(container->descdata); //Restore start address!
@@ -487,11 +488,20 @@ byte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container,
 		return 0; //Not present: limit exceeded!	
 	}
 
+	if(GENERALSEGMENT_P(container->desc) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENT_A(container->desc) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
+	{
+		container->desc.AccessRights |= 1; //Set the accessed bit!
+		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
+		{
+			return result; //Error out!
+		}
+	}
+
 	return 1; //OK!
 }
 
 //Result: 1=OK, 0=Error!
-byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL)
+sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL)
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
@@ -520,7 +530,7 @@ byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container,
 	SEGDESCRIPTOR_TYPE tempcontainer;
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
-		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,isJMPorCALL)) //Loaded the old container?
+		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,(isJMPorCALL&0xFF)|0x100)) //Loaded the old container?
 		{
 			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
 			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
@@ -537,7 +547,7 @@ byte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container,
 	{
 		if (checkDirectMMUaccess(descriptor_address++,0,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
-			return 0; //Error out!
+			return -1; //Error out!
 		}
 	}
 	descriptor_address -= sizeof(container->descdata);
@@ -573,6 +583,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
 	word originalval=*segmentval; //Back-up of the original segment value!
 	byte allowNP; //Allow #NP to be used?
+	sbyte loadresult;
 
 	if ((*segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
@@ -580,9 +591,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We're an invalid TSS to execute!
 	}
 
-	if (!LOADDESCRIPTOR(segment,*segmentval,&LOADEDDESCRIPTOR,isJMPorCALL)) //Error loading current descriptor?
+	if ((loadresult = LOADDESCRIPTOR(segment,*segmentval,&LOADEDDESCRIPTOR,isJMPorCALL))<=0) //Error loading current descriptor?
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+		if (loadresult == 0) //Not already faulted?
+		{
+			THROWDESCGP(*segmentval, 1, (*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP error!
+		}
 		return NULL; //Error, by specified reason!
 	}
 	allowNP = ((segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS)); //Allow segment to be marked non-present(exception: values 0-3 with data segments)?
@@ -661,9 +675,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
 		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
-		if (!LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL)) //Error loading current descriptor?
+		if ((loadresult = LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL))<=0) //Error loading current descriptor?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			if (loadresult == 0) //Not faulted already?
+			{
+				THROWDESCGP(*segmentval, 1, (*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			}
 			return NULL; //Error, by specified reason!
 		}
 		if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
@@ -1148,7 +1165,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						tempdescriptor.AccessRights |= 2; //Mark not idle in the RAM descriptor!
 						savedescriptor.DATA64 = tempdescriptor.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
-						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)==0) //Save it back to RAM failed?
+						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)<=0) //Save it back to RAM failed?
 						{
 							return 1; //Abort on fault!
 						}
@@ -1543,6 +1560,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
+	sbyte loadresult;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
 	if (errorcode<0) //Invalid error code to use?
@@ -1605,9 +1623,12 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	{
 	case IDTENTRY_TASKGATE: //32-bit task gate?
 		desttask = idtentry.selector; //Read the destination task!
-		if ((!LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2)) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
+		if (((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2))<=0) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
-			THROWDESCGP(desttask,1,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			if (loadresult >= 0) //Not faulted already?
+			{
+				THROWDESCGP(desttask, 1, (desttask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP error!
+			}
 			return 0; //Error, by specified reason!
 		}
 		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2|0x80,1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)! We're a call based on an interrupt!

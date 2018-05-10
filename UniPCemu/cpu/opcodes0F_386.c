@@ -231,6 +231,7 @@ void CPU386_OP0F02() //LAR /r
 {
 	byte isconforming = 1;
 	SEGDESCRIPTOR_TYPE verdescriptor;
+	sbyte loadresult;
 	if (getcpumode() == CPU_MODE_REAL)
 	{
 		unkOP0F_286(); //We're not recognized in real mode!
@@ -240,7 +241,7 @@ void CPU386_OP0F02() //LAR /r
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
-		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0)) //Load the descriptor!
+		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
 			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
 			{
@@ -284,7 +285,7 @@ void CPU386_OP0F02() //LAR /r
 		}
 		else //Couldn't be loaded?
 		{
-			if (CPU[activeCPU].faultraised == 0)
+			if (loadresult == 0)
 			{
 				FLAGW_ZF(0); //Default: not loaded!
 			}
@@ -299,6 +300,7 @@ void CPU386_OP0F03() //LSL /r
 	uint_32 limit;
 	byte isconforming = 1;
 	SEGDESCRIPTOR_TYPE verdescriptor;
+	sbyte loadresult;
 	if (getcpumode() == CPU_MODE_REAL)
 	{
 		unkOP0F_286(); //We're not recognized in real mode!
@@ -308,7 +310,7 @@ void CPU386_OP0F03() //LSL /r
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check32(&params,MODRM_src1,1)) return; //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
-		if (LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0)) //Load the descriptor!
+		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
 			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask); //What granularity are we?
 			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
@@ -360,7 +362,7 @@ void CPU386_OP0F03() //LSL /r
 		}
 		else //Couldn't be loaded?
 		{
-			if (CPU[activeCPU].faultraised == 0)
+			if (loadresult == 0)
 			{
 				FLAGW_ZF(0); //Default: not loaded!
 			}

@@ -237,7 +237,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	TSS286 TSS16;
 	TSS386 TSS32;
 	byte TSSSize = 0; //The TSS size!
-	byte dummy;
+	sbyte loadresult;
 
 	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
@@ -353,14 +353,16 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
-			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)) //Loaded old container?
+			sbyte loadresult;
+			if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0))==1) //Loaded old container?
 			{
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
-				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)==0) //Save the new status into the old descriptor!
+				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)<=0) //Save the new status into the old descriptor!
 				{
 					return 1; //Abort on fault raised!
 				}
 			}
+			else return 1; //Abort on fault raised!
 		}
 
 		if (isJMPorCALL == 3) //IRET?
@@ -520,7 +522,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
-		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,0)==0) //Save the new status into the old descriptor!
+		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,0)<=0) //Save the new status into the old descriptor!
 		{
 			return 1; //Abort on fault raised!
 		}
@@ -655,8 +657,8 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		dummy = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0); //Load it, ignore errors?
-		if (unlikely(dummy==0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
+		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0); //Load it, ignore errors?
+		if (unlikely(loadresult<=0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
