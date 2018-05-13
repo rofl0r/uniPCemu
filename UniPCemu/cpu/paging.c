@@ -347,8 +347,8 @@ void Paging_initTLB()
 void Paging_TestRegisterWritten(byte TR)
 {
 	byte P, D, DC, U, UC, W, WC;
-	uint_32 logicaladdress, result;
-	byte hit;
+	uint_32 logicaladdress=0, result=0;
+	byte hit=0;
 	if (unlikely(TR==6)) //TR6: Test command register
 	{
 		//We're given a command to execute!
@@ -363,7 +363,7 @@ void Paging_TestRegisterWritten(byte TR)
 
 		if (CPU[activeCPU].registers->TR6&1) //Lookup command?
 		{
-			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1))) //Valid complements?
+			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1)) && P) //Valid complements?
 			{
 				if (Paging_readTLB(0, logicaladdress, W, U, D, 0, &result)) //Read?
 				{
@@ -398,7 +398,7 @@ void Paging_TestRegisterWritten(byte TR)
 		}
 		else //Write command?
 		{
-			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1))) //Valid complements?
+			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1)) && P) //Valid complements?
 			{
 				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
 				{
