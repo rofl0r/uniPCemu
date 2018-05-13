@@ -41,6 +41,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define PXE_ACTIVEMASK 0xFFF
 //Address shift to get the physical address
 #define PXE_ADDRESSSHIFT 0
+//What to ignore when reading the TLB for read accesses during normal execution? We ignore Dirty and Read/Write access bits!
+#define TLB_IGNOREREADMASK 0xC
 
 byte getUserLevel(byte CPL)
 {
@@ -118,7 +120,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	}
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,(PXE_RW|PTE_D), &temp)) //Cache hit (non)dirty for reads/writes?
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,TLB_IGNOREREADMASK, &temp)) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
 		}
@@ -189,7 +191,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:(PXE_RW|PTE_D),&result)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:TLB_IGNOREREADMASK,&result)) //Cache hit for an the entry, any during reads, Write Dirty on write?
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
