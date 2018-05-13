@@ -112,13 +112,16 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
-	if (Paging_readTLB(address,RW,effectiveUS,RW,&temp)) //Cache hit not dirty? Don't check not dirty when writing(must be marked dirty, otherwise we won't handle non-dirty values below(and mark them dirty appropriately)).
+	if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp)) //Cache hit dirty for writes?
 	{
 		return 1; //Valid!
 	}
-	if (Paging_readTLB(address,RW,effectiveUS,1,&temp)) //Cache hit dirty?
+	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
-		return 1; //Valid!
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,(PXE_RW|PTE_D), &temp)) //Cache hit (non)dirty for reads/writes?
+		{
+			return 1; //Valid!
+		}
 	}
 	if (isPrefetch) return 0; //Stop the prefetch when not in the TLB!
 	//Check PDE
@@ -164,7 +167,7 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(address,RW,effectiveUS,(PTE&PTE_D)?1:0,(PTE&PXE_ADDRESSMASK)); //Save the PTE 32-bit address in the TLB!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(PTE&PTE_D)?1:0,(PTE&PXE_ADDRESSMASK)); //Save the PTE 32-bit address in the TLB!
 	return 1; //Valid!
 }
 
@@ -182,17 +185,17 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
-	if (Paging_readTLB(address,RW,effectiveUS,RW,&result)) //Cache hit? Don't check not dirty when writing.
+	if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result)) //Cache hit for a written dirty entry? Match completely only!
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
-	else if (Paging_readTLB(address,RW,effectiveUS,1,&result)) //Cache hit?
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:(PXE_RW|PTE_D),&result)) //Cache hit for an the entry, any during reads, Write Dirty on write?
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
 	else
 	{
-		if (isvalidpage(address,iswrite,CPL,0))
+		if (isvalidpage(address,iswrite,CPL,0)) //Retry checking if possible!
 		{
 			goto retrymapping;
 		}
@@ -200,12 +203,12 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	return address; //Untranslated!
 }
 
-byte Paging_TLBSet(uint_32 logicaladdress)
+byte Paging_TLBSet(uint_32 logicaladdress) //Automatic set determination when using a set number <0!
 {
 	return ((logicaladdress&0x30000000)>>28); //The set is determined by the upper 2 bits of the entry, the memory block!
 }
 
-byte Paging_oldestTLB(byte set) //Find a TLB to be used/overwritten!
+byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 {
 	byte x,oldest=0;
 	for (x=0;x<8;++x) //Check all TLBs!
@@ -242,7 +245,7 @@ byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 
 #define SWAP(a,b) if (AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a])) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
 
-void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specified as newest!
+void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
 	word sortarray[8];
 	INLINEREGISTER word tmp;
@@ -272,11 +275,10 @@ void Paging_refreshAges(byte TLB_set) //Refresh the ages, with the entry specifi
 	} while (++x<8);
 }
 
-void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
+void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
 {
-	byte TLB_set;
-	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
 	uint_32 TAG;
+	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
@@ -286,16 +288,21 @@ void Paging_writeTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_
 	Paging_refreshAges(TLB_set); //Refresh the ages!
 }
 
-byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 *result)
+//RWDirtyMask: (PXE_RW|PTE_D) for ignoring R/W and Dirty, use them otherwise!
+byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 RWDirtyMask, uint_32 *result)
 {
-	INLINEREGISTER byte TLB_set;
-	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
-	INLINEREGISTER uint_32 TAG;
+	INLINEREGISTER uint_32 TAG, TAGMask;
+	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
+	TAGMask = ~RWDirtyMask; //Store for fast usage to mask the tag bits unused off!
+	if (RWDirtyMask) //Used?
+	{
+		TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
+	}
 	INLINEREGISTER byte entry=0;
 	do //Check all entries!
 	{
-		if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG==TAG)) //Found?
+ 		if (unlikely((CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG&TAGMask)==TAG)) //Found?
 		{
 			*result = CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].data; //Give the stored data!
 			if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age)) //Not the newest age(which is always 0)?
@@ -311,16 +318,18 @@ byte Paging_readTLB(uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_3
 
 void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 {
-	byte TLB_set;
-	TLB_set = Paging_TLBSet(logicaladdress); //Determine the set to use!
-	byte entry;
-	for (entry=0;entry<8;++entry) //Check all entries!
+	INLINEREGISTER byte TLB_set;
+	INLINEREGISTER byte entry;
+	for (TLB_set = 0; TLB_set < 4; ++TLB_set) //Process all possible sets!
 	{
-		if (Paging_matchTLBaddress(logicaladdress,CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG)) //Matched?
+		for (entry = 0; entry < 8; ++entry) //Check all entries!
 		{
-			CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = 0; //Clear the entry to unused!
+			if (Paging_matchTLBaddress(logicaladdress, CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG)) //Matched?
+			{
+				CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = 0; //Clear the entry to unused!
+			}
 		}
-	}	
+	}
 }
 
 void Paging_clearTLB()
@@ -331,4 +340,69 @@ void Paging_clearTLB()
 void Paging_initTLB()
 {
 	Paging_clearTLB(); //Clear the TLB!
+}
+
+void Paging_TestRegisterWritten(byte TR)
+{
+	byte P, D, DC, U, UC, W, WC;
+	uint_32 logicaladdress, result;
+	byte hit;
+	if (unlikely(TR==6)) //TR6: Test command register
+	{
+		//We're given a command to execute!
+		P = (CPU[activeCPU].registers->TR6&0x800)?1:0;
+		D = (CPU[activeCPU].registers->TR6&0x400)?1:0;
+		DC = (CPU[activeCPU].registers->TR6&0x200)?1:0;
+		U = (CPU[activeCPU].registers->TR6&0x100)?1:0;
+		UC = (CPU[activeCPU].registers->TR6&0x80)?1:0;
+		W = (CPU[activeCPU].registers->TR6&0x40)?1:0;
+		WC = (CPU[activeCPU].registers->TR6&0x20)?1:0;
+		logicaladdress = CPU[activeCPU].registers->TR6&PXE_ADDRESSMASK; //What address!
+
+		if (CPU[activeCPU].registers->TR6&1) //Lookup command?
+		{
+			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1))) //Valid complements?
+			{
+				if (Paging_readTLB(0, logicaladdress, W, U, D, 0, &result)) //Read?
+				{
+					hit = 1; //Hit!
+				}
+				else if (Paging_readTLB(1, logicaladdress, W, U, D, 0, &result)) //Read?
+				{
+					hit = 2; //Hit!
+				}
+				else if (Paging_readTLB(2, logicaladdress, W, U, D, 0, &result)) //Read?
+				{
+					hit = 3; //Hit!
+				}
+				else if (Paging_readTLB(3, logicaladdress, W, U, D, 0, &result)) //Read?
+				{
+					hit = 4; //Hit!
+				}
+				if (hit==0) //Not hit?
+				{
+					noTRhit: //No hit after all?
+					CPU[activeCPU].registers->TR7 &= ~0x10; //Not hit!
+				}
+				else //Hit?
+				{
+					CPU[activeCPU].registers->TR7 = (0x10 | ((hit - 1) << 2) | (result&PXE_ADDRESSMASK)); //Hit!
+				}
+			}
+			else //Invalid components?
+			{
+				goto noTRhit; //Apply no hit!
+			}
+		}
+		else //Write command?
+		{
+			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1))) //Valid complements?
+			{
+				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
+				{
+					Paging_writeTLB((CPU[activeCPU].registers->TR7 >> 2) & 3, logicaladdress, W, U, D, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+				}
+			}
+		}
+	}
 }

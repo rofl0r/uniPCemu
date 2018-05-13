@@ -418,6 +418,14 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			{
 				Paging_clearTLB(); //Clear the TLB!
 			}
+			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
+			{
+				Paging_TestRegisterWritten(6); //We're updated!
+			}
+			else if (result==&CPU[activeCPU].registers->TR7) //TR7?
+			{
+				Paging_TestRegisterWritten(7); //We're updated!
+			}
 		}
 		else if (LOG_INVALID_REGISTERS)
 		{
@@ -478,6 +486,14 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
 			{
 				Paging_clearTLB(); //Clear the TLB!
+			}
+			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
+			{
+				Paging_TestRegisterWritten(6); //We're updated!
+			}
+			else if (result == &CPU[activeCPU].registers->TR7) //TR7?
+			{
+				Paging_TestRegisterWritten(7); //We're updated!
 			}
 		}
 		else if (LOG_INVALID_REGISTERS)
