@@ -288,7 +288,7 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 	TAG = Paging_generateTAG(logicaladdress, W, U, D); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
-	TAGMASKED = (TAG&0xFFFFF007); //Masked tag for fast lookup! Match P/US/RW/address only!
+	TAGMASKED = (TAG&0xFFFFF007); //Masked tag for fast lookup! Match P/U/W/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
 	effectiveentry = 0;
 	do
 	{
@@ -310,8 +310,8 @@ byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte 
 	INLINEREGISTER uint_32 TAG, TAGMask;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress,W,U,D); //Generate a TAG!
-	TAGMask = ~RWDirtyMask; //Store for fast usage to mask the tag bits unused off!
-	if (RWDirtyMask) //Used?
+	TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
+	if (WDMask) //Used?
 	{
 		TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
 	}
