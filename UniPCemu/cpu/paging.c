@@ -279,11 +279,22 @@ void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specif
 
 void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
 {
-	uint_32 TAG;
+	byte effectiveentry;
+	uint_32 TAG,TAGMASKED;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress, RW, US, Dirty); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
+	TAGMASKED = (TAG&0xFFFFF007); //Masked tag for fast lookup! Match P/US/RW/address only!
+	effectiveentry = 0;
+	do
+	{
+		if ((CPU[activeCPU].Paging_TLB.TLB[TLB_set][effectiveentry].TAG&0xFFFFF007)==TAGMASKED) //Match for our own entry?
+		{
+			entry = effectiveentry; //Reuse our own entry!
+			break; //Stop searching: reuse the effective entry!
+		}
+	} while (++effectiveentry < 8); //Check all entries!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = -1; //Clear the age: we're the new last used!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].data = result; //The result for the lookup!
 	CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = TAG; //The TAG to find it by!
