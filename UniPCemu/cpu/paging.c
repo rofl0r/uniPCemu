@@ -41,7 +41,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define PXE_ACTIVEMASK 0xFFF
 //Address shift to get the physical address
 #define PXE_ADDRESSSHIFT 0
-//What to ignore when reading the TLB for read accesses during normal execution? We ignore Dirty and Read/Write access bits!
+//What to ignore when reading the TLB for read accesses during normal execution? We ignore Dirty and Writable access bits!
 #define TLB_IGNOREREADMASK 0xC
 
 byte getUserLevel(byte CPL)
@@ -74,7 +74,7 @@ void raisePF(uint_32 address, word flags)
 	}
 }
 
-OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW, byte PTEUS) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
+OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW, byte PTEUS, byte *isWritable) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
 {
 	byte uslevel; //Combined US level! 0=Supervisor, 1=User
 	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
@@ -96,6 +96,7 @@ OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, b
 	{
 		return 0; //Fault: read-only write by user!
 	}
+	*isWritable = rwlevel; //Are we writable?
 	return 1; //OK: verified!
 }
 
@@ -142,11 +143,12 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 		return 0; //We have an error, abort!
 	}
 
-	if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PTE&PXE_RW)>>1),((PTE&PXE_US)>>2))) //Protection fault on combined flags?
+	if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PTE&PXE_RW)>>1),((PTE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
 	{
 		raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!		
 	}
+	//RW=Are we writable?
 	if (!(PTE&PXE_A))
 	{
 		PTEUPDATED = 1; //Updated!
@@ -227,9 +229,10 @@ byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 	return oldest; //Give the oldest entry!
 }
 
-uint_32 Paging_generateTAG(uint_32 logicaladdress, byte RW, byte US, byte Dirty)
+//W=Writable, U=User, D=Dirty
+uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D)
 {
-	return ((logicaladdress&0xFFFFF000)|(Dirty<<3)|(RW<<2)|(US<<1)|1); //The used TAG!
+	return ((logicaladdress&0xFFFFF000)|(D<<3)|(W<<2)|(U<<1)|1); //The used TAG!
 }
 
 byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
@@ -277,12 +280,12 @@ void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specif
 	} while (++x<8);
 }
 
-void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 result)
+void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 result)
 {
 	byte effectiveentry;
 	uint_32 TAG,TAGMASKED;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress, RW, US, Dirty); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress, W, U, D); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
 	TAGMASKED = (TAG&0xFFFFF007); //Masked tag for fast lookup! Match P/US/RW/address only!
@@ -301,12 +304,12 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, by
 	Paging_refreshAges(TLB_set); //Refresh the ages!
 }
 
-//RWDirtyMask: (PXE_RW|PTE_D) for ignoring R/W and Dirty, use them otherwise!
-byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte RW, byte US, byte Dirty, uint_32 RWDirtyMask, uint_32 *result)
+//RWDirtyMask: mask for ignoring set bits in the tag, use them otherwise!
+byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 WDMask, uint_32 *result)
 {
 	INLINEREGISTER uint_32 TAG, TAGMask;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress,RW,US,Dirty); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress,W,U,D); //Generate a TAG!
 	TAGMask = ~RWDirtyMask; //Store for fast usage to mask the tag bits unused off!
 	if (RWDirtyMask) //Used?
 	{
