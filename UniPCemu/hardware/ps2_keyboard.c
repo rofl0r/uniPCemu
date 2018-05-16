@@ -113,8 +113,12 @@ int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with 
 	return 0; //Unknown!
 }
 
+extern KEYBOARDENTRY_EXTENDED ALTSYSRQ[3]; //SYSRQ replacements!
+extern KEYBOARDENTRY_EXTENDED CTRLSYSRQ[3]; //SYSRQ replacements!
+extern KEYBOARDENTRY_EXTENDED CTRLBREAK[3]; //CTRLBREAK replacements!
+
 //key is an index into the scancode set!
-byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? Bit1=Pressed(1) or released (0), Bit2=Repeating(1) or not repeating(0)
+byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altispressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? Bit1=Pressed(1) or released (0), Bit2=Repeating(1) or not repeating(0)
 {
 	if (__HW_DISABLED) return 1; //Abort!
 	if (Keyboard.has_command) return 0; //Have a command: command mode inhabits keyboard input?
@@ -124,15 +128,41 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 		{
 			int i; //Counter for key codes!
 			byte scancodeset;
+			KEYBOARDENTRY *currentkey;
 			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
+			currentkey = &scancodesets[scancodeset][key]; //What key from what set to apply?
+			if (ctrlispressed && (key == EMU_keyboard_handler_nametoid("pause"))) //CTRL-BREAK instead?
+			{
+				if (CTRLBREAK[scancodeset].used) //Used as a replacement?
+				{
+					currentkey = &CTRLBREAK[scancodeset].entry; //Replacement policy!
+				}
+			}
+			else if (key == EMU_keyboard_handler_nametoid("prtsc")) //SysRQ might have something special?
+			{
+				if (ctrlispressed) //CTRL-SYSRQ instead?
+				{
+					if (CTRLSYSRQ[scancodeset].used) //Used as a replacement?
+					{
+						currentkey = &CTRLSYSRQ[scancodeset].entry; //Replacement policy!
+					}
+				}
+				else if (altispressed) //ALT-SYSRQ instead?
+				{
+					if (ALTSYSRQ[scancodeset].used) //Used as a replacement?
+					{
+						currentkey = &ALTSYSRQ[scancodeset].entry; //Replacement policy!
+					}
+				}
+			}
 			if (pressed&1) //Key pressed?
 			{
 				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2))) //Allowed typematic make codes? Also allow non-typematic always!
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keypress_size) return 0; //Buffer full: we can't add it!
-					for (i=0;i<scancodesets[scancodeset][key].keypress_size;i++) //Process keypress!
+					if (fifobuffer_freesize(Keyboard.buffer) < currentkey->keypress_size) return 0; //Buffer full: we can't add it!
+					for (i=0;i<currentkey->keypress_size;i++) //Process keypress!
 					{
-						give_keyboard_output(scancodesets[scancodeset][key].keypress[i]); //Give control byte(s) of keypress!
+						give_keyboard_output(currentkey->keypress[i]); //Give control byte(s) of keypress!
 					}
 				}
 			}
@@ -140,10 +170,10 @@ byte EMU_keyboard_handler(byte key, byte pressed) //A key has been pressed (with
 			{
 				if (scancodeset_break[key]) //Break codes allowed?
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < scancodesets[scancodeset][key].keyrelease_size) return 0; //Buffer full: we can't add it!
-					for (i=0;i<scancodesets[scancodeset][key].keyrelease_size;i++) //Process keyrelease!
+					if (fifobuffer_freesize(Keyboard.buffer) < currentkey->keyrelease_size) return 0; //Buffer full: we can't add it!
+					for (i=0;i<currentkey->keyrelease_size;i++) //Process keyrelease!
 					{
-						give_keyboard_output(scancodesets[scancodeset][key].keyrelease[i]); //Give control byte(s) of keyrelease!
+						give_keyboard_output(currentkey->keyrelease[i]); //Give control byte(s) of keyrelease!
 					}
 				}
 			}
