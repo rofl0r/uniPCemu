@@ -114,11 +114,14 @@ int EMU_keyboard_handler_idtoname(int id, char *name) //Same as above, but with 
 }
 
 extern KEYBOARDENTRY_EXTENDED ALTSYSRQ[3]; //SYSRQ replacements!
-extern KEYBOARDENTRY_EXTENDED CTRLSYSRQ[3]; //SYSRQ replacements!
+extern KEYBOARDENTRY_EXTENDED CTRLSHIFTSYSRQ[3]; //SYSRQ replacements!
 extern KEYBOARDENTRY_EXTENDED CTRLBREAK[3]; //CTRLBREAK replacements!
+extern KEYBOARDENTRY_EXTENDED NUMLOCK_SLASH_PRESUFFIX[3][4][3]; ////Prefix before make code, suffix after break code. Index[NumLockOn(0&1 for numlocked keys, 2 for numlock slash)][shiftstatus][scancodeset]
+byte numlockablekeys[10] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF }; //Keys that are to be used with NUMLOCK!
+byte NUMSLASHkey = 0xFF;
 
 //key is an index into the scancode set!
-byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altispressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? Bit1=Pressed(1) or released (0), Bit2=Repeating(1) or not repeating(0)
+byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altispressed, byte shiftispressed) //A key has been pressed (with interval) or released CALLED BY HARDWARE KEYBOARD (Virtual Keyboard?)? Bit1=Pressed(1) or released (0), Bit2=Repeating(1) or not repeating(0)
 {
 	if (__HW_DISABLED) return 1; //Abort!
 	if (Keyboard.has_command) return 0; //Have a command: command mode inhabits keyboard input?
@@ -127,8 +130,8 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 		if (!PS2_FIRSTPORTDISABLED(Controller8042)) //We're enabled?
 		{
 			int i; //Counter for key codes!
-			byte scancodeset;
-			KEYBOARDENTRY *currentkey;
+			byte scancodeset, keypress_size, keyrelease_size, slashkey;
+			KEYBOARDENTRY *currentkey, *bonuskey=NULL;
 			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
 			currentkey = &scancodesets[scancodeset][key]; //What key from what set to apply?
 			if (ctrlispressed && (key == EMU_keyboard_handler_nametoid("pause"))) //CTRL-BREAK instead?
@@ -140,11 +143,11 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 			}
 			else if (key == EMU_keyboard_handler_nametoid("prtsc")) //SysRQ might have something special?
 			{
-				if (ctrlispressed) //CTRL-SYSRQ instead?
+				if (ctrlispressed && shiftispressed) //CTRL-SYSRQ instead?
 				{
-					if (CTRLSYSRQ[scancodeset].used) //Used as a replacement?
+					if (CTRLSHIFTSYSRQ[scancodeset].used) //Used as a replacement?
 					{
-						currentkey = &CTRLSYSRQ[scancodeset].entry; //Replacement policy!
+						currentkey = &CTRLSHIFTSYSRQ[scancodeset].entry; //Replacement policy!
 					}
 				}
 				else if (altispressed) //ALT-SYSRQ instead?
@@ -155,11 +158,50 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 					}
 				}
 			}
+			bonuskey = NULL; //No bonus key?
+			slashkey = 0; //Start with checking for the slash key as well!
+			if (key == NUMSLASHkey) //Numpad /?
+			{
+				slashkey = 1; //Apply slash key specifics!
+				goto applyNUMslashkey;
+			}
+			for (i = 0; i < NUMITEMS(numlockablekeys); ++i) //Check all!
+			{
+				if (key == numlockablekeys[i]) //Numlockable?
+				{
+				applyNUMslashkey: //Apply the num slash key here as well!
+					if (slashkey) // Apply slash key (not affected by NUM LOCK)?
+					{
+						if (NUMLOCK_SLASH_PRESUFFIX[2][shiftispressed & 3][scancodeset].used) //Used?
+						{
+							bonuskey = &NUMLOCK_SLASH_PRESUFFIX[2][shiftispressed & 3][scancodeset].entry; //The bonus keys to apply, depending on shifts!
+						}
+					}
+					else //Apply num key?
+					{
+						if (NUMLOCK_SLASH_PRESUFFIX[((Keyboard.LEDS & 2) >> 1)][shiftispressed & 3][scancodeset].used) //Used?
+						{
+							bonuskey = &NUMLOCK_SLASH_PRESUFFIX[((Keyboard.LEDS & 2) >> 1)][shiftispressed & 3][scancodeset].entry; //The bonus keys to apply, depending on shifts and NUMLOCK status!
+						}
+					}
+					goto finishbonuskey;
+				}
+			}
+			finishbonuskey: //Finish the bonus key check!
 			if (pressed&1) //Key pressed?
 			{
+				keypress_size = currentkey->keypress_size;
+				if (bonuskey) keypress_size += bonuskey->keypress_size; //Bonus size!
 				if ((scancodeset_typematic[key] && ((pressed>>1)&1)) || (!(pressed&2))) //Allowed typematic make codes? Also allow non-typematic always!
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < currentkey->keypress_size) return 0; //Buffer full: we can't add it!
+					if (fifobuffer_freesize(Keyboard.buffer) < keypress_size) return 0; //Buffer full: we can't add it!
+					if (bonuskey) //Bonus key to apply before?
+					{
+						for (i=0;i<bonuskey->keypress_size;i++) //Process keypress!
+						{
+							give_keyboard_output(bonuskey->keypress[i]); //Give control byte(s) of keypress!
+						}
+					}
 					for (i=0;i<currentkey->keypress_size;i++) //Process keypress!
 					{
 						give_keyboard_output(currentkey->keypress[i]); //Give control byte(s) of keypress!
@@ -168,12 +210,22 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 			}
 			else //Released?
 			{
+				keyrelease_size = currentkey->keyrelease_size;
+				if (bonuskey) keyrelease_size += bonuskey->keyrelease_size; //Bonus size!
+
 				if (scancodeset_break[key]) //Break codes allowed?
 				{
-					if (fifobuffer_freesize(Keyboard.buffer) < currentkey->keyrelease_size) return 0; //Buffer full: we can't add it!
+					if (fifobuffer_freesize(Keyboard.buffer) < keyrelease_size) return 0; //Buffer full: we can't add it!
 					for (i=0;i<currentkey->keyrelease_size;i++) //Process keyrelease!
 					{
 						give_keyboard_output(currentkey->keyrelease[i]); //Give control byte(s) of keyrelease!
+					}
+					if (bonuskey) //Bonus key to apply after?
+					{
+						for (i=0;i<bonuskey->keyrelease_size;i++) //Process keyrelease!
+						{
+							give_keyboard_output(bonuskey->keyrelease[i]); //Give control byte(s) of keyrelease!
+						}
 					}
 				}
 			}
@@ -650,6 +702,18 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	resetKeyboard(1,0); //Reset the keyboard controller, XT style!
 	input_lastwrite_keyboard(); //Force to user!
 	if (is_XT==0) keyboardControllerInit(0); //Initialise the basic keyboard controller when allowed!
+	NUMSLASHkey = EMU_keyboard_handler_nametoid("kp/"); //Num lock slash key!
+	//NUMlock affects these keys, according to the Microsoft documentation:
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("insert"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("del"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("left"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("home"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("end"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("up"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("down"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("pgup"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("pgdn"); //Insert key!
+	numlockablekeys[0] = EMU_keyboard_handler_nametoid("right"); //Insert key!
 }
 
 void BIOS_doneKeyboard()
