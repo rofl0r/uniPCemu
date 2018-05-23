@@ -3577,7 +3577,7 @@ OPTINLINE byte CPU8086_internal_XLAT()
 	}
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),((REG_BX+REG_AL)&(CPU_Address_size[activeCPU]?~0:0xFFFF)),0,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),((REG_BX+REG_AL)&(CPU_Address_size[activeCPU]?~0:0xFFFF)),1,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
