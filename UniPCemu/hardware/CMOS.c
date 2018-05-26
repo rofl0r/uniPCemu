@@ -346,7 +346,7 @@ OPTINLINE byte decodeBCDhour(byte hour)
 		result = (hour&0x80)?12:0; //PM vs AM!
 		hour &= 0x7F; //Take the remaining values without our PM bit!
 		hour = decodeBCD8(hour,1); //Decode the hour!
-		if ((result==12) && (!result)) //12AM is a special case!
+		if ((hour==12) && (!result)) //12AM is a special case!
 		{
 			hour = 0; //We're Midnight/noon: convert it back!
 		}
