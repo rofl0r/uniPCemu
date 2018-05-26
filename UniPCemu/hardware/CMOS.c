@@ -283,26 +283,28 @@ OPTINLINE byte epochtoaccuratetime(UniversalTimeOfDay *curtime, accuratetime *da
 
 OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, UniversalTimeOfDay *datetime)
 {
-	uint_64 seconds=0;
-	if ((curtime->us-(curtime->us%100))!=(((curtime->s100)*10000)+(curtime->s10000*100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
-	if (curtime->year<1970) return 0; //Before 1970 isn't supported!
+	uint_64 seconds = 0;
+	if ((curtime->us - (curtime->us % 100)) != (((curtime->s100) * 10000) + (curtime->s10000 * 100))) return 0; //Invalid time to convert: 100th&10000th seconds doesn't match us(this is supposed to be the same!)
+	if (curtime->year < 1970) return 0; //Before 1970 isn't supported!
 	datetime->tv_usec = (uint_32)curtime->us; //Save the microseconds directly!
 	uint_64 year;
 	byte counter;
 	byte leapyear;
-	for (year=curtime->year;year>1970;) //Process the years!
+	byte monthspassed;
+	for (year = curtime->year; year > 1970;) //Process the years!
 	{
 		--year; //The previous year has passed!
 		seconds += YEARSIZE(year)*DAYSIZE; //Add the year that has passed!
 	}
 	leapyear = LEAPYEAR(curtime->year); //Are we a leap year?
 	//Now, only months etc. are left!
-	for (counter = curtime->month;counter>1;) //Process the months!
+	monthspassed = MAX(curtime->month, 1) - 1; //How many months have passed!
+	for (counter = 0;counter<monthspassed;) //Process the months!
 	{
-		seconds += _ytab[leapyear][11-(--counter)]*DAYSIZE; //Add a month that has passed!
+		seconds += _ytab[leapyear][counter++] * DAYSIZE; //Add a month that has passed!
 	}
 	//Now only days, hours, minutes and seconds are left!
-	seconds += DAYSIZE*(curtime->day?(curtime->day-1):0); //Days start at 1!
+	seconds += DAYSIZE*(curtime->day ? (curtime->day - 1) : 0); //Days start at 1!
 	seconds += HOURSIZE*curtime->hour;
 	seconds += MINUTESIZE*curtime->minute;
 	seconds += curtime->second;
