@@ -316,7 +316,7 @@ OPTINLINE byte accuratetimetoepoch(accuratetime *curtime, UniversalTimeOfDay *da
 OPTINLINE byte encodeBCDhour(byte hour)
 {
 	byte result;
-	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE12HOURMODE) && (is_XT==0)) //Need translation to/from 12-hour mode?
+	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) && (is_XT==0)) //Need translation to/from 12-hour mode?
 	{
 		if (hour==0) //Midnight is 12AM, otherwise AM or PM with half being 12 half based(0=12am, 1=1am, 12=0pm, 23=11pm).
 		{
@@ -341,7 +341,7 @@ OPTINLINE byte encodeBCDhour(byte hour)
 OPTINLINE byte decodeBCDhour(byte hour)
 {
 	byte result;
-	if ((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE12HOURMODE) && (is_XT==0)) //Need translation to/from 12-hour mode?
+	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLE24HOURMODE)==0) && (is_XT==0)) //Need translation to/from 12-hour mode?
 	{
 		result = (hour&0x80)?12:0; //PM vs AM!
 		hour &= 0x7F; //Take the remaining values without our PM bit!

@@ -60,8 +60,8 @@ typedef struct
 //SRB
 //DST Enabled?
 #define SRB_DSTENABLE 1
-//12 hour mode enabled?
-#define SRB_ENABLE12HOURMODE 2
+//24 hour mode enabled?
+#define SRB_ENABLE24HOURMODE 2
 //1=Binary, 0=BCD
 #define SRB_DATAMODEBINARY 4
 //1=Enabled
