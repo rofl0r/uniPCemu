@@ -327,6 +327,24 @@ void update8042(DOUBLE timepassed) //Update 8042 input/output timings!
 						}
 						if (Controller8042.Write_RAM) //Write to VRAM byte?
 						{
+							if (Controller8042.Write_RAM == 1) //Might require enabling the ports?
+							{
+								if (((Controller8042.data[0]&0x10)==0x10) && ((Controller8042.input_buffer&0x10)==0)) //Was disabled and is enabled?
+								{
+									if (Controller8042.portenabledhandler[0]) //Enabled handler?
+									{
+										Controller8042.portenabledhandler[0](2); //Handle the hardware being turned on by it resetting!
+									}
+								}
+								if (((Controller8042.data[0]&0x20)==0x20) && ((Controller8042.input_buffer&0x20)==0)) //Was disabled and is enabled?
+								{
+									if (Controller8042.portenabledhandler[1]) //Enabled handler?
+									{
+										Controller8042.portenabledhandler[1](2); //Handle the hardware being turned on by it resetting!
+									}
+								}
+							}
+
 							Controller8042.RAM[Controller8042.Write_RAM-1] = Controller8042.input_buffer; //Set data in RAM!
 							Controller8042.Write_RAM = 0; //Not anymore!
 							goto finishwrite; //Don't process normally!
