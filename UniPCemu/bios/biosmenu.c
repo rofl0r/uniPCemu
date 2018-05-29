@@ -2278,7 +2278,18 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						input[0] = 'I'; //Convert to upper case!
 						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
+							{
+								break; //Abort!
+							}
+						}
+						else break; //Abort: empty string not allowed!
+						goto processinput; //process us!						
+					case 'o': //Ignore CS(offset is to be applied only)?
+						input[0] = 'O'; //Convert to upper case!
+						if (safestrlen(filename, maxlength + 1)) //Something there?
+						{
+							if ((filename[safestrlen(filename, maxlength + 1) - 1] == 'I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') || (filename[safestrlen(filename, maxlength + 1) - 1] == ':') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'M')) //Special identifier that we're not allowed behind?
 							{
 								break; //Abort!
 							}
@@ -2289,7 +2300,7 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						input[0] = 'M'; //Convert to upper case!
 						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier that we're not allowed behind?
 							{
 								break; //Abort!
 							}
@@ -2300,7 +2311,7 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						input[0] = 'P'; //Convert to upper case!
 						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') ||  (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') ||  (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -2311,7 +2322,7 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						input[0] = 'V'; //Convert to upper case!
 						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -2323,7 +2334,7 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 						input[0] = ':'; //We're a seperator instead!
 						if (safestrlen(filename,maxlength+1)) //Something there?
 						{
-							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
+							if ((filename[safestrlen(filename,maxlength+1)-1]=='P') || (filename[safestrlen(filename,maxlength+1)-1]=='V') || (filename[safestrlen(filename,maxlength+1)-1]==':') || (filename[safestrlen(filename,maxlength+1)-1]=='I') || (filename[safestrlen(filename, maxlength + 1) - 1] == 'O') || (filename[safestrlen(filename,maxlength+1)-1]=='M')) //Special identifier?
 							{
 								break; //Abort!
 							}
@@ -5188,6 +5199,10 @@ setShowCPUSpeed:
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
 			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
+			}
 			break;
 		case 2: //Protected mode?
 			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
@@ -5199,6 +5214,10 @@ setShowCPUSpeed:
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
 			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
+			}
 			break;
 		case 3: //Virtual 8086 mode?
 			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
@@ -5209,6 +5228,10 @@ setShowCPUSpeed:
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
+			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
 			}
 			break;
 		default: //Just in case!
@@ -6894,11 +6917,11 @@ uint_32 converthex2int(char *s)
 	return result; //Give the result we calculated!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress);
+void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment);
 
 void BIOS_breakpoint()
 {
-	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required, Ignore EIP/Ignore address and final character(always zero)!
+	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
@@ -6913,6 +6936,10 @@ void BIOS_breakpoint()
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
+			}
 			break;
 		case 1: //Real mode?
 			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
@@ -6923,6 +6950,10 @@ void BIOS_breakpoint()
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
+			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
 			break;
 		case 2: //Protected mode?
@@ -6935,6 +6966,10 @@ void BIOS_breakpoint()
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
+			}
 			break;
 		case 3: //Virtual 8086 mode?
 			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
@@ -6945,6 +6980,10 @@ void BIOS_breakpoint()
 			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
+			}
+			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			{
+				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
 			break;
 		default: //Just in case!
@@ -6965,12 +7004,15 @@ void BIOS_breakpoint()
 	word maxoffsetsize = 4;
 	byte ignoreEIP = 0;
 	byte ignoreAddress = 0;
+	byte ignoreSegment = 0;
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1)) //Input text confirmed?
 	{
 		if (strcmp(breakpointstr, "") != 0) //Got valid input?
 		{
 			//Convert the string back into our valid numbers for storage!
 			mode = 1; //Default to real mode!
+			ignoreSegment = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] == 'O'); //Ignore code segment?
+			if (ignoreSegment) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 			ignoreEIP = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
 			if (ignoreEIP) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 			ignoreAddress = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='M'); //Ignore address?
@@ -7007,7 +7049,7 @@ void BIOS_breakpoint()
 					//This won't compile on the PSP for some unknown reason, crashing the compiler!
 					if (((safe_strlen(&breakpointstr[0],sizeof(breakpointstr))-semicolonpos)-1)<=maxoffsetsize) //Offset OK?
 					{
-						BIOS_setBreakpoint(&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress);
+						BIOS_setBreakpoint(&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress,ignoreSegment);
 					}
 					#endif
 			}
@@ -7022,7 +7064,7 @@ void BIOS_breakpoint()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress)
+void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment)
 {
 	word segment;
 	uint_32 offset;
@@ -7034,6 +7076,7 @@ void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte 
 	BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT);
 	BIOS_Settings.breakpoint |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT));
 	BIOS_Settings.breakpoint |=	(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT));
+	BIOS_Settings.breakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT));
 	BIOS_Settings.breakpoint |= (((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT);
 	BIOS_Settings.breakpoint |= ((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
 	BIOS_Changed = 1; //We've changed!
