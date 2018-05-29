@@ -5201,7 +5201,7 @@ setShowCPUSpeed:
 			}
 			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
 			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
 			}
 			break;
 		case 2: //Protected mode?
@@ -5216,7 +5216,7 @@ setShowCPUSpeed:
 			}
 			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
 			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
@@ -5231,7 +5231,7 @@ setShowCPUSpeed:
 			}
 			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
 			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "S"); //Ignore CS!
+				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
 			}
 			break;
 		default: //Just in case!
