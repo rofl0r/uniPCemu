@@ -203,7 +203,7 @@ mov ebx,0
 mov ebx,[0]
 
 ; MOV [addr],AL/AX/EAX and reversed.
-mov EAX,12345678
+mov EAX,0x12345678
 mov [0],al
 mov [0],ax
 mov [0],eax
