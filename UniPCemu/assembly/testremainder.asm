@@ -222,7 +222,7 @@ mov ecx,0x10000
 mov eax,0
 repeating2:
 dec eax
-loopnz repeating2
+a32 loopnz repeating2
 
 ; xchg instructions
 mov eax,0x12345678
