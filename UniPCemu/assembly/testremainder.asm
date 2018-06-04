@@ -38,7 +38,7 @@ db 0x0B,NULLMEMORY ; ADD ax,[0000]
 db IS32BIT,0x0B,NULLMEMORY ; ADD eax,[0000]
 db 0x0C,TESTREG8 ; ADD al,0xff
 db 0x0D,TESTREG16 ; ADD ax,0xffff
-db IS32BIT,0x05,TESTREG32 ; ADD eax,0xffffffff
+db IS32BIT,0x0D,TESTREG32 ; ADD eax,0xffffffff
 
 ; Set 10
 db 0x10,NULLMEMORY ; ADD [0000],al
@@ -60,7 +60,7 @@ db 0x1B,NULLMEMORY ; ADD ax,[0000]
 db IS32BIT,0x1B,NULLMEMORY ; ADD eax,[0000]
 db 0x1C,TESTREG8 ; ADD al,0xff
 db 0x1D,TESTREG16 ; ADD ax,0xffff
-db IS32BIT,0x15,TESTREG32 ; ADD eax,0xffffffff
+db IS32BIT,0x1D,TESTREG32 ; ADD eax,0xffffffff
 
 ; Set 20
 db 0x20,NULLMEMORY ; ADD [0000],al
@@ -82,7 +82,7 @@ db 0x2B,NULLMEMORY ; ADD ax,[0000]
 db IS32BIT,0x2B,NULLMEMORY ; ADD eax,[0000]
 db 0x2C,TESTREG8 ; ADD al,0xff
 db 0x2D,TESTREG16 ; ADD ax,0xffff
-db IS32BIT,0x25,TESTREG32 ; ADD eax,0xffffffff
+db IS32BIT,0x2D,TESTREG32 ; ADD eax,0xffffffff
 
 ; Set 30
 db 0x30,NULLMEMORY ; ADD [0000],al
@@ -104,7 +104,7 @@ db 0x3B,NULLMEMORY ; ADD ax,[0000]
 db IS32BIT,0x3B,NULLMEMORY ; ADD eax,[0000]
 db 0x3C,TESTREG8 ; ADD al,0xff
 db 0x3D,TESTREG16 ; ADD ax,0xffff
-db IS32BIT,0x35,TESTREG32 ; ADD eax,0xffffffff
+db IS32BIT,0x3D,TESTREG32 ; ADD eax,0xffffffff
 
 ; TODO: 0x80-0x83 range
 
