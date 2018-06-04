@@ -261,13 +261,13 @@ xchg esi,eax
 xchg edi,eax
 xchg edi,eax
 
-mov esp,0x10000
+mov esp,0
 call subfunc
-cmp esp,0x10000
+cmp esp,0
 jne failvector
 sub esp,32
 call subfunc32
-cmp esp,0x10000
+cmp esp,0
 jne failvector
 call subfuncn
 jmp succeedretfar
