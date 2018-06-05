@@ -1097,7 +1097,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					REG_SP += RETF_popbytes; //Process SP!
 				}
-				RETF_popbytes = 0; //Nothimg to pop anymore!
+				//RETF_popbytes = 0; //Nothimg to pop anymore!
 
 				if (oldCPL<getRPL(value)) //CPL changed?
 				{
