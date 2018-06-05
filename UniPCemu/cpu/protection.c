@@ -1097,7 +1097,6 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				{
 					REG_SP += RETF_popbytes; //Process SP!
 				}
-				//RETF_popbytes = 0; //Nothimg to pop anymore!
 
 				if (oldCPL<getRPL(value)) //CPL changed?
 				{
@@ -1125,6 +1124,10 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						if (CPU8086_POPw(8,&REG_SP,0)) return 1; //POP SP!
 						REG_ESP &= 0xFFFF; //Only keep what we need!
 					}
+				}
+				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
+				{
+					RETF_popbytes = 0; //Nothimg to pop anymore!
 				}
 			}
 			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
