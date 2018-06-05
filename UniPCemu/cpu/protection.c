@@ -1127,7 +1127,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
-					RETF_popbytes = 0; //Nothimg to pop anymore!
+					RETF_popbytes = 0; //Nothing to pop anymore!
 				}
 			}
 			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
