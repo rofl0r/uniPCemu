@@ -9,11 +9,14 @@
 %define TESTREG16 0xff,0xff
 %define TESTREG32 0xff,0xff,0xff,0xff
 
+; Debugging information port
+DEBUGPORT equ 0x84
+
 ; Insert instructions here to test!
 cpuTest:
 ; Initialize indicator!
 mov al,0x00
-out 0xe9,al
+out DEBUGPORT,al
 cli ; Prevent any interrupts while testing!
 
 ; Now start the tests!
@@ -293,14 +296,14 @@ jmp finishup
 failvector:
 cli
 mov al,0xfe
-out 0xe9,al
+out DEBUGPORT,al
 hlt
 
 ; Finish up, make sure we stop running now!
 finishup:
 cli
 mov al,0xff
-out 0xe9,al
+out DEBUGPORT,al
 hlt
 
 ;
