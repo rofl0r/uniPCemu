@@ -268,7 +268,7 @@ mov esp,0
 call subfunc
 cmp esp,0
 jne failvector
-sub esp,32
+sub sp,32
 call subfunc32
 cmp esp,0
 jne failvector
