@@ -1977,8 +1977,6 @@ byte BIUresponsedummy = 0;
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
-	REPZ = 0; //Default to REP!
-	didNewREP = 0; didRepeating=0; //Did we do a REP?
 	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	uint_32 REPcondition; //What kind of condition?
