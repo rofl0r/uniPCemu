@@ -999,7 +999,7 @@ void CPU_tickPendingReset()
 
 OPTINLINE void CPU_setprefix(byte prefix) //Sets a prefix on!
 {
-	CPU_prefixes[activeCPU][(prefix>>3)] |= (128>>(prefix&7)); //Have prefix!
+	CPU_prefixes[activeCPU][(prefix>>3)] |= (1<<(prefix&7)); //Have prefix!
 	switch (prefix) //Which prefix?
 	{
 	case 0x2E: //CS segment override prefix
@@ -1027,7 +1027,7 @@ OPTINLINE void CPU_setprefix(byte prefix) //Sets a prefix on!
 
 byte CPU_getprefix(byte prefix) //Prefix set?
 {
-	return (CPU_prefixes[activeCPU][prefix>>3]&(128>>(prefix&7)))>0; //Get prefix set or reset!
+	return ((CPU_prefixes[activeCPU][prefix>>3]>>(prefix&7))&1); //Get prefix set or reset!
 }
 
 OPTINLINE byte CPU_isPrefix(byte prefix)
@@ -2103,12 +2103,15 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
 		newREP = 1; //We're a new repeating instruction!
 	}
+
+	//Handle all prefixes!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
-	REPZ = 0; //Init REP to NZ!
+	REPZ = 0; //Init REP to REPNZ/Unused zero flag(during REPNE)!
 	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 	{
-		gotREP = REPZ = 1; //Allow and we're REPZ!
+		gotREP = 1; //We've gotten a repeat!
+		REPZ = 0; //Allow and we're not REPZ!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
@@ -2117,45 +2120,43 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//New:
 		case 0xA4: //A4: REPNZ MOVSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
- 			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xA5: //A5: REPNZ MOVSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xA6: //A6: REPNZ CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			REPZ = 1; //Check the zero flag!
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			REPZ = 1; //Check the zero flag!
 			break;
 
 		//New:
 		case 0xAA: //AA: REPNZ STOSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAB: //AB: REPNZ STOSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAC: //AC: REPNZ LODSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 		case 0xAD: //AD: REPNZ LODSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 
 		//Old:
 		case 0xAE: //AE: REPNZ SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			REPZ = 1; //Check the zero flag!
 			break;
 		case 0xAF: //AF: REPNZ SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			REPZ = 1; //Check the zero flag!
 			break;
 		default: //Unknown yet?
 		noREPNE0Fand8086: //0F/8086 #UD exception!
@@ -2167,6 +2168,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	else if (CPU_getprefix(0xF3)) //REP/REPE Opcode set?
 	{
 		gotREP = 1; //Allow!
+		REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
@@ -2176,7 +2178,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0x6F: //A4: REP OUTSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			if (EMULATED_CPU < CPU_NECV30) goto noREPNE0Fand8086; //Not existant on 8086!
-			REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 			break;
 			//8086 REP opcodes!
 		case 0xA4: //A4: REP MOVSB
@@ -2187,11 +2188,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		case 0xA6: //A6: REPE CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //REPE/REPZ!
+			REPZ = 1; //Check the zero flag!
 			break;
 		case 0xA7: //A7: REPE CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //REPE/REPZ!
+			REPZ = 1; //Check the zero flag!
 			break;
 		case 0xAA: //AA: REP STOSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
@@ -2207,11 +2208,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		case 0xAE: //AE: REPE SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //REPE/REPZ!
+			REPZ = 1; //Check the zero flag!
 			break;
 		case 0xAF: //AF: REPE SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //REPE/REPZ!
+			REPZ = 1; //Check the zero flag!
 			break;
 		default: //Unknown yet?
 			noREPE0Fand8086: //0F exception!
@@ -2222,12 +2223,20 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	if (gotREP) //Gotten REP?
 	{
-		if (cpudebugger) //Need to set any debugger info?
+		if (!(CPU_Address_size[activeCPU]?CPU[activeCPU].registers->ECX:CPU[activeCPU].registers->CX)) //REP and finished?
 		{
-			if (CPU_getprefix(0xF0)) //LOCK?
-			{
-				debugger_setprefix("LOCK"); //LOCK!
-			}
+			blockREP = 1; //Block the CPU instruction from executing!
+		}
+	}
+
+	if (unlikely(cpudebugger)) //Need to set any debugger info?
+	{
+		if (CPU_getprefix(0xF0)) //LOCK?
+		{
+			debugger_setprefix("LOCK"); //LOCK!
+		}
+		if (gotREP) //REPeating something?
+		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
 				debugger_setprefix("REPNZ"); //Set prefix!
@@ -2244,11 +2253,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				}
 			}
 		}
-		if (!(CPU_Address_size[activeCPU]?CPU[activeCPU].registers->ECX:CPU[activeCPU].registers->CX)) //REP and finished?
-		{
-			blockREP = 1; //Block the CPU instruction from executing!
-		}
 	}
+
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	executionphase_running:
@@ -2262,16 +2268,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//Handle REP instructions post-instruction next!
 		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
 		{
-			if (CPU_getprefix(0xF2)) //REPNZ?
+			if (unlikely(REPZ && (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)))) //REP(N)Z used?
 			{
-				if (REPZ) //Check for zero flag?
-				{
-					gotREP &= (FLAG_ZF ^ 1); //To reset the opcode (ZF needs to be cleared to loop)?
-				}
-			}
-			else if (CPU_getprefix(0xF3) && REPZ) //REPZ?
-			{
-				gotREP &= FLAG_ZF; //To reset the opcode (ZF needs to be set to loop)?
+				gotREP &= (FLAG_ZF^CPU_getprefix(0xF2)); //Reset the opcode when ZF doesn't match(needs to be 0 to keep looping).
 			}
 			if (CPU_Address_size[activeCPU]) //32-bit REP?
 			{
