@@ -449,6 +449,7 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 				if (memcmp(&savedtime,&currenttime,(size_t)((ptrnum)&currenttime.dst-(ptrnum)&currenttime))) //Different?
 				{
 					dolog("CMOS","Time divergeance overflow due to too late/early time to contain!");
+					CMOS.DATA.centuryisbinary = 1; //Enfore binary format, so that we don't overwrite a static value with an invalid one!
 				}
 			}
 		}
