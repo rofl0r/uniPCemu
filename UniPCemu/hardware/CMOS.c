@@ -359,7 +359,8 @@ OPTINLINE byte decodeBCDhour(byte hour)
 OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the current time!
 {
 	curtime->year = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Year,0); //The year to compare to!
-	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ 19:decodeBCD8(CMOS.DATA.DATA80.data[0x32],0))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
+	curtime->year += (CMOS.DATA.centuryisbinary?/*CMOS.DATA.DATA80.data[0x32]*/ ((curtime->year>=70)?19:20):decodeBCD8(CMOS.DATA.DATA80.data[0x32],0))*100; //Add the century! This value is the current year divided by 100, wrapped around at 100 centuries!
+	//1970-1999 and 2000-2069 can be expressed as simple 19th or 20th century, depending on the year, when binary century is to be applied, for compatibility with the timestamp.
 	curtime->month = decodeBCD8(CMOS.DATA.DATA80.info.RTC_Month,0); //The month to compare to!
 	curtime->day = decodeBCD8(CMOS.DATA.DATA80.info.RTC_DateOfMonth,0); //The day to compare to!
 	curtime->hour = decodeBCDhour(CMOS.DATA.DATA80.info.RTC_Hours); //H
