@@ -987,8 +987,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 word segmentWritten_tempSS;
 extern word RETF_popbytes; //How many to pop?
 
+byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
+
 byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
 {
+	byte RETF_segmentregister=0,RETF_whatsegment; //A segment register we're checking during a RETF instruction!
 	byte oldCPL= getCPL();
 	byte isDifferentCPL;
 	uint_32 tempesp;
@@ -1124,6 +1127,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						if (CPU8086_POPw(8,&REG_SP,0)) return 1; //POP SP!
 						REG_ESP &= 0xFFFF; //Only keep what we need!
 					}
+
+					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
@@ -1149,6 +1154,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					REG_ESP = tempesp;
+
+					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 				}
 			}
 
@@ -1195,6 +1202,59 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 			{
 				updateCPL(); //Update the CPL according to the mode!
+			}
+
+			if (RETF_segmentregister) //Are we to check the segment registers for validity during a RETF?
+			{
+				for (RETF_segmentregister = 0; RETF_segmentregister < NUMITEMS(RETF_checkSegmentRegisters); ++RETF_segmentregister) //Process all we need to check!
+				{
+					RETF_whatsegment = RETF_checkSegmentRegisters[RETF_segmentregister]; //What register to check?
+					word descriptor_index;
+					descriptor_index = getDescriptorIndex(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]); //What descriptor index?
+					if (descriptor_index) //Valid index(Non-NULL)?
+					{
+						if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+						{
+						invalidRETFsegment:
+							//Selector and Access rights are zeroed!
+							*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
+							if (isJMPorCALL == 3) //IRET?
+							{
+								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].AccessRights &= 0x7F; //Clear the valid flag only with IRET!
+							}
+							else //RETF?
+							{
+								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].AccessRights = 0; //Invalid!
+							}
+							continue; //Next register!
+						}
+					}
+					if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not present?
+					{
+						goto invalidRETFsegment; //Next register!
+					}
+					if (GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not data/readable code segment?
+					{
+						goto invalidRETFsegment; //Next register!
+					}
+					//We're either data or code!
+					if (EXECSEGMENT_ISEXEC(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Code?
+					{
+						if (!EXECSEGMENT_C(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Nonconforming? Invalid!
+						{
+							goto invalidRETFsegment; //Next register!
+						}
+						if (!EXECSEGMENT_R(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not readable? Invalid!
+						{
+							goto invalidRETFsegment; //Next register!
+						}
+					}
+					//We're either data or readable, conforming code!
+					if (GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])<MAX(getCPL(),getRPL(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]))) //Not privileged enough to handle said segment descriptor?
+					{
+						goto invalidRETFsegment; //Next register!
+					}
+				}
 			}
 		}
 		else //A fault has been raised? Abort!
