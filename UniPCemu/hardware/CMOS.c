@@ -431,6 +431,7 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 {
 	UniversalTimeOfDay tp;
 	accuratetime savedtime,currenttime;
+	recalccentury: //Recalculate the century in binary format, if possible!
 	CMOS_decodetime(&savedtime); //Get the currently stored time in the CMOS!
 	if (CMOS.DATA.cycletiming) //Time is according to emulated system?
 	{
@@ -438,6 +439,7 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 		tp.tv_usec = 0; //Relative!
 		goto updatetimecycleaccurateRTC; //Update time emulated using the RTC's normal functionality!
 	}
+
 	if (getUniversalTimeOfDay(&tp)==0) //Time gotten?
 	{
 		updatetimecycleaccurateRTC:
@@ -449,7 +451,11 @@ OPTINLINE void updateTimeDivergeance() //Update relative time to the clocks(time
 				if (memcmp(&savedtime,&currenttime,(size_t)((ptrnum)&currenttime.dst-(ptrnum)&currenttime))) //Different?
 				{
 					dolog("CMOS","Time divergeance overflow due to too late/early time to contain!");
-					CMOS.DATA.centuryisbinary = 1; //Enfore binary format, so that we don't overwrite a static value with an invalid one!
+					if (CMOS.DATA.centuryisbinary == 0) //Not binary format yet?
+					{
+						CMOS.DATA.centuryisbinary = 1; //Enfore binary format, so that we don't overwrite a static value with an invalid one!
+						goto recalccentury; //Recalculate century, if possible!
+					}
 				}
 			}
 		}
