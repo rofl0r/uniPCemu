@@ -445,6 +445,8 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	memset(&menuoptions,0,sizeof(menuoptions)); //Init all options that might be used!
 
+	saveCMOS(); //Make sure the CMOS is properly saved when discarding any changes in the Settings menu.
+
 	BIOS_LoadData(); //Now load/reset the BIOS
 	BIOS_Changed = 0; //Default: the BIOS hasn't been changed!
 	BIOS_SaveStat = 0; //Default: not saving!
