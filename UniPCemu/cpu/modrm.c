@@ -54,7 +54,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 		switch (MODRM_MOD(params->modrm)) //MOD?
 		{
 		case 0:
-			if (MODRM_RM(params->modrm) == 6) //[sword]?
+			if (MODRM_RM(params->modrm) == MODRM_MEM_DISP16) //[sword]?
 				return 2; //Word displacement!
 			else
 				return 0; //No displacement!
@@ -77,7 +77,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 		switch (MODRM_MOD(params->modrm)) //MOD?
 		{
 		case 0:
-			if ((MODRM_RM(params->modrm) == 5) || ((MODRM_RM(params->modrm)==4) && (SIB_BASE(params->SIB)==5))) //[dword] displacement?
+			if ((MODRM_RM(params->modrm) == MODRM_MEM_DISP32) || ((MODRM_RM(params->modrm)==MODRM_MEM_SIB) && (SIB_BASE(params->SIB)==MODRM_SIB_DISP32))) //[dword] displacement?
 				return 3; //DWord displacement!
 			else
 				return 0; //No displacement!
@@ -1055,14 +1055,14 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (cpudebugger) snprintf(result,resultsize,"EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			*useSS = 1; //Use SS default!
-			return (REG_EBP<<SIB_SCALE(params->SIB));
+			return (REG_EBP<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
 			if (mod==MOD_MEM) //We're disp32 instead?
 			{
 				if (cpudebugger) snprintf(result,resultsize,"%08X",disp32);
-				return effectivedisp; //Disp32 instead!
+				return 0; //Disp32 instead! This is handled by the scaled index only! This way, we prevent it from doubling the value instead of only a single time.
 			}
 			else //EBP!
 			{

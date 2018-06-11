@@ -108,6 +108,9 @@
 //Only in MOD0 instances, 32-bit address, instead of [EBP]:
 #define MODRM_MEM_DISP32 5
 
+//SIB Base EBP becomes 32-bit displacement.
+#define MODRM_SIB_DISP32 MODRM_REG_EBP
+
 //MOD:
 
 //e.g. [XXX] (location in memory)
