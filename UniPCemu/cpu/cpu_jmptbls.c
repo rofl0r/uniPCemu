@@ -244,16 +244,16 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{CPU8086_OPBE,NULL}, //BEh:
 		{CPU8086_OPBF,NULL}, //BFh:
 //0xC0:
-		{unkOP_8086,NULL}, //C0h: UNK
-		{unkOP_8086,NULL}, //C1h: UNK
+		{CPU8086_OPC2,NULL}, //C0h: UNK same as C2 on 8086
+		{CPU8086_OPC3,NULL}, //C1h: UNK same as C3 on 8086
 		{CPU8086_OPC2,NULL}, //C2h:
 		{CPU8086_OPC3,NULL}, //C3h:
 		{CPU8086_OPC4,NULL}, //C4h:
 		{CPU8086_OPC5,NULL}, //C5h:
 		{CPU8086_OPC6,NULL}, //C6h:
 		{CPU8086_OPC7,NULL}, //C7h:
-		{unkOP_8086,NULL}, //C8h: UNK
-		{unkOP_8086,NULL}, //C9h: UNK
+		{CPU8086_OPCA,NULL}, //C8h: UNK same as CA on 8086
+		{CPU8086_OPCB,NULL}, //C9h: UNK same as CB on 8086
 		{CPU8086_OPCA,NULL}, //CAh:
 		{CPU8086_OPCB,NULL}, //CBh:
 		{CPU8086_OPCC,NULL}, //CCh:
