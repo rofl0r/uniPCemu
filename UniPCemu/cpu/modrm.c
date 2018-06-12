@@ -2145,7 +2145,7 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 		}
 		result += modrm_addoffset; //Relative offset!
 
-		return result; //Give memory offset!
+		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
@@ -2176,7 +2176,7 @@ uint_32 modrm_lea32(MODRM_PARAMS *params, int whichregister) //For LEA instructi
 		}
 		result += modrm_addoffset; //Relative offset!
 
-		return result; //Give memory offset!
+		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
@@ -2233,7 +2233,7 @@ word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for
 			modrm_lastsegment = 0;
 			modrm_lastoffset = result;
 		}
-		return result; //Give memory offset!
+		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
@@ -2257,7 +2257,7 @@ uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister) //Gives address 
 			modrm_lastsegment = 0;
 			modrm_lastoffset = result;
 		}
-		return result; //Give memory offset!
+		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
 	}
