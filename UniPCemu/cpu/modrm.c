@@ -986,8 +986,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_EAX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"EAX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+EAX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EAX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
@@ -999,8 +1000,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_EBX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"EBX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+EBX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EBX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
@@ -1013,8 +1015,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_ECX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"ECX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+ECX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_ECX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
@@ -1026,8 +1029,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_EDX:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"EDX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+EDX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EDX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
@@ -1039,11 +1043,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_ESP: //none/ESP(base), depending on base/index.
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[1] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) safestrcpy(result,resultsize,&textnr[1]); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
-			return effectivedisp;
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"%s",textnr); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
+			return effectivedisp; //REG+DISP. No reg when ESP!
 		}
-		else //Direct index?
+		else //Base?
 		{
 			if (cpudebugger) safestrcpy(result,resultsize,"ESP");
 			*useSS = 1; //Use SS default!
@@ -1053,7 +1058,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_EBP:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (cpudebugger) snprintf(result,resultsize,"EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			*useSS = 1; //Use SS default!
 			return (REG_EBP<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
@@ -1075,8 +1082,9 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_ESI:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"ESI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+ESI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_ESI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
@@ -1088,13 +1096,14 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 	case MODRM_REG_EDI:
 		if (is_base==0) //We're the scaled index?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) snprintf(result,resultsize,"EDI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
+			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
+			if (cpudebugger) snprintf(result,resultsize,"+EDI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EDI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
 		{
-			if (cpudebugger) snprintf(result,resultsize,"%sEDI",textnr);
+			if (cpudebugger) safestrcpy(result,resultsize,"EDI");
 			return REG_EDI;
 		}
 		break;
@@ -1321,14 +1330,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 			if (cpudebugger)
 			{
-				if (indexstr[0]) //Valid index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s+%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
-				}
-				else //No index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
-				}
+				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
 			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
@@ -1407,14 +1409,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 			if (cpudebugger)
 			{
-				if (indexstr[0]) //Valid index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s+%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
-				}
-				else //No index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
-				}
+				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
 			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
@@ -1487,14 +1482,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 			if (cpudebugger)
 			{
-				if (indexstr[0]) //Valid index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s+%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
-				}
-				else //No index?
-				{
-					snprintf(result->text,sizeof(result->text),"%s %s:[%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr); //Give addr with base only!
-				}
+				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
 			result->mem_segment = CPU_segment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			result->mem_offset = base+index;
