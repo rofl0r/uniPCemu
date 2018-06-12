@@ -775,41 +775,41 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 	{
 	case MODRM_SEG_ES:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"ES");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"ES");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_CS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CS");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CS");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_SS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"SS");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"SS");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_DS:
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DS");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DS");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_FS:
 		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"FS");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"FS");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 	case MODRM_SEG_GS:
 		if (EMULATED_CPU<CPU_80386) goto unkseg; //Unsupported on 80(1)86!
 		result->reg16 = CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"GS");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"GS");
 		result->is_segmentregister = 1; //We're a segment register!
 		break;
 
 	default: //Catch handler!
 		unkseg:
 		result->reg16 = NULL; //Unknown!
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"<UNKSREG>");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKSREG>");
 		break;
 
 	}
@@ -823,20 +823,20 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 	{
 	case MODRM_REG_CR0:
 		result->reg32 = &CPU[activeCPU].registers->CR0;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CR0");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CR0");
 		break;
 	case MODRM_REG_CR2:
 		result->reg32 = &CPU[activeCPU].registers->CR2;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CR2");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CR2");
 		break;
 	case MODRM_REG_CR3:
 		result->reg32 = &CPU[activeCPU].registers->CR3;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CR3");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CR3");
 		break;
 	case MODRM_REG_CR4:
 		if (EMULATED_CPU<CPU_80486) goto unkcreg; //Invalid: register 4 doesn't exist?
 		result->reg32 = &CPU[activeCPU].registers->CR[4];
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CR4");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CR4");
 		break;
 	case MODRM_REG_CR1:
 	case MODRM_REG_CR5:
@@ -846,7 +846,7 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 	default: //Catch handler!
 		unkcreg:
 		result->reg32 = NULL; //Unknown!
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"<UNKCREG>");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKCREG>");
 		break;
 	}
 }
@@ -859,19 +859,19 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 	{
 	case MODRM_REG_DR0:
 		result->reg32 = &CPU[activeCPU].registers->DR0;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR0");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR0");
 		break;
 	case MODRM_REG_DR1:
 		result->reg32 = &CPU[activeCPU].registers->DR1;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR1");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR1");
 		break;
 	case MODRM_REG_DR2:
 		result->reg32 = &CPU[activeCPU].registers->DR2;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR2");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR2");
 		break;
 	case MODRM_REG_DR3:
 		result->reg32 = &CPU[activeCPU].registers->DR3;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR3");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR3");
 		break;
 	case MODRM_REG_DR4: //4 becomes 6 until Pentium, Pentium either redirects to 6(386-compatible) when the Debug Extension bit in CR4 is clear(Pentium) or when 80386/80486. Else CR4 raises #UD.
 		if (EMULATED_CPU>=CPU_80486) //80486+? DR4 exists, with extra rules on redirecting!
@@ -884,7 +884,7 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 		//Passthrough to DR6!
 	case MODRM_REG_DR6:
 		result->reg32 = &CPU[activeCPU].registers->DR6;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR6");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR6");
 		break;
 	case MODRM_REG_DR5:
 		if (EMULATED_CPU>=CPU_80486) //80486+? DR4 exists, with extra rules on redirecting!
@@ -897,13 +897,13 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 		//Passthrough to DR7!
 	case MODRM_REG_DR7:
 		result->reg32 = &CPU[activeCPU].registers->DR7;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DR7");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DR7");
 		break;
 
 	default: //Catch handler!
 		unkdreg:
 		result->reg32 = NULL; //Unknown!
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"<UNKDREG>");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKDREG>");
 		break;
 	}
 }
@@ -916,11 +916,11 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 	{
 	case MODRM_REG_TR6:
 		result->reg32 = &CPU[activeCPU].registers->TR6;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"TR6");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"TR6");
 		break;
 	case MODRM_REG_TR7:
 		result->reg32 = &CPU[activeCPU].registers->TR7;
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"TR7");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"TR7");
 		break;
 	case MODRM_REG_TR0:
 	case MODRM_REG_TR1:
@@ -930,7 +930,7 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 	case MODRM_REG_TR5:
 	default: //Catch handler!
 		result->reg32 = NULL; //Unknown!
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"<UNKTREG>");
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKTREG>");
 		break;
 	}
 }
@@ -972,7 +972,7 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 			effectivedisp = 0; //Nothing!
 			break;
 	}
-	if (cpudebugger)
+	if (unlikely(cpudebugger))
 	{
 		if ((mod==1) && (disprel&0x80)) //Negative instead?
 		{
@@ -988,12 +988,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+EAX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EAX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EAX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"EAX");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EAX");
 			return REG_EAX;
 		}
 		break;
@@ -1002,13 +1002,13 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+EBX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EBX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EBX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
 			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
-			if (cpudebugger) safestrcpy(result,resultsize,"EBX");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EBX");
 			return REG_EBX;
 		}
 		break;
@@ -1017,12 +1017,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+ECX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+ECX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_ECX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"ECX");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"ECX");
 			return REG_ECX;
 		}
 		break;
@@ -1031,12 +1031,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+EDX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EDX*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EDX<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"EDX");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EDX");
 			return REG_EDX;
 		}
 		break;
@@ -1045,12 +1045,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"%s",textnr); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"%s",textnr); //None, according to http://www.sandpile.org/x86/opc_sib.htm !
 			return effectivedisp; //REG+DISP. No reg when ESP!
 		}
 		else //Base?
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"ESP");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"ESP");
 			*useSS = 1; //Use SS default!
 			return REG_ESP;
 		}
@@ -1060,7 +1060,7 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			*useSS = 1; //Use SS default!
 			return (REG_EBP<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
@@ -1068,12 +1068,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod==MOD_MEM) //We're disp32 instead?
 			{
-				if (cpudebugger) snprintf(result,resultsize,"%08X",disp32);
+				if (unlikely(cpudebugger)) snprintf(result,resultsize,"%08X",disp32);
 				return 0; //Disp32 instead! This is handled by the scaled index only! This way, we prevent it from doubling the value instead of only a single time.
 			}
 			else //EBP!
 			{
-				if (cpudebugger) safestrcpy(result,resultsize,"EBP");
+				if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EBP");
 				*useSS = 1; //Use SS default!
 				return REG_EBP;
 			}
@@ -1084,12 +1084,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+ESI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+ESI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_ESI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"ESI");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"ESI");
 			return REG_ESI;
 		}
 		break;
@@ -1098,12 +1098,12 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		{
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) == MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
-			if (cpudebugger) snprintf(result,resultsize,"+EDI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
+			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EDI*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
 			return (REG_EDI<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Index? Entry exists!
 		{
-			if (cpudebugger) safestrcpy(result,resultsize,"EDI");
+			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EDI");
 			return REG_EDI;
 		}
 		break;
@@ -1212,42 +1212,42 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //Which register?
 		{
 		case MODRM_REG_EAX: //AX?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"EAX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EAX");
 			result->reg32 = &REG_EAX; //Give addr!
 			return;
 			break;
 		case MODRM_REG_EBX: //BX?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"EBX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EBX");
 			result->reg32 = &REG_EBX; //Give addr!
 			return;
 			break;
 		case MODRM_REG_ECX: //CX?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"ECX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"ECX");
 			result->reg32 = &REG_ECX; //Give addr!
 			return;
 			break;
 		case MODRM_REG_EDX: //DX?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"EDX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EDX");
 			result->reg32 = &REG_EDX; //Give addr!
 			return;
 			break;
 		case MODRM_REG_EBP: //BP?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"EBP");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EBP");
 			result->reg32 = &REG_EBP; //Give addr!
 			return;
 			break;
 		case MODRM_REG_ESP: //SP?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"ESP");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"ESP");
 			result->reg32 = &REG_ESP; //Give addr!
 			return;
 			break;
 		case MODRM_REG_ESI: //SI?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"ESI");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"ESI");
 			result->reg32 = &REG_ESI; //Give addr!
 			return;
 			break;
 		case MODRM_REG_EDI: //DI?
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"EDI");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EDI");
 			result->reg32 = &REG_EDI; //Give addr!
 			return;
 			break;
@@ -1281,42 +1281,42 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_EAX: //[EAX] etc.?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EAX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EAX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EAX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBX: //EBX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EBX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EBX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ECX: //ECX
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ECX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ECX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ECX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDX: //EDX
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ESI: //ESI
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ESI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ESI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ESI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDI: //EDI
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1328,7 +1328,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),0,params->displacement.dword,0,&indexstr[0],sizeof(indexstr),&useSS);
 			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),0,params->displacement.dword,1,&basestr[0],sizeof(basestr),&useSS);
 
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
@@ -1338,8 +1338,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_DISP32: //EBP->32-bit Displacement-Only mode?
-			if (cpudebugger) snprintf(textnr,sizeof(textnr),"%08X",params->displacement.dword); //Text!
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr);
+			if (unlikely(cpudebugger)) snprintf(textnr,sizeof(textnr),"%08X",params->displacement.dword); //Text!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = params->displacement.dword; //Give addr (Displacement Only)!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1362,42 +1362,42 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_EAX: //EAX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EAX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EAX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EAX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBX: //EBX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EBX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EBX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ECX: //ECX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ECX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ECX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ECX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDX: //EDX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ESI: //ESI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ESI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ESI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ESI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDI: //EDI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1407,7 +1407,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),1,params->displacement.low16_low,0,&indexstr[0],sizeof(indexstr),&useSS);
 			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),1,params->displacement.low16_low,1,&basestr[0],sizeof(basestr),&useSS);
 
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
@@ -1417,7 +1417,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EBP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1431,46 +1431,46 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		}
 		break;
 	case MOD_MEM_DISP32: //[register+DISP32]
-		if (cpudebugger) snprintf(textnr,sizeof(textnr),"%08X",params->displacement.dword); //Text!
+		if (unlikely(cpudebugger)) snprintf(textnr,sizeof(textnr),"%08X",params->displacement.dword); //Text!
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_EAX: //EAX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EAX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EAX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EAX+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBX: //EBX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EBX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EBX+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ECX: //ECX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ECX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ECX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ECX+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDX: //EDX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDX+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_ESI: //ESI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[ESI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[ESI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_ESI+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
 			result->segmentregister_index = CPU_segment_index(CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EDI: //EDI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EDI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EDI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			result->mem_offset = REG_EDI+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1480,7 +1480,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			index = modrm_SIB_reg(params,SIB_INDEX(params->SIB),2,params->displacement.dword,0,&indexstr[0],sizeof(indexstr),&useSS);
 			base = modrm_SIB_reg(params,SIB_BASE(params->SIB),2,params->displacement.dword,1,&basestr[0],sizeof(basestr),&useSS);
 
-			if (cpudebugger)
+			if (unlikely(cpudebugger))
 			{
 				snprintf(result->text,sizeof(result->text),"%s %s:[%s%s]",modrm_sizes[params->size],CPU_textsegment(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS),basestr,indexstr); //Give addr!
 			}
@@ -1490,7 +1490,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[EBP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1605,40 +1605,40 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //What register to use?
 		{
 		case MODRM_REG_AX: //AX
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"AX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"AX");
 			result->reg16 = &REG_AX;
 			return;
 		case MODRM_REG_CX: //CX
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CX");
 			result->reg16 = &REG_CX;
 			return;
 		case MODRM_REG_DX: //DX
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DX");
 			result->reg16 = &REG_DX;
 			return;
 		case MODRM_REG_BX: //BX
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"BX");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"BX");
 			result->reg16 = &REG_BX;
 			return;
 		case MODRM_REG_SP: //SP
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"SP");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"SP");
 			result->reg16 = &REG_SP;
 			return;
 		case MODRM_REG_BP: //BP
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"BP");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"BP");
 			result->reg16 = &REG_BP;
 			return;
 		case MODRM_REG_SI: //SI
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"SI");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"SI");
 			result->reg16 = &REG_SI;
 			return;
 		case MODRM_REG_DI: //DI
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DI");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DI");
 			result->reg16 = &REG_DI;
 			return;
 		}
 		result->isreg = 0; //Unknown!
-		if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"<UNKREG>"); //Unknown!
+		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKREG>"); //Unknown!
 
 		halt_modrm("Unknown modr/m16REG: MOD:%u, REG: %u, operand size: %u", MODRM_MOD(params->modrm), reg, CPU_Operand_size);
 		return;
@@ -1662,7 +1662,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_BXSI: //BX+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1671,7 +1671,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 7; //Based indexed!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1680,7 +1680,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 8; //Based indexed!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1689,7 +1689,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 8; //Based indexed!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1698,7 +1698,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 7; //Based indexed!
 			break;
 		case MODRM_MEM_SI: //SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[SI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_SI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1707,7 +1707,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		case MODRM_MEM_DI: //DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[DI]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_DI; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1716,8 +1716,8 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 5; //Register Indirect!
 			break;
 		case MODRM_MEM_DISP16: //BP = disp16?
-			if (cpudebugger) snprintf(textnr,sizeof(textnr),"%04X",params->displacement.low16); //Text!
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[%04X]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),params->displacement.low16); //Simple [word] displacement!
+			if (unlikely(cpudebugger)) snprintf(textnr,sizeof(textnr),"%04X",params->displacement.low16); //Text!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[%04X]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),params->displacement.low16); //Simple [word] displacement!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1726,7 +1726,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 6; //Direct!
 			break;
 		case MODRM_MEM_BX: //BX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS)); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1755,7 +1755,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_BXSI: //BX+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1765,7 +1765,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1775,7 +1775,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1785,7 +1785,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1795,7 +1795,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_SI: //SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[SI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_SI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1804,7 +1804,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_DI: //DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[DI%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_DI+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1813,7 +1813,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BP: //BP?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1822,7 +1822,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BX: //BX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1840,11 +1840,11 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		result->is16bit = 1; //16-bit offset!
 		break;
 	case MOD_MEM_DISP16: //[register+DISP16]
-		if (cpudebugger) snprintf(textnr,sizeof(textnr),"%04X",params->displacement.low16); //Text!
+		if (unlikely(cpudebugger)) snprintf(textnr,sizeof(textnr),"%04X",params->displacement.low16); //Text!
 		switch (reg) //Which register?
 		{
 		case MODRM_MEM_BXSI: //BX+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_SI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1854,7 +1854,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BXDI: //BX+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+REG_DI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1864,7 +1864,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPSI: //BP+SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_SI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1874,7 +1874,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_BPDI: //BP+DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+REG_DI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1884,7 +1884,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->havethreevariables = 1; //3 params added!
 			break;
 		case MODRM_MEM_SI: //SI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[SI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_SI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1893,7 +1893,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_DI: //DI?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[DI+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_DI+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -1902,7 +1902,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BP: //BP?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			offset = REG_BP+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1911,7 +1911,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			params->EA_cycles = 9; //Register relative!
 			break;
 		case MODRM_MEM_BX: //REG_BX?
-			if (cpudebugger) snprintf(result->text,sizeof(result->text),"%s %s:[BX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[BX+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_DS),textnr); //Give addr!
 			result->mem_segment = CPU_segment(CPU_SEGMENT_DS);
 			offset = REG_BX+params->displacement.low16; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_DS);
@@ -2016,35 +2016,35 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		{
 		case MODRM_REG_AL:
 			result->reg8 = &REG_AL;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"AL");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"AL");
 			return;
 		case MODRM_REG_CL:
 			result->reg8 = &REG_CL;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CL");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CL");
 			return;
 		case MODRM_REG_DL:
 			result->reg8 = &REG_DL;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DL");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DL");
 			return;
 		case MODRM_REG_BL:
 			result->reg8 = &REG_BL;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"BL");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"BL");
 			return;
 		case MODRM_REG_AH:
 			result->reg8 = &REG_AH;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"AH");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"AH");
 			return;
 		case MODRM_REG_CH:
 			result->reg8 = &REG_CH;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"CH");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"CH");
 			return;
 		case MODRM_REG_DH:
 			result->reg8 = &REG_DH;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"DH");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DH");
 			return;
 		case MODRM_REG_BH:
 			result->reg8 = &REG_BH;
-			if (cpudebugger) safestrcpy(result->text,sizeof(result->text),"BH");
+			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"BH");
 			return;
 		}
 		result->isreg = 0; //Unknown register!
