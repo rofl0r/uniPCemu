@@ -766,7 +766,7 @@ word dummy_ptr16; //16-bit dummy ptr!
 OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
 {
 	result->isreg = 1; //Register!
-	result->regsize = 2; //Word register!
+	result->regsize = 1; //Word register!
 	if (EMULATED_CPU==CPU_8086) //808X?
 	{
 		reg &= 0x3; //Incomplete decoding on 808X!
@@ -818,7 +818,7 @@ OPTINLINE void modrm_get_segmentregister(byte reg, MODRM_PTR *result) //REG1/2 i
 OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
 {
 	result->isreg = 1; //Register!
-	result->regsize = 3; //DWord register!
+	result->regsize = 2; //DWord register!
 	switch (reg) //What control register?
 	{
 	case MODRM_REG_CR0:
@@ -854,7 +854,7 @@ OPTINLINE void modrm_get_controlregister(byte reg, MODRM_PTR *result) //REG1/2 i
 OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
 {
 	result->isreg = 1; //Register!
-	result->regsize = 3; //DWord register!
+	result->regsize = 2; //DWord register!
 	switch (reg) //What debug register?
 	{
 	case MODRM_REG_DR0:
@@ -911,7 +911,7 @@ OPTINLINE void modrm_get_debugregister(byte reg, MODRM_PTR *result) //REG1/2 is 
 OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is segment register!
 {
 	result->isreg = 1; //Register!
-	result->regsize = 3; //DWord register!
+	result->regsize = 2; //DWord register!
 	switch (reg) //What debug register?
 	{
 	case MODRM_REG_TR6:
@@ -1208,7 +1208,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	if (isregister) //Is register data?
 	{
 		result->isreg = 1; //Is register!
-		result->regsize = 4; //DWord register!
+		result->regsize = 2; //DWord register!
 		switch (reg) //Which register?
 		{
 		case MODRM_REG_EAX: //AX?
@@ -1417,7 +1417,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+unsigned2signed8(params->displacement.low16_low); //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1490,7 +1490,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->segmentregister_index = CPU_segment_index(useSS?CPU_SEGMENT_SS:CPU_SEGMENT_DS);
 			break;
 		case MODRM_MEM_EBP: //EBP?
-			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
+			if (unlikely(cpudebugger)) snprintf(result->text,sizeof(result->text),"%s %s:[EBP+%s]",modrm_sizes[params->size],CPU_textsegment(CPU_SEGMENT_SS),textnr);
 			result->mem_segment = CPU_segment(CPU_SEGMENT_SS);
 			result->mem_offset = REG_EBP+params->displacement.dword; //Give addr!
 			result->segmentregister = CPU_segment_ptr(CPU_SEGMENT_SS);
@@ -1601,7 +1601,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	if (isregister) //Is register data?
 	{
 		result->isreg = 1; //Is register!
-		result->regsize = 2; //Word register!
+		result->regsize = 1; //Word register!
 		switch (reg) //What register to use?
 		{
 		case MODRM_REG_AX: //AX
@@ -2011,7 +2011,7 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 	if (isregister) //Is register data?
 	{
 		result->isreg = 1; //Register!
-		result->regsize = 1; //Byte register!
+		result->regsize = 0; //Byte register!
 		switch (reg)
 		{
 		case MODRM_REG_AL:
