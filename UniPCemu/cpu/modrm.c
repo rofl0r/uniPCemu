@@ -286,7 +286,7 @@ byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		offset = params->info[whichregister];
+		offset = params->info[whichregister].mem_offset;
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = params->info[whichregister].mem_segment;
@@ -312,7 +312,7 @@ byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		offset = params->info[whichregister];
+		offset = params->info[whichregister].mem_offset;
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = params->info[whichregister].mem_segment;
@@ -346,7 +346,7 @@ byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		offset = params->info[whichregister]; //Load the base offset!
+		offset = params->info[whichregister].mem_offset; //Load the base offset!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = params->info[whichregister].mem_segment;
@@ -434,7 +434,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		break;
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
-		offset = params->info[whichregister]; //Load the base offset!
+		offset = params->info[whichregister].mem_offset; //Load the base offset!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = params->info[whichregister].mem_segment;
@@ -2122,17 +2122,13 @@ void modrm_text32(MODRM_PARAMS *params, int whichregister, char *result)
 
 word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
-	INLINEREGISTER word result;
+	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
+		//Don't update the last offset!
 		last_modrm = 1; //ModR/M!
-		result = modrm_lastoffset; //Last offset!
-		if (!modrm_addoffset) //We're the offset itself?
-		{
-			modrm_lastsegment = 0; //No segment used!
-			modrm_lastoffset = result&params->info[whichregister].memorymask; //Load the last offset!
-		}
+		result = modrm_lastoffset;
 		result += modrm_addoffset; //Add offset!
 		return result; //No registers allowed officially, but we return the last offset in this case (undocumented)!
 	case 2: //Memory?
@@ -2159,11 +2155,6 @@ uint_32 modrm_lea32(MODRM_PARAMS *params, int whichregister) //For LEA instructi
 	case 1: //Register?
 		last_modrm = 1; //ModR/M!
 		result = modrm_lastoffset; //Last offset!
-		if (!modrm_addoffset) //We're the offset itself?
-		{
-			modrm_lastsegment = 0; //No segment used!
-			modrm_lastoffset = result&params->info[whichregister].memorymask; //Load the last offset!
-		}
 		result += modrm_addoffset; //Add offset!
 		return result; //No registers allowed officially, but we return the last offset in this case (undocumented)!
 	case 2: //Memory?
@@ -2217,22 +2208,20 @@ void modrm_lea32_text(MODRM_PARAMS *params, int whichregister, char *result) //F
 //modrm_offset16: same as lea16, but allow registers too!
 word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for JMP, CALL etc.!
 {
-	INLINEREGISTER word result;
+	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		modrm_lastsegment = 0;
-		modrm_lastoffset = *params->info[whichregister].reg16; //Last offset is the register itself!
 		return *params->info[whichregister].reg16; //Give register value!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		result = params->info[whichregister].mem_offset; //Load offset!
-		result += modrm_addoffset; //Add offset!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = 0;
 			modrm_lastoffset = result&params->info[whichregister].memorymask;
 		}
+		result += modrm_addoffset; //Add offset!
 		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
@@ -2245,18 +2234,16 @@ uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister) //Gives address 
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
-		modrm_lastsegment = 0;
-		modrm_lastoffset = *params->info[whichregister].reg32&params->info[whichregister].memorymask; //Last offset is the register itself!
 		return *params->info[whichregister].reg32; //Give register value!
 	case 2: //Memory?
 		last_modrm = 1; //ModR/M!
 		result = params->info[whichregister].mem_offset; //Load offset!
-		result += modrm_addoffset; //Add offset!
 		if (!modrm_addoffset) //We're the offset itself?
 		{
 			modrm_lastsegment = 0;
 			modrm_lastoffset = result&params->info[whichregister].memorymask;
 		}
+		result += modrm_addoffset; //Add offset!
 		return result&params->info[whichregister].memorymask; //Give memory offset!
 	default:
 		return 0; //Unknown!
@@ -2327,7 +2314,6 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 		{
 			modrm_lastsegment = params->info[whichregister].mem_segment;
 			modrm_lastoffset = params->info[whichregister].mem_offset;
-			modrm_lastoffset += modrm_addoffset;
 			modrm_lastoffset &= params->info[whichregister].memorymask; //Mask!
 		}
 		return NULL; //We don't do memory addresses! Use direct memory access here!
