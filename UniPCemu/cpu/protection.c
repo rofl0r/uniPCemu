@@ -1229,11 +1229,11 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							continue; //Next register!
 						}
 					}
-					if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not present?
+					if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])==0) //Not present?
 					{
 						goto invalidRETFsegment; //Next register!
 					}
-					if (GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not data/readable code segment?
+					if (GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])==0) //Not data/readable code segment?
 					{
 						goto invalidRETFsegment; //Next register!
 					}
