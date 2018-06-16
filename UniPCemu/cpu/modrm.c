@@ -1061,7 +1061,7 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 			if (mod == 0) textnr[0] = '\0'; //No displacement on mod 0!
 			if ((mod == MOD_MEM) && (SIB_BASE(params->SIB) != MODRM_REG_EBP)) { disprel = effectivedisp = 0; } //No displacement on mod 0 when using non-base only mode!
 			if (unlikely(cpudebugger)) snprintf(result,resultsize,"+EBP*%i%s",(1<<SIB_SCALE(params->SIB)),textnr);
-			*useSS = 1; //Use SS default!
+			//*useSS = 1; //Use SS default! Only with (E)SP/(E)BP base!
 			return (REG_EBP<<SIB_SCALE(params->SIB))+effectivedisp;
 		}
 		else //Base?
