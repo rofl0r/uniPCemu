@@ -4011,7 +4011,7 @@ void CPU8086_OPF5(){modrm_generateInstructionTEXT("CMC",0,0,PARAM_NONE); FLAGW_C
 void CPU8086_OPF8(){modrm_generateInstructionTEXT("CLC",0,0,PARAM_NONE); FLAGW_CF(0); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
 void CPU8086_OPF9(){modrm_generateInstructionTEXT("STC",0,0,PARAM_NONE); FLAGW_CF(1); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
 void CPU8086_OPFA(){modrm_generateInstructionTEXT("CLI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAGW_IF(0); } if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
-void CPU8086_OPFB(){modrm_generateInstructionTEXT("STI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAGW_IF(1); } if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
+void CPU8086_OPFB(){modrm_generateInstructionTEXT("STI",0,0,PARAM_NONE); if (checkSTICLI()) { FLAGW_IF(1); CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
 void CPU8086_OPFC(){modrm_generateInstructionTEXT("CLD",0,0,PARAM_NONE); FLAGW_DF(0); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
 void CPU8086_OPFD(){modrm_generateInstructionTEXT("STD",0,0,PARAM_NONE); FLAGW_DF(1); if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 2; } /*Special timing!*/}
 
