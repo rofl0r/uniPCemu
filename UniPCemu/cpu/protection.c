@@ -1329,15 +1329,17 @@ MMU: Memory limit!
 OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_32 offset)
 {
 	//Execute address test?
-	INLINEREGISTER byte isvalid;
+	INLINEREGISTER byte isvalid,topdown;
 	INLINEREGISTER uint_32 limit; //The limit!
 	uint_32 limits[2]; //What limit to apply?
 	limits[0] = limit = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
 	limits[1] = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
 
+	topdown = ((descriptor->AccessRights&0x1C)==0x14); //Topdown segment?
 	isvalid = (offset<=limit); //Valid address range!
-	isvalid ^= ((descriptor->AccessRights&0x1C)==0x14); //Apply expand-down data segment, if required, which reverses valid!
+	isvalid ^= topdown; //Apply expand-down data segment, if required, which reverses valid!
+	isvalid &= ((((SEGDESCPTR_NONCALLGATE_D_B(descriptor)==0) & (offset>0xFFFF)) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
 	isvalid &= 1; //Only 1-bit testing!
 	return isvalid; //Are we valid?
 }
