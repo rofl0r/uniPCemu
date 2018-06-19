@@ -189,7 +189,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (segdesc!=-1) && (
+	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0&0x40000) && (EMULATED_CPU>=CPU_80486) && (segdesc!=-1) && (
 			((offset&7) && (subbyte==0x20))||((offset&3) && (subbyte==0x10))||((offset&1) && (subbyte==0x8))
 			))) //Aligment enforced and wrong? Don't apply on internal accesses!
 	{
