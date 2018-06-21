@@ -182,7 +182,7 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 
 uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 //readflags = 1|(opcode<<1) for reads! 0 for writes!
-byte checkMMUaccess(sword segdesc, word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	static byte debuggertype[4] = {PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION};
 	INLINEREGISTER byte dt;

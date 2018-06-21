@@ -1339,7 +1339,7 @@ OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_64 offset)
 	topdown = ((descriptor->AccessRights&0x1C)==0x14); //Topdown segment?
 	isvalid = (offset<=(uint_64)limit); //Valid address range!
 	isvalid ^= topdown; //Apply expand-down data segment, if required, which reverses valid!
-	isvalid &= ((((offset>(0xFFFF|(0xFFFF<<(SEGDESCPTR_NONCALLGATE_D_B(descriptor)<<4))) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
+	isvalid &= (((offset>(0xFFFF|(0xFFFF<<(SEGDESCPTR_NONCALLGATE_D_B(descriptor)<<4)))) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
 	isvalid &= 1; //Only 1-bit testing!
 	return isvalid; //Are we valid?
 }
@@ -1408,7 +1408,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 }
 
 //Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
-int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
+int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, int forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	byte rights;
 	//Determine the Limit!
