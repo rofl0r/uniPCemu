@@ -1326,7 +1326,7 @@ MMU: Memory limit!
 
 */
 
-OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_32 offset)
+OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_64 offset)
 {
 	//Execute address test?
 	INLINEREGISTER byte isvalid,topdown;
@@ -1337,16 +1337,16 @@ OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_32 offset)
 	limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity!
 
 	topdown = ((descriptor->AccessRights&0x1C)==0x14); //Topdown segment?
-	isvalid = (offset<=limit); //Valid address range!
+	isvalid = (offset<=(uint_64)limit); //Valid address range!
 	isvalid ^= topdown; //Apply expand-down data segment, if required, which reverses valid!
-	isvalid &= ((((SEGDESCPTR_NONCALLGATE_D_B(descriptor)==0) & (offset>0xFFFF)) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
+	isvalid &= ((((offset>(0xFFFF|(0xFFFF<<(SEGDESCPTR_NONCALLGATE_D_B(descriptor)<<4))) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
 	isvalid &= 1; //Only 1-bit testing!
 	return isvalid; //Are we valid?
 }
 
 byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
-byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
+byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
 	//First: type checking!
 

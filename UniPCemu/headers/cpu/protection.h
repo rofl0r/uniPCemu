@@ -23,8 +23,8 @@ int get_segment_index(word *location);
 void protection_nextOP(); //We're executing the next OPcode?
 byte segmentWritten(int segment, word value, byte isJMPorCALL); //A segment register has been written to! isJMPorCALL: 1=JMP, 2=CALL.
 
-int CPU_MMU_checklimit(int segment, word segmentval, uint_32 offset, int forreading, byte is_offset16); //Determines the limit of the segment, forreading=2 when reading an opcode!
-byte CPU_MMU_checkrights(int segment, word segmentval, uint_32 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16); //Check rights for VERR/VERW!
+int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, int forreading, byte is_offset16); //Determines the limit of the segment, forreading=2 when reading an opcode!
+byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16); //Check rights for VERR/VERW!
 
 byte CPU_faultraised(byte type); //A fault has been raised (286+)?
 
