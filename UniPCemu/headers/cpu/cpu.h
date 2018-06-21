@@ -940,6 +940,7 @@ typedef struct PACKED
 	byte resetPending; //Is a CPU reset pending?
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
 	byte is_paging; //Are we paging?
+	uint_64 address_size; //Effective address size for the current instruction!
 } CPU_type;
 #include "headers/endpacked.h" //End of packed type!
 

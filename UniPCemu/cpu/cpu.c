@@ -158,18 +158,18 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP+1)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+1,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP+2)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+2,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP+3)&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+3,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -196,18 +196,18 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP+1)&getstackaddrsizelimiter(),1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+1,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP+2)&getstackaddrsizelimiter(),1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+2,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP+3)&getstackaddrsizelimiter(),1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+3,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -1172,6 +1172,8 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	{
 		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
 	}
+
+	CPU[activeCPU].address_size = (0xFFFF | (0xFFFF<<(CPU_Address_size[activeCPU]<<4))); //Effective address size for this instruction!
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!

@@ -408,7 +408,7 @@ void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 }
 
-byte LOADALL386_checkMMUaccess(word segment, uint_32 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Difference with normal checks: No segment is used for the access: it's a direct memory access!
+byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Difference with normal checks: No segment is used for the access: it's a direct memory access!
 {
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
@@ -511,10 +511,10 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
 		for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex)
 		{
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+(readindex<<2),1,getCPL(),1,0|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|1),1,getCPL(),1,1|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|2),1,getCPL(),1,2|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,REG_EDI+((readindex<<2)|3),1,getCPL(),1,3|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size),1,getCPL(),1,0|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+1,1,getCPL(),1,1|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+2,1,getCPL(),1,2|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+3,1,getCPL(),1,3|0x10)) return; //Abort on fault!
 		}
 		++CPU[activeCPU].instructionstep; //Finished check!
 	}

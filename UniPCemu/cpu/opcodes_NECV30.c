@@ -77,8 +77,8 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 		{
 			if (custommem)
 			{
-				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset,0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size),0,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size)+1,0,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
 				if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val,!CPU_Address_size[activeCPU])) return; //Write to memory directly!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			}
