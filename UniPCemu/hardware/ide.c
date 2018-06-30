@@ -3328,7 +3328,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 {
 	byte counter, lowbyte, highbyte;
 	word length;
-	length = (word)safestrlen((char *)s,(sizeinwords<<1)); //Check the length for the copy!
+	length = (word)safestrlen((char *)s,((size_t)sizeinwords<<(size_t)1)); //Check the length for the copy!
 	for (counter=0;counter<sizeinwords;++counter) //Step words!
 	{
 		lowbyte = highbyte = 0x20; //Initialize to unused!

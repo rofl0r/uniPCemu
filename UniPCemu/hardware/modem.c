@@ -1063,8 +1063,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					handleQuickDial: //Handle a quick dial!
 					pos = posbackup; //Reverse to the dial command!
 					--pos; //Return to the dial command!
-					if (n0 > 10) goto invalidPhonebookNumberDial;
-					safestrcpy((char *)&modem.ATcommand[pos],sizeof(modem.ATcommand)-pos,&BIOS_Settings.phonebook[n0][0]); //Select the phonebook entry based on the number to dial!
+					if (n0 > NUMITEMS(BIOS_Settings.phonebook)) goto invalidPhonebookNumberDial;
+					safestrcpy((char *)&modem.ATcommand[pos],sizeof(modem.ATcommand)-pos,(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
 					if (modem.ATcommand[pos] != 'S') //Not another phonebook entry?
 					{
 						goto do_ATD; //Retry with the new command!
@@ -1556,6 +1556,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				case '8':
 				case '9': //Might be phonebook?
 					n0 = (modem.ATcommand[pos - 1])-(byte)'0'; //Find the number that's to use!
+					if (n0 >= NUMITEMS(BIOS_Settings.phonebook))
+					{
+						n0 = 10; //Invalid entry!
+						goto handlePhoneNumberEntry; //Handle it!
+					}
 					c = &BIOS_Settings.phonebook[n0][0]; //The phonebook entry we've selected!
 					SETGET = 0; //Default: invalid!
 					switch (modem.ATcommand[pos++]) //SET/GET detection!
@@ -1577,7 +1582,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				default:
 					n0 = 10; //Invalid phonebook entry!
 					handlePhoneNumberEntry: //Handle a phone number dictionary entry!
-					if (n0<10) //Valid?
+					if (n0<NUMITEMS(BIOS_Settings.phonebook)) //Valid?
 					{
 						switch (SETGET) //What kind of set/get?
 						{
@@ -1834,19 +1839,19 @@ byte packetServerAddWriteQueue(byte data) //Try to add something to the write qu
 	return 0; //Failed!
 }
 
+char logpacket_outbuffer[0x20001]; //Buffer for storin the data!
+char logpacket_filename[256]; //For storing the raw packet that's sent!
 void logpacket(byte send, byte *buffer, uint_32 size)
 {
-	char outbuffer[0x20001]; //Buffer for storin the data!
-	char filename[256]; //For storing the raw packet that's sent!
 	uint_32 i;
 	char adding[3];
-	memset(&filename,0,sizeof(filename));
-	memset(&outbuffer,0,sizeof(outbuffer));
+	memset(&logpacket_filename,0,sizeof(logpacket_filename));
+	memset(&logpacket_outbuffer,0,sizeof(logpacket_outbuffer));
 	memset(&adding,0,sizeof(adding));
 	for (i=0;i<size;++i)
 	{
 		snprintf(adding,sizeof(adding),"%02X",buffer[i]); //Set and ...
-		safestrcat(outbuffer,sizeof(outbuffer),adding); //... Add!
+		safestrcat(logpacket_outbuffer,sizeof(logpacket_outbuffer),adding); //... Add!
 	}
 	if (send)
 	{
@@ -1856,7 +1861,7 @@ void logpacket(byte send, byte *buffer, uint_32 size)
 	{
 		dolog("ethernetcard","Receiving packet:");
 	}
-	dolog("ethernetcard","%s",outbuffer); //What's received/sent!
+	dolog("ethernetcard","%s",logpacket_outbuffer); //What's received/sent!
 }
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.

@@ -1178,9 +1178,9 @@ void BIOSROM_dumpBIOS()
 		FILE *f;
 		byte data;
 		char filename[2][100];
-		memset(&filename[0],0,sizeof(filename)); //Clear/init!
-		snprintf(filename[0],sizeof(filename), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
-		snprintf(filename[1],sizeof(filename), "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		memset(&filename,0,sizeof(filename)); //Clear/init!
+		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
 
 		f = fopen(filename[0],"wb");
 		if (!f) return;

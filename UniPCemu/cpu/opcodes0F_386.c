@@ -430,7 +430,7 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	}
 
 	//Check for paging and debugging next!
-	realaddress = (segment<<4)+offset; //Real adress, 80386 way!
+	realaddress = ((uint_64)segment<<4)+offset; //Real adress, 80386 way!
 
 	switch (readflags) //What kind of flags?
 	{
