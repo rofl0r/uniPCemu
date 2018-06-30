@@ -623,7 +623,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
 	//No last: we're entering a task that has this information, so no return point is given!
 	CPU_exec_lastCS = CPU_exec_CS;
-	CPU_exec_lastEIP = CPU_exec_lastEIP;
+	CPU_exec_lastEIP = CPU_exec_EIP;
 
 	//Update the x86 debugger, if needed!
 	protectedModeDebugger_taskswitching(); //Apply any action required for a task switch!

@@ -5073,7 +5073,7 @@ setShowCPUSpeed:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, ignore shoulder buttons"); //Set filename from options!
 		break;
 	case DEBUGMODE_NOSHOW_RUN:
-		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, don´t show, ignore shoulder buttons"); //Set filename from options!
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled, just run, don't show, ignore shoulder buttons"); //Set filename from options!
 		break;
 	default:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");

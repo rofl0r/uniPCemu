@@ -10,8 +10,8 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution flow support!
-#include "headers/cpu/CPU_OP8086.h" //8086+ push/pop support!
-#include "headers/cpu/CPU_OP80386.h" //80386+ push/pop support!
+#include "headers/cpu/cpu_OP8086.h" //8086+ push/pop support!
+#include "headers/cpu/cpu_OP80386.h" //80386+ push/pop support!
 
 //Log Virtual 8086 mode calls basic information?
 #define LOG_VIRTUALMODECALLS

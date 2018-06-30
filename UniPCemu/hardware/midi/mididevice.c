@@ -1129,12 +1129,13 @@ void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
 			byte channel, currentchannel;
 			PostSem(activeSenseLock); //Release our lock to prevent races on the main thread!
 			lock(LOCK_MAINTHREAD); //Make sure we're the only ones!
-			for (currentchannel = 0; currentchannel < 0x10; channel++) //Process all active channels!
+			for (currentchannel = 0; currentchannel < 0x10;) //Process all active channels!
 			{
 				for (channel = 0; channel < 0x10;)
 				{
 					MIDIDEVICE_AllNotesOff(currentchannel, channel++); //Turn all notes off!
 				}
+				++currentchannel; //Next channel!
 			}
 			MIDIDEVICE_ActiveSensing = 0; //Reset our flag!
 			unlock(LOCK_MAINTHREAD);
