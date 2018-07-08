@@ -268,6 +268,8 @@ void updatePS2Keyboard(DOUBLE timepassed)
 					Keyboard.command_step = 0; //Finished!
 					Keyboard.has_command = 0; //Finished command!
 					break;
+				default:
+					break;
 				}
 				break;
 			case 0xFE: //Resend?
@@ -317,6 +319,8 @@ void updatePS2Keyboard(DOUBLE timepassed)
 							break;
 						case 2:
 							give_keyboard_output(0x03); //Get scan code set!
+							break;
+						default:
 							break;
 						}
 						Keyboard.cmdOK |= 4; //We're finished!
@@ -531,6 +535,8 @@ OPTINLINE void handle_keyboard_data(byte data)
 		Keyboard.cmdOK = 1|4; //OK&Finish!
 		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		return; //Done!
+		break;
+	default:
 		break;
 	}
 }

@@ -38,9 +38,6 @@ PC SPEAKER
 
 */
 
-//Are we disabled?
-#define __HW_DISABLED 0
-
 //What volume, in percent!
 #define SPEAKER_VOLUME 100.0f
 
@@ -417,6 +414,8 @@ void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 						{
 							PITchannels[channel].channel_status = 1; //We're going high again during this phase!
 						}
+						break;
+					default:
 						break;
 					}
 					break;

@@ -353,8 +353,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGDESCRIPTOR_TYPE tempdesc;
-			sbyte loadresult;
-			if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0))==1) //Loaded old container?
+			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)==1) //Loaded old container?
 			{
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
 				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)<=0) //Save the new status into the old descriptor!

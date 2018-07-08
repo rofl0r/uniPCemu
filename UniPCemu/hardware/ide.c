@@ -1698,6 +1698,8 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: we're done!
 		ATAPI_giveresultsize(channel,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 		break;
+	default:
+		break;
 	}	
 }
 
@@ -2051,6 +2053,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 						additionalsensecode = ASC_SAVING_PARAMETERS_NOT_SUPPORTED; //Not supported!
 						goto ATAPI_invalidcommand; //Saved data isn't supported!
 						break;
+					default:
+						break;
 					}
 					isvalidpage = 1; //Were valid!
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
@@ -2356,6 +2360,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			break;
 		case 3: //Load the disc (Close tray)?
+			break;
+		default:
 			break;
 		}
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!

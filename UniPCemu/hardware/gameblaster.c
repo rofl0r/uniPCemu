@@ -214,6 +214,8 @@ OPTINLINE byte SAAEnvelope(byte waveform, byte position)
 				return 0;
 		case 7: //Repetitive attack?
 			return (position&0xF); //Attack!
+		default:
+			break;
 	}
 	return 0; //Unknown envelope?
 }

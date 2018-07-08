@@ -660,6 +660,8 @@ OPTINLINE void CMP_dw(uint_32 a, uint_32 b, byte flags) //Compare instruction!
 	case 4: //Mem-Mem instruction?
 		CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Assume two times Reg->Mem
 		break;
+	default:
+		break;
 	}
 	CPUPROT2
 }
@@ -835,6 +837,8 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB32(uint_32 *dest, byte flags)
 		{
 			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		}
+		break;
+	default:
 		break;
 	}
 }
@@ -1190,6 +1194,8 @@ OPTINLINE byte CPU80386_internal_TEST32(uint_32 dest, uint_32 src, byte flags)
 				CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 			}
 			break;
+		default:
+			break;
 		}
 	}
 	CPUPROT2
@@ -1379,6 +1385,8 @@ OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->SegReg!
 					}
 					break;
+				default:
+					break;
 				}
 			}
 			++CPU[activeCPU].internalinstructionstep; //Skip the writeback step!
@@ -1440,6 +1448,8 @@ OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 						{
 							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //SegReg->Mem!
 						}
+						break;
+					default:
 						break;
 					}
 				}
@@ -1518,6 +1528,8 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->SegReg!
 					}
 					break;
+				default:
+					break;
 				}
 			}
 			CPUPROT2
@@ -1584,6 +1596,8 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 						{
 							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //SegReg->Mem!
 						}
+						break;
+					default:
 						break;
 					}
 				}
@@ -1671,6 +1685,8 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->SegReg!
 					}
 					break;
+				default:
+					break;
 				}
 			}
 			CPUPROT2
@@ -1745,6 +1761,8 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 						{
 							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //SegReg->Mem!
 						}
+						break;
+					default:
 						break;
 					}
 				}
@@ -2444,6 +2462,8 @@ OPTINLINE byte CPU80386_internal_XCHG8(byte *data1, byte *data2, byte flags)
 					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
 				}
 				break;
+			default:
+				break;
 			}
 		}
 		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
@@ -2520,6 +2540,8 @@ OPTINLINE byte CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte fla
 				{
 					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
 				}
+				break;
+			default:
 				break;
 			}
 		}
@@ -3270,6 +3292,8 @@ OPTINLINE void op_grp2_cycles32(byte cnt, byte varshift)
 			}
 		}
 		break;
+	default:
+		break;
 	}
 }
 
@@ -3406,6 +3430,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 			flag_szp32((uint32_t)s); //Affect sign as well!
 			FLAGW_OF(0); //Cleared with count as well?
 		}
+		break;
+	default:
 		break;
 	}
 	op_grp2_cycles32(numcnt, varshift);
@@ -3582,6 +3608,8 @@ void op_grp3_32() {
 		break;
 	case 7: //IDIV
 		op_idiv32(((uint_64)REG_EDX << 32) | REG_EAX, oper1d); break;
+	default:
+		break;
 	}
 }
 

@@ -107,6 +107,8 @@ byte inPCI(word port, byte *result)
 		*result = PCI_read_data(PCI_address,port&3); //Read the current status byte!
 		return 1;
 		break;
+	default:
+		break;
 	}
 	return 0; //Not supported yet!
 }
@@ -137,6 +139,8 @@ byte outPCI(word port, byte value)
 		}
 		PCI_write_data(PCI_address,port&3,value); //Write the byte to the configuration space if allowed!
 		return 1;
+		break;
+	default:
 		break;
 	}
 	return 0; //Not supported yet!

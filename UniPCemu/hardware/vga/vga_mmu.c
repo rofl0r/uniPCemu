@@ -43,6 +43,8 @@ void VGA_updateVRAMmaps(VGA_Type *VGA)
 		VGA_VRAM_START = 0xB8000; //Start!
 		VGA_VRAM_END = 0xC0000; //End!
 		break;
+	default:
+		break;
 	}
 }
 
@@ -78,6 +80,8 @@ OPTINLINE uint_32 LogicalOperation(uint_32 input)
 		return input | getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch;
 	case 0x03:	/* XOR */
 		return input ^ getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch;
+	default:
+		break;
 	};
 	return input; //Unknown, just give the input!
 }

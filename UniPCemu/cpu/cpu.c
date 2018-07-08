@@ -372,6 +372,8 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 						break;
 				}
 				break;
+			default:
+				break;
 		}
 		switch (type)
 		{
@@ -778,7 +780,8 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	alloc_CPUregisters(); //Allocate the CPU registers!
 
 	if (!CPU[activeCPU].registers) return; //We can't work!
-										   //Calculation registers
+	
+	//General purpose registers
 	CPU[activeCPU].registers->EAX = 0;
 	CPU[activeCPU].registers->EBX = 0;
 	CPU[activeCPU].registers->ECX = 0;
@@ -795,12 +798,12 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	CPU[activeCPU].registers->ESI = 0; //Source index!
 	CPU[activeCPU].registers->EDI = 0; //Destination index!
 
-									   //Stack registers
+	//Stack registers
 	CPU[activeCPU].registers->ESP = 0; //Init offset of stack (top-1)
 	CPU[activeCPU].registers->SS = 0; //Stack segment!
 
 
-									  //Code location
+	//Code location
 	if (EMULATED_CPU >= CPU_NECV30) //186+?
 	{
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
@@ -812,7 +815,8 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
-					//Data registers!
+	
+	//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!
 	CPU[activeCPU].registers->ES = 0; //Extra segment!
 	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)

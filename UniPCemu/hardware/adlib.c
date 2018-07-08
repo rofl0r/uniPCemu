@@ -861,6 +861,8 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
+			default:
+				break;
 		}
 		#endif
 		//Not a percussion channel? Pass through!
@@ -1015,6 +1017,8 @@ void EnvelopeGenerator_setAttennuation(ADLIBOP *operator)
         case 3:
 		// 6 dB
 		operator->m_kslAdd <<= 2;
+		break;
+	default:
 		break;
 	}
 }

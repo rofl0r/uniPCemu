@@ -371,6 +371,8 @@ OPTINLINE void FinishSetMode(int clearmem)
 	case 8:RealSetVec2(0x43,0xC000, int10.rom.font_8_first);break;
 	case 14:RealSetVec2(0x43,0xC000, int10.rom.font_14);break;
 	case 16:RealSetVec2(0x43,0xC000, int10.rom.font_16);break;
+	default:
+		break;
 	}
 }
 
@@ -1071,6 +1073,8 @@ dac_text16:
 		case 3:
 		case 7:
 			real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_MSR,0x29);
+			break;
+		default:
 			break;
 		}
 		break;

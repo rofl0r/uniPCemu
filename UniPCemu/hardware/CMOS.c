@@ -796,6 +796,8 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		*result = 0; //Unimplemented atm!
 		return 1; //Simply supported for now(plain RAM read)!
 		break;
+	default:
+		break;
 	}
 	return 0; //None for now!
 }

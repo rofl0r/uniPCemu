@@ -198,6 +198,8 @@ void updateEMUSingleStep() //Update our single-step address!
 					break;
 			}
 			break;
+		default:
+			break;
 	}
 }
 

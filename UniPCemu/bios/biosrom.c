@@ -382,6 +382,8 @@ int BIOS_load_ROM(byte nr)
 					BIOS_ROM_U13_15_single = 0; //Half the ROM for easier lookup!
 				}
 				break;
+			default:
+				break;
 		}
 		
 		//Recalculate based on ROM size!

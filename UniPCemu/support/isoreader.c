@@ -288,7 +288,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 		return FALSE;
 	}
 
-	while (byteswritten<dwLen) //Not fully writte yet?
+	while (byteswritten<dwLen) //Not fully written yet?
 	{
 		if ((dwLen-byteswritten)>CD_SEC_SIZE) //More than the buffer?
 		{
@@ -312,6 +312,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 			dolog("ISOReader","Failed to boot from CD-ROM: could not write to temporary image file %s. Disk full?",imagefile); //Log our error!
 			return FALSE; //No boot sector found!
 		}
+		byteswritten += data_size; //We've processed this, advance the start position of our current block!
 	}
 	fclose(f); //Close the image file: we've written it!
 

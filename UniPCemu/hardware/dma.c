@@ -698,6 +698,8 @@ void DMA_StateHandler_S4()
 			}
 		}
 		break;
+	default:
+		break;
 	}
 	byte retryclock = 0;
 	DMA_S = 0; //Default to SI state!

@@ -1107,6 +1107,8 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 			return REG_EDI;
 		}
 		break;
+	default:
+		break;
 	}
 	halt_modrm("Unknown modr/mSIB: reg: %u",reg);
 	return 0; //Unknown register!
@@ -1250,6 +1252,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"EDI");
 			result->reg32 = &REG_EDI; //Give addr!
 			return;
+			break;
+		default:
 			break;
 		} //register?
 
@@ -1503,6 +1507,8 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			break;
 		}
 		break;
+	default:
+		break;
 	} //Which MOD?
 	last_modrm = 1; //ModR/M!
 	if (!modrm_addoffset) //We're the offset itself?
@@ -1636,6 +1642,8 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"DI");
 			result->reg16 = &REG_DI;
 			return;
+		default:
+			break;
 		}
 		result->isreg = 0; //Unknown!
 		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKREG>"); //Unknown!
@@ -1928,6 +1936,8 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		result->memorymask = 0xFFFF; //Only 16-bit offsets are used, full 32-bit otherwise for both checks and memory?
 		result->is16bit = 1; //16-bit offset!
 		break;
+	default:
+		break;
 	} //Which MOD?
 	if (segmentoverridden) //Segment overridden with cycle accuracy?
 	{
@@ -2046,6 +2056,8 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 			result->reg8 = &REG_BH;
 			if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"BH");
 			return;
+		default:
+			break;
 		}
 		result->isreg = 0; //Unknown register!
 

@@ -727,6 +727,8 @@ byte write_8042(word port, byte value)
 			return 1;
 		}
 		break;
+	default:
+		break;
 	}
 	return 0; //We're unhandled!
 }
@@ -795,6 +797,8 @@ byte read_8042(word port, byte *result)
 			#endif
 		}
 		return 1; //We're processed!
+		break;
+	default:
 		break;
 	}
 	return 0; //Undefined!

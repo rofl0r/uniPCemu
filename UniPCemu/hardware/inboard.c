@@ -76,6 +76,8 @@ byte Inboard_writeIO(word port, byte value)
 			updateInboardWaitStates(); //Update the 80386 Wait States!
 			return 1; //Handled!
 			break;
+		default:
+			break;
 	}
 	return 0; //Unknown port!
 }

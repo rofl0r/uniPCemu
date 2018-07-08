@@ -593,6 +593,8 @@ void FLOPPY_notifyDiskChanged(int disk)
 	case FLOPPY1:
 		FLOPPY.diskchanged[1] = 1; //Changed!
 		break;
+	default:
+		break;
 	}
 }
 
@@ -946,6 +948,8 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	case SCAN_HIGH_OR_EQUAL: //High or equal mismatch?
 		FLOPPY_ST2_SEEKERRORW(0); //No seek error yet!
 		FLOPPY_ST2_SEEKEQUALW(1); //Equal by default: we're starting to match until we don't anymore!
+		break;
+	default:
 		break;
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
@@ -1833,6 +1837,8 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x40; //Invalid command!
 			break;
+		default:
+			break;
 	}
 }
 
@@ -1880,6 +1886,8 @@ OPTINLINE void floppy_scanbyte(byte fdcbyte, byte cpubyte)
 			FLOPPY_ST2_SEEKERRORW(0);
 			FLOPPY_ST2_SEEKEQUALW(0);
 		}
+		break;
+	default:
 		break;
 	}
 }

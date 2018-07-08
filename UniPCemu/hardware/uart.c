@@ -99,6 +99,8 @@ OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	case 3: //Receiver line status changed?
 		if (!(UART_port[COMport].InterruptEnableRegister & 4)) return; //Don't trigger if it's disabled!
 		break;
+	default:
+		break;
 	}
 	//Prepare our info!
 	UART_port[COMport].interrupt_causes[cause & 3] = 1; //We're requesting an interrupt for this cause!
@@ -222,6 +224,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 						lowerirq(3); //Lower our IRQ if it's raised!
 						acnowledgeIRQrequest(3); //Acnowledge!
 						break;
+					default:
+						break;
 					}
 				}
 				//return value with bits toggled by Line Control Register!
@@ -266,6 +270,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					lowerirq(3); //Lower our IRQ if it's raised!
 					acnowledgeIRQrequest(3); //Acnowledge!
 					break;
+				default:
+					break;
 				}
 			}
 			break;
@@ -292,6 +298,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					lowerirq(3); //Lower our IRQ if it's raised!
 					acnowledgeIRQrequest(3); //Acnowledge!
 					break;
+				default:
+					break;
 				}
 			}
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
@@ -312,6 +320,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				case 3:
 					lowerirq(3); //Lower our IRQ if it's raised!
 					acnowledgeIRQrequest(3); //Acnowledge!
+					break;
+				default:
 					break;
 				}
 			}
@@ -366,6 +376,8 @@ byte PORT_writeUART(word port, byte value)
 					case 3:
 						lowerirq(3); //Lower our IRQ if it's raised!
 						acnowledgeIRQrequest(3); //Acnowledge!
+						break;
+					default:
 						break;
 					}
 				}

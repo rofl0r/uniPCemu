@@ -1047,6 +1047,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 							}
 						}
 						break;
+					default:
+						break;
 					}
 				}
 				else if (isDifferentCPL==0) //Unchanging CPL? Take call size from operand size!
@@ -1382,6 +1384,8 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 					return 1; //Error!
 				}
 				break; //Allow!
+			default:
+				break;
 		}
 	}
 

@@ -1138,6 +1138,8 @@ OPTINLINE void updateCGAmapping()
 			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,0,1,0); //Graphics enables CGA graphics MAP13, else text!
 			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,5,1,1); //CGA mapping is done by the renderer mapping CGA!
 			break;
+		default:
+			break;
 	}
 }
 

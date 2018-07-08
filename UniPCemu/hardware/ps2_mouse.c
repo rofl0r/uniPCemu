@@ -212,7 +212,11 @@ void updatePS2Mouse(DOUBLE timepassed)
 						Mouse.command_step = 0; //Finished!
 						Mouse.has_command = 0; //Finished command!
 						break;
+					default:
+						break;
 					}
+					break;
+				default:
 					break;
 			}
 		}

@@ -9,7 +9,6 @@ void dumpscreen()
 	int emuy; //psp x&y!
 //First, calculate the relative destination on the PSP screen!.
 
-	int firstrow = 1;
 	FILE *f;
 	f = fopen("SCREEN.TXT","w"); //Open file!
 	char lb[3];
@@ -22,18 +21,10 @@ void dumpscreen()
 
 	fwrite(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
 	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
-	firstrow = 0; //Not first anymore!
 
 	for (emuy=0; emuy<GPU.xres; emuy++) //Process row!
 	{
-		if (!firstrow)
-		{
-			fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
-		}
-		else
-		{
-			firstrow = 0; //Reset!
-		}
+		fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
 		for (emux=0; emux<GPU.xres; emux++) //Process column!
 		{
 			char c;

@@ -2159,6 +2159,8 @@ OPTINLINE void INT10_GetFuncStateInformation(PhysPt save) {
 		mem_writeb(Phys2Real(save+0x2a),2);break;
 	case 480:
 		mem_writeb(Phys2Real(save+0x2a),3);break;
+	default:
+		break;
 	};
 	/* misc flags */
 	if (CurMode->type==M_TEXT) mem_writeb(Phys2Real(save+0x2d),0x21);

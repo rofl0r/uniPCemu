@@ -27,6 +27,8 @@ void BIOS_int15()
 			case 5: //Pentium?
 				MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x02, 0xF8,1); //386 or higher CPU!
 				break;
+			default:
+				break;
 			}
 			MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x03, 0x00,1); //Unknown submodel!
 			MMU_wb(CPU_SEGMENT_ES, REG_ES, REG_BX + 0x04, 0x01,1); //First BIOS revision!

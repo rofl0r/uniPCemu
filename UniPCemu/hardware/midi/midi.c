@@ -102,6 +102,8 @@ OPTINLINE void MIDI_writeStatus(byte data) //Write a status byte to the MIDI dev
 					break;
 			}
 			break;
+		default:
+			break;
 	}
 }
 
@@ -196,6 +198,8 @@ OPTINLINE void MIDI_writeData(byte data) //Write a data byte to the MIDI device!
 					break;
 			}
 			//Unknown, don't parse!
+			break;
+		default:
 			break;
 	}
 }

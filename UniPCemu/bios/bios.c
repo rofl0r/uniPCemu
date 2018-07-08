@@ -457,7 +457,7 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 
 	if (file_exists(limitfilename)) //Limit specified?
 	{
-		int memorylimitMB;
+		int memorylimitMB=SHRT_MAX;
 		char memorylimitsize='?';
 		byte limitread;
 		FILE *f;

@@ -847,6 +847,8 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 			case 1: //Goto AT command mode?
 				modem.datamode = (byte)(modem.ATcommandsize = 0); //Starting a new command!
 				break;
+			default:
+				break;
 		}
 	}
 	modem.linechanges = line; //Save for reference!
@@ -1466,6 +1468,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						return; //Abort!
 					}
 					break;
+				default:
+					break;
 				}
 				break;
 			case 'C': //Force DCD to be carrier option?
@@ -1487,6 +1491,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						return; //Abort!
 					}
 					break;
+				default:
+					break;
 				}
 				break;
 			case 'S': //Force DSR high option?
@@ -1507,6 +1513,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
 						return; //Abort!
 					}
+					break;
+				default:
 					break;
 				}
 				break;
@@ -1531,6 +1539,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
 						return; //Abort!
 					}
+					break;
+				default:
 					break;
 				}
 				break;
@@ -1679,6 +1689,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
 						return; //Abort!
 					}
+					break;
+				default:
 					break;
 				}
 				break;
@@ -1901,13 +1913,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		modem.serverpolltimer = fmod(modem.serverpolltimer,modem.serverpolltick); //Polling once every turn!
 		if ((!TCPServerRunning()) && (!modem.connected)) //Server isn't running when need to be?
 		{
-			TCPServer_restart(modem.connectionport); //Try to restart the TCP server!
+			TCPServer_restart(); //Try to restart the TCP server!
 		}
 		if (acceptTCPServer()) //Are we connected to?
 		{
 			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
 			{
-				TCPServer_restart(modem.connectionport); //Restart into the TCP server!
+				TCPServer_restart(); //Restart into the TCP server!
 			}
 			else //Able to accept?
 			{
@@ -2416,7 +2428,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					case 0: //Failed to send?
 						packetserver_autherror: //Packet server authentication error?
 						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(modem.connectionport); //Restart the server!
+						TCPServer_restart(); //Restart the server!
 						if (PacketServer_running==0) //Not running a packet server?
 						{
 							modem_responseResult(MODEMRESULT_NOCARRIER);
@@ -2447,7 +2459,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						break;
 					case -1: //Disconnected?
 						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(modem.connectionport); //Restart server!
+						TCPServer_restart(); //Restart server!
 						if (PacketServer_running==0) //Not running a packet server?
 						{
 							modem_responseResult(MODEMRESULT_NOCARRIER);

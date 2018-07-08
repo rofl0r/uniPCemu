@@ -1878,6 +1878,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 8: //RTC mode?
 			BIOS_Menu = 67; //Reset timekeeping!
 			break;
+		default:
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -1998,6 +2000,8 @@ void BIOS_MainMenu() //Shows the main menu to process!
 			BIOS_Menu = -1; //Quit!
 			BIOS_SaveStat = 0; //Discard changes!
 			reboot_needed |= 2; //We need a reboot!
+			break;
+		default:
 			break;
 		}
 		break;
@@ -2960,7 +2964,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	char fullfilename[256], fulloriginalfilename[256]; //Full filename container!
 	sbyte srcstatus=-1,deststatus=-1; //Status on the two dynamic disk images!
 	cleardata(&filename[0], sizeof(filename)); //Init!
-	FILEPOS size = 0, sectorposition;
+	FILEPOS size = 0, sectorposition=0;
 	BIOS_Title("Defragment a dynamic HDD Image"); //Full clear!
 	generateFileList(diskpath,"sfdimg", 0, 1); //Generate file list for all .img files!
 	EMU_locktext();
@@ -3825,6 +3829,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 		case 3:
 			BIOS_Menu = 51; //Joystick connect option!
 			break;
+		default:
+			break;
 		}
 		break;
 	default: //Unknown option?
@@ -4124,6 +4130,8 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 		break;
 	case 5:
 		BIOS_Title("LED active border color");
+		break;
+	default:
 		break;
 	}
 	EMU_locktext();
@@ -4697,6 +4705,8 @@ void BIOS_SoundMenu() //Manage stuff concerning input.
 			break;
 		case 10: //Sound recording?
 			BIOS_Menu = 42; //Start/stop sound recording!
+			break;
+		default:
 			break;
 		}
 		break;
@@ -5483,6 +5493,8 @@ void BIOS_CPU() //CPU menu!
 			break;
 		case 18: //Inboard Initial Waitstates?
 			BIOS_Menu = 64; //Architecture option!
+			break;
+		default:
 			break;
 		}
 		break;

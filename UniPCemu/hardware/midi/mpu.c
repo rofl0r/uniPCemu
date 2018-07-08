@@ -245,6 +245,8 @@ void MPU401_WriteCommand(Bit8u val) {
 			case 1: {MIDI_RawOutByte(0xfc);break;}
 			case 2: {MIDI_RawOutByte(0xfa);break;}
 			case 3: {MIDI_RawOutByte(0xfb);break;}
+			default:
+				break;
 		}
 		//if (val&0x20) LOG(LOG_MISC,LOG_ERROR)("MPU-401:Unhandled Recording Command %x",val);
 		switch (val&0xc) {
@@ -258,6 +260,8 @@ void MPU401_WriteCommand(Bit8u val) {
 				PIC_RemoveEvents(MPU401_Event);
 				PIC_AddEvent(MPU401_Event,(float)60000000.0f/(mpu.clock.tempo*mpu.clock.timebase*2));
 				mpu.state.irq_pending=false;
+				break;
+			default:
 				break;
 		}
 	}
@@ -549,6 +553,9 @@ void MPU401_WriteData(Bit8u val) {
 						mpu.playbuf[mpu.state.channel].type=MIDI_DATA;
 				}
 			}
+			break;
+		default:
+			break;
 	}
 }
 
@@ -688,6 +695,8 @@ byte MPU401_OUT(word port, byte data)
 		MPU401_WriteCommand(data);
 		return 1;
 		break;
+	default:
+		break;
 	}
 	return 0; //Not used!
 }
@@ -703,6 +712,8 @@ byte MPU401_IN(word port, byte *result)
 	case 0x331: //Status port?
 		*result = MPU401_ReadStatus();
 		return 1;
+		break;
+	default:
 		break;
 	}
 	return 0; //Not used!

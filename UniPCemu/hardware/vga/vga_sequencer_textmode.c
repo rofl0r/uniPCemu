@@ -37,6 +37,8 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textm
 				case 0x00: return (VGA->blink8&&cursorOK); //Blink at normal rate(every 8 frames)?
 				case 0x40: return (VGA->blink16&&cursorOK); //Blink, 1/16 Field Rate(every 16 frames)?
 				case 0x60: return (VGA->blink32&&cursorOK); //Blink, 1/32 Field Rate(every 32 frames)?
+				default:
+					break;
 			}
 		}
 		else //Normal VGA cursor?

@@ -176,6 +176,8 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 		case IHARDWARETYPE01_DUALOPL2:
 			newheader->iHardwareType = IHARDWARETYPE20_DUALOPL2; //Translate!
 			break;
+		default:
+			break;
 		}
 		newheader->iFormat = COMMANDFORMAT_INTERLEAVED; //Default to interleaved format!
 		newheader->iCompression = 0; //No compression!
@@ -439,6 +441,7 @@ void stepDROPlayer(DOUBLE timepassed)
 }
 
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
+DROPLAYER playedfile; //A file to play!
 
 //The player itself!
 byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to stop playback!
@@ -448,7 +451,6 @@ byte playDROFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to st
 	EMU_RUNNING_BACKUP = EMU_RUNNING; //Make a backup to restore after we've finished!
 	unlock(LOCK_CPU);
 	//Start reading the file!
-	DROPLAYER playedfile; //A file to play!
 	playedfile.playtime = 0.0; //No time passed!
 	playedfile.currenttime = 0.0; //No time passed!
 	#ifdef IS_LONGDOUBLE

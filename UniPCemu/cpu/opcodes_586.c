@@ -24,5 +24,7 @@ void CPU586_CPUID()
 			break;
 		}
 		break;
+	default:
+		break;
 	}
 }

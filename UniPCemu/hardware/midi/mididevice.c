@@ -1482,6 +1482,8 @@ OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current
 							#endif
 							MIDI_channels[currentchannel].mode |= MIDIDEVICE_POLY; //Enable Poly mode!
 							break;
+						default:
+							break;
 						}
 						unlockMPURenderer(); //Unlock the audio!
 					}

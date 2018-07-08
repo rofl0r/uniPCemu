@@ -49,6 +49,8 @@ byte in8259(word portnum, byte *result)
 	case 1: //read mask register
 		*result = i8259.imr[pic];
 		break;
+	default:
+		break;
 	}
 	return 1; //The result is given!
 }
@@ -129,6 +131,8 @@ byte out8259(word portnum, byte value)
 		}
 		//if we get to this point, this is just a new IMR value
 		i8259.imr[pic] = value;
+		break;
+	default:
 		break;
 	}
 	return 1; //We're processed!

@@ -1170,6 +1170,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 					VGA_MemoryMapBankRead = et34kdata->bank_read<<16; //Read bank!
 					VGA_MemoryMapBankWrite = et34kdata->bank_write<<16; //Write bank!
 					break;
+				default:
+					break;
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 		}

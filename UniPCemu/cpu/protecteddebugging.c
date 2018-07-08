@@ -27,6 +27,8 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 			case 3: //Data read/write?
 				typematched = ((type==PROTECTEDMODEDEBUGGER_TYPE_DATAREAD) || (type==PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE)); //Matching type?
 				break;
+			default:
+				break;
 		}
 		if (typematched) //Matching breakpoint type?
 		{

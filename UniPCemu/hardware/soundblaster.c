@@ -845,6 +845,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
 				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,0); //Start the DMA DAC!
 				break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -883,6 +885,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
 				}
 				break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -897,6 +901,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			SOUNDBLASTER.wordparamoutput |= ((word)data<<8); //Set the samples to be silent!
 			SOUNDBLASTER.silencesamples = SOUNDBLASTER.wordparamoutput; //How many samples to be silent!
 			SOUNDBLASTER.commandstep = 2; //Stuck here!
+			break;
+		default:
 			break;
 		}
 		break;
@@ -925,6 +931,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
 			SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput; //The length of the Auto-Init DMA transfer to play back, in bytes!
 			SOUNDBLASTER.command = 0; //Finished!
+			break;
+		default:
 			break;
 		}
 		break;
