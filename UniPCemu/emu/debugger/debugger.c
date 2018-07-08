@@ -1407,6 +1407,7 @@ void debuggerThread()
 				skipopcodes = 0; //Nothing to be skipped!
 				lock(LOCK_MAINTHREAD);
 				reset = 1; //We're resetting!
+				allow_debuggerstep = 0;
 				unlock(LOCK_MAINTHREAD);
 				goto singlestepenabled; //We're rebooting, abort!
 			}
