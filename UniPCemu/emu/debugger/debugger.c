@@ -1491,7 +1491,7 @@ void debugger_step() //Processes the debugging step!
 			{
 				if (unlikely(!(DEBUGGER_KEEP_NOSHOW_RUNNING))) //Are we to show the debugger at all(not explicitly disabled)?
 				{
-					if (BIOSMenuThread==NULL) //These are mutually exclusive to run!
+					if ((BIOSMenuThread==NULL) && (reset==0)) //These are mutually exclusive to run!
 					{
 						debugger_thread = startThread(debuggerThread, "UniPCemu_debugger", NULL); //Start the debugger!
 					}
