@@ -310,7 +310,9 @@ Emulator initialisation and destruction!
 
 VGA_Type *MainVGA; //The main VGA chipset!
 
+#ifdef REPORT_MEMORYLEAK
 uint_32 initEMUmemory = 0;
+#endif
 
 TicksHolder CPU_timing; //CPU timing counter!
 
@@ -349,8 +351,10 @@ void initEMU(int full) //Init!
 	debugrow("Initializing user input...");
 	psp_input_init(); //Make sure input is set up!
 
+#ifdef REPORT_MEMORYLEAK
 	initEMUmemory = freemem(); //Log free mem!
-	
+#endif
+
 	debugrow("Loading basic BIOS I/O...");
 	BIOS_LoadIO(0); //Load basic BIOS I/O, also VGA information, don't show checksum errors!
 
