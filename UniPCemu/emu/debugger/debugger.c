@@ -1286,6 +1286,7 @@ OPTINLINE void debugger_screen() //Show debugger info on-screen!
 }
 
 extern byte Settings_request; //Settings requested to be executed?
+extern byte reset; //To reset the emulator?
 
 void debuggerThread()
 {
@@ -1404,6 +1405,9 @@ void debuggerThread()
 			if (runBIOS(0)) //Run the BIOS, reboot needed?
 			{
 				skipopcodes = 0; //Nothing to be skipped!
+				lock(LOCK_MAINTHREAD);
+				reset = 1; //We're resetting!
+				unlock(LOCK_MAINTHREAD);
 				goto singlestepenabled; //We're rebooting, abort!
 			}
 			//Check the current state to continue at!
@@ -1435,6 +1439,7 @@ void debuggerThread()
 }
 
 ThreadParams_p debugger_thread = NULL; //The debugger thread, if any!
+extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 
 extern byte didJump; //Did we jump this instruction?
 
@@ -1486,7 +1491,10 @@ void debugger_step() //Processes the debugging step!
 			{
 				if (unlikely(!(DEBUGGER_KEEP_NOSHOW_RUNNING))) //Are we to show the debugger at all(not explicitly disabled)?
 				{
-					debugger_thread = startThread(debuggerThread,"UniPCemu_debugger",NULL); //Start the debugger!
+					if (BIOSMenuThread==NULL) //These are mutually exclusive to run!
+					{
+						debugger_thread = startThread(debuggerThread, "UniPCemu_debugger", NULL); //Start the debugger!
+					}
 				}
 				else if (unlikely(DEBUGGER_KEEP_NOSHOW_RUNNING && (singlestep==1))) //To stop anyway?
 				{

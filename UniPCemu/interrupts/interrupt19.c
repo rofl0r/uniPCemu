@@ -39,6 +39,7 @@ note 1) Reads track 0, sector 1 into address 0000h:7C00h, then transfers
 */
 
 extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
+extern ThreadParams_p debugger_thread; //The debugger thread, if any!
 
 void POSTThread()
 {
@@ -55,7 +56,7 @@ void BIOS_int19()
 		}
 	}
 	CPU_resetOP(); //Reset the CPU to re-run this opcode by default!
-	if (BIOSMenuThread==NULL) //Not started yet?
+	if ((BIOSMenuThread==NULL) && (debugger_thread==NULL)) //Not started yet?
 	{
 		BIOSMenuThread = startThread(&POSTThread,"UniPCemu_POST",NULL); //Start the POST thread at default priority!
 	}
