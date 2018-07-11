@@ -49,17 +49,26 @@ void PORT_OUT_B(word port, byte b)
 	}
 }
 
+#include "headers/packed.h" //Packed type!
+typedef union PACKED
+{
+	struct
+	{
+		#ifdef IS_BIG_ENDIAN
+		byte high;
+		byte low;
+		#else
+		byte low;
+		byte high;
+		#endif
+	};
+	word w;
+} WSPLITTER;
+#include "headers/endpacked.h" //End of packed type!
+
 word PORT_IN_W(word port) //IN result,port
 {
-	union
-	{
-		struct
-		{
-			byte low;
-			byte high;
-		};
-		word w;
-	} splitter;
+	WSPLITTER splitter;
 	if (port & 1) //Not aligned?
 	{
 		goto bytetransferr; //Force byte transfer!
@@ -75,15 +84,7 @@ word PORT_IN_W(word port) //IN result,port
 
 void PORT_OUT_W(word port, word w) //OUT port,w
 {
-	union
-	{
-		struct
-		{
-			byte low;
-			byte high;
-		} byte;
-		word w;
-	} splitter;
+	WSPLITTER splitter;
 	if (port & 1) //Not aligned?
 	{
 		goto bytetransferw; //Force byte transfer!
@@ -92,22 +93,31 @@ void PORT_OUT_W(word port, word w) //OUT port,w
 	{
 		bytetransferw:
 		splitter.w = w; //Split!
-		PORT_OUT_B(port, splitter.byte.low); //First low byte!
-		PORT_OUT_B(port + 1, splitter.byte.high); //Next high byte!
+		PORT_OUT_B(port, splitter.low); //First low byte!
+		PORT_OUT_B(port + 1, splitter.high); //Next high byte!
 	}
 }
 
+#include "headers/packed.h" //Packed type!
+typedef union PACKED
+{
+	struct
+	{
+		#ifdef IS_BIG_ENDIAN
+		word high;
+		word low;
+		#else
+		word low;
+		word high;
+		#endif
+	};
+	uint_32 dw;
+} DWSPLITTER;
+#include "headers/endpacked.h" //End of packed type!
+
 uint_32 PORT_IN_D(word port) //IN result,port
 {
-	union
-	{
-		struct
-		{
-			word low;
-			word high;
-		};
-		uint_32 dw;
-	} splitter;
+	DWSPLITTER splitter;
 	if (port & 3) //Not aligned?
 	{
 		goto wordtransferr; //Force word transfer!
@@ -123,15 +133,7 @@ uint_32 PORT_IN_D(word port) //IN result,port
 
 void PORT_OUT_D(word port, uint_32 dw) //OUT port,w
 {
-	union
-	{
-		struct
-		{
-			word low;
-			word high;
-		};
-		uint_32 dw;
-	} splitter;
+	DWSPLITTER splitter;
 	if (port & 3) //Not aligned?
 	{
 		goto wordtransferw; //Force word transfer!
