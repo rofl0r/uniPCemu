@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 apply from: "$project.rootDir/../commonemuframework/script-git-version.gradle"
 android {
-    compileSdkVersion 19
+    compileSdkVersion 22
     buildToolsVersion "27.0.3"
     defaultConfig {
         applicationId 'com.unipcemu.app'
         minSdkVersion 14
-        targetSdkVersion 19
+        targetSdkVersion 22
         // Similar to other properties in the defaultConfig block,
         // you can configure the ndk block for each product flavor
         // in your build configuration.
