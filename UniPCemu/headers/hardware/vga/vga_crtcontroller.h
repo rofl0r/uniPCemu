@@ -61,7 +61,7 @@
 //OPTINLINE word getrowsize(VGA_Type *VGA); //Give the size of a row in VRAM!
 //OPTINLINE word getTopWindowStart(VGA_Type *VGA); //Get Top Window Start scanline!
 
-word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
+//word getHorizontalTotal(VGA_Type *VGA); //Get horizontal total (for calculating refresh speed timer)
 
 //For precalcs only!
 word get_display_y(VGA_Type *VGA, word scanline); //Vertical check!

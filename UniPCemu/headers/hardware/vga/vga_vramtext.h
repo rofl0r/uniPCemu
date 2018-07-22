@@ -6,7 +6,7 @@
 
 void VGA_charsetupdated(VGA_Type *VGA); //The character set settings have been updated?
 byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y);
-byte getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y); //Retrieve a characters y row on/off from table!
+//byte getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y); //Retrieve a characters y row on/off from table!
 void dumpVGATextFonts(); //Dump the active fontsets!
 void fillCGAfont();
 void fillMDAfont();

@@ -230,13 +230,13 @@ void CPU8086_OPFF();
 void CPU8086_noCOOP(); //Coprosessor opcodes handler!
 
 //Extra support:
-word getLEA(MODRM_PARAMS *params);
+//word getLEA(MODRM_PARAMS *params);
 
 byte CPU086_int(byte interrupt); //Executes an hardware interrupt (from tbl). Returns 1 when finished, 0 when still busy.
 
 //For GRP Opcodes!
-byte CPU8086_internal_INC16(word *reg);
-byte CPU8086_internal_DEC16(word *reg);
+//byte CPU8086_internal_INC16(word *reg);
+//byte CPU8086_internal_DEC16(word *reg);
 
 void unkOP_8086(); //Unknown opcode on 8086?
 

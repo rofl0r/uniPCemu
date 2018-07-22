@@ -604,7 +604,7 @@ void EMU_CPU_setCursorScanlines(byte start, byte end)
 	MMU_wb(-1, BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE + 1, end,1); //Set end line!
 }
 
-OPTINLINE void GPU_clearscreen() //Clears the screen!
+void GPU_clearscreen() //Clears the screen!
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte oldmode;
@@ -692,7 +692,7 @@ OPTINLINE void int10_vram_writecharacter(byte x, byte y, byte page, byte charact
 	}
 }
 
-OPTINLINE void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *attribute) //Read character+attribute!
+void int10_vram_readcharacter(byte x, byte y, byte page, byte *character, byte *attribute) //Read character+attribute!
 {
 	if (__HW_DISABLED) return; //Abort!
 	switch (CurMode->type)

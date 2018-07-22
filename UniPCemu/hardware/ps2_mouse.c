@@ -146,7 +146,7 @@ byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated us
 	return 1; //We're supported!
 }
 
-OPTINLINE float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay! (chars/second)
+float HWmouse_getsamplerate() //Which repeat rate to use after the repeat delay! (chars/second)
 {
 	if (__HW_DISABLED) return 1.0f; //Abort!
 	float result;
