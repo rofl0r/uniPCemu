@@ -93,7 +93,7 @@ OPTINLINE void unlockMPURenderer()
 
 /* Reset support */
 
-OPTINLINE static void reset_MIDIDEVICE() //Reset the MIDI device for usage!
+OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 {
 	//First, our variables!
 	byte channel,chorusreverbdepth;
@@ -177,7 +177,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 	return modulationratio; //Give the frequency to use for the low pass filter!
 }
 
-OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
+OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
 {
 	float lowpassfilterfreq;
 	if (voice->lowpassfilter_freq==0) return; //No filter?
@@ -190,7 +190,7 @@ OPTINLINE static void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *cur
 	applySoundFilter(&voice->lowpassfilter[filterindex], currentsample); //Apply a low pass filter!
 }
 
-OPTINLINE static void applyMIDIReverbFilter(MIDIDEVICE_VOICE *voice, float *currentsample, byte filterindex)
+OPTINLINE void applyMIDIReverbFilter(MIDIDEVICE_VOICE *voice, float *currentsample, byte filterindex)
 {
 	applySoundFilter(&voice->reverbfilter[filterindex], currentsample); //Apply a low pass filter!
 }
@@ -227,7 +227,7 @@ void MIDIDEVICE_generateSinusTable()
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
 
-OPTINLINE static void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -537,7 +537,7 @@ OPTINLINE float MIDIconvex(float value, float maxvalue)
 }
 
 
-OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
+OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
@@ -1056,7 +1056,7 @@ OPTINLINE static byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_
 
 /* Execution flow support */
 
-OPTINLINE static byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
+OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
 {
 	if (!(MIDI_channels[channel].mode&MIDIDEVICE_OMNI)) //No Omni mode?
 	{
@@ -1077,7 +1077,7 @@ OPTINLINE static byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte c
 	return 1;
 }
 
-OPTINLINE static void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
+OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
@@ -1102,7 +1102,7 @@ OPTINLINE static void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byt
 	}
 }
 
-OPTINLINE static void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
+OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
 {
 	word noteoff; //Current note to turn off!
 	//Note values
@@ -1169,7 +1169,7 @@ void MIDIDEVICE_ActiveSenseInit()
 	addtimer(300.0f / 1000.0f, &MIDIDEVICE_activeSense_Timer, "MIDI Active Sense Timeout", 1, 1, activeSenseLock); //Add the Active Sense timer!
 }
 
-OPTINLINE static void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
+OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	byte purpose;
 
@@ -1264,7 +1264,7 @@ OPTINLINE static void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte
 	}
 }
 
-OPTINLINE static void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
+OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
 	byte command, currentchannel, channel, firstparam;

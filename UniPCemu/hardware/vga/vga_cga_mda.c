@@ -728,7 +728,7 @@ byte int10_font_14[256 * 14] =
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-OPTINLINE static byte reverse8_CGA(INLINEREGISTER byte b) { //Reverses byte value bits!
+OPTINLINE byte reverse8_CGA(INLINEREGISTER byte b) { //Reverses byte value bits!
 	b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4); //Swap 4 high and low bits!
 	b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2); //Swap 2 high and low bits of both nibbles!
 	b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1); //Swap odd and even bits!

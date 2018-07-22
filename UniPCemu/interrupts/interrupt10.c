@@ -168,7 +168,7 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
         return 1; //OK!
 }
 
-OPTINLINE int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pixel to the real emulated screen buffer
+int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pixel to the real emulated screen buffer
 {
 	byte curbank;
 	uint_32 rowoffs;
@@ -1228,7 +1228,7 @@ void int10_GetPixel()
 	REG_AL = (temp&0xFF); //Give the low 8-bits of the result!
 }
 
-OPTINLINE void int10_internal_outputchar(byte videopage, byte character, byte attribute)
+void int10_internal_outputchar(byte videopage, byte character, byte attribute)
 {
 	switch (character) //What character?
 	{

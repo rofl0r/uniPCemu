@@ -382,7 +382,7 @@ OPTINLINE void debugger_flush()
 	safestrcpy(softdebugger.writtendata,sizeof(softdebugger.writtendata),""); //Clear the data again!
 }
 
-OPTINLINE static void debugger_writecharacter(byte c) //Write a character to the debugger!
+OPTINLINE void debugger_writecharacter(byte c) //Write a character to the debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	if ((c=='\n') || (c=='\r')) //Newline character?

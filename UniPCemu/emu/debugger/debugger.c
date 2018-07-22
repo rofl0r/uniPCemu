@@ -807,7 +807,7 @@ char statelog[256];
 char executedinstructionstatelog[2048];
 char fullcmd[65536];
 
-OPTINLINE static void debugger_autolog()
+OPTINLINE void debugger_autolog()
 {
 	if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 	{
@@ -1096,7 +1096,7 @@ word debuggerrow; //Debugger row after the final row!
 extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
-OPTINLINE void debugger_screen() //Show debugger info on-screen!
+void debugger_screen() //Show debugger info on-screen!
 {
 	if (frameratesurface) //We can show?
 	{

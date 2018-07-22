@@ -268,7 +268,7 @@ extern VideoModeBlock ModeList_VGA_Text_350lines[5];
 //Now the function itself (a big one)!
 /* Setup the BIOS */
 
-OPTINLINE static bool SetCurMode(VideoModeBlock modeblock[],word mode)
+OPTINLINE bool SetCurMode(VideoModeBlock modeblock[],word mode)
 {
 	byte i=0;
 	while (modeblock[i].mode!=0xffff)

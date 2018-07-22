@@ -357,7 +357,7 @@ OPTINLINE uint_32 getCGAcol16(byte color) //Special for the emulator, like the k
 	return RGB(0x00,0x00,0x00); //Shouldn't be here, but just in case!
 }
 
-OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
+OPTINLINE void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
 {
 	uint_32 current;
 	for (current=0;likely(current<size);current++) //Process all pixels!
@@ -365,7 +365,7 @@ OPTINLINE static void RENDER_convertRGBI(byte *pixels, uint_32 *renderdestinatio
 }
 
 //NTSC conversion
-OPTINLINE static void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
+OPTINLINE void RENDER_convertNTSC(byte *pixels, uint_32 *renderdestination, uint_32 size) //Convert a row of data to NTSC output!
 {
 	//RENDER_convertRGBI(pixels,renderdestination,size); return; //Test by converting to RGBI instead!
 	memcpy(renderdestination,pixels,size); //Copy the pixels to the display to convert!

@@ -402,7 +402,7 @@ OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 	return attrmode(Sequencer_attributeinfo, VGA); //Passthrough!
 }
 
-OPTINLINE static void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
+OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
 	byte x; //For horizontal shifting!
 	INLINEREGISTER word row;
@@ -1249,7 +1249,7 @@ recalcsignal: //Recalculate the signal to process!
 
 extern DisplayRenderHandler displayrenderhandler[4][VGA_DISPLAYRENDERSIZE]; //Our handlers for all pixels!
 
-OPTINLINE static void VGA_Renderer(SEQ_DATA *Sequencer)
+OPTINLINE void VGA_Renderer(SEQ_DATA *Sequencer)
 {
 	static byte totalretracing = 0;
 	//Process one pixel only!

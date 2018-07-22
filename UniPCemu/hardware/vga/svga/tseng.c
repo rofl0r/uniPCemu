@@ -646,12 +646,12 @@ These ports are used but have little if any effect on emulation:
 	3DEh (W);  AT&T Mode Control Register
 */
 
-OPTINLINE static byte get_clock_index_et4k(VGA_Type *VGA) {
+OPTINLINE byte get_clock_index_et4k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
 	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER>>2)&3) | ((et34k(VGA)->store_et4k_3d4_34<<1)&4) | ((et34k(VGA)->store_et4k_3d4_31>>3)&8);
 }
 
-OPTINLINE static byte get_clock_index_et3k(VGA_Type *VGA) {
+OPTINLINE byte get_clock_index_et3k(VGA_Type *VGA) {
 	// Ignoring bit 4, using "only" 16 frequencies. Looks like most implementations had only that
 	return ((VGA->registers->ExternalRegisters.MISCOUTPUTREGISTER >> 2) & 3) | ((et34k(VGA)->store_et4k_3d4_34 << 1) & 4);
 }
