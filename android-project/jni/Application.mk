@@ -15,9 +15,10 @@ else
 #Support all platforms
 ifeq (2,$(ANDROIDSTUDIO))
 APP_ABI := armeabi armeabi-v7a arm64-v8a x86 x86_64 mips
-# Min runtime API level
-APP_PLATFORM=android-14
 else
 APP_ABI := all
 endif
 endif
+
+# Min runtime API level
+APP_PLATFORM=android-14
