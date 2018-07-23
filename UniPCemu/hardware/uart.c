@@ -344,7 +344,6 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 byte PORT_writeUART(word port, byte value)
 {
 	byte COMport;
-	byte oldDLAB;
 	if ((COMport = getCOMport(port))==4) //Unknown?
 	{
 		return 0; //Error!
@@ -406,13 +405,7 @@ byte PORT_writeUART(word port, byte value)
 			//Not used in the original 8250 UART.
 			break;
 		case 3: //Line Control Register?
-			oldDLAB = UART_LINECONTROLREGISTER_DLABR(COMport); //DLAB old?
 			UART_port[COMport].LineControlRegister = value; //Set the register!
-			if (!UART_LINECONTROLREGISTER_DLABR(COMport) && oldDLAB) //DLAB toggled off? Update the speed?
-			{
-				//Update the transmit speed with our new values and DLAB!
-				updateUARTSpeed(COMport, UART_LINECONTROLREGISTER_DLABR(COMport)); //Update the UART speed!
-			}
 			break;
 		case 4:  //Modem Control Register?
 			UART_port[COMport].ModemControlRegister = value; //Set the register!
