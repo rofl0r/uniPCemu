@@ -232,6 +232,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				*result = UART_port[COMport].DataHoldingRegister; //Receive the data, if any is available!
 				if (UART_port[COMport].LineStatusRegister&1) //Buffer full?
 				{
+					UART_port[COMport].DataHoldingRegister = 0; //Receive the data, if any is available!
 					UART_port[COMport].LineStatusRegister &= ~1; //We don't have any data anymore!
 				}
 			}
