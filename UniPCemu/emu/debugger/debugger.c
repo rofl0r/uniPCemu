@@ -1581,4 +1581,21 @@ void initDebugger() //Initialize the debugger if needed!
 	memset(&debugger_memoryaccess_text,0,sizeof(debugger_memoryaccess_text));
 	memset(&debugger_memoryaccess_line,0,sizeof(debugger_memoryaccess_line));
 	memset(&executedinstructionstatelog,0,sizeof(executedinstructionstatelog));
+
+	//Debugger skipping functionality(requires to be reset when initializing the emulator)
+	skipopcodes = 0; //Skip none!
+	skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
+	skipopcodes_destEIP = 0; //Wait for EIP to become this value?
+
+	//Repeat log?
+	forcerepeat = 0; //Force repeat log?
+
+	debugger_index = 0; //Current debugger index is to be initialized!
+
+	debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
+
+	singlestep = 0; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
+
+	debuggerHLT = 0; //We're assuming CPU reset, so not halting!
+	debuggerReset = 1; //Are we a reset CPU(we assume so)?
 }
