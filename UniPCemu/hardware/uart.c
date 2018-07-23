@@ -229,11 +229,9 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					}
 				}
 				//return value with bits toggled by Line Control Register!
-				*result = 0x00; //Invalid input by default!
+				*result = UART_port[COMport].DataHoldingRegister; //Receive the data, if any is available!
 				if (UART_port[COMport].LineStatusRegister&1) //Buffer full?
 				{
-					*result = UART_port[COMport].DataHoldingRegister; //Receive the data!
-					UART_port[COMport].DataHoldingRegister = 0x00; //Clear the received data in the buffer!
 					UART_port[COMport].LineStatusRegister &= ~1; //We don't have any data anymore!
 				}
 			}
