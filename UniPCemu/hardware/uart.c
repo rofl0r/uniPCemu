@@ -410,6 +410,7 @@ byte PORT_writeUART(word port, byte value)
 			if (!UART_LINECONTROLREGISTER_DLABR(COMport) && oldDLAB) //DLAB toggled off? Update the speed?
 			{
 				//Update the transmit speed with our new values and DLAB!
+				updateUARTSpeed(COMport, UART_LINECONTROLREGISTER_DLABR(COMport)); //Update the UART speed!
 			}
 			break;
 		case 4:  //Modem Control Register?
