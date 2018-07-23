@@ -4,6 +4,7 @@
 #include "headers/hardware/ports.h" //CMOS support!
 #include "headers/cpu/cb_manager.h" //Callback support!
 
+/*
 OPTINLINE byte CMOS_readAutoBCD(byte number)
 {
 	PORT_OUT_B(0x70, 0xB); //Status register B!
@@ -32,6 +33,7 @@ OPTINLINE byte CMOS_readAutoBCD(byte number)
 	}
 	return data; //Give the correct data!
 }
+*/
 
 //Our IRQ0 handler!
 void BIOS_IRQ0()

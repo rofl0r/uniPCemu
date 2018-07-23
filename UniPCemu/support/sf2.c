@@ -570,10 +570,12 @@ Basic reading functions for presets, instruments and samples.
 
 */
 
+/*
 OPTINLINE RIFF_ENTRY getHydra(RIFFHEADER *sf) //Retrieves the HYDRA structure from the soundfont!
 {
 	return sf->hydra; //Give the hydra block!
 }
+*/
 
 //Preset!
 byte getSFPreset(RIFFHEADER *sf, uint_32 preset, sfPresetHeader *result)

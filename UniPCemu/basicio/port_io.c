@@ -49,42 +49,24 @@ void PORT_OUT_B(word port, byte b)
 	}
 }
 
-#include "headers/packed.h" //Packed type!
-typedef union PACKED
-{
-	struct
-	{
-		#ifdef IS_BIG_ENDIAN
-		byte high;
-		byte low;
-		#else
-		byte low;
-		byte high;
-		#endif
-	};
-	word w;
-} WSPLITTER;
-#include "headers/endpacked.h" //End of packed type!
-
 word PORT_IN_W(word port) //IN result,port
 {
-	WSPLITTER splitter;
+	word w;
 	if (port & 1) //Not aligned?
 	{
 		goto bytetransferr; //Force byte transfer!
 	}
-	if (EXEC_PORTINW(port, &splitter.w)) //Passtrough!
+	if (EXEC_PORTINW(port, &w)) //Passtrough!
 	{
 		bytetransferr:
-		splitter.low = PORT_IN_B(port); //Low first
-		splitter.high = PORT_IN_B(port + 1); //High last!
+		w = PORT_IN_B(port); //Low first
+		w |= (PORT_IN_B(port + 1)<<8); //High last!
 	}
-	return splitter.w; //Give word!
+	return w; //Give word!
 }
 
 void PORT_OUT_W(word port, word w) //OUT port,w
 {
-	WSPLITTER splitter;
 	if (port & 1) //Not aligned?
 	{
 		goto bytetransferw; //Force byte transfer!
@@ -92,48 +74,29 @@ void PORT_OUT_W(word port, word w) //OUT port,w
 	if (EXEC_PORTOUTW(port, w)) //Passtrough!
 	{
 		bytetransferw:
-		splitter.w = w; //Split!
-		PORT_OUT_B(port, splitter.low); //First low byte!
-		PORT_OUT_B(port + 1, splitter.high); //Next high byte!
+		PORT_OUT_B(port, (w&0xFF)); //First low byte!
+		PORT_OUT_B(port + 1, ((w>>8)&0xFF)); //Next high byte!
 	}
 }
 
-#include "headers/packed.h" //Packed type!
-typedef union PACKED
-{
-	struct
-	{
-		#ifdef IS_BIG_ENDIAN
-		word high;
-		word low;
-		#else
-		word low;
-		word high;
-		#endif
-	};
-	uint_32 dw;
-} DWSPLITTER;
-#include "headers/endpacked.h" //End of packed type!
-
 uint_32 PORT_IN_D(word port) //IN result,port
 {
-	DWSPLITTER splitter;
+	uint_32 dw;
 	if (port & 3) //Not aligned?
 	{
 		goto wordtransferr; //Force word transfer!
 	}
-	if (EXEC_PORTIND(port, &splitter.dw)) //Passtrough!
+	if (EXEC_PORTIND(port, &dw)) //Passtrough!
 	{
 		wordtransferr:
-		splitter.low = PORT_IN_W(port); //Low first
-		splitter.high = PORT_IN_W(port + 2); //High last!
+		dw = PORT_IN_W(port); //Low first
+		dw |= (PORT_IN_W(port + 2)<<16); //High last!
 	}
-	return splitter.dw; //Give dword!
+	return dw; //Give dword!
 }
 
 void PORT_OUT_D(word port, uint_32 dw) //OUT port,w
 {
-	DWSPLITTER splitter;
 	if (port & 3) //Not aligned?
 	{
 		goto wordtransferw; //Force word transfer!
@@ -141,8 +104,7 @@ void PORT_OUT_D(word port, uint_32 dw) //OUT port,w
 	if (EXEC_PORTOUTD(port, dw)) //Passtrough!
 	{
 		wordtransferw:
-		splitter.dw = dw; //Split!
-		PORT_OUT_W(port, splitter.low); //First low byte!
-		PORT_OUT_W(port + 2, splitter.high); //Next high byte!
+		PORT_OUT_W(port, (dw&0xFFFF)); //First low byte!
+		PORT_OUT_W(port + 2, ((dw>>16)&0xFFFF)); //Next high byte!
 	}
 }

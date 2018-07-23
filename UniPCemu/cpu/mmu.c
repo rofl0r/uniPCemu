@@ -332,25 +332,6 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	return result; //Give the result!
 }
 
-OPTINLINE byte MMU_BIU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
-{
-	INLINEREGISTER byte result; //The result!
-	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
-	if (MMU.memory==NULL) //No mem?
-	{
-		//dolog("MMU","R:No memory present!");
-		MMU.invaddr = 1; //Invalid adress!
-		return 0xFF; //Out of bounds!
-	}
-
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
-
-	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,getCPL()); //Read through the paging unit and hardware layer!
-	processBUS(realaddress, index, result); //Process us on the BUS!
-	return result; //Give the result!
-}
-
 OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
 {
 	INLINEREGISTER word result;

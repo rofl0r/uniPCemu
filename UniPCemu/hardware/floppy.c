@@ -1591,6 +1591,9 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 		case SPECIFY: //Fix drive data/specify command
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0] = FLOPPY.commandbuffer[1]; //Set setting byte 1/2!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1] = FLOPPY.commandbuffer[2]; //Set setting byte 2/2!
+			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].headloadtime = FLOPPY_headloadtimerate(FLOPPY_DOR_DRIVENUMBERR); //Head load rate!
+			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].headunloadtime = FLOPPY_headunloadtimerate(FLOPPY_DOR_DRIVENUMBERR); //Head unload rate!
+			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].steprate = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
@@ -1599,7 +1602,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.commandstep = 0; //Start our timed execution!
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute timing!
 			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY.commandbuffer[1]); //Step rate!
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DriveData[FLOPPY.commandbuffer[1]&3].steprate; //Step rate!
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			FLOPPY.recalibratestepsleft[FLOPPY_DOR_DRIVENUMBERR] = 79; //Up to 79 pulses!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
@@ -1658,7 +1661,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.seekrelup[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DoubleDensity; //Seek relative up(when seeking relatively)
 			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR&3].steprate; //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
 			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
 			{
@@ -2464,6 +2467,7 @@ void FLOPPY_DMATC() //Terminal count triggered?
 
 void initFDC()
 {
+	byte drive;
 	density_forced = (is_XT==0); //Allow force density check if 286+ (non XT)!
 	memset(&FLOPPY, 0, sizeof(FLOPPY)); //Initialise floppy!
 	FLOPPY.Configuration.data[0] = 0; //Default!
@@ -2485,4 +2489,11 @@ void initFDC()
 	memset(&floppytimer,0,sizeof(floppytimer)); //No time spent or in-use by the floppy disk!
 	floppytiming = 0; //We're not timing!
 	initFloppyRates(); //Initialize the floppy disk rate tables to use!
+
+	for (drive = 0; drive < 4; ++drive)
+	{
+		FLOPPY.DriveData[drive].headloadtime = FLOPPY_headloadtimerate(drive); //Head load rate!
+		FLOPPY.DriveData[drive].headunloadtime = FLOPPY_headunloadtimerate(drive); //Head unload rate!
+		FLOPPY.DriveData[drive].steprate = FLOPPY_steprate(drive); //Step rate!
+	}
 }

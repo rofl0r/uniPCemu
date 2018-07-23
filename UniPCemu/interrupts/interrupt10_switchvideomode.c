@@ -44,11 +44,6 @@ OPTINLINE void INT10_SetSingleDACRegister(Bit8u index,Bit8u red,Bit8u green,Bit8
 	}
 }
 
-OPTINLINE void VGA_DAC_SetEntry(byte index, byte r, byte g, byte b)
-{
-	INT10_SetSingleDACRegister(index,r,g,b);
-}
-
 void INT10_PerformGrayScaleSumming(Bit16u start_reg,Bit16u count) { //Creates a grayscale palette!
     Bitu ct;
 	Bit8u red, green, blue, ic;

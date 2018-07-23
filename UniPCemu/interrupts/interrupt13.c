@@ -191,28 +191,10 @@ OPTINLINE word gethddheads(uint_64 disksize)
 	return 255; //255 heads!
 }
 
-OPTINLINE word gethddspt()
-{
-	return 63; //Always 63 SPT!
-}
-
 OPTINLINE word gethddbps()
 {
 	return 512; //Always 512 bytes per sector!
 }
-
-OPTINLINE word gethddcylinders(uint_64 disksize)
-{
-	return (word)(disksize/(gethddspt()*gethddheads(disksize)*gethddbps()));
-}
-
-
-
-
-
-
-
-
 
 void getDiskGeometry(byte disk, word *heads, word *cylinders, uint_64 *sectors, uint_64 *bps)
 {

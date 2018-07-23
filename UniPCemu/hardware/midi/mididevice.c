@@ -531,11 +531,12 @@ OPTINLINE float MIDIconcave(float value, float maxvalue)
 	return logf(sqrtf(value*value)/(maxvalue*maxvalue)); //Give the concave fashion!
 }
 
+/*
 OPTINLINE float MIDIconvex(float value, float maxvalue)
 {
 	return logf(sqrtf(maxvalue-(value*value))/(maxvalue*maxvalue)); //Give the convex fashion: same as concave, but start and end points are reversed!
 }
-
+*/
 
 OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
 {

@@ -614,12 +614,6 @@ void GPU_clearscreen() //Clears the screen!
 	MMU_wb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_MODE,oldmode,1); //Restore old mode!
 }
 
-OPTINLINE void GPU_clearscreen_BIOS() //Clears the screen for BIOS menus etc.!
-{
-	if (__HW_DISABLED) return; //Abort!
-	GPU_clearscreen(); //Forward: we're using official VGA now!
-}
-
 OPTINLINE void int10_nextcol(byte thepage)
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -740,78 +734,6 @@ Font generator support!
 
 */
 
-
-OPTINLINE void int10_ActivateFontBlocks(byte selector) //Activate a font!
-{
-	if (__HW_DISABLED) return; //Abort!
-	IO_Write(0x3c4,0x03); //Character map select register!
-	IO_Write(0x3c5,selector); //Activate the font blocks, according to the user!
-}
-
-word map_offset[8] = {0x0000,0x4000,0x8000,0xB000,0x2000,0x6000,0xA000,0xE000}; //Where do we map to?
-
-OPTINLINE void int10_LoadFont(word segment, uint_32 offset, //font in dosbox!
-				byte reload,
-				uint_32 count,
-				uint_32 vramoffset, uint_32 map, uint_32 height) //Load a custom font!
-{
-	if (__HW_DISABLED) return; //Abort!
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x4);	//Enable plane 2
-	IO_Write(0x3ce,0x6);Bitu old_6=IO_Read(0x3cf);
-	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
-	uint_32 i;
-	for (i=0;i<count;i++) {
-		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(vramoffset*32),MMU_rb(-1,segment,offset,0,1),1); //Write to VRAM plane 2!
-	}
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
-	IO_Write(0x3ce,0x6);
-	if (IS_VGA_ARCH) IO_Write(0x3cf,(Bit8u)old_6);	//odd/even and b8000 adressing
-	else IO_Write(0x3cf,0x0e);	
-	if (reload)
-	{
-//Max scanline 
-		Bit16u base=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
-		IO_Write(base,0x9);
-		IO_Write(base+1,(IO_Read(base+1) & 0xe0)|(height-1));
-		//Vertical display end bios says, but should stay the same?
-		//Rows setting in bios segment
-		real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,(CurMode->sheight/height)-1);
-		real_writeb(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,(Bit8u)height);
-		//TODO Reprogram cursor size?
-	}
-}
-
-OPTINLINE void int10_LoadFontSystem(byte *data, //font in dosbox!
-				byte reload,
-				uint_32 count,
-				uint_32 offset, uint_32 map, uint_32 height) //Load a custom font!
-{
-	if (__HW_DISABLED) return; //Abort!
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x4);	//Enable plane 2
-	IO_Write(0x3ce,0x6);Bitu old_6=IO_Read(0x3cf);
-	IO_Write(0x3cf,0x0);	//Disable odd/even and a0000 adressing
-	uint_32 i;
-	for (i=0;i<count;i++) {
-		MMU_wb(-1,0xa000,map_offset[map]+map_offset[map&0x7]+(offset*32),data[i],1); //Write to VRAM plane 2!
-	}
-	IO_Write(0x3c4,0x2);IO_Write(0x3c5,0x3);	//Enable textmode planes (0,1)
-	IO_Write(0x3ce,0x6);
-	if (IS_VGA_ARCH) IO_Write(0x3cf,(Bit8u)old_6);	//odd/even and b8000 adressing
-	else IO_Write(0x3cf,0x0e);	
-	if (reload)
-	{
-//Max scanline 
-		Bit16u base=real_readw(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);
-		IO_Write(base,0x9);
-		IO_Write(base+1,(IO_Read(base+1) & 0xe0)|(height-1));
-		//Vertical display end bios says, but should stay the same?
-		//Rows setting in bios segment
-		real_writeb(BIOSMEM_SEG,BIOSMEM_NB_ROWS,(CurMode->sheight/height)-1);
-		real_writeb(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,(Bit8u)height);
-		//TODO Reprogram cursor size?
-	}
-}
-
 /*void INT10_ReloadFont()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -893,47 +815,6 @@ OPTINLINE void INT10_SetPelMask(Bit8u mask) {
 OPTINLINE void INT10_GetPelMask(Bit8u *mask) {
 	*mask=IO_Read(VGAREG_PEL_MASK);
 }	
-
-OPTINLINE void INT10_SetBackgroundBorder(Bit8u val) {
-	Bit8u temp=real_readb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL);
-	temp=(temp & 0xe0) | (val & 0x1f);
-	real_writeb(BIOSMEM_SEG,BIOSMEM_CURRENT_PAL,temp);
-	/*if (machine == MCH_CGA || IS_TANDY_ARCH)
-		IO_Write(0x3d9,temp);
-	else if (IS_EGAVGA_ARCH) {*/
-		val = ((val << 1) & 0x10) | (val & 0x7);
-		/* Aways set the overscan color */
-		INT10_SetSinglePaletteRegister( 0x11, val );
-		/* Don't set any extra colors when in text mode */
-		if (CurMode->mode <= 3)
-			return;
-		INT10_SetSinglePaletteRegister( 0, val );
-		val = (temp & 0x10) | 2 | ((temp & 0x20) >> 5);
-		INT10_SetSinglePaletteRegister( 1, val );
-		val+=2;
-		INT10_SetSinglePaletteRegister( 2, val );
-		val+=2;
-		INT10_SetSinglePaletteRegister( 3, val );
-	//}
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void int10_SetVideoMode()
 {

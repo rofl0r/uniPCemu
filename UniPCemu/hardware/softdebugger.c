@@ -47,12 +47,14 @@ SOFTDEBUGGER softdebugger; //The software debugger for the CPU!
 //Next steps:
 
 //First phase
+/*
 OPTINLINE void debugger_doError() //Give an error result!
 {
 	if (__HW_DISABLED) return; //Abort!
 	softdebugger.command = 1; //Reset!
 	softdebugger.readcommand = 1; //Give an error!
 }
+*/
 
 OPTINLINE void debugger_doParameterPhase(word size) //Start a parameter phase!
 {
