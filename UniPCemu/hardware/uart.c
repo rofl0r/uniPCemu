@@ -208,7 +208,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			else //Receiver buffer?
 			{
 				//Read from input buffer!
-				if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport)==2) //We're to clear?
+				if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport)==2)) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 					UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -252,7 +252,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			break;
 		case 2: //Interrupt ID registers?
 			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xE0); //Give the register! Indicate no FIFO!
-			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) //We're to clear?
+			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1)) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -280,7 +280,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			*result = UART_port[COMport].ModemControlRegister; //Give the register!
 			break;
 		case 5: //Line Status Register?
-			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 3) //We're to clear?
+			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 3)) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -303,7 +303,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
 			break;
 		case 6: //Modem Status Register?
-			if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 0) //We're to clear?
+			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 0)) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -359,7 +359,7 @@ byte PORT_writeUART(word port, byte value)
 			}
 			else //Output buffer?
 			{
-				if (!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport) && UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) //We're to clear?
+				if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1)) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 					UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -438,22 +438,22 @@ void UART_handleInputs() //Handle any input to the UART!
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
-		if (unlikely((UART_port[i].LineStatusRegister&1) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
-		{
-			launchUARTIRQ(i, 2); //We've received data!
-		}
 		if (UART_port[i].getmodemstatus) //Modem status available?
 		{
 			oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
 			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
-			if (unlikely((oldmodemstatus!=UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
-			{
-				launchUARTIRQ(i, 0); //Modem status changed!
-			}
+		}
+		if (unlikely((oldmodemstatus != UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
+		{
+			launchUARTIRQ(i, 0); //Modem status changed!
 		}
 		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister)&0x60) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full becomes empty)?
 		{
 			launchUARTIRQ(i, 1); //We've sent data!
+		}
+		if (unlikely((UART_port[i].LineStatusRegister & 1) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
+		{
+			launchUARTIRQ(i, 2); //We've received data!
 		}
 		if (unlikely(((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) || (UART_port[i].interrupt_causes[3]))) //Sent a byte of data(full becomes empty)?
 		{
