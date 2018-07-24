@@ -972,7 +972,7 @@ void initCPU() //Initialize CPU for full system reset into known state!
 
 void CPU_tickPendingReset()
 {
-	if (CPU[activeCPU].resetPending) //Are we pending?
+	if (unlikely(CPU[activeCPU].resetPending)) //Are we pending?
 	{
 		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1)) //Starting a new instruction or halted with pending Reset?
 		{
