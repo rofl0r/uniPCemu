@@ -931,6 +931,9 @@ extern byte haswindowactive; //For detecting paused operation!
 
 extern byte lastHLTstatus; //Last halt status for debugger! 1=Was halting, 0=Not halting!
 
+extern byte debugger_is_logging; //Are we logging?
+
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
@@ -1049,7 +1052,7 @@ OPTINLINE byte coreHandler()
 				}
 
 				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-				MMU_logging = debugger_logging(); //Are we logging?
+				MMU_logging = debugger_is_logging; //Are we logging?
 
 				HWINT_saved = 0; //No HW interrupt by default!
 				CPU_beforeexec(); //Everything before the execution!

@@ -40,6 +40,8 @@ extern ThreadParams_p debugger_thread; //Debugger menu thread!
 extern word CPU_exec_lastCS, CPU_exec_CS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP, CPU_exec_EIP; //OPCode EIP
 
+extern byte debugger_is_logging; //Are we logging?
+
 int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 {
 	byte useHWInterrupts = 0; //Default: disable hardware interrupts!
@@ -146,7 +148,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		if (unlikely(CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1))) //We're starting a new instruction?
 		{
 			cpudebugger = needdebugger(); //Debugging?
-			MMU_logging = debugger_logging(); //Are we logging?
+			MMU_logging = debugger_is_logging; //Are we logging?
 		}
 		HWINT_saved = 0; //No HW interrupt by default!
 		CPU_beforeexec(); //Everything before the execution!

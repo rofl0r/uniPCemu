@@ -69,6 +69,8 @@ byte debugger_simplifiedlog = 0; //Are we to produce a simplified log?
 
 byte verifyfile = 0; //Check for verification file?
 
+byte debugger_is_logging = 0; //Are we logging?
+
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
 {
@@ -188,10 +190,10 @@ byte isDebuggingPOSTCodes()
 	return (DEBUGGER_LOG==DEBUGGERLOG_DIAGNOSTICCODES); //Log Diagnostic codes only?
 }
 
-byte needdebugger() //Do we need to generate debugging information?
+byte needdebugger() //Do we need to generate debugging information? Only called once each instruction!
 {
 	byte result;
-	result = debugger_logging(); //Are we logging?
+	debugger_is_logging = result = debugger_logging(); //Are we logging?
 	result |= (DEBUGGER_LOG == DEBUGGERLOG_INT); //Interrupts are needed, but logging is another story!
 	result |= debugging(); //Are we debugging?
 	return result; //Do we need debugger information?
@@ -821,7 +823,7 @@ OPTINLINE void debugger_autolog()
 		forcerepeat = 0; //Don't force repeats anymore if forcing!
 	}
 
-	if (unlikely(debugger_logging())) //To log?
+	if (unlikely(debugger_is_logging)) //To log?
 	{
 		log_timestampbackup = log_logtimestamp(2); //Save state!
 		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
