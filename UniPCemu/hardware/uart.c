@@ -433,9 +433,9 @@ void UART_handleInputs() //Handle any input to the UART!
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
+		oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
 		if (UART_port[i].getmodemstatus) //Modem status available?
 		{
-			oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
 			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
 		}
 		if (unlikely((oldmodemstatus != UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
