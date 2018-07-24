@@ -929,6 +929,8 @@ extern byte skipstep; //Skip while stepping? 1=repeating, 2=EIP destination, 3=S
 
 extern byte haswindowactive; //For detecting paused operation!
 
+extern byte lastHLTstatus; //Last halt status for debugger! 1=Was halting, 0=Not halting!
+
 OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
@@ -1009,7 +1011,11 @@ OPTINLINE byte coreHandler()
 			if (unlikely(CPU[activeCPU].halt==1)) //Normal halt?
 			{
 				//Increase the instruction counter every instruction/HLT time!
-				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+				if (lastHLTstatus != CPU[activeCPU].halt) //Just started halting?
+				{
+					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+					lastHLTstatus = CPU[activeCPU].halt; //Save for comparision!
+				}
 				if (cpudebugger) //Debugging?
 				{
 					debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
@@ -1022,9 +1028,10 @@ OPTINLINE byte coreHandler()
 		}
 		else //We're not halted? Execute the CPU routines!
 		{
-			resumeFromHLT:
+		resumeFromHLT:
 			if (unlikely(CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1))) //We're starting a new instruction?
 			{
+				lastHLTstatus = CPU[activeCPU].halt; //Save the new HLT status!
 				if (unlikely(CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep && (getcpumode() == (doEMUsinglestep - 1)))) //Single step enabled and allowed, CPU mode specified?
 				{
 					switch (getcpumode()) //What CPU mode are we to debug?

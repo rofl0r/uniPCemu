@@ -52,6 +52,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 
 byte singlestep; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
 
+byte lastHLTstatus = 0; //Last halt status for debugger! 1=Was halting, 0=Not halting!
+
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
 byte debuggerHLT = 0;
 byte debuggerReset = 0; //Are we a reset CPU?
@@ -100,6 +102,7 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
 byte harddebugging = 0; //Hard-coded debugger set?
+extern byte cpudebugger; //Are we currently debugging?
 
 OPTINLINE byte debugging() //Debugging?
 {
@@ -176,7 +179,7 @@ byte debugger_logging()
 	enablelog |= harddebugging; //Same as startreached, but special operations only!
 	enablelog |= waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
-	if (skipstep && ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT))) enablelog = 0; //Disable when skipping?
+	enablelog &= ((skipstep && ((DEBUGGER_LOG != DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP) && (DEBUGGER_LOG != DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT))) ^ 1)&1; //Disable when skipping?
 	return enablelog; //Logging?
 }
 
@@ -459,7 +462,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
-	if (needdebugger()) //To apply the debugger generator?
+	if (cpudebugger) //To apply the debugger generator?
 	{
 		static VERIFICATIONDATA verify, originalverify;
 		memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
@@ -1512,8 +1515,6 @@ void debugger_step() //Processes the debugging step!
 	harddebugging = (getcpumode()!=CPU_MODE_REAL); //Protected/V86 mode forced debugging log to start/stop? Don't include the real mode this way(as it's already disabled after execution), do include the final instruction, leaving protected mode this way(as it's already handled).
 	#endif
 }
-
-extern byte cpudebugger;
 
 void debugger_setcommand(char *text, ...)
 {
