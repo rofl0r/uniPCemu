@@ -2218,8 +2218,23 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
 							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+							if (isbackspace) //Backspace?
+							{
+								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputusername; //To ignore?
+								//We're a valid backspace!
+								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
+								{
+									goto sendoutputbuffer; //Not ready to process the writes!
+								}
+							}
 							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
+								if (isbackspace) //Backspace requires extra data?
+								{
+									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
+									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+								}
+								ignorebackspaceoutputusername: //Ignore the output part! Don't send back to the user!
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
 								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
@@ -2287,8 +2302,23 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
 							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+							if (isbackspace) //Backspace?
+							{
+								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputpassword; //To ignore?
+								//We're a valid backspace!
+								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
+								{
+									goto sendoutputbuffer; //Not ready to process the writes!
+								}
+							}
 							if (writefifobuffer(modem.outputbuffer,(isbackspace || (textinputfield=='\r') || (textinputfield=='\n'))?textinputfield:'*')) //Echo back to user, encrypted if needed!
 							{
+								if (isbackspace) //Backspace requires extra data?
+								{
+									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
+									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+								}
+								ignorebackspaceoutputpassword: //Ignore the output part! Don't send back to the user!
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
 								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
@@ -2362,8 +2392,23 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
 							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+							if (isbackspace) //Backspace?
+							{
+								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputprotocol; //To ignore?
+								//We're a valid backspace!
+								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
+								{
+									goto sendoutputbuffer; //Not ready to process the writes!
+								}
+							}
 							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
+								if (isbackspace) //Backspace requires extra data?
+								{
+									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
+									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+								}
+								ignorebackspaceoutputprotocol: //Ignore the output part! Don't send back to the user!
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
 								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
 								{
@@ -2468,6 +2513,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					}
 				}
 
+				sendoutputbuffer:
 				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
 				{
 					switch (TCP_SendData(datatotransmit)) //Send the data?
