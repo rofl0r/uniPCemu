@@ -65,7 +65,7 @@ DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing somet
 //How much to delay before sending a message while authenticating?
 #define PACKETSERVER_MESSAGE_DELAY 10000000.0
 //How much to delay before starting the SLIP service?
-#define PACKETSERVER_SLIP_DELAY 3000000000.0
+#define PACKETSERVER_SLIP_DELAY 300000000.0
 
 //Different stages of the auth process:
 //Ready stage 
