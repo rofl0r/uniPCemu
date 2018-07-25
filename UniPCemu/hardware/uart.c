@@ -460,6 +460,7 @@ void UART_handleInputs() //Handle any input to the UART!
 void updateUART(DOUBLE timepassed)
 {
 	byte UART; //Check all UARTs!
+	byte sentreceived; //Have we sent/received anything now?
 	uint_32 clockticks; //The clock ticks to process!
 	UART_clock += timepassed; //Tick our master clock!
 	if (unlikely(UART_clock>=UART_clocktick)) //Ticking the UART clock?
@@ -476,20 +477,27 @@ void updateUART(DOUBLE timepassed)
 				if (unlikely((UART_port[UART].UART_receivetiming>=UART_port[UART].UART_bytereceivetiming) && UART_port[UART].UART_bytereceivetiming)) //A byte has been received, timed?
 				{
 					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
+					
+					//Either send or receive, but not both, as we're only capable of doing one of both!
+					sentreceived = 0; //Default: not sent/received anything!
+					//We either send or receive something. Receiving has priority over sending.
 					if (unlikely(UART_port[UART].hasdata())) //Do we have data?
 					{
 						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
 						{
 							UART_port[UART].DataHoldingRegister = UART_port[UART].receivedata(); //Read the data to receive!
 							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+							sentreceived = 1; //We've sent/received something!
 						}
 					}
-					else if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister&0x60)==0)))
+					if (sentreceived==0) //Not sent/received anything yet?
 					{
-						UART_port[UART].senddata(UART_port[UART].TransmitterHoldingRegister); //Send the data!
-						UART_port[UART].LineStatusRegister |= 0x60; //The Data Holding Register is empty!
+						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0)))
+						{
+							UART_port[UART].senddata(UART_port[UART].TransmitterHoldingRegister); //Send the data!
+							UART_port[UART].LineStatusRegister |= 0x60; //The Data Holding Register is empty!
+						}
 					}
-
 				}
 				else if (likely(UART_port[UART].UART_bytereceivetiming == 0)) //Nothing to process?
 				{
