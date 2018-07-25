@@ -230,10 +230,9 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				}
 				//return value with bits toggled by Line Control Register!
 				*result = UART_port[COMport].DataHoldingRegister; //Receive the data, if any is available!
-				if (UART_port[COMport].LineStatusRegister&1) //Buffer full?
+				if (UART_port[COMport].LineStatusRegister&0x01) //Buffer full?
 				{
-					UART_port[COMport].DataHoldingRegister = 0; //Receive the data, if any is available!
-					UART_port[COMport].LineStatusRegister &= ~1; //We don't have any data anymore!
+					UART_port[COMport].LineStatusRegister &= ~0x01; //We don't have any data anymore!
 				}
 			}
 			break;
@@ -446,11 +445,11 @@ void UART_handleInputs() //Handle any input to the UART!
 		{
 			launchUARTIRQ(i, 1); //We've sent data!
 		}
-		if (unlikely((UART_port[i].LineStatusRegister & 1) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
+		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x01) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
-		if (unlikely(((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) || (UART_port[i].interrupt_causes[3]))) //Sent a byte of data(full becomes empty)?
+		if (unlikely((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister) || (UART_port[i].interrupt_causes[3]))) //Line status has changed or required to be raised?
 		{
 			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
 		}
@@ -479,10 +478,10 @@ void updateUART(DOUBLE timepassed)
 					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
 					if (unlikely(UART_port[UART].hasdata())) //Do we have data?
 					{
-						if (likely((UART_port[UART].LineStatusRegister&1)==0)) //No data received yet?
+						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
 						{
 							UART_port[UART].DataHoldingRegister = UART_port[UART].receivedata(); //Read the data to receive!
-							UART_port[UART].LineStatusRegister |= 1; //We've received data!
+							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
 						}
 					}
 					else if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister&0x60)==0)))
