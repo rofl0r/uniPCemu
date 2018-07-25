@@ -64,6 +64,8 @@ char packetserver_staticIPstr_information[256] = "";
 DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing something!
 //How much to delay before sending a message while authenticating?
 #define PACKETSERVER_MESSAGE_DELAY 10000000.0
+//How much to delay before starting the SLIP service?
+#define PACKETSERVER_SLIP_DELAY 3000000000.0
 
 //Different stages of the auth process:
 //Ready stage 
@@ -83,8 +85,10 @@ DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing somet
 #define PACKETSTAGE_INFORMATION 7
 //Ready: Sending ready and entering SLIP mode when finished.
 #define PACKETSTAGE_READY 8
+//SLIP: Delaying before starting the SLIP mode!
+#define PACKETSTAGE_SLIPDELAY 9
 //SLIP: Transferring SLIP data
-#define PACKETSTAGE_SLIP 9
+#define PACKETSTAGE_SLIP 10
 //Initial packet stage without credentials
 #define PACKETSTAGE_INIT PACKETSTAGE_REQUESTPROTOCOL
 //Initial packet stage with credentials
@@ -2413,10 +2417,22 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
 								{
+									packetserver_stage = PACKETSTAGE_SLIPDELAY;
+									packetserver_delay = PACKETSERVER_SLIP_DELAY; //Delay this much!
 									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
 								}
 							}
+						}
+					}
+
+					if (packetserver_stage==PACKETSTAGE_SLIPDELAY) //Delay before starting SLIP communications?
+					{
+						packetserver_delay -= timepassed; //Delaying!
+						if ((packetserver_delay <= 0.0) || (!packetserver_delay)) //Finished?
+						{
+							packetserver_delay = (DOUBLE)0; //Finish the delay!
+							packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+							packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
 						}
 					}
 				}
