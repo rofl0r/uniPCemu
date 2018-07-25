@@ -1882,6 +1882,7 @@ void logpacket(byte send, byte *buffer, uint_32 size)
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
+	byte isbackspace = 0;
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader;
 	modem.timer += timepassed; //Add time to the timer!
@@ -2216,6 +2217,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
+							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
 							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
@@ -2228,7 +2230,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								else
 								{
-									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_username)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									if (isbackspace) //Backspace?
+									{
+										packetserver_username[packetserver_stage_byte] = '\0'; //Ending!
+										if (packetserver_stage_byte) //Non-empty?
+										{
+											--packetserver_stage_byte; //Previous character!
+											packetserver_username[packetserver_stage_byte] = '\0'; //Erase last character!
+										}
+									}
+									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_username)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
 									{
 										packetserver_stage_byte_overflown = 1; //Overflow detected!
 									}
@@ -2275,7 +2286,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
-							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
+							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+							if (writefifobuffer(modem.outputbuffer,(isbackspace || (textinputfield=='\r') || (textinputfield=='\n'))?textinputfield:'*')) //Echo back to user, encrypted if needed!
 							{
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
 								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
@@ -2287,7 +2299,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								else
 								{
-									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_password)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									if (isbackspace) //Backspace?
+									{
+										packetserver_password[packetserver_stage_byte] = '\0'; //Ending!
+										if (packetserver_stage_byte) //Non-empty?
+										{
+											--packetserver_stage_byte; //Previous character!
+											packetserver_password[packetserver_stage_byte] = '\0'; //Erase last character!
+										}
+									}
+									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_password)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
 									{
 										packetserver_stage_byte_overflown = 1; //Overflow detected!
 									}
@@ -2340,6 +2361,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						}
 						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
 						{
+							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
 							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
 							{
 								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
@@ -2357,7 +2379,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								else
 								{
-									if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_protocol)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+									if (isbackspace) //Backspace?
+									{
+										packetserver_protocol[packetserver_stage_byte] = '\0'; //Ending!
+										if (packetserver_stage_byte) //Non-empty?
+										{
+											--packetserver_stage_byte; //Previous character!
+											packetserver_protocol[packetserver_stage_byte] = '\0'; //Erase last character!
+										}
+									}
+									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_protocol)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
 									{
 										packetserver_stage_byte_overflown = 1; //Overflow detected!
 									}
