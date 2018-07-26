@@ -544,6 +544,7 @@ void initUART() //Init software debugger!
 	for (i = 0;i < 4;i++)
 	{
 		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i >> 4,1); //We're not executing!
+		UART_port[i].LineStatusRegister = 0x60; //Receiver buffer not ready for reading, Transmitter Holding register and Shift register are empty.
 	}
 	UART_clock = 0.0; //Init our clock!
 	#ifdef IS_LONGDOUBLE
