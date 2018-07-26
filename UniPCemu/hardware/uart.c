@@ -29,6 +29,7 @@ struct
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	byte TransmitterHoldingRegister; //Data to be written to the device!
 	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
+	byte prioritizeSend; //Prioritize sending data now!
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
 
 
@@ -479,9 +480,12 @@ void updateUART(DOUBLE timepassed)
 					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
 					
 					//Either send or receive, but not both, as we're only capable of doing one of both!
+
+					//We prioritize receiving first, but in the case both sending and receiving apply, apply sending and receiving by interleaving them.
+
 					sentreceived = 0; //Default: not sent/received anything!
 					//We either send or receive something. Receiving has priority over sending.
-					if (unlikely(UART_port[UART].hasdata())) //Do we have data?
+					if (unlikely(UART_port[UART].hasdata() && (UART_port[UART].prioritizeSend==0))) //Do we have data to receive and not prioritizing sending data?
 					{
 						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
 						{
@@ -490,13 +494,19 @@ void updateUART(DOUBLE timepassed)
 							sentreceived = 1; //We've sent/received something!
 						}
 					}
-					if (sentreceived==0) //Not sent/received anything yet?
+					if (likely(sentreceived==0)) //Not sent/received anything yet?
 					{
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0)))
 						{
 							UART_port[UART].senddata(UART_port[UART].TransmitterHoldingRegister); //Send the data!
 							UART_port[UART].LineStatusRegister |= 0x60; //The Data Holding Register is empty!
+							UART_port[UART].prioritizeSend = 0; //Not prioritizing sending data anymore!
 						}
+					}
+					else if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0))) //Data is pending to be sent on the next cycle?
+					{
+						//We're pending to send data, but the receive buffer is still filled! Prioritize sending next time!
+						UART_port[UART].prioritizeSend = 1; //Prioritize sending next time!
 					}
 				}
 				else if (likely(UART_port[UART].UART_bytereceivetiming == 0)) //Nothing to process?
