@@ -725,7 +725,7 @@ void modem_updateRegister(byte reg)
 			{
 				for (;modem.escaping;--modem.escaping) //Process all escaped data!
 				{
-					modem_sendData(modem.escaping); //Send all escaped data!
+					modem_sendData(modem.escapecharacter); //Send all escaped data!
 				}
 			}
 			modem.escapecharacter = modem.registers[reg]; //Escape!
