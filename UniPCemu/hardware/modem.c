@@ -55,6 +55,7 @@ char packetserver_staticIPstr[256] = ""; //Static IP, string format
 char packetserver_username[256]; //Username(settings must match)
 char packetserver_password[256]; //Password(settings must match)
 char packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
+byte packetserver_slipprotocol = 1; //Are we using the slip protocol?
 byte packetserver_stage = 0; //Current login/service/packet(connected and authenticated state).
 word packetserver_stage_byte = 0; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
 byte packetserver_stage_byte_overflown = 0; //Overflown?
@@ -129,6 +130,7 @@ typedef union PACKED
 #include "headers/endpacked.h"
 
 uint_32 packetserver_packetpos; //Current pos of sending said packet!
+byte packetserver_packetack = 0;
 
 //Normal modem operations!
 #define MODEM_BUFFERSIZE 256
@@ -489,13 +491,14 @@ void initPacketServer() //Initialize the packet server for use when connected to
 		net.packet = NULL; //No packet anymore!
 	}
 	packetserver_packetpos = 0; //No packet buffered anymore! New connections must read a new packet!
+	packetserver_packetack = 0; //Not acnowledged yet!
 	fifobuffer_clear(modem.inputdatabuffer); //Nothing is received yet!
 	fifobuffer_clear(modem.outputbuffer); //Nothing is sent yet!
 }
 
 byte packetserver_authenticate()
 {
-	if (strcmp(packetserver_protocol,"slip")==0) //Valid protocol?
+	if ((strcmp(packetserver_protocol,"slip")==0) || (strcmp(packetserver_protocol,"ethernetslip")==0)) //Valid protocol?
 	{
 #ifdef PACKETSERVER_ENABLED
 		if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
@@ -1989,7 +1992,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						{
 							if (fifobuffer_freesize(packetserver_receivebuffer)>=2) //Valid to produce more data?
 							{
-								if (packetserver_packetpos==0) //New packet?
+								if ((packetserver_packetpos==0) && (packetserver_packetack==0)) //New packet?
 								{
 									if (net.pktlen>(sizeof(ethernetheader.data)+20)) //Length OK(at least one byte of data and complete IP header)?
 									{
@@ -2012,9 +2015,18 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											}
 										}
 										//Valid packet! Receive it!
-										packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
+										if (packetserver_slipprotocol) //Using slip protocol?
+										{
+											packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
+											packetserver_bytesleft = MIN(net.pktlen - packetserver_packetpos, SDL_SwapBE16(*((word *)&net.packet[sizeof(ethernetheader.data) + 2]))); //How much is left to send?
+										}
+										else //We're using the ethernet header protocol?
+										{
+											//else, we're using ethernet header protocol, so take the
+											packetserver_packetack = 1; //We're acnowledging the packet, so start transferring it!
+											packetserver_bytesleft = net.pktlen; //Use the entire packet, unpatched!
+										}
 										//dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
-										packetserver_bytesleft = MIN(net.pktlen - packetserver_packetpos, SDL_SwapBE16(*((word *)&net.packet[sizeof(ethernetheader.data)+2]))); //How much is left to send?
 									}
 									else //Invalid length?
 									{
@@ -2025,6 +2037,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
 										net.packet = NULL; //No packet!
 										packetserver_packetpos = 0; //Reset packet position!
+										packetserver_packetack = 0; //Not acnowledged yet!
 									}
 								}
 								if (net.packet) //Still a valid packet to send?
@@ -2061,6 +2074,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
 										net.packet = NULL; //Discard the packet anyway, no matter what!
 										packetserver_packetpos = 0; //Reset packet position!
+										packetserver_packetack = 0; //Not acnowledged yet!
 									}
 								}
 							}
@@ -2083,7 +2097,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					//Handle transmitting packets(with automatically increasing buffer sizing, as a packet can be received of any size theoretically)!
 					if (peekfifobuffer(modem.inputdatabuffer,&datatotransmit)) //Is anything transmitted yet?
 					{
-						if (packetserver_transmitlength==0) //We might need to create an ethernet header?
+						if ((packetserver_transmitlength==0) && (packetserver_slipprotocol)) //We might need to create an ethernet header?
 						{
 							//Build an ethernet header, platform dependent!
 							//Use the data provided by the settings!
@@ -2418,6 +2432,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									if (packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
 									if (packetserver_authenticate()) //Authenticated?
 									{
+										packetserver_slipprotocol = (strcmp(packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
 										packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
 									}
 									else goto packetserver_autherror; //Authentication error!
