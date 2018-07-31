@@ -1148,5 +1148,4 @@ byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offs
 
 byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, byte convertedtopositive); //Is there a signed overflow?
 void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplicantsize, uint_32 *result, byte resultsize); //IMUL instruction support for fixed size IMUL(not GRP opcodes)!
-void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor); //Calculate segment descriptor precalcs when loading it!
 #endif

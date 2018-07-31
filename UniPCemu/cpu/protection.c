@@ -391,7 +391,7 @@ byte memory_writelinear(uint_32 address, byte value)
 	return 0; //No error!
 }
 
-void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
+OPTINLINE void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 {
 	//Calculate the precalculations for execution for this descriptor!
 	uint_32 limits[2]; //What limit to apply?
@@ -1402,6 +1402,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			updateCPL(); //Update the CPL according to the mode!
 		}
+		CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 	}
 	//Real mode doesn't use the descriptors?
 	return 0; //No fault raised&continue!
