@@ -391,7 +391,7 @@ byte memory_writelinear(uint_32 address, byte value)
 	return 0; //No error!
 }
 
-OPTINLINE void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
+void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 {
 	//Calculate the precalculations for execution for this descriptor!
 	uint_32 limits[2]; //What limit to apply?

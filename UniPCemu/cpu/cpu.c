@@ -905,6 +905,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
 		CPU[activeCPU].SEG_base[reg] = ((CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low); //Update the base address!
+		CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[reg]); //Calculate the precalcs for the segment descriptor!
 	}
 }
 

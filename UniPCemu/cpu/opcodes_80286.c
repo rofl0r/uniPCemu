@@ -629,6 +629,7 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].callgate_base_mid = 0; //Not used!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = (source->basehighaccessrights>>8); //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!	
+	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
 void CPU286_OP0F05() //Undocumented LOADALL instruction
