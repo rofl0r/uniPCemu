@@ -230,7 +230,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 void CPU386_OP0F02() //LAR /r
 {
 	byte isconforming = 1;
-	SEGDESCRIPTOR_TYPE verdescriptor;
+	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
 	if (getcpumode() == CPU_MODE_REAL)
 	{
@@ -243,7 +243,7 @@ void CPU386_OP0F02() //LAR /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
-			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
+			switch (GENERALSEGMENT_TYPE(verdescriptor))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?
 			case AVL_SYSTEM_INTERRUPTGATE16BIT:
@@ -256,7 +256,7 @@ void CPU386_OP0F02() //LAR /r
 				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
-				switch (verdescriptor.desc.AccessRights) //What type?
+				switch (verdescriptor.AccessRights) //What type?
 				{
 				case AVL_CODE_EXECUTEONLY_CONFORMING:
 				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
@@ -268,10 +268,10 @@ void CPU386_OP0F02() //LAR /r
 					isconforming = 0;
 					break;
 				}
-				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
+				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!
+					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.AccessRights<<8),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
@@ -299,7 +299,7 @@ void CPU386_OP0F03() //LSL /r
 {
 	uint_32 limit;
 	byte isconforming = 1;
-	SEGDESCRIPTOR_TYPE verdescriptor;
+	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
 	if (getcpumode() == CPU_MODE_REAL)
 	{
@@ -312,8 +312,8 @@ void CPU386_OP0F03() //LSL /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
-			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask); //What granularity are we?
-			switch (GENERALSEGMENT_TYPE(verdescriptor.desc))
+			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor)&CPU[activeCPU].G_Mask); //What granularity are we?
+			switch (GENERALSEGMENT_TYPE(verdescriptor))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?
 			case AVL_SYSTEM_INTERRUPTGATE16BIT:
@@ -326,7 +326,7 @@ void CPU386_OP0F03() //LSL /r
 				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
-				switch (verdescriptor.desc.AccessRights) //What type?
+				switch (verdescriptor.AccessRights) //What type?
 				{
 				case AVL_CODE_EXECUTEONLY_CONFORMING:
 				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
@@ -339,13 +339,9 @@ void CPU386_OP0F03() //LSL /r
 					break;
 				}
 
-				limit = verdescriptor.desc.limit_low|(SEGDESC_NONCALLGATE_LIMIT_HIGH(verdescriptor.desc)<<16); //Limit!
-				if ((SEGDESC_NONCALLGATE_G(verdescriptor.desc)&CPU[activeCPU].G_Mask) && (EMULATED_CPU >= CPU_80386)) //Granularity?
-				{
-					limit = ((limit << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-				}
+				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
 
-				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor.desc)) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!

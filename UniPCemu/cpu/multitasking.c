@@ -226,7 +226,7 @@ extern uint_32 CPU_exec_EIP; //Save for handling!
 extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
-byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
+byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
 	//Both structures to use for the TSS!
@@ -247,13 +247,13 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	uint_32 limit; //The limit we use!
-	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR->desc)==0) //Not present?
+	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR)==0) //Not present?
 	{
 		THROWDESCNP(destinationtask,1,(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 1; //Error out!
 	}
 
-	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR->desc)) //Check the type of descriptor we're switching to!
+	switch (GENERALSEGMENTPTR_TYPE(LOADEDDESCRIPTOR)) //Check the type of descriptor we're switching to!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 		//busy = 1;
@@ -279,10 +279,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 	#endif
 
-	limit = LOADEDDESCRIPTOR->desc.limit_low; //Low limit (286+)!
+	limit = LOADEDDESCRIPTOR->limit_low; //Low limit (286+)!
 	if (EMULATED_CPU >= CPU_80386) //Gotten high limit?
 	{
-		limit |= (SEGDESC_NONCALLGATE_LIMIT_HIGH(LOADEDDESCRIPTOR->desc) << 16); //High limit too!
+		limit |= (SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(LOADEDDESCRIPTOR) << 16); //High limit too!
 	}
 
 	if (limit < (uint_32)(TSSSize?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
@@ -295,7 +295,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL == 3) //IRET?
 	{
-		if ((LOADEDDESCRIPTOR->desc.AccessRights & 2) == 0) //Destination task is available?
+		if ((LOADEDDESCRIPTOR->AccessRights & 2) == 0) //Destination task is available?
 		{
 			CPU_TSSFault(destinationtask, (errorcode != -1) ? (errorcode & 1) : 0, (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
 			return 1; //Error out!
@@ -352,10 +352,10 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
-			SEGDESCRIPTOR_TYPE tempdesc;
+			SEGMENT_DESCRIPTOR tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)==1) //Loaded old container?
 			{
-				tempdesc.desc.AccessRights &= ~2; //Mark idle!
+				tempdesc.AccessRights &= ~2; //Mark idle!
 				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)<=0) //Save the new status into the old descriptor!
 				{
 					return 1; //Abort on fault raised!
@@ -520,7 +520,7 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
-		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
+		LOADEDDESCRIPTOR->AccessRights |= 2; //Mark not idle!
 		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,0)<=0) //Save the new status into the old descriptor!
 		{
 			return 1; //Abort on fault raised!
@@ -635,12 +635,12 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 	}
 
 	//Check and verify the LDT descriptor!
-	SEGDESCRIPTOR_TYPE LDTsegdesc;
+	SEGMENT_DESCRIPTOR LDTsegdesc;
 	uint_32 descriptor_index = (LDTsegment&~0x7); //The full index within the descriptor table!
 
 	if (!(descriptor_index&~3)) //NULL segment loaded into LDTR? Special case: no LDT available!
 	{
-		memset(&LDTsegdesc.descdata,0,sizeof(LDTsegdesc.descdata)); //No descriptor available to use: mark as invalid!
+		memset(&LDTsegdesc,0,sizeof(LDTsegdesc)); //No descriptor available to use: mark as invalid!
 	}
 	else //Valid LDT index?
 	{
@@ -660,20 +660,20 @@ byte CPU_switchtask(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *
 		if (unlikely(loadresult<=0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
-		if (GENERALSEGMENT_TYPE(LDTsegdesc.desc) != AVL_SYSTEM_LDT) //Not an LDT?
+		if (GENERALSEGMENT_TYPE(LDTsegdesc) != AVL_SYSTEM_LDT) //Not an LDT?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return 1; //Not present: not an IDT!	
 		}
 
-		if (!GENERALSEGMENT_P(LDTsegdesc.desc)) //Not present?
+		if (!GENERALSEGMENT_P(LDTsegdesc)) //Not present?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,1,(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return 1; //Not present: not an IDT!	
 		}
 	}
 
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR],&LDTsegdesc.desc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR],&LDTsegdesc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
 
 	if (debugger_logging()) //Are we logging?
 	{

@@ -209,7 +209,7 @@ void CPU_IRET()
 		//Normal protected mode?
 		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 		{
-			SEGDESCRIPTOR_TYPE newdescriptor; //Temporary storage!
+			SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
 			word desttask;
 			sbyte loadresult;
 			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!

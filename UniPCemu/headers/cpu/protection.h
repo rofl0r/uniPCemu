@@ -3,16 +3,6 @@
 
 #include "headers/cpu/cpu.h" //Basic CPU support!
 
-typedef struct
-{
-	union
-	{
-		uint_64 DATA64; //Full data for simple set!
-		SEGMENT_DESCRIPTOR desc; //The descriptor to be loaded!
-		byte descdata[8]; //The data bytes of the descriptor!
-	};
-} SEGDESCRIPTOR_TYPE;
-
 #define getCPL() CPU[activeCPU].CPL
 #define getRPL(segment) (segment&3)
 #define setRPL(segment,RPL) segment = ((segment&~3)|(RPL&3))
@@ -34,8 +24,8 @@ void THROWDESCSP(word segmentval, byte external, byte tbl);
 void THROWDESCNP(word segmentval, byte external, byte tbl);
 
 //Internal usage by the protection modules! Result: 1=OK, 0=Error out by caller, -1=Already errored out, abort error handling(caused by Paging Unit faulting)!
-sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, word isJMPorCALL); //Bits 8-15 of isJMPorCALL are reserved, only 8-bit can be supplied by others than SAVEDESCRIPTOR!
-sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGDESCRIPTOR_TYPE *container, byte isJMPorCALL); //Save a loaded descriptor back to memory!
+sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL); //Bits 8-15 of isJMPorCALL are reserved, only 8-bit can be supplied by others than SAVEDESCRIPTOR!
+sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, byte isJMPorCALL); //Save a loaded descriptor back to memory!
 
 byte checkPortRights(word port); //Are we allowed to not use this port?
 byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?

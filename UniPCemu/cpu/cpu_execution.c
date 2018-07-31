@@ -123,7 +123,7 @@ void CPU_executionphase_normal() //Executing an opcode?
 struct
 {
 int whatsegment;
-SEGDESCRIPTOR_TYPE LOADEDDESCRIPTOR;
+SEGMENT_DESCRIPTOR LOADEDDESCRIPTOR;
 word *segment;
 word destinationtask;
 byte isJMPorCALL;
@@ -210,7 +210,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorco
 	CPU_OP(); //Execute right away for simple timing compatility!
 }
 
-byte CPU_executionphase_starttaskswitch(int whatsegment, SEGDESCRIPTOR_TYPE *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
+byte CPU_executionphase_starttaskswitch(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
