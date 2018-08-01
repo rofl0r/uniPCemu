@@ -140,8 +140,8 @@ typedef struct PACKED
 	struct
 	{
 		uint_64 limit; //The effective limit!
-		byte topdown; //Are we a top-down segment?
 		uint_64 roof; //What is the upper limit we can address using a top-down segment?
+		byte topdown; //Are we a top-down segment?
 	} PRECALCS; //The precalculated values!
 } SEGMENT_DESCRIPTOR;
 #include "headers/endpacked.h" //End of packed type!
