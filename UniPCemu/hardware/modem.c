@@ -844,8 +844,8 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 		{
 			case 0: //Ignore the line?
 				break;
-			case 2: //Full reset, hangup?
-				resetModem(0); //Reset!
+			case 3: //Reset and Hang-up?
+			case 2: //Hang-up and Goto AT command mode?
 				if ((modem.connected&1) || modem.ringing) //Are we connected?
 				{
 					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
@@ -853,6 +853,10 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				}
 			case 1: //Goto AT command mode?
 				modem.datamode = (byte)(modem.ATcommandsize = 0); //Starting a new command!
+				if (modem.DTROffResponse==3) //Reset as well?
+				{
+					resetModem(0); //Reset!
+				}
 				break;
 			default:
 				break;
@@ -1535,7 +1539,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					n0 = 1; //Goto AT command state when DTR On->Off
 					goto setAT_D;
 				case '2':
-					n0 = 2; //Full reset when DTR On->Off
+					n0 = 2; //Hang-up and Command mode when DTR On->Off
+					goto setAT_D;
+				case '3':
+					n0 = 3; //Full reset when DTR On->Off
 					setAT_D:
 					if (n0<2) //Valid?
 					{
