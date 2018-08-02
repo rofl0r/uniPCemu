@@ -1726,7 +1726,7 @@ void modem_writeData(byte value)
 	if (modem.datamode) //Data mode?
 	{
 		//Unhandled yet!
-		if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F) && ((modem.escaping && (modem.escaping<3)) || ((modem.timing>=modem.escapeguardtime) && (modem.escaping==0))) //Possible escape sequence? Higher values than 127 disables the escape character! Up to 3 escapes after the guard timer is allowed!
+		if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F) && ((modem.escaping && (modem.escaping<3)) || ((modem.timer>=modem.escapecodeguardtime) && (modem.escaping==0)))) //Possible escape sequence? Higher values than 127 disables the escape character! Up to 3 escapes after the guard timer is allowed!
 		{
 			++modem.escaping; //Increase escape info!
 		}
