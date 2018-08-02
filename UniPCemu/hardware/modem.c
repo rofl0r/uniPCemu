@@ -1544,7 +1544,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				case '3':
 					n0 = 3; //Full reset when DTR On->Off
 					setAT_D:
-					if (n0<2) //Valid?
+					if (n0<4) //Valid?
 					{
 						modem.DTROffResponse = n0; //Set DTR off response!
 					}
