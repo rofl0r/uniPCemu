@@ -1760,10 +1760,13 @@ void modem_writeData(byte value)
 				{
 					--modem.ATcommandsize; //Remove last entered value!
 				}
-				if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
+				if (modem.echomode) //Echo enabled?
 				{
-					writefifobuffer(modem.inputbuffer, " "); //Space to clear the character followed by...
-					writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
+					if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
+					{
+						writefifobuffer(modem.inputbuffer, " "); //Space to clear the character followed by...
+						writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
+					}
 				}
 			}
 			else if (value==modem.carriagereturncharacter) //Carriage return? Execute the command!
