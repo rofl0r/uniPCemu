@@ -1764,7 +1764,7 @@ void modem_writeData(byte value)
 				{
 					if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
 					{
-						writefifobuffer(modem.inputbuffer, " "); //Space to clear the character followed by...
+						writefifobuffer(modem.inputbuffer,' '); //Space to clear the character followed by...
 						writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
 					}
 				}
