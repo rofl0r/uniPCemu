@@ -1723,15 +1723,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 void modem_writeData(byte value)
 {
 	//Handle the data sent to the modem!
-	modem.timer = 0.0; //Reset the timer when anything is received!
 	if (modem.datamode) //Data mode?
 	{
 		//Unhandled yet!
-		if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F)) //Possible escape sequence? Higher values than 127 disables the escape character!
+		if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F) && ((modem.escaping && (modem.escaping<3)) || ((modem.timing>=modem.escapeguardtime) && (modem.escaping==0))) //Possible escape sequence? Higher values than 127 disables the escape character! Up to 3 escapes after the guard timer is allowed!
 		{
 			++modem.escaping; //Increase escape info!
 		}
-		else //Not escaping?
+		else //Not escaping(anymore)?
 		{
 			for (;modem.escaping;) //Process escape characters as data!
 			{
@@ -1740,9 +1739,11 @@ void modem_writeData(byte value)
 			}
 			modem_sendData(value); //Send the data!
 		}
+		modem.timer = 0.0; //Reset the timer when anything is received!
 	}
 	else //Command mode?
 	{
+		modem.timer = 0.0; //Reset the timer when anything is received!
 		if (modem.echomode) //Echo enabled?
 		{
 			writefifobuffer(modem.inputbuffer,value); //Echo the value back to the terminal!
@@ -1900,18 +1901,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	{
 		if (modem.timer>=modem.escapecodeguardtime) //Long delay time?
 		{
-			if (modem.escaping>=3) //At least 3 escapes?
+			if (modem.escaping==3) //3 escapes?
 			{
-				for (;modem.escaping>3;) //Process pending escapes that's to be sent!
-				{
-					--modem.escaping;
-					modem_sendData(modem.escapecharacter); //Send the escaped data!
-				}
 				modem.escaping = 0; //Stop escaping!
 				modem.datamode = 0; //Return to command mode!
 				modem_responseResult(MODEMRESULT_OK); //OK message to escape!
 			}
-			else //Less than 3 escapes buffered to be sent?
+			else //Not 3 escapes buffered to be sent?
 			{
 				for (;modem.escaping;) //Send the escaped data after all!
 				{
