@@ -226,22 +226,15 @@ typedef union PACKED
 //Attribute controller toggle register location for precalcs!
 #define VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER 24
 
-
-
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+typedef struct
 {
 	byte DAC_ADDRESS_WRITE_MODE_REGISTER; //Port 3C8
 	byte DAC_ADDRESS_READ_MODE_REGISTER; //Port 3C7 Write only
 	byte DAC_ADDRESS_DATA_REGISTER; //Port 3C9 immediately processed if state is OK (on R/W).
-
 	byte DAC_STATE_REGISTER; //Port 3C7 Read only
-
 } COLORREGS;
-#include "headers/endpacked.h" //We're packed!
 
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+typedef struct
 {
 	byte MISCOUTPUTREGISTER; //Read at 3CCh, Write at 3C2h
 
@@ -257,7 +250,6 @@ typedef struct PACKED
 		byte latchplane[4]; //All 4 plane latches!
 	} DATALATCH;
 } EXTERNALREGS;
-#include "headers/endpacked.h" //We're packed!
 
 #include "headers/packed.h" //We're packed!
 typedef struct PACKED
@@ -323,8 +315,7 @@ typedef struct PACKED
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
-#include "headers/packed.h" //We're packed!
-typedef struct PACKED
+typedef struct
 {
 	uint_32 rowstatus[0x1000]; //Row status!
 	word charrowstatus[0x2000]; //Character row status (double the row status, for character and inner)
@@ -337,7 +328,6 @@ typedef struct PACKED
 	byte DisplayEnabled; //Is the display signal enabled?
 	byte DACOutput; //The current outputted DAC index!
 } VGA_CRTC; //CRTC information!
-#include "headers/endpacked.h" //We're packed!
 
 typedef struct
 {
