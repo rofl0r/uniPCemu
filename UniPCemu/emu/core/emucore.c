@@ -943,6 +943,7 @@ OPTINLINE byte coreHandler()
 	if (unlikely((haswindowactive&0x1C)==0xC)) {getnspassed(&CPU_timing); haswindowactive|=0x10;} //Pending to finish Soundblaster!
 	currenttiming += likely(haswindowactive&2)?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
 	unlock(LOCK_INPUT);
+	double currentCPUtime_d = currenttiming; //Backup of the current timing to discard!
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
@@ -1180,7 +1181,7 @@ OPTINLINE byte coreHandler()
 			currenttiming += getnspassed(&CPU_timing); //Check for passed time!
 			if (unlikely(currenttiming >= timeoutCPUtime)) //Timeout? We're not fast enough to run at full speed!
 			{
-				last_timing = currentCPUtime; //Discard any time we can't keep up!
+				last_timing = currentCPUtime_d; //Discard any time we can't keep up!
 				break;
 			}
 		}
