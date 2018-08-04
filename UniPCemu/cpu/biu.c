@@ -363,7 +363,8 @@ void BIU_dosboxTick()
 {
 	if (BIU[activeCPU].PIQ) //Prefetching?
 	{
-		for (;fifobuffer_freesize(BIU[activeCPU].PIQ) && (MMU.invaddr==0);)
+		MMU_resetaddr(); //Reset the address error line for trying some I/O!
+		for (;fifobuffer_freesize(BIU[activeCPU].PIQ) && (MMU_invaddr()==0);)
 		{
 			CPU_fillPIQ(); //Keep the FIFO fully filled!
 		}
