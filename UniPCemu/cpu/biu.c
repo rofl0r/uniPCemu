@@ -60,6 +60,8 @@ extern byte cpudebugger; //To debug the CPU?
 
 void detectBIUactiveCycleHandler(); //For detecting the cycle handler to use for this CPU!
 
+byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
+
 void CPU_initBIU()
 {
 	if (BIU[activeCPU].ready) //Are we ready?
@@ -339,7 +341,7 @@ byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress;
-	if ((PIQ_block==1) || (PIQ_block==9)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
+	if (((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
 	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.base+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
@@ -875,8 +877,15 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = 0; //We're never blocking(only 1 access)!
-					CPU_fillPIQ(); //Add a byte to the prefetch!
-					if (CPU_databussize==0) CPU_fillPIQ(); //8086? Fetch words!
+					if (unlikely(useIPSclock)) //Using IPS clock?
+					{
+						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+					}
+					else //Normal filling of the PIQ?
+					{
+						CPU_fillPIQ(); //Add a byte to the prefetch!
+						if (CPU_databussize == 0) CPU_fillPIQ(); //8086? Fetch words!
+					}
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					BIU[activeCPU].requestready = 0; //We're pending a request!
@@ -951,10 +960,17 @@ void BIU_cycle_active286()
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
-					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					if (likely((PIQ_RequiredSize&2) && ((EMULATED_CPU>=CPU_80386) && (CPU_databussize==0)))) //DWord access on a 32-bit BUS, when allowed?
+					if (unlikely(useIPSclock)) //Using IPS clock?
 					{
-						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+					}
+					else //Normal filling of the PIQ?
+					{
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+						if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+						{
+							CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+						}
 					}
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
@@ -1020,10 +1036,17 @@ void BIU_cycle_active486()
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
-					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+					if (unlikely(useIPSclock)) //Using IPS clock?
 					{
-						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+					}
+					else //Normal filling of the PIQ?
+					{
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+						if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+						{
+							CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
+						}
 					}
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
@@ -1069,8 +1092,6 @@ void detectBIUactiveCycleHandler()
 {
 	BIU_activeCycleHandler = (EMULATED_CPU > CPU_NECV30) ? (BIU_is_486 ? &BIU_cycle_active486 : &BIU_cycle_active286) : &BIU_cycle_active8086; //What cycle handler are we to use?
 }
-
-byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
 
 void CPU_tickBIU()
 {
