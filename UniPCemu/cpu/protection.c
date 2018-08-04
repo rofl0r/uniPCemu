@@ -147,7 +147,6 @@ void CPU_onResettingFault()
 	{
 		CPU[activeCPU].registers->TR = CPU[activeCPU].oldTR;
 		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],&CPU[activeCPU].oldTRdesc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore segment descriptor!
-		CPU[activeCPU].SEG_base[CPU_SEGMENT_TR] = CPU[activeCPU].oldTRbase;
 		CPU[activeCPU].have_oldTR = 0; //We've been reversed manually!
 	}
 }
@@ -395,18 +394,19 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 {
 	//Calculate the precalculations for execution for this descriptor!
 	uint_32 limits[2]; //What limit to apply?
-	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->limit_low); //Base limit!
+	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
 	limits[1] = ((limits[0] << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	descriptor->PRECALCS.limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
-	descriptor->PRECALCS.topdown = ((descriptor->AccessRights & 0x1C) == 0x14); //Topdown segment?
+	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
 	descriptor->PRECALCS.roof = (0xFFFF | (0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4))); //The roof of the descriptor!
+	descriptor->PRECALCS.base = ((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low); //Update the base address!
 }
 
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
 	int result;
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
@@ -424,7 +424,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 		{
 			return 0; //Abort: invalid LDTR to use!
 		}
-		if ((word)(descriptor_index|0x7)>((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+		if ((word)(descriptor_index|0x7)>((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 		{
 			return 0; //Not present: limit exceeded!
 		}
@@ -445,35 +445,35 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 		if (isNULLdescriptor==0) //Not special NULL descriptor handling?
 		{
 			int i;
-			for (i=0;i<(int)sizeof(container->bytes);++i)
+			for (i=0;i<(int)sizeof(container->desc.bytes);++i)
 			{
 				if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 				{
 					return -1; //Error out!
 				}
 			}
-			descriptor_address -= sizeof(container->bytes); //Restore start address!
-			for (i=0;i<(int)sizeof(container->bytes);) //Process the descriptor data!
+			descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
+			for (i=0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 			{
-				if (memory_readlinear(descriptor_address++,&container->bytes[i++])) //Read a descriptor byte directly from flat memory!
+				if (memory_readlinear(descriptor_address++,&container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
 				{
 					return 0; //Failed to load the descriptor!
 				}
 			}
 
-			container->limit_low = DESC_16BITS(container->limit_low);
-			container->base_low = DESC_16BITS(container->base_low);
+			container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+			container->desc.base_low = DESC_16BITS(container->desc.base_low);
 
 			if (EMULATED_CPU == CPU_80286) //80286 has less options?
 			{
-				container->base_high = 0; //No high byte is present!
-				container->noncallgate_info &= ~0xF; //No high limit is present!
+				container->desc.base_high = 0; //No high byte is present!
+				container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 			}
 		}
 		else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory!
 		{
 			memcpy(container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
-			container->AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
+			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
 		}
 	}
 
@@ -501,7 +501,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 
 	if(GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
 	{
-		container->AccessRights |= 1; //Set the accessed bit!
+		container->desc.AccessRights |= 1; //Set the accessed bit!
 		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
 		{
 			return result; //Error out!
@@ -516,7 +516,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 {
 	int result;
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
@@ -535,7 +535,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 			return 0; //Abort: invalid LDTR to use!
 		}
 
-		if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+		if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 		{
 			return 0; //Not present: limit exceeded!
 		}
@@ -548,17 +548,17 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
 		int i;
-		for (i = 0; i<(int)sizeof(container->bytes); ++i)
+		for (i = 0; i<(int)sizeof(container->desc.bytes); ++i)
 		{
 			if (checkDirectMMUaccess(descriptor_address++, 1,/*getCPL()*/ 0)) //Error in the paging unit?
 			{
 				return 1; //Error out!
 			}
 		}
-		descriptor_address -= sizeof(container->bytes); //Restore start address!
-		for (i = 0; i<(int)sizeof(container->bytes);) //Process the descriptor data!
+		descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
+		for (i = 0; i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 		{
-			if (memory_readlinear(descriptor_address++, &container->bytes[i++])) //Read a descriptor byte directly from flat memory!
+			if (memory_readlinear(descriptor_address++, &container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
 			{
 				return 0; //Failed to load the descriptor!
 			}
@@ -566,8 +566,8 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 
 		if (EMULATED_CPU == CPU_80286) //80286 has less options?
 		{
-			container->base_high = 0; //No high byte is present!
-			container->noncallgate_info &= ~0xF; //No high limit is present!
+			container->desc.base_high = 0; //No high byte is present!
+			container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 		}
 	}
 
@@ -583,7 +583,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 
 	if (GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
 	{
-		container->AccessRights |= 1; //Set the accessed bit!
+		container->desc.AccessRights |= 1; //Set the accessed bit!
 		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, (2|0x80))) <= 0) //Trigger writeback and errored out? We're behaving like a CALL, since we're an interrupt!
 		{
 			return result; //Error out!
@@ -598,7 +598,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, byte isJMPorCALL)
 {
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_base[CPU_SEGMENT_LDTR] : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
@@ -609,7 +609,7 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 		return 0; //Abort!
 	}
 
-	if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+	if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 	{
 		return 0; //Not present: limit exceeded!
 	}
@@ -626,29 +626,29 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	{
 		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,(isJMPorCALL&0xFF)|0x100)) //Loaded the old container?
 		{
-			container->base_high = tempcontainer.base_high; //No high byte is present, so ignore the data to write!
-			container->noncallgate_info = ((container->noncallgate_info&~0xF)|(tempcontainer.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
+			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
+			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
 		}
 		//Don't handle any errors on descriptor loading!
 	}
 
 	//Patch back to memory values!
-	container->limit_low = DESC_16BITS(container->limit_low);
-	container->base_low = DESC_16BITS(container->base_low);
+	container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+	container->desc.base_low = DESC_16BITS(container->desc.base_low);
 
 	int i;
-	for (i = 0;i<(int)sizeof(container->bytes);++i) //Process the descriptor data!
+	for (i = 0;i<(int)sizeof(container->desc.bytes);++i) //Process the descriptor data!
 	{
 		if (checkDirectMMUaccess(descriptor_address++,0,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
 			return -1; //Error out!
 		}
 	}
-	descriptor_address -= sizeof(container->bytes);
+	descriptor_address -= sizeof(container->desc.bytes);
 
-	for (i = 0;i<(int)sizeof(container->bytes);) //Process the descriptor data!
+	for (i = 0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 	{
-		if (memory_writelinear(descriptor_address++,container->bytes[i++])) //Read a descriptor byte directly from flat memory!
+		if (memory_writelinear(descriptor_address++,container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
 		{
 			return 0; //Failed to load the descriptor!
 		}
@@ -768,7 +768,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
-		*segmentval = (GATEDESCRIPTOR.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
+		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
 		if ((loadresult = LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL))<=0) //Error loading current descriptor?
 		{
 			if (loadresult == 0) //Not faulted already?
@@ -945,11 +945,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		if (callgatetype) //To process a call gate's parameters and offsets?
 		{
-			destEIP = GATEDESCRIPTOR.callgate_base_low; //16-bit EIP!
+			destEIP = GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
 			if (callgatetype == 2) //32-bit destination?
 			{
-				destEIP |= (GATEDESCRIPTOR.callgate_base_mid<<16); //Mid EIP!
-				destEIP |= (GATEDESCRIPTOR.callgate_base_high<<24); //High EIP!
+				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_mid<<16); //Mid EIP!
+				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_high<<24); //High EIP!
 			}
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
@@ -968,7 +968,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				//Now, copy the stack arguments!
 
 				*isdifferentCPL = 1; //We're a different level!
-				arguments = CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.ParamCnt&0x1F); //Amount of parameters!
+				arguments = CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.desc.ParamCnt&0x1F); //Amount of parameters!
 				CPU[activeCPU].CallGateParamCount = 0; //Initialize the amount of arguments that we're storing!
 				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault!
 				for (;arguments--;) //Copy as many arguments as needed!
@@ -1270,8 +1270,8 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						break;
 					case AVL_SYSTEM_TSS32BIT:
 					case AVL_SYSTEM_TSS16BIT:
-						tempdescriptor.AccessRights |= 2; //Mark not idle in the RAM descriptor!
-						savedescriptor.DATA64 = tempdescriptor.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
+						tempdescriptor.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
+						savedescriptor.desc.DATA64 = tempdescriptor.desc.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
 						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)<=0) //Save it back to RAM failed?
 						{
 							return 1; //Abort on fault!
@@ -1286,7 +1286,6 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 			}
 			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
-			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
@@ -1310,18 +1309,18 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					descriptor_index = getDescriptorIndex(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]); //What descriptor index?
 					if (descriptor_index) //Valid index(Non-NULL)?
 					{
-						if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) << 16)) : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+						if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 						{
 						invalidRETFsegment:
 							//Selector and Access rights are zeroed!
 							*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
 							if (isJMPorCALL == 3) //IRET?
 							{
-								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].AccessRights &= 0x7F; //Clear the valid flag only with IRET!
+								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights &= 0x7F; //Clear the valid flag only with IRET!
 							}
 							else //RETF?
 							{
-								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].AccessRights = 0; //Invalid!
+								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights = 0; //Invalid!
 							}
 							continue; //Next register!
 						}
@@ -1378,23 +1377,22 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		{
 			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
 			//Load the correct base data for our loading!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
-			CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
 			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
 			//Real mode affects only CS like Virtual 8086 mode(reloading all base/limit values). Other segments are unmodified.
 			//Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
 			if ((segment==CPU_SEGMENT_CS) || (getcpumode()==CPU_MODE_8086)) //Only done for the CS segment in real mode as well as all registers in 8086 mode?
 			{
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = 0x93; //Compatible rights!
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = 0xFFFF;
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info = 0x00; //Not used!
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = 0x93; //Compatible rights!
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = 0xFFFF;
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info = 0x00; //Not used!
 			}
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = 0x93; //Load default access rights!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
 			CPU_flushPIQ(-1); //We're jumping to another address!
 		}
@@ -1451,7 +1449,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 	//Basic access rights are always checked!
 	if (GENERALSEGMENTPTR_S(descriptor)) //System segment? Check for additional type information!
 	{
-		switch ((descriptor->AccessRights&0xE)) //What type of descriptor(ignore the accessed bit)?
+		switch ((descriptor->desc.AccessRights&0xE)) //What type of descriptor(ignore the accessed bit)?
 		{
 			case 0: //Data, read-only
 			case 4: //Data(expand down), read-only
@@ -1589,7 +1587,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 		{
 			uint_32 limit;
-			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].limit_low | (SEGDESC_NONCALLGATE_LIMIT_HIGH(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) << 16); //The limit of the descriptor!
+			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
 			if (maplocation < limit) //Not over the limit? We're an valid entry!
 			{
@@ -1882,7 +1880,6 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			}
 
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
-			CPU[activeCPU].SEG_base[CPU_SEGMENT_CS] = ((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_low); //Update the base address!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!

@@ -279,11 +279,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 	#endif
 
-	limit = LOADEDDESCRIPTOR->limit_low; //Low limit (286+)!
-	if (EMULATED_CPU >= CPU_80386) //Gotten high limit?
-	{
-		limit |= (SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(LOADEDDESCRIPTOR) << 16); //High limit too!
-	}
+	limit = LOADEDDESCRIPTOR->PRECALCS.limit; //Limit!
 
 	if (limit < (uint_32)(TSSSize?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
 	{
@@ -295,7 +291,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL == 3) //IRET?
 	{
-		if ((LOADEDDESCRIPTOR->AccessRights & 2) == 0) //Destination task is available?
+		if ((LOADEDDESCRIPTOR->desc.AccessRights & 2) == 0) //Destination task is available?
 		{
 			CPU_TSSFault(destinationtask, (errorcode != -1) ? (errorcode & 1) : 0, (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
 			return 1; //Error out!
@@ -355,7 +351,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 			SEGMENT_DESCRIPTOR tempdesc;
 			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)==1) //Loaded old container?
 			{
-				tempdesc.AccessRights &= ~2; //Mark idle!
+				tempdesc.desc.AccessRights &= ~2; //Mark idle!
 				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,0)<=0) //Save the new status into the old descriptor!
 				{
 					return 1; //Abort on fault raised!
@@ -438,7 +434,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	//Backup the entire TR descriptor!
 	memcpy(&CPU[activeCPU].oldTRdesc,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
 	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
-	CPU[activeCPU].oldTRbase = CPU[activeCPU].SEG_base[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 
 	if (segmentWritten(CPU_SEGMENT_TR,destinationtask,0)) return 1; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
@@ -520,7 +515,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
-		LOADEDDESCRIPTOR->AccessRights |= 2; //Mark not idle!
+		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
 		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,0)<=0) //Save the new status into the old descriptor!
 		{
 			return 1; //Abort on fault raised!

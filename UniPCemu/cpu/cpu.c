@@ -769,7 +769,7 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
 	if (CPU[activeCPU].registers) //Already allocated?
 	{
-		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights; //Save old CS acccess rights to use now (after first reset)!
+		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights; //Save old CS acccess rights to use now (after first reset)!
 		free_CPUregisters(); //Free the CPU registers!
 	}
 	else
@@ -868,43 +868,42 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
 		//Load Real mode compatible values for all registers!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low = 0;
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].limit_low = 0xFFFF; //64k limit!
-		CPU[activeCPU].SEG_DESCRIPTOR[reg].noncallgate_info = 0; //No high limit etc.!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.base_high = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.base_mid = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.base_low = 0;
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.limit_low = 0xFFFF; //64k limit!
+		CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.noncallgate_info = 0; //No high limit etc.!
 		//According to http://www.sandpile.org/x86/initial.htm the following access rights are used:
 		if ((reg == CPU_SEGMENT_LDTR) || (reg == CPU_SEGMENT_TR)) //LDTR&TR=Special case! Apply special access rights!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x82; //Invalid segment!
+			CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.AccessRights = 0x82; //Invalid segment!
 		}
 		else //Normal Code/Data segment?
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[reg].AccessRights = 0x93; //Code/data segment, writable!
+			CPU[activeCPU].SEG_DESCRIPTOR[reg].desc.AccessRights = 0x93; //Code/data segment, writable!
 		}
 	}
 
 	//CS specific!
-	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].AccessRights = CSAccessRights; //Load CS default access rights!
+	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = CSAccessRights; //Load CS default access rights!
 	if (EMULATED_CPU>CPU_NECV30) //286+?
 	{
 		//Pulled low on first load, pulled high on reset:
 		if (EMULATED_CPU>CPU_80286) //32-bit CPU?
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_high = 0xFF; //More than 24 bits are pulled high as well!
+			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_high = 0xFF; //More than 24 bits are pulled high as well!
 		}
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = 0xFF; //We're starting at the end of our address space, final block! (segment F000=>high 8 bits set)
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_mid = 0xFF; //We're starting at the end of our address space, final block! (segment F000=>high 8 bits set)
 	}
 	else //186-?
 	{
 		CSBase = CPU[activeCPU].registers->CS<<4; //CS base itself!
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_mid = (CSBase>>16); //Mid range!
-		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].base_low = (CSBase&0xFFFF); //Low range!
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_mid = (CSBase>>16); //Mid range!
+		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_low = (CSBase&0xFFFF); //Low range!
 	}
 
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
-		CPU[activeCPU].SEG_base[reg] = ((CPU[activeCPU].SEG_DESCRIPTOR[reg].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[reg].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[reg].base_low); //Update the base address!
 		CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[reg]); //Calculate the precalcs for the segment descriptor!
 	}
 }

@@ -342,7 +342,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	if ((PIQ_block==1) || (PIQ_block==9)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
-	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_base[CPU_SEGMENT_CS]+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
+	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.base+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
 	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0))) return; //Abort on fault!
 	if (unlikely(is_paging())) //Are we paging?
 	{

@@ -97,96 +97,99 @@ typedef struct PACKED
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
-typedef struct PACKED
+typedef union PACKED
 {
 	union
 	{
-		union
+		struct
 		{
-			struct
+			union
 			{
-				union
-				{
-					u16 limit_low;
-					u16 callgate_base_low; //Call Gate base low!
-				};
-				union
-				{
-					u16 base_low; //Low base for non-Gate Descriptors!
-					u16 selector; //Selector field of a Gate Descriptor!
-				};
-				union
-				{
-					u8 base_mid; //Mid base for non-Gate Descriptors!
-					u8 ParamCnt; //Number of (uint_32) stack arguments to copy on stack switch(Call Gate Descriptor). Bits 4-7 have to be 0 for gate descriptors.
-				};
-				byte AccessRights; //Access rights!
-				union
-				{
-					u8 noncallgate_info; //Non-callgate access!
-					u8 callgate_base_mid;
-				};
-				union
-				{
-					u8 base_high;
-					u8 callgate_base_high;
-				};
+				u16 limit_low;
+				u16 callgate_base_low; //Call Gate base low!
 			};
-			byte bytes[8]; //The data as bytes!
+			union
+			{
+				u16 base_low; //Low base for non-Gate Descriptors!
+				u16 selector; //Selector field of a Gate Descriptor!
+			};
+			union
+			{
+				u8 base_mid; //Mid base for non-Gate Descriptors!
+				u8 ParamCnt; //Number of (uint_32) stack arguments to copy on stack switch(Call Gate Descriptor). Bits 4-7 have to be 0 for gate descriptors.
+			};
+			byte AccessRights; //Access rights!
+			union
+			{
+				u8 noncallgate_info; //Non-callgate access!
+				u8 callgate_base_mid;
+			};
+			union
+			{
+				u8 base_high;
+				u8 callgate_base_high;
+			};
 		};
-		uint_32 dwords[2]; //2 32-bit values for easy access!
-		uint_64 DATA64; //Full data for simple set!
+		byte bytes[8]; //The data as bytes!
 	};
+	uint_32 dwords[2]; //2 32-bit values for easy access!
+	uint_64 DATA64; //Full data for simple set!
+} RAWSEGMENTDESCRIPTOR;
+#include "headers/endpacked.h" //End of packed type!
+
+typedef struct
+{
+	RAWSEGMENTDESCRIPTOR desc;
 	struct
 	{
+		uint_64 base; //The effective base!
 		uint_64 limit; //The effective limit!
 		uint_64 roof; //What is the upper limit we can address using a top-down segment?
 		byte topdown; //Are we a top-down segment?
 	} PRECALCS; //The precalculated values!
 } SEGMENT_DESCRIPTOR;
-#include "headers/endpacked.h" //End of packed type!
 
 //Code/data descriptor information(General/Data/Exec segment)
-#define GENERALSEGMENT_TYPE(desc) (desc.AccessRights&0xF)
-#define GENERALSEGMENT_S(desc) ((desc.AccessRights>>4)&1)
-#define GENERALSEGMENT_DPL(desc) ((desc.AccessRights>>5)&3)
-#define GENERALSEGMENT_P(desc) ((desc.AccessRights>>7)&1)
-#define CODEDATASEGMENT_A(desc) (desc.AccessRights&1)
-#define DATASEGMENT_W(desc) ((desc.AccessRights>>1)&1)
-#define DATASEGMENT_E(desc) ((desc.AccessRights>>2)&1)
-#define DATASEGMENT_OTHERSTRUCT(desc) ((desc.AccessRights>>3)&1)
-#define EXECSEGMENT_R(desc) ((desc.AccessRights>>1)&1)
-#define EXECSEGMENT_C(desc) ((desc.AccessRights>>2)&1)
-#define EXECSEGMENT_ISEXEC(desc) ((desc.AccessRights>>3)&1)
+#define GENERALSEGMENT_TYPE(descriptor) (descriptor.desc.AccessRights&0xF)
+#define GENERALSEGMENT_S(descriptor) ((descriptor.desc.AccessRights>>4)&1)
+#define GENERALSEGMENT_DPL(descriptor) ((descriptor.desc.AccessRights>>5)&3)
+#define GENERALSEGMENT_P(descriptor) ((descriptor.desc.AccessRights>>7)&1)
+#define CODEDATASEGMENT_A(descriptor) (descriptor.desc.AccessRights&1)
+#define DATASEGMENT_W(descriptor) ((descriptor.desc.AccessRights>>1)&1)
+#define DATASEGMENT_E(descriptorc) ((descriptor.desc.AccessRights>>2)&1)
+#define DATASEGMENT_OTHERSTRUCT(descriptor) ((descriptor.desc.AccessRights>>3)&1)
+#define EXECSEGMENT_R(descriptor) ((descriptor.desc.AccessRights>>1)&1)
+#define EXECSEGMENT_C(descriptor) ((descriptor.desc.AccessRights>>2)&1)
+#define EXECSEGMENT_ISEXEC(descriptor) ((descriptor.desc.AccessRights>>3)&1)
 
-#define GENERALSEGMENTPTR_TYPE(desc) (desc->AccessRights&0xF)
-#define GENERALSEGMENTPTR_S(desc) ((desc->AccessRights>>4)&1)
-#define GENERALSEGMENTPTR_DPL(desc) ((desc->AccessRights>>5)&3)
-#define GENERALSEGMENTPTR_P(desc) ((desc->AccessRights>>7)&1)
-#define CODEDATASEGMENTPTR_A(desc) (desc->AccessRights&1)
-#define DATASEGMENTPTR_W(desc) ((desc->AccessRights>>1)&1)
-#define DATASEGMENTPTR_E(desc) ((desc->AccessRights>>2)&1)
-#define DATASEGMENTPTR_OTHERSTRUCT(desc) ((desc->AccessRights>>3)&1)
-#define EXECSEGMENTPTR_R(desc) ((desc->AccessRights>>1)&1)
-#define EXECSEGMENTPTR_C(desc) ((desc->AccessRights>>2)&1)
-#define EXECSEGMENTPTR_ISEXEC(desc) ((desc->AccessRights>>3)&1)
+#define GENERALSEGMENTPTR_TYPE(descriptor) (descriptor->desc.AccessRights&0xF)
+#define GENERALSEGMENTPTR_S(descriptor) ((descriptor->desc.AccessRights>>4)&1)
+#define GENERALSEGMENTPTR_DPL(descriptor) ((descriptor->desc.AccessRights>>5)&3)
+#define GENERALSEGMENTPTR_P(descriptor) ((descriptor->desc.AccessRights>>7)&1)
+#define CODEDATASEGMENTPTR_A(descriptor) (descriptor->desc.AccessRights&1)
+#define DATASEGMENTPTR_W(descriptor) ((descriptor->desc.AccessRights>>1)&1)
+#define DATASEGMENTPTR_E(descriptor) ((descriptor->desc.AccessRights>>2)&1)
+#define DATASEGMENTPTR_OTHERSTRUCT(descriptor) ((descriptor->desc.AccessRights>>3)&1)
+#define EXECSEGMENTPTR_R(descriptor) ((descriptor->desc.AccessRights>>1)&1)
+#define EXECSEGMENTPTR_C(descriptor) ((descriptor->desc.AccessRights>>2)&1)
+#define EXECSEGMENTPTR_ISEXEC(descriptor) ((descriptor->desc.AccessRights>>3)&1)
 
 
 //Pointer versions!
 
 //Rest information in descriptors!
-#define SEGDESC_NONCALLGATE_LIMIT_HIGH(desc) (desc.noncallgate_info&0xF)
-#define SEGDESC_NONCALLGATE_AVL(desc) ((desc.noncallgate_info>>4)&1)
-#define SEGDESC_NONCALLGATE_D_B(desc) ((desc.noncallgate_info>>6)&1)
-#define SEGDESC_NONCALLGATE_G(desc) ((desc.noncallgate_info>>7)&1)
-#define SEGDESC_GRANULARITY(desc) (SEGDESC_NONCALLGATE_G(desc)&CPU[activeCPU].G_Mask)
+#define SEGDESC_NONCALLGATE_LIMIT_HIGH(descriptor) (descriptor.desc.noncallgate_info&0xF)
+#define SEGDESC_NONCALLGATE_AVL(descriptor) ((descriptor.desc.noncallgate_info>>4)&1)
+#define SEGDESC_NONCALLGATE_D_B(descriptor) ((descriptor.desc.noncallgate_info>>6)&1)
+#define SEGDESC_NONCALLGATE_G(descriptor) ((descriptor.desc.noncallgate_info>>7)&1)
+#define SEGDESC_GRANULARITY(descriptor) (SEGDESC_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask)
 
 //Pointer versions!
-#define SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(desc) (desc->noncallgate_info&0xF)
-#define SEGDESCPTR_NONCALLGATE_AVL(desc) ((desc->noncallgate_info>>4)&1)
-#define SEGDESCPTR_NONCALLGATE_D_B(desc) ((desc->noncallgate_info>>6)&1)
-#define SEGDESCPTR_NONCALLGATE_G(desc) ((desc->noncallgate_info>>7)&1)
-#define SEGDESCPTR_GRANULARITY(desc) (SEGDESCPTR_NONCALLGATE_G(desc)&CPU[activeCPU].G_Mask)
+#define SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) (descriptor->desc.noncallgate_info&0xF)
+#define SEGDESCPTR_NONCALLGATE_AVL(descriptor) ((descriptor->desc.noncallgate_info>>4)&1)
+#define SEGDESCPTR_NONCALLGATE_D_B(descriptor) ((descriptor->desc.noncallgate_info>>6)&1)
+#define SEGDESCPTR_NONCALLGATE_G(descriptor) ((descriptor->desc.noncallgate_info>>7)&1)
+#define SEGDESCPTR_GRANULARITY(descriptor) (SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask)
 
 #include "headers/packed.h" //Packed type!
 typedef union PACKED
@@ -552,7 +555,7 @@ typedef struct PACKED
 		};
 		uint_64 data; //48 bits long!
 	};
-} TR_PTR;
+} DTR_PTR;
 #include "headers/endpacked.h" //End of packed type!
 
 #include "headers/packed.h" //Packed type!
@@ -782,8 +785,8 @@ typedef struct PACKED //The registers!
 	struct
 	{
 //Tables:
-		TR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
-		TR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
+		DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
+		DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
 		word LDTR; //LDTR pointer (16-bits) Local Descriptor Table Register (points to an index in the GDT)
 		word TR; //TR (16-bits) Talk Register: currently executing task (points to an index in the GDT)
 
@@ -851,8 +854,7 @@ typedef struct PACKED //The registers!
 //Paging enable
  #define CR0_PG 0x80000000
 
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
+typedef struct
 {
 	byte CPU_isFetching; //1=Fetching/decoding new instruction to execute(CPU_readOP_prefix), 0=Executing instruction(decoded)
 	byte CPU_fetchphase; //Fetching phase: 1=Reading new opcode, 2=Reading prefixes or opcode, 3=Reading 0F instruction, 0=Main Opcode fetched
@@ -860,16 +862,13 @@ typedef struct PACKED
 	byte CPU_fetchparameters; //1+=Fetching parameter #X, 0=Parameters fetched.
 	byte CPU_fetchparameterPos; //Parameter position we're fetching. 0=First byte, 1=Second byte etc.
 } CPU_InstructionFetchingStatus;
-#include "headers/endpacked.h" //End of packed type!
 
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED
+typedef struct
 {
 	CPU_registers *registers; //The registers of the CPU!
 
 	//Everything containing and buffering segment registers!
 	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
-	uint_32 SEG_base[8]; //The base addresses, precalculated from the segment descriptor!
 	word *SEGMENT_REGISTERS[8]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
 	byte CPL; //The current privilege level, registered on descriptor load!
 
@@ -935,7 +934,6 @@ typedef struct PACKED
 	uint_32 oldEFLAGS;
 	byte have_oldTR; //TR backup to restore on faults!
 	word oldTR;
-	uint_32 oldTRbase;
 	SEGMENT_DESCRIPTOR oldTRdesc;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
@@ -948,7 +946,6 @@ typedef struct PACKED
 	byte is_paging; //Are we paging?
 	uint_64 address_size; //Effective address size for the current instruction!
 } CPU_type;
-#include "headers/endpacked.h" //End of packed type!
 
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!

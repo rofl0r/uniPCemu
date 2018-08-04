@@ -256,7 +256,7 @@ void CPU386_OP0F02() //LAR /r
 				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
-				switch (verdescriptor.AccessRights) //What type?
+				switch (verdescriptor.desc.AccessRights) //What type?
 				{
 				case AVL_CODE_EXECUTEONLY_CONFORMING:
 				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
@@ -271,7 +271,7 @@ void CPU386_OP0F02() //LAR /r
 				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.AccessRights<<8),MODRM_src0)) return; //Write our result!
+					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
@@ -326,7 +326,7 @@ void CPU386_OP0F03() //LSL /r
 				FLAGW_ZF(0); //Invalid descriptor type!
 				break;
 			default: //Valid type?
-				switch (verdescriptor.AccessRights) //What type?
+				switch (verdescriptor.desc.AccessRights) //What type?
 				{
 				case AVL_CODE_EXECUTEONLY_CONFORMING:
 				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
@@ -395,13 +395,12 @@ typedef union PACKED
 
 void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 {
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].limit_low = (source->LIMIT&0xFFFF);
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].noncallgate_info = ((source->AR&0xF00>>4)|((source->LIMIT>>16)&0xF)); //Full high limit information and remaining rights data!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low = (source->BASE&0xFFFF);
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid = ((source->BASE>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high = (source->BASE>>24); //Full 32-bits are used for the base!
-	CPU[activeCPU].SEG_DESCRIPTOR[segment].AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
-	CPU[activeCPU].SEG_base[segment] = ((CPU[activeCPU].SEG_DESCRIPTOR[segment].base_high<<24)|(CPU[activeCPU].SEG_DESCRIPTOR[segment].base_mid<<16)|CPU[activeCPU].SEG_DESCRIPTOR[segment].base_low); //Update the base address!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = (source->LIMIT&0xFFFF);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info = ((source->AR&0xF00>>4)|((source->LIMIT>>16)&0xF)); //Full high limit information and remaining rights data!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_low = (source->BASE&0xFFFF);
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((source->BASE>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = (source->BASE>>24); //Full 32-bits are used for the base!
+	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
