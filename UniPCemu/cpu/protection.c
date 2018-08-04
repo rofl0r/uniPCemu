@@ -1436,7 +1436,34 @@ OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_64 offset)
 
 byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
-byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
+
+typedef struct
+{
+	byte mask;
+	byte nonequals;
+	byte comparision;
+} checkrights_cond;
+
+checkrights_cond checkrights_conditions[0x10] = {
+	{~0x10,0,0}, //0 Data, read-only
+	{0,0,0}, //1 unused
+	{0,1,0}, //2 Data, read/write! Allow always!
+	{0,0,0}, //3 unused
+	{~0x10,0,0}, //4 Data(expand down), read-only
+	{0,0,0}, //5 unused
+	{0,1,0}, //6 Data(expand down), read/write! Allow always!
+	{0,0,0}, //7 unused
+	{~0x10,1,3}, //8 Code, non-conforming, execute-only
+	{0,0,0}, //9 unused
+	{~0x10,0,0}, //10 Code, non-conforming, execute/read
+	{0,0,0}, //11 unused
+	{~0x10,1,3}, //12 Code, conforming, execute-only
+	{0,0,0}, //13 unused
+	{~0x10,0,0}, //14 Code, conforming, execute/read
+	{0,0,0} //15 unused
+};
+
+byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
 {
 	//First: type checking!
 
@@ -1449,6 +1476,16 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 	//Basic access rights are always checked!
 	if (GENERALSEGMENTPTR_S(descriptor)) //System segment? Check for additional type information!
 	{
+		//Entries 0,4,10,14: On writing, Entries 2,6: Never match, Entries 8,12: Writing or reading normally(!=3).
+		//To ignore an entry for errors, specify mask 0, non-equals nonzero, comparison 0(a.k.a. ((forreading&0)!=0)
+		checkrights_cond *rights;
+		rights = &checkrights_conditions[(descriptor->desc.AccessRights & 0xE)]; //What type do we check for(take it all, except the dirty bit)!
+		if (unlikely((forreading&rights->mask) == rights->comparision) == (rights->nonequals == 0)) //Are we to error out?
+		{
+			CPU_MMU_checkrights_cause = 3; //What cause?
+			return 1; //Error!
+		}
+		/*
 		switch ((descriptor->desc.AccessRights&0xE)) //What type of descriptor(ignore the accessed bit)?
 		{
 			case 0: //Data, read-only
@@ -1475,6 +1512,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 			default:
 				break;
 		}
+		*/
 	}
 
 	//Next: limit checking!
@@ -1500,7 +1538,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, int forre
 }
 
 //Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
-int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, int forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
+int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, byte forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	byte rights;
 	//Determine the Limit!
