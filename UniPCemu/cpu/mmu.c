@@ -213,6 +213,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 
 	if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
 	{
+		MMU.invaddr = 3; //Invalid address signaling!
 		return 1; //Error out!
 	}
 	checkMMUaccess_linearaddr = realaddress; //Save the last valid access for the BIU to use(we're not erroring out after all)!
