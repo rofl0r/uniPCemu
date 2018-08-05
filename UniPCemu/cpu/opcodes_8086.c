@@ -1705,8 +1705,11 @@ OPTINLINE byte CPU8086_internal_AND16(word *dest, word src, byte flags)
 	{
 		if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 		{
-			if (modrm_check16(&params,MODRM_src0,1)) return 1; //Abort on fault!
-			if (dest==NULL) if (modrm_check16(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
+			if (dest == NULL)
+			{
+				if (modrm_check16(&params, MODRM_src0, 1)) return 1; //Abort on fault!
+				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0)) return 1; //Abort on fault on write only!
+			}
 		}
 		if (dest==NULL) //Needs a read from memory?
 		{
@@ -1747,8 +1750,11 @@ OPTINLINE byte CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 	{
 		if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 		{
-			if (modrm_check8(&params,MODRM_src0,1)) return 1; //Abort on fault!
-			if (dest==NULL) if (modrm_check8(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
+			if (dest == NULL)
+			{
+				if (modrm_check8(&params, MODRM_src0, 1)) return 1; //Abort on fault!
+				if (dest == NULL) if (modrm_check8(&params, MODRM_src0, 0)) return 1; //Abort on fault on write only!
+			}
 		}
 		if (dest==NULL) //Needs a read from memory?
 		{
@@ -1786,8 +1792,11 @@ OPTINLINE byte CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 	{
 		if (unlikely(CPU[activeCPU].internalmodrmstep==0))
 		{
-			if (modrm_check16(&params,MODRM_src0,1)) return 1; //Abort on fault!
-			if (dest==NULL) if (modrm_check16(&params,MODRM_src0,0)) return 1; //Abort on fault on write only!
+			if (dest == NULL)
+			{
+				if (modrm_check16(&params, MODRM_src0, 1)) return 1; //Abort on fault!
+				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0)) return 1; //Abort on fault on write only!
+			}
 		}
 		if (dest==NULL) //Needs a read from memory?
 		{
