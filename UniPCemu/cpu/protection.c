@@ -1485,34 +1485,6 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forr
 			CPU_MMU_checkrights_cause = 3; //What cause?
 			return 1; //Error!
 		}
-		/*
-		switch ((descriptor->desc.AccessRights&0xE)) //What type of descriptor(ignore the accessed bit)?
-		{
-			case 0: //Data, read-only
-			case 4: //Data(expand down), read-only
-			case 10: //Code, non-conforming, execute/read
-			case 14: //Code, conforming, execute/read
-				if (unlikely((forreading&~0x10)==0)) //Writing?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-			case 2: //Data, read/write
-			case 6: //Data(expand down), read/write
-				break; //Allow!
-			case 8: //Code, non-conforming, execute-only
-			case 12: //Code, conforming, execute-only
-				if (unlikely((forreading&~0x10)!=3)) //Writing or reading normally?
-				{
-					CPU_MMU_checkrights_cause = 3; //What cause?
-					return 1; //Error!
-				}
-				break; //Allow!
-			default:
-				break;
-		}
-		*/
 	}
 
 	//Next: limit checking!
