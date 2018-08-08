@@ -681,6 +681,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if ((*segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
+		throwdescsegmentval:
 		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -689,7 +690,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (loadresult == 0) //Not already faulted?
 		{
-			THROWDESCGP(*segmentval, 1, (*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP error!
+			goto throwdescsegmentval;
 		}
 		return NULL; //Error, by specified reason!
 	}
@@ -711,7 +712,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_SS)) //Not allowed?
 			{
-				THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+				goto throwdescsegmentval; //Throw #GP error!
 				return NULL; //Error, by specified reason!
 			}
 			else if (allowNP)
@@ -737,7 +738,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
 
@@ -754,7 +755,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		case AVL_SYSTEM_INTERRUPTGATE32BIT:
 		case AVL_SYSTEM_TRAPGATE32BIT:
 			//We're an invalid gate!
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 			break;
 		case AVL_SYSTEM_TASKGATE: //Task gate?
@@ -765,7 +766,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		if ((MAX(getCPL(), getRPL(*segmentval)) > GENERALSEGMENT_DPL(GATEDESCRIPTOR)) && ((isJMPorCALL&0x1FF)!=3)) //Gate has too high a privilege level? Only when not an IRET(always allowed)!
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			goto throwdescsegmentval; //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
 		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
@@ -773,13 +774,13 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if (loadresult == 0) //Not faulted already?
 			{
-				THROWDESCGP(*segmentval, 1, (*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+				goto throwdescsegmentval; //Throw error!
 			}
 			return NULL; //Error, by specified reason!
 		}
 		if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+			goto throwdescsegmentval; //Throw #GP error!
 			return NULL; //We're an invalid descriptor to use!
 		}
 		privilegedone = 1; //Privilege has been precalculated!
@@ -787,7 +788,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if (segment != CPU_SEGMENT_CS) //Not code? We're not a task switch! We're trying to load the task segment into a data register. This is illegal! TR doesn't support Task Gates directly(hardware only)!
 			{
-				THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				goto throwdescsegmentval; //Throw error!
 				return NULL; //Don't load!
 			}
 		}
@@ -797,7 +798,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) != getCPL()) //Different CPL?
 				{
-					THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+					goto throwdescsegmentval; //Throw error!
 					return NULL; //We are a different privilege level, so don't load!						
 				}
 			}
@@ -805,7 +806,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) > getCPL()) //We have a lower CPL?
 				{
-					THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+					goto throwdescsegmentval; //Throw error!
 					return NULL; //We are a different privilege level, so don't load!
 				}
 			}
@@ -819,7 +820,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Final descriptor safety check!
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!
+		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
 
@@ -837,6 +838,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		)
 		)
 	{
+		throwdescoriginalval:
 		THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //Not present: limit exceeded!	
 	}
@@ -870,7 +872,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
 	{
-		THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		goto throwdescoriginalval; //Throw error!
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
@@ -878,7 +880,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (*segmentval & 2) //LDT lookup set?
 		{
-			THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			goto throwdescoriginalval; //Throw error!
 			return NULL; //We're an invalid TSS to call!
 		}
 		//Handle the task switch normally! We're allowed to use the TSS!
@@ -897,7 +899,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We're an invalid TSS to execute!
 	}
 
-	if ((segment==CPU_SEGMENT_CS) && is_TSS) //Special stuff on CS, CPL, Task switch.
+	if ((segment==CPU_SEGMENT_CS) && is_TSS && ((isJMPorCALL&0x200)==0)) //Special stuff on CS, CPL, Task switch.
 	{
 		//Execute a normal task switch!
 		if (CPU_executionphase_starttaskswitch(segment,&LOADEDDESCRIPTOR,segmentval,*segmentval,isJMPorCALL,is_gated,-1)) //Switching to a certain task?
@@ -915,7 +917,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)<MAX(getCPL(),getRPL(*segmentval)))) //Target DPL must be less-or-equal to the CPL.
 			{
-				THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				goto throwdescoriginalval; //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
 		}
@@ -923,7 +925,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)!=MAX(getCPL(),getRPL(*segmentval)))) //Check for equal only when using Gate Descriptors?
 			{
-				THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				goto throwdescoriginalval; //Throw error!
 				return NULL; //We are a lower privilege level, so don't load!				
 			}
 		}
@@ -1014,29 +1016,29 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		(getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) //Data or System in CS (non-exec)?
 		)
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		goto throwdescsegmentval; //Throw #GP error!		
 		return NULL; //Not present: invalid descriptor type loaded!
 	}
 	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (segment!=CPU_SEGMENT_CS) && (EXECSEGMENT_R(LOADEDDESCRIPTOR)==0)) //Executable non-readable in non-executable segment?
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		goto throwdescsegmentval; //Throw #GP error!		
 		return NULL; //Not present: invalid descriptor type loaded!
 	}
 	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR))) //Executable segment loaded invalid?
 	{
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+		goto throwdescsegmentval; //Throw #GP error!		
 		return NULL; //Not present: invalid descriptor type loaded!
 	}
 	else if (getLoadedTYPE(&LOADEDDESCRIPTOR)==0) //Data descriptor loaded?
 	{
 		if (((segment!=CPU_SEGMENT_DS) && (segment!=CPU_SEGMENT_ES) && (segment!=CPU_SEGMENT_FS) && (segment!=CPU_SEGMENT_GS) && (segment!=CPU_SEGMENT_SS))) //Data descriptor in invalid type?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 		}
 		if ((DATASEGMENT_W(LOADEDDESCRIPTOR)==0) && (segment==CPU_SEGMENT_SS)) //Non-writable SS segment?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 		}
 	}
@@ -1044,17 +1046,17 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS) || (segment==CPU_SEGMENT_SS)) //System descriptor in invalid register?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 		}
 		if ((segment==CPU_SEGMENT_LDTR) && (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR)!=AVL_SYSTEM_LDT)) //Invalid LDT load?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 		}
 		if ((segment==CPU_SEGMENT_TR) && (is_TSS==0)) //Non-TSS into task register?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP error!		
+			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
 		}
 	}
