@@ -624,7 +624,7 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	SEGMENT_DESCRIPTOR tempcontainer;
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
-		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,(isJMPorCALL&0xFF)|0x100)) //Loaded the old container?
+		if (LOADDESCRIPTOR(segment,segmentval,&tempcontainer,(isJMPorCALL&0x2FF)|0x100)) //Loaded the old container?
 		{
 			container->desc.base_high = tempcontainer.desc.base_high; //No high byte is present, so ignore the data to write!
 			container->desc.noncallgate_info = ((container->desc.noncallgate_info&~0xF)|(tempcontainer.desc.noncallgate_info&0xF)); //No high limit is present, so ignore the data to write!
@@ -665,7 +665,7 @@ getsegment_seg: Gets a segment, if allowed.
 parameters:
 	whatsegment: What segment is used?
 	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET.
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch
 result:
 	The segment when available, NULL on error or disallow.
 
@@ -741,7 +741,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We're an invalid descriptor to use!
 	}
 
-	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && isJMPorCALL) //Handling of gate descriptors?
+	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && (isJMPorCALL&0x1FF) && ((isJMPorCALL&0x200)==0)) //Handling of gate descriptors? Disable on task code/data segment loading!
 	{
 		is_gated = 1; //We're gated!
 		memcpy(&GATEDESCRIPTOR, &LOADEDDESCRIPTOR, sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
@@ -763,7 +763,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			//Valid gate! Allow!
 			break;
 		}
-		if ((MAX(getCPL(), getRPL(*segmentval)) > GENERALSEGMENT_DPL(GATEDESCRIPTOR)) && (isJMPorCALL!=3)) //Gate has too high a privilege level? Only when not an IRET(always allowed)!
+		if ((MAX(getCPL(), getRPL(*segmentval)) > GENERALSEGMENT_DPL(GATEDESCRIPTOR)) && ((isJMPorCALL&0x1FF)!=3)) //Gate has too high a privilege level? Only when not an IRET(always allowed)!
 		{
 			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
@@ -793,7 +793,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Normal descriptor?
 		{
-			if ((isJMPorCALL == 1) && !EXECSEGMENT_C(LOADEDDESCRIPTOR)) //JMP to a nonconforming segment?
+			if (((isJMPorCALL&0x1FF) == 1) && !EXECSEGMENT_C(LOADEDDESCRIPTOR)) //JMP to a nonconforming segment?
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) != getCPL()) //Different CPL?
 				{
@@ -801,7 +801,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 					return NULL; //We are a different privilege level, so don't load!						
 				}
 			}
-			else if (isJMPorCALL) //Call instruction (or JMP instruction to a conforming segment)
+			else if (isJMPorCALL&0x1FF) //Call instruction (or JMP instruction to a conforming segment)
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) > getCPL()) //We have a lower CPL?
 				{
@@ -811,7 +811,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			}
 		}
 	}
-	else if ((isGateDescriptor(&LOADEDDESCRIPTOR)==-1) && (segment==CPU_SEGMENT_CS) && isJMPorCALL) //JMP/CALL to non-gate descriptor(and not a system segment)?
+	else if ((isGateDescriptor(&LOADEDDESCRIPTOR)==-1) && (segment==CPU_SEGMENT_CS) && (isJMPorCALL&0x1FF)) //JMP/CALL to non-gate descriptor(and not a system segment)?
 	{
 		equalprivilege = 1; //Enforce equal privilege!
 	}
@@ -854,7 +854,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		break;
 	}
 
-	if (is_TSS && (segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET allowed regardless of privilege?
+	if (is_TSS && (segment==CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF)==3)) //IRET allowed regardless of privilege?
 	{
 		privilegedone = 1; //Allow us always!
 	}
@@ -867,7 +867,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			!(EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Not conforming checking further ahead makes sure that we don't double check things?
 			)
 		)
-		&& (!((isJMPorCALL==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
+		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
 	{
 		THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
@@ -956,7 +956,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			CPU[activeCPU].CallGateParamCount = 0; //Clear our stack to transfer!
 			CPU[activeCPU].CallGateSize = (callgatetype==2)?1:0; //32-bit vs 16-bit call gate!
 
-			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)!=getCPL()) && (isJMPorCALL==2)) //Stack switch required (with CALL only)?
+			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)!=getCPL()) && ((isJMPorCALL&0x1FF)==2)) //Stack switch required (with CALL only)?
 			{
 				//Backup the old stack data!
 				/*
@@ -1062,7 +1062,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	if (segment==CPU_SEGMENT_CS) //We need to reload a new CPL?
 	{
 		//Non-gates doesn't change RPL(CPL) of CS! (IRET?&)RETF does change CPL here(already done beforehand)!
-		if ((is_gated==0) && (isJMPorCALL==4)) //RETF changes privilege level?
+		if ((is_gated==0) && ((isJMPorCALL&0x1FF)==4)) //RETF changes privilege level?
 		{
 			if (getRPL(*segmentval)>getCPL()) //Lowered?
 			{
@@ -1099,9 +1099,9 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
-			if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL == 2) || (isJMPorCALL==1))) //JMP(with call gate)/CALL needs pushed data on the stack?
+			if ((segment == CPU_SEGMENT_CS) && (((isJMPorCALL&0x1FF) == 2) || ((isJMPorCALL&0x1FF)==1))) //JMP(with call gate)/CALL needs pushed data on the stack?
 			{
-				if ((isDifferentCPL==1) && (isJMPorCALL == 2)) //Stack switch is required with CALL only?
+				if ((isDifferentCPL==1) && ((isJMPorCALL&0x1FF) == 2)) //Stack switch is required with CALL only?
 				{
 					//TSSSize = 0; //Default to 16-bit TSS!
 					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
@@ -1152,7 +1152,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 				}
 				//Else, call by call gate size!
 				
-				if (isJMPorCALL==2) //CALL pushes return address!
+				if ((isJMPorCALL&0x1FF)==2) //CALL pushes return address!
 				{
 					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 
@@ -1187,7 +1187,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					}
 				}
 			}
-			else if ((segment == CPU_SEGMENT_CS) && (isJMPorCALL == 4)) //RETF needs popped data on the stack?
+			else if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF) == 4)) //RETF needs popped data on the stack?
 			{
 				if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
 				{
@@ -1232,7 +1232,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 					RETF_popbytes = 0; //Nothing to pop anymore!
 				}
 			}
-			else if ((segment==CPU_SEGMENT_CS) && (isJMPorCALL==3)) //IRET might need extra data popped?
+			else if ((segment==CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF)==3)) //IRET might need extra data popped?
 			{
 				if (getRPL(value)>oldCPL) //Stack needs to be restored when returning to outer privilege level!
 				{
@@ -1258,7 +1258,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 
 			if (segment==CPU_SEGMENT_TR) //Loading the Task Register? We're to mask us as busy!
 			{
-				if (isJMPorCALL==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
+				if ((isJMPorCALL&0x1FF)==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
 				{
 					SEGMENT_DESCRIPTOR savedescriptor;
 					switch (GENERALSEGMENT_TYPE(tempdescriptor)) //What kind of TSS?
@@ -1314,7 +1314,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 						invalidRETFsegment:
 							//Selector and Access rights are zeroed!
 							*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
-							if (isJMPorCALL == 3) //IRET?
+							if ((isJMPorCALL&0x1FF) == 3) //IRET?
 							{
 								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights &= 0x7F; //Clear the valid flag only with IRET!
 							}
@@ -1360,7 +1360,7 @@ byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment regis
 	}
 	else //Real mode has no protection?
 	{
-		if (isJMPorCALL == 2) //CALL needs pushed data?
+		if ((isJMPorCALL&0x1FF) == 2) //CALL needs pushed data?
 		{
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
