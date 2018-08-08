@@ -371,7 +371,7 @@ void THROWDESCNP(word segmentval, byte external, byte tbl)
 
 void THROWDESCTS(word segmentval, byte external, byte tbl)
 {
-	CPU_TSSFault((segmentval&(0xFFF8)),(external&1),((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_TSSFault((segmentval&(0xFFF8)),(external&1),(tbl&0x3)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 //Another source: http://en.wikipedia.org/wiki/General_protection_fault
