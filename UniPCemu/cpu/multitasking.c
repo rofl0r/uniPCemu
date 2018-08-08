@@ -651,7 +651,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0); //Load it, ignore errors?
+		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0x200); //Load it, ignore errors?
 		if (unlikely(loadresult<=0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
@@ -691,11 +691,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0)) return 1; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0x200)) return 1; //Load CS!
 	}
 	else
 	{
-		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0)) return 1; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200)) return 1; //Load CS!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
@@ -722,7 +722,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		SPPtr = &TSS16.SP;
 	}
 
-	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0)) return 1; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0x200)) return 1; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 	if (TSSSize) //32-bit?
 	{
 		CPU[activeCPU].registers->ESP = *ESPPtr;
@@ -741,17 +741,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	}
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x80)) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x80)) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x80)) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x80)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x280)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x280)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x280)) return 1; //Load reg!
 	}
 	else //16-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x80)) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x80)) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x80)) return 1; //Load reg: FS is unusable!
-		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x80)) return 1; //Load reg: GS is unusable!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x280)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x280)) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x280)) return 1; //Load reg: FS is unusable!
+		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x280)) return 1; //Load reg: GS is unusable!
 	}
 
 	//All segments are valid and readable!
@@ -803,7 +803,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 {
 	uint_32 errorcode;
-	errorcode = (segmentval&0xFFF8)|(is_external&1)|(tbl<<1);
+	errorcode = (segmentval&0xFFF8)|(is_external&1)|((tbl&3)<<1);
 	if (debugger_logging()) //Are we logging?
 	{
 		dolog("debugger","#TSS fault(%08X)!",errorcode);

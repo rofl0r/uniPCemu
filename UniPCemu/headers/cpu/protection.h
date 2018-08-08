@@ -22,6 +22,7 @@ byte CPU_faultraised(byte type); //A fault has been raised (286+)?
 void THROWDESCGP(word segmentval, byte external, byte tbl);
 void THROWDESCSP(word segmentval, byte external, byte tbl);
 void THROWDESCNP(word segmentval, byte external, byte tbl);
+void THROWDESCTS(word segmentval, byte external, byte tbl);
 
 //Internal usage by the protection modules! Result: 1=OK, 0=Error out by caller, -1=Already errored out, abort error handling(caused by Paging Unit faulting)!
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL); //Bits 8-15 of isJMPorCALL are reserved, only 8-bit can be supplied by others than SAVEDESCRIPTOR!

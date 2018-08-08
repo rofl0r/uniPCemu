@@ -369,6 +369,11 @@ void THROWDESCNP(word segmentval, byte external, byte tbl)
 	CPU_SegNotPresent((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
+void THROWDESCTS(word segmentval, byte external, byte tbl)
+{
+	CPU_TSSFault((segmentval&(0xFFF8)),(external&1),((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
+}
+
 //Another source: http://en.wikipedia.org/wiki/General_protection_fault
 
 extern byte debugger_forceimmediatelogging; //Force immediate logging?
@@ -682,7 +687,14 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	if ((*segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
 		throwdescsegmentval:
-		THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		if (isJMPorCALL&0x200) //TSS is the cause?
+		{
+			THROWDESCTS(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!			
+		}
+		else //Plain #GP?
+		{
+			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
 		return NULL; //We're an invalid TSS to execute!
 	}
 
@@ -839,7 +851,14 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		)
 	{
 		throwdescoriginalval:
-		THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		if (isJMPorCALL&0x200) //TSS is the cause?
+		{
+			THROWDESCTS(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		else //Plain #GP?
+		{
+			THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
 		return NULL; //Not present: limit exceeded!	
 	}
 	
