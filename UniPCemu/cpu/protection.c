@@ -676,7 +676,7 @@ result:
 
 */
 
-SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *segmentval, byte isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
+SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *segmentval, word isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
 	//byte newCPL = getCPL(); //New CPL after switching! Default: no change!
 	SEGMENT_DESCRIPTOR LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
@@ -1105,7 +1105,7 @@ extern word RETF_popbytes; //How many to pop?
 
 byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
 
-byte segmentWritten(int segment, word value, byte isJMPorCALL) //A segment register has been written to!
+byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment register has been written to!
 {
 	byte RETF_segmentregister=0,RETF_whatsegment; //A segment register we're checking during a RETF instruction!
 	byte oldCPL= getCPL();

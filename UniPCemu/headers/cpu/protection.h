@@ -11,7 +11,7 @@
 int CPU_segment_index(byte defaultsegment); //Plain segment to use, direct access!
 int get_segment_index(word *location);
 void protection_nextOP(); //We're executing the next OPcode?
-byte segmentWritten(int segment, word value, byte isJMPorCALL); //A segment register has been written to! isJMPorCALL: 1=JMP, 2=CALL.
+byte segmentWritten(int segment, word value, word isJMPorCALL); //A segment register has been written to! isJMPorCALL: 1=JMP, 2=CALL.
 
 int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, byte forreading, byte is_offset16); //Determines the limit of the segment, forreading=2 when reading an opcode!
 byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16); //Check rights for VERR/VERW!
