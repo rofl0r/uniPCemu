@@ -1773,7 +1773,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			//Calculate and check the limit!
 
-			if (verifyLimit(&newdescriptor,(idtentry.offsetlow | (idtentry.offsethigh << 16)))==0) //Limit exceeded?
+			if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
 			{
 				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
@@ -1920,7 +1920,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
-			CPU[activeCPU].registers->EIP = (idtentry.offsetlow | (idtentry.offsethigh << 16)); //The current OPCode: just jump to the address specified by the descriptor OR command!
+			CPU[activeCPU].registers->EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
 			CPU_flushPIQ(-1); //We're jumping to another address!
 
 			FLAGW_TF(0);
