@@ -144,6 +144,7 @@ typedef struct
 		uint_64 limit; //The effective limit!
 		uint_64 roof; //What is the upper limit we can address using a top-down segment?
 		byte topdown; //Are we a top-down segment?
+		byte rwe_errorout[0x100]; //All possible conditions that error out. >0=Errors out for said read/write/execute!
 	} PRECALCS; //The precalculated values!
 } SEGMENT_DESCRIPTOR;
 
