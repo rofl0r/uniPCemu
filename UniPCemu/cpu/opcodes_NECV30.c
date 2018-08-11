@@ -685,10 +685,17 @@ void CPU186_OPC8()
 	*/ //Done automatically at the start of an instruction!
 
 	if (CPU8086_PUSHw(0,&REG_BP,0)) return; //Busy pushing?
-	word frametemp = (word)CPU[activeCPU].oldESP; //Read the original value to start at(for stepping compatibility)!
-	word framestep,instructionstep;
+
+	static word frametemp;
+	word framestep, instructionstep;
 	instructionstep = 2; //We start at step 2 for the stack operations on instruction step!
 	framestep = 0; //We start at step 0 for the stack frame operations!
+	if (CPU[activeCPU].instructionstep == instructionstep)
+	{
+		frametemp = (word)REG_ESP; //Read the original value to start at(for stepping compatibility)!
+		++CPU[activeCPU].instructionstep; //Instruction step is progressed!
+	}
+	++instructionstep; //Instruction step is progressed!
 	if (nestlev)
 	{
 		for (temp16=1; temp16<nestlev; ++temp16)
