@@ -52,12 +52,12 @@ void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 
 //BIU request/responses!
 //Requests for memory accesses, physical memory only!
-byte BIU_request_Memoryrb(uint_32 offset);
-byte BIU_request_Memoryrw(uint_32 offset);
-byte BIU_request_Memoryrdw(uint_32 offset);
-byte BIU_request_Memorywb(uint_32 offset, byte val);
-byte BIU_request_Memoryww(uint_32 offset, word val);
-byte BIU_request_Memorywdw(uint_32 offset, uint_32 val);
+byte BIU_request_Memoryrb(uint_32 offset, byte useTLB);
+byte BIU_request_Memoryrw(uint_32 offset, byte useTLB);
+byte BIU_request_Memoryrdw(uint_32 offset, byte useTLB);
+byte BIU_request_Memorywb(uint_32 offset, byte val, byte useTLB);
+byte BIU_request_Memoryww(uint_32 offset, word val, byte useTLB);
+byte BIU_request_Memorywdw(uint_32 offset, uint_32 val, byte useTLB);
 //Requests for BUS(I/O address space) accesses!
 byte BIU_request_BUSrb(uint_32 addr);
 byte BIU_request_BUSrw(uint_32 addr);
@@ -70,13 +70,6 @@ byte BIU_readResultb(byte *result); //Read the result data of a BUS request!
 byte BIU_readResultw(word *result); //Read the result data of a BUS request!
 byte BIU_readResultdw(uint_32 *result); //Read the result data of a BUS request!
 
-//Easy read/write support for non-Paged access.
-word BIU_directrw(uint_32 realaddress, byte index); //Direct read from real memory (with real data direct)!
-void BIU_directww(uint_32 realaddress, word value, byte index); //Direct write to real memory (with real data direct)!
-//Used by paging only!
-uint_32 BIU_directrdw(uint_32 realaddress, byte index);
-void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index);
-
 byte memory_BIUdirectrb(uint_32 realaddress); //Direct read from real memory (with real data direct)!
 word memory_BIUdirectrw(uint_32 realaddress); //Direct read from real memory (with real data direct)!
 uint_32 memory_BIUdirectrdw(uint_32 realaddress); //Direct read from real memory (with real data direct)!
@@ -85,11 +78,11 @@ void memory_BIUdirectww(uint_32 realaddress, word value); //Direct write to real
 void memory_BIUdirectwdw(uint_32 realaddress, uint_32 value); //Direct write to real memory (with real data direct)!
 
 //MMU support for the above functionality!
-byte BIU_directrb(uint_32 realaddress, byte index);
-word BIU_directrw(uint_32 realaddress, byte index); //Direct read from real memory (with real data direct)!
-uint_32 BIU_directrdw(uint_32 realaddress, byte index);
-void BIU_directwb(uint_32 realaddress, byte val, byte index); //Access physical memory dir
-void BIU_directww(uint_32 realaddress, word value, byte index); //Direct write to real memory (with real data direct)!
-void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index);
+byte BIU_directrb(uint_32 realaddress, word index);
+word BIU_directrw(uint_32 realaddress, word index); //Direct read from real memory (with real data direct)!
+uint_32 BIU_directrdw(uint_32 realaddress, word index);
+void BIU_directwb(uint_32 realaddress, byte val, word index); //Access physical memory dir
+void BIU_directww(uint_32 realaddress, word value, word index); //Direct write to real memory (with real data direct)!
+void BIU_directwdw(uint_32 realaddress, uint_32 value, word index);
 
 #endif

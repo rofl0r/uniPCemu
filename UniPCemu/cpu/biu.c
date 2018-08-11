@@ -166,35 +166,40 @@ OPTINLINE byte BIU_readResponse(uint_64 *response) //CPU: Read a response from t
 
 //Actual requesting something from the BIU, for the CPU module to call!
 //MMU accesses
-
-byte BIU_request_Memoryrb(uint_32 address)
+/*
+if (is_paging()) //Are we paging?
 {
-	return BIU_request(REQUEST_MMUREAD,address,0); //Request a read!
+offset = mappage(offset,0,getCPL()); //Map it using the paging mechanism!
+}
+*/
+byte BIU_request_Memoryrb(uint_32 address, byte useTLB)
+{
+	return BIU_request(REQUEST_MMUREAD,address,useTLB); //Request a read!
 }
 
-byte BIU_request_Memoryrw(uint_32 address)
+byte BIU_request_Memoryrw(uint_32 address, byte useTLB)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,address,0); //Request a read!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_16BIT,address,useTLB); //Request a read!
 }
 
-byte BIU_request_Memoryrdw(uint_32 address)
+byte BIU_request_Memoryrdw(uint_32 address, byte useTLB)
 {
-	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,address,0); //Request a read!
+	return BIU_request(REQUEST_MMUREAD|REQUEST_32BIT,address,useTLB); //Request a read!
 }
 
-byte BIU_request_Memorywb(uint_32 address, byte val)
+byte BIU_request_Memorywb(uint_32 address, byte val, byte useTLB)
 {
-	return BIU_request(REQUEST_MMUWRITE,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
+	return BIU_request(REQUEST_MMUWRITE,((uint_64)address|((uint_64)val<<32)),useTLB); //Request a write!
 }
 
-byte BIU_request_Memoryww(uint_32 address, word val)
+byte BIU_request_Memoryww(uint_32 address, word val, byte useTLB)
 {
-	return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_16BIT,((uint_64)address|((uint_64)val<<32)),useTLB); //Request a write!
 }
 
-byte BIU_request_Memorywdw(uint_32 address, uint_32 val)
+byte BIU_request_Memorywdw(uint_32 address, uint_32 val, byte useTLB)
 {
-	return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)address|((uint_64)val<<32)),0); //Request a write!
+	return BIU_request(REQUEST_MMUWRITE|REQUEST_32BIT,((uint_64)address|((uint_64)val<<32)),useTLB); //Request a write!
 }
 
 //BUS(I/O address space) accesses for the Execution Unit to make, and their results!
@@ -276,7 +281,7 @@ extern MMU_type MMU; //MMU support!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
-byte BIU_directrb(uint_32 realaddress, byte index)
+byte BIU_directrb(uint_32 realaddress, word index)
 {
 	uint_32 originaladdr;
 	byte result;
@@ -289,7 +294,7 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
 
-	if (unlikely(MMU_logging==1)) //To log?
+	if (unlikely(MMU_logging==1) && ((index & 0x100) == 0)) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
@@ -297,13 +302,13 @@ byte BIU_directrb(uint_32 realaddress, byte index)
 	return result; //Give the result!
 }
 
-void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical memory dir
+void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical memory dir
 {
 	//Apply A20!
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 
-	if (unlikely(MMU_logging==1)) //To log?
+	if (unlikely(MMU_logging==1) && ((index&0x100)==0)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
@@ -314,23 +319,23 @@ void BIU_directwb(uint_32 realaddress, byte val, byte index) //Access physical m
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
 
-word BIU_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
+word BIU_directrw(uint_32 realaddress, word index) //Direct read from real memory (with real data direct)!
 {
 	return BIU_directrb(realaddress, index) | (BIU_directrb(realaddress + 1, index | 1) << 8); //Get data, wrap arround!
 }
 
-void BIU_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
+void BIU_directww(uint_32 realaddress, word value, word index) //Direct write to real memory (with real data direct)!
 {
 	BIU_directwb(realaddress, value & 0xFF, index); //Low!
 	BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 }
 
 //Used by paging only!
-uint_32 BIU_directrdw(uint_32 realaddress, byte index)
+uint_32 BIU_directrdw(uint_32 realaddress, word index)
 {
 	return BIU_directrw(realaddress, index) | (BIU_directrw(realaddress + 2, index | 2) << 16); //Get data, wrap arround!	
 }
-void BIU_directwdw(uint_32 realaddress, uint_32 value, byte index)
+void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 {
 	BIU_directww(realaddress, value & 0xFFFF, index); //Low!
 	BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
@@ -340,17 +345,24 @@ extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to 
 byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
-	uint_32 realaddress;
+	uint_32 realaddress, linearaddress;
+	byte value;
 	if (((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
 	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.base+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
 	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0))) return; //Abort on fault!
+	linearaddress = checkMMUaccess_linearaddr; //Logical address!
 	if (unlikely(is_paging())) //Are we paging?
 	{
-		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism!		
+		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism to a physical address!		
 	}
-	writefifobuffer(BIU[activeCPU].PIQ, BIU_directrb(checkMMUaccess_linearaddr,0|0x20)); //Add the next byte from memory into the buffer!
+	writefifobuffer(BIU[activeCPU].PIQ, (value = BIU_directrb(checkMMUaccess_linearaddr,0|0x20|0x100))); //Add the next byte from memory into the buffer!
+	if (unlikely(MMU_logging == 1)) //To log?
+	{
+		debugger_logmemoryaccess(0, linearaddress, value, LOGMEMORYACCESS_PAGED | (((0 | 0x20 | 0x100 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0, BIU[activeCPU].PIQ_Address, value, LOGMEMORYACCESS_NORMAL | (((0 | 0x20 | 0x100 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+	}
 	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
 	{
 		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
@@ -502,6 +514,8 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 
 OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 {
+	INLINEREGISTER uint_32 physicaladdress;
+	INLINEREGISTER byte value;
 	if (BIU[activeCPU].currentrequest) //Do we have a pending request we're handling? This is used for 16-bit and 32-bit requests!
 	{
 		CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
@@ -509,9 +523,22 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 		{
 			//Memory operations!
 			case REQUEST_MMUREAD:
-				fulltransferMMUread:
+			fulltransferMMUread:
+				physicaladdress = BIU[activeCPU].currentaddress;
+				if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
+				{
+					if (is_paging()) //Are we paging?
+					{
+						physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+					}
+				}
+
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
-				BIU[activeCPU].currentresult |= (BIU_directrb((BIU[activeCPU].currentaddress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				BIU[activeCPU].currentresult |= ((value = BIU_directrb((physicaladdress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8)|0x100))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
+				if (unlikely(MMU_logging == 1)) //To log?
+				{
+					debugger_logmemoryaccess(0, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+				}
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -534,8 +561,20 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				return 1; //Handled!
 				break;
 			case REQUEST_MMUWRITE:
-				fulltransferMMUwrite:
-				BIU_directwb((BIU[activeCPU].currentaddress),(BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)); //Write directly to memory now!
+			fulltransferMMUwrite:
+				physicaladdress = BIU[activeCPU].currentaddress;
+				if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
+				{
+					if (is_paging()) //Are we paging?
+					{
+						physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+					}
+				}
+				BIU_directwb((physicaladdress),(value = (BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF)),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)|0x100); //Write directly to memory now!
+				if (unlikely(MMU_logging == 1)) //To log?
+				{
+					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+				}
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
@@ -623,8 +662,19 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
 					}
-					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
-					BIU[activeCPU].currentresult = ((BIU_directrb((BIU[activeCPU].currentaddress),0))<<BIU_access_readshift[0]); //Read first byte!
+					physicaladdress = BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
+					if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
+					{
+						if (is_paging()) //Are we paging?
+						{
+							physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+						}
+					}
+					BIU[activeCPU].currentresult = ((value = BIU_directrb((physicaladdress),0x100))<<BIU_access_readshift[0]); //Read first byte!
+					if (unlikely(MMU_logging == 1)) //To log?
+					{
+						debugger_logmemoryaccess(0, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -655,13 +705,24 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					{
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
 					}
-					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
+					physicaladdress = BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
+					if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
+					{
+						if (is_paging()) //Are we paging?
+						{
+							physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+						}
+					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
 							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-							BIU_directwb((BIU[activeCPU].currentaddress),((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
+							BIU_directwb((physicaladdress),(value = ((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
+							if (unlikely(MMU_logging == 1)) //To log?
+							{
+								debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+							}
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed? Try again!
@@ -671,7 +732,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					}
 					else //Busy request?
 					{
-						BIU_directwb((BIU[activeCPU].currentpayload[0]&0xFFFFFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF),0); //Write directly to memory now!
+						BIU_directwb((physicaladdress&0xFFFFFFFF),(value = (byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
 						{

@@ -57,10 +57,15 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 
 byte debugger_forceEIP(); //Force EIP to be used for debugging?
 
+//Segmented memory address
 #define LOGMEMORYACCESS_NORMAL 0
+//Logical memory address
 #define LOGMEMORYACCESS_PAGED 1
+//Physical memory address
 #define LOGMEMORYACCESS_DIRECT 2
+//RAM memory address
 #define LOGMEMORYACCESS_RAM 3
+//Full RAM writeback
 #define LOGMEMORYACCESS_RAM_LOGMMUALL 4
 //Or'ed with the above values!
 #define LOGMEMORYACCESS_PREFETCHBITSHIFT 3
