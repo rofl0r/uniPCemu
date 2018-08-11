@@ -535,7 +535,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 
 				//MMU_generateaddress(segdesc,*CPU[activeCPU].SEGMENT_REGISTERS[segdesc],offset,0,0,is_offset16); //Generate the address on flat memory!
 				BIU[activeCPU].currentresult |= ((value = BIU_directrb((physicaladdress),(((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)>>8)|0x100))<<(BIU_access_readshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])); //Read subsequent byte!
-				if (unlikely(MMU_logging == 1)) //To log?
+				if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 				{
 					debugger_logmemoryaccess(0, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
@@ -571,7 +571,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					}
 				}
 				BIU_directwb((physicaladdress),(value = (BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF)),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)|0x100); //Write directly to memory now!
-				if (unlikely(MMU_logging == 1)) //To log?
+				if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 				{
 					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
@@ -671,7 +671,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						}
 					}
 					BIU[activeCPU].currentresult = ((value = BIU_directrb((physicaladdress),0x100))<<BIU_access_readshift[0]); //Read first byte!
-					if (unlikely(MMU_logging == 1)) //To log?
+					if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 					{
 						debugger_logmemoryaccess(0, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 					}
@@ -719,7 +719,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						{
 							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 							BIU_directwb((physicaladdress),(value = ((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
-							if (unlikely(MMU_logging == 1)) //To log?
+							if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 							{
 								debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 							}
@@ -733,6 +733,10 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					else //Busy request?
 					{
 						BIU_directwb((physicaladdress&0xFFFFFFFF),(value = (byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
+						if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
+						{
+							debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+						}
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
 						{
