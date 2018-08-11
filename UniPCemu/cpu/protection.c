@@ -14,7 +14,7 @@
 #include "headers/cpu/cpu_OP80386.h" //80386+ push/pop support!
 
 //Log Virtual 8086 mode calls basic information?
-#define LOG_VIRTUALMODECALLS
+//#define LOG_VIRTUALMODECALLS
 
 /*
 
@@ -41,10 +41,19 @@ void CPU_triplefault()
 	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 	CPU[activeCPU].executed = 1; //We're finishing to execute!
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger", "#Triple fault!");
+	}
 }
 
 void CPU_doublefault()
 {
+	if (debugger_logging()) //Are we logging?
+	{
+		dolog("debugger", "#DF fault(%08X)!", 0);
+	}
+
 	CPU[activeCPU].faultraised_lasttype = EXCEPTION_DOUBLEFAULT;
 	CPU[activeCPU].faultraised = 1; //Raising a fault!
 	uint_64 zerovalue=0; //Zero value pushed!
