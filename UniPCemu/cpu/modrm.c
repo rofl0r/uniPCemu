@@ -390,7 +390,7 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 	}
 	if (((EMULATED_CPU == CPU_80386) && (CPU_databussize)) || (EMULATED_CPU == CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
 	{
-		value |= 8; //Bit4 is hardwired to 1 on a 80386SX/CX/EX/CL.
+		value |= CR0_ET; //ET is hardwired to 1 on a 80386SX/CX/EX/CL.
 	}
 	CPU[activeCPU].registers->CR0 = value; //Set fixed value!
 	updateCPUmode(); //Try to update the CPU mode, if needed!
