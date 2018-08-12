@@ -360,8 +360,8 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	writefifobuffer(BIU[activeCPU].PIQ, (value = BIU_directrb(checkMMUaccess_linearaddr,0|0x20|0x100))); //Add the next byte from memory into the buffer!
 	if (unlikely(MMU_logging == 1)) //To log?
 	{
-		debugger_logmemoryaccess(0, linearaddress, value, LOGMEMORYACCESS_PAGED | (((0 | 0x20 | 0x100 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
-		debugger_logmemoryaccess(0, BIU[activeCPU].PIQ_Address, value, LOGMEMORYACCESS_NORMAL | (((0 | 0x20 | 0x100 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0, linearaddress, value, LOGMEMORYACCESS_PAGED | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0, BIU[activeCPU].PIQ_Address, value, LOGMEMORYACCESS_NORMAL | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 	if (unlikely(checkMMUaccess_linearaddr&1)) //Read an odd address?
 	{
