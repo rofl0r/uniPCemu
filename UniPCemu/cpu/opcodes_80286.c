@@ -301,7 +301,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			if (CPU8086_instructionstepwritemodrmw(2,(CPU[activeCPU].registers->GDTR.base & 0xFFFF),MODRM_src0,0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFFFF),MODRM_src0,0)) return; //Write rest value!
+				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->GDTR.base >> 16) & 0xFF)|0xFF00,MODRM_src0,0)) return; //Write rest value!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
@@ -332,7 +332,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			if (CPU8086_instructionstepwritemodrmw(2,(CPU[activeCPU].registers->IDTR.base & 0xFFFF),MODRM_src0,0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->IDTR.base >> 16) & 0xFFFF),MODRM_src0,0)) return; //Write rest value!
+				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->IDTR.base >> 16) & 0xFF)|0xFF00,MODRM_src0,0)) return; //Write rest value!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
@@ -439,7 +439,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the new register!
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
-		CPU[activeCPU].registers->CR0 = (CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1; //Set the MSW only!
+		CPU_writeCR0(CPU[activeCPU].registers->CR0,(CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1); //Set the MSW only!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
 		CPUPROT2

@@ -380,6 +380,22 @@ byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
 
+void CPU_writeCR0(uint_32 backupval, uint_32 value)
+{
+	backupval ^= value; //Check for changes!
+	CPU[activeCPU].registers->CR0 = value; //Set!
+	if (backupval & 0x80000000) //Paging changed?
+	{
+		Paging_clearTLB(); //Clear the TLB!
+	}
+	if (((EMULATED_CPU == CPU_80386) && (CPU_databussize)) || (EMULATED_CPU == CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
+	{
+		value |= 8; //Bit4 is hardwired to 1 on a 80386SX/CX/EX/CL.
+	}
+	CPU[activeCPU].registers->CR0 = value; //Set fixed value!
+	updateCPUmode(); //Try to update the CPU mode, if needed!
+}
+
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
 	uint_32 *result; //The result holder if needed!
@@ -403,16 +419,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			*result = value; //Write the data to the result!
 			if (result==&CPU[activeCPU].registers->CR0) //CR0 has been updated? Update the CPU mode, if needed!
 			{
-				backupval ^= value; //Check for changes!
-				if (backupval&0x80000000) //Paging changed?
-				{
-					Paging_clearTLB(); //Clear the TLB!
-				}
-				if (((EMULATED_CPU==CPU_80386) && (CPU_databussize)) || (EMULATED_CPU==CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
-				{
-					*result |= 8; //Bit4 is hardwired to 1 on a 80386SX/CX/EX/CL.
-				}
-				updateCPUmode(); //Try to update the CPU mode, if needed!
+				CPU_writeCR0(backupval, value); //Update CR0!
 			}
 			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
 			{

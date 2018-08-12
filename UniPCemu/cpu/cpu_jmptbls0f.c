@@ -289,7 +289,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	{
 	//0x00:
 	{ NULL, NULL }, //00h:
-	{ NULL, CPU386_OP0F01 }, //01h
+	{ CPU386_OP0F01, CPU386_OP0F01 }, //01h
 	{ NULL, NULL }, //02h:
 	{ NULL, NULL }, //03h:
 	{ NULL, NULL }, //04h:

@@ -789,8 +789,19 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 	if (EMULATED_CPU>=CPU_80386) //Need revision info in DX?
 	{
-		CPU[activeCPU].registers->DH = 0x03; //We're a 80386!
-		CPU[activeCPU].registers->DL = 0x08; //D1/D2 stepping(latest revision)
+		switch (EMULATED_CPU)
+		{
+		default:
+		case CPU_80386:
+			CPU[activeCPU].registers->DX = CPU_databussize ? 0x2303 : 0x0303;
+			break;
+		case CPU_80486:
+			CPU[activeCPU].registers->DX = 0x0421; //80486SX! DX not supported yet!
+			break;
+		case CPU_PENTIUM:
+			CPU[activeCPU].registers->DX = 0x0421; //80486SX! DX not supported yet!
+			break;
+		}
 	}
 
 	//Index registers

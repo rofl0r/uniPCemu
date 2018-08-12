@@ -264,4 +264,7 @@ void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2); //32-bit handler!
 void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type); //In the CPU module, generates debugger modR/M info!
 
+void CPU_writeCR0(uint_32 backupval, uint_32 value); //Update CR0 externally!
+
+
 #endif

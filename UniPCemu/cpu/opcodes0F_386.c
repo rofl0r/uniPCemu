@@ -145,6 +145,11 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 2: //LGDT
+		if (CPU_Operand_size[activeCPU]==0) //16-bit version?
+		{
+			CPU286_OP0F01(); //Redirect 16-bits!
+			return;
+		}
 		debugger_setcommand("LGDT %s", info.text);
 		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
@@ -179,6 +184,11 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 3: //LIDT
+		if (CPU_Operand_size[activeCPU] == 0) //16-bit version?
+		{
+			CPU286_OP0F01(); //Redirect 16-bits!
+			return;
+		}
 		debugger_setcommand("LIDT %s", info.text);
 		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
