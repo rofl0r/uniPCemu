@@ -718,11 +718,12 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						if (BIU_response(1)) //Result given? We're giving OK!
 						{
 							BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+							value = ((BIU[activeCPU].currentpayload[0] >> BIU_access_writeshift[0]) & 0xFF); //What to write?
 							if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 							{
 								debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 							}
-							BIU_directwb((physicaladdress),(value = ((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
+							BIU_directwb(physicaladdress,value,0x100); //Write directly to memory now!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
 						else //Response failed? Try again!
@@ -732,11 +733,12 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					}
 					else //Busy request?
 					{
+						value = ((BIU[activeCPU].currentpayload[0] >> BIU_access_writeshift[0]) & 0xFF); //What to write?
 						if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 						{
 							debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 						}
-						BIU_directwb((physicaladdress&0xFFFFFFFF),(value = (byte)((BIU[activeCPU].currentpayload[0]>>BIU_access_writeshift[0])&0xFF)),0x100); //Write directly to memory now!
+						BIU_directwb(physicaladdress, value, 0x100); //Write directly to memory now!
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
 						{
