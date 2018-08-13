@@ -570,11 +570,12 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
 					}
 				}
+				value = (BIU[activeCPU].currentpayload[0] >> (BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK) >> REQUEST_SUBSHIFT)]) & 0xFF);
 				if (unlikely((MMU_logging == 1) && (BIU[activeCPU].currentpayload[1] & 1))) //To log the paged layer?
 				{
 					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
-				BIU_directwb((physicaladdress),(value = (BIU[activeCPU].currentpayload[0]>>(BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)])&0xFF)),((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)|0x100); //Write directly to memory now!
+				BIU_directwb((physicaladdress),value,((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)|0x100); //Write directly to memory now!
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
