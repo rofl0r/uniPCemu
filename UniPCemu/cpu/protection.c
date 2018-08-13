@@ -1143,6 +1143,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 }
 
 word segmentWritten_tempSS;
+uint_32 segmentWritten_tempESP;
+word segmentWritten_tempSP;
 extern word RETF_popbytes; //How many to pop?
 
 byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
@@ -1178,6 +1180,8 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						
 						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abort on error!
 
+						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
+
 						if (/*CPU_Operand_size[activeCPU]*/ CPU[activeCPU].CallGateSize)
 						{
 							CPU_PUSH32(&CPU[activeCPU].oldESP);
@@ -1187,8 +1191,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 							word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
 							CPU_PUSH16(&temp,0);
 						}
-						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
-
+						
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
 						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
@@ -1276,18 +1279,24 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (CPU8086_POPw(6,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
-						if (CPU80386_POPdw(8,&REG_ESP)) return 1; //POP ESP!
+						if (CPU80386_POPdw(6,&segmentWritten_tempESP)) return 1; //POP ESP!
 					}
 					else
 					{
-						if (CPU8086_POPw(8,&REG_SP,0)) return 1; //POP SP!
-						REG_ESP &= 0xFFFF; //Only keep what we need!
+						if (CPU8086_POPw(6,&segmentWritten_tempSP,0)) return 1; //POP SP!
 					}
-
+					if (CPU8086_POPw(8,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
+					{
+						REG_ESP = segmentWritten_tempESP; //POP ESP!
+					}
+					else
+					{
+						REG_ESP = (uint_32)segmentWritten_tempSP; //POP SP!
+					}
 					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
