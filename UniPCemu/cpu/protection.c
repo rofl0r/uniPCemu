@@ -706,7 +706,7 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 
 uint_32 destEIP; //Destination address for CS JMP instruction!
 
-byte CPU_handleInterruptGate(byte table, uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt); //Execute a protected mode interrupt!
+byte CPU_handleInterruptGate(byte EXT, byte table, uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt); //Execute a protected mode interrupt!
 
 /*
 
@@ -714,7 +714,7 @@ getsegment_seg: Gets a segment, if allowed.
 parameters:
 	whatsegment: What segment is used?
 	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting.
 result:
 	The segment when available, NULL on error or disallow.
 
@@ -737,7 +737,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Plain #GP?
 		{
-			THROWDESCGP(*segmentval,0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(*segmentval,((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -783,11 +783,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(*segmentval,(isJMPorCALL&0x200)?1:0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
+			THROWDESCSP(*segmentval,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
 		}
 		else
 		{
-			THROWDESCNP(*segmentval, (isJMPorCALL&0x200)?1:0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(*segmentval, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -813,7 +813,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			/*
 			if ((isJMPorCALL & 0x1FF) == 2) //CALL? It's an programmed interrupt call!
 			{
-				CPU_handleInterruptGate((*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT, (*segmentval & 0xFFF8), &LOADEDDESCRIPTOR.desc, REG_CS, REG_EIP, -2, 1); //Raise an interrupt instead!
+				CPU_handleInterruptGate(((isJMPorCALL&0x400)>>10),(*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT, (*segmentval & 0xFFF8), &LOADEDDESCRIPTOR.desc, REG_CS, REG_EIP, -2, 1); //Raise an interrupt instead!
 				return NULL; //Abort: we're handled by the interrupt handler!
 			}
 			*/ //80386 user manual CALL instruction reference says that interrupt and other gates being loaded end up with a General Protection fault.
@@ -909,7 +909,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Plain #GP?
 		{
-			THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //Not present: limit exceeded!	
 	}
@@ -965,7 +965,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else
 		{
-			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -1311,7 +1311,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
 				{
-					THROWDESCGP(value, (isJMPorCALL&0x200)?1:0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
@@ -1342,7 +1342,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during IRET?
 				{
-					THROWDESCGP(value, (isJMPorCALL&0x200)?1:0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, (isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 					return 1; //Abort!
 				}
 			}
@@ -1356,7 +1356,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_BUSY_TSS16BIT:
-						THROWDESCGP(value,(isJMPorCALL&0x200)?1:0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break;
 					case AVL_SYSTEM_TSS32BIT:
@@ -1369,7 +1369,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						}
 						break;
 					default: //Invalid segment descriptor to load into the TR register?
-						THROWDESCGP(value,(isJMPorCALL&0x200)?1:0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break; //Ignore!
 					}
@@ -1720,6 +1720,9 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 
+	byte isEXT;
+	isEXT = is_interrupt?0:1; //The EXT bit to use for direct exceptions! 0 for interrupts, 1 for exceptions!
+
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
 		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
@@ -1751,10 +1754,10 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	idtentry.offsethigh = DESC_16BITS(idtentry.offsethigh); //Patch when needed!
 	idtentry.offsetlow = DESC_16BITS(idtentry.offsetlow); //Patch when needed!
 	idtentry.selector = DESC_16BITS(idtentry.selector); //Patch when needed!
-	return CPU_handleInterruptGate(EXCEPTION_TABLE_IDT,base,&idtentry,returnsegment,returnoffset,errorcode,is_interrupt); //Handle the interrupt gate!
+	return CPU_handleInterruptGate(isEXT,EXCEPTION_TABLE_IDT,base,&idtentry,returnsegment,returnoffset,errorcode,is_interrupt); //Handle the interrupt gate!
 }
 
-byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
+byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
 {
 	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
@@ -1770,6 +1773,8 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 		errorcode32 = 0; //Empty to log!
 	}
 
+	EXT &= 1; //1-bit value!
+
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 
@@ -1779,13 +1784,13 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCGP(base,1,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
+		THROWDESCGP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
 	if (is_interrupt && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
-		THROWDESCGP(base,1,table); //#GP!
+		THROWDESCGP(base,EXT,table); //#GP!
 		return 0;
 	}
 
@@ -1794,15 +1799,15 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 	{
 	case IDTENTRY_TASKGATE: //32-bit task gate?
 		desttask = idtentry.selector; //Read the destination task!
-		if (((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2))<=0) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
+		if (((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2|(EXT<<10)))<=0) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
 			if (loadresult >= 0) //Not faulted already?
 			{
-				THROWDESCGP(desttask, 1, (desttask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP error!
+				THROWDESCGP(desttask, EXT, (desttask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP error!
 			}
 			return 0; //Error, by specified reason!
 		}
-		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, 2|0x80,1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)! We're a call based on an interrupt!
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, ((2|0x80)|(EXT<<10)),1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)! We're a call based on an interrupt!
 		break;
 	default: //All other cases?
 		is32bit = ((IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG)>>IDTENTRY_32BIT_GATEEXTENSIONFLAG_SHIFT); //Enable 32-bit gate?
@@ -1816,12 +1821,12 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
-				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return 0; //Error, by specified reason!
 			}
 			if (((GENERALSEGMENT_S(newdescriptor)==0) || (EXECSEGMENT_ISEXEC(newdescriptor)==0))) //Not readable, execute segment? Code/executable segment is allowed!
 			{
-				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 
@@ -1829,7 +1834,7 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 
 			if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
 			{
-				THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCGP(0,0,0); //Throw #GP(0)!
 				return 0;
 			}
 
@@ -1847,7 +1852,7 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 				}
 				else
 				{
-					THROWDESCGP(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+					THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 					return 0;
 				}
 			}
@@ -1868,7 +1873,7 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 				#endif
 				if (newCPL!=0) //Not switching to PL0?
 				{
-					THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
+					THROWDESCGP(idtentry.selector,EXT,EXCEPTION_TABLE_GDT); //Exception!
 					return 0; //Abort on fault!
 				}
 
@@ -1903,14 +1908,14 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 				//Other registers are the normal variants!
 
 				//Load all Segment registers with zeroes!
-				if (segmentWritten(CPU_SEGMENT_DS,0,0)) return 0; //Clear DS! Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_ES,0,0)) return 0; //Clear ES! Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_FS,0,0)) return 0; //Clear FS! Abort on fault!
-				if (segmentWritten(CPU_SEGMENT_GS,0,0)) return 0; //Clear GS! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_DS,0,(EXT<<10))) return 0; //Clear DS! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_ES,0,(EXT<<10))) return 0; //Clear ES! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_FS,0,(EXT<<10))) return 0; //Clear FS! Abort on fault!
+				if (segmentWritten(CPU_SEGMENT_GS,0,(EXT<<10))) return 0; //Clear GS! Abort on fault!
 			}
 			else if (FLAG_V8) 
 			{
-				THROWDESCGP(idtentry.selector,1,EXCEPTION_TABLE_GDT); //Exception!
+				THROWDESCGP(idtentry.selector,EXT,EXCEPTION_TABLE_GDT); //Exception!
 				return 0; //Abort on fault!
 			}
 			else if ((FLAG_V8==0) && (INTTYPE==1)) //Privilege level changed in protected mode?
@@ -2002,7 +2007,7 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
-			THROWDESCGP(base,1,table); //#GP! We're always from the IDT!
+			THROWDESCGP(base,EXT,table); //#GP! We're always from the IDT!
 			return 0; //Errored out!
 			break;
 		}
