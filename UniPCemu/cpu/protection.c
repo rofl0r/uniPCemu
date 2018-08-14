@@ -737,7 +737,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Plain #GP?
 		{
-			THROWDESCGP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(*segmentval,0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -909,7 +909,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Plain #GP?
 		{
-			THROWDESCGP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(originalval,0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //Not present: limit exceeded!	
 	}
@@ -1311,7 +1311,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
 				{
-					THROWDESCGP(value, 1, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, 0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
@@ -1342,7 +1342,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during IRET?
 				{
-					THROWDESCGP(value, 1, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, 0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 					return 1; //Abort!
 				}
 			}
@@ -1356,7 +1356,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_BUSY_TSS16BIT:
-						THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break;
 					case AVL_SYSTEM_TSS32BIT:
@@ -1369,7 +1369,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						}
 						break;
 					default: //Invalid segment descriptor to load into the TR register?
-						THROWDESCGP(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break; //Ignore!
 					}
