@@ -706,6 +706,8 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 
 uint_32 destEIP; //Destination address for CS JMP instruction!
 
+byte CPU_handleInterruptGate(byte table, uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt); //Execute a protected mode interrupt!
+
 /*
 
 getsegment_seg: Gets a segment, if allowed.
@@ -808,6 +810,12 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		case AVL_SYSTEM_TRAPGATE16BIT:
 		case AVL_SYSTEM_INTERRUPTGATE32BIT:
 		case AVL_SYSTEM_TRAPGATE32BIT:
+			if ((isJMPorCALL & 0x1FF) == 2) //CALL? It's an programmed interrupt call!
+			{
+				CPU_handleInterruptGate((*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT, (*segmentval & 0xFFF8), &LOADEDDESCRIPTOR.desc, REG_CS, REG_EIP, -2, 1); //Raise an interrupt instead!
+				return NULL; //Abort: we're handled by the interrupt handler!
+			}
+			//JMP isn't valid for interrupt gates?
 			//We're an invalid gate!
 			goto throwdescsegmentval; //Throw #GP error!		
 			return NULL; //Not present: invalid descriptor type loaded!
