@@ -810,11 +810,13 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		case AVL_SYSTEM_TRAPGATE16BIT:
 		case AVL_SYSTEM_INTERRUPTGATE32BIT:
 		case AVL_SYSTEM_TRAPGATE32BIT:
+			/*
 			if ((isJMPorCALL & 0x1FF) == 2) //CALL? It's an programmed interrupt call!
 			{
 				CPU_handleInterruptGate((*segmentval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT, (*segmentval & 0xFFF8), &LOADEDDESCRIPTOR.desc, REG_CS, REG_EIP, -2, 1); //Raise an interrupt instead!
 				return NULL; //Abort: we're handled by the interrupt handler!
 			}
+			*/ //80386 user manual CALL instruction reference says that interrupt and other gates being loaded end up with a General Protection fault.
 			//JMP isn't valid for interrupt gates?
 			//We're an invalid gate!
 			goto throwdescsegmentval; //Throw #GP error!		
