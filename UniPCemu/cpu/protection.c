@@ -1713,20 +1713,9 @@ byte switchStacks(byte newCPL)
 
 byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
 {
-	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
-	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
-	SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage for task switches!
-	word desttask; //Destination task for task switches!
 	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
-	sbyte loadresult;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
-
-	if (errorcode<0) //Invalid error code to use?
-	{
-		errorcode16 = 0; //Empty to log!
-		errorcode32 = 0; //Empty to log!
-	}
 
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
@@ -1771,7 +1760,6 @@ byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRI
 	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
 	SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage for task switches!
 	word desttask; //Destination task for task switches!
-	byte left; //The amount of bytes left to read of the IDT entry!
 	uint_32 base;
 	sbyte loadresult;
 	base = descriptorbase; //The base offset of the interrupt in the IDT!
