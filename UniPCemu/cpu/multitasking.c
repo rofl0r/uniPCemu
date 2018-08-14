@@ -651,7 +651,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 			return 1; //Not present: limit exceeded!
 		}
 
-		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0x200|((isJMPorCALL&0x400)); //Load it, ignore errors?
+		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0x200|(isJMPorCALL&0x400)); //Load it, ignore errors?
 		if (unlikely(loadresult<=0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
@@ -743,7 +743,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	{
 		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
 		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280|((isJMPorCALL&0x400))) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
 		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
 	}
 	else //16-bit?
