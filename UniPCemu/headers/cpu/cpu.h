@@ -105,30 +105,40 @@ typedef union PACKED
 			{
 				u16 limit_low;
 				u16 callgate_base_low; //Call Gate base low!
+				word offsetlow; //Lower part of the interrupt function's offset address (a.k.a. pointer)
 			};
 			union
 			{
 				u16 base_low; //Low base for non-Gate Descriptors!
-				u16 selector; //Selector field of a Gate Descriptor!
+				u16 selector; //Selector field of a Gate Descriptor! Also the selector of the interrupt function, it's RPL field has be be 0.
 			};
 			union
 			{
 				u8 base_mid; //Mid base for non-Gate Descriptors!
 				u8 ParamCnt; //Number of (uint_32) stack arguments to copy on stack switch(Call Gate Descriptor). Bits 4-7 have to be 0 for gate descriptors.
+				byte zero; //Interrupt gate: Must be zero!
 			};
 			byte AccessRights; //Access rights!
 			union
 			{
-				u8 noncallgate_info; //Non-callgate access!
-				u8 callgate_base_mid;
-			};
-			union
-			{
-				u8 base_high;
-				u8 callgate_base_high;
+				struct
+				{
+					union
+					{
+						u8 noncallgate_info; //Non-callgate access!
+						u8 callgate_base_mid;
+					};
+					union
+					{
+						u8 base_high;
+						u8 callgate_base_high;
+					};
+				};
+				word offsethigh; //Higer part of the interrupt offset
 			};
 		};
 		byte bytes[8]; //The data as bytes!
+		byte descdata[8]; //The full entry data!
 	};
 	uint_32 dwords[2]; //2 32-bit values for easy access!
 	uint_64 DATA64; //Full data for simple set!
@@ -268,21 +278,6 @@ typedef union PACKED
 	};
 	byte data[44]; //All our data!
 } TSS286; //80286 32-Bit Task State Segment
-#include "headers/endpacked.h" //End of packed type!
-
-#include "headers/packed.h" //Packed type!
-typedef union PACKED
-{
-	struct
-	{
-		word offsetlow; //Lower part of the interrupt function's offset address (a.k.a. pointer)
-		word selector; //The selector of the interrupt function. It's DPL field has be be 0.
-		byte zero; //Must be zero!
-		byte AccessRights; //Access rights byte
-		word offsethigh; //Higer part of the offset
-	};
-	byte descdata[8]; //The full entry data!
-} IDTENTRY; //80286/80386 Interrupt descriptor table entry
 #include "headers/endpacked.h" //End of packed type!
 
 #define IDTENTRY_TYPE(ENTRY) (ENTRY.AccessRights&0xF)

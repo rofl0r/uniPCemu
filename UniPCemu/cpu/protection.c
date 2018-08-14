@@ -1729,7 +1729,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 
 	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
 	
-	IDTENTRY idtentry; //The loaded IVT entry!
+	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
 	for (left=0;left<(int)sizeof(idtentry.descdata);++left)
 	{
 		if (checkDirectMMUaccess(base++,1,/*getCPL()*/ 0)) //Error in the paging unit?
@@ -1752,18 +1752,42 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	idtentry.offsethigh = DESC_16BITS(idtentry.offsethigh); //Patch when needed!
 	idtentry.offsetlow = DESC_16BITS(idtentry.offsetlow); //Patch when needed!
 	idtentry.selector = DESC_16BITS(idtentry.selector); //Patch when needed!
+	return CPU_handleInterruptGate(EXCEPTION_TABLE_IDT,base,&idtentry,returnsegment,returnoffset,errorcode,is_interrupt); //Handle the interrupt gate!
+}
+
+byte CPU_handleInterruptGate(byte table,uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt) //Execute a protected mode interrupt!
+{
+	uint_32 errorcode32 = (uint_32)errorcode; //Get the error code itelf!
+	word errorcode16 = (word)errorcode; //16-bit variant, if needed!
+	SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage for task switches!
+	word desttask; //Destination task for task switches!
+	byte left; //The amount of bytes left to read of the IDT entry!
+	uint_32 base;
+	sbyte loadresult;
+	base = descriptorbase; //The base offset of the interrupt in the IDT!
+
+	if (errorcode<0) //Invalid error code to use?
+	{
+		errorcode16 = 0; //Empty to log!
+		errorcode32 = 0; //Empty to log!
+	}
+
+	CPU[activeCPU].executed = 0; //Default: still busy executing!
+	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 
 	byte is32bit;
+	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
+	memcpy(&idtentry,theidtentry,sizeof(idtentry)); //Make a copy for our own use!
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#NP isn't triggered with IDT entries! #GP is triggered instead!
+		THROWDESCGP(base,1,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
 	if (is_interrupt && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
-		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,1,table); //#GP!
 		return 0;
 	}
 
@@ -1980,7 +2004,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?
-			THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP! We're always from the IDT!
+			THROWDESCGP(base,1,table); //#GP! We're always from the IDT!
 			return 0; //Errored out!
 			break;
 		}
