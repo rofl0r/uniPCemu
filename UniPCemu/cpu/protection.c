@@ -783,11 +783,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
+			THROWDESCSP(*segmentval,(isJMPorCALL&0x200)?1:0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
 		}
 		else
 		{
-			THROWDESCNP(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(*segmentval, (isJMPorCALL&0x200)?1:0,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -961,11 +961,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else
 		{
-			THROWDESCNP(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -1311,7 +1311,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
 				{
-					THROWDESCGP(value, 0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, (isJMPorCALL&0x200)?1:0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
@@ -1342,7 +1342,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				else if (oldCPL > getRPL(value)) //CPL raised during IRET?
 				{
-					THROWDESCGP(value, 0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					THROWDESCGP(value, (isJMPorCALL&0x200)?1:0, (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 					return 1; //Abort!
 				}
 			}
@@ -1356,7 +1356,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_BUSY_TSS16BIT:
-						THROWDESCGP(value,0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,(isJMPorCALL&0x200)?1:0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break;
 					case AVL_SYSTEM_TSS32BIT:
@@ -1369,7 +1369,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						}
 						break;
 					default: //Invalid segment descriptor to load into the TR register?
-						THROWDESCGP(value,0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+						THROWDESCGP(value,(isJMPorCALL&0x200)?1:0,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
 						return 1; //Abort on fault!
 						break; //Ignore!
 					}
