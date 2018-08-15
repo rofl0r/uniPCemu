@@ -143,6 +143,7 @@ void tickSoundBlasterRecording()
 }
 
 extern byte haswindowactive; //For detecting paused operation!
+extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
 
 void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
@@ -179,7 +180,7 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 	}
 
 	soundblaster_recordedpassed = getnspassed(&SOUNDBLASTER.recordingtimer); //Tick the recording timer real-time!
-	if (unlikely(haswindowactive&0x10)) {soundblaster_recordedpassed = 0.0; haswindowactive |= ~0x20;} //Fully active again?
+	if (unlikely((haswindowactive&0x10) && (backgroundpolicy<3))) {soundblaster_recordedpassed = 0.0; haswindowactive |= ~0x20;} //Fully active again?
 
 	#ifdef RECORD_TESTWAVE
 	//For testing!

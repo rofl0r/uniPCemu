@@ -928,6 +928,7 @@ extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 extern byte skipstep; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
 
 extern byte haswindowactive; //For detecting paused operation!
+extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
 
 extern byte lastHLTstatus; //Last halt status for debugger! 1=Was halting, 0=Not halting!
 
@@ -940,8 +941,12 @@ OPTINLINE byte coreHandler()
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	lock(LOCK_INPUT);
-	if (unlikely((haswindowactive&0x1C)==0xC)) {getnspassed(&CPU_timing); haswindowactive|=0x10;} //Pending to finish Soundblaster!
-	currenttiming += likely(haswindowactive&2)?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
+	if (unlikely(((haswindowactive & 0x1C) == 0xC) && (backgroundpolicy<3))) //Muting recording of the Sound Blaster or earlier and resuming?
+	{
+		if (backgroundpolicy==0) getnspassed(&CPU_timing); //Completely stopping emulation?
+		haswindowactive |= 0x10; //Start pending to mute the 
+	} //Pending to finish Soundblaster!
+	currenttiming += likely(((haswindowactive&2)|backgroundpolicy))?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
 	unlock(LOCK_INPUT);
 	double currentCPUtime_d = currenttiming; //Backup of the current timing to discard!
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
