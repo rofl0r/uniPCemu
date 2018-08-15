@@ -7378,7 +7378,6 @@ void BIOS_BackgroundPolicySetting()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			reboot_needed |= 1; //Reboot needed to apply!
 			BIOS_Settings.backgroundpolicy = file; //Select VGA Mode setting!
 		}
 		break;
