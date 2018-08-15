@@ -352,7 +352,7 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		{
 			if (CPU_faultraised(EXCEPTION_NMI))
 			{
-				CPU_executionphase_startinterrupt(EXCEPTION_NMI,0,-1); //Return to opcode!
+				CPU_executionphase_startinterrupt(EXCEPTION_NMI,2,-1); //Return to opcode!
 			}
 			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 			return 0; //We're handled!
