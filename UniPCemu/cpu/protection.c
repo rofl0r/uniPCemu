@@ -1788,7 +1788,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 		return 0;
 	}
 
-	if (is_interrupt && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
+	if ((is_interrupt&1) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
 		THROWDESCGP(base,EXT,table); //#GP!
 		return 0;
