@@ -752,6 +752,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.version = (byte)get_private_profile_uint64("general","version",BIOS_VERSION,BIOS_Settings_file);
 	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general","firstrun",1,BIOS_Settings_file); //Is this the first run of this BIOS?
 	BIOS_Settings.BIOSmenu_font = (byte)get_private_profile_uint64("general","settingsmenufont",0,BIOS_Settings_file); //The selected font for the BIOS menu!
+	BIOS_Settings.backgroundpolicy = (byte)get_private_profile_uint64("general", "backgroundpolicy", DEFAULT_BACKGROUNDPOLICY, BIOS_Settings_file); //The selected font for the BIOS menu!
 
 	//Machine
 	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine","cpu",DEFAULT_CPU,BIOS_Settings_file);
@@ -919,7 +920,7 @@ extern char BOOT_ORDER_STRING[15][30]; //Boot order, string values!
 extern char colors[0x10][15]; //All 16 colors!
 
 //Comments to build:
-char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation"; //General comment!
+char general_comment[4096] = "version: version number, DO NOT CHANGE\nfirstrun: 1 for opening the settings menu automatically, 0 otherwise\nsettingsmenufont: the font to use for the Settings menu: 0=Default, 1=Phoenix Laptop, 2=Phoenix - Award Workstation\nbackgroundpolicy: 0=Full halt, 1=Run without audio playing and recording, 2=Run without recording, 3=Run without rendering the display"; //General comment!
 char machine_comment[4096] = ""; //Machine comment!
 char debugger_comment[4096] = ""; //Debugger comment!
 char video_comment[4096] = ""; //Video comment!
@@ -952,6 +953,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("general",general_commentused,"version",BIOS_VERSION,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("general",general_commentused,"firstrun",BIOS_Settings.firstrun,BIOS_Settings_file)) return 0; //Is this the first run of this BIOS?
 	if (!write_private_profile_uint64("general",general_commentused,"settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
+	if (!write_private_profile_uint64("general", general_commentused, "backgroundpolicy", BIOS_Settings.backgroundpolicy, BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 
 	//Machine
 	memset(&machine_comment,0,sizeof(machine_comment)); //Init!
@@ -1209,6 +1211,8 @@ uint_32 BIOS_GetMMUSize() //For MMU!
 	return BIOS_Settings.memory; //Use all available memory always!
 }
 
+extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
+
 void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 {
 	char soundfont[256];
@@ -1329,6 +1333,7 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 	BIOS_ValidateData(); //Validate all data!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	exec_showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
+	backgroundpolicy = MIN(BIOS_Settings.backgroundpolicy,3); //Load the new background policy!
 }
 
 void BIOS_ShowBIOS() //Shows mounted drives etc!

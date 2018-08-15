@@ -200,6 +200,7 @@ void BIOS_InboardInitialWaitstates(); //Inboard Initial Waitstates
 void BIOS_ClockingMode(); //Clocking Mode toggle!
 void BIOS_DebugRegisters(); //Debug registers log!
 void BIOS_CMOSTiming(); //Time the CMOS!
+void BIOS_BackgroundPolicySetting(); //Background policy!
 
 
 
@@ -274,6 +275,7 @@ Handler BIOS_Menus[] =
 	,BIOS_ClockingMode //Clocking Mode toggle is #65!
 	,BIOS_DebugRegisters //Log registers is #66!
 	,BIOS_CMOSTiming //Time the CMOS is #67!
+	,BIOS_BackgroundPolicySetting //Background policy is #68!
 };
 
 //Not implemented?
@@ -415,6 +417,7 @@ extern GPU_type GPU; //The GPU!
 byte reboot_needed = 0; //Default: no reboot needed!
 
 extern sword diagnosticsportoutput_breakpoint; //Breakpoint set?
+extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
 
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
@@ -529,6 +532,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	if (shuttingdown()) return 0; //We're shutting down, discard!
 
 	lock(LOCK_MAINTHREAD); //Lock the main thread!
+	backgroundpolicy = MIN(BIOS_Settings.backgroundpolicy,3); //Load the new background policy!
 
 	startVGA(); //Start the VGA up again!
 
@@ -1801,7 +1805,31 @@ void BIOS_InitAdvancedText()
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Settings menu Font: ");
 	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), ActiveBIOSPreset.name); //BIOS font selected!
 
-	optioninfo[advancedoptions] = 7; //Sync timekeeping!
+	optioninfo[advancedoptions] = 7; //Background policy!
+setBackgroundpolicytext: //For fixing it!
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Background policy: ");
+	switch (BIOS_Settings.backgroundpolicy) //VGA Mode?
+	{
+	case BACKGROUNDPOLICY_FULLHALT:
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Full halt");
+		break;
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIOANDVIDEO:
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Run without audio playing and recording");
+		break;
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIORECORDINGANDVIDEO:
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Run without recording");
+		break;
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTVIDEO:
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Run without rendering the display");
+		break;
+	default: //Error: fix it!
+		BIOS_Settings.backgroundpolicy = DEFAULT_BACKGROUNDPOLICY; //Reset/Fix!
+		BIOS_Changed = 1; //We've changed!
+		goto setBackgroundpolicytext; //Goto!
+		break;
+	}
+
+	optioninfo[advancedoptions] = 8; //Sync timekeeping!
 	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Synchronize RTC");
 
 	CMOSDATA *currentCMOS;
@@ -1822,7 +1850,7 @@ void BIOS_InitAdvancedText()
 			currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
 	}
 
-	optioninfo[advancedoptions] = 8; //RTC mode!
+	optioninfo[advancedoptions] = 9; //RTC mode!
 	snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "RTC mode: %s", currentCMOS->cycletiming?"Cycle-accurate":"Realtime");
 }
 
@@ -1848,7 +1876,8 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 	case 5:
 	case 6:
 	case 7:
-	case 8: //Valid option?
+	case 8:
+	case 9: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0:
@@ -1872,10 +1901,13 @@ void BIOS_AdvancedMenu() //Manages the boot order etc!
 		case 6:
 			BIOS_Menu = 16; //BIOS Font setting!
 			break;
-		case 7: //Synchronize timekeeping?
+		case 7: //Background policy?
+			BIOS_Menu = 68; //Background policy!
+			break;
+		case 8: //Synchronize timekeeping?
 			BIOS_Menu = 61; //Reset timekeeping!
 			break;
-		case 8: //RTC mode?
+		case 9: //RTC mode?
 			BIOS_Menu = 67; //Reset timekeeping!
 			break;
 		default:
@@ -7289,4 +7321,67 @@ void BIOS_CMOSTiming() //Time the CMOS!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
 	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
+}
+
+void BIOS_BackgroundPolicySetting()
+{
+	BIOS_Title("Background policy");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Background policy: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 4; //Amount of background policies!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
+	}
+	
+	safestrcpy(itemlist[BACKGROUNDPOLICY_FULLHALT], sizeof(itemlist[0]), "Full halt"); //Set filename from options!
+	safestrcpy(itemlist[BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIOANDVIDEO], sizeof(itemlist[0]), "Run without audio playing and recording"); //Set filename from options!
+	safestrcpy(itemlist[BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIORECORDINGANDVIDEO], sizeof(itemlist[0]), "Run without recording"); //Special CGA compatibility mode!
+	safestrcpy(itemlist[BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTVIDEO], sizeof(itemlist[0]), "Run without rendering the display"); //Special MDA compatibility mode!
+
+	int current = 0;
+	switch (BIOS_Settings.backgroundpolicy) //What setting?
+	{
+	case BACKGROUNDPOLICY_FULLHALT: //Valid
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIOANDVIDEO: //Valid
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIORECORDINGANDVIDEO: //Valid
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTVIDEO: //Valid
+		current = BIOS_Settings.backgroundpolicy; //Valid: use!
+		break;
+	default: //Invalid
+		current = DEFAULT_BACKGROUNDPOLICY; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.backgroundpolicy != current) //Invalid?
+	{
+		BIOS_Settings.backgroundpolicy = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(19, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_BACKGROUNDPOLICY; //Default setting: Disabled!
+
+	case BACKGROUNDPOLICY_FULLHALT:
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIOANDVIDEO:
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTAUDIORECORDINGANDVIDEO:
+	case BACKGROUNDPOLICY_KEEPRUNNINGWITHOUTVIDEO:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			reboot_needed |= 1; //Reboot needed to apply!
+			BIOS_Settings.backgroundpolicy = file; //Select VGA Mode setting!
+		}
+		break;
+	}
+	BIOS_Menu = 8; //Goto Advanced menu!
 }

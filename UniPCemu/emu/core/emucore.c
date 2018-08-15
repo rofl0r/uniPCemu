@@ -941,10 +941,17 @@ OPTINLINE byte coreHandler()
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
 	lock(LOCK_INPUT);
-	if (unlikely(((haswindowactive & 0x1C) == 0xC) && (backgroundpolicy<3))) //Muting recording of the Sound Blaster or earlier and resuming?
+	if (unlikely(((haswindowactive & 0x1C) == 0xC))) //Muting recording of the Sound Blaster or earlier and resuming?
 	{
-		if (backgroundpolicy==0) getnspassed(&CPU_timing); //Completely stopping emulation?
 		haswindowactive |= 0x10; //Start pending to mute the 
+		if (backgroundpolicy < 3) //To apply a background policy?
+		{
+			if (backgroundpolicy == 0) getnspassed(&CPU_timing); //Completely stopping emulation?
+		}
+		else if ((haswindowactive & 0x30) == 0x10) //Keep running 100%!
+		{
+			haswindowactive |= 0x20; //Fully active again(the same the Sound Blaster does usually)? Affect nothing on the emulated side!
+		}
 	} //Pending to finish Soundblaster!
 	currenttiming += likely(((haswindowactive&2)|backgroundpolicy))?getnspassed(&CPU_timing):0; //Check for any time that has passed to emulate! Don't emulate when not allowed to run, keeping emulation paused!
 	unlock(LOCK_INPUT);

@@ -103,6 +103,7 @@ typedef struct
 	ETHERNETSERVER_SETTINGS_TYPE ethernetserver_settings;
 #endif
 	CharacterType phonebook[10][256]; //A full phonebook for the modem!
+	byte backgroundpolicy; //The currently active background policy!
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:
@@ -253,6 +254,8 @@ enum BIOSROMMode {
 #define SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT 58
 #define SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT 57
 #define SETTINGS_BREAKPOINT_OFFSET_MASK 0xFFFFFFFFULL
+
+#define DEFAULT_BACKGROUNDPOLICY BACKGROUNDPOLICY_FULLHALT
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
