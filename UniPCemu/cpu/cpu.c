@@ -712,7 +712,7 @@ void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 //Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
 	calledinterruptnumber = intnr; //Save called interrupt number!
-	CPU_executionphase_startinterrupt(intnr,0,-1); //Start the interrupt handler!
+	CPU_executionphase_startinterrupt(intnr,2,-1); //Start the interrupt handler!
 }
 
 void CPU_8086_RETI() //Not from CPU!
@@ -2527,7 +2527,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Execute INT1 normally using current CS:(E)IP!
+	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,2,-1); //Execute INT1 normally using current CS:(E)IP!
 	CPU[activeCPU].trapped = 0; //We're not trapped anymore: we're handling the single-step!
 }
 
@@ -2552,7 +2552,7 @@ void THROWDESCNM() //#NM exception handler!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,0,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
+	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,2,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
 }
 
 void CPU_COOP_notavailable() //COProcessor not available!
@@ -2569,7 +2569,7 @@ void THROWDESCMF() //#MF(Coprocessor Error) exception handler!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORERROR,0,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
+	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORERROR,2,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
 }
 
 void CPU_unkOP() //General unknown OPcode handler!
