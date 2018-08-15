@@ -1721,11 +1721,11 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 
 	byte isEXT;
-	isEXT = is_interrupt?0:1; //The EXT bit to use for direct exceptions! 0 for interrupts, 1 for exceptions!
+	isEXT = (is_interrupt&1)?0:((is_interrupt&4)>>2); //The EXT bit to use for direct exceptions! 0 for interrupts, 1 for exceptions!
 
 	if ((base|0x7) > CPU[activeCPU].registers->IDTR.limit) //Limit exceeded?
 	{
-		THROWDESCGP(base,1,EXCEPTION_TABLE_IDT); //#GP!
+		THROWDESCGP(base,isEXT,EXCEPTION_TABLE_IDT); //#GP!
 		return 0; //Abort!
 	}
 

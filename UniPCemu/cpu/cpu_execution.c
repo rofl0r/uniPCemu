@@ -118,7 +118,7 @@ void CPU_executionphase_taskswitch() //Are we to switch tasks?
 }
 
 byte CPU_executionphaseinterrupt_nr = 0x00; //What interrupt to execute?
-byte CPU_executionphaseinterrupt_type3 = 0; //Are we a type3 interrupt?
+byte CPU_executionphaseinterrupt_type = 0; //Are we a type3 interrupt(bit0) or external interrupt(bit1)?
 int_64 CPU_executionphaseinterrupt_errorcode = -1; //What code to push afterwards?
 byte CPU_executionphaseinterrupt_is_interrupt = 0; //int instruction?
 byte interrupt_result;
@@ -157,15 +157,15 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 
 extern word INTreturn_CS; //Return CS
 extern uint_32 INTreturn_EIP; //Return EIP
-void CPU_executionphase_startinterrupt(byte vectornr, byte type3, int_64 errorcode) //Starting a new interrupt to handle?
+void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcode) //Starting a new interrupt to handle?
 {
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
 	CPU[activeCPU].internalinterruptstep = 0; //Reset the interrupt step!
 	//Copy all parameters used!
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
 	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
-	CPU_executionphaseinterrupt_type3 = type3; //Are we a type-3 interrupt?
-	CPU_executionphaseinterrupt_is_interrupt = (errorcode==-2); //Interrupt?
+	CPU_executionphaseinterrupt_type = type; //Are we a what kind of type are we?
+	CPU_executionphaseinterrupt_is_interrupt = (((errorcode==-2)?1:0)|(type<<1)); //Interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	INTreturn_CS = CPU[activeCPU].registers->CS; //Return segment!
 	INTreturn_EIP = CPU[activeCPU].registers->EIP; //Save the return offset!
