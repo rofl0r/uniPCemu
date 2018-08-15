@@ -29,6 +29,7 @@ This README would normally document whatever steps are necessary to get your app
 	- Download the latest source code version of SDL2 from the project homepage. 
 	- Copy the **android-project\src\org** (**android-project\app\src\main\java\org** for SDL2.0.8+) directory to **android-project/src**.
 	- Copy the **include** and **src** directories, as well as the **Android.mk** file to the **android-project/jni/SDL2** folder.
+	- Edit **android-project/jni/SDL2/src/video/android/SDL_androidevents.c**, replace "#define SDL_ANDROID_BLOCK_ON_PAUSE  1" with "#define SDL_ANDROID_BLOCK_ON_PAUSE  0" (both unquoted).
 * Adding Android SDL2_net to the Android project
 	- Download the latest version of SDL2_net from the project homepage.
 	- Copy all c/h files and **Android.mk** to a newly created directory **android-project\jni\SDL2_net** folder.
