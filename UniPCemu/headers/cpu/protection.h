@@ -4,9 +4,9 @@
 #include "headers/cpu/cpu.h" //Basic CPU support!
 
 #define getCPL() CPU[activeCPU].CPL
-#define getRPL(segment) (segment&3)
+#define getRPL(segment) ((segment)&3)
 #define setRPL(segment,RPL) segment = ((segment&~3)|(RPL&3))
-#define getDescriptorIndex(segmentval) ((segmentval>>3)&0x1FFF)
+#define getDescriptorIndex(segmentval) (((segmentval)>>3)&0x1FFF)
 
 int CPU_segment_index(byte defaultsegment); //Plain segment to use, direct access!
 int get_segment_index(word *location);
