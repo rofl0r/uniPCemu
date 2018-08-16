@@ -1491,7 +1491,10 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 			destEIP = REG_EIP; //Store (E)IP for safety!
 			modrm_updatedsegment(dest,val,0); //Check for an updated segment!
 			CPUPROT1
-			*dest = val;
+			if (get_segment_index(dest)==-1) //Valid to write directly?
+			{
+				*dest = val;
+			}
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
 				switch (flags) //What type are we?
@@ -3581,7 +3584,7 @@ void op_grp5_32() {
 	case 3: //CALL Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
-		if (unlikely(CPU[activeCPU].modrmstep==0))
+		if (unlikely(CPU[activeCPU].modrmstep==2))
 		{
 			modrm_addoffset = 0; //First IP!
 			if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
@@ -3632,7 +3635,7 @@ void op_grp5_32() {
 		break;
 	case 5: //JMP Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
-		if (unlikely(CPU[activeCPU].modrmstep==0)) //Starting and to check?
+		if (unlikely(CPU[activeCPU].modrmstep==2)) //Starting and to check?
 		{
 			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&info.memorymask),1,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
 			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&info.memorymask)+1,1,getCPL(),!CPU_Address_size[activeCPU],1|0x10)) return; //Abort on fault!
