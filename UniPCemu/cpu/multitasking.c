@@ -250,7 +250,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR)==0) //Not present?
 	{
 		THROWDESCNP(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
-		return 1; //Error out!
+		return 0; //Error out!
 	}
 
 	switch (GENERALSEGMENTPTR_TYPE(LOADEDDESCRIPTOR)) //Check the type of descriptor we're switching to!
@@ -272,7 +272,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	default: //Invalid descriptor!
 		invaliddsttask:
 		THROWDESCGP(destinationtask,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
-		return 1; //Error out!
+		return 0; //Error out!
 	}
 
 	#ifdef FORCE_16BITTSS
@@ -284,7 +284,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	if (limit < (uint_32)(TSSSize?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
 	{
 		CPU_TSSFault(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #TS!
-		return 1; //Error out!
+		return 0; //Error out!
 	}
 
 	//Now going to switch to the current task, save the registers etc in the current task!
@@ -294,7 +294,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		if ((LOADEDDESCRIPTOR->desc.AccessRights & 2) == 0) //Destination task is available?
 		{
 			CPU_TSSFault(destinationtask, ((isJMPorCALL&0x400)>>10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
-			return 1; //Error out!
+			return 0; //Error out!
 		}
 	}
 
@@ -318,7 +318,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	default: //Invalid descriptor!
 	invalidsrctask:
 		THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL&0x400)>>10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
-		return 1; //Error out!
+		return 0; //Error out!
 	}
 
 	if (TSSSize) //32-bit TSS?
@@ -339,11 +339,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		
 		if (TSSSize) //32-bit switchimg out?
 		{
-			if (checksaveTSS32()) return 1; //Abort on error!
+			if (checksaveTSS32()) return 0; //Abort on error!
 		}
 		else //16-bit switching out?
 		{
-			if (checksaveTSS16()) return 1; //Abort on error!
+			if (checksaveTSS16()) return 0; //Abort on error!
 		}
 
 		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
@@ -354,10 +354,10 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
 				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,(isJMPorCALL&0x400))<=0) //Save the new status into the old descriptor!
 				{
-					return 1; //Abort on fault raised!
+					return 0; //Abort on fault raised!
 				}
 			}
-			else return 1; //Abort on fault raised!
+			else return 0; //Abort on fault raised!
 		}
 
 		if (isJMPorCALL == 3) //IRET?
@@ -436,7 +436,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 
-	if (segmentWritten(CPU_SEGMENT_TR,destinationtask,(isJMPorCALL&0x400))) return 1; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
+	if (segmentWritten(CPU_SEGMENT_TR,destinationtask,(isJMPorCALL&0x400))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
 
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
@@ -455,7 +455,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	default: //Invalid descriptor!
 		invaliddesttask:
 		THROWDESCGP(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
-		return 1; //Error out!
+		return 0; //Error out!
 	}
 
 	#ifdef FORCE_16BITTSS
@@ -469,13 +469,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (TSSSize) //32-bit switching in?
 	{
-		if (checkloadTSS32()) return 1; //Abort on error!
-		if (checksaveTSS32()) return 1; //Abort on error!
+		if (checkloadTSS32()) return 0; //Abort on error!
+		if (checksaveTSS32()) return 0; //Abort on error!
 	}
 	else //16-bit switching in?
 	{
-		if (checkloadTSS16()) return 1; //Abort on error!
-		if (checksaveTSS16()) return 1; //Abort on error!
+		if (checkloadTSS16()) return 0; //Abort on error!
+		if (checksaveTSS16()) return 0; //Abort on error!
 	}
 
 	//Load the new TSS!
@@ -518,7 +518,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
 		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,(isJMPorCALL&0x400))<=0) //Save the new status into the old descriptor!
 		{
-			return 1; //Abort on fault raised!
+			return 0; //Abort on fault raised!
 		}
 	}
 
@@ -642,29 +642,29 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		if (LDTsegment & 4) //We cannot reside in the LDT!
 		{
 			CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-			return 1; //Not present: we cannot reside in the LDT!
+			return 0; //Not present: we cannot reside in the LDT!
 		}
 
 		if ((word)(descriptor_index|0x7)>CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
 		{
 			CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-			return 1; //Not present: limit exceeded!
+			return 0; //Not present: limit exceeded!
 		}
 
 		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0x200|(isJMPorCALL&0x400)); //Load it, ignore errors?
-		if (unlikely(loadresult<=0)) return 1; //Invalid LDT(due to being unpaged or other fault)?
+		if (unlikely(loadresult<=0)) return 0; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc) != AVL_SYSTEM_LDT) //Not an LDT?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-			return 1; //Not present: not an IDT!	
+			return 0; //Not present: not an IDT!	
 		}
 
 		if (!GENERALSEGMENT_P(LDTsegdesc)) //Not present?
 		{
 			THROWDESCGP(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-			return 1; //Not present: not an IDT!	
+			return 0; //Not present: not an IDT!	
 		}
 	}
 
@@ -691,17 +691,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0x200|(isJMPorCALL&0x400))) return 1; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0x200|(isJMPorCALL&0x400))) return 0; //Load CS!
 	}
 	else
 	{
-		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200|(isJMPorCALL&0x400))) return 1; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200|(isJMPorCALL&0x400))) return 0; //Load CS!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return 1; //Not present: limit exceeded!
+		return 0; //Not present: limit exceeded!
 	}
 
 	if (debugger_logging()) //Are we logging?
@@ -722,7 +722,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		SPPtr = &TSS16.SP;
 	}
 
-	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0x200|(isJMPorCALL&0x400))) return 1; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0x200|(isJMPorCALL&0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 	if (TSSSize) //32-bit?
 	{
 		CPU[activeCPU].registers->ESP = *ESPPtr;
@@ -741,17 +741,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	}
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
 	}
 	else //16-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg!
-		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg: FS is unusable!
-		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x280|(isJMPorCALL&0x400))) return 1; //Load reg: GS is unusable!
+		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg: FS is unusable!
+		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg: GS is unusable!
 	}
 
 	//All segments are valid and readable!
@@ -766,7 +766,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
 	{
-		if (checkStackAccess(1,1,SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]))) return 1; //Abort on fault!
+		if (checkStackAccess(1,1,SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]))) return 0; //Abort on fault!
 		if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
 		{
 			CPU_PUSH32(&errorcode32); //Push the error on the stack!
