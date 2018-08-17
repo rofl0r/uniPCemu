@@ -103,13 +103,14 @@ void protectedModeDebugger_taskswitching() //Task switched?
 	CPU[activeCPU].registers->DR7 &= ~0x55; //Clear bits 0,2,4,6 on any task switch!
 }
 
-void protectedModeDebugger_taskswitched()
+byte protectedModeDebugger_taskswitched()
 {
 	if (CPU_faultraised(EXCEPTION_DEBUG)) //We're raising a fault!
 	{
 		SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
 		if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 		CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-3); //Call the interrupt, no error code!
-		return; //Abort!
+		return 1; //Abort the task switching process and start the interrupt handling!
 	}
+	return 0; //No debugger fault raised!
 }
