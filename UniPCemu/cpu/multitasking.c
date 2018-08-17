@@ -69,8 +69,11 @@ void loadTSS32(TSS386 *TSS)
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+
 		n += 4; //Next item!
 		++data32; //Skip the 32-bit item(the SS entry) accordingly!
+		++data16; //Skip the...
+		++data16; //ESP(n+1) that's not used for SS!
 	}
 
 	data32 = &TSS->CR3; //Start with CR3!
@@ -85,6 +88,7 @@ void loadTSS32(TSS386 *TSS)
 	{
 		debugger_forceimmediatelogging = 1; //Log!
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		*data16++ = 0; //Unused!
 	}
 
 	data16 = &TSS->T; //Start of the last data!
@@ -134,6 +138,8 @@ byte checkloadTSS32()
 		debugger_forceimmediatelogging = 1; //Log!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
@@ -189,7 +195,7 @@ void saveTSS32(TSS386 *TSS)
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
@@ -212,6 +218,8 @@ byte checksaveTSS32()
 		debugger_forceimmediatelogging = 1; //Log!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
