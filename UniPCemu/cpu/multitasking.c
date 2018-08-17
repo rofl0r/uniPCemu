@@ -102,18 +102,10 @@ void loadTSS32(TSS386 *TSS)
 		#endif
 	}
 
-	data16 = &TSS->T; //Start of the last data!
 	debugger_forceimmediatelogging = 1; //Log!
-#ifdef IS_BIG_ENDIAN
-	n = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4), 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	TSS->T = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4), 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	debugger_forceimmediatelogging = 1; //Log!
-	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-	*data16++ = n;
-#else
-	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4), 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-	debugger_forceimmediatelogging = 1; //Log!
-	*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-#endif // IS_BIG_ENDIAN
+	TSS->IOMapBase = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
