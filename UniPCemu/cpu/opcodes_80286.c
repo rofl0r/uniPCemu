@@ -757,6 +757,7 @@ void CPU286_OP0FB9() //#UD instruction
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 {
 	debugger_setcommand("ICEBP");
+	if (EMULATED_CPU>=CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //ICEBP!
 }
 

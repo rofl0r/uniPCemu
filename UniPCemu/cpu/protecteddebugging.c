@@ -49,6 +49,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,DR,1,1); //Set this trap to fire!
 					SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
+					if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 					CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 					return 1; //Triggered!
 				}
@@ -67,13 +68,14 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 	byte DR;
 	if (CPU[activeCPU].faultraised==0) //No fault raised yet?
 	{
-		if (CPU[activeCPU].debuggerFaultRaised && (FLAG_RF==0)) //Debugger fault raised?
+		if (CPU[activeCPU].debuggerFaultRaised && ((FLAG_RF==0)||(EMULATED_CPU<CPU_80386))) //Debugger fault raised?
 		{
 			for (DR=0;DR<4;++DR) //Check any exception that's occurred!
 			{
 				SETBITS(CPU[activeCPU].registers->DR6,DR,1,(GETBITS(CPU[activeCPU].debuggerFaultRaised,DR,1)|GETBITS(CPU[activeCPU].registers->DR6,DR,1))); //We're trapping this/these data breakpoint(s), set if so, otherwise, leave alone!
 			}
 			SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
+			if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 			CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
 		}
 		else //Successful completion of an instruction?
@@ -87,7 +89,7 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at memory/IO port?
 {
 	if (likely(getcpumode()==CPU_MODE_REAL)) return 0; //Not supported in real mode!
-	if (unlikely(FLAG_RF)) return 0; //Resume flag inhabits the exception!
+	if (unlikely(FLAG_RF || (EMULATED_CPU<CPU_80386))) return 0; //Resume flag inhabits the exception!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,0))) return 1; //Break into the debugger on Breakpoint #0!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,1))) return 1; //Break into the debugger on Breakpoint #1!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,2))) return 1; //Break into the debugger on Breakpoint #2!
@@ -106,6 +108,7 @@ void protectedModeDebugger_taskswitched()
 	if (CPU_faultraised(EXCEPTION_DEBUG)) //We're raising a fault!
 	{
 		SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
+		if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 		CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-3); //Call the interrupt, no error code!
 		return; //Abort!
 	}
