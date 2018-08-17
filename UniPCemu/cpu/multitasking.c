@@ -68,7 +68,13 @@ void loadTSS32(TSS386 *TSS)
 		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
+		#ifdef IS_BIG_ENDIAN
+		*data16++ = 0; //Unused high word!
+		#endif // IS_BIG_ENDIAN
 		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		#ifndef IS_BIG_ENDIAN
+		*data16++ = 0; //Unused high word!
+		#endif
 
 		n += 4; //Next item!
 		++data32; //Skip the 32-bit item(the SS entry) accordingly!
@@ -87,8 +93,13 @@ void loadTSS32(TSS386 *TSS)
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		#ifdef IS_BIG_ENDIAN
 		*data16++ = 0; //Unused!
+		#endif
+		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		#ifndef IS_BIG_ENDIAN
+		*data16++ = 0; //Unused!
+		#endif
 	}
 
 	data16 = &TSS->T; //Start of the last data!
