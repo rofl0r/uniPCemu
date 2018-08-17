@@ -208,6 +208,7 @@ void saveTSS32(TSS386 *TSS)
 		debugger_forceimmediatelogging = 1; //Log!
 		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 		++data16; //Next data!		
+		++data16; //Next data!		
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
