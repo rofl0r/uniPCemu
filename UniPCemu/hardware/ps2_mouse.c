@@ -27,7 +27,7 @@ struct
 			byte stream_mode; //Automatic stream? =Data reporting.
 			byte remote_mode; //Same as stream mode, but no IRQ!
 			*/
-			byte mode; //0=default;1=wrap;2=stream;3=remote!
+			byte mode; //0=stream;1=wrap;2=remote
 			byte lastmode; //Last mode!
 			byte data_reporting; //Use data reporting?
 
@@ -39,8 +39,9 @@ struct
 			byte Resend; //Use last read once?
 			byte buttonstatus; //Button status for status bytes!
 			byte disabled; //Is the mouse input disabled atm?
+			byte pollRemote; //Set when requested to poll a remote packet!
 		};
-		byte data[14]; //All mouse data!
+		byte data[15]; //All mouse data!
 	};
 	FIFOBUFFER *buffer; //FIFO buffer for commands etc.
 
@@ -160,6 +161,7 @@ int useMouseTimer()
 	if (__HW_DISABLED) return 0; //Abort!
 	if (MOUSE_DISABLED) return 0; //No usage!
 	if (PS2_SECONDPORTDISABLED(Controller8042)) return 0; //No usage!
+	if ((Mouse.data_reporting == 0) && !(((Mouse.mode == 2) && (Mouse.packets==NULL)))) return 0; //Don't fill when receiving packets with data reporting off or when in remote mode and the buffer is filled!
 	return 1; //We're enabled!
 }
 
@@ -263,7 +265,7 @@ OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 				); //Button status!
 	give_mouse_output(
 				(
-				((Mouse.mode==3)?0x40:0)| //Remove/stream mode?
+				((Mouse.mode==2)?0x40:0)| //Remote/stream mode?
 				(Mouse.data_reporting?0x20:0)| //Data reporting?
 				(Mouse.scaling21?0x10:0)| //Scaling 2:1?
 				buttonstatus //Apply left-middle-right bits!
@@ -339,7 +341,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 		case 0xF0: //Set Remote Mode?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 0; //Disable data reporting!
-			Mouse.mode = 3; //Remote mode
+			Mouse.mode = 2; //Remote mode
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
@@ -365,14 +367,23 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			break;
 		case 0xEB: //Read data?
 			Mouse.has_command = 0; //We're not a command anymore!
-			give_mouse_output(0xFA); //OK!
-			//Already ready for receiving a packet!
-			Mouse.last_was_error = 0; //Last is OK!
+			if (Mouse.packets) //Do we have a packet?
+			{
+				give_mouse_output(0xFA); //OK!
+				Mouse.pollRemote = 1; //Poll a packet!
+				Mouse.packetindex = 0; //Restart the packet, if we're currently processing it(restart polling)!
+				Mouse.last_was_error = 0; //Last is OK!
+			}
+			else
+			{
+				give_mouse_output(0xFE); //OK!
+				Mouse.last_was_error = 1; //Last is error!
+			}
 			break;
 		case 0xEA: //Set stream mode?
 			Mouse.has_command = 0; //We're not a command anymore!
 			Mouse.data_reporting = 1; //Enable data reporting!
-			Mouse.mode = 2; //Set stream mode!
+			Mouse.mode = 0; //Set stream mode!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			flushPackets(); //Flush our packets!
@@ -482,10 +493,20 @@ void handle_mousewrite(byte data)
 	if ((!Mouse.has_command) || mouse_is_command(data)) //Not processing a command or issuing a new command?
 	{
 		Mouse.command = data; //Becomes a command!
+		if (((Mouse.command != 0xEC) && (Mouse.command != 0xFF)) && (Mouse.mode == 1)) //Wrap mode?
+		{
+			give_mouse_output(Mouse.command); //Wrap mode!
+			return; //Don't process as a command!
+		}
 		commandwritten_mouse(); //Process mouse command?
 	}
 	else //Data?
 	{
+		if (Mouse.mode == 1) //Wrap mode?
+		{
+			give_mouse_output(Mouse.command); //Wrap mode!
+			return; //Don't process as a command!
+		}
 		datawritten_mouse(data); //Data has been written!
 	}
 	if (!Mouse.has_command) //No command anymore?
@@ -578,10 +599,13 @@ byte handle_mouseread() //Read from the mouse!
 	}
 	else if (Mouse.packets) //Gotten a packet?
 	{
+		if (Mouse.mode == 1) return 0; //Wrap(echo) mode?
+		if ((Mouse.mode == 2) && (Mouse.pollRemote==0)) return 0; //Nothing there: we're requiring a poll!
 		result = processMousePacket(Mouse.packets,Mouse.packetindex); //Process it!
 		++Mouse.packetindex; //Next index!
 		if (Mouse.packetindex>2) //Over our limit?
 		{
+			Mouse.pollRemote = 0; //Stop polling if we're in Remote mode.
 			Mouse.packetindex = 0; //Reset packet index!
 			next_mousepacket(); //Next mouse packet!
 		}
@@ -602,6 +626,8 @@ int handle_mousepeek(byte *result) //Peek at the mouse!
 	}
 	else if (Mouse.packets) //Gotten a packet?
 	{
+		if (Mouse.mode == 1) return 0; //Wrap(echo) mode?
+		if ((Mouse.mode == 2) && (Mouse.pollRemote == 0)) return 0; //Nothing there: we're requiring a poll!
 		*result = processMousePacket(Mouse.packets,Mouse.packetindex); //Process it!
 		return 1; //Read!
 	}
