@@ -161,7 +161,18 @@ int useMouseTimer()
 	if (__HW_DISABLED) return 0; //Abort!
 	if (MOUSE_DISABLED) return 0; //No usage!
 	if (PS2_SECONDPORTDISABLED(Controller8042)) return 0; //No usage!
-	if ((Mouse.data_reporting == 0) && !(((Mouse.mode == 2) && (Mouse.packets==NULL)))) return 0; //Don't fill when receiving packets with data reporting off or when in remote mode and the buffer is filled!
+	switch (Mouse.mode) //What mode?
+	{
+	case 0: //Streaming mode!
+		if (Mouse.data_reporting == 0) return 0; //Don't fill when receiving packets with data reporting off!
+		break;
+	case 1: //Echo mode!
+		return 0; //Packets disabled!
+		break;
+	case 2: //Remote mode!
+		if ((Mouse.data_reporting == 0) && (Mouse.packets)) return 0; //Don't fill when receiving packets with data reporting off or when in remote mode and the buffer is filled!
+		break;
+	}
 	return 1; //We're enabled!
 }
 
@@ -644,16 +655,14 @@ void handle_mouseenabled(byte flags)
 {
 	if (flags & 0x80) //We're disabled?
 	{
+		resetPS2Mouse(); //Reset the mouse!
 		update_mouseTimer(); //Disable the timer if required!
 	}
 	else //We're enabled?
 	{
 		resetPS2Mouse(); //Reset the mouse!
 		loadMouseDefaults(); //Load the default settings into the mouse!
-		if (useMouseTimer())
-		{
-			update_mouseTimer(); //Enable the timer if required!
-		}
+		update_mouseTimer(); //Enable the timer if required!
 	}
 }
 
