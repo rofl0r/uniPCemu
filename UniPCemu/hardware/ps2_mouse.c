@@ -492,10 +492,6 @@ void handle_mousewrite(byte data)
 	{
 		Mouse.command_step = 0; //Reset command step!
 	}
-	if (Mouse.activesamplerate != HWmouse_getsamplerate()) //Need to update the sample rate?
-	{
-		update_mouseTimer();
-	}
 }
 
 OPTINLINE int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
@@ -626,6 +622,8 @@ void handle_mouseenabled(byte flags)
 	}
 	else //We're enabled?
 	{
+		resetPS2Mouse(); //Reset the mouse!
+		loadMouseDefaults(); //Load the default settings into the mouse!
 		if (useMouseTimer())
 		{
 			update_mouseTimer(); //Enable the timer if required!
