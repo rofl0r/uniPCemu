@@ -802,7 +802,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (TSSSize) //32-bit TSS?
 	{
-		if ((MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1, 0) & 1) && (FLAG_RF == 0)) //Trace bit set? Cause a debug exception when this context is run?
+		if ((TSS32.T & 1) && (FLAG_RF == 0)) //Trace bit set? Cause a debug exception when this context is run?
 		{
 			if (protectedModeDebugger_taskswitched()) return 0; //Finished task switch with debugger interrupt handling!
 		}
