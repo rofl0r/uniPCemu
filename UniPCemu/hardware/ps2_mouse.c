@@ -575,9 +575,10 @@ OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
 	//First process all movement info!
 	int packetmovementx = applypacketmovement(packet->xmove); //Apply x movement!
 	int packetmovementy = applypacketmovement(packet->ymove); //Apply y movement!
+	packetmovementy = -packetmovementy; //Y is reversed for some unknown reason!
 	
-	xoverflow = ((packetmovementx < -0x100) || (packetmovementx > 0xFF)); //X overflow?
-	yoverflow = ((packetmovementy < -0x100) || (packetmovementy > 0xFF)); //Y overflow?
+	xoverflow = ((packetmovementx < -0x100) || (packetmovementx > 0x1FF)); //X overflow?
+	yoverflow = ((packetmovementy < -0x100) || (packetmovementy > 0x1FF)); //Y overflow?
 	xmove = signed2unsigned16(MAX(MIN(packetmovementx, 0x1FF), -0x100)); //Limit!
 	ymove = signed2unsigned16(MAX(MIN(packetmovementy, 0x1FF), -0x100)); //Limit!
 
