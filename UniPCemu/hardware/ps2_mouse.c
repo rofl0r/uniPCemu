@@ -570,18 +570,25 @@ OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!packet) return 0; //Nothing to process!
+	word xmove, ymove;
+	byte xoverflow, yoverflow;
 	//First process all movement info!
 	int packetmovementx = applypacketmovement(packet->xmove); //Apply x movement!
 	int packetmovementy = applypacketmovement(packet->ymove); //Apply y movement!
 	
+	xoverflow = ((packetmovementx < -0x100) || (packetmovementx > 0xFF)); //X overflow?
+	yoverflow = ((packetmovementy < -0x100) || (packetmovementy > 0xFF)); //Y overflow?
+	xmove = signed2unsigned16(MAX(MIN(packetmovementx, 0x1FF), -0x100)); //Limit!
+	ymove = signed2unsigned16(MAX(MIN(packetmovementy, 0x1FF), -0x100)); //Limit!
+
 	switch (index) //What index?
 	{
 		case 0:
 			return (
-				((packetmovementy<-255 || packetmovementy>255)?0x80:0)| //Y overflow?
-				((packetmovementx<-255 || packetmovementx>255)?0x40:0)| //X overflow?
-				((packetmovementy<0)?0x20:0)| //Y negative?
-				((packetmovementx<0)?0x10:0)| //X negative?
+				(yoverflow?0x80:0)| //Y overflow?
+				(xoverflow?0x40:0)| //X overflow?
+				((ymove&0x100)?0x20:0)| //Y negative?
+				((xmove&0x100)?0x10:0)| //X negative?
 				0x08| //Always 1!
 				((packet->buttons&4)?0x04:0)| //Middle button?
 				((packet->buttons&2)?0x02:0)| //Right button?
@@ -589,10 +596,10 @@ OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
 				); //Give the packet byte!
 			break;
 		case 1:
-			return (packetmovementx<0)?((-packetmovementx)%256):(packetmovementx%256); //X movement, lower 8 bits!
+			return (xmove&0xFF); //X movement, lower 8 bits!
 			break;
 		case 2:
-			return (packetmovementy<0)?((-packetmovementy)%256):(packetmovementy%256); //X movement, lower 8 bits!
+			return (ymove&0xFF); //X movement, lower 8 bits!
 			break;
 		default: //Unknown index?
 			break;
