@@ -27,12 +27,12 @@ extern byte debugger_forceimmediatelogging; //Force immediate logging?
 void loadTSS16(TSS286 *TSS)
 {
 	word n;
-	word *data16;
-	data16 = &TSS->BackLink; //Load all addresses as 16-bit values!
-	for (n = 0;n < sizeof(*TSS);n+=2) //Load our TSS!
+	byte i;
+	i = 0;
+	for (n = 0;n < NUMITEMS(TSS->dataw);n+=2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->dataw[i++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -53,53 +53,34 @@ void loadTSS32(TSS386 *TSS)
 {
 	byte ssspreg;
 	word n;
-	uint_32 *data32;
-	word *data16;
+	byte i;
 	debugger_forceimmediatelogging = 1; //Log!
 	TSS->BackLink = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
-	data32 = &TSS->ESP0; //Start with 32-bit data!
-	data16 = &TSS->SS0; //Start with 16-bit data!
-
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->ESPs[ssspreg] = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		#ifdef IS_BIG_ENDIAN
-		*data16++ = 0; //Unused high word!
-		#endif // IS_BIG_ENDIAN
-		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		#ifndef IS_BIG_ENDIAN
-		*data16++ = 0; //Unused high word!
-		#endif
+		TSS->SSs[ssspreg++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 
 		n += 4; //Next item!
-		++data32; //Skip the 32-bit item(the SS entry) accordingly!
-		++data16; //Skip the...
-		++data16; //ESP(n+1) that's not used for SS!
 	}
 
-	data32 = &TSS->CR3; //Start with CR3!
+	i = 0;
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		*data32++ = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->generalpurposeregisters[i++] = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
-	data16 = &TSS->ES; //Start with ES!
+	i = 0;
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		#ifdef IS_BIG_ENDIAN
-		*data16++ = 0; //Unused!
-		#endif
-		*data16++ = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
-		#ifndef IS_BIG_ENDIAN
-		*data16++ = 0; //Unused!
-		#endif
+		TSS->segmentregisters[i++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
@@ -166,13 +147,12 @@ byte checkloadTSS32()
 void saveTSS16(TSS286 *TSS)
 {
 	word n;
-	word *data16;
-	data16 = &TSS->IP; //Start with IP!
+	byte i;
+	i = 7;
 	for (n=((7*2));n<(sizeof(*TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-		++data16; //Next data!		
+		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->dataw[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -193,22 +173,18 @@ byte checksaveTSS16()
 void saveTSS32(TSS386 *TSS)
 {
 	word n;
-	uint_32 *data32;
-	word *data16;
-	data32 = &TSS->EIP; //Start with EIP!
+	byte i;
+	i = 1;
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data32,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-		++data32; //Next data!
+		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->generalpurposeregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
-	data16 = &TSS->ES; //Start with ES!
+	i = 0;
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, *data16,0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
-		++data16; //Next data!		
-		++data16; //Next data!		
+		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->segmentregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -246,7 +222,7 @@ extern uint_32 CPU_exec_EIP; //Save for handling!
 extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 
-byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
+byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
 	//Both structures to use for the TSS!
@@ -263,13 +239,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Switching task to task %04X",destinationtask);
+		dolog("debugger", "Switching task to task %04X", destinationtask);
 	}
 
 	uint_32 limit; //The limit we use!
-	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR)==0) //Not present?
+	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR) == 0) //Not present?
 	{
-		THROWDESCNP(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #NP!
+		THROWDESCNP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 0; //Error out!
 	}
 
@@ -290,20 +266,20 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		}
 		break;
 	default: //Invalid descriptor!
-		invaliddsttask:
-		THROWDESCGP(destinationtask,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
+	invaliddsttask:
+		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
 
-	#ifdef FORCE_16BITTSS
-		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
-	#endif
+#ifdef FORCE_16BITTSS
+	if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
+#endif
 
 	limit = LOADEDDESCRIPTOR->PRECALCS.limit; //Limit!
 
-	if (limit < (uint_32)(TSSSize?43:103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
+	if (limit < (uint_32)(TSSSize ? 43 : 103)) //Limit isn't high enough(>=103 for 386+, >=43 for 80286)?
 	{
-		CPU_TSSFault(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #TS!
+		CPU_TSSFault(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
 		return 0; //Error out!
 	}
 
@@ -313,7 +289,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	{
 		if ((LOADEDDESCRIPTOR->desc.AccessRights & 2) == 0) //Destination task is available?
 		{
-			CPU_TSSFault(destinationtask, ((isJMPorCALL&0x400)>>10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
+			CPU_TSSFault(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #GP!
 			return 0; //Error out!
 		}
 	}
@@ -337,13 +313,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		break;
 	default: //Invalid descriptor!
 	invalidsrctask:
-		THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL&0x400)>>10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
+		THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
 
 	if (TSSSize) //32-bit TSS?
 	{
-		memset(&TSS32,0,sizeof(TSS32)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		memset(&TSS32, 0, sizeof(TSS32)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	else //16-bit TSS?
 	{
@@ -354,9 +330,9 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	{
 		if (debugger_logging()) //Are we logging?
 		{
-			dolog("debugger","Preparing outgoing task %04X for transfer",CPU[activeCPU].registers->TR);
+			dolog("debugger", "Preparing outgoing task %04X for transfer", CPU[activeCPU].registers->TR);
 		}
-		
+
 		if (TSSSize) //32-bit switchimg out?
 		{
 			if (checksaveTSS32()) return 0; //Abort on error!
@@ -366,13 +342,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 			if (checksaveTSS16()) return 0; //Abort on error!
 		}
 
-		if ((isJMPorCALL|0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
+		if ((isJMPorCALL | 0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 		{
 			SEGMENT_DESCRIPTOR tempdesc;
-			if (LOADDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,(isJMPorCALL&0x400))==1) //Loaded old container?
+			if (LOADDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, &tempdesc, (isJMPorCALL & 0x400)) == 1) //Loaded old container?
 			{
 				tempdesc.desc.AccessRights &= ~2; //Mark idle!
-				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,&tempdesc,(isJMPorCALL&0x400))<=0) //Save the new status into the old descriptor!
+				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, &tempdesc, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
 				{
 					return 0; //Abort on fault raised!
 				}
@@ -425,7 +401,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 		if (debugger_logging()) //Are we logging?
 		{
-			dolog("debugger","Saving outgoing task %04X to memory",CPU[activeCPU].registers->TR);
+			dolog("debugger", "Saving outgoing task %04X to memory", CPU[activeCPU].registers->TR);
 		}
 
 		if (TSSSize) //32-bit TSS?
@@ -447,16 +423,16 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	//Now, load all the registers required as needed!
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Switching active TSS to segment selector %04X",destinationtask);
+		dolog("debugger", "Switching active TSS to segment selector %04X", destinationtask);
 	}
 
 
 	//Backup the entire TR descriptor!
-	memcpy(&CPU[activeCPU].oldTRdesc,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
+	memcpy(&CPU[activeCPU].oldTRdesc, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
 	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 
-	if (segmentWritten(CPU_SEGMENT_TR,destinationtask,(isJMPorCALL&0x400))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
+	if (segmentWritten(CPU_SEGMENT_TR, destinationtask, (isJMPorCALL & 0x400))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
 
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
@@ -473,18 +449,18 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		}
 		break;
 	default: //Invalid descriptor!
-		invaliddesttask:
-		THROWDESCGP(destinationtask,((isJMPorCALL&0x400)>>10),(destinationtask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Thow #GP!
+	invaliddesttask:
+		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
 
-	#ifdef FORCE_16BITTSS
-		if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
-	#endif
+#ifdef FORCE_16BITTSS
+	if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
+#endif
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Loading incoming TSS %04X state",CPU[activeCPU].registers->TR);
+		dolog("debugger", "Loading incoming TSS %04X state", CPU[activeCPU].registers->TR);
 	}
 
 	if (TSSSize) //32-bit switching in?
@@ -511,10 +487,10 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Checking for backlink to TSS %04X",oldtask);
+		dolog("debugger", "Checking for backlink to TSS %04X", oldtask);
 	}
 
-	if ((isJMPorCALL|0x80) == 0x82) //CALL?
+	if ((isJMPorCALL | 0x80) == 0x82) //CALL?
 	{
 		if (TSSSize) //32-bit TSS?
 		{
@@ -530,13 +506,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Marking incoming TSS %04X busy if needed",CPU[activeCPU].registers->TR);
+		dolog("debugger", "Marking incoming TSS %04X busy if needed", CPU[activeCPU].registers->TR);
 	}
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
-		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR,(isJMPorCALL&0x400))<=0) //Save the new status into the old descriptor!
+		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
 		{
 			return 0; //Abort on fault raised!
 		}
@@ -544,7 +520,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Loading incoming TSS %04X state into the registers.",CPU[activeCPU].registers->TR);
+		dolog("debugger", "Loading incoming TSS %04X state into the registers.", CPU[activeCPU].registers->TR);
 	}
 
 	//Now we're ready to load all registers!
@@ -593,7 +569,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if ((isJMPorCALL|0x80) == 0x82) //CALL?
+	if ((isJMPorCALL | 0x80) == 0x82) //CALL?
 	{
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
 		if (TSSSize) //32-bit TSS?
@@ -611,12 +587,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	{
 		if (debugger_logging()) //Are we logging?
 		{
-			dolog("debugger","Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).",CPU[activeCPU].registers->TR);
+			dolog("debugger", "Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).", CPU[activeCPU].registers->TR);
 		}
 
-		if (TSS_dirty&1) MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize?TSS32.BackLink:TSS16.BackLink,0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+		if (TSS_dirty & 1) MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 
-		if (TSS_dirty&2) //Dirty (E)FLAGS?
+		if (TSS_dirty & 2) //Dirty (E)FLAGS?
 		{
 			if (TSSSize) //32-bit TSS?
 			{
@@ -646,7 +622,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Loading incoming TSS LDT %04X",LDTsegment);
+		dolog("debugger", "Loading incoming TSS LDT %04X", LDTsegment);
 	}
 
 	//Check and verify the LDT descriptor!
@@ -655,44 +631,44 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 
 	if (!(descriptor_index&~3)) //NULL segment loaded into LDTR? Special case: no LDT available!
 	{
-		memset(&LDTsegdesc,0,sizeof(LDTsegdesc)); //No descriptor available to use: mark as invalid!
+		memset(&LDTsegdesc, 0, sizeof(LDTsegdesc)); //No descriptor available to use: mark as invalid!
 	}
 	else //Valid LDT index?
 	{
 		if (LDTsegment & 4) //We cannot reside in the LDT!
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: we cannot reside in the LDT!
 		}
 
-		if ((word)(descriptor_index|0x7)>CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
+		if ((word)(descriptor_index | 0x7) > CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: limit exceeded!
 		}
 
-		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR,LDTsegment,&LDTsegdesc,0x200|(isJMPorCALL&0x400)); //Load it, ignore errors?
-		if (unlikely(loadresult<=0)) return 0; //Invalid LDT(due to being unpaged or other fault)?
+		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR, LDTsegment, &LDTsegdesc, 0x200 | (isJMPorCALL & 0x400)); //Load it, ignore errors?
+		if (unlikely(loadresult <= 0)) return 0; //Invalid LDT(due to being unpaged or other fault)?
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_TYPE(LDTsegdesc) != AVL_SYSTEM_LDT) //Not an LDT?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: not an IDT!	
 		}
 
 		if (!GENERALSEGMENT_P(LDTsegdesc)) //Not present?
 		{
-			THROWDESCGP(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: not an IDT!	
 		}
 	}
 
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR],&LDTsegdesc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR], &LDTsegdesc, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Setting Task Switched flag in CR0");
+		dolog("debugger", "Setting Task Switched flag in CR0");
 	}
 
 	CPU[activeCPU].registers->CR0 |= CR0_TS; //Set the high bit of the TS bit(bit 3)!
@@ -701,55 +677,43 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!
 
 	//Set the default CPL!
-	CPU[activeCPU].CPL = (getcpumode()==CPU_MODE_8086)?3:((getcpumode()==CPU_MODE_REAL)?0:getRPL(TSSSize?TSS32.CS:TSS16.CS)); //Load default CPL, according to the mode!
+	CPU[activeCPU].CPL = (getcpumode() == CPU_MODE_8086) ? 3 : ((getcpumode() == CPU_MODE_REAL) ? 0 : getRPL(TSSSize ? TSS32.CS : TSS16.CS)); //Load default CPL, according to the mode!
 
 	//First, load CS!
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Loading incoming TSS CS register");
+		dolog("debugger", "Loading incoming TSS CS register");
 	}
 	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_CS,TSS32.CS,0x200|(isJMPorCALL&0x400))) return 0; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS, TSS32.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
 	else
 	{
-		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200|(isJMPorCALL&0x400))) return 0; //Load CS!
+		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	if (getCPL() != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Non-matching TSS DPL vs CS CPL?
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR,((isJMPorCALL&0x400)>>10),(CPU[activeCPU].registers->TR&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 		return 0; //Not present: limit exceeded!
 	}
 
 	if (debugger_logging()) //Are we logging?
 	{
-		dolog("debugger","Loading incoming TSS Stack address");
-	}
-	word *SSPtr=&TSS32.SS;
-	uint_32 *ESPPtr=&TSS32.ESP;
-	word *SPPtr=&TSS16.SP;
-	if (TSSSize) //32-bit to load?
-	{
-		SSPtr = &TSS32.SS;
-		ESPPtr = &TSS32.ESP;
-	}
-	else //16-bit to load?
-	{
-		SSPtr = &TSS16.SS;
-		SPPtr = &TSS16.SP;
+		dolog("debugger", "Loading incoming TSS Stack address");
 	}
 
-	if (segmentWritten(CPU_SEGMENT_SS, *SSPtr, 0x200|(isJMPorCALL&0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 	if (TSSSize) //32-bit?
 	{
-		CPU[activeCPU].registers->ESP = *ESPPtr;
+		if (segmentWritten(CPU_SEGMENT_SS, TSS32.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+		CPU[activeCPU].registers->ESP = TSS32.ESP;
 	}
 	else //16-bit?
 	{
-		CPU[activeCPU].registers->SP = *SPPtr;
+		if (segmentWritten(CPU_SEGMENT_SS, TSS16.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+		CPU[activeCPU].registers->SP = TSS16.SP;
 	}
 
 	//Set the default CPL!

@@ -201,50 +201,66 @@ typedef struct
 #define SEGDESCPTR_GRANULARITY(descriptor) (SEGDESCPTR_NONCALLGATE_G(descriptor)&CPU[activeCPU].G_Mask)
 
 #include "headers/packed.h" //Packed type!
-typedef union PACKED
+typedef struct
 {
 	struct
 	{
 		word BackLink; //Back Link to Previous TSS
-		word Unused0;
-		uint_32 ESP0;
-		word SS0;
-		word Unused8;
-		uint_32 ESP1;
-		word SS1;
-		word Unused10;
-		uint_32 ESP2;
-		word SS2;
-		word Unused20;
-		uint_32 CR3; //CR3 (PDPR)
-		uint_32 EIP;
-		uint_32 EFLAGS;
-		uint_32 EAX;
-		uint_32 ECX;
-		uint_32 EDX;
-		uint_32 EBX;
-		uint_32 ESP;
-		uint_32 EBP;
-		uint_32 ESI;
-		uint_32 EDI;
-		word ES;
-		word Unused48;
-		word CS;
-		word Unused4C;
-		word SS;
-		word Unused50;
-		word DS;
-		word Unused54;
-		word FS;
-		word Unused58;
-		word GS;
-		word Unused5C;
-		word LDT;
-		word Unused60;
+		union
+		{
+			struct
+			{
+				uint_32 ESP0;
+				uint_32 ESP1;
+				uint_32 ESP2;
+			};
+			uint_32 ESPs[3];
+		};
+		union
+		{
+			struct
+			{
+				word SS0;
+				word SS1;
+				word SS2;
+			};
+			word SSs[3];
+		};
+		union
+		{
+			struct
+			{
+				uint_32 CR3; //CR3 (PDPR)
+				uint_32 EIP;
+				uint_32 EFLAGS;
+				uint_32 EAX;
+				uint_32 ECX;
+				uint_32 EDX;
+				uint_32 EBX;
+				uint_32 ESP;
+				uint_32 EBP;
+				uint_32 ESI;
+				uint_32 EDI;
+			};
+			uint_32 generalpurposeregisters[11];
+		};
+		union
+		{
+			struct
+			{
+				word ES;
+				word CS;
+				word SS;
+				word DS;
+				word FS;
+				word GS;
+				word LDT;
+			};
+			word segmentregisters[7];
+		};
 		word T; //1-bit, upper 15 bits unused!
 		word IOMapBase;
 	};
-	byte data[108]; //All our data!
 } TSS386; //80386 32-Bit Task State Segment
 #include "headers/endpacked.h" //End of packed type!
 
@@ -276,7 +292,7 @@ typedef union PACKED
 		word DS;
 		word LDT;
 	};
-	byte data[44]; //All our data!
+	word dataw[22]; //All word-sized fields!
 } TSS286; //80286 32-Bit Task State Segment
 #include "headers/endpacked.h" //End of packed type!
 

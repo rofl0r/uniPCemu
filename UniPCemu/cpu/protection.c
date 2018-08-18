@@ -642,7 +642,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 }
 
 //Result: 1=OK, 0=Error!
-sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, byte isJMPorCALL)
+sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL)
 {
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
@@ -724,6 +724,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 {
 	//byte newCPL = getCPL(); //New CPL after switching! Default: no change!
 	SEGMENT_DESCRIPTOR LOADEDDESCRIPTOR, GATEDESCRIPTOR; //The descriptor holder/converter!
+	memset(&LOADEDDESCRIPTOR, 0, sizeof(LOADEDDESCRIPTOR)); //Init!
+	memset(&GATEDESCRIPTOR, 0, sizeof(GATEDESCRIPTOR)); //Init!
 	word originalval=*segmentval; //Back-up of the original segment value!
 	byte allowNP; //Allow #NP to be used?
 	sbyte loadresult;
