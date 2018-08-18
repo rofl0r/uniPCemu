@@ -336,11 +336,25 @@ void update8042(DOUBLE timepassed) //Update 8042 input/output timings!
 										Controller8042.portenabledhandler[0](2); //Handle the hardware being turned on by it resetting!
 									}
 								}
+								else if (((Controller8042.data[0] & 0x10) == 0x00) && ((Controller8042.input_buffer & 0x10) == 0x10)) //Was enabled and is disabled?
+								{
+									if (Controller8042.portenabledhandler[0]) //Enabled handler?
+									{
+										Controller8042.portenabledhandler[0](0x82); //Handle the hardware being turned on by it resetting!
+									}
+								}
 								if (((Controller8042.data[0]&0x20)==0x20) && ((Controller8042.input_buffer&0x20)==0)) //Was disabled and is enabled?
 								{
 									if (Controller8042.portenabledhandler[1]) //Enabled handler?
 									{
 										Controller8042.portenabledhandler[1](2); //Handle the hardware being turned on by it resetting!
+									}
+								}
+								else if (((Controller8042.data[0] & 0x20) == 0x00) && ((Controller8042.input_buffer & 0x20) == 0x20)) //Was enabled and is disabled?
+								{
+									if (Controller8042.portenabledhandler[1]) //Enabled handler?
+									{
+										Controller8042.portenabledhandler[1](0x82); //Handle the hardware being turned on by it resetting!
 									}
 								}
 							}
@@ -435,6 +449,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xA7: //Disable second PS/2 port! No ACK!
 		Controller8042.data[0] |= 0x20; //Disabled!
+		if (likely(Controller8042.portenabledhandler[1])) //Valid handler for the port?
+		{
+			Controller8042.portenabledhandler[1](0x82); //Reset the keyboard manually! Execute an interrupt when reset!
+		}
 		break;
 	case 0xA8: //Enable second PS/2 port! ACK from keyboard!
 		if ((Controller8042.data[0]&0x20)==0x20) //Was disabled?
@@ -508,6 +526,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		break;
 	case 0xAD: //Disable first PS/2 port! No ACK!
 		Controller8042.data[0] |= 0x10; //Disabled!
+		if (Controller8042.portenabledhandler[0]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[0](0x82); //Handle the hardware being turned on by it resetting!
+		}
 		break;
 	case 0xAE: //Enable first PS/2 port! No ACK!
 		if ((Controller8042.data[0]&0x10)==0x10) //Was disabled?
@@ -707,6 +729,10 @@ byte write_8042(word port, byte value)
 				}
 				else //Keyboard line stuck low? Disable the controller!
 				{
+					if (likely(Controller8042.portenabledhandler[0])) //Valid handler for the port?
+					{
+						Controller8042.portenabledhandler[0](0x81); //Reset the keyboard manually! Execute an interrupt when reset!
+					}
 					Controller8042.data[0] |= 0x20; //Disabled!
 				}
 			}

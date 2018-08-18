@@ -65,9 +65,12 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 
 void resetKeyboard_8042(byte flags)
 {
-	if ((flags&2)==0) input_lastwrite_keyboard(); //Force to user!
-	resetKeyboard((flags&~2),((flags&2)?1:0)); //Reset us! Execute an interrupt as well!
-	if ((flags&2)==0) input_lastwrite_keyboard(); //Force to user!
+	if ((flags & 0x80) == 0) //We're only handling enabling the keyboard!
+	{
+		if ((flags & 2) == 0) input_lastwrite_keyboard(); //Force to user!
+		resetKeyboard((flags&~2), ((flags & 2) ? 1 : 0)); //Reset us! Execute an interrupt as well!
+		if ((flags & 2) == 0) input_lastwrite_keyboard(); //Force to user!
+	}
 }
 
 float HWkeyboard_getrepeatrate() //Which repeat rate to use after the repeat delay! (chars/second)
