@@ -3,6 +3,7 @@
 #include "headers/support/fifobuffer.h"
 #include "headers/support/zalloc.h" //Zero free allocation for linked lists!
 #include "headers/emu/input.h" //For timing packets!
+#include "headers/support/signedness.h" //Signedness support!
 
 //To disable the mouse?
 #define MOUSE_DISABLED Mouse.disabled
