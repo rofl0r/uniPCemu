@@ -4885,7 +4885,7 @@ void BIOS_Architecture()
 	}
 	safestrcpy(itemlist[ARCHITECTURE_XT],sizeof(itemlist[0]), "XT"); //Set filename from options!
 	safestrcpy(itemlist[ARCHITECTURE_AT],sizeof(itemlist[0]), "AT"); //Set filename from options!
-	safestrcpy(itemlist[ARCHITECTURE_PS2],sizeof(itemlist[0]), "PS/2"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_PS2],sizeof(itemlist[0]), "Compaq Deskpro 386 with PS/2 mouse"); //Set filename from options!
 	safestrcpy(itemlist[ARCHITECTURE_COMPAQ],sizeof(itemlist[0]), "Compaq Deskpro 386"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.architecture) //What setting?
@@ -5298,7 +5298,7 @@ setArchitecture: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "AT");
 		break;
 	case ARCHITECTURE_PS2:
-		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "PS/2");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386 with PS/2 mouse");
 		break;
 	case ARCHITECTURE_COMPAQ:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386");
