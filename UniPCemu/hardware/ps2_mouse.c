@@ -612,6 +612,21 @@ void EMU_enablemouse(byte enabled) //Enable mouse input (disable during EMU, ena
 	Mouse.disabled = !enabled; //Are we enabled?
 }
 
+void handle_mouseenabled(byte flags)
+{
+	if (flags & 0x80) //We're disabled?
+	{
+		update_mouseTimer(); //Disable the timer if required!
+	}
+	else //We're enabled?
+	{
+		if (useMouseTimer())
+		{
+			update_mouseTimer(); //Enable the timer if required!
+		}
+	}
+}
+
 void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -623,6 +638,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 		//Register ourselves!
 		register_PS2PortWrite(1, &handle_mousewrite); //Write functionnality!
 		register_PS2PortRead(1, &handle_mouseread, &handle_mousepeek); //Read functionality!
+		register_PS2PortEnabled(1, &handle_mouseenabled); //Enabled functionality!
 
 		Mouse.buffer = allocfifobuffer(16,1); //Allocate a small mouse buffer!
 
