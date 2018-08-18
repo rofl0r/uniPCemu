@@ -799,6 +799,6 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 	
 	if (CPU_faultraised(EXCEPTION_INVALIDTSSSEGMENT)) //We're raising a fault!
 	{
-		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDTSSSEGMENT,0,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_INVALIDTSSSEGMENT,2,errorcode); //Call IVT entry #13 decimal!
 	}
 }
