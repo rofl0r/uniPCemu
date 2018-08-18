@@ -48,6 +48,7 @@ struct
 	MOUSE_PACKET *lastpacket; //Last send packet!
 	byte supported; //PS/2 mouse supported on this system?
 	DOUBLE timeout; //Timeout for reset commands!
+	float activesamplerate; //Currently active samplerate!
 } Mouse; //Ourselves!
 
 OPTINLINE void give_mouse_output(byte data)
@@ -166,7 +167,8 @@ void update_mouseTimer()
 {
 	if (__HW_DISABLED) return; //Abort!
 	if (MOUSE_DISABLED) return; //Mouse disabled?
-	setMouseRate(HWmouse_getsamplerate()); //Start using this samplerate!
+	Mouse.activesamplerate = HWmouse_getsamplerate(); //Update the active sample rate!
+	setMouseRate(Mouse.activesamplerate); //Start using this samplerate!
 }
 
 OPTINLINE void resetPS2Mouse()
@@ -489,7 +491,11 @@ void handle_mousewrite(byte data)
 	if (!Mouse.has_command) //No command anymore?
 	{
 		Mouse.command_step = 0; //Reset command step!
-	}	
+	}
+	if (Mouse.activesamplerate != HWmouse_getsamplerate()) //Need to update the sample rate?
+	{
+		update_mouseTimer();
+	}
 }
 
 OPTINLINE int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
