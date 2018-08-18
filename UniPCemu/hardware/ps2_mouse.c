@@ -580,7 +580,7 @@ byte handle_mouseread() //Read from the mouse!
 	{
 		result = processMousePacket(Mouse.packets,Mouse.packetindex); //Process it!
 		++Mouse.packetindex; //Next index!
-		if (Mouse.packetindex>3) //Over our limit?
+		if (Mouse.packetindex>2) //Over our limit?
 		{
 			Mouse.packetindex = 0; //Reset packet index!
 			next_mousepacket(); //Next mouse packet!
