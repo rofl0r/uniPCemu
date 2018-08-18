@@ -227,7 +227,37 @@ void reset8042() //Reset 8042 up till loading BIOS!
 	FIFOBUFFER *oldbuffer = Controller8042.buffer; //Our fifo buffer?
 	memset(&Controller8042,0,sizeof(Controller8042)); //Init to 0!
 	Controller8042.buffer = oldbuffer; //Restore buffer!
-	Controller8042.RAM[0] = is_XT?0x01:0x50; //Init default status! Disable first port and enable translation!
+	byte newRAM0;
+	newRAM0 = is_XT ? 0x01 : 0x50; //New RAM0!
+	if (((Controller8042.data[0] & 0x10) == 0x10) && ((newRAM0 & 0x10) == 0)) //Was disabled and is enabled?
+	{
+		if (Controller8042.portenabledhandler[0]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[0](2); //Handle the hardware being turned on by it resetting!
+		}
+	}
+	else if (((Controller8042.data[0] & 0x10) == 0x00) && ((newRAM0 & 0x10) == 0x10)) //Was enabled and is disabled?
+	{
+		if (Controller8042.portenabledhandler[0]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[0](0x82); //Handle the hardware being turned on by it resetting!
+		}
+	}
+	if (((Controller8042.data[0] & 0x20) == 0x20) && ((newRAM0 & 0x20) == 0)) //Was disabled and is enabled?
+	{
+		if (Controller8042.portenabledhandler[1]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[1](2); //Handle the hardware being turned on by it resetting!
+		}
+	}
+	else if (((Controller8042.data[0] & 0x20) == 0x00) && ((newRAM0 & 0x20) == 0x20)) //Was enabled and is disabled?
+	{
+		if (Controller8042.portenabledhandler[1]) //Enabled handler?
+		{
+			Controller8042.portenabledhandler[1](0x82); //Handle the hardware being turned on by it resetting!
+		}
+	}
+	Controller8042.RAM[0] = newRAM0; //Init default status! Disable first port and enable translation!
 	Controller8042.status_buffermask = ~0; //Default: enable all bits to be viewed!
 }
 
@@ -691,6 +721,13 @@ void datawritten_8042(byte iscommandregister, byte data) //Data has been written
 	{
 		if (Controller8042.has_port[c]) //To this port?
 		{
+			if (Controller8042.RAM[0] & (0x10 << c)) //Was said port disabled?
+			{
+				if (Controller8042.portenabledhandler[c]) //Enabled handler?
+				{
+					Controller8042.portenabledhandler[c](0x2); //Handle the hardware being turned on by it resetting!
+				}
+			}
 			Controller8042.RAM[0] &= ~(0x10<<c); //Automatically enable the controller when we're sent to!
 			if (Controller8042.portwrite[c]) //Gotten handler?
 			{
