@@ -1031,7 +1031,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			CPU[activeCPU].CallGateParamCount = 0; //Clear our stack to transfer!
 			CPU[activeCPU].CallGateSize = (callgatetype==2)?1:0; //32-bit vs 16-bit call gate!
 
-			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)!=getCPL()) && ((isJMPorCALL&0x1FF)==2)) //Stack switch required (with CALL only)?
+			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)<getCPL()) && (EXECSEGMENT_C(LOADEDDESCRIPTOR)==0) && ((isJMPorCALL&0x1FF)==2)) //Stack switch required (with CALL only)?
 			{
 				//Backup the old stack data!
 				/*
