@@ -1158,6 +1158,7 @@ word segmentWritten_tempSS;
 uint_32 segmentWritten_tempESP;
 word segmentWritten_tempSP;
 extern word RETF_popbytes; //How many to pop?
+byte is_stackswitching=0; //Are we busy stack switching?
 
 byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
 
@@ -1267,16 +1268,19 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			}
 			else if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF) == 4)) //RETF needs popped data on the stack?
 			{
-				if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+				if (is_stackswitching == 0) //We're ready to process?
 				{
-					REG_ESP += RETF_popbytes; //Process ESP!
-				}
-				else
-				{
-					REG_SP += RETF_popbytes; //Process SP!
+					if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+					{
+						REG_ESP += RETF_popbytes; //Process ESP!
+					}
+					else
+					{
+						REG_SP += RETF_popbytes; //Process SP!
+					}
 				}
 
-				if (oldCPL<getRPL(value)) //CPL changed?
+				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
 				{
 					//Privilege change!
 					//Backup the old stack data!
@@ -1293,13 +1297,29 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
-						if (CPU80386_internal_POPdw(6,&segmentWritten_tempESP)) return 1; //POP ESP!
+						if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
+						{
+							CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+							is_stackswitching = 1; //We're stack switching!
+							return 1; //POP ESP!
+						}
 					}
 					else
 					{
-						if (CPU8086_internal_POPw(6,&segmentWritten_tempSP,0)) return 1; //POP SP!
+						if (CPU8086_internal_POPw(6, &segmentWritten_tempSP, 0))
+						{
+							CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+							is_stackswitching = 1; //We're stack switching!
+							return 1; //POP SP!
+						}
 					}
-					if (CPU8086_internal_POPw(8,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
+					if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU_Operand_size[activeCPU]))
+					{
+						CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+						is_stackswitching = 1; //We're stack switching!
+						return 1; //POPped?
+					}
+					is_stackswitching = 0; //We've finished stack switching!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
