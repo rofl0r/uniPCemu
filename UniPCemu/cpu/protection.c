@@ -1293,13 +1293,13 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
-						if (CPU80386_POPdw(6,&segmentWritten_tempESP)) return 1; //POP ESP!
+						if (CPU80386_internal_POPdw(6,&segmentWritten_tempESP)) return 1; //POP ESP!
 					}
 					else
 					{
-						if (CPU8086_POPw(6,&segmentWritten_tempSP,0)) return 1; //POP SP!
+						if (CPU8086_internal_POPw(6,&segmentWritten_tempSP,0)) return 1; //POP SP!
 					}
-					if (CPU8086_POPw(8,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
+					if (CPU8086_internal_POPw(8,&segmentWritten_tempSS,CPU_Operand_size[activeCPU])) return 1; //POPped?
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
 					{
