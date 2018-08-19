@@ -1167,6 +1167,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	byte RETF_segmentregister=0,RETF_whatsegment; //A segment register we're checking during a RETF instruction!
 	byte oldCPL= getCPL();
 	byte isDifferentCPL;
+	byte isnonconformingcodeordata;
 	uint_32 tempesp;
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
@@ -1447,19 +1448,21 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						goto invalidRETFsegment; //Next register!
 					}
 					//We're either data or code!
+					isnonconformingcodeordata = 0; //Default: neither!
 					if (EXECSEGMENT_ISEXEC(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Code?
 					{
 						if (!EXECSEGMENT_C(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Nonconforming? Invalid!
 						{
-							goto invalidRETFsegment; //Next register!
+							isnonconformingcodeordata = 1; //Next register!
 						}
 						if (!EXECSEGMENT_R(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not readable? Invalid!
 						{
 							goto invalidRETFsegment; //Next register!
 						}
 					}
-					//We're either data or readable, conforming code!
-					if (GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])<MAX(getCPL(),getRPL(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]))) //Not privileged enough to handle said segment descriptor?
+					else isnonconformingcodeordata = 1; //Data!
+					//We're either data or readable code!
+					if (isnonconformingcodeordata && (GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])<MAX(getCPL(),getRPL(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment])))) //Not privileged enough to handle said segment descriptor?
 					{
 						goto invalidRETFsegment; //Next register!
 					}
