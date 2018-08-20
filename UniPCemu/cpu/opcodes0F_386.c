@@ -281,7 +281,7 @@ void CPU386_OP0F02() //LAR /r
 				if ((MAX((byte)getCPL(), (byte)getRPL(oper1d)) <= (byte)GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check32(&params,MODRM_src0,0)) return; //Abort on fault!
-					if (CPU80386_instructionstepwritemodrmdw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0)) return; //Write our result!
+					if (CPU80386_instructionstepwritemodrmdw(2,((verdescriptor.desc.AccessRights<<8)|((verdescriptor.desc.noncallgate_info&0xF0)<<16),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
