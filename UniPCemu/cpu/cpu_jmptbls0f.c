@@ -290,8 +290,8 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 	//0x00:
 	{ NULL, NULL }, //00h:
 	{ CPU386_OP0F01, CPU386_OP0F01 }, //01h
-	{ NULL, NULL }, //02h:
-	{ NULL, NULL }, //03h:
+	{ NULL, CPU386_OP0F02 }, //02h:
+	{ NULL, CPU386_OP0F03 }, //03h:
 	{ NULL, NULL }, //04h:
 	{ unkOP0F_386, NULL }, //05h: 286-only LOADALL doesn't exist anymore on a 386!
 	{ NULL, NULL }, //06h:
