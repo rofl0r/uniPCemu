@@ -68,7 +68,7 @@ OPTINLINE byte CPU80286_instructionstepPOPtimeout(word base)
 void CPU286_OP63() //ARPL r/m16,r16
 {
 	modrm_generateInstructionTEXT("ARPL",16,0,PARAM_MODRM_01); //Our instruction text!
-	if (getcpumode() == CPU_MODE_REAL) //Real mode? #UD!
+	if (getcpumode() != CPU_MODE_PROTECTED) //Real/V86 mode? #UD!
 	{
 		unkOP_186(); //Execute our unk opcode handler!
 		return; //Abort!
