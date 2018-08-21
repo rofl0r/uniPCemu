@@ -22,6 +22,8 @@ char modrm_sizes[4][256] = {"byte","word","dword","byte"}; //What size is used f
 
 extern CPU_Timings *timing; //The timing used for the current instruction! Used for stuff like invalid LOCK prefixes!
 
+extern byte advancedlog; //Advanced log setting
+
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
@@ -166,7 +168,7 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 		{
 			*result = value; //Write the data to the result!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 8-bit register failed: not registered!");
 		}
@@ -201,7 +203,7 @@ byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value)
 		{
 			*result = value; //Write the data to the result!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 8-bit register failed: not registered!");
 		}
@@ -242,7 +244,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 			destEIP = REG_EIP; //Our instruction pointer!
 			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 16-bit register failed: not registered!");
 		}
@@ -278,7 +280,7 @@ byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte
 			destEIP = REG_EIP; //Our instruction pointer!
 			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 16-bit register failed: not registered!");
 		}
@@ -434,7 +436,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				Paging_TestRegisterWritten(7); //We're updated!
 			}
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 32-bit register failed: not registered!");
 		}
@@ -503,7 +505,7 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				Paging_TestRegisterWritten(7); //We're updated!
 			}
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Write to 32-bit register failed: not registered!");
 		}
@@ -539,7 +541,7 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 		{
 			return *result; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 8-bit register failed: not registered!");
 		}
@@ -573,7 +575,7 @@ byte modrm_read8_BIU(MODRM_PARAMS *params, int whichregister, byte *result) //Re
 		{
 			*result = *resultsrc; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 8-bit register failed: not registered!");
 		}
@@ -608,7 +610,7 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 		{
 			return *result; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 16-bit register failed: not registered!");
 		}
@@ -644,7 +646,7 @@ byte modrm_read16_BIU(MODRM_PARAMS *params, int whichregister, word *result) //R
 		{
 			*result = *resultsrc; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 16-bit register failed: not registered!");
 		}
@@ -688,7 +690,7 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 		{
 			return *result; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 32-bit register failed: not registered!");
 		}
@@ -736,7 +738,7 @@ byte modrm_read32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 *result) 
 		{
 			*result = *resultsrc; //Read register!
 		}
-		else if (LOG_INVALID_REGISTERS)
+		else if (LOG_INVALID_REGISTERS && advancedlog)
 		{
 			dolog("debugger","Read from 32-bit register failed: not registered!");
 		}

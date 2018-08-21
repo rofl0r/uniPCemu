@@ -776,6 +776,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger","breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
+	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("general", "advancedlog", DEFAULT_ADVANCEDLOG, BIOS_Settings_file); //The selected font for the BIOS menu!
 
 	//Video
 	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",DEFAULT_VIDEOCARD,BIOS_Settings_file); //Enable VGA NMI on precursors?
@@ -992,7 +993,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(debugger_comment,sizeof(debugger_comment),"logregisters: 0=Disabled, 1=Enabled\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bit 57: Break on EIP only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "advancedlog: 0=Disable advanced logging, 1: Use advanced logging");
 	char *debugger_commentused=NULL;
 	if (debugger_comment[0]) debugger_commentused = &debugger_comment[0];
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
@@ -1002,6 +1004,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"breakpoint",BIOS_Settings.breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
 	if (!write_private_profile_int64("debugger",debugger_commentused,"diagnosticsport_breakpoint",BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "advancedlog", BIOS_Settings.advancedlog, BIOS_Settings_file)) return 0; //Advanced logging feature!
 
 	//Video
 	memset(&video_comment,0,sizeof(video_comment)); //Init!
@@ -1324,6 +1327,8 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	}
 }
 
+extern byte advancedlog; //Advanced log setting!
+
 void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -1334,6 +1339,7 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	exec_showchecksumerrors = 0; //Don't Allow checksum errors to be shown!
 	backgroundpolicy = MIN(BIOS_Settings.backgroundpolicy,3); //Load the new background policy!
+	advancedlog = LIMITRANGE(BIOS_Settings.advancedlog,0,1);
 }
 
 void BIOS_ShowBIOS() //Shows mounted drives etc!

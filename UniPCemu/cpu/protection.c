@@ -35,13 +35,14 @@ extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are th
 
 uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
 
+extern byte advancedlog; //Advanced log setting
 void CPU_triplefault()
 {
 	CPU[activeCPU].faultraised_lasttype = 0xFF; //Full on reset has been raised!
 	CPU[activeCPU].resetPending = 1; //Start pending a reset!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 	CPU[activeCPU].executed = 1; //We're finishing to execute!
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "#Triple fault!");
 	}
@@ -49,7 +50,7 @@ void CPU_triplefault()
 
 void CPU_doublefault()
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "#DF fault(%08X)!", 0);
 	}
@@ -180,7 +181,7 @@ void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 //General Protection fault.
 void CPU_GP(int_64 errorcode)
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		if (errorcode>=0)
 		{
@@ -202,7 +203,7 @@ void CPU_GP(int_64 errorcode)
 
 void CPU_AC(int_64 errorcode)
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		if (errorcode>=0)
 		{
@@ -224,7 +225,7 @@ void CPU_AC(int_64 errorcode)
 
 void CPU_SegNotPresent(int_64 errorcode)
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		if (errorcode>=0)
 		{
@@ -246,7 +247,7 @@ void CPU_SegNotPresent(int_64 errorcode)
 
 void CPU_StackFault(int_64 errorcode)
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		if (errorcode>=0)
 		{
@@ -1891,7 +1892,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
 				#ifdef LOG_VIRTUALMODECALLS
-				if (debugger_logging())
+				if (debugger_logging() && advancedlog)
 				{
 					dolog("debugger", "Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)", intnr, CPU[activeCPU].lastopcode, CPU[activeCPU].lastopcode0F, immb, REG_AX);
 				}

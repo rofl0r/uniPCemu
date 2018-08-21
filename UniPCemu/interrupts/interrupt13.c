@@ -235,6 +235,7 @@ OPTINLINE byte GetBIOSType(byte disk)
 //Status flags for I/O!
 byte last_status; //Status of last operation
 byte last_drive; //Last drive something done to
+extern byte advancedlog; //Advanced log setting
 
 OPTINLINE byte readdiskdata(uint_32 startpos)
 {
@@ -283,8 +284,11 @@ OPTINLINE byte readdiskdata(uint_32 startpos)
 
 	finishupr: //Early stop: we cannot write any further!
 	
-	dolog("debugger","Read %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u, Destination: ES:BX=%04X:%08X",
-					sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos,REG_ES,REG_EBX);
+	if (advancedlog)
+	{
+		dolog("debugger", "Read %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u, Destination: ES:BX=%04X:%08X",
+			sector, REG_AL, REG_DL, startpos, REG_DH, REG_CH, REG_CL & 0x3F, startpos, REG_ES, REG_EBX);
+	}
 	return (byte)sector; //Give the ammount of sectors read!
 }
 
@@ -325,8 +329,11 @@ OPTINLINE byte writediskdata(uint_32 startpos)
 		++sector; //Process to the next sector!
 	}
 	
-	finishupw:
-	dolog("debugger","Written %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u",sector,REG_AL,REG_DL,startpos,REG_DH,REG_CH,REG_CL&0x3F,startpos);
+finishupw:
+	if (advancedlog)
+	{
+		dolog("debugger", "Written %u/%u sectors from drive %02X, start %u. Requested: Head: %u, Track: %u, Sector: %u. Start sector: %u", sector, REG_AL, REG_DL, startpos, REG_DH, REG_CH, REG_CL & 0x3F, startpos);
+	}
 	return (byte)sector; //Ammount of sectors read!
 }
 
@@ -417,13 +424,13 @@ void int13_01()
 
 	if (last_status!=0x00)
 	{
-		dolog("debugger","Last status: %02X",last_status);
+		if (advancedlog) dolog("debugger","Last status: %02X",last_status);
 		REG_AH = last_status;
 		CALLBACK_SCF(1);
 	}
 	else
 	{
-		dolog("debugger","Last status: unknown");	
+		if (advancedlog) dolog("debugger","Last status: unknown");	
 		REG_AH = 0;
 		CALLBACK_SCF(0);
 	}
@@ -448,7 +455,7 @@ void int13_02()
 	word sector;
 	if (!REG_AL) //No sectors to read?
 	{
-		dolog("debugger","Nothing to read specified!");
+		if (advancedlog) dolog("debugger","Nothing to read specified!");
 		last_status = 0x01;
 		CALLBACK_SCF(1);
 		return; //Abort!
@@ -456,7 +463,7 @@ void int13_02()
 
 	if (!is_mounted(mounteddrives[REG_DL])) //No drive image loaded?
 	{
-		dolog("debugger","Media not mounted:%02X!",REG_DL);
+		if (advancedlog) dolog("debugger","Media not mounted:%02X!",REG_DL);
 		last_status = 0x31; //No media in drive!
 		CALLBACK_SCF(1);
 		return;
@@ -1157,12 +1164,12 @@ void BIOS_int13() //Interrupt #13h (Low Level Disk Services)!
 	if (__HW_DISABLED) return; //Abort!
 	if (REG_AH<NUMITEMS(int13Functions)) //Within range of functions support?
 	{
-		dolog("debugger","Function %02X called.",REG_AH); //Log our function call!
+		if (advancedlog) dolog("debugger","INT13 Function %02X called.",REG_AH); //Log our function call!
 		int13Functions[REG_AH](); //Execute call!
 	}
 	else
 	{
-		dolog("debugger","Unknown call: %02X",REG_AH); //Unknown call!
+		if (advancedlog) dolog("debugger","Unknown call: %02X",REG_AH); //Unknown call!
 //Unknown int13 call?
 		last_status = 1; //Status: Invalid command!
 		REG_AH = 0;

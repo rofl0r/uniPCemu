@@ -201,6 +201,7 @@ void BIOS_ClockingMode(); //Clocking Mode toggle!
 void BIOS_DebugRegisters(); //Debug registers log!
 void BIOS_CMOSTiming(); //Time the CMOS!
 void BIOS_BackgroundPolicySetting(); //Background policy!
+void BIOS_AdvancedLogSetting(); //Advanced log policy!
 
 
 
@@ -276,6 +277,7 @@ Handler BIOS_Menus[] =
 	,BIOS_DebugRegisters //Log registers is #66!
 	,BIOS_CMOSTiming //Time the CMOS is #67!
 	,BIOS_BackgroundPolicySetting //Background policy is #68!
+	,BIOS_AdvancedLogSetting //Advanced log if #69!
 };
 
 //Not implemented?
@@ -418,6 +420,7 @@ byte reboot_needed = 0; //Default: no reboot needed!
 
 extern sword diagnosticsportoutput_breakpoint; //Breakpoint set?
 extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
+extern byte advancedlog; //Advanced log setting
 
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
@@ -533,6 +536,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	lock(LOCK_MAINTHREAD); //Lock the main thread!
 	backgroundpolicy = MIN(BIOS_Settings.backgroundpolicy,3); //Load the new background policy!
+	advancedlog = LIMITRANGE(BIOS_Settings.advancedlog, 0, 1);
 
 	startVGA(); //Start the VGA up again!
 
@@ -5348,6 +5352,21 @@ setInboardInitialWaitstates: //For fixing it!
 		goto setInboardInitialWaitstates; //Goto!
 		break;
 	}
+
+	optioninfo[advancedoptions] = 19; //We're debug advanced log setting!
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Debugger advanced log: ");
+	switch (BIOS_Settings.advancedlog)
+	{
+	case DEBUGGERSTATELOG_DISABLED: //None
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disable advanced logging"); //Set filename from options!
+		break;
+	case DEBUGGERSTATELOG_ENABLED: //Only when debugging
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Use advanced logging"); //Set filename from options!
+		break;
+	default:
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Set filename from options!
+		break;
+	}
 }
 
 void BIOS_CPU() //CPU menu!
@@ -5379,7 +5398,8 @@ void BIOS_CPU() //CPU menu!
 	case 15:
 	case 16:
 	case 17:
-	case 18: //Valid option?
+	case 18:
+	case 19: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -5525,6 +5545,12 @@ void BIOS_CPU() //CPU menu!
 			break;
 		case 18: //Inboard Initial Waitstates?
 			BIOS_Menu = 64; //Architecture option!
+			break;
+		case 19: //Debugger advanced log setting!
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				BIOS_Menu = 69; //Debugger register log setting!
+			}
 			break;
 		default:
 			break;
@@ -7383,4 +7409,60 @@ void BIOS_BackgroundPolicySetting()
 		break;
 	}
 	BIOS_Menu = 8; //Goto Advanced menu!
+}
+
+void BIOS_AdvancedLogSetting()
+{
+	BIOS_Title("Advanced log");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Advanced log: "); //Show selection init!
+	EMU_unlocktext();
+	int i = 0; //Counter!
+	numlist = 2; //Amount of background policies!
+	for (i = 0; i<numlist; i++) //Process options!
+	{
+		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
+	}
+
+	safestrcpy(itemlist[0], sizeof(itemlist[0]), "Disable advanced logging"); //Set filename from options!
+	safestrcpy(itemlist[1], sizeof(itemlist[0]), "Use advanced logging"); //Set filename from options!
+
+	int current = 0;
+	switch (BIOS_Settings.advancedlog) //What setting?
+	{
+	case 0: //Valid
+	case 1: //Valid
+		current = BIOS_Settings.advancedlog; //Valid: use!
+		break;
+	default: //Invalid
+		current = DEFAULT_ADVANCEDLOG; //Default: none!
+		break;
+	}
+	if (BIOS_Settings.advancedlog != current) //Invalid?
+	{
+		BIOS_Settings.advancedlog = current; //Safety!
+		BIOS_Changed = 1; //Changed!
+	}
+	int file = ExecuteList(14, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+						  //We do nothing with the selected disk!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_ADVANCEDLOG; //Default setting: Disabled!
+
+	case 0:
+	case 1:
+	default: //Changed?
+		if (file != current) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			BIOS_Settings.advancedlog = file; //Select VGA Mode setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
 }

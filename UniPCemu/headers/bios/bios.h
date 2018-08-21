@@ -104,6 +104,7 @@ typedef struct
 #endif
 	CharacterType phonebook[10][256]; //A full phonebook for the modem!
 	byte backgroundpolicy; //The currently active background policy!
+	byte advancedlog; //Use advanced debugger information during common log format logging?
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:
@@ -256,6 +257,7 @@ enum BIOSROMMode {
 #define SETTINGS_BREAKPOINT_OFFSET_MASK 0xFFFFFFFFULL
 
 #define DEFAULT_BACKGROUNDPOLICY BACKGROUNDPOLICY_FULLHALT
+#define DEFAULT_ADVANCEDLOG 0
 
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!

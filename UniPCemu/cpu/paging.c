@@ -49,9 +49,10 @@ byte getUserLevel(byte CPL)
 	return (CPL==3)?1:0; //1=User, 0=Supervisor
 }
 
+extern byte advancedlog; //Advanced log setting
 void raisePF(uint_32 address, word flags)
 {
-	if (debugger_logging()) //Are we logging?
+	if (debugger_logging() && advancedlog) //Are we logging?
 	{
 		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
 	}

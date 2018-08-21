@@ -71,6 +71,8 @@ byte verifyfile = 0; //Check for verification file?
 
 byte debugger_is_logging = 0; //Are we logging?
 
+byte advancedlog = 0; //Advanced log setting!
+
 #include "headers/packed.h" //Packed!
 typedef struct PACKED
 {
@@ -225,6 +227,10 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 	if (DEBUGGER_LOGREGISTERS==0) //Disable register loggimg?
 	{
 		return; //Disable memory access logs as well!
+	}
+	if (advancedlog == 0) //Not logging advanced?
+	{
+		return; //Disable memory logs entirely!
 	}
 	if (iswrite)
 	{
@@ -832,37 +838,40 @@ OPTINLINE void debugger_autolog()
 			//Now generate debugger information!
 			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single-line?
 			{
-				if (last_modrm)
+				if (advancedlog) //Advanced logging?
 				{
-					if (EMULATED_CPU<=CPU_80286) //16-bits addresses?
+					if (last_modrm)
 					{
-						dolog("debugger","ModR/M address: %04x:%04X=%08x",modrm_lastsegment,modrm_lastoffset,((modrm_lastsegment<<4)+modrm_lastoffset));
+						if (EMULATED_CPU <= CPU_80286) //16-bits addresses?
+						{
+							dolog("debugger", "ModR/M address: %04x:%04X=%08x", modrm_lastsegment, modrm_lastoffset, ((modrm_lastsegment << 4) + modrm_lastoffset));
+						}
+						else //386+? Unknown addresses, so just take it as given!
+						{
+							dolog("debugger", "ModR/M address: %04x:%08x", modrm_lastsegment, modrm_lastoffset);
+						}
 					}
-					else //386+? Unknown addresses, so just take it as given!
+					if (MMU_invaddr()) //We've detected an invalid address?
 					{
-						dolog("debugger","ModR/M address: %04x:%08x",modrm_lastsegment,modrm_lastoffset);
+						switch (MMU_invaddr()) //What error?
+						{
+						case 0: //OK!
+							break;
+						case 1: //Memory not found!
+							dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
+							break;
+						case 2: //Paging or protection fault!
+							dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
+							break;
+						default:
+							dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
+							break;
+						}
 					}
-				}
-				if (MMU_invaddr()) //We've detected an invalid address?
-				{
-					switch (MMU_invaddr()) //What error?
+					if (CPU[activeCPU].faultraised) //Fault has been raised?
 					{
-					case 0: //OK!
-						break;
-					case 1: //Memory not found!
-						dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is non-existant.");
-						break;
-					case 2: //Paging or protection fault!
-						dolog("debugger", "MMU has detected that the addressed data isn't valid! The memory is not paged or protected.");
-						break;
-					default:
-						dolog("debugger", "MMU has detected that the addressed data isn't valid! The cause is unknown.");
-						break;
+						dolog("debugger", "The CPU has raised an exception.");
 					}
-				}
-				if (CPU[activeCPU].faultraised) //Fault has been raised?
-				{
-					dolog("debugger", "The CPU has raised an exception.");
 				}
 			}
 			cleardata(&fullcmd[0],sizeof(fullcmd)); //Init!
@@ -1084,10 +1093,13 @@ OPTINLINE void debugger_autolog()
 			debugger_logmisc("debugger",&debuggerregisters,debuggerHLT,debuggerReset,&CPU[activeCPU]); //Log misc stuff!
 			if (((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))==0) //Allowed to log?
 			{
-				log_timestampbackup = log_logtimestamp(2); //Save state!
-				log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
-				dolog("debugger",""); //Empty line between comands!
-				log_logtimestamp(log_timestampbackup); //Restore state!
+				if (advancedlog)
+				{
+					log_timestampbackup = log_logtimestamp(2); //Save state!
+					log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
+					dolog("debugger", ""); //Empty line between comands!
+					log_logtimestamp(log_timestampbackup); //Restore state!
+				}
 			}
 			debuggerINT = 0; //Don't continue after an INT has been used!
 		}
