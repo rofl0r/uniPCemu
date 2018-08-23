@@ -435,6 +435,10 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
+	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	{
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_RAM_LOGMMUALL|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+	}
 	specialreadcycle:
 	DRAM_access(realaddress); //Tick the DRAM!
 	if (likely(index != 0xFF)) //Don't ignore BUS?
@@ -452,14 +456,14 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
-	if (unlikely(LOG_MMU_WRITES)) //Data debugging?
-	{
-		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL);
-	}
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
 	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
+		if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
+		{
+			debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
+		}
 		memoryprotect_FE0000 = ((~value)&2); //Write-protect 128KB RAM at 0xFE0000?
 		if (value&1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
 		{
@@ -471,6 +475,7 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		}
 		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
+		return; //Count as a memory mapped register!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (likely(index != 0xFF)) //Don't ignore BUS?
@@ -483,9 +488,10 @@ void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
-	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
 	{
-		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM); //Log it!
+		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
+		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
