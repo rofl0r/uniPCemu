@@ -825,7 +825,6 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
 	}
-	CPU_flushPIQ(-1); //We're jumping to another address!
 	
 	//Data registers!
 	CPU[activeCPU].registers->DS = 0; //Data segment!
@@ -917,6 +916,8 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	{
 		CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[reg]); //Calculate the precalcs for the segment descriptor!
 	}
+
+	CPU_flushPIQ(-1); //We're jumping to another address!
 }
 
 void CPU_initLookupTables(); //Initialize the CPU timing lookup tables! Prototype!
@@ -2054,7 +2055,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			CPU_exec_lastEIP = CPU_exec_EIP;
 			//Save the current coordinates!
 			CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
-			CPU_exec_EIP = CPU[activeCPU].registers->EIP; //EIP of command!
+			CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
 		}
 	
 		//Save the starting point when debugging!

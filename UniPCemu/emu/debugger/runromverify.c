@@ -177,7 +177,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 							CPU_exec_lastCS = CPU_exec_CS;
 							CPU_exec_lastEIP = CPU_exec_EIP;
 							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-							CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+							CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 							CPU_saveFaultData(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}

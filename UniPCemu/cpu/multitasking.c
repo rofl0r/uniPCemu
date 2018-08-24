@@ -611,7 +611,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	CPU[activeCPU].have_oldTR = 0; //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
 	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-	CPU_exec_EIP = CPU[activeCPU].registers->EIP; //Save for error handling!
+	CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 	//No last: we're entering a task that has this information, so no return point is given!
 	CPU_exec_lastCS = CPU_exec_CS;
 	CPU_exec_lastEIP = CPU_exec_EIP;

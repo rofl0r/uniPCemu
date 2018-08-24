@@ -61,6 +61,7 @@ extern byte cpudebugger; //To debug the CPU?
 void detectBIUactiveCycleHandler(); //For detecting the cycle handler to use for this CPU!
 
 byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
+extern CPU_type CPU[MAXCPUS]; //The CPU!
 
 void CPU_initBIU()
 {
@@ -94,6 +95,7 @@ void CPU_doneBIU()
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
+	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
 	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
@@ -368,6 +370,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
 	}
 	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
+	BIU[activeCPU].PIQ_Address &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
 }
 
@@ -385,7 +388,7 @@ void BIU_dosboxTick()
 
 byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
-	uint_32 instructionEIP = CPU[activeCPU].registers->EIP; //Our current instruction position is increased always!
+	uint_32 instructionEIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
 	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
 	if (BIU[activeCPU].PIQ) //PIQ present?
 	{
@@ -401,6 +404,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		{
 			MMU_addOP(*result); //Add to the opcode cache!
 			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
+			CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
 			if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
@@ -416,6 +420,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
 	MMU_addOP(*result); //Add to the opcode cache!
 	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
+	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
 	if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 	return 0; //Give the result!
 }
