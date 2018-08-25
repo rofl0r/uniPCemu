@@ -150,11 +150,6 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 		return 0; //We have an error, abort!		
 	}
 	//RW=Are we writable?
-	if (!(PTE&PXE_A))
-	{
-		PTEUPDATED = 1; //Updated!
-		PTE |= PXE_A; //Accessed!
-	}
 	if (iswrite) //Writing?
 	{
 		if (!(PTE&PTE_D))
@@ -167,6 +162,11 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	{
 		PDE |= PXE_A; //Accessed!
 		memory_BIUdirectwdw(PDBR+(DIR<<2),PDE); //Update in memory!
+	}
+	if (!(PTE&PXE_A))
+	{
+		PTEUPDATED = 1; //Updated!
+		PTE |= PXE_A; //Accessed!
 	}
 	if (PTEUPDATED) //Updated?
 	{
