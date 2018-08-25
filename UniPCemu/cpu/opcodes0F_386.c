@@ -769,6 +769,7 @@ uint_32 tempSHLRDD;
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
 	byte shift;
+	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
 	if (cnt) //To actually shift?
 	{
@@ -776,7 +777,6 @@ void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			cnt &= 0x1F;
 			BST_cnt = cnt; //Count!
 			for (shift = 1; shift <= cnt; shift++)
 			{
@@ -816,7 +816,6 @@ void CPU80386_SHLD_32(uint_32 *dest, uint_32 src, byte cnt)
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDD = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			cnt &= 0x1F;
 			BST_cnt = cnt; //Count!
 			for (shift = 1; shift <= cnt; shift++)
 			{
@@ -856,7 +855,6 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			cnt &= 0x1F;
 			BST_cnt = cnt; //Count!
 			if (cnt==1) FLAGW_OF((tempSHLRDW & 0x8000) ? 1 : 0);
 			for (shift = 1; shift <= cnt; shift++)
@@ -897,9 +895,8 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDD = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
-			cnt &= 0x1F;
 			BST_cnt = cnt; //Count!
-			if (cnt==1) FLAGW_OF((tempSHLRDW & 0x8000) ? 1 : 0);
+			if (cnt==1) FLAGW_OF((tempSHLRDD & 0x80000000) ? 1 : 0);
 			for (shift = 1; shift <= cnt; shift++)
 			{
 				FLAGW_CF(tempSHLRDD & 1);
@@ -917,7 +914,7 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 		}
 		if (dest)
 		{
-			*dest = tempSHLRDW;
+			*dest = tempSHLRDD;
 		}
 		else
 		{
