@@ -233,6 +233,9 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			byte verified;
 			verified = 0; //Default: not verified!
+
+			doneEMU(); //Terminate the entire emulator, we're starting from scratch!
+			initEMU(1); //Reset the entire emulator to it's power-up defaults!
 			lock(LOCK_CPU);
 			verified = BIOS_load_custom(NULL,"BIOSROM.BIN"); //Try to load a custom general BIOS ROM!
 			if (verified) goto loadOPTROMS; //Loaded the BIOS?
@@ -407,12 +410,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //Boot rom ready?
 			{
-				BIOS_registerROM(); //Register the BIOS ROMS!
-				EMU_startInput(); //Start input again!
-				unlock(LOCK_CPU);
-				doneCPU();
-				lock(LOCK_CPU);
-				resetCPU(); //Reset the CPU to load the BIOS!
+				BIOS_registerROM(); //Register the BIOS ROMS to actually start using them!
 				if (dumpBIOS)
 				{
 					BIOSROM_dumpBIOS(); //Dump the BIOS!
@@ -421,6 +419,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!
 				resumeEMU(1); //Resume the emulator!
+				EMU_startInput(); //Start input again!
 				unlock(LOCK_CPU);
 				unlock(LOCK_MAINTHREAD);
 				return 0; //No reset, start the BIOS!
