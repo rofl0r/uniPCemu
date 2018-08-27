@@ -342,6 +342,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 			{
 				memloc = 2; //We're the second block instead!
 				originaladdress |= 0xF00000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
+				*realaddress = originaladdress; //This is what we're remapping to!
 			}
 		}
 	}
