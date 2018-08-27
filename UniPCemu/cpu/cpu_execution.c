@@ -115,6 +115,7 @@ void CPU_executionphase_taskswitch() //Are we to switch tasks?
 	{
 		CPU[activeCPU].executed = 0; //Finished and ready for execution!
 	}
+	CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 }
 
 byte CPU_executionphaseinterrupt_nr = 0x00; //What interrupt to execute?
@@ -135,12 +136,14 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 		}
 		if (interrupt_result==0) return; //Execute the interupt!
 		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
+		CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 	}
 	else //Unsupported CPU? Use plain general interrupt handling instead!
 	{
 		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode,CPU_executionphaseinterrupt_is_interrupt);
 		if (interrupt_result==0) return; //Execute the interupt!
 		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
+		CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 		if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	}
 }
