@@ -304,7 +304,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	memoryhole = 0; //Default: memory unavailable!
 	if (*realaddress>=LOW_MEMORYHOLE_START) //Start of first hole?
 	{
-		if (*realaddress<LOW_MEMORYHOLE_END) //First hole?
+		if (unlikely(*realaddress<LOW_MEMORYHOLE_END)) //First hole?
 		{
 			memoryhole = 1; //First memory hole!
 		}
@@ -313,14 +313,14 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 			memloc = 1; //Second memory block: mid memory!
 			if (*realaddress>=MID_MEMORYHOLE_START) //Start of second hole?
 			{
-				if (*realaddress<MID_MEMORYHOLE_END) //Second hole?
+				if (unlikely(*realaddress<MID_MEMORYHOLE_END)) //Second hole?
 				{
 					memoryhole = 2; //Second memory hole!
 				}
 				else //High memory?
 				{
 					memloc = 2; //Third memory block!
-					if ((*realaddress>=HIGH_MEMORYHOLE_START) && ((uint_64)*realaddress<(uint_64)HIGH_MEMORYHOLE_END)) //Start of third hole?
+					if (unlikely((*realaddress>=HIGH_MEMORYHOLE_START) && ((uint_64)*realaddress<(uint_64)HIGH_MEMORYHOLE_END))) //Start of third hole?
 					{
 						memoryhole = 3; //Third memory hole!
 					}
@@ -333,7 +333,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		}
 	}
 
-	if (memoryhole) //Memory hole?
+	if (unlikely(memoryhole)) //Memory hole?
 	{
 		*nonexistant = 1; //We're non-existant!
 		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1) && BIOSROM_LowMemoryBecomesHighMemory) //Compaq remaps RAM from E0000-FFFFF to FE0000-FFFFFF.
