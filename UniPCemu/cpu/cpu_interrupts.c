@@ -68,6 +68,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			oldCS = retsegment; //Backup the return position!
 		}
 		#endif
+		if (checkStackAccess(3, 1, 0)) return 0; //We must allow three pushes to succeed to be able to throw an interrupt!
 		checkinterruptstep = 0; //Init!
 		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS,0)) return 0; //Busy pushing flags!
 		checkinterruptstep += 2;
