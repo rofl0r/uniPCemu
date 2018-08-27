@@ -2471,7 +2471,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 {
 	if (FLAG_TF) //Trapped and to be trapped this instruction?
 	{
-		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].allowTF)) //Are we trapped and allowed to trap?
+		if (CPU[activeCPU].trapped && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].allowTF) && ((FLAG_RF==0)||(EMULATED_CPU<CPU_80386)) //Are we trapped and allowed to trap?
 		{
 			CPU_exSingleStep(); //Type-1 interrupt: Single step interrupt!
 			if (CPU[activeCPU].trapped) return; //Continue on while handling us!
@@ -2480,10 +2480,7 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 		}
 	}
 
-	if (getcpumode()!=CPU_MODE_REAL) //Debugging pending to fire to be handled?
-	{
-		checkProtectedModeDebuggerAfter(); //Check after executing the current instruction!
-	}
+	checkProtectedModeDebuggerAfter(); //Check after executing the current instruction!
 }
 
 extern uint_32 destEIP;
