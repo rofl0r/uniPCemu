@@ -84,6 +84,7 @@ void flag_log8(uint8_t value)
 	flag_szp8(value);
 	FLAGW_CF(0);
 	FLAGW_OF(0);
+	FLAGW_AF(0); //Undocumented!
 }
 
 void flag_log16(uint16_t value)
@@ -91,6 +92,7 @@ void flag_log16(uint16_t value)
 	flag_szp16(value);
 	FLAGW_CF(0);
 	FLAGW_OF(0);
+	FLAGW_AF(0); //Undocumented!
 }
 
 void flag_log32(uint32_t value)
@@ -98,6 +100,7 @@ void flag_log32(uint32_t value)
 	flag_szp32(value);
 	FLAGW_CF(0);
 	FLAGW_OF(0);
+	FLAGW_AF(0); //Undocumented!
 }
 
 //Addition Carry, Overflow, Adjust logic
