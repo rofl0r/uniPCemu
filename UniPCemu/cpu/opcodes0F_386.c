@@ -856,7 +856,7 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
 			BST_cnt = cnt; //Count!
-			if (cnt==1) FLAGW_OF((tempSHLRDW & 0x8000) ? 1 : 0);
+			if (cnt == 1) FLAGW_OF(((tempSHLRDW & 0x8000) ^ ((src & 1) << 15)) ? 1 : 0);
 			for (shift = 1; shift <= cnt; shift++)
 			{
 				FLAGW_CF(tempSHLRDW & 1);
@@ -896,7 +896,7 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
 			BST_cnt = cnt; //Count!
-			if (cnt==1) FLAGW_OF((tempSHLRDD & 0x80000000) ? 1 : 0);
+			if (cnt==1) FLAGW_OF(((tempSHLRDD & 0x80000000)^((src&1)<<31)) ? 1 : 0);
 			for (shift = 1; shift <= cnt; shift++)
 			{
 				FLAGW_CF(tempSHLRDD & 1);
