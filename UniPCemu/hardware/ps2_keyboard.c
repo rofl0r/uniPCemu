@@ -714,15 +714,15 @@ void BIOS_initKeyboard() //Initialise the keyboard, after the 8042!
 	NUMSLASHkey = EMU_keyboard_handler_nametoid("kp/"); //Num lock slash key!
 	//NUMlock affects these keys, according to the Microsoft documentation:
 	numlockablekeys[0] = EMU_keyboard_handler_nametoid("insert"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("del"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("left"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("home"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("end"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("up"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("down"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("pgup"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("pgdn"); //Insert key!
-	numlockablekeys[0] = EMU_keyboard_handler_nametoid("right"); //Insert key!
+	numlockablekeys[1] = EMU_keyboard_handler_nametoid("del"); //Insert key!
+	numlockablekeys[2] = EMU_keyboard_handler_nametoid("left"); //Insert key!
+	numlockablekeys[3] = EMU_keyboard_handler_nametoid("home"); //Insert key!
+	numlockablekeys[4] = EMU_keyboard_handler_nametoid("end"); //Insert key!
+	numlockablekeys[5] = EMU_keyboard_handler_nametoid("up"); //Insert key!
+	numlockablekeys[6] = EMU_keyboard_handler_nametoid("down"); //Insert key!
+	numlockablekeys[7] = EMU_keyboard_handler_nametoid("pgup"); //Insert key!
+	numlockablekeys[8] = EMU_keyboard_handler_nametoid("pgdn"); //Insert key!
+	numlockablekeys[9] = EMU_keyboard_handler_nametoid("right"); //Insert key!
 }
 
 void BIOS_doneKeyboard()
