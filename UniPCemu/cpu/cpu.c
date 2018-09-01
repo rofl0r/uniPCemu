@@ -228,7 +228,7 @@ void CPU_JMPrel(int_32 reladdr)
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
-	} 
+	}
 }
 
 void CPU_JMPabs(uint_32 addr)
@@ -238,7 +238,7 @@ void CPU_JMPabs(uint_32 addr)
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
-	} 
+	}
 }
 
 uint_32 CPU_EIPmask()
