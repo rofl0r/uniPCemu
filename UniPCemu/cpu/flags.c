@@ -250,24 +250,24 @@ void flag_add32(uint32_t v1, uint32_t v2)
 
 void flag_sbb8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
-	sub = (uint_64)v2;
-	dst = (uint16_t)v1 - (sub + (uint_64)v3);
+	sub = (uint16_t)v2;
+	dst = (uint16_t)v1 - (sub + (uint16_t)v3);
 	flag_szp8(dst & 0xFF);
 	flag_subcoa8(v1,(uint16_t)sub,(uint16_t)dst);
 }
 
 void flag_sbb16(uint16_t v1, uint16_t v2, uint16_t v3)
 {
-	sub = (uint_64)v2;
-	dst = (uint32_t)v1 - (sub + (uint_64)v3);
+	sub = (uint16_t)v2;
+	dst = (uint32_t)v1 - (sub + (uint16_t)v3);
 	flag_szp16(dst & 0xFFFF);
 	flag_subcoa16(v1,(uint32_t)sub,(uint32_t)dst);
 }
 
 void flag_sbb32(uint32_t v1, uint32_t v2, uint32_t v3)
 {
-	sub = (uint_64)v2;
-	dst = (uint64_t)v1 - (sub + (uint_64)v3);
+	sub = (uint32_t)v2;
+	dst = (uint64_t)v1 - (sub + (uint32_t)v3);
 	flag_szp32(dst & 0xFFFFFFFF);
 	flag_subcoa32(v1,sub,dst);
 }
