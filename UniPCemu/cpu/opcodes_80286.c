@@ -439,7 +439,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the new register!
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
-		CPU_writeCR0(CPU[activeCPU].registers->CR0,(CPU[activeCPU].registers->CR0&(~0xFFFF))|oper1); //Set the MSW only!
+		CPU_writeCR0(CPU[activeCPU].registers->CR0,(CPU[activeCPU].registers->CR0&(~0xF))|(oper1&0xF)); //Set the MSW only! According to Bochs it only affects the low 4 bits!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		updateCPUmode(); //Update the CPU mode to reflect the new mode set, if required!
 		CPUPROT2
