@@ -1294,6 +1294,7 @@ void CPU80386_OP0FBC_16() {
 				instructionbufferw2 = temp;
 				++BST_cnt; //Increase counter!
 			}
+			flag_log16(instructionbufferw2);
 			++BST_cnt; //Increase counter!
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
@@ -1331,6 +1332,7 @@ void CPU80386_OP0FBC_32() {
 				instructionbufferd2 = temp;
 				++BST_cnt; //Increase counter!
 			}
+			flag_log32(instructionbufferd2);
 			++BST_cnt; //Increase counter!
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
@@ -1369,6 +1371,7 @@ void CPU80386_OP0FBD_16() {
 				--temp;
 				instructionbufferw2 = temp;
 			}
+			flag_log16(instructionbufferw2);
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
@@ -1405,6 +1408,7 @@ void CPU80386_OP0FBD_32() {
 				--temp;
 				instructionbufferd2 = temp;
 			}
+			flag_log32(instructionbufferd2);
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
