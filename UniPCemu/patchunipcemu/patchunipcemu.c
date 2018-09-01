@@ -23,21 +23,30 @@ int patchexecutable(char *filename)
 // Our application entry point.
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	//Main builds
 	//First, current directory!
 	//First, 32-bit version!
 	if (patchexecutable("UniPCemu_x86.exe")) return 1; //Error!
 	//Second, 64-bit version!
 	if (patchexecutable("UniPCemu_x64.exe")) return 1; //Error!
+
 	//mingw subdirectories!
 	//First, 32-bit version!
 	if (patchexecutable("mingw32/UniPCemu_x86.exe")) return 1; //Error!
 	//Second, 64-bit version!
 	if (patchexecutable("mingw64/UniPCemu_x64.exe")) return 1; //Error!
+
 	//msys subdirectories!
 	//First, 32-bit version!
 	if (patchexecutable("msys32/UniPCemu_x86.exe")) return 1; //Error!
 	//Second, 64-bit version!
 	if (patchexecutable("msys64/UniPCemu_x64.exe")) return 1; //Error!
+
+	//server version
+	//First, 32-bit version!
+	if (patchexecutable("server/UniPCemu_x64.exe")) return 1; //Error!
+	//Second, 64-bit version!
+	if (patchexecutable("server/UniPCemu_x64.exe")) return 1; //Error!
 
 	return 0; //Finished!
 }
