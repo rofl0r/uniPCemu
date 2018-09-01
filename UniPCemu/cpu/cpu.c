@@ -122,9 +122,9 @@ void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplic
 	switch (resultsize) //What result size?
 	{
 	default:
-	case 8: flag_szp8((byte)temp2.val64); break;
-	case 16: flag_szp16((word)temp2.val64); break;
-	case 32: flag_szp32((uint_32)temp2.val64); break;
+	case 8: flag_log8((byte)temp2.val64); break;
+	case 16: flag_log16((word)temp2.val64); break;
+	case 32: flag_log32((uint_32)temp2.val64); break;
 	}
 	if (temp3.val64s==temp2.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
 	else FLAGW_OF(1);
