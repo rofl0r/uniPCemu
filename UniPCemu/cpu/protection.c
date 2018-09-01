@@ -1408,6 +1408,13 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+				if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
+				{
+					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+					{
+						THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
+					}
+				}
 				CPU_flushPIQ(-1); //We're jumping to another address!
 			}
 			else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
