@@ -35,12 +35,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (patchexecutable("mingw32/UniPCemu_x86.exe")) return 1; //Error!
 	//Second, 64-bit version!
 	if (patchexecutable("mingw64/UniPCemu_x64.exe")) return 1; //Error!
+	//First, 32-bit version!
+	if (patchexecutable("mingw32_winpcap/UniPCemu_x86.exe")) return 1; //Error!
+	//Second, 64-bit version!
+	if (patchexecutable("mingw64_winpcap/UniPCemu_x64.exe")) return 1; //Error!
 
 	//msys subdirectories!
 	//First, 32-bit version!
 	if (patchexecutable("msys32/UniPCemu_x86.exe")) return 1; //Error!
 	//Second, 64-bit version!
 	if (patchexecutable("msys64/UniPCemu_x64.exe")) return 1; //Error!
+	//First, 32-bit version!
+	if (patchexecutable("msys32_winpcap/UniPCemu_x86.exe")) return 1; //Error!
+	//Second, 64-bit version!
+	if (patchexecutable("msys64_winpcap/UniPCemu_x64.exe")) return 1; //Error!
 
 	//server version
 	//First, 32-bit version!
