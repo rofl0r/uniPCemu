@@ -386,6 +386,10 @@ void BIU_dosboxTick()
 	}
 }
 
+byte instructionlimit[3] = {10,15,15}; //What is the maximum instruction length in bytes?
+
+extern word OPlength; //The length of the opcode buffer!
+
 byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
 	uint_32 instructionEIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
@@ -396,6 +400,14 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		//Execution can start on any cycle!
 		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
+		if (EMULATED_CPU>=CPU_80286)
+		{
+			if (unlikely((OPlength+1)>instructionlimit[EMULATED_CPU-CPU_80286])) //Instruction limit broken this fetch?
+			{
+				THROWDESCGP(0,0,0); //#GP(0)
+				return 1; //Abort on fault!
+			}
+		}
 		if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
@@ -412,6 +424,14 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
 		CPU_fillPIQ(); //Fill instruction cache with next data!
 		goto PIQ_retry; //Read again!
+	}
+	if (EMULATED_CPU>=CPU_80286)
+	{
+		if (unlikely((OPlength+1)>instructionlimit[EMULATED_CPU-CPU_80286])) //Instruction limit broken this fetch?
+		{
+			THROWDESCGP(0,0,0); //#GP(0)
+			return 1; //Abort on fault!
+		}
 	}
 	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 	{
