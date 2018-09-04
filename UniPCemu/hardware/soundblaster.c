@@ -80,7 +80,6 @@ struct
 	word AutoInitBlockSize; //Auto-init block size, as set by the Set DMA Block Size command for Auto-Init commands!
 	byte TestRegister; //Sound Blaster 2.01+ Test register!
 	DOUBLE frequency; //The frequency we're currently rendering at!
-	byte DirectADC; //Special ADC condition for Sound Blaster prior to SB16!
 	TicksHolder recordingtimer; //Real-time recording support!
 	byte recordedsample; //Last recorded sample, updated real-time!
 } SOUNDBLASTER; //The Sound Blaster data!
@@ -469,7 +468,8 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x20: //Direct ADC, 8-bit
 		SB_LOGCOMMAND
 		fifobuffer_clear(SOUNDBLASTER.DSPindata); //Wait for input!
-		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!											fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
+		writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
+		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		SOUNDBLASTER.command = SOUNDBLASTER.DREQ = 0; //Finished! Stop DMA!
 		break;
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
@@ -875,16 +875,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
 				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command,SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
-				//Sound Blasters prior to SB16 return the first sample in Direct Mode!
-				if (SOUNDBLASTER.command==0x24) //Special DMA/Direct mode bug: first sample becomes Direct instead of DMA!
-				{
-					SOUNDBLASTER.DirectADC = 1; //Handle this special case instead by starting with Direct ADC input on older Sound Blasters(<SB16)!
-					SoundBlaster_IRQ8(); //Raise the IRQ to identify the input!
-				}
-				else //Start DMA normally!
-				{
-					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
-				}
+				//Sound Blasters prior to SB16 return the first sample in Direct Mode! Not anymore according to the current Dosbox commits!
+				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
 				break;
 			default:
 				break;
@@ -969,22 +961,8 @@ OPTINLINE byte readDSPData(byte isDMA)
 	case 0x24: //DMA ADC, 8-bit
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
 		{
-			if (isDMA || SOUNDBLASTER.DirectADC) //Must be DMA transfer or Direct ADC single sample!
+			if (isDMA) //Must be DMA transfer!
 			{
-				if (SOUNDBLASTER.DirectADC) //Special Direct ADC case starts DMA after?
-				{
-					SOUNDBLASTER.DirectADC = 0; //Clear the Direct ADC flag: we're handled!
-
-					#ifndef RECORD_TESTWAVE
-					SOUNDBLASTER.DREQ = (1|0x10|2); //Raise: we're outputting data for playback! Raise real-time flag as well!
-					#else
-					SOUNDBLASTER.DREQ = (1|2); //Same as above, but not realtime.
-					#endif
-					if (SOUNDBLASTER.DMADisabled == 1) //DMA Disabled?
-					{
-						SOUNDBLASTER.DMADisabled = 0; //Start the DMA transfer fully itself!
-					}
-				}
 				if (SOUNDBLASTER.dataleft==0) goto noreaddataleft;
 				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
 				{
@@ -1030,7 +1008,6 @@ void DSP_HWreset()
 	SOUNDBLASTER.DREQ = 0; //Disable any DMA requests!
 	SOUNDBLASTER.ADPCM_reference = 0; //No reference byte anymore!
 	SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
-	SOUNDBLASTER.DirectADC = 0; //Disable the special Direct ADC status!
 	fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
 	fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
 	sb_leftsample = sb_rightsample = 0x80; //Silence output!
@@ -1080,7 +1057,7 @@ byte inSoundBlaster(word port, byte *result)
 		}
 		return 1; //Handled!
 	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
-		*result = ((peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)|SOUNDBLASTER.DirectADC)<<7)|0x7F; //Do we have data available? Also check for the Direct DMA on older Sound Blasters!
+		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7)|0x7F; //Do we have data available? Also check for the Direct DMA on older Sound Blasters!
 		if (SOUNDBLASTER.IRQ8Pending==3) //Pending and acnowledged?
 		{
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
