@@ -2014,11 +2014,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
 		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 		bufferMMU(); //Buffer the MMU writes for us!
-		if (!CPU[activeCPU].repeating) MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
 		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
 		protection_nextOP(); //Prepare protection for the next instruction!
+		if (!CPU[activeCPU].repeating) MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
 
 		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
 
