@@ -96,6 +96,11 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 
 		FLAGW_IF(0); //We're calling the interrupt!
 		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
+		
+		if (EMULATED_CPU>=CPU_80486)
+		{
+			FLAGW_AC(0); //Clear Alignment Check flag too!
+		}
 
 		//Load EIP and CS destination to use from the original 16-bit data!
 		destEIP = (uint_32)destINTIP;

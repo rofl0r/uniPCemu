@@ -1919,8 +1919,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				FLAGW_V8(0); //Clear the Virtual 8086 mode flag!
 				updateCPUmode(); //Update the CPU mode!
 
-				FLAGW_RF(0); //Clear Resume flag too!
-
 				//We're back in protected mode now!
 				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
@@ -2022,6 +2020,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			FLAGW_TF(0);
 			FLAGW_NT(0);
+			FLAGW_RF(0); //Clear Resume flag too!
 
 			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
 			{
