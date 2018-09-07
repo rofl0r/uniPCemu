@@ -412,7 +412,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_ERRORREGISTER_SENSEKEY(channel,drive,SENSE_UNIT_ATTENTION); //Signal an Unit Attention Sense key!
 		ATAPI_ERRORREGISTER_ABRT(channel,drive,0); //Signal no Abort!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Error(Unit Attention)!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 4; //We're triggering the reason read to reset!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //We're triggering the reason read to reset!
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 3; //Not pending anymore, pending to give sense packet instead!
 	}
 	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
@@ -432,7 +432,11 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet: we're data!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //IO is set when reading data to the Host(CPU), through PORT IN!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 4; //We're triggering the reason read to reset!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //We're triggering the reason read to reset!
+
+		//Now, also make sure that BSY and DRQ are cleared!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = (DOUBLE)0; //Don't use any timers anymore!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming = (DOUBLE)0; //We're reedy immediately!
 	}
 	else //Inactive? Indicate command to be sent!
 	{
@@ -1908,6 +1912,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	byte i;
 	uint_32 disk_size,LBA;
 	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 4096 byte sectors!
+	ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
+	ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
+	ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
+	ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
 	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
@@ -3224,11 +3232,6 @@ byte inATA8(word port, byte *result)
 #ifdef ATA_LOG
 		dolog("ATA", "Sector count register read: %02X %u.%u", *result, channel, ATA_activeDrive(channel));
 #endif
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET==4) //Reading the result phase final result at the end of an ATAPI command?
-		{
-			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //Reset the status after the result's been read!
-			ATAPI_giveresultsize(channel,0,/*1*/ 0); //Generate the reason for the new command!
-		}
 		return 1;
 		break;
 	case 3: //Sector number?
