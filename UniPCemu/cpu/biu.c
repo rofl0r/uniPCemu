@@ -425,6 +425,10 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		{
 			return 1; //Abort on fault!
 		}
+		if (MMU.invaddr) //Was an invalid address signaled? We might have to update the prefetch unit to prefetch all that's needed, since it's validly mapped now!
+		{
+			BIU_instructionStart();
+		}
 		if (EMULATED_CPU >= CPU_80286)
 		{
 			if (unlikely((OPlength + 1)>instructionlimit[EMULATED_CPU - CPU_80286])) //Instruction limit broken this fetch?
