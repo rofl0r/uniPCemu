@@ -1223,7 +1223,6 @@ void detectBIUactiveCycleHandler()
 
 void CPU_tickBIU()
 {
-	byte cyclebackup,stallBUSbackup;
 	if (likely(useIPSclock == 0)) //Not using IPS clocking?
 	{
 		cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
