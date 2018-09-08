@@ -400,6 +400,7 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
+	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
 	uint_32 offset;
@@ -426,6 +427,13 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
 			{
 				Paging_clearTLB(); //Clear the TLB!
+			}
+			else if (result == &CPU[activeCPU].registers->DR7)
+			{
+				for (DR = 0; DR < 3; ++DR)
+				{
+					CPU[activeCPU].activeBreakpoint[DR] = (CPU[activeCPU].registers->DR7&(3 << (DR << 1))); //Are we an active breakpoint?
+				}
 			}
 			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
 			{
@@ -460,6 +468,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 
 byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
+	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
 	uint_32 offset;
@@ -495,6 +504,13 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
 			{
 				Paging_clearTLB(); //Clear the TLB!
+			}
+			else if (result == &CPU[activeCPU].registers->DR7)
+			{
+				for (DR = 0; DR < 3; ++DR)
+				{
+					CPU[activeCPU].activeBreakpoint[DR] = (CPU[activeCPU].registers->DR7&(3 << (DR << 1))); //Are we an active breakpoint?
+				}
 			}
 			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
 			{

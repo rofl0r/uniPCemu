@@ -955,6 +955,7 @@ typedef struct
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
 	byte is_paging; //Are we paging?
 	uint_64 address_size; //Effective address size for the current instruction!
+	byte activeBreakpoint[4]; //Are we an active breakpoint?
 } CPU_type;
 
 #ifndef IS_CPU

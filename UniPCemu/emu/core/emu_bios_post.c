@@ -415,6 +415,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					BIOSROM_dumpBIOS(); //Dump the BIOS!
 				}
+				CPU_flushPIQ(-1); //Make sure the PIQ is up-to-date with out newly mapped ROMs in IPS mode!
 				allow_debuggerstep = 1; //Allow stepping from now on!
 				startTimers(0); //Make sure we're running fully!
 				startTimers(1); //Make sure we're running fully!

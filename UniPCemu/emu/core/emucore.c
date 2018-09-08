@@ -568,6 +568,7 @@ void initEMU(int full) //Init!
 		BIOS_load_systemROM(); //Load custom ROM from emulator itself, we don't know about any system ROM!
 		clearCBHandlers(); //Reset all callbacks!
 		BIOS_initStart(); //Get us ready to load our own BIOS boot sequence, so load the ROM with all required data!
+		CPU_flushPIQ(-1); //Make sure the PIQ is up-to-date with out newly mapped ROMs in IPS mode!
 	}
 	else
 	{

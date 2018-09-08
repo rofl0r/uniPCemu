@@ -106,6 +106,7 @@ void CPU_flushPIQ(int_64 destaddr)
 	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
 	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
+	BIU_instructionStart(); //Prepare for a new instruction!
 }
 
 //Internal helper functions for requests and responses!

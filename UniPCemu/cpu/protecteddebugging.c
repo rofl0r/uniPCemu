@@ -9,7 +9,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 	const uint_32 triggersizes[4] = {1,2,8,4}; //How many bytes to watch?
 	uint_32 breakpointposition[2], endposition[2]; //Two breakpoint positions to support overflow locations!
 	byte typematched=0; //Type matched?
-	if (likely((CPU[activeCPU].registers->DR7&(3<<(DR<<1)))==0)) return 0; //Disabled? Both global and local are applied!
+	if (unlikely(CPU[activeCPU].activeBreakpoint[DR]==0)) return 0; //Disabled? Both global and local are applied!
 	{
 		breakpointinfo = CPU[activeCPU].registers->DR7; //Get the info to process!
 		breakpointinfo >>= (0x10|(DR<<2)); //Shift our information required to the low bits!
@@ -90,6 +90,7 @@ byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at me
 {
 	if (likely(getcpumode()==CPU_MODE_REAL)) return 0; //Not supported in real mode!
 	if (unlikely(FLAG_RF || (EMULATED_CPU<CPU_80386))) return 0; //Resume flag inhabits the exception!
+	if (likely((CPU[activeCPU].activeBreakpoint[0] | CPU[activeCPU].activeBreakpoint[1] | CPU[activeCPU].activeBreakpoint[2] | CPU[activeCPU].activeBreakpoint[3]))==0) return 0; //No active breakpoints!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,0))) return 1; //Break into the debugger on Breakpoint #0!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,1))) return 1; //Break into the debugger on Breakpoint #1!
 	if (unlikely(checkProtectedModeDebuggerBreakpoint(linearaddress,type,2))) return 1; //Break into the debugger on Breakpoint #2!
