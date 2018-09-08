@@ -414,18 +414,18 @@ extern word OPlength; //The length of the opcode buffer!
 byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
 	uint_32 instructionEIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
-	if (CPU[activeCPU].resetPending) return 1; //Disable all instruction fetching when we're resetting!
-	if (BIU[activeCPU].PIQ) //PIQ present?
+	if (unlikely(CPU[activeCPU].resetPending)) return 1; //Disable all instruction fetching when we're resetting!
+	if (likely(BIU[activeCPU].PIQ)) //PIQ present?
 	{
 		PIQ_retry: //Retry after refilling PIQ!
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		//Execution can start on any cycle!
 		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
-		if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (MMU.invaddr) //Was an invalid address signaled? We might have to update the prefetch unit to prefetch all that's needed, since it's validly mapped now!
+		if (unlikely(MMU.invaddr)) //Was an invalid address signaled? We might have to update the prefetch unit to prefetch all that's needed, since it's validly mapped now!
 		{
 			BIU_instructionStart();
 		}
