@@ -254,13 +254,16 @@ byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
 	word sortarray[8];
+	TLBEntry TLBBackup[8]; //Backup the TLB!
 	INLINEREGISTER word tmp;
-	INLINEREGISTER byte x,y;
+	INLINEREGISTER byte x,y,z,set;
+	set = (byte)TLB_set;
 	x = 0;
 	//Age bit 3 is assigned to become 8+(invalid/unused, which is moved to the end with value assigned 0)!
+	memcpy(&TLBBackup, &CPU[activeCPU].Paging_TLB.TLB[set], sizeof(CPU[activeCPU].Paging_TLB.TLB[set])); //Backup the whole TLB for easy copying in order!
 	do
 	{
-		sortarray[x]= AGEENTRY_AGEENTRY(((sbyte)(((CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].TAG&1)^1)<<3))+(CPU[activeCPU].Paging_TLB.TLB[TLB_set][x].age),x); //Move unused entries to the end and what entry are we!
+		sortarray[x]= AGEENTRY_AGEENTRY(((sbyte)(((TLBBackup[x].TAG&1)^1)<<3))+(TLBBackup[x].age),x); //Move unused entries to the end and what entry are we!
 	} while (++x<8);
 
 	//Sort the 8 items! Bose-Nelson Algorithm! Created using http://jgamble.ripco.net/cgi-bin/nw.cgi?inputs=8&algorithm=best&output=svg
@@ -274,10 +277,16 @@ void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specif
 
 	y = 0; //Initialize the aged entry to apply!
 	x = 0; //Initialize the sorted entry location/age to apply!
+	//Further optimization: move the newest ages to the top!
 	do //Apply the new order!
 	{
-		CPU[activeCPU].Paging_TLB.TLB[TLB_set][AGEENTRY_ENTRY(sortarray[x])].age = (y>>(AGEENTRY_AGE(sortarray[x])&8)); //Generated age or unused age(0)!
-		++y; //Next when valid entry!
+		z = AGEENTRY_ENTRY(sortarray[x]); //What entry are we originally?
+		if (unlikely(x != z)) //Has the original entry changed it's location?
+		{
+			memcpy(&CPU[activeCPU].Paging_TLB.TLB[set][x], &TLBBackup[z], sizeof(CPU[activeCPU].Paging_TLB.TLB[set][x])); //Copy the (un)aged item in order!
+		}
+		CPU[activeCPU].Paging_TLB.TLB[set][x].age = (y>>(AGEENTRY_AGE(sortarray[x])&8)); //Generated age or unused age(0)!
+		++y; //Next age when valid entry!
 	} while (++x<8);
 }
 
@@ -309,17 +318,17 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 WDMask, uint_32 *result)
 {
 	INLINEREGISTER uint_32 TAG, TAGMask;
+	INLINEREGISTER byte entry = 0;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress,W,U,D); //Generate a TAG!
 	TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
-	if (WDMask) //Used?
+	if (likely(WDMask)) //Used?
 	{
 		TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
 	}
-	INLINEREGISTER byte entry=0;
 	do //Check all entries!
 	{
- 		if (unlikely((CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG&TAGMask)==TAG)) //Found?
+ 		if (likely((CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG&TAGMask)==TAG)) //Found?
 		{
 			*result = CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].data; //Give the stored data!
 			if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age)) //Not the newest age(which is always 0)?
