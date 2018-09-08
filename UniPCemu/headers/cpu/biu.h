@@ -39,7 +39,9 @@ typedef struct
 void CPU_initBIU(); //Initialize the BIU!
 void CPU_doneBIU(); //Finish the BIU!
 void CPU_tickBIU(); //Tick the BIU!
-void BIU_dosboxTick(); //Tick the BIU, dosbox style!
+
+//IPS clocking support!
+void BIU_instructionStart(); //Handle all when instructions are starting!
 
 byte BIU_Ready(); //Are we ready to continue execution?
 
@@ -84,5 +86,9 @@ uint_32 BIU_directrdw(uint_32 realaddress, word index);
 void BIU_directwb(uint_32 realaddress, byte val, word index); //Access physical memory dir
 void BIU_directww(uint_32 realaddress, word value, word index); //Direct write to real memory (with real data direct)!
 void BIU_directwdw(uint_32 realaddress, uint_32 value, word index);
+
+#ifndef IS_BIU
+extern Handler BIU_handleRequests; //Handle all pending requests at once when to be processed!
+#endif
 
 #endif

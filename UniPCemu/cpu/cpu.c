@@ -472,6 +472,7 @@ byte CPU_PORT_OUT_B(word base, word port, byte data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -512,6 +513,7 @@ byte CPU_PORT_OUT_W(word base, word port, word data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -562,6 +564,7 @@ byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -596,6 +599,7 @@ byte CPU_PORT_IN_B(word base, word port, byte *result)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -635,6 +639,7 @@ byte CPU_PORT_IN_W(word base, word port, word *result)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -684,6 +689,7 @@ byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -2018,7 +2024,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
 		protection_nextOP(); //Prepare protection for the next instruction!
-		if (!CPU[activeCPU].repeating) MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
+		if (!CPU[activeCPU].repeating)
+		{
+			MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
+			BIU_instructionStart(); //Handle all when instructions are starting!
+		}
 
 		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
 

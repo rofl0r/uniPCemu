@@ -213,6 +213,7 @@ byte CPU80386_PUSHdw(word base, uint_32 *data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==(base+1))
@@ -239,6 +240,7 @@ byte CPU80386_internal_PUSHdw(word base, uint_32 *data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -265,6 +267,7 @@ byte CPU80386_internal_interruptPUSHdw(word base, uint_32 *data)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinterruptstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinterruptstep==(base+1))
@@ -290,6 +293,7 @@ byte CPU80386_POPdw(word base, uint_32 *result)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==(base+1))
@@ -315,6 +319,7 @@ byte CPU80386_internal_POPdw(word base, uint_32 *result)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==(base+1))
@@ -341,6 +346,7 @@ byte CPU80386_POPESP(word base)
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
 	if (CPU[activeCPU].instructionstep==(base+1))
@@ -384,6 +390,10 @@ byte CPU80386_instructionstepreadmodrmdw(word base, uint_32 *result, byte paramn
 		{
 			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
+		else //Memory?
+		{
+			BIU_handleRequests(); //Handle all pending requests at once when to be processed!
+		}
 	}
 	if (CPU[activeCPU].modrmstep==(base+1))
 	{
@@ -415,6 +425,10 @@ byte CPU80386_instructionstepwritemodrmdw(word base, uint_32 value, byte paramnr
 		{
 			++CPU[activeCPU].modrmstep; //Skip next step!
 		}
+		else //Memory?
+		{
+			BIU_handleRequests(); //Handle all pending requests at once when to be processed!
+		}
 	}
 	if (CPU[activeCPU].modrmstep==(base+1))
 	{
@@ -440,6 +454,7 @@ byte CPU80386_instructionstepwritedirectdw(word base, sword segment, word segval
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	if (CPU[activeCPU].modrmstep == (base + 1))
@@ -465,6 +480,7 @@ byte CPU80386_instructionstepreaddirectdw(word base, sword segment, word segval,
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].modrmstep; //Next step!
 	}
 	if (CPU[activeCPU].modrmstep == (base + 1))
@@ -498,6 +514,10 @@ byte CPU80386_internal_stepreadmodrmdw(word base, uint_32 *result, byte paramnr)
 		{
 			++CPU[activeCPU].internalmodrmstep; //Skip next step!
 		}
+		else //Memory?
+		{
+			BIU_handleRequests(); //Handle all pending requests at once when to be processed!
+		}
 	}
 	if (CPU[activeCPU].internalmodrmstep==(base+1))
 	{
@@ -523,6 +543,7 @@ byte CPU80386_internal_stepwritedirectdw(word base, sword segment, word segval, 
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalmodrmstep; //Next step!
 	}
 	if (CPU[activeCPU].internalmodrmstep==(base+1))
@@ -548,6 +569,7 @@ byte CPU80386_internal_stepreaddirectdw(word base, sword segment, word segval, u
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalmodrmstep; //Next step!
 	}
 	if (CPU[activeCPU].internalmodrmstep==(base+1))
@@ -573,6 +595,7 @@ byte CPU80386_internal_stepreadinterruptdw(word base, sword segment, word segval
 			CPU[activeCPU].executed = 0; //Not executed!
 			return 1; //Keep running!
 		}
+		BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		++CPU[activeCPU].internalinterruptstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinterruptstep==(base+1))
@@ -604,6 +627,10 @@ byte CPU80386_internal_stepwritemodrmdw(word base, uint_32 value, byte paramnr)
 		if (BIUtype==2) //Register?
 		{
 			++CPU[activeCPU].internalmodrmstep; //Skip next step!
+		}
+		else //Memory?
+		{
+			BIU_handleRequests(); //Handle all pending requests at once when to be processed!
 		}
 	}
 	if (CPU[activeCPU].internalmodrmstep==(base+1))

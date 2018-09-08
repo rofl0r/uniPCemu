@@ -1,3 +1,6 @@
+//We're the BIU!
+#define IS_BIU
+
 #include "headers/cpu/biu.h" //Our own typedefs!
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/support/fifobuffer.h" //FIFO support!
@@ -62,6 +65,10 @@ void detectBIUactiveCycleHandler(); //For detecting the cycle handler to use for
 
 byte useIPSclock = 0; //Are we using the IPS clock instead of cycle accurate clock?
 extern CPU_type CPU[MAXCPUS]; //The CPU!
+
+void BIU_handleRequestsNOP(); //Prototype dummy handler!
+
+Handler BIU_handleRequests = &BIU_handleRequestsNOP; //Handle all pending requests at once when to be processed!
 
 void CPU_initBIU()
 {
@@ -381,8 +388,21 @@ void BIU_dosboxTick()
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
 		for (;fifobuffer_freesize(BIU[activeCPU].PIQ) && (MMU_invaddr()==0);)
 		{
+			PIQ_block = 0; //We're never blocking(only 1 access)!
 			CPU_fillPIQ(); //Keep the FIFO fully filled!
+			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+			BIU[activeCPU].requestready = 1; //The request is ready to be served!
 		}
+		CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+		BIU[activeCPU].requestready = 1; //The request is ready to be served!
+	}
+}
+
+void BIU_instructionStart() //Handle all when instructions are starting!
+{
+	if (unlikely(useIPSclock)) //Using IPS clock?
+	{
+		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
 	}
 }
 
@@ -925,6 +945,27 @@ void BIU_cycle_WaitStateRAMBUS() //Waiting for WaitState RAM/BUS?
 	}
 }
 
+void BIU_handleRequestsIPS() //Handle all pending requests at once!
+{
+	if (unlikely(BIU_processRequests(0, 0))) //Processing a request?
+	{
+		CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+		BIU[activeCPU].requestready = 1; //The request is ready to be served!
+		for (; BIU_processRequests(0, 0);) //More requests to handle?
+		{
+			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+		}
+		CPU[activeCPU].BUSactive = 0; //Inactive BUS!
+		BIU[activeCPU].requestready = 1; //The request is ready to be served!
+	}
+}
+
+void BIU_handleRequestsNOP()
+{
+	//NOP!
+}
+
 void BIU_cycle_active8086() //Everything not T1 cycle!
 {
 	BIU[activeCPU].stallingBUS = 0; //Not stalling BUS!
@@ -971,15 +1012,8 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = 0; //We're never blocking(only 1 access)!
-					if (unlikely(useIPSclock)) //Using IPS clock?
-					{
-						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-					}
-					else //Normal filling of the PIQ?
-					{
-						CPU_fillPIQ(); //Add a byte to the prefetch!
-						if (CPU_databussize == 0) CPU_fillPIQ(); //8086? Fetch words!
-					}
+					CPU_fillPIQ(); //Add a byte to the prefetch!
+					if (CPU_databussize == 0) CPU_fillPIQ(); //8086? Fetch words!
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 					BIU[activeCPU].requestready = 0; //We're pending a request!
@@ -1054,17 +1088,10 @@ void BIU_cycle_active286()
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
-					if (unlikely(useIPSclock)) //Using IPS clock?
+					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
-						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-					}
-					else //Normal filling of the PIQ?
-					{
-						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-						if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
-						{
-							CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
-						}
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
@@ -1130,17 +1157,10 @@ void BIU_cycle_active486()
 				{
 					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
-					if (unlikely(useIPSclock)) //Using IPS clock?
+					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
+					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
-						BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-					}
-					else //Normal filling of the PIQ?
-					{
-						CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-						if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
-						{
-							CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
-						}
+						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
 					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
 					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
@@ -1185,65 +1205,50 @@ void BIU_detectCycle() //Detect the cycle to execute!
 void detectBIUactiveCycleHandler()
 {
 	BIU_activeCycleHandler = (EMULATED_CPU > CPU_NECV30) ? (BIU_is_486 ? &BIU_cycle_active486 : &BIU_cycle_active286) : &BIU_cycle_active8086; //What cycle handler are we to use?
+	BIU_handleRequests = (useIPSclock) ? &BIU_handleRequestsIPS : &BIU_handleRequestsNOP; //Either NOP variant or IPS clocking version!
 }
 
 void CPU_tickBIU()
 {
 	byte cyclebackup,stallBUSbackup;
-	cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
-
-	//Determine memory/bus waitstate first!
-	memory_waitstates = 0;
-	bus_waitstates = 0;
-	BIU_active = 1; //We're active by default!
-	if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+	if (likely(useIPSclock == 0)) //Not using IPS clocking?
 	{
-		memory_waitstates += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-		bus_waitstates += CPU286_BUSWAITSTATE_DELAY; //Waitstate I/O!
-	}
-	else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
-	{
-		memory_waitstates += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
-	}
+		cycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
 
-	//Now, normal processing!
-	if (unlikely(BIU[activeCPU].PIQ==NULL)) return; //Disable invalid PIQ!
-	if (unlikely((cycleinfo->cycles==0) && (cycleinfo->cycles_stallBUS==0))) //Are we ready to continue into the next phase?
-	{
-		cycleinfo->cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
-		if (cycleinfo->cycles==0) cycleinfo->cycles = 1; //Take 1 cycle at least!
+		//Determine memory/bus waitstate first!
+		memory_waitstates = 0;
+		bus_waitstates = 0;
+		BIU_active = 1; //We're active by default!
+		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
+		{
+			memory_waitstates += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			bus_waitstates += CPU286_BUSWAITSTATE_DELAY; //Waitstate I/O!
+		}
+		else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
+		{
+			memory_waitstates += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+		}
 
-		cycleinfo->prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
-		cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
-		cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
-		cycleinfo->cycles_stallBUS = CPU[activeCPU].cycles_stallBUS; //BUS stall cycles!
-		CPU[activeCPU].cycles_Prefetch = CPU[activeCPU].cycles_EA = CPU[activeCPU].cycles_stallBIU = CPU[activeCPU].cycles_stallBUS = 0; //We don't have any of these after this!
-		BIU_detectCycle(); //Detect the current cycle to execute!
-	}
+		//Now, normal processing!
+		if (unlikely(BIU[activeCPU].PIQ==NULL)) return; //Disable invalid PIQ!
+		if (unlikely((cycleinfo->cycles==0) && (cycleinfo->cycles_stallBUS==0))) //Are we ready to continue into the next phase?
+		{
+			cycleinfo->cycles = CPU[activeCPU].cycles; //How many cycles have been spent on the instruction?
+			if (cycleinfo->cycles==0) cycleinfo->cycles = 1; //Take 1 cycle at least!
 
-	if (likely(useIPSclock==0)) //Not using IPS clocking?
-	{
+			cycleinfo->prefetchcycles = CPU[activeCPU].cycles_Prefetch; //Prefetch cycles!
+			cycleinfo->prefetchcycles += CPU[activeCPU].cycles_EA; //EA cycles!
+			cycleinfo->cycles_stallBIU = CPU[activeCPU].cycles_stallBIU; //BIU stall cycles!
+			cycleinfo->cycles_stallBUS = CPU[activeCPU].cycles_stallBUS; //BUS stall cycles!
+			CPU[activeCPU].cycles_Prefetch = CPU[activeCPU].cycles_EA = CPU[activeCPU].cycles_stallBIU = CPU[activeCPU].cycles_stallBUS = 0; //We don't have any of these after this!
+			BIU_detectCycle(); //Detect the current cycle to execute!
+		}
+
 		BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
 
 		//Now we have the amount of cycles we're idling.
 		BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
 		cycleinfo->currentTimingHandler(); //Run the current handler!
-	}
-	else
-	{
-		BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
-
-		cyclebackup = cycleinfo->cycles; //Save state!
-		stallBUSbackup = cycleinfo->cycles_stallBUS; //Save state!
-		for (;(cycleinfo->cycles|cycleinfo->cycles_stallBUS);) //Process all waiting cycles in one go(IPS clocking) for a small speedup!
-		{
-			//Now we have the amount of cycles we're idling.
-			BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
-			cycleinfo->currentTimingHandler(); //Run the current handler!
-			if (unlikely((cycleinfo->cycles==cyclebackup) && (cycleinfo->cycles_stallBUS==stallBUSbackup))) break; //We're not doing anything for some reason? Abort in that case(prevent hanging)!
-			cyclebackup = cycleinfo->cycles; //Save state!
-			stallBUSbackup = cycleinfo->cycles_stallBUS; //Save state!
-		}
 	}
 
 	CPU[activeCPU].cycles = 1; //Only take 1 cycle: we're cycle-accurate emulation of the BIU(and EU by extension, since we handle that part indirectly as well in our timings, resulting in the full CPU timings)!
