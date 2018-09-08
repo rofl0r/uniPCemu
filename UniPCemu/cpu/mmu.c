@@ -216,6 +216,10 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 		MMU.invaddr = 3; //Invalid address signaling!
 		return 1; //Error out!
 	}
+	if (MMU.invaddr && (CPU[activeCPU].instructionfetch.CPU_isFetching)) //Was an invalid address signaled? We might have to update the prefetch unit to prefetch all that's needed!
+	{
+		BIU_instructionStart();
+	}
 	checkMMUaccess_linearaddr = realaddress; //Save the last valid access for the BIU to use(we're not erroring out after all)!
 	//We're valid?
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
