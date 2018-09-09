@@ -2488,6 +2488,7 @@ OPTINLINE void giveATAPISignature(byte channel, byte drive)
 	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0xEB; //LBA 16-23
 	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x14; //LBA 8-15
 	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01; //LBA 0-7
+	ATA[channel].Drive[drive].PARAMETERS.drivehead = (drive<<4); //LBA 0-7
 }
 
 OPTINLINE void giveATASignature(byte channel, byte drive)
@@ -2496,6 +2497,7 @@ OPTINLINE void giveATASignature(byte channel, byte drive)
 	ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0x00;
 	ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0x00;
 	ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01;
+	ATA[channel].Drive[drive].PARAMETERS.drivehead = 0x00;
 }
 
 OPTINLINE void giveSignature(byte channel, byte drive)
@@ -3563,4 +3565,8 @@ void initATA()
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!
+	ATA_reset(0,0); //Hardware reset!
+	ATA_reset(0,1); //Hardware reset!
+	ATA_reset(1,0); //Hardware reset!
+	ATA_reset(1,1); //Hardware reset!
 }
