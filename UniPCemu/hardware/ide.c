@@ -2687,7 +2687,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
-			goto invalidcommand_noerror; //Execute an invalid command result!
+			goto invalidatedcommand; //Execute an invalid command result!
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
@@ -2789,7 +2789,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			//Enter reserved ATAPI result!
 			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
-			goto invalidcommand_noerror; //Execute an invalid command result!
+			goto invalidatedcommand; //Execute an invalid command result!
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xEC; //We're running this command!
 		CDROMIDENTIFY:
@@ -2950,11 +2950,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #ifdef ATA_LOG
 		dolog("ATA", "INVALIDCOMMAND:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
+		invalidatedcommand:
 		//Present ABRT error! BSY=0 in status, ERR=1 in status, ABRT(4) in error register.
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error occurred: wee're executing an invalid command!
-		invalidcommand_noerror:
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		//Reset of the status register is 0!
