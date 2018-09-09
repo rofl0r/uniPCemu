@@ -2686,7 +2686,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for CD-ROM drives?
 		{
 			//Enter reserved ATAPI result!
-			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
 			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
@@ -2789,7 +2788,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //Special action for CD-ROM drives?
 		{
 			//Enter reserved ATAPI result!
-			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 1; //Passed!
 			giveSignature(channel,ATA_activeDrive(channel)); //Give our signature!
 			goto invalidcommand_noerror; //Execute an invalid command result!
 		}
