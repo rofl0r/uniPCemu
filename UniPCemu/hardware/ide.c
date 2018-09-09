@@ -2514,7 +2514,6 @@ OPTINLINE void giveSignature(byte channel, byte drive)
 
 void ATA_reset(byte channel, byte slave)
 {
-	giveSignature(channel,slave); //Give the signature!
 	//Clear errors!
 	ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error!
 	//Clear Drive/Head register, leaving the specified drive as it is!
@@ -2529,6 +2528,7 @@ void ATA_reset(byte channel, byte slave)
 	{
 		ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
 	}
+	giveSignature(channel, slave); //Give the signature!
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
 }
 
