@@ -2968,8 +2968,8 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
-		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */))?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */)))||DRIVECONTROLREGISTER_SRSTR(channel))?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))||DRIVECONTROLREGISTER_SRSTR(channel))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Hard disk?
