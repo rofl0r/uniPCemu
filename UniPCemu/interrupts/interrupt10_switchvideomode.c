@@ -434,7 +434,7 @@ int INT10_Internal_SetVideoMode(word mode)
 		clearmem=false;
 		mode-=0x80;
 	}
-	else if (mode >= 0x100) //High mode = not supported!
+	else if ((mode >= 0x300) || ((mode>=0x100)&&(mode<0x200))) //High mode = not supported!
 	{
 		return false; //Error: unsupported mode!
 	}
