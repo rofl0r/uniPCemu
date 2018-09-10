@@ -90,8 +90,8 @@ void GPUswitchvideomode(word mode)
 OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel from the real emulated screen buffer!
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	uint_32 rowoffs;
-	byte curbank;
+	byte curbank, repeating, reps;
+	uint_32 rowoffs, rowoffsbackup;
 		if ((svgaCard==SVGA_TsengET3K) || (svgaCard==SVGA_TsengET4K))
 		{
 			IO_Write(0x3CD, 0x40); //Set the new bank to it's default value for safety!
@@ -138,7 +138,23 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
                 *color=mem_readb(RealMake(0xa000,320*y+x));
                 break;
         case M_LIN8:
-				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+		case M_LIN16:
+				rowoffs = (y*real_readw(BIOSMEM_SEG, BIOSMEM_NB_COLS) * 8); //The offset to retrieve!
+				if (CurMode->type == M_LIN16)
+				{
+					rowoffs += (x << 1); //Add X bytes!
+					repeating = 0; //Don't repeat!
+				}
+				else
+				{
+					rowoffs += x; //Add X words!
+					repeating = 1; //Repeat once!
+				}
+				rowoffsbackup = rowoffs; //Save backup!
+				*color = 0; //Init!
+				reps = 0; //Init!
+
+			dorepeat:
 				//Translate the offset to a bank number&offset if needed
 				if (svgaCard==SVGA_TsengET4K) //ET4K?
 				{
@@ -158,8 +174,15 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
 					IO_Write(0x3CD, curbank); //Set the new bank!
 				}
                 RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
-                *color = mem_readb(off);
-                break;
+				*color |= (mem_readb(off) << (8*reps)); //Move to the correct byte!
+				if (repeating) //Are we to repeat for higher data?
+				{
+					--repeating; //Processing once!
+					rowoffs = ++rowoffsbackup; //Restore backup!
+					++reps; //Increase repeats!
+					goto dorepeat; //Repeat!
+				}
+				break;
         default:
                 //LOG(LOG_INT10,LOG_ERROR)("GetPixel unhandled mode type %d",CurMode->type);
         	return 0; //Error: unknown mode!
@@ -170,8 +193,8 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
 
 int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pixel to the real emulated screen buffer
 {
-	byte curbank;
-	uint_32 rowoffs;
+	byte curbank,repeating;
+	uint_32 rowoffs,rowoffsbackup;
 	if (__HW_DISABLED) return 0; //Abort!
         //static bool putpixelwarned = false;
 		if ((svgaCard==SVGA_TsengET3K) || (svgaCard==SVGA_TsengET4K))
@@ -283,9 +306,23 @@ int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pi
                 mem_writeb(RealMake(0xa000,y*320+x),(byte)color);
                 break;
         case M_LIN8:
+		case M_LIN16:
                 //if (CurMode->swidth!=(Bitu)real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)
                 //        LOG(LOG_INT10,LOG_ERROR)("PutPixel_VGA_w: %x!=%x",CurMode->swidth,real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8);
-				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8)+x; //The offset to retrieve!
+				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8); //The offset to retrieve!
+				if (CurMode->type == M_LIN16)
+				{
+					rowoffs += (x << 1); //Add X bytes!
+					repeating = 0; //Don't repeat!
+				}
+				else
+				{
+					rowoffs += x; //Add X words!
+					repeating = 1; //Repeat once!
+				}
+				rowoffsbackup = rowoffs; //Save backup!
+
+				dorepeat:
 				if (svgaCard==SVGA_TsengET4K) //ET4K?
 				{
 					curbank = IO_Read(0x3CD); //Read the current bank!
@@ -305,6 +342,13 @@ int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pi
 				}
                 RealPt off=RealMake(0xA000,rowoffs); //Pointer to memory!
                 mem_writeb(off,(byte)color);
+				if (repeating) //Are we to repeat for higher data?
+				{
+					--repeating; //Processing once!
+					rowoffs = ++rowoffsbackup; //Restore backup!
+					color >>= 8; //Next higher data!
+					goto dorepeat; //Repeat!
+				}
                 break;
         default:
                 //if(GCC_UNLIKELY(!putpixelwarned)) {
