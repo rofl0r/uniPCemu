@@ -631,13 +631,13 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	INLINEREGISTER byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if ((VGA->precalcs.DACmode&6)==6) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	if ((VGA->precalcs.DACmode&4)==4) //Not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
 	{
 		//Latch a 8-bit pixel?
-		Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
-		Sequencer->lastDACcolor |= ((attributeinfo->attribute & 0xFF)<<8); //Latching this attribute! Low byte is latched first!
+		Sequencer->lastDACcolor >>= (4<<attributeinfo->attributesize); //Latching 4/8/16 bits, whether used or not!
+		Sequencer->lastDACcolor |= ((attributeinfo->attribute)<< ((8 << (VGA->precalcs.DACmode & 2) >> 1) - (4 << attributeinfo->attributesize))); //Latching this attribute! Low byte is latched first!
 
-		if ((++Sequencer->DACcounter)&1) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		if ((++Sequencer->DACcounter)&((4>>attributeinfo->attributesize)-1)) //To latch and not process yet? This is the least significant byte/bits of the counter!
 		{
 			return; //Skip this data: we only latch every two pixels!
 		}
@@ -648,7 +648,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	}
 
 	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize); //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
-	if ((VGA->precalcs.DACmode&6)==2) //Multiple inputs are taken?
+	if ((VGA->precalcs.DACmode&4)==4) //Multiple inputs are taken?
 	{
 		doublepixels <<= 1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
 	}
@@ -663,7 +663,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		}
 		else //15-bit color?
 		{
-			DACcolor = CLUT15bit[(Sequencer->lastDACcolor&0x7FFF)]; //Draw the 15-bit color pixel!
+			DACcolor = CLUT15bit[(Sequencer->lastDACcolor&0xFFFF)]; //Draw the 15-bit color pixel!
 		}
 	}
 	else //VGA compatibility mode? 8-bit color!
