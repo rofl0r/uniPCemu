@@ -631,7 +631,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	INLINEREGISTER byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
-	if ((VGA->precalcs.DACmode&6)==2) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	if ((VGA->precalcs.DACmode&6)==6) //Hi-color mode, but not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
 	{
 		//Latch a 8-bit pixel?
 		Sequencer->lastDACcolor >>= 8; //Latching 8 bits, whether used or not!
