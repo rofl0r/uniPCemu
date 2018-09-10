@@ -136,6 +136,7 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	{
 		IO_Write(0x3C6, 0x00); //VGA-compatible mode!
 	}
+	IO_Read(0x3C7); //Return to the old register!
 
 	IO_Write(0x3cd, 0x00); // both banks to 0
 
@@ -222,6 +223,7 @@ void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	{
 		IO_Write(0x3C6, 0x00); //VGA-compatible mode!
 	}
+	IO_Read(0x3C7); //Return to the old register!
 
 	IO_Write(0x3cd, 0x40); // both banks to 0, 64K bank size
 
