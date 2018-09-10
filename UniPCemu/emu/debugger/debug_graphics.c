@@ -527,6 +527,8 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	{
 		unlock(LOCK_MAINTHREAD); //Finished with it!
 		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,1); //Debug 640x480x256! ET3000/ET4000!
+		DoDebugVGAGraphics(0x213, 320, 200, 0x10000, 0, 0xFFFF, 1, 1); //Debug 320x200x32K! ET3000/ET4000!
+		DoDebugVGAGraphics(0x22E, 640, 480, 0x10000, 0, 0xFFFF, 1, 1); //Debug 640x480x32K! ET3000/ET4000!
 		if (shuttingdown()) goto doshutdown;
 	}
 	else unlock(LOCK_MAINTHREAD); //We're accessing the VGA information!
