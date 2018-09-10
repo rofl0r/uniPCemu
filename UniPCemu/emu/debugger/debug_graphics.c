@@ -201,7 +201,7 @@ void debugTextModeScreenCapture()
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
-void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
+void DoDebugVGAGraphics(byte mode, word xsize, word ysize, uint_32 maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
 	lock(LOCK_MAINTHREAD);
@@ -215,7 +215,7 @@ void DoDebugVGAGraphics(byte mode, word xsize, word ysize, word maxcolor, int al
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
 
 	int x,y; //X&Y coordinate!
-	int color; //The color for the coordinate!
+	uint_32 color; //The color for the coordinate!
 
 	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,0,2); //Goto third row!
