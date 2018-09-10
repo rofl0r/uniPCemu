@@ -142,12 +142,12 @@ OPTINLINE int GPU_getpixel(int x, int y, byte page, word *color) //Get a pixel f
 				rowoffs = (y*real_readw(BIOSMEM_SEG, BIOSMEM_NB_COLS) * 8); //The offset to retrieve!
 				if (CurMode->type == M_LIN16)
 				{
-					rowoffs += (x << 1); //Add X bytes!
+					rowoffs += (x << 1); //Add X words!
 					repeating = 0; //Don't repeat!
 				}
 				else
 				{
-					rowoffs += x; //Add X words!
+					rowoffs += x; //Add X bytes!
 					repeating = 1; //Repeat once!
 				}
 				rowoffsbackup = rowoffs; //Save backup!
@@ -312,12 +312,12 @@ int GPU_putpixel(int x, int y, byte page, word color) //Writes a video buffer pi
 				rowoffs = (y*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8); //The offset to retrieve!
 				if (CurMode->type == M_LIN16)
 				{
-					rowoffs += (x << 1); //Add X bytes!
+					rowoffs += (x << 1); //Add X words!
 					repeating = 0; //Don't repeat!
 				}
 				else
 				{
-					rowoffs += x; //Add X words!
+					rowoffs += x; //Add X bytes!
 					repeating = 1; //Repeat once!
 				}
 				rowoffsbackup = rowoffs; //Save backup!
