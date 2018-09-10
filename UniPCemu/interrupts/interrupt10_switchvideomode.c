@@ -204,7 +204,7 @@ void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 
 //ET3K support!
 bool AcceptsMode_ET3K(Bitu mode) {
-	return mode <= 0x37 && mode != 0x2f && VideoModeMemSize(mode) < getActiveVGA()->VRAM_size;
+	return (((mode <= 0x37) && (mode != 0x2f)) || ((mode>=0x200)) && (mode<=0x237) && (mode!=0x22f)) && VideoModeMemSize(mode) < getActiveVGA()->VRAM_size;
 }
 
 void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
