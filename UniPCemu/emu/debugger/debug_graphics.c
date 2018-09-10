@@ -201,7 +201,7 @@ void debugTextModeScreenCapture()
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
-void DoDebugVGAGraphics(byte mode, word xsize, word ysize, uint_32 maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
+void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
 	lock(LOCK_MAINTHREAD);
