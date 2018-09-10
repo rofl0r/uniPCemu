@@ -201,12 +201,21 @@ void debugTextModeScreenCapture()
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
+void GPUswitchvideomode(word mode); //Prototype!
+
+
 void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
 	lock(LOCK_MAINTHREAD);
+	/*
 	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
+	*/
+
+	GPUswitchvideomode(mode); //Switch to said mode!
+
+
 	CPU[activeCPU].registers->AH = 0xB;
 	CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
 	CPU[activeCPU].registers->BL = 0x1; //Blue overscan!
