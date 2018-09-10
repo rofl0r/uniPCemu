@@ -18,7 +18,7 @@
 #define __HW_DISABLED 0
 
 //Helper functions:
-extern VideoModeBlock ModeList_VGA_Tseng[35]; //ET3000/ET4000 mode list!
+extern VideoModeBlock ModeList_VGA_Tseng[40]; //ET3000/ET4000 mode list!
 extern VideoModeBlock ModeList_VGA[0x15]; //VGA Modelist!
 VideoModeBlock *CurMode = &ModeList_VGA[0]; //Current video mode information block!
 
@@ -123,6 +123,20 @@ bool AcceptsMode_ET4K(Bitu mode) {
 }
 
 void FinishSetMode_ET4K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
+	//Setup the Hi-color DAC!
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	if (modeData->modeNo & 0x200)
+	{
+		IO_Write(0x3C6, 0x80); //Hi-color mode!
+	}
+	else
+	{
+		IO_Write(0x3C6, 0x00); //VGA-compatible mode!
+	}
+
 	IO_Write(0x3cd, 0x00); // both banks to 0
 
 	// Reinterpret hor_overflow. Curiously, three bits out of four are
@@ -194,6 +208,21 @@ bool AcceptsMode_ET3K(Bitu mode) {
 
 void FinishSetMode_ET3K(Bitu crtc_base, VGA_ModeExtraData* modeData) {
 	Bitu i;
+
+	//Setup the Hi-color DAC!
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	IO_Read(0x3C6);
+	if (modeData->modeNo & 0x200)
+	{
+		IO_Write(0x3C6, 0x80); //Hi-color mode!
+	}
+	else
+	{
+		IO_Write(0x3C6, 0x00); //VGA-compatible mode!
+	}
+
 	IO_Write(0x3cd, 0x40); // both banks to 0, 64K bank size
 
 	// Tseng ET3K does not have horizontal overflow bits

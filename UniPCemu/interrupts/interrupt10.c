@@ -1307,6 +1307,57 @@ void int10_Pallette() //REG_AH=10h,REG_AL=subfunc
 		case 0x1B:							/* PERFORM GRAY-SCALE SUMMING */
 			INT10_PerformGrayScaleSumming(REG_BX,REG_CX);
 			break;
+		case 0xF0:							/* ET4000: SET HiColor GRAPHICS MODE */
+		case 0xF1:							/* ET4000: GET DAC TYPE */
+		case 0xF2:							/* ET4000: CHECK/SET HiColor MODE */
+			if ((svgaCard == SVGA_TsengET4K) || (svgaCard == SVGA_TsengET3K)) { //Sierra Hi-Color DAC supported?
+				switch (REG_AX) {
+				case 0x10F0: /* ET4000: SET HiColor GRAPHICS MODE */
+					if (INT10_Internal_SetVideoMode(0x200 | (word)(REG_BL)))
+					{
+						REG_AX = 0x0010;
+					}
+					break;
+				case 0x10F1: /* ET4000: GET DAC TYPE */
+					REG_AX = 0x0010;
+					REG_BL = 0x01;
+					break;
+				case 0x10F2: /* ET4000: CHECK/SET HiColor MODE */
+					 //Setup the Hi-color DAC!
+					IO_Read(0x3C6);
+					IO_Read(0x3C6);
+					IO_Read(0x3C6);
+					IO_Read(0x3C6); //Make the DAC register available!
+					switch (REG_BL)
+					{
+					case 0:
+						REG_AX = 0x0010;
+						break;
+					case 1: case 2:
+						{
+							Bit8u val = (REG_BL == 1) ? 0xa0 : 0xe0;
+							if (val != IO_Read(0x3C6)) {
+								IO_Write(0x3C6, val);
+								REG_AX = 0x0010;
+							}
+						}
+						break;
+					}
+					switch (IO_Read(0x3C6) & 0xc0)
+					{
+					case 0x80:
+						REG_BL = 1;
+						break;
+					case 0xc0:
+						REG_BL = 2;
+						break;
+					default:
+						REG_BL = 0;
+						break;
+					}
+					IO_Read(0x3C7); //Change the register back to normal VGA-compatible mode!
+				}
+			}
 		default:
 			//LOG(LOG_INT10,LOG_ERROR)("Function 10:Unhandled EGA/VGA Palette Function %2X",REG_AL);
 			break;
