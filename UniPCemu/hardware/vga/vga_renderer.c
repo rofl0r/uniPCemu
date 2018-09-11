@@ -650,7 +650,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	doublepixels = ((1<<VGA->precalcs.ClockingModeRegister_DCR)<<attributeinfo->attributesize); //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
 	if ((VGA->precalcs.DACmode&4)==4) //Multiple inputs are taken?
 	{
-		doublepixels <<= 1; //On top of the attribute doubling the clocks used, we (qua)druple it again! 
+		doublepixels <<= (2>>attributeinfo-attributesize); //On top of the attribute doubling the clocks used, we (qua)druple it again for nibbles, double it for bytes and do nothing for words! 
 	}
 
 	//Convert the pixel to a RGB value before drawing any blocks of pixels!
