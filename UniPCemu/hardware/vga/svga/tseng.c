@@ -1277,6 +1277,59 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 	}
 
+	if (CRTUpdated || charwidthupdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
+		|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))
+		|| SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
+		) //Updated?
+	{
+		//This applies to the Frame buffer:
+		byte BWDModeShift = 1; //Default: word mode!
+		if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,6,1))
+		{
+			BWDModeShift = 2; //Shift by 2!
+		}
+		else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1))
+		{
+			BWDModeShift = 0; //Shift by 0! We're byte mode!
+		}
+
+		byte characterclockshift = 1; //Default: reload every whole clock!
+		//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
+		if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,5,1))
+		{
+			if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1)) //Both set? We reload twice per clock!
+			{
+				characterclockshift = 0; //Reload every half clock(4 pixels)!
+			}
+			else //Reload every 4 clocks!
+			{
+				characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
+			}
+		}
+		else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1))
+		{
+			characterclockshift = 3; //Reload every other clock(16 pixels)!
+		}
+		else //Reload every clock!
+		{
+			characterclockshift = 1; //Reload every whole clock(8 pixels)!
+		}
+
+		if (VGA->precalcs.linearmode&8) //Linear mode is different on Tseng chipsets? This activates byte mode!
+		{
+			BWDmodeshift = 0; //Byte mode!
+			characterclockshift = 1; //Reload every whole clock(8 pixels)!
+		}
+
+		updateCRTC |= (VGA->precalcs.BWDModeShift != BWDModeShift); //Update the CRTC!
+		VGA->precalcs.BWDModeShift = BWDModeShift;
+
+		updateCRTC |= (VGA->precalcs.characterclockshift != characterclockshift); //Update the CRTC!
+		VGA->precalcs.characterclockshift = characterclockshift; //Apply character clock shift!
+
+		//dolog("VGA","VTotal after VRAMMemAddrSize: %u",VGA->precalcs.verticaltotal); //Log it!
+	}
+
 	if (updateCRTC) //Update CRTC?
 	{
 		VGA_calcprecalcs_CRTC(VGA); //Update the CRTC timing data!
