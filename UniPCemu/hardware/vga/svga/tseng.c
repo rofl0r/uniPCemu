@@ -1317,7 +1317,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 		if (VGA->precalcs.linearmode&8) //Linear mode is different on Tseng chipsets? This activates byte mode!
 		{
-			BWDmodeshift = 0; //Byte mode!
+			BWDModeShift = 0; //Byte mode!
 			characterclockshift = 1; //Reload every whole clock(8 pixels)!
 		}
 
