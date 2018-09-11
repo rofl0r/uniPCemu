@@ -161,7 +161,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	data = VGA_WRITE[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,0,3)]((uint_32)val); //What write mode?
 
 	byte planeenable = GETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER,0,0xF); //What planes to try to write to!
-	if ((getActiveVGA()->precalcs.linearmode & 5) == 5) planeenable = 0xF; //Linear memory ignores this?
+	if (((getActiveVGA()->precalcs.linearmode & 5) == 5) || (getActiveVGA()->precalcs.linearmode&8)) planeenable = 0xF; //Linear memory ignores this? Or are we to ignore the Write Plane Mask(linear byte mode)?
 	planeenable &= planes; //The actual planes to write to!
 	byte curplanemask=1;
 	curplane = 0;
