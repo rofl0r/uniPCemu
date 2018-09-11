@@ -766,6 +766,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte CRTUpdated = UPDATE_SECTIONFULL(whereupdated, WHEREUPDATED_CRTCONTROLLER, FullUpdate); //Fully updated?
 	byte CRTUpdatedCharwidth = CRTUpdated || charwidthupdated; //Character width has been updated, for following registers using those?
 	byte AttrUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
+	byte SequencerUpdated = UPDATE_SECTIONFULL(whereupdated, WHEREUPDATED_SEQUENCER, FullUpdate); //Fully updated?
 
 
 	#ifdef LOG_UNHANDLED_SVGA_ACCESSES
@@ -1257,6 +1258,20 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			DACmode &= ~4; //Use one pixel clock to latch the two bytes?
 		}
 		VGA->precalcs.DACmode = DACmode; //Apply the new DAC mode!
+	}
+
+	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))) //Attribute misc. register?
+	{
+		if ((VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
+		{
+			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = 1; //Enable 8-bit graphics!
+			updateVGAAttributeController_Mode(VGA); //Update the attribute controller!
+		}
+		else
+		{
+			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = 0; //Disable 8-bit graphics!
+			updateVGAAttributeController_Mode(VGA); //Update the attribute controller!
+		}
 	}
 
 	if (updateCRTC) //Update CRTC?
