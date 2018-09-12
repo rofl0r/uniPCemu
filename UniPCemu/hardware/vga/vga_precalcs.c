@@ -48,12 +48,12 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	byte pixelticked=0; //Pixel has been ticked?
 	byte clockrate;
 	byte firstfetch=1; //First fetch is ignored!
-	clockrate = ((VGA->precalcs.ClockingModeRegister_DCR | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
+	clockrate = (((VGA->precalcs.ClockingModeRegister_DCR&1) | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
 		VGA->CRTC.charcolstatus[(current<<1)|1] = innerpixel = current%charsize;
-		VGA->CRTC.colstatus[current] = get_display_x(VGA,(current>>VGA->precalcs.ClockingModeRegister_DCR)); //Translate to display rate!
+		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>VGA->precalcs.ClockingModeRegister_DCR&1)>>((VGA->precalcs.ClockingModeRegister_DCR&2)>>1))); //Translate to display rate!
 
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!

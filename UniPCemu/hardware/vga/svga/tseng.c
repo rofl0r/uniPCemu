@@ -1334,8 +1334,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
 
 	{
-		if (VGA->precalcs.ClockingModeRegister_DCR != GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1)) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		VGA->precalcs.ClockingModeRegister_DCR = (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1))+((VGA->precalcs.linearmode&8)>>3); //Dot Clock Rate!
+		if (VGA->precalcs.ClockingModeRegister_DCR != et4k_tempreg) adjustVGASpeed(); //Auto-adjust our VGA speed!
+		et4k_tempreg = (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1))|((VGA->precalcs.linearmode&8)>>2); //Dot Clock Rate!
+		updateCRTC |= (VGA->precalcs.ClockingModeRegister_DCR != et4k_tempreg); //Update the CRTC!
+		VGA->precalcs.ClockingModeRegister_DCR = et4k_tempreg;
 	}
 
 	if (updateCRTC) //Update CRTC?
