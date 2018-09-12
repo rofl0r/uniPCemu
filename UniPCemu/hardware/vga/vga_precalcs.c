@@ -54,16 +54,16 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	switch (VGA->precalcs.ClockingModeRegister_DCR)
 	{
 	case 0:
-		theshift = 0;
+		theshift = 0; //Handle normally? VGA-compatible!
 		break;
 	case 1:
-		theshift = ((VGA->enable_SVGA == 1) || (VGA->enable_SVGA == 2) ? (et34k(VGA)->extensionsEnabled):0)?0:1; //SVGA disabled?
+		theshift = 1; //Handle normally? VGA-compatible!
 		break;
 	case 3:
-		theshift = 1;
+		theshift = 1; //Handle normally? VGA-compatible!
 		break;
-	case 2:
-		theshift = ((VGA->enable_SVGA == 1) || (VGA->enable_SVGA == 2) ? (et34k(VGA)->extensionsEnabled) : 0); //When extensions are enabled!
+	case 2: //Special mode?
+		theshift = 1; //When extensions are enabled!
 		break;
 	}
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)

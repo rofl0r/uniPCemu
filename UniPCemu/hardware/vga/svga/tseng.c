@@ -1264,6 +1264,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		) //Attribute misc. register?
 	{
 		VGA->precalcs.linearmode = ((VGA->precalcs.linearmode&~8) | (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8)); //Linear graphics mode special actions enabled? Ignore Read Plane Select and Write Plane mask if set!
+		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER & 0x40) //8-bit mode?
+		{
+			VGA->precalcs.linearmode &= ~8; //Disable the linear mode override!
+		}
 
 		if ((VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
 		{
