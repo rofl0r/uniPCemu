@@ -49,11 +49,27 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	byte clockrate;
 	byte firstfetch=1; //First fetch is ignored!
 	clockrate = (((VGA->precalcs.ClockingModeRegister_DCR&1) | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
+	byte theshift = 0;
+	switch (VGA->precalcs.ClockingModeRegister_DCR)
+	{
+	case 0:
+		theshift = 0;
+		break;
+	case 1:
+		theshift = ((VGA->enable_SVGA==1)||(VGA->enable_SVGA==2))?0:1; //SVGA disabled?
+		break;
+	case 3:
+		theshift = 1;
+		break;
+	case 2:
+		theshift = 1;
+		break;
+	}
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
 		VGA->CRTC.charcolstatus[(current<<1)|1] = innerpixel = current%charsize;
-		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>(VGA->precalcs.ClockingModeRegister_DCR&1))>>((VGA->precalcs.ClockingModeRegister_DCR&2)>>1))); //Translate to display rate!
+		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>theshift))); //Translate to display rate!
 
 		//Determine some extra information!
 		extrastatus = 0; //Initialise extra horizontal status!
