@@ -8,6 +8,7 @@
 #include "headers/hardware/vga/vga_dacrenderer.h" //B/W detection support!
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA support!
 #include "headers/hardware/vga/vga_vram.h" //Mapping support for different addressing modes!
+#include "headers/hardware/vga/svga/tseng.h" //Our own typedefs for ET3000/ET4000!
 #include "headers/support/log.h" //Logging support!
 
 void VGA_updateVRAMmaps(VGA_Type *VGA); //VRAM map updater prototype!
@@ -56,13 +57,13 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		theshift = 0;
 		break;
 	case 1:
-		theshift = ((VGA->enable_SVGA==1)||(VGA->enable_SVGA==2))?0:1; //SVGA disabled?
+		theshift = ((VGA->enable_SVGA == 1) || (VGA->enable_SVGA == 2) ? (et34k(VGA)->extensionsEnabled):0)?0:1; //SVGA disabled?
 		break;
 	case 3:
 		theshift = 1;
 		break;
 	case 2:
-		theshift = 1;
+		theshift = ((VGA->enable_SVGA == 1) || (VGA->enable_SVGA == 2) ? (et34k(VGA)->extensionsEnabled) : 0); //When extensions are enabled!
 		break;
 	}
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
