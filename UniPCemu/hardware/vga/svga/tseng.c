@@ -1269,7 +1269,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA->precalcs.linearmode &= ~8; //Disable the linear mode override!
 		}
 
-		if ((VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
+		if ((VGA->precalcs.linearmode & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
 		{
 			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = 1; //Enable 8-bit graphics!
 			updateVGAAttributeController_Mode(VGA); //Update the attribute controller!
