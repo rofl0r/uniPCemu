@@ -281,11 +281,11 @@ void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *rea
 	if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1)==0) //High page on High RAM?
 	{
 		calcplanes |= 2; //Apply high page!
-		//rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead.
 	}
 	else
 	{
-		//rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
+		rwbank <<= 1; //ET4000: Read/write bank supplies bits 17-18 instead.
 	}
 
 	realoffsettmp &= 0xFFFF; //Wrap the offset low!
@@ -319,7 +319,7 @@ void VGA_Planar_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *real
 	}
 	if ((getActiveVGA()->enable_SVGA>=1) && (getActiveVGA()->enable_SVGA<=2)) //SVGA ET3K/ET4K?
 	{
-		//rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17). Bits 0-1 are specified by the affecting read/write plane select/mask.(The PG case of the Table 4.3.4 of the ET4000 manual)
+		rwbank <<= 2; //ET4000: Read/write bank supplies bits 18-19 instead(memory map bits 16-17). Bits 0-1 are specified by the affecting read/write plane select/mask.(The PG case of the Table 4.3.4 of the ET4000 manual)
 	}
 	*planes = calcplanes; //The planes to apply!
 	*realoffset = offset; //Load the offset directly!
