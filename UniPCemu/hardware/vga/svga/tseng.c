@@ -1321,8 +1321,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 		if (VGA->precalcs.linearmode&8) //Linear mode is different on Tseng chipsets? This activates byte mode!
 		{
-			BWDModeShift >>= 1; //Half mode!
-			characterclockshift = ((characterclockshift << 1) | 1); //Double the programmed character clock!
+			BWDModeShift = 0; //Byte mode always! We're linear memory, so act that way!
+			characterclockshift = ((characterclockshift << 1) | 1); //Double the programmed character clock: two times the normal data is processed!
 		}
 
 		updateCRTC |= (VGA->precalcs.BWDModeShift != BWDModeShift); //Update the CRTC!
