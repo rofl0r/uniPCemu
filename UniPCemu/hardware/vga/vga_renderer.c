@@ -995,7 +995,7 @@ OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust
 {
 	INLINEREGISTER uint_32 stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
-	Scanline &= 0x3FF; //Range safety: 1024 scanlines!
+	Scanline &= 0xFFF; //Range safety: 4095 scanlines!
 	x &= 0xFFF; //Range safety: 4095 columns!
 	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
 	stat |= VGA->CRTC.colstatus[x]; //Get column status!
