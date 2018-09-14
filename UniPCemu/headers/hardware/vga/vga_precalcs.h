@@ -145,6 +145,7 @@ typedef struct //Contains the precalculated values!
 	byte ReadMemoryMode; //Read memory mode!
 	byte EGA_DisableInternalVideoDrivers; //Disable internal video drivers(EGA)?
 	byte use14MHzclock; //14MHz clocking?
+	byte enableInterlacing; //Enable interlacing?
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

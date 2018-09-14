@@ -404,10 +404,14 @@ OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 
 OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 {
-	byte x; //For horizontal shifting!
+	byte x; //For horizontal shifting/temp storage!
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
+	if (VGA->precalcs.enableInterlacing) //Are we interlacing?
+	{
+		row >>= 1; //Generate an doubled row in the field!
+	}
 	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
@@ -424,9 +428,9 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 	//Apply scanline division to the current row timing!
 
-	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
-
 	row += VGA->precalcs.presetrowscan; //Apply the preset row scan to the scanline!
+
+	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
 	//Row now is an index into charrowstatus
 	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!

@@ -932,7 +932,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		#endif
 		verticaltimingsupdated |= et34kdata->useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0); //Interlace has changed?
-		et34kdata->useInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
+		et34kdata->useInterlacing = VGA->precalcs.enableInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
 	}
 
 	if (CRTUpdated || verticaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25)) //Extended bits of the overflow register!
