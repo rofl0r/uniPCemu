@@ -422,7 +422,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	if (VGA->precalcs.enableInterlacing) //Interlace mode?
 	{
-		word interlacedfieldsize; //Half the display size!
 		interlacedfieldsize = VGA->precalcs.verticaldisplayend; //Take the whole field!
 		interlacedfieldsize >>= 1; //Take half of the field!
 		interlacedfieldsize += (VGA->precalcs.verticaldisplayend & 1); //Odd sized vertical display adds one row to the odd field!
