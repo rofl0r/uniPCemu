@@ -204,7 +204,7 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 void GPUswitchvideomode(word mode); //Prototype!
 
 
-void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int allequal, byte centercolor, byte usecenter, byte screencapture)
+void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int allequal, uint_32 centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
 	lock(LOCK_MAINTHREAD);
@@ -245,7 +245,7 @@ void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int
 			if (color>(maxcolor-1)) color = maxcolor-1; //MAX limit!
 			if (allequal) //All equal filling?
 			{
-				color = (maxcolor&0xFF);
+				color = maxcolor-1;
 			}
 
 			if (y>=(int)((ysize/2)-(usecenter/2)) && 
