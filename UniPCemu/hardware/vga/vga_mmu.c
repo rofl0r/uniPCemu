@@ -151,7 +151,7 @@ uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
 	return data;
 }
 
-uint_32 rwbank = 0; //Banked VRAM support!
+uint_32 readbank = 0, writebank = 0; //Banked VRAM support!
 
 OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 {
@@ -169,7 +169,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 	{
 		if (planeenable&curplanemask) //Modification of the plane?
 		{
-			writeVRAMplane(getActiveVGA(),curplane,offset,rwbank,data&0xFF); //Write the plane from the data!
+			writeVRAMplane(getActiveVGA(),curplane,offset,writebank,data&0xFF); //Write the plane from the data!
 		}
 		data >>= 8; //Shift to the next plane!
 		curplanemask <<= 1; //Next plane!
@@ -178,7 +178,7 @@ OPTINLINE void VGA_WriteModeOperation(byte planes, uint_32 offset, byte val)
 
 OPTINLINE void loadlatch(uint_32 offset)
 {
-	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch = VGA_VRAMDIRECTPLANAR(getActiveVGA(),offset,rwbank);
+	getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch = VGA_VRAMDIRECTPLANAR(getActiveVGA(),offset,readbank);
 	VGA_updateLatches(); //Update the latch data mirroring!
 }
 
@@ -192,7 +192,7 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 	{
 		if (planes&1) //Read from this plane?
 		{
-			return readVRAMplane(getActiveVGA(), curplane, offset,rwbank); //Read directly from vram using the selected plane!
+			return readVRAMplane(getActiveVGA(), curplane, offset,readbank); //Read directly from vram using the selected plane!
 		}
 		planes >>= 1; //Next plane!
 	} while (++curplane!=4);
@@ -209,7 +209,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	{
 		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF)&(1 << curplane)) //We care about this plane?
 		{
-			if (readVRAMplane(getActiveVGA(), curplane, offset, rwbank) == GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)) //Equal?
+			if (readVRAMplane(getActiveVGA(), curplane, offset, readbank) == GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)) //Equal?
 			{
 				result |= (1 << curplane); //Set the bit: the comparision is true!
 			}
@@ -263,7 +263,7 @@ void VGA_Chain4_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *real
 		if (verboseVGA) //Debugging special?
 	#endif
 		{
-			dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
+			dolog("VGA", "%s using Chain 4: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), towrite?writebank:readbank);
 		}
 }
 
@@ -291,7 +291,7 @@ void VGA_OddEven_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *rea
 		if (verboseVGA) //Debugging special?
 	#endif
 		{
-			dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
+			dolog("VGA", "%s using Odd/Even: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), towrite?writebank:readbank);
 		}
 }
 
@@ -320,7 +320,7 @@ void VGA_Planar_decode(byte towrite, uint_32 offset, byte *planes, uint_32 *real
 		if (verboseVGA) //Debugging special?
 	#endif
 		{
-			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), rwbank);
+			dolog("VGA", "%s using Planar access: Memory aperture offset %08X=Planes: %04X, Offset: %08X, VRAM offset: %08X, Bank: %08X", towritetext[towrite ? 1 : 0], offset, *planes, *realoffset, (*realoffset<<2), towrite?writebank:readbank);
 		}
 }
 
@@ -342,20 +342,21 @@ decodeCPUaddressMode decodeCPUAddressW = VGA_OddEven_decode, decodeCPUAddressR=V
 //decodeCPUaddress(Write from CPU=1; Read from CPU=0, offset (from VRAM start address), planes to read/write (4-bit mask), offset to read/write within the plane(s)).
 OPTINLINE void decodeCPUaddress(byte towrite, uint_32 offset, byte *planes, uint_32 *realoffset)
 {
-	//Apply rwbank when used!
-	if ((getActiveVGA()->precalcs.linearmode&4)==4) //Enable SVGA Normal segmented rwbank mode support?
+	//Apply bank when used!
+	if ((getActiveVGA()->precalcs.linearmode&4)==4) //Enable SVGA Normal segmented read/write bank mode support?
 	{
 		if (getActiveVGA()->precalcs.linearmode & 2) //Use high 4 bits as address!
 		{
-			rwbank = (offset&0xF0000); //Apply read/write bank from the high 4 bits that's unused!
+			readbank = writebank = (offset&0xF0000); //Apply read/write bank from the high 4 bits that's unused!
 		}
 		else //Use bank select?
 		{
-			rwbank = (towrite ? VGA_MemoryMapBankWrite : VGA_MemoryMapBankRead); //Apply read/write bank!
+			readbank = VGA_MemoryMapBankRead; //Read bank
+			writebank = VGA_MemoryMapBankWrite; //Write bank
 		}
 		//Apply the segmented VGA mode like any normal VGA!
 	}
-	else rwbank = 0; //No memory banks are used!
+	else readbank = writebank = 0; //No memory banks are used!
 
 	//Calculate according to the mode in our table and write/read memory mode!
 	if (towrite) //Writing?
