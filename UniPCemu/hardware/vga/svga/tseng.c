@@ -835,7 +835,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
 		|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
-		|| charwidthupdated) //Updated?
+		|| charwidthupdated
+		|| (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x16)) //16-bit DAC has been updated?
+			)) //Updated?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
@@ -888,9 +890,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress<<et34kdata->doublehorizontaltimings)+et34k(VGA)->display_start_high);
 		/*if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
-		{*/
+		{
 			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
-		//}
+		}*/
 	}
 
 	//ET3000/ET4000 Cursor Location register
@@ -931,7 +933,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		verticaltimingsupdated |= et34kdata->useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0); //Interlace has changed?
+		verticaltimingsupdated |= (et34kdata->useInterlacing != ((et4k_tempreg & 0x80) ? 1 : 0)); //Interlace has changed?
 		et34kdata->useInterlacing = VGA->precalcs.enableInterlacing = (et4k_tempreg & 0x80) ? 1 : 0; //Enable/disable interlacing!
 	}
 
@@ -1056,9 +1058,9 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		//bit0=Horizontal total bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.HORIZONTALTOTALREGISTER;
+		tempdata |= ((et4k_tempreg & 1) << 8); //To be updated?
+		tempdata += 5; //Actually five clocks more!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
-		tempdata += ((et4k_tempreg & 1) << 8); //To be updated?
-		tempdata += 5;
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		updateCRTC |= (VGA->precalcs.horizontaltotal != tempdata); //To be updated?
 		VGA->precalcs.horizontaltotal = tempdata; //Save the new data!
@@ -1090,8 +1092,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		//bit2=Horizontal blanking bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALBLANKINGREGISTER;
+		tempdata |= ((et4k_tempreg & 4) << 6); //Add/replace the new/changed bits!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
-		tempdata += ((et4k_tempreg & 4) << 5); //Add/replace the new/changed bits!
 		++tempdata; //One later!
 		tempdata *= VGA->precalcs.characterwidth;
 		updateCRTC |= (VGA->precalcs.horizontalblankingstart != tempdata); //To be updated?
@@ -1108,8 +1110,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		//bit4=Horizontal retrace bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
+		tempdata |= ((et4k_tempreg & 0x10) << 4); //Add the new/changed bits!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
-		tempdata += ((et4k_tempreg & 0x10) << 4); //Add the new/changed bits!
 		++tempdata; //One later!
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		updateCRTC |= VGA->precalcs.horizontalretracestart != tempdata; //To be updated?
@@ -1125,9 +1127,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		//bit7=Offset bit 8
 		tempdata = VGA->precalcs.VGArowsize;
+		tempdata >>= 1; //This is already multiplied by 2, so reverse that for the raw value!
 		updateCRTC |= (((et4k_tempreg & 0x80) << 1) | (tempdata & 0xFF)) != tempdata; //To be updated?
+		tempdata |= ((et4k_tempreg & 0x80) << 1); //Add/replace the new/changed bits!
+		tempdata <<= 1; //Reapply the x2 multiplier that's required!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
-		tempdata += ((et4k_tempreg & 0x80) << 1); //Add/replace the new/changed bits!
 		VGA->precalcs.rowsize = tempdata; //Save the new data!
 	}
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x34)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x31)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x24)) || (whereupdated==(WHEREUPDATED_SEQUENCER|0x07))) //Clock frequency might have been updated?
