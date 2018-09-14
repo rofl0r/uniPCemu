@@ -420,14 +420,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		Sequencer->is_topwindow = 0; //We're not the top window!
 	}
 
-	if (VGA->precalcs.enableInterlacing) //Interlace mode?
-	{
-		interlacedfieldsize = VGA->precalcs.verticaldisplayend; //Take the whole field!
-		interlacedfieldsize >>= 1; //Take half of the field!
-		interlacedfieldsize += (VGA->precalcs.verticaldisplayend & 1); //Odd sized vertical display adds one row to the odd field!
-		row = (row >= interlacedfieldsize) ? ((row - interlacedfieldsize) << 1) : ((row << 1) | 1); //First all odd rows, then all even rows!
-	}
-
 	//row is the vertical timing counter
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
