@@ -881,33 +881,33 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	//ET3000/ET4000 Start address register
 	if (CRTUpdated || horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))
-		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended start address?
+		/*|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)*/) //Extended start address?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
 		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress<<et34kdata->doublehorizontaltimings)+et34k(VGA)->display_start_high);
-		if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
-		{
+		/*if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
+		{*/
 			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
-		}
+		//}
 	}
 
 	//ET3000/ET4000 Cursor Location register
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))
-		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Extended cursor location?
+		/*|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)*/) //Extended cursor location?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		if (!(!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1))) //Extensions disabled on ET4000?
-		{
+		/*if (!(!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1))) //Extensions disabled on ET4000?
+		{*/
 			VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
-		}
+		/*}
 		else
 		{
 			VGA->precalcs.cursorlocation = VGA->precalcs.cursorlocation & 0xFFFF; //Use VGA-compatible values!
-		}
+		}*/
 	}
 
 	//ET3000/ET4000 Vertical Overflow register!
@@ -920,10 +920,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et4k_tempreg = et3k_reg(et34kdata,3d4,25); //The overflow register!
 	}
 
-	if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
+	/*if ((!et34k(VGA)->extensionsEnabled) && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
 	{
 		et4k_tempreg = 0; //Disable any overflow!
-	}
+	}*/
 
 	verticaltimingsupdated = 0; //Default: not updated!
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
@@ -1144,16 +1144,12 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	//Misc settings
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))
 		|| (whereupdated==(WHEREUPDATED_SEQUENCER|0x4)) || (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x5)) //Memory addres
-		 || (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #1!
+		 ) //Video system configuration #1!
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
 		et4k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
-		if (!et34k(VGA)->extensionsEnabled)
-		{
-			et4k_tempreg = 0; //Disable extensions!
-		}
 		if (VGA->enable_SVGA==2) //Special ET3000 mapping?
 		{
 			VGA->precalcs.linearmode &= ~3; //Use normal Bank Select Register with VGA method of access!
@@ -1214,19 +1210,20 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))
-		|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)) //Video system configuration #2?
+		) //Video system configuration #2?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		if (!et34k(VGA)->extensionsEnabled) //Disable ET4000 memory wrap?
+		/*if (!et34k(VGA)->extensionsEnabled) //Disable ET4000 memory wrap?
 		{
 			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //Apply normal masking according to the VGA method!
 		}
 		else //Extensions enabled?
 		{
+		*/
 			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
-		}
+		//}
 	}
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?
