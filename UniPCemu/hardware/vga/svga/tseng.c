@@ -1263,11 +1263,14 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
 		) //Attribute misc. register?
 	{
+		et4k_tempreg = VGA->precalcs.linearmode; //Save the old mode for reference!
 		VGA->precalcs.linearmode = ((VGA->precalcs.linearmode&~8) | (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8)); //Linear graphics mode special actions enabled? Ignore Read Plane Select and Write Plane mask if set!
 		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER & 0x40) //8-bit mode?
 		{
 			VGA->precalcs.linearmode &= ~8; //Disable the linear mode override!
 		}
+
+		updateCRTC |= (VGA->precalcs.linearmode != et4k_tempreg); //Are we to update modes?
 
 		if ((VGA->precalcs.linearmode & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
 		{
@@ -1334,7 +1337,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//dolog("VGA","VTotal after VRAMMemAddrSize: %u",VGA->precalcs.verticaltotal); //Log it!
 	}
 
-	if (((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) //Sequencer register updated?
+	if (((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) || (VGA->precalcs.charwidthupdated) //Sequencer register updated?
 		|| (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)))
 		)
 	{
