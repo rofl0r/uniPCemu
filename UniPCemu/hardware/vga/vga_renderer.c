@@ -407,7 +407,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	byte x; //For horizontal shifting/temp storage!
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
-	word interlacedfieldsize; //Half the display size!
 	row = Sequencer->Scanline; //Default: our normal scanline!
 	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
