@@ -385,7 +385,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	*/
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
-		if((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1))) return 0; //Not used without extensions!
+		if((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) return 0; //Not used without extensions!
 		et34kdata->segmentselectregister = val; //Save the entire segment select register!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
