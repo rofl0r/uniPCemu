@@ -322,6 +322,7 @@ OPTINLINE uint_32 addresswrap(VGA_Type *VGA, uint_32 memoryaddress) //Wraps memo
 }
 
 VGA_AttributeInfo currentattributeinfo; //Our current collected attribute info!
+uint_32 currentvramlocation;
 
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Load the planes!
 {
@@ -334,7 +335,7 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 	lightpen_currentvramlocation = vramlocation; //Save the new current location for light pen detection!
 
 	//Column/Row logic
-	vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
+	currentvramlocation = vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
 
 	//Now calculate and give the planes to be used!
 	loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, as an entire DWORD!
