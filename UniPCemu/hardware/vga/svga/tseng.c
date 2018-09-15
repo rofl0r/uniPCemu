@@ -706,22 +706,31 @@ void Tseng34k_init()
 			// Default to 1M of VRAM
 			if (getActiveVGA()->enable_SVGA==1) //ET4000?
 			{
-				if (Tseng4k_VRAMSize == 0)
-					Tseng4k_VRAMSize = 1024 * 1024;
-
-				if (Tseng4k_VRAMSize < 512 * 1024)
-					Tseng4k_VRAMSize = 256 * 1024;
-				else if (Tseng4k_VRAMSize < 1024 * 1024)
-					Tseng4k_VRAMSize = 512 * 1024;
-				else
-					Tseng4k_VRAMSize = 1024 * 1024;
+				byte n,isvalid;
+				isvalid = 0; //Default: invalid!
+				uint_32 maxsize=0,cursize;
+				for (n = 0; n < 0x10; ++n) //Try all VRAM sizes!
+				{
+					cursize = ((64 * 1024) << ((n & 8) >> 2)) << ((n & 3)); //size?
+					if (Tseng4k_VRAMSize == cursize) isvalid = 1; //The memory size for this item!
+					if ((cursize > maxsize) && (cursize <= Tseng4k_VRAMSize)) maxsize = cursize; //Newer within range!
+				}
+				if (!isvalid) //Invalid VRAM size?
+				{
+					Tseng4k_VRAMSize = maxsize?maxsize:1024 * 1024; //Always 1M or next smaller if possible!
+					BIOS_Settings.VRAM_size = Tseng4k_VRAMSize; //Update VRAM size in BIOS!
+					forceBIOSSave(); //Force save of BIOS!
+				}
+				//1M+=OK!
 			}
 			else //ET3000?
 			{
 				Tseng4k_VRAMSize = 512 * 1024; //Always 512K! (Dosbox says: "Cannot figure how this was supposed to work on the real card")
+				BIOS_Settings.VRAM_size = Tseng4k_VRAMSize; //Update VRAM size in BIOS!
+				forceBIOSSave(); //Force save of BIOS!
 			}
 
-			debugrow("VGA: Allocating VGA VRAM...");
+			debugrow("VGA: Allocating SVGA VRAM...");
 			Tseng_VRAM = (byte *)zalloc(Tseng4k_VRAMSize, "VGA_VRAM", getLock(LOCK_CPU)); //The VRAM allocated to 0!
 			if (Tseng_VRAM) //VRAM allocated?
 			{
@@ -729,8 +738,6 @@ void Tseng34k_init()
 				getActiveVGA()->VRAM = Tseng_VRAM; //Assign the new Tseng VRAM instead!
 				getActiveVGA()->VRAM_size = Tseng4k_VRAMSize; //Assign the Tseng VRAM size!
 			}
-			BIOS_Settings.VRAM_size = getActiveVGA()->VRAM_size; //Update VRAM size in BIOS!
-			forceBIOSSave(); //Force save of BIOS!
 
 			byte VRAMsize = 0;
 			byte regval=0; //Highest memory size that fits!
@@ -738,7 +745,7 @@ void Tseng34k_init()
 			uint_32 lastmemsize = 0; //Last memory size!
 			for (VRAMsize = 0;VRAMsize < 0x10;++VRAMsize) //Try all VRAM sizes!
 			{
-				memsize = ((64 * 1024) << ((regval & 8) >> 2)) << ((regval & 3)); //The memory size for this item!
+				memsize = ((64 * 1024) << ((VRAMsize & 8) >> 2)) << ((VRAMsize & 3)); //The memory size for this item!
 				if ((memsize > lastmemsize) && (memsize <= Tseng4k_VRAMSize)) //New best match found?
 				{
 					regval = VRAMsize; //Use this as the new best!
