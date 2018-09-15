@@ -73,7 +73,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 1; //OK
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
-		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
+		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions still disabled?
 		{
 			if (val == 3) //First part of the sequence to activate the extensions?
 			{
@@ -85,7 +85,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			}
 			return 0; //Not used!
 		}
-		else if (et34kdata->extensionsEnabled) //Extensions enabled?
+		else if ((et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions enabled?
 		{
 			if (et34kdata->extensionstep == 1) //Step two?
 			{
@@ -102,7 +102,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
-		if ((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		if (((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->CGAModeRegister = val; //Save the register to be read!
 			if (et34kdata->ExtendedFeatureControlRegister & 0x80) //Enable NMI?
@@ -113,7 +113,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		goto checkEnableDisable;
 	case 0x3B8: //MDA mode control?
-		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->MDAModeRegister = val; //Save the register to be read!
 			if (et34kdata->ExtendedFeatureControlRegister & 0x80) //Enable NMI?
@@ -123,7 +123,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			return 1; //Handled!
 		}
 		checkEnableDisable: //Check enable/disable(port 3D8 too)
-		if (!et34kdata->extensionsEnabled) //Extensions still disabled?
+		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions still disabled?
 		{
 			if (et34kdata->extensionstep == 1) //Step two?
 			{
@@ -135,7 +135,7 @@ byte Tseng34K_writeIO(word port, byte val)
 				}
 			}
 		}
-		else if (et34kdata->extensionsEnabled) //Extensions enabled?
+		else if (et34kdata->extensionsEnabled && (getActiveVGA()->enable_SVGA==1)) //Extensions enabled?
 		{
 			if (et34kdata->extensionstep == 0) //Step one?
 			{
@@ -147,7 +147,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		return 0; //Not handled!
 	case 0x3D9: //CGA color control?
-		if ((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		if (((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->CGAColorSelectRegister = val; //Save the register to be read!
 			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
@@ -467,7 +467,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 	accessfc: //Allow!
 		getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER = val; //Set!
-		if (et34kdata->extensionsEnabled) //Enabled extensions?
+		if (et34kdata->extensionsEnabled || (getActiveVGA()->enable_SVGA!=1)) //Enabled extensions?
 		{
 			et34kdata->ExtendedFeatureControlRegister = (val&0x80); //Our extended bit is saved!
 		}
@@ -499,14 +499,14 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
 		*result = et34kdata->herculescompatibilitymode; //The entire saved register!
-		if (!et34kdata->extensionsEnabled) //Extensions disabled?
+		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions disabled?
 		{
 			return 0;
 		}
 		return 1; //OK!
 		break;
 	case 0x3B8: //MDA mode control?
-		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
+		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			*result = et34kdata->MDAModeRegister; //Save the register to be read!
 			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
@@ -622,7 +622,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
 		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
-		if (et34kdata->extensionsEnabled) //Enabled extensions?
+		if (((et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) || (getActiveVGA()->enable_SVGA==2)) //Enabled extensions?
 		{
 			*result &= 0x7F; //Clear our extension bit!
 			*result |= et34kdata->ExtendedFeatureControlRegister; //Add the extended feature control!
@@ -817,8 +817,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.BypassPalette = (et4k_tempreg&0x80)?1:0; //Bypass the palette if specified!
 		et34kdata->protect3C0_Overscan = (et4k_tempreg&0x01)?1:0; //Protect overscan if specified!
 		et34kdata->protect3C0_PaletteRAM = (et4k_tempreg&0x02)?1:0; //Protect Internal/External Palette RAM if specified!
-		horizontaltimingsupdated = (et34kdata->doublehorizontaltimings != ((et4k_tempreg&0x10)?1:0)); //Horizontal timings double has been changed?
-		et34kdata->doublehorizontaltimings = ((et4k_tempreg&0x10)?1:0); //Double the horizontal timings?
+		horizontaltimingsupdated = (et34kdata->doublehorizontaltimings != (((et4k_tempreg&0x10) && (VGA->enable_SVGA==2))?1:0)); //Horizontal timings double has been changed?
+		et34kdata->doublehorizontaltimings = (((et4k_tempreg & 0x10) && (VGA->enable_SVGA == 2))?1:0); //Double the horizontal timings?
 
 		et4k_tempreg >>= 4; //Shift to our position!
 		et4k_tempreg &= 3; //Only 2 bits are used for detection!
@@ -888,11 +888,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		VGA->precalcs.startaddress[0] = ((VGA->precalcs.VGAstartaddress<<et34kdata->doublehorizontaltimings)+et34k(VGA)->display_start_high);
-		/*if (!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
-		{
-			VGA->precalcs.startaddress[0] = VGA->precalcs.VGAstartaddress;
-		}*/
+		VGA->precalcs.startaddress[0] = (((VGA->precalcs.VGAstartaddress+et34k(VGA)->display_start_high))<<et34kdata->doublehorizontaltimings);
 	}
 
 	//ET3000/ET4000 Cursor Location register
@@ -902,14 +898,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		/*if (!(!et34k(VGA)->extensionsEnabled && (VGA->enable_SVGA==1))) //Extensions disabled on ET4000?
-		{*/
-			VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
-		/*}
-		else
-		{
-			VGA->precalcs.cursorlocation = VGA->precalcs.cursorlocation & 0xFFFF; //Use VGA-compatible values!
-		}*/
+		VGA->precalcs.cursorlocation = (VGA->precalcs.cursorlocation & 0xFFFF) | et34k(VGA)->cursor_start_high;
 	}
 
 	//ET3000/ET4000 Vertical Overflow register!
@@ -921,11 +910,6 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	{
 		et4k_tempreg = et3k_reg(et34kdata,3d4,25); //The overflow register!
 	}
-
-	/*if ((!et34k(VGA)->extensionsEnabled) && (VGA->enable_SVGA==1)) //Extensions disabled on ET4000?
-	{
-		et4k_tempreg = 0; //Disable any overflow!
-	}*/
 
 	verticaltimingsupdated = 0; //Default: not updated!
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x35)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x25))) //Interlacing?
@@ -1219,15 +1203,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		/*if (!et34k(VGA)->extensionsEnabled) //Disable ET4000 memory wrap?
-		{
-			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask; //Apply normal masking according to the VGA method!
-		}
-		else //Extensions enabled?
-		{
-		*/
-			VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
-		//}
+		VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
 	}
 
 	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?
