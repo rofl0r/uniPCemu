@@ -4259,6 +4259,7 @@ void BIOS_VGAModeSetting()
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
+	byte VRAMtype[] = {0,0,0,0,1,2,3,4,5}; //Redetect VTAM size when changing this value for the detected card!
 	safestrcpy(itemlist[0],sizeof(itemlist[0]),"Pure VGA"); //Set filename from options!
 	safestrcpy(itemlist[1],sizeof(itemlist[0]),"VGA with NMI"); //Set filename from options!
 	safestrcpy(itemlist[2],sizeof(itemlist[0]),"VGA with CGA"); //Special CGA compatibility mode!
@@ -4313,9 +4314,7 @@ void BIOS_VGAModeSetting()
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
-			byte isSVGA = ((file==6) || (file==7))?1:((file==8)?2:0); //Chosen SVGA-extension card type?
-			byte wasSVGA = ((current==6) || (current==7))?1:((current==8)?2:0); //Previous SVGA-extension card type?
-			if (isSVGA!=wasSVGA) //Switching to/from SVGA mode?
+			if (VRAMtype[file]!=VRAMtype[current]) //Switching to a differently sized VRAM mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
 			}
