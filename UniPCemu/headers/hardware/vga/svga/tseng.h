@@ -87,12 +87,25 @@ typedef struct {
 //ET4K register access
 #define STORE_ET4K(port, index, category) \
 	case 0x##index: \
+	if ((getActiveVGA()->enable_SVGA!=1) || ((getActiveVGA()->enable_SVGA==1) && (!et34kdata->extensionsEnabled))) return 0; \
+	et34k_data->store_et4k_##port##_##index = val; \
+	VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
+	return 1;
+
+#define STORE_ET4K_UNPROTECTED(port, index, category) \
+	case 0x##index: \
 	if (getActiveVGA()->enable_SVGA!=1) return 0; \
 	et34k_data->store_et4k_##port##_##index = val; \
 	VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 	return 1;
 
 #define RESTORE_ET4K(port, index) \
+	case 0x##index: \
+		if ((getActiveVGA()->enable_SVGA!=1) || ((getActiveVGA()->enable_SVGA==1) && (!et34kdata->extensionsEnabled))) return 0; \
+		*result = et34k_data->store_et4k_##port##_##index; \
+		return 1;
+
+#define RESTORE_ET4K_UNPROTECTED(port, index) \
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=1) return 0; \
 		*result = et34k_data->store_et4k_##port##_##index; \
@@ -106,7 +119,20 @@ typedef struct {
 		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 		return 1;
 
+#define STORE_ET3K_UNPROTECTED(port, index, category) \
+	case 0x##index: \
+		if (getActiveVGA()->enable_SVGA!=2) return 0; \
+		et34k_data->store_et3k_##port##_##index = val; \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
+		return 1;
+
 #define RESTORE_ET3K(port, index) \
+	case 0x##index: \
+		if (getActiveVGA()->enable_SVGA!=2) return 0; \
+		*result = et34k_data->store_et3k_##port##_##index; \
+		return 1;
+
+#define RESTORE_ET3K_UNPROTECTED(port, index) \
 	case 0x##index: \
 		if (getActiveVGA()->enable_SVGA!=2) return 0; \
 		*result = et34k_data->store_et3k_##port##_##index; \
@@ -115,17 +141,29 @@ typedef struct {
 //ET3K/ET4K register access
 #define STORE_ET34K(port, index, category) \
 	case 0x##index: \
-		if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
+	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2) || ((getActiveVGA()->enable_SVGA==1) && (!et34kdata->extensionsEnabled))) return 0; \
+		et34k_data->store_##port##_##index = val; \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
+		return 1;
+
+#define STORE_ET34K_UNPROTECTED(port, index, category) \
+	case 0x##index: \
+	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
 		et34k_data->store_##port##_##index = val; \
 		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 		return 1;
 
 #define RESTORE_ET34K(port, index) \
 	case 0x##index: \
-		if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
+	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2) || ((getActiveVGA()->enable_SVGA==1) && (!et34kdata->extensionsEnabled))) return 0; \
 		*result = et34k_data->store_##port##_##index; \
 		return 1;
 
+#define RESTORE_ET34K_UNPROTECTED(port, index) \
+	case 0x##index: \
+	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
+		*result = et34k_data->store_##port##_##index; \
+		return 1;
 
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize);
 void set_clock_index_et4k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!

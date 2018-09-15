@@ -185,14 +185,13 @@ byte Tseng34K_writeIO(word port, byte val)
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtvalue:
-//void 3d5_et4k(Bitu reg,Bitu val,Bitu iolen) {
-	if (((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) &&
-		(!((getActiveVGA()->registers->CRTControllerRegisters_Index==0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x35))) //Unprotected registers?
-		) //ET4000 blocks this without the KEY?
+		if (((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) &&
+			(!((getActiveVGA()->registers->CRTControllerRegisters_Index==0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x35))) //Unprotected registers?
+			) //ET4000 blocks this without the KEY?
 		return 0;
 
-	switch(getActiveVGA()->registers->CRTControllerRegisters_Index)
-	{
+		switch(getActiveVGA()->registers->CRTControllerRegisters_Index)
+		{
 		/*
 		3d4h index 31h (R/W):  General Purpose
 		bit  0-3  Scratch pad
@@ -330,7 +329,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			7  Enable 6845 compatibility if set.
 			*/
 			// TODO: Some of these may be worth implementing.
-			STORE_ET3K(3d4, 24,WHEREUPDATED_CRTCONTROLLER);
+		STORE_ET3K(3d4, 24,WHEREUPDATED_CRTCONTROLLER);
 		case 0x25:
 			/*
 			3d4h index 25h (R/W): Overflow High
@@ -385,7 +384,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	*/
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
-		if((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) return 0; //Not used without extensions!
+		//if((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) return 0; //Not used without extensions! Edit: Required for detecting Tseng card!
 		et34kdata->segmentselectregister = val; //Save the entire segment select register!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
@@ -484,6 +483,7 @@ byte Tseng34K_writeIO(word port, byte val)
 
 byte Tseng34K_readIO(word port, byte *result)
 {
+	byte switchval;
 	SVGA_ET34K_DATA *et34kdata = et34k_data; //The et4k data!
 	switch (port)
 	{
@@ -567,9 +567,12 @@ byte Tseng34K_readIO(word port, byte *result)
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
 	//Bitu read_p3d5_et4k(Bitu reg,Bitu iolen) {
-		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x33) && (getActiveVGA()->registers->CRTControllerRegisters_Index !=0x35) && (getActiveVGA()->enable_SVGA == 1)) //ET4000 blocks this without the KEY?
-			return 0x0;
-		switch(getActiveVGA()->registers->CRTControllerRegisters_Index) {
+		if (((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) &&
+			(!((getActiveVGA()->registers->CRTControllerRegisters_Index == 0x33) || (getActiveVGA()->registers->CRTControllerRegisters_Index == 0x35))) //Unprotected registers?
+			) //ET4000 blocks this without the KEY?
+			return 0;
+		switch(getActiveVGA()->registers->CRTControllerRegisters_Index)
+		{
 		//ET4K
 		RESTORE_ET4K(3d4, 31);
 		RESTORE_ET4K(3d4, 32);
@@ -619,6 +622,23 @@ byte Tseng34K_readIO(word port, byte *result)
 			//LOG(LOG_VGAMISC, LOG_NORMAL)("VGA:ATTR:ET4K:Read from illegal index %2X", reg);
 			break;
 		}
+		break;
+	case 0x3C2: //Read: Input Status #0 Register		DATA
+		//Switch sense: 0=Switch closed(value of the switch being 1)
+		switchval = ((getActiveVGA()->registers->switches) >> GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER, 2, 3)); //Switch value to set!
+		switchval = ~switchval; //Reverse the switch for EGA+!
+		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER, 4, 1, (switchval & 1)); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
+		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER; //Give the register!
+		//*result &= VGA_RegisterWriteMasks_InputStatus0[(getActiveVGA()->enable_SVGA == 3) ? 1 : 0]; //Apply the write mask to the data written to the register!
+		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA == 1)) //Disabled on ET4000?
+		{
+			*result &= ~0x60; //Disable reading of the extended register!
+		}
+		else //Feature code!
+		{
+			SETBITS(*result, 4, 3, (getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER & 3)); //Feature bits 0&1!
+		}
+		return 1;
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
 		*result = getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER; //Give!
@@ -882,8 +902,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//ET3000/ET4000 Start address register
-	if (CRTUpdated || horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))
-		/*|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)*/) //Extended start address?
+	if (CRTUpdated || horizontaltimingsupdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER|0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xC)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0xD))) //Extended start address?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
@@ -892,8 +911,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	}
 
 	//ET3000/ET4000 Cursor Location register
-	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))
-		/*|| (et34k(VGA)->extensionsEnabled!=et34k(VGA)->oldextensionsEnabled)*/) //Extended cursor location?
+	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x33)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x23)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xE)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0xF))) //Extended cursor location?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
