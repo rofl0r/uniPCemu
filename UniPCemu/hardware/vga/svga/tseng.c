@@ -1068,8 +1068,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#endif
 		//bit0=Horizontal total bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.HORIZONTALTOTALREGISTER;
-		tempdata += 5; //Actually five clocks more!
 		tempdata |= ((et34k_tempreg & 1) << 8); //To be updated?
+		tempdata += 5; //Actually five clocks more!
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
 		updateCRTC |= (VGA->precalcs.horizontaltotal != tempdata); //To be updated?
@@ -1082,7 +1082,6 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		#endif
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALDISPLAYREGISTER;
-		++tempdata; //1 more on Tseng chips!
 		++tempdata; //Stop after this character!
 		tempdata *= VGA->precalcs.characterwidth; //Original!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
