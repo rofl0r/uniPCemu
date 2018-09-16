@@ -422,10 +422,12 @@ extern sword diagnosticsportoutput_breakpoint; //Breakpoint set?
 extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
 extern byte advancedlog; //Advanced log setting
 
+byte VRAMtype[0x10] = { 0,0,0,0,1,2,3,4,5,0,0,0,0,0,0,0 }; //Redetect VTAM size when changing this value for the detected card!
+byte oldVGAMode;
+
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
-	byte oldVGAMode;
 	if (__HW_DISABLED) return 0; //Abort!
 	EMU_stopInput(); //Stop all emu input!
 	terminateVGA(); //Terminate currently running VGA for a speed up!
@@ -544,7 +546,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 
-	if (BIOS_Settings.VGA_Mode!=oldVGAMode) //Mode changed?
+	if ((BIOS_Settings.VGA_Mode!=oldVGAMode) && (VRAMtype[BIOS_Settings.VGA_Mode&0xF]==VRAMtype[oldVGAMode&0xF])) //Mode changed, but not redetecting VRAM?
 	{
 		VGA_initIO(); //Initialise/update the VGA if needed!
 	}
@@ -4259,7 +4261,6 @@ void BIOS_VGAModeSetting()
 	{
 		cleardata(&itemlist[i][0],sizeof(itemlist[i])); //Reset!
 	}
-	byte VRAMtype[] = {0,0,0,0,1,2,3,4,5}; //Redetect VTAM size when changing this value for the detected card!
 	safestrcpy(itemlist[0],sizeof(itemlist[0]),"Pure VGA"); //Set filename from options!
 	safestrcpy(itemlist[1],sizeof(itemlist[0]),"VGA with NMI"); //Set filename from options!
 	safestrcpy(itemlist[2],sizeof(itemlist[0]),"VGA with CGA"); //Special CGA compatibility mode!
@@ -4314,7 +4315,7 @@ void BIOS_VGAModeSetting()
 	default: //Changed?
 		if (file!=current) //Not current?
 		{
-			if (VRAMtype[file]!=VRAMtype[current]) //Switching to a differently sized VRAM mode?
+			if (VRAMtype[file&0xF]!=VRAMtype[current&0xF]) //Switching to a differently sized VRAM mode?
 			{
 				BIOS_Settings.VRAM_size = 0; //Autodetect current memory size!
 			}
