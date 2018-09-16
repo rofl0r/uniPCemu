@@ -120,12 +120,22 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 		size = VRAM_SIZE; //Default!
 	}
 	VGA->VRAM_size = size; //Use the selected size!
+
+	//VRAM size must be a power of two!
+	for (size = 1; size <= VGA->VRAM_size; size <<= 1) //Find largest bit!
+	{
+	}
+
+	if (size > VGA->VRAM_size) size >>= 1; //Take next bit if overflown!
+	update_bios |= (VGA->VRAM_size != size); //Size changed? Force BIOS update if so!
+	VGA->VRAM_size = size; //Truncate size to largest bit set(power of 2)!
 	
 	debugrow("VGA: Allocating VGA VRAM...");
 	VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",getLock(LOCK_CPU)); //The VRAM allocated to 0!
 	if (!VGA->VRAM)
 	{
 		VGA->VRAM_size = VRAM_SIZE; //Try Default VRAM size!
+		update_bios |= (VGA->VRAM_size != size); //Size changed? Force BIOS update if so!
 		//dolog("zalloc","Allocating VGA VRAM default...");
 		VGA->VRAM = (byte *)zalloc(VGA->VRAM_size,"VGA_VRAM",getLock(LOCK_CPU)); //The VRAM allocated to 0!
 		if (!VGA->VRAM) //Still not OK?
