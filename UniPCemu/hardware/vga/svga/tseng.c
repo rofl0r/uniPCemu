@@ -719,7 +719,6 @@ void Tseng34k_init()
 				{
 					Tseng4k_VRAMSize = maxsize?maxsize:1024 * 1024; //Always 1M or next smaller if possible!
 					BIOS_Settings.VRAM_size = Tseng4k_VRAMSize; //Update VRAM size in BIOS!
-					forceBIOSSave(); //Force save of BIOS!
 				}
 				//1M+=OK!
 			}
@@ -727,7 +726,6 @@ void Tseng34k_init()
 			{
 				Tseng4k_VRAMSize = 512 * 1024; //Always 512K! (Dosbox says: "Cannot figure how this was supposed to work on the real card")
 				BIOS_Settings.VRAM_size = Tseng4k_VRAMSize; //Update VRAM size in BIOS!
-				forceBIOSSave(); //Force save of BIOS!
 			}
 
 			debugrow("VGA: Allocating SVGA VRAM...");

@@ -582,6 +582,7 @@ void initEMU(int full) //Init!
 
 	debugrow("Starting VGA...");
 	startVGA(); //Start the current VGA!
+	BIOS_SaveData(); //Save BIOS settings!
 
 	debugrow("EMU Ready to run.");
 }
@@ -643,6 +644,7 @@ void doneEMU()
 		debugrow("doneEMU: EMU finished!");
 		emu_started = 0; //Not started anymore!
 		EMU_RUNNING = 0; //We aren't running anymore!
+		BIOS_SaveData(); //Save BIOS settings!
 		#ifdef REPORT_MEMORYLEAK
 		if (freemem()!=initEMUmemory && initEMUmemory) //Difference?
 		{

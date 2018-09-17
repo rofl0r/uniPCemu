@@ -150,7 +150,6 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	{
 		//dolog("BIOS","VGA requesting update VRAM size in BIOS...");
 		BIOS_Settings.VRAM_size = VGA->VRAM_size; //Update VRAM size in BIOS!
-		forceBIOSSave(); //Force save of BIOS!
 	}
 
 	debugrow("VGA: Allocating VGA registers...");

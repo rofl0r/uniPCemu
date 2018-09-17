@@ -655,7 +655,6 @@ void saveCMOS()
 		memcpy(&BIOS_Settings.ATCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_ATCMOS = 1; //We've saved an CMOS!
 	}
-	forceBIOSSave(); //Save the BIOS data!
 }
 
 byte XTRTC_translatetable[0x10] = {
