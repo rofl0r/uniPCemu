@@ -728,6 +728,9 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 
 char phonebookentry[256] = "";
 
+byte loadedsettings_loaded = 0;
+BIOS_Settings_TYPE loadedsettings; //The settings that have been loaded!
+
 void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -736,6 +739,11 @@ void BIOS_LoadData() //Load BIOS settings!
 	byte c;
 	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
+	if (loadedsettings_loaded)
+	{
+		memcpy(&BIOS_Settings,&loadedsettings,sizeof(BIOS_Settings)); //Reload from buffer!
+		return;
+	}
 	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!
 
 	if (!f) //Not loaded?
@@ -891,6 +899,9 @@ void BIOS_LoadData() //Load BIOS settings!
 	{
 		BIOS_SaveData(); //Save our Settings data!
 	}
+
+	memcpy(&BIOS_Settings,&loadedsettings,sizeof(BIOS_Settings)); //Reload from buffer!
+	loadedsettings_loaded = 1; //Buffered in memory!
 }
 
 byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
@@ -944,6 +955,11 @@ int BIOS_SaveData() //Save BIOS settings!
 {
 	byte c;
 	if (__HW_DISABLED) return 1; //Abort!
+	if ((memcmp(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)==0) && loadedsettings_loaded) //Unchanged from buffer?
+	{
+		return 1; //Nothing to do! Report success!
+	}
+	
 	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
 	delete_file(NULL,BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
@@ -1203,6 +1219,9 @@ int BIOS_SaveData() //Save BIOS settings!
 	//PS2CMOS
 	if (!write_private_profile_uint64("PS2CMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_PS2CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.PS2CMOS,"PS2CMOS",cmos_commentused)) return 0; //The full saved CMOS!
+
+	memcpy(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)); //Reload from buffer!
+	loadedsettings_loaded = 1; //Buffered in memory!
 
 	//Fully written!
 	return 1; //BIOS Written & saved successfully!
