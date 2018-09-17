@@ -955,7 +955,7 @@ int BIOS_SaveData() //Save BIOS settings!
 {
 	byte c;
 	if (__HW_DISABLED) return 1; //Abort!
-	if ((memcmp(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)==0) && loadedsettings_loaded) //Unchanged from buffer?
+	if ((memcmp(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings))==0) && loadedsettings_loaded) //Unchanged from buffer?
 	{
 		return 1; //Nothing to do! Report success!
 	}

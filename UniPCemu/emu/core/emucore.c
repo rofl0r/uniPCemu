@@ -364,7 +364,6 @@ void initEMU(int full) //Init!
 	if ((BIOS_Settings.memory & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
 	{
 		BIOS_Settings.memory &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
-		forceBIOSSave(); //Force-save the BIOS settings!
 	}
 
 	debugrow("Initializing I/O port handling...");
@@ -424,7 +423,6 @@ void initEMU(int full) //Init!
 		{
 			//We've failed loading!
 			memset(&BIOS_Settings.SoundFont, 0, sizeof(BIOS_Settings.SoundFont));
-			forceBIOSSave(); //Save the new BIOS!
 			useMPU = 0; //Don't use the MPU: we're rejected!
 		}
 	}
@@ -450,7 +448,6 @@ void initEMU(int full) //Init!
 		if (BIOS_Settings.useSoundBlaster) //Sound Blaster specified?
 		{
 			BIOS_Settings.useSoundBlaster = 0; //Don't allow Sound Blaster emulation!
-			forceBIOSSave(); //Save the new BIOS!
 		}
 	}
 
