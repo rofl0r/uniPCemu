@@ -900,7 +900,7 @@ void BIOS_LoadData() //Load BIOS settings!
 		BIOS_SaveData(); //Save our Settings data!
 	}
 
-	memcpy(&BIOS_Settings,&loadedsettings,sizeof(BIOS_Settings)); //Reload from buffer!
+	memcpy(&loadedsettings, &BIOS_Settings, sizeof(BIOS_Settings)); //Reload from buffer!
 	loadedsettings_loaded = 1; //Buffered in memory!
 }
 
