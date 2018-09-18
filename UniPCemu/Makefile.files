@@ -2,6 +2,10 @@
 BUILD_NAME = UniPCemu
 BUILD_DEFINE = UNIPCEMU
 
+#Build encrypted prx
+BUILD_PRX = 1
+ENCRYPT = 1
+
 #Now, our modules!
 
 #Exception handler!

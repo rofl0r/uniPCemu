@@ -303,3 +303,4 @@ __pycache__/
 /enc_temp_folder
 #Universal git version storage is to be ignored. This is updated on commits each time!
 /gitversion2.txt
+*.psp
