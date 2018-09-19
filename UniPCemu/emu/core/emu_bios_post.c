@@ -398,6 +398,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (verified) //Ready to boot, but need option ROMS?
 			{
 				verified = BIOS_checkOPTROMS(); //Try and load OPT roms!
+				if (!verified) //Error reading ROM?
+				{
+					dolog("emu", "Failed loading Option ROMs!");
+				}
 			}
 
 			if (!verified) //Error reading ROM?
