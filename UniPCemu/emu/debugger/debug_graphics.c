@@ -185,7 +185,6 @@ byte loadVGADump(byte mode)
 void debugTextModeScreenCapture()
 {
 	//VGA_DUMPDAC(); //Make sure the DAC is dumped!
-	lock(LOCK_MAINTHREAD);
 	SCREEN_CAPTURE = 1; //Screen capture next frame?
 	unlock(LOCK_MAINTHREAD);
 	VGA_waitforVBlank(); //Log one screen!
@@ -196,7 +195,6 @@ void debugTextModeScreenCapture()
 		VGA_waitforVBlank(); //Wait for VBlank!
 		lock(LOCK_MAINTHREAD);
 	}
-	unlock(LOCK_MAINTHREAD);
 }
 
 extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
@@ -207,7 +205,6 @@ void GPUswitchvideomode(word mode); //Prototype!
 void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int allequal, uint_32 centercolor, byte usecenter, byte screencapture)
 {
 	stopTimers(0); //Stop all timers!
-	lock(LOCK_MAINTHREAD);
 	/*
 	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
@@ -275,7 +272,6 @@ void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int
 	{
 		dolog("debugger","VGA dump loaded: %02X",mode); //Loaded this VGA dump instead logged!
 	}
-	unlock(LOCK_MAINTHREAD);
 
 	GPU_text_locksurface(frameratesurface);
 	GPU_textgotoxy(frameratesurface,33,2); //Goto Rendering... text!
@@ -296,10 +292,12 @@ void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int
 	//VGA_LOGCRTCSTATUS(); //Dump the current CRTC status!
 	//dump_CRTCTiming(); //Dump the current CRTC timing!
 	startTimers(0); //Start the timers!
+
 	if (screencapture) //To create a screen capture?
 	{
 		debugTextModeScreenCapture(); //Debug a screen capture!
 	}
+	unlock(LOCK_MAINTHREAD);
 	delay(5000000); //Wait a bit!
 }
 
@@ -318,6 +316,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	#ifdef DEBUG256
 	goto specialdebugging;
 	#endif
+	lock(LOCK_MAINTHREAD); //Make sure we're the only one using it!
 	if (TEXTMODE_DEBUGGING) //Debug text mode too?
 	{
 		stopTimers(0); //Make sure we've stopped!
@@ -385,7 +384,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 
 		startTimers(0); //Start timers up!
+		unlock(LOCK_MAINTHREAD);
 		delay(5000000); //Wait a bit!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AH = 0x0B; //Advanced:!
@@ -394,7 +395,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		BIOS_int10(); //Show the border like this!
 	
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(5000000); //Wait 5 seconds!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = 0x01; //40x25 TEXT mode!
@@ -415,7 +418,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"40x25-0 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(10000000); //Wait 10 seconds!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 
 		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
@@ -425,7 +430,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-1 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(10000000); //Wait 10 seconds!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
@@ -444,7 +451,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 WidthRows...");
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(10000000); //Wait 1 seconds!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
@@ -462,7 +471,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"80x25-2 Alltextcolors...");
 		GPU_text_releasesurface(frameratesurface);
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(10000000); //Wait 1 seconds!
+		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
 		CPU[activeCPU].registers->AX = 0x02; //80x25 b/w!
@@ -488,7 +499,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		CPU[activeCPU].registers->DH = 0; //Y
 		BIOS_int10(); //Show!
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
+		unlock(LOCK_MAINTHREAD);
 		delay(5000000); //Wait 5 seconds!
+		lock(LOCK_MAINTHREAD);
 	}
 
 	//Text modes work!
@@ -531,16 +544,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	DoDebugVGAGraphics(0x13,320,200,0x100,0,0xF,1,1); //Debug 320x200x256! MCGA,VGA! works, but 1/8th screen width?
 	if (shuttingdown()) goto doshutdown;
 
-	lock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 	if (getActiveVGA()->enable_SVGA) //SVGA debugging too?
 	{
-		unlock(LOCK_MAINTHREAD); //Finished with it!
 		DoDebugVGAGraphics(0x2E,640,480,0x100,0,0xF,1,1); //Debug 640x480x256! ET3000/ET4000!
 		DoDebugVGAGraphics(0x213, 320, 200, 0x10000, 0, 0xFFFF, 1, 1); //Debug 320x200x32K! ET3000/ET4000!
 		DoDebugVGAGraphics(0x22E, 640, 480, 0x10000, 0, 0xFFFF, 1, 1); //Debug 640x480x32K! ET3000/ET4000!
 		if (shuttingdown()) goto doshutdown;
 	}
-	else unlock(LOCK_MAINTHREAD); //We're accessing the VGA information!
 
 	//debugTextModeScreenCapture(); //Log screen capture!
 	//dumpVGA(); //Dump VGA data&display!
@@ -548,8 +558,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//quitemu(); //Stop!
 	if (waitforever) //Waiting forever?
 	{
-		if (shuttingdown()) goto doshutdown;
-		sleep(); //Wait forever till user Quits the application!
+		for (;;)
+		{
+			if (shuttingdown()) goto doshutdown;
+			delay(0); //Wait forever till user Quits the application!
+		}
 	}
 	doshutdown:
 	return; //We're finished!
