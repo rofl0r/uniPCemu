@@ -7,6 +7,7 @@
 #include "headers/support/fifobuffer.h" //Write buffer support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/hardware/dram.h" //DRAM_access support!
+#include "headers/emu/gpu/gpu.h" //Need GPU comp!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
