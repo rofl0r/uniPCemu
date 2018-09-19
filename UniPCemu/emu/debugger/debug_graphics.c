@@ -556,6 +556,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//dumpVGA(); //Dump VGA data&display!
 	//delay(10000000); //Wait 10 sec!
 	//quitemu(); //Stop!
+	unlock(LOCK_MAINTHREAD); //We're finished! Unlock!
 	if (waitforever) //Waiting forever?
 	{
 		for (;;)
