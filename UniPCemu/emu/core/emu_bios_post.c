@@ -406,6 +406,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 			if (!verified) //Error reading ROM?
 			{
+				dolog("emu", "Failed loading ROMs! Resetting emulator!");
 				unlock(LOCK_CPU);
 				CPU_executionphase_startinterrupt(0x18,0,-1); //Error: no ROM!
 				resumeEMU(1); //Resume the emulator!
