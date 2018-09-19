@@ -491,9 +491,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			resumeEMU(1); //Resume the emulator!
 			return 1; //Reset after the BIOS!
 		}
-#endif
-
 		lock(LOCK_MAINTHREAD);
+#endif
 
 		BIOS_enableCursor(1); //Re-enable the cursor!
 
@@ -537,6 +536,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			return 1; //Reboot!
 
 		case EXECUTIONMODE_TESTROM:
+			lock(LOCK_CPU); //Lock the main thread!
 			f = fopen("TESTROM.DAT", "rb"); //Try TESTROM.DAT?
 			int verified;
 			romsize = 0; //Default: no ROM!
@@ -587,6 +587,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					return 0; //Run the boot rom!
 				}
 			}
+			unlock(LOCK_CPU); //We're done with the CPU!
 			break;
 		default: //Unknown state? Ignore the setting!
 			break;
