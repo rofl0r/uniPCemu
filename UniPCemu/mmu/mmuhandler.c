@@ -222,6 +222,7 @@ resetmmu:
 	}
 	else //Not allocated?
 	{
+		MMU_redetectMemory:
 		MMU.size = 0; //We don't have size!
 		doneMMU(); //Free up memory if allocated, to make sure we're not allocated anymore on the next try!
 		if (memory_allowresize) //Can we resize memory?
@@ -231,6 +232,10 @@ resetmmu:
 			memory_allowresize = 0; //Don't allow resizing anymore!
 			goto resetmmu; //Try again!
 		}
+	}
+	if (freemem()<FREEMEMALLOC) //Not enough free memory?
+	{
+		goto MMU_redetectMemory; //Force memory redetection to make free memory!
 	}
 	memory_allowresize = 1; //Allow resizing again!
 	if (!MMU.size || !MMU.memory) //No size?

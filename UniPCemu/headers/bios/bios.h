@@ -5,6 +5,9 @@
 #include "headers/hardware/cmos.h" //CMOS support!
 //First, the typedefs:
 
+//What to leave for functions! 1MB for normal operations, plus 5 screens for VGA rendering resizing (2 screens for doubled sizing(never x&y together) and 1 screen for the final result)!
+#define FREEMEMALLOC (MBMEMORY+(5*(PSP_SCREEN_COLUMNS*PSP_SCREEN_ROWS*sizeof(uint_32))))
+
 //Delay between steps!
 #define BIOS_INPUTDELAY 250000
 
