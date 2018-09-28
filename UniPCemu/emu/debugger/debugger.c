@@ -1355,7 +1355,7 @@ void debuggerThread()
 				delay(0);
 				lock(LOCK_INPUT);
 			}
-			skipopcodes_destEIP = debuggerregisters.EIP+OPlength; //Destination instruction position!
+			skipopcodes_destEIP = debuggerregisters.EIP+(uint_32)OPlength; //Destination instruction position!
 			if (getcpumode() != CPU_MODE_PROTECTED) //Not protected mode?
 			{
 				skipopcodes_destEIP &= 0xFFFF; //Wrap around, like we need to!

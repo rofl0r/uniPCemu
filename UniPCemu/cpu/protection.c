@@ -1021,11 +1021,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		if (callgatetype) //To process a call gate's parameters and offsets?
 		{
-			destEIP = GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
+			destEIP = (uint_32)GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
 			if (callgatetype == 2) //32-bit destination?
 			{
-				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_mid<<16); //Mid EIP!
-				destEIP |= (GATEDESCRIPTOR.desc.callgate_base_high<<24); //High EIP!
+				destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_mid)<<16); //Mid EIP!
+				destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_high)<<24); //High EIP!
 			}
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;

@@ -197,7 +197,7 @@ void CPU_IRET()
 				else //16-bit operand size?
 				{
 					if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-					destEIP = CPU_POP16(0);
+					destEIP = (uint_32)CPU_POP16(0);
 					tempCS = CPU_POP16(0);
 					tempEFLAGS = CPU_POP16(0);
 					if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!

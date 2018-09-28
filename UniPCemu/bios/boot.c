@@ -87,7 +87,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 				return FALSE; //Error loading data file!
 			}
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
-			destEIP = 0x7C00; //Where to start booting! Loaded boot sector executable!
+			destEIP = (uint_32)0x7C00; //Where to start booting! Loaded boot sector executable!
 			segmentWritten(CPU_SEGMENT_CS,ISOREADER_SEGMENT,1); //Jump to the boot sector!
 			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
