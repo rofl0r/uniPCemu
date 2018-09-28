@@ -1711,6 +1711,10 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		current = CPU_8086; //8086!
 	}
+	else if (BIOS_Settings.emulated_CPU == CPU_NECV30) //80286?
+	{
+		current = CPU_NECV30; //80186!
+	}
 	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
 	{
 		current = CPU_80286; //80286!
@@ -1727,7 +1731,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		current = CPU_PENTIUM; //PENTIUM!
 	}
-	else //NEC V20/V30 (default)?
+	else //Unknown (default)?
 	{
 		current = DEFAULT_CPU; //NEC V20/V30!
 	}
