@@ -53,7 +53,6 @@ extern byte res8; //Result 8-bit!
 extern word res16; //Result 16-bit!
 uint_32 res32; //Result 32-bit!
 extern byte thereg; //For function number!
-extern uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
 extern byte tempCF2;
 
 VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
@@ -2803,7 +2802,7 @@ void CPU80386_OP81() //GRP1 Ev,Iv
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1);
 	}
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //ADD
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -2877,7 +2876,7 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1);
 	}
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //ADD
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -2944,7 +2943,7 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 
 void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 {
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //POP
 		//Cycle-accurate emulation of the instruction!
@@ -2974,7 +2973,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 	default: //Unknown opcode or special?
 		if (unlikely(cpudebugger)) //Debugger on?
 		{
-			debugger_setcommand("Unknown opcode: 8F /%u",MODRM_REG(params.modrm)); //Error!
+			debugger_setcommand("Unknown opcode: 8F /%u",thereg); //Error!
 		}
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;
@@ -2983,11 +2982,10 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 
 void CPU80386_OPD1() //GRP2 Ev,1
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,1",&modrm_param1);
@@ -3032,11 +3030,10 @@ void CPU80386_OPD1() //GRP2 Ev,1
 
 void CPU80386_OPD3() //GRP2 Ev,CL
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,CL",&modrm_param1);
@@ -3081,7 +3078,6 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 
 void CPU80386_OPF7() //GRP3b Ev
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
@@ -3144,11 +3140,10 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 
 void CPU80386_OPFF() //GRP5 Ev
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger32(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //INC modrm8
 			modrm_generateInstructionTEXT("INC",32,0,PARAM_MODRM_0); //INC!
@@ -3181,12 +3176,11 @@ void CPU80386_OPFF() //GRP5 Ev
 		}
 	}
 	if (unlikely((CPU[activeCPU].modrmstep==0) && (CPU[activeCPU].internalmodrmstep==0) && (CPU[activeCPU].instructionstep==0))) if (modrm_check32(&params,MODRM_src0,1)) return; //Abort when needed!
-	if (MODRM_REG(params.modrm)>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
+	if (thereg>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
 	{
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 	}
 	oper1d = instructionbufferd;
-	ea = modrm_offset32(&params,MODRM_src0);
 	op_grp5_32();
 }
 
@@ -4032,7 +4026,6 @@ void CPU386_OPC1()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	oper2d = (uint_32)immb;
-	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
 		case 0: //ROL

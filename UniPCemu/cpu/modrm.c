@@ -24,6 +24,8 @@ extern CPU_Timings *timing; //The timing used for the current instruction! Used 
 
 extern byte advancedlog; //Advanced log setting
 
+byte thereg; //For function number!
+
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
@@ -2566,6 +2568,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 				break;
 			}
 		}
-	} 
+	}
+	thereg = MODRM_REG(params.modrm); //The register for multifunction grp opcodes!
 	return 0; //We're finished fetching!
 }

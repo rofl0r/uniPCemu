@@ -88,8 +88,6 @@ extern byte custommem; //Custom memory address?
 
 void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
-	thereg = MODRM_REG(params.modrm);
-
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
@@ -1069,8 +1067,6 @@ void CPU80386_OP0FB3_16() {modrm_generateInstructionTEXT("BTR",16,0,PARAM_MODRM_
 void CPU80386_OP0FB3_32() {modrm_generateInstructionTEXT("BTR",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = ((instructionbufferd>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,1)) return; if (modrm_check32(&params,MODRM_src0,0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTR32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTR /r r/m32,r32
 
 void CPU80386_OP0FBA_16() {
-	thereg = MODRM_REG(params.modrm);
-
 	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg)
@@ -1165,8 +1161,6 @@ void CPU80386_OP0FBA_16() {
 }
 
 void CPU80386_OP0FBA_32() {
-	thereg = MODRM_REG(params.modrm);
-
 	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg)

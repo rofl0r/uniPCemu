@@ -44,7 +44,6 @@ extern word oper1, oper2; //Word variants!
 extern byte res8; //Result 8-bit!
 extern word res16; //Result 16-bit!
 extern byte thereg; //For function number!
-extern uint_32 ea; //From RM offset (GRP5 Opcodes only!)
 
 extern VAL32Splitter temp1, temp2, temp3, temp4, temp5;
 
@@ -558,7 +557,6 @@ void CPU186_OPC0()
 	oper2b = immb;
 
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
-	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
 		case 0: //ROL
@@ -606,7 +604,6 @@ void CPU186_OPC1()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	oper2 = (word)immb;
-	thereg = MODRM_REG(params.modrm);
 	switch (thereg) //What function?
 	{
 		case 0: //ROL

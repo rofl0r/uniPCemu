@@ -133,8 +133,6 @@ void CPU286_OPD6() //286+ SALC
 
 void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 {
-	thereg = MODRM_REG(params.modrm);
-
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
@@ -271,8 +269,6 @@ word Rdata1, Rdata2; //3 words of data to access!
 
 void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
-	thereg = MODRM_REG(params.modrm);
-
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
@@ -771,8 +767,8 @@ void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP80287: FNSTCW>"); }
 void FPU80287_OP9B() {modrm_generateInstructionTEXT("FWAIT",0,0,PARAM_NONE); if (CPU[activeCPU].registers->CR0&CR0_TS) { FPU80287_noCOOP(); return; } /*if (CPU[activeCPU].registers->CR0&0x20) { THROWDESCMF(); return; / #MF Fault! / } */ /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
 void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE3){FPU80287_OPDBE3();} else{FPU80287_noCOOP();} CPUPROT2 }
 void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE0){FPU80287_OPDFE0();} else {FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDD(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPDDslash7();}else {FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPD9(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (MODRM_REG(params.modrm)==7){FPU80287_OPD9slash7();} else {FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPDD(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (thereg==7){FPU80287_OPDDslash7();}else {FPU80287_noCOOP();} CPUPROT2 }
+void FPU80287_OPD9(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (thereg==7){FPU80287_OPD9slash7();} else {FPU80287_noCOOP();} CPUPROT2 }
 
 void FPU80287_noCOOP() {
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");

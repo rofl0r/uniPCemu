@@ -44,8 +44,7 @@ byte oper1b, oper2b; //Byte variants!
 word oper1, oper2; //Word variants!
 byte res8; //Result 8-bit!
 word res16; //Result 16-bit!
-byte thereg; //For function number!
-uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
+extern byte thereg; //For function number!
 byte tempCF2;
 
 VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
@@ -4119,7 +4118,7 @@ void CPU8086_OP80() //GRP1 Eb,Ib
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1);
 	}
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //ADD
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -4191,7 +4190,7 @@ void CPU8086_OP81() //GRP1 Ev,Iv
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1);
 	}
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //ADD
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -4270,7 +4269,7 @@ void CPU8086_OP83() //GRP1 Ev,Ib
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1);
 	}
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //ADD
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -4337,7 +4336,7 @@ void CPU8086_OP83() //GRP1 Ev,Ib
 
 void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 {
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //POP
 		//Cycle-accurate emulation of the instruction!
@@ -4371,7 +4370,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 	default: //Unknown opcode or special?
 		if (unlikely(cpudebugger)) //Debugger on?
 		{
-			debugger_setcommand("Unknown opcode: 8F /%u",MODRM_REG(params.modrm)); //Error!
+			debugger_setcommand("Unknown opcode: 8F /%u",thereg); //Error!
 		}
 		CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 		break;
@@ -4380,11 +4379,10 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 
 void CPU8086_OPD0() //GRP2 Eb,1
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,1",&modrm_param1);
@@ -4428,11 +4426,10 @@ void CPU8086_OPD0() //GRP2 Eb,1
 }
 void CPU8086_OPD1() //GRP2 Ev,1
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,1",&modrm_param1);
@@ -4476,11 +4473,10 @@ void CPU8086_OPD1() //GRP2 Ev,1
 }
 void CPU8086_OPD2() //GRP2 Eb,CL
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,CL",&modrm_param1);
@@ -4524,11 +4520,10 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 }
 void CPU8086_OPD3() //GRP2 Ev,CL
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //ROL
 			debugger_setcommand("ROL %s,CL",&modrm_param1);
@@ -4573,11 +4568,10 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 
 void CPU8086_OPF6() //GRP3a Eb
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //TEST modrm8, imm8
 		case 1: //--- Undocumented opcode, same as above!
@@ -4608,7 +4602,7 @@ void CPU8086_OPF6() //GRP3a Eb
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		if (modrm_check8(&params,MODRM_src0,1)) return; //Abort when needed!
-		if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
+		if ((thereg>1) && (thereg<4))
 		{
 			if (modrm_check8(&params,MODRM_src0,0)) return; //Abort when needed!
 		}
@@ -4621,14 +4615,13 @@ void CPU8086_OPF6() //GRP3a Eb
 		if (likely(CPU[activeCPU].executed)) ++CPU[activeCPU].instructionstep; //Next step!
 		else return; //Wait for completion!
 	}
-	if ((MODRM_REG(params.modrm)>1) && (MODRM_REG(params.modrm)<4))
+	if ((thereg>1) && (thereg<4))
 	{
 		if (CPU8086_instructionstepwritemodrmb(2,res8,MODRM_src0)) return;
 	}
 }
 void CPU8086_OPF7() //GRP3b Ev
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
@@ -4692,7 +4685,7 @@ DEBUG: REALLY SUPPOSED TO HANDLE HERE?
 void CPU8086_OPFE() //GRP4 Eb
 {
 	modrm_debugger8(&params,MODRM_src0,MODRM_src1);
-	switch (MODRM_REG(params.modrm)) //What function?
+	switch (thereg) //What function?
 	{
 	case 0: //INC
 		if (unlikely(cpudebugger)) //Debugger on?
@@ -4726,11 +4719,10 @@ void CPU8086_OPFE() //GRP4 Eb
 
 void CPU8086_OPFF() //GRP5 Ev
 {
-	thereg = MODRM_REG(params.modrm);
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
-		switch (MODRM_REG(params.modrm)) //What function?
+		switch (thereg) //What function?
 		{
 		case 0: //INC modrm8
 			modrm_generateInstructionTEXT("INC",16,0,PARAM_MODRM_0); //INC!
@@ -4766,12 +4758,11 @@ void CPU8086_OPFF() //GRP5 Ev
 	{
 		if (modrm_check16(&params,MODRM_src0,1)) return; //Abort when needed!
 	}
-	if (MODRM_REG(params.modrm)>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
+	if (thereg>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
 	{
 		if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 	}
 	oper1 = instructionbufferw;
-	ea = modrm_offset16(&params,MODRM_src0);
 	op_grp5();
 }
 

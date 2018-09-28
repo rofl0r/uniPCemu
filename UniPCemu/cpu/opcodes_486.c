@@ -38,7 +38,6 @@ extern byte res8; //Result 8-bit!
 extern word res16; //Result 16-bit!
 extern uint_32 res32; //Result 32-bit!
 extern byte thereg; //For function number!
-extern uint_32 ea; //From RM OFfset (GRP5 Opcodes only!)
 extern byte tempCF2;
 
 extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
@@ -78,7 +77,7 @@ void CPU486_CPUID()
 void CPU486_OP0F01_32()
 {
 	uint_32 linearaddr;
-	if (MODRM_REG(params.modrm)==7) //INVLPG?
+	if (thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",16,0,PARAM_MODRM_1);
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
@@ -101,7 +100,7 @@ void CPU486_OP0F01_32()
 void CPU486_OP0F01_16()
 {
 	uint_32 linearaddr;
-	if (MODRM_REG(params.modrm)==7) //INVLPG?
+	if (thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",32,0,PARAM_MODRM2);
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
