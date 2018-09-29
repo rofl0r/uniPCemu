@@ -569,25 +569,29 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 		}
 	}
 
-	//Generate default geometry to use!
-	FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
-	FLOPPY.customgeometry[floppy].sides = 2; //Number of sides!
-	FLOPPY.customgeometry[floppy].tracks = ((floppysize >> 9)/18/2); //Number of tracks!
-	FLOPPY.customgeometry[floppy].SPT = 18; //Number of sectors in this track!
-	//Fill in the remaining information with defaults!
-	FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
-	FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
-	FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
-	FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
-	FLOPPY.customgeometry[floppy].DoubleDensity = (80>40); //Probably double density?
-	FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
-	FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_3_5; //Our GAP3 length used!
-	FLOPPY.customgeometry[floppy].KB = (word)KB(floppysize); //Raw size!
-	FLOPPY.customgeometry[floppy].measurement = DSKTrackInformation.numberofsectors>40 ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
-	FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
-	FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates!
-	FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
-	return; //Geometry obtained!
+	//Another try, find biggest fit!
+	word largestKB = 0;
+	FLOPPY_GEOMETRY *largestgeometry = NULL; //The largest found!
+	for (i = 0; i < NUMITEMS(floppygeometries); ++i)
+	{
+		if ((floppygeometries[i].KB > largestKB) && (floppygeometries[i].KB <= KB(floppysize))) //New largest found within range?
+		{
+			largestgeometry = &floppygeometries[i]; //Use this one as the largest!
+			largestKB = floppygeometries[i].KB; //Largest KB detected within range!
+		}
+	}
+
+	if (largestgeometry) //Largest geometry found?
+	{
+		FLOPPY.geometries[floppy] = largestgeometry; //Use the largest geometry found!
+		return; //Stop searching!
+	}
+	
+	//If we reach here, we're an invalid geometry!
+	if (FLOPPY.physicalcylinder[floppy]) //Invalid cylinder?
+	{
+		FLOPPY.physicalcylinder[floppy] = 0; //Return to track 0, physically, since no track exists there!
+	}
 }
 
 uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
@@ -2267,7 +2271,10 @@ void updateFloppy(DOUBLE timepassed)
 							else if ((FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && FLOPPY.seekrelup[drive] && FLOPPY.seekdestination[drive])) //Step in towards bigger cylinder numbers?
 							{
 								++FLOPPY.currentcylinder[drive]; //Step down!
-								if (FLOPPY.physicalcylinder[drive]<FLOPPY.geometries[drive]->tracks) ++FLOPPY.physicalcylinder[drive]; //Increase when available!
+								if (FLOPPY.geometries[drive])
+								{
+									if (FLOPPY.physicalcylinder[drive] < FLOPPY.geometries[drive]->tracks) ++FLOPPY.physicalcylinder[drive]; //Increase when available!
+								}
 								movedcylinder = 1;
 							}
 							else movedcylinder = 0; //We didn't move?
