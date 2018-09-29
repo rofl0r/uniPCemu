@@ -564,9 +564,30 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 				FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
 				FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates!
 				FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
+				return; //Geometry obtained!
 			}
 		}
 	}
+
+	//Generate default geometry to use!
+	FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
+	FLOPPY.customgeometry[floppy].sides = 2; //Number of sides!
+	FLOPPY.customgeometry[floppy].tracks = ((floppysize >> 9)/18/2); //Number of tracks!
+	FLOPPY.customgeometry[floppy].SPT = 18; //Number of sectors in this track!
+	//Fill in the remaining information with defaults!
+	FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
+	FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
+	FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
+	FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
+	FLOPPY.customgeometry[floppy].DoubleDensity = (80>40); //Probably double density?
+	FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
+	FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_3_5; //Our GAP3 length used!
+	FLOPPY.customgeometry[floppy].KB = (word)KB(floppysize); //Raw size!
+	FLOPPY.customgeometry[floppy].measurement = DSKTrackInformation.numberofsectors>40 ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
+	FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
+	FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates!
+	FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
+	return; //Geometry obtained!
 }
 
 uint_32 floppy_LBA(byte floppy, word side, word track, word sector)
