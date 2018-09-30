@@ -97,6 +97,8 @@ void CPU286_OP63() //ARPL r/m16,r16
 			}
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
+			CPU[activeCPU].executed = 0; //Still running!
+			return; //Apply the cycles!
 		}
 		if (FLAG_ZF) if (CPU8086_instructionstepwritemodrmw(4,destRPL,MODRM_src0,0)) return; //Set the result!
 	CPUPROT2
