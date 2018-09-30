@@ -1019,42 +1019,36 @@ void CPU80386_BTS16(word *val, word bit)
 {
 	CPU80386_BT16(*val,bit);
 	*val |= (1<<(bit&0xF)); //Set!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTS32(uint_32 *val, uint_32 bit)
 {
 	CPU80386_BT32(*val,bit);
 	*val |= (1<<(bit&0x1F)); //Set!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTR16(word *val, word bit)
 {
 	CPU80386_BT16(*val,bit);
 	*val &= ~(1<<(bit&0xF)); //Reset!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTR32(uint_32 *val, uint_32 bit)
 {
 	CPU80386_BT32(*val,bit);
 	*val &= ~(1<<(bit&0x1F)); //Reset!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTC16(word *val, word bit)
 {
 	CPU80386_BT16(*val,bit);
 	*val ^= (1<<(bit&0xF)); //Complement!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_BTC32(uint_32 *val, uint_32 bit)
 {
 	CPU80386_BT32(*val,bit);
 	*val ^= (1<<(bit&0x1F)); //Complement!
-	CPU_apply286cycles(); /* Apply cycles */
 }
 
 void CPU80386_OP0FA3_16() {modrm_generateInstructionTEXT("BT",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = ((instructionbufferw>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) if (modrm_check16(&params,MODRM_src0,1)) return; if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; CPU80386_BT16(instructionbufferw2,instructionbufferw);} //BT /r r/m16,r16
