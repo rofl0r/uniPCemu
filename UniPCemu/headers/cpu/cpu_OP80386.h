@@ -333,4 +333,6 @@ byte CPU80386_internal_stepreaddirectdw(word base, sword segment, word segval, u
 byte CPU80386_internal_stepreadinterruptdw(word base, sword segment, word segval, uint_32 offset, uint_32 *result, byte is_offset16);
 byte CPU80386_internal_stepwritemodrmdw(word base, uint_32 value, byte paramnr);
 
+void op_add32(); //32-bit add for 8086 (I)MUL!
+
 #endif

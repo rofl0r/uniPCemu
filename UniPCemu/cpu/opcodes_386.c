@@ -164,7 +164,7 @@ OPTINLINE void op_adc32() {
 	flag_adc32 (oper1d, oper2d, FLAG_CF);
 }
 
-OPTINLINE void op_add32() {
+void op_add32() {
 	res32 = oper1d + oper2d;
 	flag_add32 (oper1d, oper2d);
 }

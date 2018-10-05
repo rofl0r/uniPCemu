@@ -12,6 +12,7 @@
 #include "headers/cpu/protection.h"
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!
+#include "headers/cpu/cpu_OP80386.h" //For 32-bit ADD for (I)MUL!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -42,8 +43,10 @@ extern word immw; //For CPU_readOPw result!
 extern uint_32 imm32; //For CPU_readOPdw result!
 byte oper1b, oper2b; //Byte variants!
 word oper1, oper2; //Word variants!
+extern uint_32 oper1d, oper2d; //DWord variants for MUL!
 byte res8; //Result 8-bit!
 word res16; //Result 16-bit!
+extern uint_32 res32; //For cycle-accurate MUL!
 extern byte thereg; //For function number!
 byte tempCF2;
 
@@ -2288,6 +2291,140 @@ void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *rema
 		{
 			*remainder = (~*remainder)+1; //Apply the new sign to the remainder!
 		}
+	}
+}
+
+//resultbits is either 8(16-bit) or 16(32-bit).
+//val=AX, multiplier=multiplier
+//low and high are either bytes or words for the result!
+void CPU8086_internal_MUL(word val, word multiplier, word *low, word *high, byte resultbits, byte *applycycles, byte issigned, byte resultnegative, byte isAdjust, byte isRegister)
+{
+	if (*applycycles)
+	{
+		if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
+		{
+			*applycycles = 0; //Don't apply the cycles anymore!
+		}
+	}
+
+	if ((isAdjust == 0) && *applycycles)
+	{
+		if (resultbits != 16) CPU[activeCPU].cycles_OP += 8; //Byte size takes 8 cycles!
+
+		CPU[activeCPU].cycles_OP += 3; //3 cycles for non-AA* multiply!
+	}
+
+	//Main multiply operation!
+	byte carry, i;
+	word c, a, r;
+	uint_32 curmultiplier;
+	uint_32 curresult;
+	curresult = 0; //Init result!
+	curmultiplier = (uint_32)multiplier; //Current multiplier!
+
+	a = (val&((1 << resultbits) - 1)); //The lower half of the value to multiply!
+	c = ((val >> (resultbits >> 1))&((1 << resultbits) - 1)); //The higher half of the value to multiply!
+
+	carry = (a & 1);
+	a >>= 1;
+	for (i = 0; i < resultbits; ++i)
+	{
+		if (*applycycles) CPU[activeCPU].cycles_OP += 7; //Take 7 cycles!
+		if (carry)
+		{
+			oper1b = oper1 = oper1d = curresult; //Source!
+			oper2b = oper2 = oper2d = curmultiplier; //What to add!
+			if (resultbits == 8)
+			{
+				op_add16(); //8-bit MUL!
+			}
+			else
+			{
+				op_add32(); //16-bit MUL!
+			}
+			curresult = (resultbits == 8) ? res16 : res32; //The result!
+			if (*applycycles) ++CPU[activeCPU].cycles_OP; //Take 1 cycle!
+		}
+
+		//SHL of the multiplier!
+		curmultiplier <<= 1; //Multiply b by 1 for each bit we're multiplying(powers of 2 are processed)!
+
+		//Normal shifting!
+		r = (c >> 1) | (carry << (resultbits - 1)); //ROR...
+		carry = (c & 1); //... carry ...
+		c = r; //... Store result!
+		r = (a >> 1) | (carry << (resultbits - 1)); //ROR...
+		carry = (a & 1); //...carry ...
+		a = r; //... Store result!
+	}
+
+	//Store the result!
+
+	if (resultbits == 8)
+	{
+		*low = curresult & 0xFF; //Low
+		*high = (curresult >> 8) & 0xFF; //High
+	}
+	else
+	{
+		*low = curresult & 0xFFFF; //Low
+		*high = (curresult >> 16) & 0xFFFF; //High
+	}
+}
+
+//resultbits: 16 for 32-bit, 8 for 16-bit.
+//low and high are the halves of the result.
+void CPU8086_internal_IMUL(word val, word multiplier, word *low, word *high, byte resultbits, byte *applycycles, byte isAdjust, byte isRegister)
+{
+	byte resultnegative; //To toggle the result and apply sign after and before?
+	byte valwasnegative,multiplierwasnegative,multiplierwasminimum;
+	*applycycles = 1; //Default: apply cycles!
+	if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
+	{
+		*applycycles = 0; //Don't apply the cycles anymore!
+	}
+
+	resultnegative = (((val^multiplier) >> (resultbits - 1)) & 1); //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
+	valwasnegative = multiplierwasnegative = 0;
+	if (val&(1<<(resultbits-1))) //Negative value to divide?
+	{
+		val = ((~val)+1); //Convert the negative value to be positive!
+		if (*applycycles) ++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
+		valwasnegative = 1; //We were signed!
+	}
+	else
+	{
+		//if (*applycycles) ++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
+	}
+
+	multiplierwasminimum = 0;
+	if (multiplier&(1<<(resultbits-1))) //Negative divisor? Convert to a positive divisor!
+	{
+		multiplierwasminimum = (multiplier == (1 << (resultbits - 1))); //Are we the minimum?
+		multiplier = ((~multiplier)+1); //Convert the divisor to be positive!
+		multiplierwasnegative = 1;
+	}
+	else
+	{
+		if (*applycycles && (valwasnegative)) CPU[activeCPU].cycles_OP += 4; //Takes 1 cycle!
+	}
+	if ((valwasnegative == 0) && *applycycles)
+	{
+		if (multiplierwasnegative)
+		{
+			if (!multiplierwasminimum) ++CPU[activeCPU].cycles_OP; //Multiplier wasn't minimum takes 1 cycle?
+			++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
+		}
+	}
+	if (*applycycles) CPU[activeCPU].cycles_OP += 10; //Takes 10 cycles!
+	CPU8086_internal_MUL(val, multiplier, low, high, resultbits, applycycles, 1, resultnegative, isAdjust, isRegister); //Execute the division as an unsigned division!
+	//if (*applycycles) CPU[activeCPU].cycles_OP += 7; //Takes 7 cycles!
+	if (resultnegative)
+	{
+		if (*applycycles) CPU[activeCPU].cycles_OP += 9; //Post-negate takes 9 cycles!
+		*high = ~*high; //Negate high and low...!
+		*low = (~*low) + 1; //... and apply the new sign to the result!
+		if (*low == 0) ++*high; //Overflow to high byte/word?
 	}
 }
 
@@ -5205,6 +5342,7 @@ word tempAX;
 uint_32 tempDXAX;
 
 void op_grp3_8() {
+	byte applycycles;
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	oper1 = signext(oper1b); oper2 = signext(oper2b);
@@ -5247,12 +5385,12 @@ void op_grp3_8() {
 		break;
 
 	case 4: //MULB
-		tempAL = REG_AL; //Save a backup for calculating cycles!
-		temp1.val32 = (uint32_t)oper1b * (uint32_t)REG_AL;
-		REG_AX = temp1.val16 & 0xFFFF;
+		CPU8086_internal_MUL(REG_AL, (word)oper1b, &temp1.val16, &temp2.val16, 8, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
+		REG_AL = (temp1.val16&0xFF);
+		REG_AH = (temp2.val16&0xFF);
 		tempAL = FLAG_ZF; //Backup!
 		flag_log8(temp1.val16); //Flags!
-		if ((temp1.val16&0xFF00)==0)
+		if ((REG_AX&0xFF00)==0)
 		{
 			FLAGW_OF(0); //Both zeroed!
 		}
