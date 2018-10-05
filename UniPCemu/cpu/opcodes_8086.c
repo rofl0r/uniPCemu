@@ -2316,14 +2316,13 @@ void CPU8086_internal_MUL(word val, word multiplier, word *low, word *high, byte
 
 	//Main multiply operation!
 	byte carry, i;
-	word c, a, r;
-	uint_32 curmultiplier;
-	uint_32 curresult;
-	curresult = 0; //Init result!
-	curmultiplier = (uint_32)multiplier; //Current multiplier!
+	word c, a, b, r;
 
-	a = (val&((1 << resultbits) - 1)); //The lower half of the value to multiply!
-	c = ((val >> (resultbits >> 1))&((1 << resultbits) - 1)); //The higher half of the value to multiply!
+	c = 0;
+	a = val;
+	b = multiplier;
+
+	a &= ((1 << resultbits) - 1); //Wrap to what's valid!
 
 	carry = (a & 1);
 	a >>= 1;
@@ -2332,22 +2331,13 @@ void CPU8086_internal_MUL(word val, word multiplier, word *low, word *high, byte
 		if (*applycycles) CPU[activeCPU].cycles_OP += 7; //Take 7 cycles!
 		if (carry)
 		{
-			oper1b = oper1 = oper1d = curresult; //Source!
-			oper2b = oper2 = oper2d = curmultiplier; //What to add!
-			if (resultbits == 8)
-			{
-				op_add16(); //8-bit MUL!
-			}
-			else
-			{
-				op_add32(); //16-bit MUL!
-			}
-			curresult = (resultbits == 8) ? res16 : res32; //The result!
+			oper1 = c; //Source!
+			oper2 = b; //What to add!
+			op_add16(); //8-bit MUL!
+			c = res16; //The result!
 			if (*applycycles) ++CPU[activeCPU].cycles_OP; //Take 1 cycle!
+			carry = FLAG_CF;
 		}
-
-		//SHL of the multiplier!
-		curmultiplier <<= 1; //Multiply b by 1 for each bit we're multiplying(powers of 2 are processed)!
 
 		//Normal shifting!
 		r = (c >> 1) | (carry << (resultbits - 1)); //ROR...
@@ -2359,17 +2349,8 @@ void CPU8086_internal_MUL(word val, word multiplier, word *low, word *high, byte
 	}
 
 	//Store the result!
-
-	if (resultbits == 8)
-	{
-		*low = curresult & 0xFF; //Low
-		*high = (curresult >> 8) & 0xFF; //High
-	}
-	else
-	{
-		*low = curresult & 0xFFFF; //Low
-		*high = (curresult >> 16) & 0xFFFF; //High
-	}
+	*low = a;
+	*high = c;
 }
 
 //resultbits: 16 for 32-bit, 8 for 16-bit.
