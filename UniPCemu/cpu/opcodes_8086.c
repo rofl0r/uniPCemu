@@ -2205,6 +2205,7 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 		l = (val & 0xFF); //Low word or byte!
 	}
 	if (*applycycles) CPU[activeCPU].cycles_OP += 8; //8 cycles!
+	divisor &= (1ULL << resultbits) - 1; //Weap the divisor to be valid!
 	if (h >= divisor) //Overflow?
 	{
 		if ((isAdjust == 0) && *applycycles) ++CPU[activeCPU].cycles_OP; //1 cycle!
