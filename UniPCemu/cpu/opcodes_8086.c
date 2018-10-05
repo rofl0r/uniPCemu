@@ -2214,7 +2214,7 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 	if (isAdjust == 0) ++CPU[activeCPU].cycles_OP; //1 cycle!
 
 	CPU[activeCPU].cycles_OP += 2; //2 cycles to prepare CLC!
-	carry = 0; //No carry!
+	carry = 1; //Carry!
 	for (c = 0; c < resultbits; ++c)
 	{
 		//Perform 32-bit or 16-bit RCL on both quotient and remainder!
