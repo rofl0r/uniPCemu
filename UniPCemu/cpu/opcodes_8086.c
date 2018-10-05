@@ -2323,6 +2323,7 @@ void CPU8086_internal_MUL(word val, word multiplier, word *low, word *high, byte
 	b = multiplier;
 
 	a &= ((1 << resultbits) - 1); //Wrap to what's valid!
+	b &= ((1 << resultbits) - 1); //Wrap to what's valid!
 
 	carry = (a & 1);
 	a >>= 1;
@@ -2372,10 +2373,6 @@ void CPU8086_internal_IMUL(word val, word multiplier, word *low, word *high, byt
 		val = ((~val)+1); //Convert the negative value to be positive!
 		if (*applycycles) ++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
 		valwasnegative = 1; //We were signed!
-	}
-	else
-	{
-		//if (*applycycles) ++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
 	}
 
 	multiplierwasminimum = 0;
@@ -5366,6 +5363,7 @@ void op_grp3_8() {
 		break;
 
 	case 4: //MULB
+		applycycles = 1;
 		CPU8086_internal_MUL(REG_AL, (word)oper1b, &temp1.val16, &temp2.val16, 8, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
 		REG_AL = (temp1.val16&0xFF);
 		REG_AH = (temp2.val16&0xFF);
@@ -5401,18 +5399,11 @@ void op_grp3_8() {
 		break;
 
 	case 5: //IMULB
-		oper1 = oper1b;
-		temp1.val32 = REG_AL;
-		temp2.val32 = oper1b;
-		//Sign extend!
-		if ((temp1.val8 & 0x80) == 0x80) temp1.val32 |= 0xFFFFFF00;
-		if ((temp2.val8 & 0x80) == 0x80) temp2.val32 |= 0xFFFFFF00;
-		//Multiply and convert to 16-bit!
-		temp3.val32s = temp1.val32s; //Load and...
-		temp3.val32s *= temp2.val32s; //Multiply!
-		REG_AX = temp3.val16; //Load into AX!
-		flag_log8(temp3.val16); //Flags!
-		if (((temp3.val16&0xFF80)==0) || ((temp3.val16&0xFF80)==0xFF80))
+		CPU8086_internal_IMUL(REG_AL, (word)oper1b, &temp1.val16, &temp2.val16, 8, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		REG_AL = temp1.val16; //Load into AX!
+		REG_AH = temp2.val16; //Load into AX!
+		flag_log8(temp1.val16); //Flags!
+		if (((REG_AX&0xFF80)==0) || ((REG_AX&0xFF80)==0xFF80))
 		{
 			FLAGW_OF(0); //Both zeroed!
 		}
@@ -5513,6 +5504,7 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 }
 
 void op_grp3_16() {
+	byte applycycles;
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1 = signext(oper1b); oper2 = signext(oper2b);
@@ -5553,20 +5545,20 @@ void op_grp3_16() {
 		}
 		break;
 	case 4: //MULW
-		tempAX = REG_AX; //Save a backup for calculating cycles!
-		temp1.val32 = (uint32_t)oper1 * (uint32_t)REG_AX;
+		applycycles = 1;
+		CPU8086_internal_MUL(REG_AX, (word)oper1, &temp1.val16, &temp2.val16, 16, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
 		REG_AX = temp1.val16;
-		REG_DX = temp1.val16high;
+		REG_DX = temp2.val16;
 		tempAL = FLAG_ZF; //Backup!
 		flag_log16(temp1.val16); //Flags!
-		if (temp1.val16high==0) FLAGW_OF(0);
+		if (temp2.val16==0) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
 
 		if (EMULATED_CPU==CPU_8086)
 		{
 			FLAGW_ZF(tempAL); //Restore!
-			if ((EMULATED_CPU==CPU_8086) && temp1.val32) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
+			if ((EMULATED_CPU==CPU_8086) && (temp1.val16|temp2.val16)) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
 		}
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
@@ -5585,16 +5577,11 @@ void op_grp3_16() {
 		}
 		break;
 	case 5: //IMULW
-		temp1.val32 = REG_AX;
-		temp2.val32 = oper1;
-		//Sign extend!
-		if (temp1.val16 & 0x8000) temp1.val32 |= 0xFFFF0000;
-		if (temp2.val16 & 0x8000) temp2.val32 |= 0xFFFF0000;
-		temp3.val32s = temp1.val32s; //Load and...
-		temp3.val32s *= temp2.val32s; //Signed multiplication!
-		REG_AX = temp3.val16; //into register ax
-		REG_DX = temp3.val16high; //into register dx
-		flag_log16(temp3.val16); //Flags!
+		CPU8086_internal_IMUL(REG_AX, (word)oper1, &temp1.val16, &temp2.val16, 16, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		REG_AX = temp1.val16; //into register ax
+		REG_DX = temp2.val16; //into register dx
+		flag_log16(temp1.val16); //Flags!
+		temp3.val32 = temp1.val16 | (temp2.val16 << 16); //Combine for convenience!
 		if (((temp3.val32>>15)==0) || ((temp3.val32>>15)==0x1FFFF)) FLAGW_OF(0);
 		else FLAGW_OF(1);
 		FLAGW_CF(FLAG_OF); //OF=CF!
