@@ -2247,18 +2247,19 @@ void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remai
 	}
 	l = ~((l << 1) | carry); //Final RCL and negate for the result!
 
+	h &= ((1ULL << resultbits) - 1); //Wrap to become valid!
+	l &= ((1ULL << resultbits) - 1); //Wrap to become valid!
+
 	if ((isAdjust == 0) && issigned) //IDIV?
 	{
 		if (*applycycles) CPU[activeCPU].cycles_OP += 4; //Takes 4 cycles!
-		if (l&(1U << (resultbits-1))) //Overflow?
+		if ((l&(1ULL << (resultbits-1))) && (((l>(1ULL << (resultbits - 1))) && quotientnegative) || (quotientnegative==0))) //Overflow?
 		{
 			if (isRegister) ++CPU[activeCPU].cycles_OP; //Register takes 1 cycle?
 			*error = 1; //Throw division by 0!
 			return;
 		}
 	}
-	h &= ((1ULL << resultbits)-1); //Wrap to become valid!
-	l &= ((1ULL << resultbits )-1); //Wrap to become valid!
 	*remainder = h; //Remainder!
 	*quotient = l; //Quotient!
 }
@@ -2273,11 +2274,8 @@ void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *rema
 		*applycycles = 0; //Don't apply the cycles anymore!
 	}
 
-	quotientnegative = remaindernegative = 0; //Default: don't toggle the result not remainder!
-	if (((val>>31)!=(divisor>>15))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
-	{
-		quotientnegative = 1; //We're to toggle the result sign if not zero!
-	}
+	remaindernegative = 0; //Default: don't toggle the result not remainder!
+	quotientnegative = (((val >> ((resultbits << 1) - 1)) ^ (divisor >> (resultbits - 1))) & 1); //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
 	if (val&0x80000000) //Negative value to divide?
 	{
 		val = ((~val)+1); //Convert the negative value to be positive!
