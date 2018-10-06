@@ -299,7 +299,7 @@ Parameters:
 	remaindernegative: Remainder is signed negative result?
 
 */
-void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles, byte issigned, byte quotientnegative, byte remaindernegative);
-void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles);
+void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte *applycycles, byte issigned, byte quotientnegative, byte remaindernegative, byte isAdjust, byte isRegister);
+void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte *applycycles, byte isAdjust, byte isRegister);
 
 #endif

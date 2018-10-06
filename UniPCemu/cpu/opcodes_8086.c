@@ -2172,117 +2172,132 @@ Parameters:
 	remainder: Remainder result container
 	error: 1 on error(DIV0), 0 when valid.
 	resultbits: The amount of bits the result contains(16 or 8 on 8086) of quotient and remainder.
-	SHLcycle: The amount of cycles for each SHL.
-	ADDSUBcycle: The amount of cycles for ADD&SUB instruction to execute.
+	applycycles: Apply the normal cycles? Start out as 1!
 	issigned: Signed division?
 	quotientnegative: Quotient is signed negative result?
 	remaindernegative: Remainder is signed negative result?
+	isAdjust: AAM/AAD=1, otherwise 0.
+	isRegister: non-zero for register parameter.
 
 */
-void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles, byte issigned, byte quotientnegative, byte remaindernegative)
+void CPU8086_internal_DIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte *applycycles, byte issigned, byte quotientnegative, byte remaindernegative, byte isAdjust, byte isRegister)
 {
-	uint_32 temp, temp2, currentquotient; //Remaining value and current divisor!
-	uint_32 resultquotient;
-	byte shift; //The shift to apply! No match on 0 shift is done!
-	temp = val; //Load the value to divide!
-	*applycycles = 1; //Default: apply the cycles normally!
-	if (divisor==0) //Not able to divide?
+	*error = 0; //Default: no error!
+	if (*applycycles)
 	{
-		*quotient = 0;
-		*remainder = temp; //Unable to comply!
-		*error = 1; //Divide by 0 error!
-		return; //Abort: division by 0!
+		if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
+		{
+			*applycycles = 0; //Don't apply the cycles anymore!
+		}
 	}
 
+	if ((isAdjust == 0) && *applycycles) CPU[activeCPU].cycles_OP += 3; //3 cycles for non-AA*!
+
+	word l, h; //h=remainder, l=quotient!
+	word r;
+	byte carry;
+	byte c;
+	if (resultbits == 16)
+	{
+		h = ((val >> 16) & 0xFFFF); //High word or byte!
+		l = (val & 0xFFFF); //Low word or byte!
+	}
+	else //8-bit?
+	{
+		h = ((val >> 8) & 0xFF); //High word or byte!
+		l = (val & 0xFF); //Low word or byte!
+	}
+	if (*applycycles) CPU[activeCPU].cycles_OP += 8; //8 cycles!
+	divisor &= (1ULL << resultbits) - 1; //Weap the divisor to be valid!
+	if (h >= divisor) //Overflow?
+	{
+		if ((isAdjust == 0) && *applycycles) ++CPU[activeCPU].cycles_OP; //1 cycle!
+		*error = 1; //Divide by 0 error!
+		return; //Abort: overflow!
+	}
+	if (isAdjust == 0) ++CPU[activeCPU].cycles_OP; //1 cycle!
+
+	CPU[activeCPU].cycles_OP += 2; //2 cycles to prepare CLC!
+	carry = 1; //Carry!
+	for (c = 0; c < resultbits; ++c)
+	{
+		//Perform 32-bit or 16-bit RCL on both quotient and remainder!
+		r = (l << 1) | carry; //RCL!
+		carry = (l>>(resultbits - 1))&1; //Carry-out!
+		l = r;
+		r = (h << 1) | carry; //RCL!
+		carry = (h >> (resultbits - 1)) & 1; //Carry-out!
+		h = r;
+
+		if (*applycycles) CPU[activeCPU].cycles_OP = 8; //Takes 8 cycles!
+
+		if (carry)
+		{
+			carry = 0; //No carry anymore!
+			h -= divisor; //Substract!
+			if ((c == (resultbits - 1)) && *applycycles) CPU[activeCPU].cycles_OP += 2; //Takes 2 cycles on the final turn!
+		}
+		else //No carry?
+		{
+			carry = (divisor > h)?1:0; //Overflow?
+			if (carry == 0)
+			{
+				h -= divisor; //Substract!
+				if (*applycycles) ++CPU[activeCPU].cycles_OP; //Takes 1 cycle!
+				if ((c == (resultbits - 1)) && *applycycles) CPU[activeCPU].cycles_OP += 2; //Takes 2 cycles on the final bit!
+			}
+		}
+	}
+	l = ~((l << 1) | carry); //Final RCL and negate for the result!
+
+	h &= ((1ULL << resultbits) - 1); //Wrap to become valid!
+	l &= ((1ULL << resultbits) - 1); //Wrap to become valid!
+
+	if ((isAdjust == 0) && issigned) //IDIV?
+	{
+		if (*applycycles) CPU[activeCPU].cycles_OP += 4; //Takes 4 cycles!
+		if ((l&(1ULL << (resultbits-1))) && (((l>(1ULL << (resultbits - 1))) && quotientnegative) || (quotientnegative==0))) //Overflow?
+		{
+			if (isRegister) ++CPU[activeCPU].cycles_OP; //Register takes 1 cycle?
+			*error = 1; //Throw division by 0!
+			return;
+		}
+	}
+	*remainder = h; //Remainder!
+	*quotient = l; //Quotient!
+}
+
+void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte *applycycles, byte isAdjust, byte isRegister)
+{
+	byte quotientnegative, remaindernegative; //To toggle the result and apply sign after and before?
+
+	*applycycles = 1; //Default: apply cycles!
 	if (CPU_apply286cycles()) /* No 80286+ cycles instead? */
 	{
-		SHLcycle = ADDSUBcycle = 0; //Don't apply the cycle counts for this instruction!
 		*applycycles = 0; //Don't apply the cycles anymore!
 	}
 
-	temp = val; //Load the remainder to use!
-	resultquotient = 0; //Default: we have nothing after division! 
-	nextstep:
-	//First step: calculate shift so that (divisor<<shift)<=remainder and ((divisor<<(shift+1))>remainder)
-	temp2 = divisor; //Load the default divisor for x1!
-	if (temp2>temp) //Not enough to divide? We're done!
-	{
-		goto gotresult; //We've gotten a result!
-	}
-	currentquotient = 1; //We're starting with x1 factor!
-	for (shift=0;shift<(resultbits+1);++shift) //Check for the biggest factor to apply(we're going from bit 0 to maxbit)!
-	{
-		if ((temp2<=temp) && ((temp2<<1)>temp)) //Found our value to divide?
-		{
-			CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 more SHL cycle for this!
-			break; //We've found our shift!
-		}
-		temp2 <<= 1; //Shift to the next position!
-		currentquotient <<= 1; //Shift to the next result!
-		CPU[activeCPU].cycles_OP += SHLcycle; //We're taking 1 SHL cycle for this! Assuming parallel shifting!
-	}
-	if (shift==(resultbits+1)) //We've overflown? We're too large to divide!
-	{
-		*error = 1; //Raise divide by 0 error due to overflow!
-		return; //Abort!
-	}
-	//Second step: substract divisor<<n from remainder and increase result with 1<<n.
-	temp -= temp2; //Substract divisor<<n from remainder!
-	resultquotient += currentquotient; //Increase result(divided value) with the found power of 2 (1<<n).
-	CPU[activeCPU].cycles_OP += ADDSUBcycle; //We're taking 1 substract and 1 addition cycle for this(ADD/SUB register take 3 cycles)!
-	goto nextstep; //Start the next step!
-	//Finished when remainder<divisor or remainder==0.
-	gotresult: //We've gotten a result!
-	if (temp>(uint_32)((1<<resultbits)-1)) //Modulo overflow?
-	{
-		*error = 1; //Raise divide by 0 error due to overflow!
-		return; //Abort!		
-	}
-	if (resultquotient>(uint_32)((1<<resultbits)-1)) //Quotient overflow?
-	{
-		*error = 1; //Raise divide by 0 error due to overflow!
-		return; //Abort!		
-	}
-	if (issigned) //Check for signed overflow as well?
-	{
-		/*
-		if (checkSignedOverflow(temp,32,resultbits,remaindernegative))
-		{
-			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!
-		}
-		*/
-		if (checkSignedOverflow(resultquotient,32,resultbits,quotientnegative))
-		{
-			*error = 1; //Raise divide by 0 error due to overflow!
-			return; //Abort!
-		}
-	}
-	*quotient = resultquotient; //Quotient calculated!
-	*remainder = temp; //Give the modulo! The result is already calculated!
-	*error = 0; //We're having a valid result!
-}
-
-void CPU8086_internal_IDIV(uint_32 val, word divisor, word *quotient, word *remainder, byte *error, byte resultbits, byte SHLcycle, byte ADDSUBcycle, byte *applycycles)
-{
-	byte quotientnegative, remaindernegative; //To toggle the result and apply sign after and before?
-	quotientnegative = remaindernegative = 0; //Default: don't toggle the result not remainder!
-	if (((val>>31)!=(divisor>>15))) //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
-	{
-		quotientnegative = 1; //We're to toggle the result sign if not zero!
-	}
+	remaindernegative = 0; //Default: don't toggle the result not remainder!
+	quotientnegative = (((val >> ((resultbits << 1) - 1)) ^ (divisor >> (resultbits - 1))) & 1); //Are we to change signs on the result? The result is negative instead! (We're a +/- or -/+ division)
 	if (val&0x80000000) //Negative value to divide?
 	{
 		val = ((~val)+1); //Convert the negative value to be positive!
 		remaindernegative = 1; //We're to toggle the remainder is any, because the value to divide is negative!
+		if (*applycycles) CPU[activeCPU].cycles_OP += 4; //Takes 4 cycles!
 	}
 	if (divisor&0x8000) //Negative divisor? Convert to a positive divisor!
 	{
 		divisor = ((~divisor)+1); //Convert the divisor to be positive!
 	}
-	CPU8086_internal_DIV(val,divisor,quotient,remainder,error,resultbits,SHLcycle,ADDSUBcycle,applycycles,1,quotientnegative,remaindernegative); //Execute the division as an unsigned division!
+	else
+	{
+		if (*applycycles) CPU[activeCPU].cycles_OP += 1; //Takes 1 cycles!
+	}
+	if (*applycycles) CPU[activeCPU].cycles_OP += 9; //Takes 9 cycles!
+	CPU8086_internal_DIV(val,divisor,quotient,remainder,error,resultbits,applycycles,1,quotientnegative,remaindernegative,isAdjust,isRegister); //Execute the division as an unsigned division!
 	if (*error==0) //No error has occurred? Do post-processing of the results!
 	{
+		if (*applycycles) CPU[activeCPU].cycles_OP += 7; //Takes 7 cycles!
 		if (quotientnegative) //The result is negative?
 		{
 			*quotient = (~*quotient)+1; //Apply the new sign to the result!
@@ -2862,16 +2877,10 @@ byte CPU8086_internal_AAS()
 OPTINLINE byte CPU8086_internal_AAM(byte data)
 {
 	CPUPROT1
-	if ((!data) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
-	{
-		CPU[activeCPU].cycles_OP += 1; //Timings always!
-		++CPU[activeCPU].internalinstructionstep; //Next step after we're done!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return 1;
-	}
 	word quotient, remainder;
 	byte error, applycycles;
-	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,2,6,&applycycles,0,0,0);
+	applycycles = 1; //Default: apply cycles!
+	CPU8086_internal_DIV(REG_AL,data,&quotient,&remainder,&error,8,&applycycles,0,0,0,1,0);
 	if (error) //Error occurred?
 	{
 		CPU_exDIV0(); //Raise error that's requested!
@@ -5243,17 +5252,10 @@ word op_grp2_16(byte cnt, byte varshift) {
 }
 
 OPTINLINE void op_div8(word valdiv, byte divisor) {
-	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
-	{
-		//Timings always!
-		++CPU[activeCPU].internalinstructionstep; //Next step after we're done!
-		CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return;
-	}
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_DIV(valdiv,divisor,&quotient,&remainder,&error,8,2,6,&applycycles,0,0,0); //Execute the unsigned division! 8-bits result and modulo!
+	applycycles = 1; //Default: apply cycles!
+	CPU8086_internal_DIV(valdiv,divisor,&quotient,&remainder,&error,8,&applycycles,0,0,0,0,(MODRM_EA(params)==0)); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AL = (byte)(quotient&0xFF); //Quotient!
@@ -5275,14 +5277,6 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 
 OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 	//word v1, v2,
-	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
-	{
-		//Timings always!
-		++CPU[activeCPU].internalinstructionstep; //Next step after we're done!
-		CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return;
-	}
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
 	uint_32 valdivd;
@@ -5291,7 +5285,7 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 	divisorw = divisor;
 	if (valdiv&0x8000) valdivd |= 0xFFFF0000; //Sign extend to 32-bits!
 	if (divisor&0x80) divisorw |= 0xFF00; //Sign extend to 16-bits!
-	CPU8086_internal_IDIV(valdivd,divisorw,&quotient,&remainder,&error,8,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_IDIV(valdivd,divisorw,&quotient,&remainder,&error,8,&applycycles,0,(MODRM_EA(params)==0)); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AL = (quotient&0xFF); //Quotient!
@@ -5440,17 +5434,10 @@ void op_grp3_8() {
 
 OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 	//word v1, v2;
-	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
-	{
-		//Timings always!
-		++CPU[activeCPU].internalinstructionstep; //Next step after we're done!
-		CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return;
-	}
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_DIV(valdiv,divisor,&quotient,&remainder,&error,16,2,6,&applycycles,0,0,0); //Execute the unsigned division! 8-bits result and modulo!
+	applycycles = 1; //Default: apply cycles!
+	CPU8086_internal_DIV(valdiv,divisor,&quotient,&remainder,&error,16,&applycycles,0,0,0,0,(MODRM_EA(params)==0)); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AX = quotient; //Quotient!
@@ -5472,18 +5459,9 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 
 OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 	//uint32_t v1, v2,
-	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
-	{
-		//Timings always!
-		++CPU[activeCPU].internalinstructionstep; //Next step after we're done!
-		CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
-		CPU[activeCPU].executed = 0; //Not executed yet!
-		return;
-	}
-
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
-	CPU8086_internal_IDIV(valdiv,divisor,&quotient,&remainder,&error,16,2,6,&applycycles); //Execute the unsigned division! 8-bits result and modulo!
+	CPU8086_internal_IDIV(valdiv,divisor,&quotient,&remainder,&error,16,&applycycles,0,(MODRM_EA(params)==0)); //Execute the unsigned division! 8-bits result and modulo!
 	if (error==0) //No error?
 	{
 		REG_AX = quotient; //Quotient!
