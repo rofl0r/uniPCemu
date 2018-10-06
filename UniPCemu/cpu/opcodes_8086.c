@@ -5265,13 +5265,15 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 		CPU_exDIV0(); //Exception!
 		return; //Exception executed!
 	}
-	if (applycycles) /* No 80286+ cycles instead? */
+	/*
+	if (applycycles) / No 80286+ cycles instead? *=/
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
+	*/
 }
 
 OPTINLINE void op_idiv8(word valdiv, byte divisor) {
@@ -5295,13 +5297,15 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor) {
 		CPU_exDIV0(); //Exception!
 		return; //Exception executed!
 	}
-	if (applycycles) /* No 80286+ cycles instead? */
+	/*
+	if (applycycles) / No 80286+ cycles instead? /
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
+	*/
 }
 
 byte tmps,tmpp; //Sign/parity backup!
@@ -5376,7 +5380,8 @@ void op_grp3_8() {
 			FLAGW_ZF(tempAL); //Restore Zero flag!
 			if (REG_AX) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only. Undocumented bug!
 		}
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		/*
+		if (CPU_apply286cycles()==0) / No 80286+ cycles instead? /
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
@@ -5391,6 +5396,7 @@ void op_grp3_8() {
 				CPU[activeCPU].cycles_OP += NumberOfSetBits(tempAL) - 1; //1 cycle for all bits more than 1 bit set!
 			}
 		}
+		*/
 		break;
 
 	case 5: //IMULB
@@ -5410,7 +5416,8 @@ void op_grp3_8() {
 		{
 			FLAGW_ZF(0); //Clear ZF!
 		}
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		/*
+		if (CPU_apply286cycles()==0) / No 80286+ cycles instead? /
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
@@ -5421,6 +5428,7 @@ void op_grp3_8() {
 				CPU[activeCPU].cycles_OP += 80; //Reg!
 			}
 		}
+		*/
 		break;
 
 	case 6: //DIV
@@ -5451,13 +5459,15 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 		CPU_exDIV0(); //Exception!
 		return; //Exception executed!
 	}
-	if (applycycles) /* No 80286+ cycles instead? */
+	/*
+	if (applycycles) / No 80286+ cycles instead? /
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
+	*/
 }
 
 OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
@@ -5475,13 +5485,15 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 		CPU_exDIV0(); //Exception!
 		return; //Exception executed!
 	}
-	if (applycycles) /* No 80286+ cycles instead? */
+	/*
+	if (applycycles) / No 80286+ cycles instead? /
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
 			CPU[activeCPU].cycles_OP += 6 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem max!
 		}
 	}
+	*/
 }
 
 void op_grp3_16() {
@@ -5543,7 +5555,8 @@ void op_grp3_16() {
 			FLAGW_ZF(tempAL); //Restore!
 			if ((EMULATED_CPU==CPU_8086) && (temp1.val16|temp2.val16)) FLAGW_ZF(0); //8086/8088 clears the Zero flag when not zero only.
 		}
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		/*
+		if (CPU_apply286cycles()==0) / No 80286+ cycles instead? /
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
@@ -5558,6 +5571,7 @@ void op_grp3_16() {
 				CPU[activeCPU].cycles_OP += NumberOfSetBits(tempAX) - 1; //1 cycle for all bits more than 1 bit set!
 			}
 		}
+		*/
 		break;
 	case 5: //IMULW
 		CPU8086_internal_IMUL(REG_AX, (word)oper1, &oper1, &oper2, 16, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
@@ -5574,7 +5588,8 @@ void op_grp3_16() {
 		{
 			FLAGW_ZF(0); //Clear ZF!
 		}
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		/*
+		if (CPU_apply286cycles()==0) / No 80286+ cycles instead? /
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
@@ -5585,6 +5600,7 @@ void op_grp3_16() {
 				CPU[activeCPU].cycles_OP += 134; //Reg max!
 			}
 		}
+		*/
 		break;
 	case 6: //DIV
 		op_div16(((uint32_t)REG_DX << 16) | REG_AX, oper1);
