@@ -2900,16 +2900,15 @@ OPTINLINE byte CPU8086_internal_AAM(byte data)
 }
 OPTINLINE byte CPU8086_internal_AAD(byte data)
 {
+	byte applycycles;
 	CPUPROT1
+	applycycles = 1;
+	CPU8086_internal_MUL((word)data, REG_AH, &oper1, &oper2, 8, &applycycles, 0, 0, 1, 0); //Execute MUL!
 	oper2b = (word)REG_AL; //What to add!
-	oper1b = ((word)REG_AH*(word)data); //AAD base to work on, we're adding to this!
+	oper1b = ((word)oper1); //AAD base to work on, we're adding to this!
 	op_add8(); //Add, 8-bit, including flags!
 	REG_AX = (res8&0xFF); //The result to load!
 	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 60; //Timings!
-	}
 	return 0;
 }
 
