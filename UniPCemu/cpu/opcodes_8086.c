@@ -5358,7 +5358,9 @@ void op_grp3_8() {
 
 	case 4: //MULB
 		applycycles = 1;
-		CPU8086_internal_MUL(REG_AL, (word)oper1b, &temp1.val16, &temp2.val16, 8, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
+		CPU8086_internal_MUL(REG_AL, (word)oper1b, &oper1, &oper2, 8, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
+		temp1.val16 = oper1;
+		temp2.val16 = oper2;
 		REG_AL = (temp1.val16&0xFF);
 		REG_AH = (temp2.val16&0xFF);
 		tempAL = FLAG_ZF; //Backup!
@@ -5393,7 +5395,9 @@ void op_grp3_8() {
 		break;
 
 	case 5: //IMULB
-		CPU8086_internal_IMUL(REG_AL, (word)oper1b, &temp1.val16, &temp2.val16, 8, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		CPU8086_internal_IMUL(REG_AL, (word)oper1b, &oper1, &oper2, 8, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		temp1.val16 = oper1;
+		temp2.val16 = oper2;
 		REG_AL = temp1.val16; //Load into AX!
 		REG_AH = temp2.val16; //Load into AX!
 		flag_log8(temp1.val16); //Flags!
@@ -5524,7 +5528,9 @@ void op_grp3_16() {
 		break;
 	case 4: //MULW
 		applycycles = 1;
-		CPU8086_internal_MUL(REG_AX, (word)oper1, &temp1.val16, &temp2.val16, 16, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
+		CPU8086_internal_MUL(REG_AX, (word)oper1, &oper1, &oper2, 16, &applycycles, 0, 0, 0, modrm_isregister(params)); //Execute MUL!
+		temp1.val16 = oper1;
+		temp2.val16 = oper2;
 		REG_AX = temp1.val16;
 		REG_DX = temp2.val16;
 		tempAL = FLAG_ZF; //Backup!
@@ -5555,7 +5561,9 @@ void op_grp3_16() {
 		}
 		break;
 	case 5: //IMULW
-		CPU8086_internal_IMUL(REG_AX, (word)oper1, &temp1.val16, &temp2.val16, 16, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		CPU8086_internal_IMUL(REG_AX, (word)oper1, &oper1, &oper2, 16, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
+		temp1.val16 = oper1;
+		temp2.val16 = oper2;
 		REG_AX = temp1.val16; //into register ax
 		REG_DX = temp2.val16; //into register dx
 		flag_log16(temp1.val16); //Flags!
