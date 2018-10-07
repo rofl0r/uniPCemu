@@ -1357,18 +1357,18 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		break;
 	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP += 4; //Accumulator!
+		CPU[activeCPU].cycles_OP += 1; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 			}
 			else //Reg->Mem?
 			{
-				CPU[activeCPU].cycles_OP += 16-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
@@ -1381,16 +1381,16 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		{
 			if (dest) //Imm->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 4; //Imm->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Imm->Reg!
 			}
 			else //Imm->Mem?
 			{
-				CPU[activeCPU].cycles_OP += 17-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	default:
@@ -1407,18 +1407,18 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		break;
 	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP += 4; //Accumulator!
+		CPU[activeCPU].cycles_OP += 1; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 			}
 			else //Reg->Mem?
 			{
-				CPU[activeCPU].cycles_OP += 16-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
@@ -1431,16 +1431,16 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 		{
 			if (dest) //Imm->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 4; //Imm->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Imm->Reg!
 			}
 			else //Imm->Mem?
 			{
-				CPU[activeCPU].cycles_OP += 17-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 			}
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	default:
@@ -2070,17 +2070,17 @@ OPTINLINE byte CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 			break;
 		case 1: //Reg+imm?
-			CPU[activeCPU].cycles_OP += 4; //Accumulator!
+			CPU[activeCPU].cycles_OP += 2; //Accumulator!
 			break;
 		case 2: //Determined by ModR/M?
 			if (params.EA_cycles) //Memory is used?
 			{
 				//Mem->Reg/Reg->Mem?
-				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 			}
 			else //Reg->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 			}
 			break;
 		case 3: //ModR/M+imm?
@@ -2092,7 +2092,7 @@ OPTINLINE byte CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 				}
 				else //Imm->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 				}
 			}
 			else //Reg->Reg?
@@ -2124,17 +2124,17 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 			break;
 		case 1: //Reg+imm?
-			CPU[activeCPU].cycles_OP += 4; //Accumulator!
+			CPU[activeCPU].cycles_OP += 2; //Accumulator!
 			break;
 		case 2: //Determined by ModR/M?
 			if (params.EA_cycles) //Memory is used?
 			{
 				//Mem->Reg/Reg->Mem?
-				CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 			}
 			else //Reg->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 			}
 			break;
 		case 3: //ModR/M+imm?
@@ -2146,7 +2146,7 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 				}
 				else //Imm->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 				}
 			}
 			else //Reg->Reg?
@@ -2437,39 +2437,39 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 				case 0: //Reg+Reg?
 					break; //Unused!
 				case 1: //Accumulator from immediate memory address?
-					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //[imm16]->Accumulator!
+					CPU[activeCPU].cycles_OP += 1; //[imm16]->Accumulator!
 					break;
 				case 2: //ModR/M Memory->Reg?
 					if (MODRM_EA(params)) //Memory?
 					{
-						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 					}
 					else //Reg->Reg?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 					}
 					break;
 				case 3: //ModR/M Memory immediate->Reg?
 					if (MODRM_EA(params)) //Memory?
 					{
-						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 					}
 					else //Reg->Reg?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 					}
 					break;
 				case 4: //Register immediate->Reg?
-					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 					break;
 				case 8: //SegReg->Reg?
 					if ((!MODRM_src1) || (MODRM_EA(params)==0)) //From register?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->SegReg!
 					}
 					else //From memory?
 					{
-						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->SegReg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->SegReg!
 					}
 					break;
 				default:
@@ -2488,7 +2488,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 				}
 				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 				{
-					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+					CPU[activeCPU].cycles_OP += 1; //Accumulator->[imm16]!
 				}
 			}
 			else //ModR/M?
@@ -2501,7 +2501,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 					case 0: //Reg+Reg?
 						break; //Unused!
 					case 1: //Accumulator from immediate memory address?
-						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Accumulator->[imm16]!
+						CPU[activeCPU].cycles_OP += 1; //Accumulator->[imm16]!
 						break;
 					case 2: //ModR/M Memory->Reg?
 						if (MODRM_EA(params)) //Memory?
@@ -2510,30 +2510,30 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 						}
 						else //Reg->Reg?
 						{
-							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+							CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 						}
 						break;
 					case 3: //ModR/M Memory immediate->Reg?
 						if (MODRM_EA(params)) //Memory?
 						{
-							CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+							CPU[activeCPU].cycles_OP += 2; //Mem->Reg!
 						}
 						else //Reg->Reg?
 						{
-							CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 						}
 						break;
 					case 4: //Register immediate->Reg (Non-existant!!!)?
-						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 						break;
 					case 8: //Reg->SegReg?
 						if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
 						{
-							CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+							CPU[activeCPU].cycles_OP += 1; //SegReg->Reg!
 						}
 						else //From memory?
 						{
-							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //SegReg->Mem!
+							CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 						}
 						break;
 					default:
@@ -2576,46 +2576,46 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			{
 				*dest = val;
 			}
-			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+			if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
 			{
 				switch (flags) //What type are we?
 				{
 				case 0: //Reg+Reg?
 					break; //Unused!
 				case 1: //Accumulator from immediate memory address?
-					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //[imm16]->Accumulator!
+					CPU[activeCPU].cycles_OP += 1; //[imm16]->Accumulator!
 					break;
 				case 2: //ModR/M Memory->Reg?
 					if (MODRM_EA(params)) //Memory?
 					{
-						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 					}
 					else //Reg->Reg?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 					}
 					break;
 				case 3: //ModR/M Memory immediate->Reg?
 					if (MODRM_EA(params)) //Memory?
 					{
-						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 					}
 					else //Reg->Reg?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 					}
 					break;
 				case 4: //Register immediate->Reg?
-					CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+					CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 					break;
 				case 8: //SegReg->Reg?
-					if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
+					if ((!MODRM_src1) || (MODRM_EA(params) == 0)) //From register?
 					{
-						CPU[activeCPU].cycles_OP += 2; //Reg->SegReg!
+						CPU[activeCPU].cycles_OP += 1; //Reg->SegReg!
 					}
 					else //From memory?
 					{
-						CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->SegReg!
+						CPU[activeCPU].cycles_OP += 3; //Mem->SegReg!
 					}
 					break;
 				default:
@@ -2639,52 +2639,52 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 				}
 				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 				{
-					CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+					CPU[activeCPU].cycles_OP += 1; //Accumulator->[imm16]!
 				}
 			}
 			else //ModR/M?
 			{
 				if (modrm_check16(&params,MODRM_src0,0)) return 1; //Abort on fault!
-				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
+				if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
 				{
 					switch (flags) //What type are we?
 					{
 					case 0: //Reg+Reg?
 						break; //Unused!
 					case 1: //Accumulator from immediate memory address?
-						CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Accumulator->[imm16]!
+						CPU[activeCPU].cycles_OP += 1; //Accumulator->[imm16]!
 						break;
 					case 2: //ModR/M Memory->Reg?
 						if (MODRM_EA(params)) //Memory?
 						{
-							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
+							CPU[activeCPU].cycles_OP += 9 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+						}
+						else //Reg->Reg?
+						{
+							CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
+						}
+						break;
+					case 3: //ModR/M Memory immediate->Reg?
+						if (MODRM_EA(params)) //Memory?
+						{
+							CPU[activeCPU].cycles_OP += 2; //Mem->Reg!
 						}
 						else //Reg->Reg?
 						{
 							CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 						}
 						break;
-					case 3: //ModR/M Memory immediate->Reg?
-						if (MODRM_EA(params)) //Memory?
-						{
-							CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Mem->Reg!
-						}
-						else //Reg->Reg?
-						{
-							CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
-						}
-						break;
 					case 4: //Register immediate->Reg (Non-existant!!!)?
-						CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+						CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 						break;
 					case 8: //Reg->SegReg?
 						if (MODRM_src0 || (MODRM_EA(params) == 0)) //From register?
 						{
-							CPU[activeCPU].cycles_OP += 2; //SegReg->Reg!
+							CPU[activeCPU].cycles_OP += 1; //SegReg->Reg!
 						}
 						else //From memory?
 						{
-							CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSWRITE; //SegReg->Mem!
+							CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 						}
 						break;
 					default:
@@ -2756,7 +2756,7 @@ byte CPU8086_internal_DAA()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
+		CPU[activeCPU].cycles_OP += 3; //Timings!
 	}
 	return 0;
 }
@@ -2788,13 +2788,21 @@ byte CPU8086_internal_DAS()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
+		CPU[activeCPU].cycles_OP += 3; //Timings!
 	}
 	return 0;
 }
 byte CPU8086_internal_AAA()
 {
+	byte applycycles;
 	CPUPROT1
+		applycycles = 0;
+		if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 7; //Timings!
+			applycycles = 1;
+		}
+
 	if (((REG_AL&0xF)>9))
 	{
 		FLAGW_OF(((REG_AL&0xF0)==0x70)?1:0); //According to IBMulator
@@ -2821,21 +2829,26 @@ byte CPU8086_internal_AAA()
 		FLAGW_CF(0);
 		FLAGW_OF(0); //According to IBMulator!
 		FLAGW_ZF((REG_AL==0)?1:0); //According to IBMulator!
+		CPU[activeCPU].cycles_OP += applycycles; //Timings!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
 	//FLAGW_ZF((REG_AL==0)?1:0); //Zero is affected!
 	//z=s=p=o=?
 	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
 	return 0;
 }
 byte CPU8086_internal_AAS()
 {
+	byte applycycles;
 	CPUPROT1
+		applycycles = 0;
+		if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 7; //Timings!
+			applycycles = 1;
+		}
+
 	if (((REG_AL&0xF)>9) || FLAG_AF)
 	{
 		FLAGW_SF((REG_AL>0x85)?1:0); //According to IBMulator!
@@ -2860,6 +2873,7 @@ byte CPU8086_internal_AAS()
 		FLAGW_AF(0);
 		FLAGW_CF(0);
 		FLAGW_OF(0); //According to IBMulator!
+		CPU[activeCPU].cycles_OP += applycycles; //Timings!
 	}
 	//flag_szp8(REG_AL); //Basic flags!
 	flag_p8(REG_AL); //Parity is affected!
@@ -2867,10 +2881,6 @@ byte CPU8086_internal_AAS()
 	REG_AL &= 0xF;
 	//z=s=o=p=?
 	CPUPROT2
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 4; //Timings!
-	}
 	return 0;
 }
 
@@ -2925,7 +2935,7 @@ OPTINLINE byte CPU8086_internal_CBW()
 	}
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
-		CPU[activeCPU].cycles_OP += 2; //Clock cycles!
+		CPU[activeCPU].cycles_OP += 1; //Clock cycles!
 	}
 	CPUPROT2
 	return 0;
@@ -2935,15 +2945,19 @@ OPTINLINE byte CPU8086_internal_CWD()
 	CPUPROT1
 	if ((REG_AH&0x80)==0x80)
 	{
+		if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 5; //Clock cycles!
+		}
 		REG_DX = 0xFFFF;
 	}
 	else
 	{
+		if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+		{
+			CPU[activeCPU].cycles_OP += 4; //Clock cycles!
+		}
 		REG_DX = 0;
-	}
-	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
-	{
-		CPU[activeCPU].cycles_OP += 5; //Clock cycles!
 	}
 	CPUPROT2
 	return 0;
@@ -2983,16 +2997,16 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 			{
 				if (newREP) //Include the REP?
 				{
-					CPU[activeCPU].cycles_OP += 9+17-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles including REP!
+					CPU[activeCPU].cycles_OP += 3; //Clock cycles including REP!
 				}
 				else //Repeating instruction itself?
 				{
-					CPU[activeCPU].cycles_OP += 17-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles excluding REP!
+					CPU[activeCPU].cycles_OP += 1; //Clock cycles excluding REP!
 				}
 			}
 			else //Plain non-repeating instruction?
 			{
-				CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles!
+				CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 			}
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -3069,16 +3083,16 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 			{
 				if (newREP) //Include the REP?
 				{
-					CPU[activeCPU].cycles_OP += 9 + 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles including REP!
+					CPU[activeCPU].cycles_OP += 3; //Clock cycles including REP!
 				}
 				else //Repeating instruction itself?
 				{
-					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles excluding REP!
+					CPU[activeCPU].cycles_OP += 1; //Clock cycles excluding REP!
 				}
 			}
 			else //Plain non-repeating instruction?
 			{
-				CPU[activeCPU].cycles_OP += 18 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Clock cycles!
+				CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 			}
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -3174,16 +3188,16 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 8; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 7; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles!
+			CPU[activeCPU].cycles_OP += 8; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3255,16 +3269,16 @@ OPTINLINE byte CPU8086_internal_CMPSW()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 8; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 7; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 22 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Clock cycles!
+			CPU[activeCPU].cycles_OP += 8; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3317,16 +3331,16 @@ OPTINLINE byte CPU8086_internal_STOSB()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 3; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 3; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3382,16 +3396,16 @@ OPTINLINE byte CPU8086_internal_STOSW()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 3; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 3; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3447,16 +3461,16 @@ OPTINLINE byte CPU8086_internal_LODSB()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 6; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 5; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 12 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 5; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3515,16 +3529,16 @@ OPTINLINE byte CPU8086_internal_LODSW()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 6; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 13 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 5; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 12 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 5; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3581,16 +3595,16 @@ OPTINLINE byte CPU8086_internal_SCASB()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 7; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 6; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 7; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3650,16 +3664,16 @@ OPTINLINE byte CPU8086_internal_SCASW()
 		{
 			if (newREP) //Include the REP?
 			{
-				CPU[activeCPU].cycles_OP += 9 + 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles including REP!
+				CPU[activeCPU].cycles_OP += 7; //Clock cycles including REP!
 			}
 			else //Repeating instruction itself?
 			{
-				CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles excluding REP!
+				CPU[activeCPU].cycles_OP += 6; //Clock cycles excluding REP!
 			}
 		}
 		else //Plain non-repeating instruction?
 		{
-			CPU[activeCPU].cycles_OP += 15 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //Clock cycles!
+			CPU[activeCPU].cycles_OP += 7; //Clock cycles!
 		}
 	}
 	return 0;
@@ -3697,9 +3711,9 @@ OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
 		if (isimm)
-			CPU[activeCPU].cycles_OP += 12 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /* Intrasegment with constant */
+			CPU[activeCPU].cycles_OP += 5; /* Intrasegment with constant */
 		else
-			CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /* Intrasegment */
+			CPU[activeCPU].cycles_OP += 3; /* Intrasegment */
 		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; //Stall the BIU completely now!
 	}
 	return 0;
@@ -3733,9 +3747,9 @@ OPTINLINE byte CPU8086_internal_RETF(word popbytes, byte isimm)
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
 		if (isimm)
-			CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment with constant */
+			CPU[activeCPU].cycles_OP += 5; /* Intersegment with constant */
 		else
-			CPU[activeCPU].cycles_OP += 18 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment */
+			CPU[activeCPU].cycles_OP += 5; /* Intersegment */
 		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; //Stall the BIU completely now!
 	}
 	CPUPROT2
@@ -3756,13 +3770,17 @@ OPTINLINE byte CPU8086_internal_INTO()
 	{
 		return 1; //Abort handling when needed!
 	}
+	if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 5; //Timings!
+	}
 	CPU_executionphase_startinterrupt(EXCEPTION_OVERFLOW,0,-2); //Return to opcode!
 	return 0; //Finished: OK!
 	finishINTO:
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Timings!
+			CPU[activeCPU].cycles_OP += 3; //Timings!
 		}
 	}
 	return 0; //Finished: OK!
@@ -3792,7 +3810,7 @@ OPTINLINE byte CPU8086_internal_XLAT()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
-		CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSREAD; //XLAT timing!
+		CPU[activeCPU].cycles_OP += 1; //XLAT timing!
 	}
 	return 0;
 }
@@ -3840,16 +3858,16 @@ OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 			case 0: //Unknown?
 				break;
 			case 1: //Acc<->Reg?
-				CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Acc<->Reg!
 				break;
 			case 2: //Mem<->Reg?
 				if (MODRM_EA(params)) //Reg<->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW*2); //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 				}
 				else //Reg<->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 				}
 				break;
 			default:
@@ -3919,16 +3937,16 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 			case 0: //Unknown?
 				break;
 			case 1: //Acc<->Reg?
-				CPU[activeCPU].cycles_OP += 3; //Acc<->Reg!
+				CPU[activeCPU].cycles_OP += 2; //Acc<->Reg!
 				break;
 			case 2: //Mem<->Reg?
 				if (MODRM_EA(params)) //Reg<->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 17 - (EU_CYCLES_SUBSTRACT_ACCESSRW*2); //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 				}
 				else //Reg<->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 4; //SegReg->Mem!
+					CPU[activeCPU].cycles_OP += 3; //SegReg->Mem!
 				}
 				break;
 			default:
@@ -4003,11 +4021,11 @@ byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	{
 		if (MODRM_EA(params)) //Memory?
 		{
-			CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* LXS based on MOV Mem->SS, DS, ES */
+			CPU[activeCPU].cycles_OP += 3; /* LXS based on MOV Mem->SS, DS, ES */
 		}
 		else //Register? Should be illegal?
 		{
-			CPU[activeCPU].cycles_OP += 2; /* LXS based on MOV Mem->SS, DS, ES */
+			CPU[activeCPU].cycles_OP += 1; /* LXS based on MOV Mem->SS, DS, ES */
 		}
 	}
 	return 0;
