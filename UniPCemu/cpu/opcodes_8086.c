@@ -1157,7 +1157,7 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		{
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 2; //Mem
 			}
 			CPU[activeCPU].executed = 0;
 			return 1; //Wait for execution phase to finish!
@@ -1212,7 +1212,7 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		{
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 2; //Mem
 			}
 			CPU[activeCPU].executed = 0;
 			return 1; //Wait for execution phase to finish!
@@ -1268,7 +1268,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		{
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 2; //Mem
 			}
 			CPU[activeCPU].executed = 0;
 			return 1; //Wait for execution phase to finish!
@@ -1279,7 +1279,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		*reg = res8;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 3; //8-bit reg!
+			CPU[activeCPU].cycles_OP += 2; //8-bit reg!
 		}
 	}
 	else //Memory?
@@ -1323,7 +1323,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		{
 			if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 			{
-				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 2; //Mem
 			}
 			CPU[activeCPU].executed = 0;
 			return 1; //Wait for execution phase to finish!
@@ -1334,7 +1334,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		*reg = res8;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 3; //8-bit reg!
+			CPU[activeCPU].cycles_OP += 2; //8-bit reg!
 		}
 	}
 	else //Memory?
@@ -4500,11 +4500,11 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 17-EU_CYCLES_SUBSTRACT_ACCESSRW; /*Pop Mem!*/
+				CPU[activeCPU].cycles_OP += 5; /*Pop Mem!*/
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+				CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 			}
 		}
 		break;
@@ -4918,7 +4918,7 @@ void FPU8087_noCOOP(){
 	debugger_setcommand("<No COprocessor OPcodes implemented!>");
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += MODRM_EA(params)?8:2; //No hardware interrupt to use anymore!
+		CPU[activeCPU].cycles_OP += MODRM_EA(params)?3:1; //No hardware interrupt to use anymore!
 	}
 }
 
@@ -4935,11 +4935,11 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 15-(EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 5; //Mem
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Reg
+				CPU[activeCPU].cycles_OP += 3; //Reg
 			}
 		}
 		break;
@@ -4948,11 +4948,11 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 20 + (cnt << 2)- (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 5 + (cnt << 2)- (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 8 + (cnt << 2); //Reg
+				CPU[activeCPU].cycles_OP += 3 + (cnt << 2); //Reg
 			}
 		}
 		break;
@@ -4961,11 +4961,11 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 20 + (cnt << 2) - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 5 + (cnt << 2) - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 8 + (cnt << 2); //Reg
+				CPU[activeCPU].cycles_OP += 3 + (cnt << 2); //Reg
 			}
 		}
 		break;
@@ -5350,11 +5350,11 @@ void op_grp3_8() {
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem!
+				CPU[activeCPU].cycles_OP += 2; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg!
 			}
 		}
 		break;
@@ -5368,11 +5368,11 @@ void op_grp3_8() {
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem!
+				CPU[activeCPU].cycles_OP += 2; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg!
 			}
 		}
 		break;
@@ -5530,11 +5530,11 @@ void op_grp3_16() {
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem!
+				CPU[activeCPU].cycles_OP += 2; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg!
 			}
 		}
 		break;
@@ -5547,11 +5547,11 @@ void op_grp3_16() {
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem!
+				CPU[activeCPU].cycles_OP += 2; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg!
+				CPU[activeCPU].cycles_OP += 2; //Reg!
 			}
 		}
 		break;
@@ -5658,11 +5658,11 @@ void op_grp5() {
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 21 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /* Intrasegment indirect through memory */
+				CPU[activeCPU].cycles_OP += 9; /* Intrasegment indirect through memory */
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 16; /* Intrasegment indirect through register */
+				CPU[activeCPU].cycles_OP += 8; /* Intrasegment indirect through register */
 			}
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
@@ -5692,11 +5692,11 @@ void op_grp5() {
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 37 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment indirect */
+				CPU[activeCPU].cycles_OP += 4; /* Intersegment indirect */
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */
+				CPU[activeCPU].cycles_OP += 4; /* Intersegment direct */
 			}
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
