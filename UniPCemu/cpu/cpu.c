@@ -2134,6 +2134,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	gotREP = 0; //Default: no REP-prefix used!
 	REPZ = 0; //Init REP to REPNZ/Unused zero flag(during REPNE)!
+	CPU[activeCPU].REPfinishtiming = 0; //Default: no finish timing!
 	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 	{
 		gotREP = 1; //We've gotten a repeat!
@@ -2155,10 +2156,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPNZ CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 
 		//New:
@@ -2179,10 +2182,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPNZ SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		case 0xAF: //AF: REPNZ SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		default: //Unknown yet?
 		noREPNE0Fand8086: //0F/8086 #UD exception!
@@ -2215,10 +2220,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPE CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		case 0xA7: //A7: REPE CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		case 0xAA: //AA: REP STOSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
@@ -2235,10 +2242,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPE SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		case 0xAF: //AF: REPE SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
 			break;
 		default: //Unknown yet?
 			noREPE0Fand8086: //0F exception!
@@ -2284,8 +2293,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 
 	if (gotREP) CPU[activeCPU].cycles_OP += 4; //rep!
-	if (blockREP) CPU[activeCPU].cycles_OP += 2; //finish rep!
-
+	
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	executionphase_running:
@@ -2297,6 +2305,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//Prepare for the next (fetched or repeated) instruction to start executing!
 		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 		//Handle REP instructions post-instruction next!
+		/*if (gotREP && !CPU[activeCPU].faultraised)
+		{
+			CPU[activeCPU].cycles_OP += 2; //finish rep! Both blocking and non-blocking!
+		}*/
 		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
 		{
 			if (unlikely(REPZ && (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)))) //REP(N)Z used?
@@ -2315,8 +2327,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
 			}
-			else
+			else //Finished looping?
 			{
+				CPU[activeCPU].cycles_OP += CPU[activeCPU].REPfinishtiming; //Apply finishing REP timing!
+				if ((didRepeating) && (EMULATED_CPU<=CPU_NECV30)) CPU[activeCPU].cycles_OP += 2; //Additional finish timing!
 				CPU[activeCPU].repeating = 0; //Not repeating anymore!
 			}
 		}
