@@ -2255,6 +2255,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
+	if (gotREP==0) ++CPU[activeCPU].cycles_OP; //Non-REP adds 1 cycle!
+
 	if (unlikely(cpudebugger)) //Need to set any debugger info?
 	{
 		if (CPU_getprefix(0xF0)) //LOCK?
@@ -2280,6 +2282,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 		}
 	}
+
+	if (gotREP) CPU[activeCPU].cycles_OP += 4; //rep!
+	if (blockREP) CPU[activeCPU].cycles_OP += 2; //finish rep!
 
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
