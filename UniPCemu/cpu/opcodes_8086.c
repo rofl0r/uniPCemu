@@ -1044,30 +1044,30 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 	case 0: //Default?
 		break; //Unused!
 	case 1: //Accumulator?
-		CPU[activeCPU].cycles_OP += 4; //Imm-Reg
+		CPU[activeCPU].cycles_OP += 2; //Imm-Reg
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 		}
 		else //Imm->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	case 4: //Mem-Mem instruction?
-		CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Assume two times Reg->Mem
+		CPU[activeCPU].cycles_OP += 0; //Assume two times Reg->Mem
 		break;
 	default:
 		break;
@@ -1085,30 +1085,30 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 	case 0: //Default?
 		break; //Unused!
 	case 1: //Accumulator?
-		CPU[activeCPU].cycles_OP += 4; //Imm-Reg
+		CPU[activeCPU].cycles_OP += 2; //Imm-Reg
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 9-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSREAD; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 		}
 		else //Imm->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
 		}
 		break;
 	case 4: //Mem-Mem instruction?
-		CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Assume two times Reg->Mem
+		CPU[activeCPU].cycles_OP += 0; //Assume two times Reg->Mem
 		break;
 	default:
 		break;
