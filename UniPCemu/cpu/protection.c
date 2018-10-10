@@ -938,10 +938,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone && !equalprivilege && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((!(EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && getLoadedTYPE(&LOADEDDESCRIPTOR)==1)))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
-		((!privilegedone && equalprivilege && MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && //We must be at the same privilege level?
-			!(EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Not conforming checking further ahead makes sure that we don't double check things?
-			)
+		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && getLoadedTYPE(&LOADEDDESCRIPTOR)==1)) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1)) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+		((!privilegedone && MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && //We must be at the same privilege level for non-conforming code segment descriptors?
+			(EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && getLoadedTYPE(&LOADEDDESCRIPTOR)==1)) //Not conforming checking further ahead makes sure that we don't double check things?
+			)!
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
