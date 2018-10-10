@@ -380,6 +380,8 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	++BIU[activeCPU].PIQ_Address; //Increase the address to the next location!
 	BIU[activeCPU].PIQ_Address &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+	CPU[activeCPU].BUSactive = 1; //Start memory cycles!
+	BIU[activeCPU].requestready = 0; //We're starting a request!
 }
 
 void BIU_dosboxTick()
@@ -1023,14 +1025,15 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize))) //Prefetch cycle when not requests are handled? Else, NOP cycle!
 				{
-					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = 0; //We're never blocking(only 1 access)!
 					CPU_fillPIQ(); //Add a byte to the prefetch!
 					if (CPU_databussize == 0) CPU_fillPIQ(); //8086? Fetch words!
-					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-					BIU[activeCPU].requestready = 0; //We're pending a request!
-					++BIU[activeCPU].prefetchclock; //Tick!
+					if (CPU[activeCPU].BUSactive) //Gone active?
+					{
+						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						++BIU[activeCPU].prefetchclock; //Tick!
+					}
 				}
 				else //Nothing to do?
 				{
@@ -1099,17 +1102,18 @@ void BIU_cycle_active286()
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
-					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
 					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
-					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-					BIU[activeCPU].requestready = 0; //We're starting a request!
-					++BIU[activeCPU].prefetchclock; //Tick!					
+					if (CPU[activeCPU].BUSactive) //Gone active?
+					{
+						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						++BIU[activeCPU].prefetchclock; //Tick!
+					}
 				}
 				else //Nothing to do?
 				{
@@ -1168,16 +1172,17 @@ void BIU_cycle_active486()
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
-					CPU[activeCPU].BUSactive = 1; //Start memory cycles!
 					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
 					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
-					++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-					BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
-					BIU[activeCPU].requestready = 0; //We're starting a request!
+					if (CPU[activeCPU].BUSactive) //Gone active?
+					{
+						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+					}
 				}
 				else //Nothing to do?
 				{
