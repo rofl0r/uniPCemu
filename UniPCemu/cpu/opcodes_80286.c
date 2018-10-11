@@ -212,7 +212,18 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			sbyte loadresult;
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
-				if (CPU_MMU_checkrights(-1, oper1, 0, 1, &verdescriptor, 0,1)==0) //Check without address test!
+				if (
+					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
+					)
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if (GENERALDESCRIPTOR_S(verdescriptor)==0) //Not code/data?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if (!(GENERALDESCRIPTOR_ISEXEC(verdescriptor) && (CODEDESCRIPTOR_R(verdescriptor)==0)) //Readable?
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
@@ -242,7 +253,18 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			sbyte loadresult;
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
-				if (CPU_MMU_checkrights(-1, oper1, 0, 0, &verdescriptor, 0,1)==0) //Check without address test!
+				if (
+					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
+					)
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if (GENERALDESCRIPTOR_S(verdescriptor)==0) //Not code/data?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if (!(GENERALDESCRIPTOR_ISEXEC(verdescriptor) || (DATADESCRIPTOR_W(verdescriptor)==0)) //Writeable?
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
