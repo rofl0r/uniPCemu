@@ -213,17 +213,17 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
 				if (
-					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
-					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
+					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&verdescriptor)==1))) || (getLoadedTYPE(&verdescriptor)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&verdescriptor) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
 					)
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
-				else if (GENERALDESCRIPTOR_S(verdescriptor)==0) //Not code/data?
+				else if (GENERALSEGMENT_S(verdescriptor)==0) //Not code/data?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
-				else if (!(GENERALDESCRIPTOR_ISEXEC(verdescriptor) && (CODEDESCRIPTOR_R(verdescriptor)==0)) //Readable?
+				else if (!(EXECSEGMENT_ISEXEC(verdescriptor) && (EXECSEGMENT_R(verdescriptor)==0))) //Not an unreadable code segment? We're either a data segment(always readable) or readable code segment!
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
@@ -254,21 +254,21 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
 				if (
-					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
-					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
+					((MAX(getCPL(), getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&verdescriptor) == 1))) || (getLoadedTYPE(&verdescriptor) != 1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+					((MAX(getCPL(), getRPL(oper1)) != GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&verdescriptor) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
 					)
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
-				else if (GENERALDESCRIPTOR_S(verdescriptor)==0) //Not code/data?
+				else if (GENERALSEGMENT_S(verdescriptor)==0) //Not code/data?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
-				else if (!(GENERALDESCRIPTOR_ISEXEC(verdescriptor) || (DATADESCRIPTOR_W(verdescriptor)==0)) //Writeable?
+				else if ((EXECSEGMENT_ISEXEC(verdescriptor)==0) && DATASEGMENT_W(verdescriptor)) //Are we a writeable data segment? All others(any code segment and unwritable data segment) are unwritable!
 				{
 					FLAGW_ZF(1); //We're valid!
 				}
-				else
+				else //Either code segment or non-writable data segment?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
