@@ -730,6 +730,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	word originalval=*segmentval; //Back-up of the original segment value!
 	byte allowNP; //Allow #NP to be used?
 	sbyte loadresult;
+	byte privilegedone = 0; //Privilege already calculated?
+	byte is_gated = 0; //Are we gated?
+	byte is_TSS = 0; //Are we a TSS?
+	byte callgatetype = 0; //Default: no call gate!
 
 	if ((*segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) //Invalid LDT segment and LDT is addressed?
 	{
@@ -754,11 +758,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //Error, by specified reason!
 	}
 	allowNP = ((segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS)); //Allow segment to be marked non-present(exception: values 0-3 with data segments)?
-	byte equalprivilege = 0; //Special gate stuff requirement: DPL must equal CPL? 1 for enable, 0 for normal handling.
-	byte privilegedone = 0; //Privilege already calculated?
-	byte is_gated = 0;
-	byte is_TSS = 0; //Are we a TSS?
-	byte callgatetype = 0; //Default: no call gate!
 
 	if (((*segmentval&~3)==0)) //NULL GDT segment when not allowed?
 	{
@@ -845,11 +844,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			}
 			return NULL; //Error, by specified reason!
 		}
-		if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
-		{
-			goto throwdescsegmentval; //Throw #GP error!
-			return NULL; //We're an invalid descriptor to use!
-		}
 		privilegedone = 1; //Privilege has been precalculated!
 		if (GENERALSEGMENT_TYPE(GATEDESCRIPTOR) == AVL_SYSTEM_TASKGATE) //Task gate?
 		{
@@ -861,7 +855,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Normal descriptor?
 		{
-			if (((isJMPorCALL&0x1FF) == 1) && !EXECSEGMENT_C(LOADEDDESCRIPTOR)) //JMP to a nonconforming segment?
+			if (((isJMPorCALL&0x1FF) == 1) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR))) //JMP to a nonconforming segment?
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) != getCPL()) //Different CPL?
 				{
@@ -879,9 +873,19 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			}
 		}
 	}
-	else if ((isGateDescriptor(&LOADEDDESCRIPTOR)==-1) && (segment==CPU_SEGMENT_CS) && (isJMPorCALL&0x1FF)) //JMP/CALL to non-gate descriptor(and not a system segment)?
+
+	//Make sure we're present first!
+	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (*segmentval&~3))) //Not present loaded into non-data register?
 	{
-		equalprivilege = 1; //Enforce equal privilege!
+		if (segment==CPU_SEGMENT_SS) //Stack fault?
+		{
+			THROWDESCSP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		else
+		{
+			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		return NULL; //We're an invalid TSS to execute!
 	}
 
 	//Final descriptor safety check!
@@ -958,19 +962,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		//Handle the task switch normally! We're allowed to use the TSS!
 	}
 
-	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (*segmentval&~3))) //Not present loaded into non-data register?
-	{
-		if (segment==CPU_SEGMENT_SS) //Stack fault?
-		{
-			THROWDESCSP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		else
-		{
-			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		return NULL; //We're an invalid TSS to execute!
-	}
-
 	if ((segment==CPU_SEGMENT_CS) && is_TSS && ((isJMPorCALL&0x200)==0)) //Special stuff on CS, CPL, Task switch.
 	{
 		//Execute a normal task switch!
@@ -1012,13 +1003,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 			if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)<getCPL()) && (EXECSEGMENT_C(LOADEDDESCRIPTOR)==0) && ((isJMPorCALL&0x1FF)==2)) //Stack switch required (with CALL only)?
 			{
-				//Backup the old stack data!
-				/*
-				CPU[activeCPU].have_oldESP = 1;
-				CPU[activeCPU].have_oldSS = 1;
-				CPU[activeCPU].oldESP = REG_ESP; //Backup!
-				CPU[activeCPU].oldSS = REG_SS; //Backup!
-				*/ //Dont automatically at the start of the instruction!
 				//Now, copy the stack arguments!
 
 				*isdifferentCPL = 1; //We're a different level!
@@ -1161,7 +1145,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 
-						if (/*CPU_Operand_size[activeCPU]*/ CPU[activeCPU].CallGateSize)
+						if (CPU[activeCPU].CallGateSize)
 						{
 							CPU_PUSH32(&CPU[activeCPU].oldESP);
 						}
@@ -1249,19 +1233,11 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
 				{
 					//Privilege change!
-					//Backup the old stack data!
-					/*
-					CPU[activeCPU].have_oldESP = 1;
-					CPU[activeCPU].have_oldSS = 1;
-					CPU[activeCPU].oldESP = REG_ESP; //Backup!
-					CPU[activeCPU].oldSS = REG_SS; //Backup!
-					*/ //Dont automatically at the start of an instruction!
-
 					CPU[activeCPU].CPL = getRPL(value); //New privilege level!
 
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
+					if (CPU_Operand_size[activeCPU])
 					{
 						if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
 						{
@@ -1287,7 +1263,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					}
 					is_stackswitching = 0; //We've finished stack switching!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
-					if (/*CPU_Operand_size[activeCPU]*/ CPU_Operand_size[activeCPU])
+					if (CPU_Operand_size[activeCPU])
 					{
 						REG_ESP = segmentWritten_tempESP; //POP ESP!
 					}
