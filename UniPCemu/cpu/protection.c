@@ -940,7 +940,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		(
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
-			//Not conforming checking further ahead makes sure that we don't double check things?																																																		 //Not conforming checking further ahead makes sure that we don't double check things?
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		)
@@ -982,26 +981,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 		//We've properly switched to the destination task! Continue execution normally!
 		return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
-	}
-
-	if ((segment == CPU_SEGMENT_CS) && (is_gated==0)) //Special stuff on normal CS register (conforming?), CPL. Normal ungated descriptors only!
-	{
-		if (EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Conforming segment?
-		{
-			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)<MAX(getCPL(),getRPL(*segmentval)))) //Target DPL must be less-or-equal to the CPL.
-			{
-				goto throwdescoriginalval; //Throw error!
-				return NULL; //We are a lower privilege level, so don't load!				
-			}
-		}
-		else //Non-conforming segment?
-		{
-			if ((!privilegedone) && (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)!=MAX(getCPL(),getRPL(*segmentval)))) //Check for equal only when using Gate Descriptors?
-			{
-				goto throwdescoriginalval; //Throw error!
-				return NULL; //We are a lower privilege level, so don't load!				
-			}
-		}
 	}
 
 	if ((segment == CPU_SEGMENT_CS) && (isGateDescriptor(&GATEDESCRIPTOR) == 1) && (is_gated)) //Gated CS?
