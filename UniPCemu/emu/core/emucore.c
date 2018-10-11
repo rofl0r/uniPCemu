@@ -1077,24 +1077,26 @@ OPTINLINE byte coreHandler()
 					}
 				}
 
-				if (unlikely(CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep && (getcpumode() == (doEMUsinglestep - 1)))) //Single step enabled and allowed, CPU mode specified?
+				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset == 0) && (CPU[activeCPU].internalinterruptstep == 0) && BIU_Ready() && (CPU_executionphase_busy() == 0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase == 1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					switch (getcpumode()) //What CPU mode are we to debug?
+					if (unlikely(CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep && (getcpumode() == (doEMUsinglestep - 1)))) //Single step enabled and allowed, CPU mode specified?
 					{
-					case CPU_MODE_REAL: //Real mode?
-						singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
-						break;
-					case CPU_MODE_PROTECTED: //Protected mode?
-					case CPU_MODE_8086: //Virtual 8086 mode?
-						singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
-						break;
-					default: //Invalid mode?
-						break;
+						switch (getcpumode()) //What CPU mode are we to debug?
+						{
+						case CPU_MODE_REAL: //Real mode?
+							singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+							break;
+						case CPU_MODE_PROTECTED: //Protected mode?
+						case CPU_MODE_8086: //Virtual 8086 mode?
+							singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+							break;
+						default: //Invalid mode?
+							break;
+						}
 					}
+					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+					MMU_logging = debugger_is_logging; //Are we logging?
 				}
-
-				cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
-				MMU_logging = debugger_is_logging; //Are we logging?
 
 				#ifdef LOG_BOGUS
 				uint_32 addr_start, addr_left, curaddr; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
