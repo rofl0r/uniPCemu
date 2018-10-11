@@ -891,7 +891,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Final descriptor safety check!
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		goto throwdescsegmentval; //Throw #GP error!
+		goto throwdescoriginalval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
 
