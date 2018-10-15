@@ -70,6 +70,10 @@
 //Emulator single step address, when enabled.
 byte doEMUsinglestep = 0; //CPU mode plus 1
 uint_64 singlestepaddress = 0; //The segment:offset address!
+byte doEMUtasksinglestep = 0; //Enabled?
+uint_64 singlestepTaskaddress = 0; //The segment:offset address!
+byte doEMUCR3singlestep = 0; //Enabled?
+uint_64 singlestepCR3address = 0; //The segment:offset address!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 
 //Log when running bogus(empty) memory?
@@ -199,6 +203,34 @@ void updateEMUSingleStep() //Update our single-step address!
 			}
 			break;
 		default:
+			break;
+	}
+
+	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	{
+		case 0: //Unset?
+			unknownmode:
+			doEMUtasksinglestep = 0;
+			singlestepTaskaddress = 0; //Nothing!
+			break;
+		default: //Enabled
+			doEMUtasksinglestep = 1;
+			//High 16 bits are TR, low 32 bits are base
+			singlestepTaskaddress = ((((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT)&1)<<48) | (((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.taskBreakpoint&SETTINGS_TASKBREAKPOINT_BASE_MASK) & 0xFFFFFFFF)); //Single step address!
+			break;
+	}
+
+	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
+	{
+		case 0: //Unset?
+			unknownmode:
+			doEMUCR3singlestep = 0;
+			singlestepCR3address = 0; //Nothing!
+			break;
+		default: //Enabled
+			doEMUCR3singlestep = 1;
+			//High 16 bits are TR, low 32 bits are base
+			singlestepTaskaddress = ((BIOS_Settings.taskBreakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK) & 0xFFFFFFFF)); //Single step address!
 			break;
 	}
 }
@@ -939,6 +971,7 @@ OPTINLINE byte coreHandler()
 {
 	uint_32 MHZ14passed; //14 MHZ clock passed?
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
+	byte applysinglestep;
 	//CPU execution, needs to be before the debugger!
 	lock(LOCK_INPUT);
 	if (unlikely(((haswindowactive & 0x1C) == 0xC))) //Muting recording of the Sound Blaster or earlier and resuming?
@@ -1079,20 +1112,41 @@ OPTINLINE byte coreHandler()
 
 				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset == 0) && (CPU[activeCPU].internalinterruptstep == 0) && BIU_Ready() && (CPU_executionphase_busy() == 0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase == 1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (unlikely(CPU[activeCPU].registers && doEMUsinglestep && allow_debuggerstep && (getcpumode() == (doEMUsinglestep - 1)))) //Single step enabled and allowed, CPU mode specified?
+					if (unlikely(CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep|doEMUtasksinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
 					{
-						switch (getcpumode()) //What CPU mode are we to debug?
+						if (doEMUsinglestep && (getcpumode() == (doEMUsinglestep - 1))) //Single step enabled?
 						{
-						case CPU_MODE_REAL: //Real mode?
-							singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
-							break;
-						case CPU_MODE_PROTECTED: //Protected mode?
-						case CPU_MODE_8086: //Virtual 8086 mode?
-							singlestep |= ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
-							break;
-						default: //Invalid mode?
-							break;
+							applysinglestep = 0; //To apply?
+							switch (getcpumode()) //What CPU mode are we to debug?
+							{
+							case CPU_MODE_REAL: //Real mode?
+								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								break;
+							case CPU_MODE_PROTECTED: //Protected mode?
+							case CPU_MODE_8086: //Virtual 8086 mode?
+								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								break;
+							default: //Invalid mode?
+								break;
+							}
 						}
+						else if (unlikely((doEMUtasksinglestep|doEMUCR3singlestep))) //Task&CR3 singlestep for any address?
+						{
+							applysinglestep = 1; //Use combined rights!
+						}
+						else //Shouldn't be here!
+						{
+							applysinglestep = 0; //Shouldn't activate!
+						}
+						if (unlikely(doEMUtasksinglestep)) //Task filter enabled for breakpoints?
+						{
+							applysinglestep &= ((((CPU[activeCPU].registers->TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTORS[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
+						}
+						if (unlikely(doEMUCR3singlestep)) //CR3 filter enabled for breakpoints?
+						{
+							applysinglestep &= ((CPU[activeCPU].registers->CR3&0xFFFFF000) == (singlestepaddress & 0xFFFFF000)); //Single step enabled?
+						}
+						singlestep |= applysinglestep; //Apply single step?
 					}
 					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 					MMU_logging = debugger_is_logging; //Are we logging?

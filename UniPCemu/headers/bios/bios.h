@@ -108,6 +108,8 @@ typedef struct
 	CharacterType phonebook[10][256]; //A full phonebook for the modem!
 	byte backgroundpolicy; //The currently active background policy!
 	byte advancedlog; //Use advanced debugger information during common log format logging?
+	uint_64 taskBreakpoint; //Task to break on
+	uint_64 CR3breakpoint; //CR3 to break on
 } BIOS_Settings_TYPE; //BIOS Settings!
 
 //Debug modes:
@@ -258,6 +260,18 @@ enum BIOSROMMode {
 #define SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT 58
 #define SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT 57
 #define SETTINGS_BREAKPOINT_OFFSET_MASK 0xFFFFFFFFULL
+
+//Task breakpoint
+#define SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT 60
+#define SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT 32
+#define SETTINGS_TASKBREAKPOINT_SEGMENT_MASK 0xFFFFULL
+#define SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT 59
+#define SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT 58
+#define SETTINGS_TASKBREAKPOINT_BASE_MASK 0xFFFFFFFF
+
+//CR3 breakpoint
+#define SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT 60
+#define SETTINGS_CR3BREAKPOINT_BASE_MASK 0xFFFFFFFF
 
 #define DEFAULT_BACKGROUNDPOLICY BACKGROUNDPOLICY_FULLHALT
 #define DEFAULT_ADVANCEDLOG 0

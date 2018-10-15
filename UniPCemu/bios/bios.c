@@ -780,6 +780,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger","logstates",DEFAULT_DEBUGGERSTATELOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
 	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger","logregisters",DEFAULT_DEBUGGERREGISTERSLOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
 	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger","breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger","taskbreakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger","CR3breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
 	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("general", "advancedlog", DEFAULT_ADVANCEDLOG, BIOS_Settings_file); //The selected font for the BIOS menu!
@@ -1006,6 +1008,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(debugger_comment,sizeof(debugger_comment),"logstates: 0=Disabled, 1=Enabled\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"logregisters: 0=Disabled, 1=Enabled\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bit 57: Break on EIP only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"taskbreakpoint: bits 60-61: 0=Not set, 1=Enabled; bit 59: Break on TR only; bit 57: Break on base address only. bits 32-47: TR segment, bits 31-0: base address within the descriptor cache\n");
+	safestrcat(debugger_comment,sizeof(debugger_comment),"CR3breakpoint: bits 60-61: 0=Not set, 1=Enabled; bits 31-0: Base address\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
 	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "advancedlog: 0=Disable advanced logging, 1: Use advanced logging");
@@ -1016,6 +1020,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"logstates",BIOS_Settings.debugger_logstates,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"logregisters",BIOS_Settings.debugger_logregisters,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"breakpoint",BIOS_Settings.breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger",debugger_commentused,"taskbreakpoint",BIOS_Settings.taskBreakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and enable!
+	if (!write_private_profile_uint64("debugger",debugger_commentused,"CR3breakpoint",BIOS_Settings.CR3breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint offset ans enable!
 	if (!write_private_profile_int64("debugger",debugger_commentused,"diagnosticsport_breakpoint",BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
 	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "advancedlog", BIOS_Settings.advancedlog, BIOS_Settings_file)) return 0; //Advanced logging feature!
