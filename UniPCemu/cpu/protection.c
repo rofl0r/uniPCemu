@@ -439,10 +439,10 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	uint_32 limits[2]; //What limit to apply?
 	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
 	limits[1] = ((limits[0] << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-	descriptor->PRECALCS.limit = limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
+	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
 	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
 	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
-	descriptor->PRECALCS.base = ((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low); //Update the base address!
+	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
 	rights = &checkrights_conditions[(descriptor->desc.AccessRights & 0xE)]; //What type do we check for(take it all, except the dirty bit)!
 	for (n = 0; n < 0x100; ++n) //Calculate all conditions that error out or not!
 	{
