@@ -5647,7 +5647,6 @@ void BIOS_CPU() //CPU menu!
 			else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //SQUARE=Set current address&mode as the breakpoint!
 			{
 				byte mode=0;
-				word segment;
 				uint_32 offset;
 				lock(LOCK_CPU); //Lock the CPU!
 				switch (getcpumode()) //What mode are we?
@@ -7304,7 +7303,6 @@ void BIOS_taskBreakpoint()
 			if (ignoreSegment) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 			ignoreBase = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
 			if (ignoreBase) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
-			handlemode: //Handle the other modes!
 				temp = &breakpointstr[0]; //First character!
 				for (;(*temp && *temp!=':');++temp); //No seperator yet?
 				if (*temp!=':') //No seperator found?
@@ -7364,8 +7362,6 @@ void BIOS_CR3breakpoint()
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
 	EMU_unlocktext();
-	byte mode; //The mode to use!
-	word semicolonpos;
 	char *temp;
 	word maxoffsetsize = 8;
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1,0,0)) //Input text confirmed?
@@ -7388,7 +7384,6 @@ void BIOS_CR3breakpoint()
 			BIOS_Settings.CR3breakpoint = 0; //No breakpoint!
 		}
 	}
-	abortcoloninput:
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
