@@ -228,7 +228,7 @@ void updateEMUSingleStep() //Update our single-step address!
 		default: //Enabled
 			doEMUCR3singlestep = 1;
 			//High 16 bits are TR, low 32 bits are base
-			singlestepCR3address = ((BIOS_Settings.taskBreakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK) & 0xFFFFFFFF); //Single step address!
+			singlestepCR3address = ((BIOS_Settings.CR3breakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK) & 0xFFFFFFFF); //Single step address!
 			break;
 	}
 }
