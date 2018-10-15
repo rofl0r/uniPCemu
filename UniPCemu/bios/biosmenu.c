@@ -5298,7 +5298,7 @@ setShowCPUSpeed:
 	++advancedoptions; //Increase after!
 
 	optioninfo[advancedoptions] = -1; //Task Breakpoint!
-	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Task Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
@@ -5323,7 +5323,7 @@ setShowCPUSpeed:
 	++advancedoptions; //Increase after!
 
 	optioninfo[advancedoptions] = -1; //CR3 Breakpoint!
-	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
+	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CR3 Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
