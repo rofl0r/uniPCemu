@@ -5448,7 +5448,9 @@ void BIOS_CPU() //CPU menu!
 	case 16:
 	case 17:
 	case 18:
-	case 19: //Valid option?
+	case 19:
+	case 20:
+	case 21: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
