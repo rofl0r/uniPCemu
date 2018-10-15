@@ -5300,7 +5300,7 @@ setShowCPUSpeed:
 	optioninfo[advancedoptions] = -1; //Task Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_MODE_SHIFT)) //What mode?
+	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
@@ -5325,7 +5325,7 @@ setShowCPUSpeed:
 	optioninfo[advancedoptions] = -1; //CR3 Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_MODE_SHIFT)) //What mode?
+	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
@@ -5627,7 +5627,7 @@ void BIOS_CPU() //CPU menu!
 				if (mode) //Enabled?
 				{
 					segment = CPU[activeCPU].registers->TR; //CS!
-					offset = CPU[activeCPU].SEG_DESCRIPTORS[CPU_SEGMENT_TR].PRECALCS.base; //Our offset!
+					offset = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base; //Our offset!
 					BIOS_Settings.taskBreakpoint = (((uint_64)mode&1)<<SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)|(((uint_64)segment&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_TASKBREAKPOINT_BASE_MASK); //Set the new breakpoint!
 					BIOS_Changed = 1; //We've changed!
 				}
@@ -7252,24 +7252,6 @@ void BIOS_breakpoint()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment)
-{
-	word segment;
-	uint_32 offset;
-	breakpointstr[semicolonpos] = '\0'; //Convert the semicolon into an EOS character to apply the string length!
-	segment = converthex2int(&breakpointstr[0]); //Convert the number to our usable format!
-	offset = converthex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
-
-	//Apply the new breakpoint!
-	BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT);
-	BIOS_Settings.breakpoint |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT));
-	BIOS_Settings.breakpoint |=	(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT));
-	BIOS_Settings.breakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT));
-	BIOS_Settings.breakpoint |= (((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT);
-	BIOS_Settings.breakpoint |= ((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
-	BIOS_Changed = 1; //We've changed!
-}
-
 void BIOS_setTaskBreakpoint(char *breakpointstr, word semicolonpos, byte enabled, byte ignoreBase,  byte ignoreSegment);
 
 void BIOS_taskBreakpoint()
@@ -7277,13 +7259,13 @@ void BIOS_taskBreakpoint()
 	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLED_SHIFT)) //What mode?
+	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			break;
 		case 1: //Enabled?
-			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%08X",(word)((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.taskBreakpoint&SETTINGS_TAAKBREAKPOINT_BASE_MASK)); //seg16:offs16!
-			if ((BIOS_Settings.taskBreakpoint>>SETTINGS_BREAKPOINT_IGNOREBASE_SHIFT)&1) //Ignore EIP?
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%08X",(word)((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.taskBreakpoint&SETTINGS_TASKBREAKPOINT_BASE_MASK)); //seg16:offs16!
+			if ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
@@ -7318,8 +7300,8 @@ void BIOS_taskBreakpoint()
 			mode = 1; //Default to real mode!
 			ignoreSegment = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] == 'O'); //Ignore code segment?
 			if (ignoreSegment) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
-			ignoreEIP = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
-			if (ignoreEIP) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
+			ignoreBase = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
+			if (ignoreBase) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 			handlemode: //Handle the other modes!
 				temp = &breakpointstr[0]; //First character!
 				for (;(*temp && *temp!=':');++temp); //No seperator yet?
@@ -7362,7 +7344,7 @@ void BIOS_CR3breakpoint()
 	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLED_SHIFT)) //What mode?
+	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			break;
@@ -7435,8 +7417,8 @@ void BIOS_setTaskBreakpoint(char *breakpointstr, word semicolonpos, byte enabled
 	offset = converthex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
 
 	//Apply the new breakpoint!
-	BIOS_Settings.taskBreakpoint = (((uint_64)enabled&3)<<SETTINGS_TASKBREAKPOINT_ENABLED_SHIFT);
-	BIOS_Settings.taskBreakpoint |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT));
+	BIOS_Settings.taskBreakpoint = (((uint_64)enabled&3)<<SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT);
+	BIOS_Settings.taskBreakpoint |= (((ignoreBase?1LLU:0LLU)<<SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT));
 	BIOS_Settings.taskBreakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT));
 	BIOS_Settings.taskBreakpoint |= (((uint_64)segment&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT);
 	BIOS_Settings.taskBreakpoint |= ((uint_64)offset&SETTINGS_TASKBREAKPOINT_BASE_MASK); //Set the new breakpoint!

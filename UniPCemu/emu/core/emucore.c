@@ -209,7 +209,6 @@ void updateEMUSingleStep() //Update our single-step address!
 	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //Unset?
-			unknownmode:
 			doEMUtasksinglestep = 0;
 			singlestepTaskaddress = 0; //Nothing!
 			break;
@@ -223,14 +222,13 @@ void updateEMUSingleStep() //Update our single-step address!
 	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //Unset?
-			unknownmode:
 			doEMUCR3singlestep = 0;
 			singlestepCR3address = 0; //Nothing!
 			break;
 		default: //Enabled
 			doEMUCR3singlestep = 1;
 			//High 16 bits are TR, low 32 bits are base
-			singlestepTaskaddress = ((BIOS_Settings.taskBreakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK) & 0xFFFFFFFF)); //Single step address!
+			singlestepTaskaddress = ((BIOS_Settings.taskBreakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK) & 0xFFFFFFFF); //Single step address!
 			break;
 	}
 }
@@ -1140,7 +1138,7 @@ OPTINLINE byte coreHandler()
 						}
 						if (unlikely(doEMUtasksinglestep)) //Task filter enabled for breakpoints?
 						{
-							applysinglestep &= ((((CPU[activeCPU].registers->TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTORS[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
+							applysinglestep &= ((((CPU[activeCPU].registers->TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
 						}
 						if (unlikely(doEMUCR3singlestep)) //CR3 filter enabled for breakpoints?
 						{
