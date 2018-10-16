@@ -29,10 +29,12 @@ void loadTSS16(TSS286 *TSS)
 	word n;
 	byte i;
 	i = 0;
-	for (n = 0;n < NUMITEMS(TSS->dataw);n+=2) //Load our TSS!
+	n = 0;
+	for (i = 0;i < NUMITEMS(TSS->dataw);) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
 		TSS->dataw[i++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		n += 2; //Next word!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
