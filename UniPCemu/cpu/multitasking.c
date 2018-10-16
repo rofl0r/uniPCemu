@@ -413,6 +413,19 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Switching active TSS to segment selector %04X", destinationtask);
 	}
 
+	if ((isJMPorCALL == 3) //IRET? Stop being busy of another task(or ourselves)! We're marked busy during loading!
+	{
+		SEGMENT_DESCRIPTOR tempdesc;
+		if (LOADDESCRIPTOR(CPU_SEGMENT_TR, destinationtask, &tempdesc, (isJMPorCALL & 0x400)) == 1) //Loaded old container?
+		{
+			tempdesc.desc.AccessRights &= ~2; //Mark idle!
+			if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, destinationtask, &tempdesc, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
+			{
+				return 0; //Abort on fault raised!
+			}
+		}
+		else return 0; //Abort on fault raised!
+	}
 
 	//Backup the entire TR descriptor!
 	memcpy(&CPU[activeCPU].oldTRdesc, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
