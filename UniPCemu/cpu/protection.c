@@ -1320,11 +1320,20 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 					case AVL_SYSTEM_BUSY_TSS32BIT:
 					case AVL_SYSTEM_BUSY_TSS16BIT:
-						THROWDESCGP(value,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-						return 1; //Abort on fault!
+						if ((isJMPorCALL & 0x800) == 0) //Needs to be non-busy?
+						{
+							THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+							return 1; //Abort on fault!
+						}
 						break;
 					case AVL_SYSTEM_TSS32BIT:
 					case AVL_SYSTEM_TSS16BIT:
+						if ((isJMPorCALL & 0x800)) //Needs to be busy?
+						{
+							THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+							return 1; //Abort on fault!
+						}
+
 						tempdescriptor.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
 						savedescriptor.desc.DATA64 = tempdescriptor.desc.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
 						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)<=0) //Save it back to RAM failed?
