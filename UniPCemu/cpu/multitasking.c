@@ -343,20 +343,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			if (checksaveTSS16()) return 0; //Abort on error!
 		}
 
-		if ((isJMPorCALL | 0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
-		{
-			SEGMENT_DESCRIPTOR tempdesc;
-			if (LOADDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, &tempdesc, (isJMPorCALL & 0x400)) == 1) //Loaded old container?
-			{
-				tempdesc.desc.AccessRights &= ~2; //Mark idle!
-				if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, &tempdesc, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
-				{
-					return 0; //Abort on fault raised!
-				}
-			}
-			else return 0; //Abort on fault raised!
-		}
-
 		if (isJMPorCALL == 3) //IRET?
 		{
 			FLAGW_NT(0); //Clear Nested Task flag of the leaving task!
@@ -434,6 +420,20 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 
 	if (segmentWritten(CPU_SEGMENT_TR, destinationtask, (isJMPorCALL & 0x400))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
+
+	if ((isJMPorCALL | 0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
+	{
+		SEGMENT_DESCRIPTOR tempdesc;
+		if (LOADDESCRIPTOR(CPU_SEGMENT_TR, oldtask, &tempdesc, (isJMPorCALL & 0x400)) == 1) //Loaded old container?
+		{
+			tempdesc.desc.AccessRights &= ~2; //Mark idle!
+			if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, oldtask, &tempdesc, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
+			{
+				return 0; //Abort on fault raised!
+			}
+		}
+		else return 0; //Abort on fault raised!
+	}
 
 	switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Check the type of descriptor we're executing now!
 	{
