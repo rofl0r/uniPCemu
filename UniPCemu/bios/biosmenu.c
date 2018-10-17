@@ -628,7 +628,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	//Clear the rest of the screen!
 	EMU_textcolor(BIOS_ATTR_BACKGROUND); //Attr backcolor
 	int i=1; //From row 1-25 clearing!
-	for (;i<25;) //Process all rows!
+	for (;i<GPU_TEXTSURFACE_HEIGHT;) //Process all rows!
 	{
 		clearrow(i++); //Clear a row!
 	}
