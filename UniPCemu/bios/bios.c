@@ -784,7 +784,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger","CR3breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
-	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("general", "advancedlog", DEFAULT_ADVANCEDLOG, BIOS_Settings_file); //The selected font for the BIOS menu!
+	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("debugger", "advancedlog", DEFAULT_ADVANCEDLOG, BIOS_Settings_file); //The selected font for the BIOS menu!
 
 	//Video
 	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",DEFAULT_VIDEOCARD,BIOS_Settings_file); //Enable VGA NMI on precursors?
