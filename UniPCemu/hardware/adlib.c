@@ -699,7 +699,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	result += gain; //Simply add the gain!
 	if (flags&8) //Double the volume?
 	{
-		result <<= 1; //Double the volume!
+		result = (result&SIGNBIT)|(MIN(((result&SIGNMASK)<<1),SIGNMASK)&SIGNMASK); //Double the volume!
 	}
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
