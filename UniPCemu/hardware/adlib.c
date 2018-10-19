@@ -201,9 +201,10 @@ OPTINLINE float adlibeffectivefrequency(word fnum, word octave)
 
 void writeadlibKeyON(byte channel, byte forcekeyon)
 {
+	byte isflipkeyon = 0; //Are we processing a low or high flipped key-on for High-hat/Cymbal? 1=Start modulator, 2=Start carrier!
+	byte ispercussionflipping = 0;
 	byte keyon;
 	byte oldkeyon;
-	oldkeyon = adlibch[channel&0xF].keyon; //Current&old key on!
 	keyon = ((adlibregmem[0xB0 + (channel&0xF)] >> 5) & 1)?3:0; //New key on for melodic channels? Affect both operators! This disturbs percussion mode!
 	if (adlibpercussion && (channel&0x80)) //Percussion enabled and percussion channel changed?
 	{
@@ -218,11 +219,12 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 			case 7: //Snare drum(Modulator)/Hi-hat(Carrier)? fmopl.c: High-hat uses modulator, Snare drum uses Carrier signals.
 				keyon = ((keyon>>3)&1)|((keyon<<1)&2); //Shift the information to modulator and carrier positions!
 				channel = 7; //Use channel 7!
+				ispercussionflipping = 1; //Enable flip key-on for modulator(High-hat)!
 				break;
 			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? fmopl.c:Tom-tom uses Modulator, Cymbal uses Carrier signals.
-				keyon = adlibregmem[0xBD]; //Cymbal/hi-hat on? Use the full register for processing!
 				keyon = ((keyon>>2)&1)|(keyon&2); //Shift the information to modulator and carrier positions!
 				channel = 8; //Use channel 8!
+				ispercussionflipping = 2; //Enable flip key-on for carrier(Cymbal)!
 				break;
 			default: //Unknown channel?
 				//New key on for melodic channels? Don't change anything!
@@ -230,11 +232,13 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		}
 	}
 
+	oldkeyon = adlibch[channel].keyon; //Current&old key on!
+
 	adlibch[channel].m_block = (adlibregmem[0xB0 + channel] >> 2) & 7;
 	adlibch[channel].m_fnum = (adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8)); //Frequency number!
 	adlibch[channel].effectivefreq = adlibeffectivefrequency(adlibch[channel].m_fnum,adlibch[channel].m_block); //Calculate the effective frequency!
 
-	if ((adliboperators[0][channel]!=0xFF) && (((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1))) //Key ON on operator #1?
+	if ((adliboperators[0][channel]!=0xFF) && ((((keyon&1) && ((oldkeyon^keyon)&1)) || (forcekeyon&1)) || (isflipkeyon==1))) //Key ON on operator #1 or flip starting the modulator?
 	{
 		if (adlibop[adliboperators[0][channel]&0x1F].volenvstatus==0) //Not retriggering the volume envelope?
 		{
@@ -249,6 +253,10 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[0][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[0][channel]&0x1F]);
 		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[0][channel]&0x1F]);
+		if (ispercussionflipping==1) //Are we flipping on this key-on?
+		{
+			ispercussionflipping = 3; //Start the other percussion flip after we're done!
+		}
 	}
 
 	//Below block is a fix for stuck notes!
@@ -265,8 +273,9 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[0][channel] & 0x1F]);
 	}
 
-	if ((adliboperators[1][channel]!=0xFF) && (((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2))) //Key ON on operator #2?
+	if ((adliboperators[1][channel]!=0xFF) && ((((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2)) || (isflipkeyon==2))) //Key ON on operator #2 or flip starting the carrier?
 	{
+		enablesecondoperator:
 		if (adlibop[adliboperators[1][channel]&0x1F].volenvstatus==0) //Not retriggering the volume envelope?
 		{
 			adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
@@ -280,6 +289,10 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		adlibop[adliboperators[1][channel]&0x1F].lastsignal[0] = adlibop[adliboperators[1][channel]&0x1F].lastsignal[1] = 0.0f; //Reset the last signals!
 		EnvelopeGenerator_setAttennuation(&adlibop[adliboperators[1][channel]&0x1F]);
 		EnvelopeGenerator_setAttennuationCustom(&adlibop[adliboperators[1][channel]&0x1F]);
+		if (ispercussionflipping == 2) //Are we flipping on this key-on?
+		{
+			ispercussionflipping = 3; //Start the other percussion flip after we're done!
+		}
 	}
 
 	//Below block is a fix for stuck notes!
@@ -298,6 +311,14 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 
 	//Update keyon information!
 	adlibch[channel].keyon = keyon | forcekeyon; //Key is turned on?
+	if (ispercussionflipping == 3) //Flipping percussion halves?
+	{
+		forcekeyon = 0; //Don't force said key on, if so!
+		channel = (channel == 8) ? 7 : 8; //Flip the channel!
+		keyon = adlibch[channel].keyon; //The channel's actual key-on(so it doesn't detect any changes, so no strange effects)!
+		isflipkeyon = (channel == 7) ? 1 : 2; //Are we to start the modulator(0) or carrier(1) on said channel?
+		ispercussionflipping = 4; //Finish flipping afterwards!
+	}
 }
 
 void writeadlibaddr(byte value)
@@ -699,7 +720,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	result += gain; //Simply add the gain!
 	if (flags&8) //Double the volume?
 	{
-		result = (result&SIGNBIT)|(MIN(((result&SIGNMASK)<<1),SIGNMASK)&SIGNMASK); //Double the volume!
+		result = (result&SIGNBIT)|(MIN(((result&SIGNMASK)>>1),SIGNMASK)&SIGNMASK); //Double the volume!
 	}
 	result2 = OPL2_Exponential(result); //Translate to Exponential range!
 
@@ -731,7 +752,7 @@ float convertphase(word phase)
 	return OPL2_Exponential(phaseconversion[phase]); //Lookup the phase translated!
 }
 
-OPTINLINE float adlibsample(uint8_t curchan) {
+OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 	byte op6_1, op6_2, op7_1, op7_2, op8_1, op8_2; //The four slots used during Drum samples!
 	word tempop_phase; //Current phase of an operator!
 	float result;
@@ -796,37 +817,35 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				/* SD  channel 7->slot2 */
 				/* TOM channel 8->slot1 */
 				/* TOP channel 8->slot2 */
-				//So phase modulation is based on the Modulator signal. The volume envelope is in the Modulator signal (Hi-hat/Tom-tom) or Carrier signal ()
+				//So phase modulation is based on the Modulator signal. The volume envelope is in the Carrier signal (Hi-hat/Tom-tom) or Carrier signal().
 			case 7: //Hi-hat(Carrier)/Snare drum(Modulator)? High-hat uses modulator, Snare drum uses Carrier signals.
 				immresult = 0.0f; //Initialize immediate result!
 				if (adlibop[op7_1].volenvstatus) //Hi-hat on Modulator?
 				{
 					//Derive frequency from channel 7(modulator) and 8(carrier).
-					tempop_phase = getphase(op7_1,adlibfreq(op7_1)); //Save the phase!
+					tempop_phase = phase7_1; //Save the phase!
 					tempphase = (tempop_phase>>2);
 					tempphase ^= (tempop_phase>>7);
 					tempphase |= (tempop_phase>>3);
 					tempphase &= 1; //Only 1 bit is used!
 					tempphase = tempphase?(0x200|(0xD0>>2)):0xD0;
-					tempop_phase = getphase(op8_2,adlibfreq(op8_2)); //Calculate the phase of channel 8 carrier signal!
+					tempop_phase = phase8_2; //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x200|(0xD0>>2);
 					if (tempphase&0x200)
 					{
 						if (OPL2_RNG) tempphase = 0x2D0;
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
-					
-					result = calcOperator(8, op8_2,op8_2,op8_2,adlibfreq(op8_2), 0.0f,((adlibop[op8_2].volenvstatus)?1:0)); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(7, op7_1,op7_1,op7_1,adlibfreq(op7_1), convertphase(tempphase), 2|((adlibop[op8_2].volenvstatus||adlibop[op7_2].volenvstatus)?0x09:0x08)); //Calculate the carrier with applied modulator!
+					result = calcOperator(7, op7_1, op7_1, op7_1, adlibfreq(op7_1), 0.0f, 1); //Calculate the modulator, but only use the current time(position in the sine wave)! Don't update the time(see below)
+					result = calcOperator(8, op8_2,op7_1,op7_1,adlibfreq(op8_2), convertphase(tempphase),((adlibop[op8_2].volenvstatus)?1:0)); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					immresult += result; //Apply the tremolo!
 				}
 				if (adlibop[op7_2].volenvstatus) //Snare drum on Carrier volume?
 				{
 					//Derive frequency from channel 0.
-					tempphase = 0x100 << ((getphase(op7_1, adlibfreq(op7_1)) >> 8) & 1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
+					tempphase = 0x100 << ((phase7_1 >> 8) & 1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG << 8); //Noise bits XOR'es phase by 0x100 when set!
-					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0); //Calculate the carrier with applied modulator!
-					result = calcOperator(7, op7_1,op7_1,op7_2,adlibfreq(op7_1), convertphase(tempphase), ((adlibop[op8_2].volenvstatus) ? 0x09 : 0x08)); //Calculate the carrier with applied modulator!
+					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0x8); //Calculate the carrier with applied modulator!
 					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
@@ -843,17 +862,17 @@ OPTINLINE float adlibsample(uint8_t curchan) {
 				if (adlibop[op8_2].volenvstatus) //Cymbal(Carrier)?
 				{
 					//Derive frequency from channel 7(modulator) and 8(carrier).
-					tempop_phase = getphase(op7_1,adlibfreq(op7_1)); //Save the phase!
+					tempop_phase = phase7_1; //Save the phase!
 					tempphase = (tempop_phase>>2);
 					tempphase ^= (tempop_phase>>7);
 					tempphase |= (tempop_phase>>3);
 					tempphase &= 1; //Only 1 bit is used!
 					tempphase <<= 9; //0x200 when 1 makes it become 0x300
 					tempphase |= 0x100; //0x100 is always!
-					tempop_phase = getphase(op8_1,adlibfreq(op8_1)); //Calculate the phase of channel 8 carrier signal!
+					tempop_phase = phase8_2; //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
-					result = calcOperator(7, op7_1,op7_1,op7_1, adlibfreq(op7_1), 0.0f,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(7, op7_1,op7_1,op8_2, adlibfreq(op7_1), 0.0f,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x8); //Calculate the carrier with applied modulator! Use volume!
 					immresult += result; //Apply the exponential!
 				}
@@ -976,9 +995,18 @@ OPTINLINE byte adlib_channelplaying(byte channel)
 OPTINLINE float adlibgensample() {
 	float adlibaccum = 0.0f;
 	byte channel;
+	byte op7_1;
+	byte op8_2;
+	word phase7_1;
+	word phase8_2;
+	op7_1 = adliboperators[0][7];
+	op8_2 = adliboperators[1][8];
+	phase7_1 = getphase(op7_1, adlibfreq(op7_1)); //Save the current 7_1 phase for usage in drum channels!
+	phase8_2 = getphase(op8_2, adlibfreq(op8_2)); //Save the current 8_2 phase for usage in drum channels!
+
 	for (channel=0;channel<9;++channel) //Process all channels!
 	{
-		if (adlib_channelplaying(channel)) adlibaccum += adlibsample(channel); //Sample when playing!
+		if (adlib_channelplaying(channel)) adlibaccum += adlibsample(channel,phase7_1,phase8_2); //Sample when playing!
 	}
 	adlibaccum *= adlib_scaleFactor; //Scale according to volume!
 	return adlibaccum;
