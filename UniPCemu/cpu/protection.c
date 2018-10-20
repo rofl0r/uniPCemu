@@ -1752,7 +1752,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	word desttask; //Destination task for task switches!
 	uint_32 base;
 	sbyte loadresult;
-	byte isSameLevel = 1; //Default: same level!
 	byte oldCPL;
 	base = descriptorbase; //The base offset of the interrupt in the IDT!
 	oldCPL = getCPL(); //Save the old CPL for reference!
