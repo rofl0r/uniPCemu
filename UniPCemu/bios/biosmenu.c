@@ -5587,7 +5587,7 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Changed = 1; //We've changed!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
-			break; //TODO
+			break;
 		case 16: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
@@ -5635,7 +5635,7 @@ void BIOS_CPU() //CPU menu!
 				}
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
-			break; //TODO
+			break;
 		case 21: //CR3 Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
@@ -5666,7 +5666,7 @@ void BIOS_CPU() //CPU menu!
 				}
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
-			break; //TODO
+			break;
 		default:
 			break;
 		}

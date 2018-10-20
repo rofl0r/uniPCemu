@@ -509,14 +509,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 	//DoDebugVGAGraphics(0x09,320,200,0x10,0,0xE,0,0); //Debug 320x200x16! Bijna OK NOT VGA COMPAT.
 	//DoDebugVGAGraphics(0x0A,640,200,0x04,0,0xE,0,0); //Debug 640x200x4! None! NOT VGA COMPAT.
 	//Graphics should be OK!
-	//4-color modes: TODO!
+	//4-color modes!
 	DoDebugVGAGraphics(0x04,320,200,0x04,0,0x3,1,0); //Debug 320x200x4!
 	if (shuttingdown()) goto doshutdown;
 	DoDebugVGAGraphics(0x05,320,200,0x04,0,0x0,1,0); //Debug 320x200x4(B/W)! 
 	if (shuttingdown()) goto doshutdown;
 	//B/W mode!
 	
-	//TODO:
 	DoDebugVGAGraphics(0x06,640,200,0x02,0,0x1,1,0); //Debug 640x200x2(B/W)!
 	if (shuttingdown()) goto doshutdown;
 	

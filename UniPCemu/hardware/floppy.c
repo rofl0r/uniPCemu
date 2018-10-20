@@ -1957,7 +1957,6 @@ OPTINLINE void floppy_writeData(byte value)
 		,0 //1E
 		,0 //1F
 		};
-	//TODO: handle floppy writes!
 	isscan = 0; //Init scan type!
 	switch (FLOPPY.commandstep) //What step are we at?
 	{

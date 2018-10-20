@@ -104,7 +104,6 @@ void CPU_flushPIQ(int_64 destaddr)
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
 	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
-	//TODO: Paging for the fetching process!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 	BIU_instructionStart(); //Prepare for a new instruction!
 }

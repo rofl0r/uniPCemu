@@ -603,7 +603,7 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,0,0xD3,0xFF,0x00,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{3,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //Shift/Rotate Register/Memory by CL
 	,{1,0,0,0xC0,0xFE,0x00,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{3,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //Shift/Rotate Register/Memory by Count
 	,{1,1,0,0xC1,0xFF,0x00,{{{{3,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{3,0,0},{10-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //Shift/Rotate Register/Memory by Count
-	//158 80386 entries up to this point. Total of 300 80386+ records so far(84 added records, excluding the TODO on IN/OUT instructions)!
+	//158 80386 entries up to this point. Total of 300 80386+ records so far(84 added records, excluding the todo on IN/OUT instructions)!
 	//Page 3-50
 	//AND
 	,{1,0,0,0x20,0xFE,0x00,{{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}},{{{2,0,0},{7-EU_CYCLES_SUBSTRACT_ACCESSRW,0,0}}}}} //AND Reg/memory and register to either
