@@ -234,6 +234,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 
 	oldkeyon = adlibch[channel].keyon; //Current&old key on!
 
+	nextkeyon:
 	adlibch[channel].m_block = (adlibregmem[0xB0 + channel] >> 2) & 7;
 	adlibch[channel].m_fnum = (adlibregmem[0xA0 + channel] | ((adlibregmem[0xB0 + channel] & 3) << 8)); //Frequency number!
 	adlibch[channel].effectivefreq = adlibeffectivefrequency(adlibch[channel].m_fnum,adlibch[channel].m_block); //Calculate the effective frequency!
@@ -275,7 +276,6 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 
 	if ((adliboperators[1][channel]!=0xFF) && ((((keyon&2) && ((oldkeyon^keyon)&2)) || (forcekeyon&2)) || (isflipkeyon==2))) //Key ON on operator #2 or flip starting the carrier?
 	{
-		enablesecondoperator:
 		if (adlibop[adliboperators[1][channel]&0x1F].volenvstatus==0) //Not retriggering the volume envelope?
 		{
 			adlibop[adliboperators[1][channel]&0x1F].volenv = Silence; //No raw level: silence!
@@ -318,6 +318,7 @@ void writeadlibKeyON(byte channel, byte forcekeyon)
 		keyon = adlibch[channel].keyon; //The channel's actual key-on(so it doesn't detect any changes, so no strange effects)!
 		isflipkeyon = (channel == 7) ? 1 : 2; //Are we to start the modulator(0) or carrier(1) on said channel?
 		ispercussionflipping = 4; //Finish flipping afterwards!
+		goto nextkeyon;
 	}
 }
 
