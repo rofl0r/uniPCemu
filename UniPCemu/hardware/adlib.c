@@ -638,15 +638,16 @@ OPTINLINE word OPL2_Sin(byte signal, float frequencytime) {
 	}
 }
 
-OPTINLINE word calcOPL2Signal(byte wave, float frequency, float phase, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
+OPTINLINE word calcOPL2Signal(byte wave, float frequency, float phase, float rawphase, float *freq0, float *time) //Calculates a signal for input to the adlib synth!
 {
 	float ftp;
-	if (frequency != *freq0) { //Frequency changed?
+	if ((frequency != *freq0) && (frequency)) { //Frequency changed?
 		*time *= (*freq0 / frequency);
 	}
 
 	ftp = frequency; //Frequency!
 	ftp *= *time; //Time!
+	ftp += rawphase; //Apply raw phase, in 2PI units!
 	ftp *= PI2; //Apply frequencytime ratio to the full phase(2*PI=1 Sine wave)!
 	ftp += phase; //Add phase!
 	*freq0 = frequency; //Update new frequency!
@@ -692,9 +693,9 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	float result2; //The translated result!
 	float activemodulation;
 	//Generate the signal!
-	if (flags&0x80) //Apply channel feedback?
+	if (flags & 0x80) //Apply channel feedback?
 	{
-		activemodulation = calcFeedback(channel,&adlibop[timingoperator]); //Apply this feedback signal!
+		activemodulation = calcFeedback(channel, &adlibop[timingoperator]); //Apply this feedback signal!
 	}
 	else //Apply normal modulation?
 	{
@@ -702,8 +703,15 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	}
 
 	//Generate the correct signal! Ignore time by setting frequency to 0.0f(effectively disables time, keeping it stuck at 0(frequencytime))!
-	result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, (frequency?frequency:adlibop[timingoperator].lastfreq),activemodulation, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
-	
+	if ((flags & 0x40) == 0) //Normal signal?
+	{
+		result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, (frequency ? frequency : adlibop[timingoperator].lastfreq), activemodulation,0.0f, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
+	}
+	else //Raw input/output(don't take a normal signal)!
+	{
+		result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, 0.0f, 0.0f, activemodulation*0.125f, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
+	}
+
 	//Calculate the gain!
 	gain = 0; //Init gain!
 	if (flags&2) //Special: ignore main volume control!
@@ -740,7 +748,7 @@ float adlib_scaleFactor = 0.0f; //We're running 9 channels in a 16-bit space, so
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(fmodf((adlibop[operator].time*frequency),1.0f)*((float)0x3D0)); //Give the 10-bits value
+	return (word)(fmodf((adlibop[operator].time*frequency),1.0f)*((float)0x3FF)); //Give the 10-bits value
 }
 
 word convertphase_real(word phase)
@@ -837,8 +845,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 						if (OPL2_RNG) tempphase = 0x2D0;
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
-					result = calcOperator(7, op7_1, op7_1, op7_1, adlibfreq(op7_1), 0.0f, 1); //Calculate the modulator, but only use the current time(position in the sine wave)! Don't update the time(see below)
-					result = calcOperator(8, op8_2,op7_1,op7_1,adlibfreq(op8_2), convertphase(tempphase),((adlibop[op8_2].volenvstatus)?1:0)); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(8, op8_2,op7_1,op7_1,adlibfreq(op8_2), convertphase(tempphase), 0x9); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					immresult += result; //Apply the tremolo!
 				}
 				if (adlibop[op7_2].volenvstatus) //Snare drum on Carrier volume?
@@ -846,7 +853,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 					//Derive frequency from channel 0.
 					tempphase = 0x100 << ((phase7_1 >> 8) & 1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG << 8); //Noise bits XOR'es phase by 0x100 when set!
-					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0x8); //Calculate the carrier with applied modulator!
+					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0x0); //Calculate the carrier with applied modulator!
 					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
@@ -858,7 +865,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 				if (adlibop[op8_1].volenvstatus) //Tom-tom(Modulator)?
 				{
 					result = calcOperator(8, op8_1, op8_1, op8_1, adlibfreq(op8_1), 0.0f, 0x8); //Calculate the carrier without applied modulator additive! Ignore volume!
-					immresult += result*2.0f; //Apply the exponential!
+					immresult += result; //Apply the exponential!
 				}
 				if (adlibop[op8_2].volenvstatus) //Cymbal(Carrier)?
 				{
@@ -873,10 +880,14 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 					tempop_phase = phase8_2; //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
-					result = calcOperator(7, op7_1,op7_1,op8_2, adlibfreq(op7_1), 0.0f,0); //Calculate the modulator, but only use the current time(position in the sine wave)!
-					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x8); //Calculate the carrier with applied modulator! Use volume!
+					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x1); //Calculate the carrier with applied modulator! Use volume!
 					immresult += result; //Apply the exponential!
 				}
+
+				//Advance the shared percussion channel by 7-1 and 8-2!
+				result = calcOperator(7, op7_1, op7_1, op7_1, adlibfreq(op7_1), 0.0f, 0); //Calculate the modulator, but only use the current time(position in the sine wave)!
+				result = calcOperator(8, op8_2, op8_2, op8_2, adlibfreq(op8_2), 0.0f, 0); //Calculate the carrier with applied modulator! Use volume!
+
 				result = immresult; //Load the resulting channel!
 				result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
@@ -971,7 +982,7 @@ OPTINLINE byte adlib_channelplaying(byte channel)
 	{
 		if (adlibpercussion) //Percussion mode? Split channels!
 		{
-			return (adlibop[adliboperators[1][7]].volenvstatus || adlibop[adliboperators[0][7]].volenvstatus); //Percussion channel?
+			return 1; //Percussion channel is always on!
 		}
 		//Melodic?
 		return adlibop[adliboperators[1][7]].volenvstatus; //Melodic, so carrier!
@@ -980,7 +991,7 @@ OPTINLINE byte adlib_channelplaying(byte channel)
 	{
 		if (adlibpercussion) //Percussion mode? Split channels!
 		{
-			return (adlibop[adliboperators[1][8]].volenvstatus || adlibop[adliboperators[0][8]].volenvstatus); //Percussion channel?
+			return 1; //Percussion is always on?
 		}
 		//Melodic?
 		return adlibop[adliboperators[1][8]].volenvstatus; //Melodic, so carrier!
@@ -1377,6 +1388,7 @@ void initAdlib()
 
 	//RNG support!
 	OPL2_RNGREG = OPL2_RNG = 0; //Initialise the RNG!
+	OPL2_RNGREG = 1; //Seed the noise register to a valid value(must be non-zero)!
 
 	adlib_ticktiming = 0; //Reset our output timing!
 	adlib_ticktiming80 = 0; //80us tick timing!
@@ -1426,7 +1438,7 @@ void initAdlib()
 		u = 0.0; //Reset the current time!
 		for (currenttime = 0;currenttime<samples;++currenttime) //Process all samples!
 		{
-			s = calcOPL2Signal(wave,1.0f,0.0f,&dummyfreq0,&dummytime); //Get the sample(1Hz sine wave)!
+			s = calcOPL2Signal(wave,1.0f,0.0f,0.0f,&dummyfreq0,&dummytime); //Get the sample(1Hz sine wave)!
 			es = OPL2_Exponential(s); //Get the raw sample at maximum volume!
 			es *= c; //Apply the destination factor!
 			writeWAVMonoSample(w,(word)(LIMITRANGE((sword)es,SHRT_MIN,SHRT_MAX))); //Log 1 wave, looked up through exponential input!
