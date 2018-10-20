@@ -1752,7 +1752,10 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	word desttask; //Destination task for task switches!
 	uint_32 base;
 	sbyte loadresult;
+	byte isSameLevel = 1; //Default: same level!
+	byte oldCPL;
 	base = descriptorbase; //The base offset of the interrupt in the IDT!
+	oldCPL = getCPL(); //Save the old CPL for reference!
 
 	if (errorcode<0) //Invalid error code to use?
 	{
@@ -1803,7 +1806,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
 		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
 
-			//TODO: Implement V86 monitor support by adding to the stack(saving the old EFLAGS(EFLAGS backup) and clearing the V86 flag before setting the new registers(to make it run in Protected Mode until IRET, which restores EFLAGS/CS/EIP, stack and segment registers by popping them off the stack and restoring the V86 mode to be resumed. Keep EFLAGS as an backup(in CPU restoration structure, like SS:ESP) before clearing the V86 bit(to push) to load protected mode segments for the monitor. Turn off V86 to load all protected mode stack. Push the segments and IRET data on the stack(faults reset EFLAGS/SS/ESP to the backup). Finally load the remaining segments with zero(except SS/CS). Finally, transfer control to CS:EIP of the handler normally.
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
 			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
@@ -1988,7 +1990,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				}
 			}
 
-			hascallinterrupttaken_type = INTERRUPTGATETIMING_SAMELEVEL; //TODO Specify same level for now, until different level is implemented!
+			hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 			return 1; //OK!
 			break;
