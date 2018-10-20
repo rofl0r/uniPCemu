@@ -19,12 +19,16 @@ typedef struct
 			byte RTC_Year; //BCD 00-99, Hex 00-63
 
 			//On-chip status information:
-
 			byte STATUSREGISTERA; //CMOS 0Ah
+			byte STATUSREGISTERB; //CMOS 0Bh
+			byte STATUSREGISTERC; //CMOS 0Ch
+			byte STATUSREGISTERD; //CMOS 0Dh
 
-			byte STATUSREGISTERB;
+			byte unused1[0x25]; //Unused registers, low range!
 
-			byte ToDo[116]; //Still todo!
+			byte RTC_Century; //BCD 00-99, if used!
+
+			byte unused2[0x4D]; //Unused registers, high range!
 		} info;
 		byte data[0x80]; //CMOS Data!
 	} DATA80; //The normal CMOS data!
