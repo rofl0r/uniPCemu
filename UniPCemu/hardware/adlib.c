@@ -748,7 +748,16 @@ float adlib_scaleFactor = 0.0f; //We're running 9 channels in a 16-bit space, so
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	return (word)(fmodf((adlibop[operator].time*frequency),1.0f)*((float)0x3FF)); //Give the 10-bits value
+	word signbit;
+	float phase;
+	phase = fmodf((adlibop[operator].time*frequency), 1.0f); //Get the phase of the signal!
+	signbit = (phase < 0.0f) ? 0x200 : 0; //Sign!
+	if (signbit) //Negative?
+	{
+		phase = -phase; //Make sure it's a positive value to convert!
+	}
+	phase *= (float)0x1FF; //9 bits of positive/negative value encoding!
+	return (signbit|((word)phase)); //Give the 10-bits phase value
 }
 
 word convertphase_real(word phase)
