@@ -8,6 +8,7 @@
 #include "headers/support/sounddoublebuffer.h" //Sound buffer support!
 #include "headers/support/wave.h" //WAV file logging support!
 #include "headers/support/filters.h" //Filter support!
+#include "headers/support/signedness.h" //Sign conversion support!
 
 #define uint8_t byte
 #define uint16_t word
@@ -91,7 +92,7 @@ byte adliboperatorsreversekeyon[0x20] = { 1, 1, 1, 2, 2, 2, 255, 255, 1, 1, 1, 2
 
 static const float feedbacklookup[8] = { 0, (float)(PI / 16.0), (float)(PI / 8.0), (float)(PI / 4.0), (float)(PI / 2.0), (float)PI, (float)(PI*2.0), (float)(PI*4.0) }; //The feedback to use from opl3emu! Seems to be half a sinus wave per number!
 float feedbacklookup2[8]; //Actual feedback lookup value!
-word phaseconversion[0x10000]; //Phase converstion precalcs!
+float phaseconversion[0x10000]; //Phase converstion precalcs, normalized!
 
 byte wavemask = 0; //Wave select mask!
 
@@ -693,11 +694,11 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	float result2; //The translated result!
 	float activemodulation;
 	//Generate the signal!
-	if (flags & 0x80) //Apply channel feedback?
+	if ((flags & 0xC0)==0x80) //Apply channel feedback?
 	{
 		activemodulation = calcFeedback(channel, &adlibop[timingoperator]); //Apply this feedback signal!
 	}
-	else //Apply normal modulation?
+	else if ((flags&0x40)==0) //Apply normal modulation?
 	{
 		activemodulation = calcModulator(modulator); //Use the normal modulator!
 	}
@@ -709,7 +710,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	}
 	else //Raw input/output(don't take a normal signal)!
 	{
-		result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, 0.0f, 0.0f, activemodulation*0.125f, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
+		result = calcOPL2Signal(adlibop[operator].wavesel&wavemask, 0.0f, 0.0f, activemodulation, &adlibop[timingoperator].freq0, &adlibop[timingoperator].time); //Take the last frequency or current frequency!
 	}
 
 	//Calculate the gain!
@@ -748,26 +749,20 @@ float adlib_scaleFactor = 0.0f; //We're running 9 channels in a 16-bit space, so
 
 OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase of the operator!
 {
-	word signbit;
 	float phase;
 	phase = fmodf((adlibop[operator].time*frequency), 1.0f); //Get the phase of the signal!
-	signbit = (phase < 0.0f) ? 0x200 : 0; //Sign!
-	if (signbit) //Negative?
-	{
-		phase = -phase; //Make sure it's a positive value to convert!
-	}
-	phase *= (float)0x1FF; //9 bits of positive/negative value encoding!
-	return (signbit|((word)phase)); //Give the 10-bits phase value
+	phase *= (float)0x3FF; //Convert to 0-1FF, -200--1 range
+	return (((word)phase)&0x3FF);
 }
 
-word convertphase_real(word phase)
+float convertphase_real(word phase)
 {
-	return ((phase&0x200)?0:SIGNBIT)|(word)((phase&0x1FF)*((1.0f/(float)0x1FF)*SIGNMASK)); //Give the phase to execute, as a full sinus modulation!
+	return ((double)unsigned2signed16(((phase&0x200)<<6)+(double)((phase&0x1FF)*((1.0/(double)0x1FF)*(double)SHRT_MAX))))*((1.0/(double)(SHRT_MAX+(((phase&0x200)>>9))))); //Give the phase to execute, normalized!
 }
 
 float convertphase(word phase)
 {
-	return OPL2_Exponential(phaseconversion[phase]); //Lookup the phase translated!
+	return phaseconversion[phase]; //Lookup the phase translated!
 }
 
 OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
@@ -854,7 +849,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 						if (OPL2_RNG) tempphase = 0x2D0;
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
-					result = calcOperator(8, op8_2,op7_1,op7_1,adlibfreq(op8_2), convertphase(tempphase), 0x9); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(8, op8_2,op8_2,op7_1,adlibfreq(op8_2), convertphase(tempphase), 0x49); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					immresult += result; //Apply the tremolo!
 				}
 				if (adlibop[op7_2].volenvstatus) //Snare drum on Carrier volume?
@@ -862,7 +857,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 					//Derive frequency from channel 0.
 					tempphase = 0x100 << ((phase7_1 >> 8) & 1); //Bit8=0(Positive) then 0x100, else 0x200! Based on the phase to generate!
 					tempphase ^= (OPL2_RNG << 8); //Noise bits XOR'es phase by 0x100 when set!
-					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0x0); //Calculate the carrier with applied modulator!
+					result = calcOperator(7, op7_2,op7_2,op7_2,adlibfreq(op7_2), convertphase(tempphase), 0x40); //Calculate the carrier with applied modulator!
 					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
@@ -889,7 +884,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 					tempop_phase = phase8_2; //Calculate the phase of channel 8 carrier signal!
 					if (((tempop_phase>>3)^(tempop_phase>>5))&1) tempphase = 0x300;
 					
-					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x1); //Calculate the carrier with applied modulator! Use volume!
+					result = calcOperator(8, op8_2,op8_2,op8_2, adlibfreq(op8_2), convertphase(tempphase), 0x41); //Calculate the carrier with applied modulator! Use volume!
 					immresult += result; //Apply the exponential!
 				}
 
