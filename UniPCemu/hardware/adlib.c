@@ -803,15 +803,19 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 				//Special on Bass Drum: Additive synthesis(Operator 1) is ignored.
 
 				//Calculate the frequency to use!
-				result = calcOperator(6, op6_1,op6_1,op6_1, adlibfreq(op6_1), 0.0f,0x00); //Calculate the modulator for feedback!
+				result = 0.0f;
+				if (adlibop[op6_2].volenvstatus) //Running?
+				{
+					result = calcOperator(6, op6_1, op6_1, op6_1, adlibfreq(op6_1), 0.0f, 0x00); //Calculate the modulator for feedback!
 
-				if (adlibch[6].synthmode) //Additive synthesis?
-				{
-					result = calcOperator(6, op6_2,op6_2,op6_2, adlibfreq(op6_2), 0.0f, 0x08); //Calculate the carrier without applied modulator additive!
-				}
-				else //FM synthesis?
-				{
-					result = calcOperator(6, op6_2,op6_2,op6_2,adlibfreq(op6_2), result, 0x08); //Calculate the carrier with applied modulator!
+					if (adlibch[6].synthmode) //Additive synthesis?
+					{
+						result = calcOperator(6, op6_2, op6_2, op6_2, adlibfreq(op6_2), 0.0f, 0x08); //Calculate the carrier without applied modulator additive!
+					}
+					else //FM synthesis?
+					{
+						result = calcOperator(6, op6_2, op6_2, op6_2, adlibfreq(op6_2), result, 0x08); //Calculate the carrier with applied modulator!
+					}
 				}
 
 				return result; //Apply the exponential! The volume is always doubled!
@@ -849,7 +853,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 						if (OPL2_RNG) tempphase = 0x2D0;
 					}
 					else if (OPL2_RNG) tempphase = (0xD0>>2);
-					result = calcOperator(8, op8_2,op8_2,op7_1,adlibfreq(op8_2), convertphase(tempphase), 0x49); //Calculate the modulator, but only use the current time(position in the sine wave)!
+					result = calcOperator(8, op8_2,op8_2,op7_1,adlibfreq(op8_2), convertphase(tempphase), 0x4B); //Calculate the modulator, but only use the current time(position in the sine wave)!
 					immresult += result; //Apply the tremolo!
 				}
 				if (adlibop[op7_2].volenvstatus) //Snare drum on Carrier volume?
@@ -861,14 +865,14 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 					immresult += result; //Apply the tremolo!
 				}
 				result = immresult; //Load the resulting channel!
-				result *= 0.5f; //We only have half(two channels combined)!
+				//result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 			case 8: //Tom-tom(Carrier)/Cymbal(Modulator)? Tom-tom uses Modulator, Cymbal uses Carrier signals.
 				immresult = 0.0f; //Initialize immediate result!
 				if (adlibop[op8_1].volenvstatus) //Tom-tom(Modulator)?
 				{
-					result = calcOperator(8, op8_1, op8_1, op8_1, adlibfreq(op8_1), 0.0f, 0x8); //Calculate the carrier without applied modulator additive! Ignore volume!
+					result = calcOperator(8, op8_1, op8_1, op8_1, adlibfreq(op8_1), 0.0f, 0xA); //Calculate the carrier without applied modulator additive! Ignore volume!
 					immresult += result; //Apply the exponential!
 				}
 				if (adlibop[op8_2].volenvstatus) //Cymbal(Carrier)?
@@ -893,7 +897,7 @@ OPTINLINE float adlibsample(uint8_t curchan, word phase7_1, word phase8_2) {
 				result = calcOperator(8, op8_2, op8_2, op8_2, adlibfreq(op8_2), 0.0f, 0); //Calculate the carrier with applied modulator! Use volume!
 
 				result = immresult; //Load the resulting channel!
-				result *= 0.5f; //We only have half(two channels combined)!
+				//result *= 0.5f; //We only have half(two channels combined)!
 				return result; //Give the result, converted to short!
 				break;
 			default:
