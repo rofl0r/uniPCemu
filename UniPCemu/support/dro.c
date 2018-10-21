@@ -298,7 +298,7 @@ extern GPU_TEXTSURFACE *BIOS_Surface; //Our display(BIOS) text surface!
 void showTime(float playtime, float *oldplaytime)
 {
 	static char playtimetext[256] = ""; //Time in text format!
-	if (playtime != *oldplaytime && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
+	if ((playtime != *oldplaytime) && (playtime>=(*oldplaytime+PLAYER_TIMEINTERVAL))) //Playtime updated?
 	{
 		convertTime(playtime/PLAYER_USINTERVAL, &playtimetext[0],sizeof(playtimetext)); //Convert the time(in us)!
 		playtimetext[safestrlen(playtimetext,sizeof(playtimetext))-9] = '\0'; //Cut off the timing past the second!
@@ -332,13 +332,9 @@ void stepDROPlayer(DOUBLE timepassed)
 	{
 		droplayer->currenttime += timepassed; //Add the time passed to the playback time!
 		//Checks time and plays the DRO file selected!
+		showTime(droplayer->currenttime, &droplayer->oldplaytime); //Update time!
 		if (droplayer->currenttime>=droplayer->playtime) //Enough time passed to start playback (again)?
 		{
-			if (droplayer->timedirty) //Time needs to be updated?
-			{
-				showTime(droplayer->playtime, &droplayer->oldplaytime); //Update time!
-				droplayer->timedirty = 0; //Not dirty anymore!
-			}
 			for (;droplayer->currenttime>=droplayer->playtime;) //Execute all commands we can in this time!
 			{
 				//Process input!
@@ -353,12 +349,10 @@ void stepDROPlayer(DOUBLE timepassed)
 					if (droplayer->channel==droplayer->newheader.iShortDelayCode) //Short delay?
 					{
 						droplayer->playtime += (((float)(DRO_MS * (droplayer->value + 1)))/speedup); //Update player time!
-						droplayer->timedirty = 1; //Time is dirty!
 					}
 					else if (droplayer->channel==droplayer->newheader.iLongDelayCode) //Long delay?
 					{
 						droplayer->playtime += (((float)(DRO_MS*((droplayer->value+1)<<8)))/speedup); //Update player time!
-						droplayer->timedirty = 1; //Time is dirty!
 					}
 					else goto runinstruction; //Check for v2.0 commands?
 					goto nextinstruction;
@@ -369,7 +363,6 @@ void stepDROPlayer(DOUBLE timepassed)
 					droplayer->streambuffer = readStream(&droplayer->stream, droplayer->eos); //Read the instruction from the stream!
 					if (droplayer->streambuffer==-1) goto finishinput; //Stop if reached EOS!
 					droplayer->playtime += (((float)(DRO_MS*(droplayer->streambuffer+1)))/speedup); //Update player time!
-					droplayer->timedirty = 1; //Time is dirty!
 				}
 				else if (droplayer->streambuffer==DR0REGISTER_DELAY16) //16-bit delay?
 				{
@@ -380,7 +373,6 @@ void stepDROPlayer(DOUBLE timepassed)
 					if (droplayer->streambuffer == -1) goto finishinput; //Stop if reached EOS!
 					droplayer->w |= ((droplayer->streambuffer & 0xFF)<<8); //Load high byte!
 					droplayer->playtime += (((float)(DRO_MS*(droplayer->w+1)))/speedup); //Update player time!
-					droplayer->timedirty = 1; //Time is dirty!
 				}
 				else if ((droplayer->streambuffer==DR0REGISTER_LOWOPLCHIP) && (droplayer->newheader.iHardwareType!=IHARDWARETYPE20_OPL2)) //Low OPL chip and supported?
 				{
@@ -425,7 +417,7 @@ void stepDROPlayer(DOUBLE timepassed)
 			goto continueplayer; //Continue playing by default!
 			
 			finishinput: //Finish the input! Close the file!
-			showTime(droplayer->playtime, &droplayer->oldplaytime); //Update time!
+			showTime(droplayer->currenttime, &droplayer->oldplaytime); //Update time!
 	
 			for (droplayer->w=0;droplayer->w<=0xFF;++droplayer->w) //Clear all registers!
 			{
