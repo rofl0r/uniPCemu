@@ -954,7 +954,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (is_TSS && (segment==CPU_SEGMENT_TR)) //We're a TSS loading into TR? We're to perform a task switch!
 	{
-		if (*segmentval & 2) //LDT lookup set?
+		if (*segmentval & 4) //LDT lookup set?
 		{
 			goto throwdescoriginalval; //Throw error!
 			return NULL; //We're an invalid TSS to call!
