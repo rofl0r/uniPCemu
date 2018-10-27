@@ -116,13 +116,13 @@ int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do w
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
-	if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp)) //Cache hit dirty for writes?
+	if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp,0)) //Cache hit dirty for writes?
 	{
 		return 1; //Valid!
 	}
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,TLB_IGNOREREADMASK, &temp)) //Cache hit (non)dirty for reads/writes?
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
 		}
@@ -190,11 +190,11 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
-	if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result)) //Cache hit for a written dirty entry? Match completely only!
+	if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:TLB_IGNOREREADMASK,&result)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
@@ -249,12 +249,13 @@ byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 #define AGEENTRY_AGE(entry) unsigned2signed8(entry)
 #define AGEENTRY_ENTRY(entry) (entry>>8)
 
-#define SWAP(a,b) if (AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a])) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
+#define SWAP(a,b) if (unlikely(AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a]))) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
 
 void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specified as newest!
 {
 	word sortarray[8];
 	TLBEntry TLBBackup[8]; //Backup the TLB!
+	TLBEntry *TLBset;
 	INLINEREGISTER word tmp;
 	INLINEREGISTER byte x,y,z,set;
 	set = (byte)TLB_set;
@@ -278,14 +279,15 @@ void Paging_refreshAges(sbyte TLB_set) //Refresh the ages, with the entry specif
 	y = 0; //Initialize the aged entry to apply!
 	x = 0; //Initialize the sorted entry location/age to apply!
 	//Further optimization: move the newest ages to the top!
+	TLBset = &CPU[activeCPU].Paging_TLB.TLB[set][0]; //What TLB set to apply?
 	do //Apply the new order!
 	{
 		z = AGEENTRY_ENTRY(sortarray[x]); //What entry are we originally?
 		if (unlikely(x != z)) //Has the original entry changed it's location?
 		{
-			memcpy(&CPU[activeCPU].Paging_TLB.TLB[set][x], &TLBBackup[z], sizeof(CPU[activeCPU].Paging_TLB.TLB[set][x])); //Copy the (un)aged item in order!
+			memcpy(&TLBset[x], &TLBBackup[z], sizeof(TLBset[x])); //Copy the (un)aged item in order!
 		}
-		CPU[activeCPU].Paging_TLB.TLB[set][x].age = (y>>(AGEENTRY_AGE(sortarray[x])&8)); //Generated age or unused age(0)!
+		TLBset[x].age = (y>>(AGEENTRY_AGE(sortarray[x])&8)); //Generated age or unused age(0)!
 		++y; //Next age when valid entry!
 	} while (++x<8);
 }
@@ -315,7 +317,7 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 }
 
 //RWDirtyMask: mask for ignoring set bits in the tag, use them otherwise!
-byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 WDMask, uint_32 *result)
+byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 WDMask, uint_32 *result, byte updateAges)
 {
 	INLINEREGISTER uint_32 TAG, TAGMask;
 	INLINEREGISTER byte entry = 0;
@@ -331,14 +333,14 @@ byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte 
  		if (likely((CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG&TAGMask)==TAG)) //Found?
 		{
 			*result = CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].data; //Give the stored data!
-			if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age)) //Not the newest age(which is always 0)?
+			if (unlikely(CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age && updateAges)) //Not the newest age(which is always 0)?
 			{
 				CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].age = -1; //Clear the age: we're the new last used!
 				Paging_refreshAges(TLB_set); //Refresh the ages!
 			}
 			return 1; //Found!
 		}
-	} while (++entry<8);
+	} while (likely(++entry<8));
 	return 0; //Not found!
 }
 
@@ -389,19 +391,19 @@ void Paging_TestRegisterWritten(byte TR)
 		{
 			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1)) && P) //Valid complements?
 			{
-				if (Paging_readTLB(0, logicaladdress, W, U, D, 0, &result)) //Read?
+				if (Paging_readTLB(0, logicaladdress, W, U, D, 0, &result,1)) //Read?
 				{
 					hit = 1; //Hit!
 				}
-				else if (Paging_readTLB(1, logicaladdress, W, U, D, 0, &result)) //Read?
+				else if (Paging_readTLB(1, logicaladdress, W, U, D, 0, &result,1)) //Read?
 				{
 					hit = 2; //Hit!
 				}
-				else if (Paging_readTLB(2, logicaladdress, W, U, D, 0, &result)) //Read?
+				else if (Paging_readTLB(2, logicaladdress, W, U, D, 0, &result,1)) //Read?
 				{
 					hit = 3; //Hit!
 				}
-				else if (Paging_readTLB(3, logicaladdress, W, U, D, 0, &result)) //Read?
+				else if (Paging_readTLB(3, logicaladdress, W, U, D, 0, &result,1)) //Read?
 				{
 					hit = 4; //Hit!
 				}
