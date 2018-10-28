@@ -1382,13 +1382,16 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		}
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
-		if (params->displacement.low16_low&0x80) //Negative?
+		if (unlikely(cpudebugger))
 		{
-			snprintf(textnr,sizeof(textnr),"-%02X",0-unsigned2signed8(params->displacement.low16_low)); //Text negative!
-		}
-		else
-		{
-			snprintf(textnr,sizeof(textnr),"+%02X",params->displacement.low16_low); //Text positive!
+			if (params->displacement.low16_low & 0x80) //Negative?
+			{
+				snprintf(textnr, sizeof(textnr), "-%02X", 0 - unsigned2signed8(params->displacement.low16_low)); //Text negative!
+			}
+			else
+			{
+				snprintf(textnr, sizeof(textnr), "+%02X", params->displacement.low16_low); //Text positive!
+			}
 		}
 		switch (reg) //Which register?
 		{
@@ -1779,13 +1782,16 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 		result->is16bit = 1; //16-bit offset!
 		break;
 	case MOD_MEM_DISP8: //[register+DISP8]
-		if (params->displacement.low16_low&0x80) //Negative?
+		if (unlikely(cpudebugger))
 		{
-			snprintf(textnr,sizeof(textnr),"-%02X",0-unsigned2signed8(params->displacement.low16_low)); //Text negative!
-		}
-		else
-		{
-			snprintf(textnr,sizeof(textnr),"+%02X",params->displacement.low16_low); //Text positive!
+			if (params->displacement.low16_low & 0x80) //Negative?
+			{
+				snprintf(textnr, sizeof(textnr), "-%02X", 0 - unsigned2signed8(params->displacement.low16_low)); //Text negative!
+			}
+			else
+			{
+				snprintf(textnr, sizeof(textnr), "+%02X", params->displacement.low16_low); //Text positive!
+			}
 		}
 		switch (reg) //Which register?
 		{
