@@ -1077,7 +1077,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					pos = posbackup; //Reverse to the dial command!
 					--pos; //Return to the dial command!
 					if (n0 > NUMITEMS(BIOS_Settings.phonebook)) goto invalidPhonebookNumberDial;
-					safestrcpy((char *)&modem.ATcommand[pos],sizeof(modem.ATcommand)-pos,(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
+					snprintf((char *)&modem.ATcommand[pos], sizeof(modem.ATcommand) - pos, "T%s",(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
 					if (modem.ATcommand[pos] != 'S') //Not another phonebook entry?
 					{
 						goto do_ATD; //Retry with the new command!
