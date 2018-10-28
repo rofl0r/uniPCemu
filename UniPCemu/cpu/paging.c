@@ -44,10 +44,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 //What to ignore when reading the TLB for read accesses during normal execution? We ignore Dirty and Writable access bits!
 #define TLB_IGNOREREADMASK 0xC
 
-byte getUserLevel(byte CPL)
-{
-	return (CPL==3)?1:0; //1=User, 0=Supervisor
-}
+//1=User, 0=Supervisor
+#define getUserLevel(CPL) ((CPL&1)&(CPL>>1))
 
 extern byte advancedlog; //Advanced log setting
 void raisePF(uint_32 address, word flags)
@@ -101,7 +99,7 @@ OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, b
 	return 1; //OK: verified!
 }
 
-int isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
+OPTINLINE byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0; //Not update!
@@ -208,7 +206,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	return address; //Untranslated!
 }
 
-byte Paging_TLBSet(uint_32 logicaladdress) //Automatic set determination when using a set number <0!
+OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress) //Automatic set determination when using a set number <0!
 {
 	return ((logicaladdress&0x30000000)>>28); //The set is determined by the upper 2 bits of the entry, the memory block!
 }
@@ -233,12 +231,12 @@ byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 }
 
 //W=Writable, U=User, D=Dirty
-uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D)
+OPTINLINE uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D)
 {
 	return (((((((D<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG!
 }
 
-byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
+OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 {
 	return (((logicaladdress&0xFFFFF000)|1)==((TAG&0xFFFFF000)|(TAG&1))); //The used TAG matches on address and availability only! Ignore US/RW!
 }
