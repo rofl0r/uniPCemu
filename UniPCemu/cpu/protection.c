@@ -435,11 +435,12 @@ byte checkrights_conditions_rwe_errorout[0x10][0x100]; //All precalculated condi
 
 void CPU_calcSegmentPrecalcsPrecalcs()
 {
-	byte x, n;
+	byte x;
+	word n;
 	checkrights_cond *rights;
 	for (x = 0; x < 0x10; ++x) //All possible conditions!
 	{
-		rights = &checkrights_conditions[(x & 0xF)]; //What type do we check for(take it all, except the dirty bit)!
+		rights = &checkrights_conditions[x]; //What type do we check for(take it all, except the dirty bit)!
 		for (n = 0; n < 0x100; ++n) //Calculate all conditions that error out or not!
 		{
 			checkrights_conditions_rwe_errorout[x][n] = (((((n&rights->mask) == rights->comparision) == (rights->nonequals == 0))) & 1); //Are we to error out on this condition?
@@ -459,7 +460,7 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
 	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
 	//Apply read/write/execute permissions to the descriptor!
-	memcpy(&descriptor->PRECALCS.rwe_errorout, &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE],sizeof(descriptor->PRECALCS.rwe_errorout));
+	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
 }
 
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
