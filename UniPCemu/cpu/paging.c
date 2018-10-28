@@ -215,14 +215,16 @@ byte Paging_TLBSet(uint_32 logicaladdress) //Automatic set determination when us
 
 byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 {
-	byte x,oldest=0;
-	for (x=0;x<8;++x) //Check all TLBs!
+	INLINEREGISTER byte x,oldest=0;
+	INLINEREGISTER TLBEntry *curentry;
+	curentry = &CPU[activeCPU].Paging_TLB.TLB[set][0]; //First entry!
+	for (x=0;x<8;++x,++curentry) //Check all TLBs!
 	{
-		if ((CPU[activeCPU].Paging_TLB.TLB[set][x].TAG&1)==0) //Unused?
+		if ((curentry->TAG&1)==0) //Unused?
 		{
 			return x; //Give the unused entry!
 		}
-		if (CPU[activeCPU].Paging_TLB.TLB[set][x].age==7) //Oldest?
+		if (unlikely(curentry->age==7)) //Oldest?
 		{
 			oldest = x; //Oldest entry to give if nothing is available!
 		}
@@ -233,7 +235,7 @@ byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 //W=Writable, U=User, D=Dirty
 uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D)
 {
-	return ((logicaladdress&0xFFFFF000)|(D<<3)|(W<<2)|(U<<1)|1); //The used TAG!
+	return (((((((D<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG!
 }
 
 byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
