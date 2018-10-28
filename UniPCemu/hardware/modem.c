@@ -964,6 +964,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	verbosemodepending = modem.verbosemode; //Save the old verbose mode, to detect and apply changes after the command is successfully completed!
 	word pos=2,posbackup; //Position to read!
 	byte SETGET = 0;
+	word dialnumbers = 0;
 	char *c = &BIOS_Settings.phonebook[0][0]; //Phone book support
 	for (;;) //Parse the command!
 	{
@@ -1033,10 +1034,13 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						{
 							if (n0 < 10) //Valid quick dial?
 							{
+								if (dialnumbers&(1<<n0)) goto badnumber; //Prevent looping!
+								dialnumbers |= (1<<n0); //Handling noninfinite!
 								goto handleQuickDial; //Handle the quick dial number!
 							}
-							else
+							else //Not a valid quick dial?
 							{
+								badnumber: //Infinite recursive dictionary detected!
 								pos = posbackup; //Return to where we were! It's a normal phonenumber!
 							}
 						}
