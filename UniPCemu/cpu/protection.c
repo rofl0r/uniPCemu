@@ -431,23 +431,35 @@ checkrights_cond checkrights_conditions[0x10] = {
 	{ 0,0,0 } //15 unused
 };
 
+byte checkrights_conditions_rwe_errorout[0x10][0x100]; //All precalculated conditions that are possible!
+
+void CPU_calcSegmentPrecalcsPrecalcs()
+{
+	byte x, n;
+	checkrights_cond *rights;
+	for (x = 0; x < 0x10; ++x) //All possible conditions!
+	{
+		rights = &checkrights_conditions[(x & 0xF)]; //What type do we check for(take it all, except the dirty bit)!
+		for (n = 0; n < 0x100; ++n) //Calculate all conditions that error out or not!
+		{
+			checkrights_conditions_rwe_errorout[x][n] = (((((n&rights->mask) == rights->comparision) == (rights->nonequals == 0))) & 1); //Are we to error out on this condition?
+		}
+	}
+}
+
 void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 {
-	word n;
 	//Calculate the precalculations for execution for this descriptor!
-	checkrights_cond *rights;
 	uint_32 limits[2]; //What limit to apply?
+
 	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
 	limits[1] = ((limits[0] << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
 	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
 	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
 	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
-	rights = &checkrights_conditions[(descriptor->desc.AccessRights & 0xE)]; //What type do we check for(take it all, except the dirty bit)!
-	for (n = 0; n < 0x100; ++n) //Calculate all conditions that error out or not!
-	{
-		descriptor->PRECALCS.rwe_errorout[n] = (((((n&rights->mask) == rights->comparision) == (rights->nonequals == 0)))&1); //Are we to error out on this condition?
-	}
+	//Apply read/write/execute permissions to the descriptor!
+	memcpy(&descriptor->PRECALCS.rwe_errorout, &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE],sizeof(descriptor->PRECALCS.rwe_errorout));
 }
 
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.

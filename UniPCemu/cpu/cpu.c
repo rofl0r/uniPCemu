@@ -983,6 +983,7 @@ void resetCPU() //Initialises the currently selected CPU!
 
 void initCPU() //Initialize CPU for full system reset into known state!
 {
+	CPU_calcSegmentPrecalcsPrecalcs(); //Calculate the segmentation precalcs that are used!
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
 	resetCPU(); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
