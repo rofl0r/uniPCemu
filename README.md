@@ -40,7 +40,8 @@ This README would normally document whatever steps are necessary to get your app
 	- Run the **remake.bat** file in the project directory(Requires tools repository) and use a PSP emulator to test(like JPCSP, which is supported by the batch file). On Windows, open the Visual C++ project, build and run.
 * Deployment instructions
 	- Simply build using the devkit(Makefile command **make psp/win/linux [re]build [SDL2[-static]]**(to (re)build SDL2 with(out) static linking)" or Visual C++, copy the executable (x86EMU.exe for windows or EBOOT.PBP for the PSP) to the executable directory, add SDL dll when needed, add disk images to use and run the executable. Setting up is integrated into the executable, and it will automatically open the BIOS for setting up during first execution. The settings are saved into a SETTINGS.INI text file.
-	- To make the Android NDK use the SDL2_net library and compile with internet support, add " useSDL2_net=1" to the usual ndk-build command line or equivalent. A more simple version is using the build.bat to compile(which will automatically use the correct build with(out) SDL2_net). Otherwise, it isn't enabled/used.
+	- Add the mingw32/mingw64 parameter to the above command when using MSys/MinGW compilers
+	- To make the Android NDK use the SDL2_net library and compile with internet support, add " useSDL2_net=1" to the usual ndk-build command line or equivalent. A more simple version is using the build.bat to compile(which will automatically use the correct build with(out) SDL2_net). Otherwise, it isn't enabled/used. It's also an automatic process with Android Studio.
 
 ### Contribution guidelines ###
 
