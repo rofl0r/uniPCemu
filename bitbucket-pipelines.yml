@@ -9,6 +9,7 @@ pipelines:
   default:
     - step:
         script: # Modify the commands below to build your repository.
+          - git submodule update --init
           - cd UniPCemu
           #- ./configure
           - make linux build x64
