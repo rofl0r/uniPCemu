@@ -92,17 +92,19 @@ byte out8259(word portnum, byte value)
 	switch (portnum & 1)
 	{
 	case 0:
-		if (value & 0x10)   //begin initialization sequence
+		if (value & 0x10)   //begin initialization sequence(OCS)
 		{
 			i8259.icwstep[pic] = 0; //Init ICWStep!
 			i8259.imr[pic] = 0; //clear interrupt mask register
-			i8259.icw[pic][i8259.icwstep[pic]++] = value;
+			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
+			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
 			return 1;
 		}
 		if ((value & 0x98)==8)   //it's an OCW3
 		{
-			if (value & 2) i8259.readmode[pic] = value & 2;
+			if (value & 2) i8259.readmode[pic] = value & 1; //Read ISR instead of IRR on reads? Only modify this setting when setting this setting(bit 2 is set)!
 		}
+		//We're a OCW2!
 		if (value & 0x20)   //EOI command
 		{
 			for (source=0;source<0x10;++source) //Check all sources!
@@ -125,7 +127,7 @@ byte out8259(word portnum, byte value)
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
 			return 1;
 		}
-		else if (i8259.icw[0][0]&2) //Second PIC disabled?
+		else if ((i8259.icw[0][0]&2) && (is_XT)) //Second PIC disabled?
 		{
 			i8259.icw[0][0] &= ~2; //Enable second PIC always!
 		}
@@ -211,7 +213,7 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte realir = IR; //Default: nothing changed!
-	return i8259.icw[PIC][1]+realir; //Get interrupt!
+	return ((i8259.icw[PIC][1]&0x78)|(realir&0x7)); //Get interrupt!
 }
 
 byte nextintr()
