@@ -10,7 +10,7 @@
 
 PIC i8259;
 
-//i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered!
+//i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
@@ -95,6 +95,8 @@ byte out8259(word portnum, byte value)
 		if (value & 0x10)   //begin initialization sequence(OCS)
 		{
 			i8259.icwstep[pic] = 0; //Init ICWStep!
+			memset(&i8259.irr,0,sizeof(i8259.irr)); //Reset IRR raised sense!
+			memset(&i8259.irr3,0,sizeof(i8259.irr3)); //Reset IRR shared raised sense!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
@@ -188,6 +190,7 @@ OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this reques
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
+	byte IRR2index;
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
@@ -206,6 +209,14 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	if (PIC) //Second PIC?
 	{
 		ACNIR(0,2,source); //Acnowledging request on first PIC too! This keeps us from firing until acnowledged properly!
+	}
+	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	{
+		if (i8259.irr3[PIC][irr2index] & (1 << (IR & 7))) //Request still set?
+		{
+			i8259.irr[PIC] |= (1<<(IR&7)); //We still have an IRR in pending!
+			break; //Stop searching!
+		}
 	}
 }
 
@@ -292,12 +303,20 @@ void lowerirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
-	if (i8259.irr2[PIC][requestingindex]) //Were we raised? We're lowered!
+	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
+	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
+	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	{
+		if (i8259.irr3[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		{
+			hasirr = 1; //We still have an IRR!
+			break; //Stop searching!
+		}
+	}
+	if (hasirr==0) //Were we lowered completely? We're lowered!
 	{
 		i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
 	}
-	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the IRQ to request!
-	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 }
 
 void acnowledgeIRQrequest(byte irqnum)
