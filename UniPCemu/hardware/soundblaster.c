@@ -22,7 +22,7 @@
 
 //IRQ/DMA assignments! Use secondary IRQ8(to prevent collisions with existing hardware!) Bochs says IRQ5? Dosbox says IRQ7?
 //8-bit IRQ&DMA!
-#define __SOUNDBLASTER_IRQ8 0x15
+#define __SOUNDBLASTER_IRQ8 0x35
 #define __SOUNDBLASTER_DMA8 1
 
 #define ADPCM_FORMAT_NONE 0x00
