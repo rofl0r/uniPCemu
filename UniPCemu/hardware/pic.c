@@ -190,7 +190,7 @@ OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this reques
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
-	byte IRR2index;
+	byte irr2index;
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
@@ -300,11 +300,14 @@ void lowerirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte requestingindex = irqnum; //Save our index that's requesting!
+	byte irr2index;
+	byte hasirr;
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
 	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
+	hasirr = 0; //Init IRR state!
 	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr3[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
