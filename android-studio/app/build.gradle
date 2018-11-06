@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId 'com.unipcemu.app'
         minSdkVersion 14
-        targetSdkVersion 21
+        targetSdkVersion 26
         // Similar to other properties in the defaultConfig block,
         // you can configure the ndk block for each product flavor
         // in your build configuration.
