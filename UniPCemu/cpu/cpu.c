@@ -312,6 +312,8 @@ parameters:
 
 */
 
+extern byte debugger_set; //Debugger set?
+
 void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
 {
 	if (cpudebugger && (debugger_set==0)) //Gotten no debugger to process?
