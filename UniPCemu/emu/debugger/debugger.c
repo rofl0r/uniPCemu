@@ -1529,7 +1529,7 @@ void debugger_step() //Processes the debugging step!
 void debugger_setcommand(char *text, ...)
 {
 	char *c;
-	if (cpudebugger) //Are we debugging?
+	if (cpudebugger && (debugger_set==0)) //Are we debugging?
 	{
 		va_list args; //Going to contain the list!
 		va_start (args, text); //Start list!

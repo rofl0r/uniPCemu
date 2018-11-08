@@ -314,7 +314,7 @@ parameters:
 
 void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
 {
-	if (cpudebugger) //Gotten no debugger to process?
+	if (cpudebugger && (debugger_set==0)) //Gotten no debugger to process?
 	{
 		//Process debugger!
 		char result[256];
