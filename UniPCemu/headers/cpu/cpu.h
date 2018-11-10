@@ -1021,7 +1021,7 @@ extern byte CPU_Address_size[2]; //Address size for this opcode!
 //0x03 seems to be an alias of 0x01?
 
 void initCPU(); //Initialize CPU for full system reset into known state!
-void resetCPU(); //Initialises CPU!
+void resetCPU(byte isInit); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
 void CPU_resetMode(); //Reset the mode to the default mode! (see above)
 byte CPU_getprefix(byte prefix); //Prefix set? (might be used by OPcodes!)

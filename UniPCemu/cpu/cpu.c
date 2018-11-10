@@ -763,15 +763,17 @@ OPTINLINE void alloc_CPUregisters()
 	}
 }
 
+uint_32 oldCR0=0;
 OPTINLINE void free_CPUregisters()
 {
 	if (CPU[activeCPU].registers) //Still allocated?
 	{
+		oldCR0 = CPU[0].registers->CR0; //Save the old value for INIT purposes!
 		freez((void **)&CPU[activeCPU].registers, sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS"); //Release the registers if needed!
 	}
 }
 
-OPTINLINE void CPU_initRegisters() //Init the registers!
+OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 {
 	uint_32 CSBase; //Base of CS!
 	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
@@ -875,6 +877,14 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 	}
 	else //Default or 80386?
 	{
+		if (isInit==0) //Were we not an init?
+		{
+			CPU[activeCPU].registers->CR0 = oldCR0; //Restore before resetting, if possible!
+		}
+		else
+		{
+			CPU[activeCPU].registers->CR0 = 0x60000010; //Restore before resetting, if possible! Apply init defaults!
+		}
 		CPU[activeCPU].registers->CR0 &= 0x60000000; //The MSW is initialized to 0000! High parts are reset as well!
 		if (EMULATED_CPU >= CPU_80486) //80486+?
 		{
@@ -951,14 +961,14 @@ uint_32 cpuaddresspins[12] = { //Bit0=XT, Bit1+=CPU
 							0xFFFFFFFF, //80586 XT
 							}; //CPU address wrapping lookup table!
 
-void resetCPU() //Initialises the currently selected CPU!
+void resetCPU(byte isInit) //Initialises the currently selected CPU!
 {
 	byte i;
 	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
 	{
 		CPU[i].allowInterrupts = 1; //Default to allowing all interrupts to run!
 	}
-	CPU_initRegisters(); //Initialise the registers!
+	CPU_initRegisters(isInit); //Initialise the registers!
 	CPU_initPrefixes(); //Initialise all prefixes!
 	CPU_resetMode(); //Reset the mode to the default mode!
 	//Default: not waiting for interrupt to occur on startup!
@@ -991,7 +1001,7 @@ void initCPU() //Initialize CPU for full system reset into known state!
 {
 	CPU_calcSegmentPrecalcsPrecalcs(); //Calculate the segmentation precalcs that are used!
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
-	resetCPU(); //Reset normally!
+	resetCPU(1); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
 }
 
@@ -1003,7 +1013,7 @@ void CPU_tickPendingReset()
 		{
 			unlock(LOCK_CPU);
 			doneCPU(); //Finish the CPU!
-			resetCPU(); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+			resetCPU(0); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
 			lock(LOCK_CPU);
 			CPU[activeCPU].resetPending = 0; //Not pending reset anymore!
 		}
@@ -1378,7 +1388,7 @@ CPU_registers dummyregisters; //Dummy registers!
 
 void CPU_resetMode() //Resets the mode!
 {
-	if (!CPU[activeCPU].registers) CPU_initRegisters(); //Make sure we have registers!
+	if (!CPU[activeCPU].registers) CPU_initRegisters(0); //Make sure we have registers!
 	//Always start in REAL mode!
 	if (!CPU[activeCPU].registers) return; //We can't work now!
 	FLAGW_V8(0); //Disable Virtual 8086 mode!
@@ -1416,7 +1426,7 @@ void updateCPUmode() //Update the CPU mode!
 	byte mode = 0; //Buffer new mode to start using for comparison!
 	if (!CPU[activeCPU].registers)
 	{
-		CPU_initRegisters(); //Make sure we have registers!
+		CPU_initRegisters(0); //Make sure we have registers!
 		if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
 	}
 	mode = FLAG_V8; //VM86 mode?

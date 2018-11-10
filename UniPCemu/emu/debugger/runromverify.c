@@ -74,7 +74,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	memloc = 0; //Init location!
 
 	word datastart = 0; //Start of data segment!
-	//resetCPU(); //Make sure we're loading the ROM correctly (start at 0xF000:FFFF) Don't reset the CPU, as this is already done by initEMU!
+	//resetCPU(1); //Make sure we're loading the ROM correctly (start at 0xF000:FFFF) Don't reset the CPU, as this is already done by initEMU!
 
 	if (!f)
 	{
@@ -118,7 +118,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	LOG_MMU_WRITES = debugger_logging(); //Enable logging!
 	allow_debuggerstep = 1; //Allow stepping of the debugger!
 	unlock(LOCK_CPU);
-	resetCPU(); //Make sure we start correctly!
+	resetCPU(1); //Make sure we start correctly!
 	lock(LOCK_CPU);
 	CPU[activeCPU].registers->CS = 0xF000;
 	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
