@@ -870,15 +870,19 @@ OPTINLINE void CPU_initRegisters() //Init the registers!
 
 	if (EMULATED_CPU == CPU_80286) //80286 CPU?
 	{
-		CPU[activeCPU].registers->CR0 &= 0x7FFF0000; //Clear bit 32 and 4-0!
+		CPU[activeCPU].registers->CR0 = 0; //Clear bit 32 and 4-0, also the MSW!
 		CPU[activeCPU].registers->CR0 |= 0xFFF0; //The MSW is initialized to FFF0!
 	}
 	else //Default or 80386?
 	{
-		CPU[activeCPU].registers->CR0 &= 0x7FFFFFE0; //Clear bit 32 and 4-0!
-		if (EMULATED_CPU >= CPU_80386) //Diffent initialization?
+		CPU[activeCPU].registers->CR0 &= 0x60000000; //The MSW is initialized to 0000! High parts are reset as well!
+		if (EMULATED_CPU >= CPU_80486) //80486+?
 		{
-			CPU[activeCPU].registers->CR0 &= ~0xFFFF; //The MSW is initialized to 0000!
+			CPU[activeCPU].registers->CR0 |= 0x0010; //Only set the defined bits! Bits 30/29 remain unmodified, according to http://www.sandpile.org/x86/initial.htm
+		}
+		else //80386?
+		{
+			CPU[activeCPU].registers->CR0 = 0; //We don't have the 80486+ register bits, so reset them!
 		}
 	}
 

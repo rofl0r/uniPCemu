@@ -396,6 +396,15 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 	{
 		value |= CR0_ET; //ET is hardwired to 1 on a 80386SX/CX/EX/CL.
 	}
+	if (EMULATED_CPU >= CPU_80486) //80486+?
+	{
+		value &= 0xE005003F; //Only defined bits!
+		value |= 0x10; //Stuck bits!
+	}
+	else if (EMULATED_CPU >= CPU_80386) //80386+?
+	{
+		value &= 0x8000001F; //Only defined bits!
+	}
 	CPU[activeCPU].registers->CR0 = value; //Set fixed value!
 	updateCPUmode(); //Try to update the CPU mode, if needed!
 }
@@ -949,13 +958,34 @@ OPTINLINE void modrm_get_testregister(byte reg, MODRM_PTR *result) //REG1/2 is s
 		result->reg32 = &CPU[activeCPU].registers->TR7;
 		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"TR7");
 		break;
+	case MODRM_REG_TR3:
+		if (EMULATED_CPU == CPU_80486) //80486 registers?
+		{
+			result->reg32 = &CPU[activeCPU].registers->TR3;
+			if (unlikely(cpudebugger)) safestrcpy(result->text, sizeof(result->text), "TR3");
+			return;
+		}
+		goto invalidTR;
+	case MODRM_REG_TR4:
+		if (EMULATED_CPU == CPU_80486) //80486 registers?
+		{
+			result->reg32 = &CPU[activeCPU].registers->TR4;
+			if (unlikely(cpudebugger)) safestrcpy(result->text, sizeof(result->text), "TR4");
+			return;
+		}
+		goto invalidTR;
+	case MODRM_REG_TR5:
+		if (EMULATED_CPU == CPU_80486) //80486 registers?
+		{
+			result->reg32 = &CPU[activeCPU].registers->TR5;
+			if (unlikely(cpudebugger)) safestrcpy(result->text, sizeof(result->text), "TR5");
+			return;
+		}
 	case MODRM_REG_TR0:
 	case MODRM_REG_TR1:
 	case MODRM_REG_TR2:
-	case MODRM_REG_TR3:
-	case MODRM_REG_TR4:
-	case MODRM_REG_TR5:
 	default: //Catch handler!
+		invalidTR:
 		result->reg32 = NULL; //Unknown!
 		if (unlikely(cpudebugger)) safestrcpy(result->text,sizeof(result->text),"<UNKTREG>");
 		break;
