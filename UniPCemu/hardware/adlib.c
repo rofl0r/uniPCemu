@@ -692,7 +692,7 @@ OPTINLINE float calcOperator(byte channel, byte operator, byte timingoperator, b
 	if (operator==0xFF) return 0.0f; //Invalid operator!
 	INLINEREGISTER word result, gain; //The result to give!
 	float result2; //The translated result!
-	float activemodulation;
+	float activemodulation=0.0f;
 	//Generate the signal!
 	if ((flags & 0xC0)==0x80) //Apply channel feedback?
 	{

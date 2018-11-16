@@ -7286,7 +7286,7 @@ void BIOS_taskBreakpoint()
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
 	EMU_unlocktext();
-	byte mode; //The mode to use!
+	//byte mode; //The mode to use!
 	word semicolonpos;
 	char *temp;
 	word maxsegmentsize = 4;
@@ -7298,7 +7298,7 @@ void BIOS_taskBreakpoint()
 		if (strcmp(breakpointstr, "") != 0) //Got valid input?
 		{
 			//Convert the string back into our valid numbers for storage!
-			mode = 1; //Default to real mode!
+			//mode = 1; //Default to real mode!
 			ignoreSegment = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] == 'O'); //Ignore code segment?
 			if (ignoreSegment) breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1] = '\0'; //Take off the mode identifier!
 			ignoreBase = (breakpointstr[safestrlen(breakpointstr,sizeof(breakpointstr))-1]=='I'); //Ignore EIP?
@@ -7362,14 +7362,14 @@ void BIOS_CR3breakpoint()
 	EMU_gotoxy(0, 4); //Goto position for info!
 	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
 	EMU_unlocktext();
-	char *temp;
+	//char *temp;
 	word maxoffsetsize = 8;
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1,0,0)) //Input text confirmed?
 	{
 		if (strcmp(breakpointstr, "") != 0) //Got valid input?
 		{
 			//Convert the string back into our valid numbers for storage!
-				temp = &breakpointstr[0]; //First character!
+				//temp = &breakpointstr[0]; //First character!
 				#ifndef IS_PSP
 				//This won't compile on the PSP for some unknown reason, crashing the compiler!
 				if (((safe_strlen(&breakpointstr[0],sizeof(breakpointstr)))-1)<=maxoffsetsize) //Offset OK?
