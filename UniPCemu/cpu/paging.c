@@ -114,13 +114,16 @@ OPTINLINE byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefe
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
-	if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp,0)) //Cache hit dirty for writes?
-	{
-		return 1; //Valid!
-	}
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
 		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
+		{
+			return 1; //Valid!
+		}
+	}
+	else //Write?
+	{
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp,0)) //Cache hit dirty for writes?
 		{
 			return 1; //Valid!
 		}
@@ -188,16 +191,21 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
-	if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+	if (iswrite) //Writes are limited?
 	{
-		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
+		if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+		{
+			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		else goto loadWTLB;
 	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,RW?0:TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
 	else
 	{
+		loadWTLB:
 		if (isvalidpage(address,iswrite,CPL,0)) //Retry checking if possible!
 		{
 			goto retrymapping;
@@ -297,11 +305,11 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 	TAG = Paging_generateTAG(logicaladdress, W, U, D); //Generate a TAG!
 	byte entry;
 	entry = Paging_oldestTLB(TLB_set); //Get the oldest/unused TLB!
-	TAGMASKED = (TAG&0xFFFFF007); //Masked tag for fast lookup! Match P/U/W/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
+	TAGMASKED = (TAG&0xFFFFF001); //Masked tag for fast lookup! Match P/U/W/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
 	effectiveentry = 0;
 	do
 	{
-		if ((CPU[activeCPU].Paging_TLB.TLB[TLB_set][effectiveentry].TAG&0xFFFFF007)==TAGMASKED) //Match for our own entry?
+		if ((CPU[activeCPU].Paging_TLB.TLB[TLB_set][effectiveentry].TAG&0xFFFFF001)==TAGMASKED) //Match for our own entry?
 		{
 			entry = effectiveentry; //Reuse our own entry!
 			break; //Stop searching: reuse the effective entry!
