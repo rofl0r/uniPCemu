@@ -1142,7 +1142,7 @@ OPTINLINE byte coreHandler()
 						}
 						if (unlikely(doEMUCR3singlestep)) //CR3 filter enabled for breakpoints?
 						{
-							applysinglestep &= ((CPU[activeCPU].registers->CR3&0xFFFFF000) == (singlestepCR3address & 0xFFFFF000)); //Single step enabled?
+							applysinglestep &= (((CPU[activeCPU].registers->CR3&0xFFFFF000) == (singlestepCR3address & 0xFFFFF000))&CPU[activeCPU].is_paging); //Single step enabled?
 						}
 						singlestep |= applysinglestep; //Apply single step?
 					}
