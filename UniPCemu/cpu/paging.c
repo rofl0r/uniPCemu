@@ -48,9 +48,10 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define getUserLevel(CPL) ((CPL&1)&(CPL>>1))
 
 extern byte advancedlog; //Advanced log setting
+extern byte MMU_logging; //Are we logging from the MMU?
 void raisePF(uint_32 address, word flags)
 {
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
 	}

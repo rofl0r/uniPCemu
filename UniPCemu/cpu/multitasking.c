@@ -225,6 +225,8 @@ extern word CPU_exec_lastCS; //OPCode CS
 extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 extern byte advancedlog; //Advanced log setting
 
+extern byte MMU_logging; //Are we logging from the MMU?
+
 byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
 	//byte isStackSwitch = 0; //Stack switch?
@@ -240,7 +242,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Switching task to task %04X", destinationtask);
 	}
@@ -331,7 +333,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Valid task to switch FROM?
 	{
-		if (debugger_logging() && advancedlog) //Are we logging?
+		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
 			dolog("debugger", "Preparing outgoing task %04X for transfer", CPU[activeCPU].registers->TR);
 		}
@@ -388,7 +390,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS;
 		}
 
-		if (debugger_logging() && advancedlog) //Are we logging?
+		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
 			dolog("debugger", "Saving outgoing task %04X to memory", CPU[activeCPU].registers->TR);
 		}
@@ -410,7 +412,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
 
 	//Now, load all the registers required as needed!
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Switching active TSS to segment selector %04X", destinationtask);
 	}
@@ -460,7 +462,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	if (EMULATED_CPU == CPU_80286) TSSSize = 0; //Force 16-bit TSS on 286!
 #endif
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS %04X state", CPU[activeCPU].registers->TR);
 	}
@@ -487,7 +489,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 	TSS_dirty = 0; //Not dirty!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Checking for backlink to TSS %04X", oldtask);
 	}
@@ -506,7 +508,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 	}
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Marking incoming TSS %04X busy if needed", CPU[activeCPU].registers->TR);
 	}
@@ -520,7 +522,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 	}
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS %04X state into the registers.", CPU[activeCPU].registers->TR);
 	}
@@ -587,7 +589,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if (TSS_dirty) //Destination TSS dirty?
 	{
-		if (debugger_logging() && advancedlog) //Are we logging?
+		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
 			dolog("debugger", "Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).", CPU[activeCPU].registers->TR);
 		}
@@ -622,7 +624,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	updateCPUmode(); //Make sure the CPU mode is updated, according to the task!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS LDT %04X", LDTsegment);
 	}
@@ -668,7 +670,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR], &LDTsegdesc, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Setting Task Switched flag in CR0");
 	}
@@ -682,7 +684,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	CPU[activeCPU].CPL = (getcpumode() == CPU_MODE_8086) ? 3 : ((getcpumode() == CPU_MODE_REAL) ? 0 : getRPL(TSSSize ? TSS32.CS : TSS16.CS)); //Load default CPL, according to the mode!
 
 	//First, load CS!
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS CS register");
 	}
@@ -702,7 +704,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		return 0; //Not present: limit exceeded!
 	}
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS Stack address");
 	}
@@ -721,7 +723,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	//Set the default CPL!
 	CPU[activeCPU].CPL = (getcpumode()==CPU_MODE_8086)?3:((getcpumode()==CPU_MODE_REAL)?0:GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS])); //Load default CPL to use from SS if needed!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger","Loading remaining TSS segment registers");
 	}
@@ -742,7 +744,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	//All segments are valid and readable!
 
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger","New task ready for execution.");
 	}
@@ -793,7 +795,7 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 {
 	uint_32 errorcode;
 	errorcode = (segmentval&0xFFF8)|(is_external&1)|((tbl&3)<<1);
-	if (debugger_logging() && advancedlog) //Are we logging?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger","#TSS fault(%08X)!",errorcode);
 	}

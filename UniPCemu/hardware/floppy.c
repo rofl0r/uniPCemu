@@ -44,11 +44,13 @@
 #ifdef FLOPPY_FORCELOG
 #define FLOPPY_LOGD(...) {FLOPPY_LOG(__VA_ARGS__)}
 #else
-#define FLOPPY_LOGD(...) if (debugger_logging()) {FLOPPY_LOG(__VA_ARGS__)}
+#define FLOPPY_LOGD(...) if (MMU_logging==1) {FLOPPY_LOG(__VA_ARGS__)}
 #endif
 #else
 #define FLOPPY_LOGD(...)
 #endif
+
+extern byte MMU_logging; //Are we logging from the MMU?
 
 //Redirect to direct log always if below is uncommented?
 /*
