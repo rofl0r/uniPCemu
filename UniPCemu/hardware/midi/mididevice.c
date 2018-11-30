@@ -18,7 +18,7 @@
 //Effective volume vs samples!
 #define VOLUME 0.3f
 
-#ifdef WIN32
+#ifdef IS_WINDOWS
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
 #endif
 
@@ -76,7 +76,7 @@ MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
 
 /* MIDI direct output support*/
 
-#ifdef WIN32
+#ifdef IS_WINDOWS
 int flag;           // monitor the status of returning functions
 HMIDIOUT device;    // MIDI device interface for sending MIDI output
 #endif
@@ -1554,7 +1554,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 	return; //We're disabled!
 	#endif
 
-	#ifdef WIN32
+	#ifdef IS_WINDOWS
 	if (direct_midi)
 	{
 		//We're directly sending MIDI to the output!
@@ -1602,7 +1602,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	#ifdef __HW_DISABLED
 		return; //We're disabled!
 	#endif
-	#ifdef WIN32
+	#ifdef IS_WINDOWS
 	if (direct_midi)
 	{
 		// turn any MIDI notes currently playing:
@@ -1643,7 +1643,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
-	#ifdef VISUALC
+	#ifdef IS_WINDOWS
 	direct_midi = use_direct_MIDI; //Use direct MIDI synthesis by the OS, if any?
 	if (direct_midi)
 	{
@@ -1716,16 +1716,8 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 
 byte directMIDISupported()
 {
-	#ifdef IS_LINUX
-		#ifdef IS_ANDROID
-			return 1; //Supported!
-		#else
-			return 0; //Unsupported!
-		#endif
-	#else
-		#ifdef IS_WINDOWS
-			return 1; //Supported!
-		#endif
+	#ifdef IS_WINDOWS
+		return 1; //Supported!
 	#endif
 	return 0; //Default: Unsupported platform!
 }
