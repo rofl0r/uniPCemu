@@ -469,7 +469,10 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 	if (cpudebugger) //To apply the debugger generator?
 	{
 		static VERIFICATIONDATA verify, originalverify;
-		memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+		if (!CPU[activeCPU].repeating) //Not repeating an instruction?
+		{
+			memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+		}
 		//Initialise debugger texts!
 		cleardata(&debugger_prefix[0],sizeof(debugger_prefix));
 		cleardata(&debugger_command_text[0],sizeof(debugger_command_text)); //Init vars!
