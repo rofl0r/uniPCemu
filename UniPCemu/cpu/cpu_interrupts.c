@@ -193,7 +193,7 @@ void CPU_IRET()
 					tempEFLAGS = CPU_POP32();
 					if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
 					//VM&IOPL aren't changed by the POP!
-					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
 				}
 				else //16-bit operand size?
@@ -204,7 +204,7 @@ void CPU_IRET()
 					tempEFLAGS = CPU_POP16(0);
 					if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
 					//VM&IOPL aren't changed by the POP!
-					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_FLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 				}
 			}
@@ -285,7 +285,7 @@ void CPU_IRET()
 				if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
 				//Check unchanging bits!
 				if (getCPL()) tempEFLAGS = (tempEFLAGS&~F_IOPL)|(REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
-				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IOPL being changed!
+				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IF being changed!
 				//Flags are OK now!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
