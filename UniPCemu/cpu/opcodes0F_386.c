@@ -417,19 +417,11 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&7) && (subbyte==0x20)) //Aligment enforced and wrong? Don't apply on internal accesses!
+	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (getCPL() == 3) && (
+		((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))
+		))) //Aligment enforced and wrong? Don't apply on internal accesses!
 	{
 		CPU_AC(0); //Alignment DWORD check fault!
-		return 1; //Error out!
-	}
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&3) && (subbyte==0x10)) //Aligment enforced and wrong? Don't apply on internal accesses!
-	{
-		CPU_AC(0); //Alignment DWORD check fault!
-		return 1; //Error out!
-	}
-	if (FLAGREGR_AC(CPU[activeCPU].registers) && (offset&1) && (subbyte==0x8)) //Aligment enforced and wrong? Don't apply on internal accesses!
-	{
-		CPU_AC(0); //Alignment WORD check fault!
 		return 1; //Error out!
 	}
 
