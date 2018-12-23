@@ -1986,6 +1986,11 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			FLAGW_NT(0);
 			FLAGW_RF(0); //Clear Resume flag too!
 
+			if (EMULATED_CPU >= CPU_80486)
+			{
+				FLAGW_AC(0); //Clear Alignment Check flag too!
+			}
+
 			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
 			{
 				FLAGW_IF(0); //No interrupts!
