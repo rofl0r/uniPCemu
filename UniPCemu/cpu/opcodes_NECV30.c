@@ -240,7 +240,7 @@ void CPU186_OP61()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
-extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 //62 not implemented in fake86? Does this not exist?
 void CPU186_OP62()

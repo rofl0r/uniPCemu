@@ -22,7 +22,7 @@ extern byte immb;
 extern word immw;
 extern uint_32 imm32;
 extern byte thereg; //For function number!
-extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 /*
 

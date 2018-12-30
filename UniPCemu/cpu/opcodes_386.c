@@ -2525,7 +2525,7 @@ OPTINLINE byte CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte fla
 	return 0;
 }
 
-extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 byte CPU80386_internal_LXS(int segmentregister) //LDS, LES etc.
 {
@@ -3781,7 +3781,7 @@ void CPU386_OP61()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
-extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 //62 not implemented in fake86? Does this not exist?
 void CPU386_OP62()

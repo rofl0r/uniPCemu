@@ -103,7 +103,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 //Use displacement (1||2||4) else 0?
 }
 
-byte modrm_addoffset = 0; //To add this to the calculated offset!
+int_32 modrm_addoffset = 0; //To add this to the calculated offset!
 
 extern byte cpudebugger; //Are we debugging?
 

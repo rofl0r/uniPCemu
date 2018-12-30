@@ -3977,7 +3977,7 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 	return 0;
 }
 
-extern byte modrm_addoffset; //Add this offset to ModR/M reads!
+extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
