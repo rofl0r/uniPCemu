@@ -485,6 +485,7 @@ void updateUART(DOUBLE timepassed)
 
 					sentreceived = 0; //Default: not sent/received anything!
 					//We either send or receive something. Receiving has priority over sending.
+					retryUARTreceiving: //Try receiving again after prioritizing Send unneededly!
 					if (unlikely(UART_port[UART].hasdata() && (UART_port[UART].prioritizeSend==0))) //Do we have data to receive and not prioritizing sending data?
 					{
 						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
@@ -507,6 +508,11 @@ void updateUART(DOUBLE timepassed)
 					{
 						//We're pending to send data, but the receive buffer is still filled! Prioritize sending next time!
 						UART_port[UART].prioritizeSend = 1; //Prioritize sending next time!
+					}
+					else if (UART_port[UART].prioritizeSend) //Nothing to send(and nothing received(yet)) and prioritizing sending?
+					{
+						UART_port[UART].prioritizeSend = 0; //Reset send/receive logic!
+						goto retryUARTreceiving; //Try receiving again!
 					}
 				}
 				else if (likely(UART_port[UART].UART_bytereceivetiming == 0)) //Nothing to process?
