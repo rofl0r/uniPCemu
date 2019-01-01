@@ -42,10 +42,10 @@ struct
 	UART_hasdata hasdata;
 
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
-	uint_32 UART_receiveTiming; //UART receive timing!
-	uint_32 UART_sendTiming; //UART send timing!
-	byte UART_sendPhase; //What's happening on the sending side?
-	byte UART_receivePhase; //What's happening on the receiving side?
+	uint_32 receiveTiming; //UART receive timing!
+	uint_32 sendTiming; //UART send timing!
+	byte sendPhase; //What's happening on the sending side?
+	byte receivePhase; //What's happening on the receiving side?
 	uint_32 UART_bytetransfertiming; //UART byte received timing!
 } UART_port[4]; //All UART ports!
 
@@ -479,7 +479,7 @@ void updateUART(DOUBLE timepassed)
 			for (;clockticks;--clockticks) //Process all clocks!
 			{
 				//Tick receiver!
-				switch (UART_port[port].receivePhase) //What receive phase?
+				switch (UART_port[UART].receivePhase) //What receive phase?
 				{
 					case 0: //Checking for start of transfer?
 						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
@@ -490,17 +490,16 @@ void updateUART(DOUBLE timepassed)
 								UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
 
 								//Start transferring data...
-								UART_port[port].receiveTiming = UART_port[port].UART_bytetransfertiming+1; //Duration of the transfer!
-								UART_port[port].receivePhase = UART_port[port].UART_bytetransfertiming?1:2; //Pending finish of transfer!
-								if (UART_port[port].receiveTiming>1) break; //Transferring for more clocks?
+								UART_port[UART].receiveTiming = UART_port[UART].UART_bytetransfertiming+1; //Duration of the transfer!
+								UART_port[UART].receivePhase = 1; //Pending finish of transfer!
 							}
 							else break; //Can't receive!
 						}
 						else break; //Nothing to receive?
 						//Finish transferring fallthrough!
 					case 1: //Transferring data?
-						if (--UART_port[port].receiveTiming) break; //Busy transferring?
-						UART_port].receivePhase = 2; //Finish transferring!
+						if (--UART_port[UART].receiveTiming) break; //Busy transferring?
+						UART_port[UART].receivePhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
 						//Finished transferring data.
 						UART_port[UART].DataHoldingRegister = UART_port[UART].ReceiverBufferRegister; //We've received this data!
@@ -509,7 +508,7 @@ void updateUART(DOUBLE timepassed)
 						break;
 				}
 
-				switch (UART_port[port].sendPhase) //What receive phase?
+				switch (UART_port[UART].sendPhase) //What receive phase?
 				{
 					case 0: //Checking for start of transfer?
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
@@ -517,15 +516,14 @@ void updateUART(DOUBLE timepassed)
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
-							UART_port[port].sendTiming = UART_port[port].UART_bytetransfertiming+1; //Duration of the transfer!
-							UART_port[port].sendPhase = UART_port[port].UART_bytetransfertiming?1:2; //Pending finish of transfer!
-							if (UART_port[port].sendTiming>1) break; //Transferring for more clocks?
+							UART_port[UART].sendTiming = UART_port[UART].UART_bytetransfertiming+1; //Duration of the transfer!
+							UART_port[UART].sendPhase = 1; //Pending finish of transfer!
 						}
 						else break; //Nothing to send!
 						//Finish transferring fallthrough!
 					case 1: //Transferring data?
-						if (--UART_port[port].sendTiming) break; //Busy transferring?
-						UART_port].sendPhase = 2; //Finish transferring!
+						if (--UART_port[UART].sendTiming) break; //Busy transferring?
+						UART_port[UART].sendPhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
 						//Finished transferring data.
 						UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
