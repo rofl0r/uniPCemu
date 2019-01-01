@@ -31,7 +31,6 @@ struct
 	byte TransmitterShiftRegister; //Data we're transferring!
 	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
 	byte ReceiverBufferRegister; //The data that's being received.
-	byte prioritizeSend; //Prioritize sending data now!
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
 
 
@@ -43,8 +42,11 @@ struct
 	UART_hasdata hasdata;
 
 	byte interrupt_causes[4]; //All possible causes of an interrupt!
-	uint_32 UART_receivetiming; //UART receive timing!
-	uint_32 UART_bytereceivetiming; //UART byte received timing!
+	uint_32 UART_receiveTiming; //UART receive timing!
+	uint_32 UART_sendTiming; //UART send timing!
+	byte UART_sendPhase; //What's happening on the sending side?
+	byte UART_receivePhase; //What's happening on the receiving side?
+	uint_32 UART_bytetransfertiming; //UART byte received timing!
 } UART_port[4]; //All UART ports!
 
 //Value = 5+DataBits
@@ -191,7 +193,7 @@ void updateUARTSpeed(byte COMport, word DLAB)
 	transfertime = (7 + UART_LINECONTROLREGISTER_DATABITSR(COMport) + UART_LINECONTROLREGISTER_STOPBITSR(COMport)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
 	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
 	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
-	UART_port[COMport].UART_bytereceivetiming = ((uint_32)DLAB<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
+	UART_port[COMport].UART_bytetransfertiming = ((uint_32)DLAB<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
 }
 
 byte PORT_readUART(word port, byte *result) //Read from the uart!
@@ -464,7 +466,6 @@ void UART_handleInputs() //Handle any input to the UART!
 void updateUART(DOUBLE timepassed)
 {
 	byte UART; //Check all UARTs!
-	byte sentreceived; //Have we sent/received anything now?
 	uint_32 clockticks; //The clock ticks to process!
 	UART_clock += timepassed; //Tick our master clock!
 	if (unlikely(UART_clock>=UART_clocktick)) //Ticking the UART clock?
@@ -475,69 +476,67 @@ void updateUART(DOUBLE timepassed)
 		//Check all UART received data!
 		for (UART=0;UART<4;++UART) //Check all UARTs!
 		{
-			if (UART_port[UART].hasdata) //Data receiver enabled for this port?
+			for (;clockticks;--clockticks) //Process all clocks!
 			{
-				UART_port[UART].UART_receivetiming += clockticks; //Time our counter!
-				if (unlikely((UART_port[UART].UART_receivetiming>=UART_port[UART].UART_bytereceivetiming) && UART_port[UART].UART_bytereceivetiming)) //A byte has been received, timed?
+				//Tick receiver!
+				switch (UART_port[port].receivePhase) //What receive phase?
 				{
-					UART_port[UART].UART_receivetiming %= UART_port[UART].UART_bytereceivetiming; //We've received a byte, if available! No more than one byte is received at a time!
-					
-					//Either send or receive, but not both, as we're only capable of doing one of both!
-
-					//We prioritize receiving first, but in the case both sending and receiving apply, apply sending and receiving by interleaving them.
-
-					sentreceived = 0; //Default: not sent/received anything!
-					//We either send or receive something. Receiving has priority over sending.
-					retryUARTreceiving: //Try receiving again after prioritizing Send unneededly!
-					if (unlikely(UART_port[UART].hasdata() && (UART_port[UART].prioritizeSend==0))) //Do we have data to receive and not prioritizing sending data?
-					{
-						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
+					case 0: //Checking for start of transfer?
+						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
+						if (unlikely(UART_port[UART].hasdata())) //Do we have data to receive and not prioritizing sending data?
 						{
-							UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
+							if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
+							{
+								UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
 
-							//Start transferring data...
-
-							//Finished transferring data.
-							UART_port[UART].DataHoldingRegister = UART_port[UART].ReceiverBufferRegister; //We've received this data!
-							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
-							
-							sentreceived = 1; //We've sent/received something!
+								//Start transferring data...
+								UART_port[port].receiveTiming = UART_port[port].UART_bytetransfertiming+1; //Duration of the transfer!
+								UART_port[port].receivePhase = UART_port[port].UART_bytetransfertiming?1:2; //Pending finish of transfer!
+								if (UART_port[port].receiveTiming>1) break; //Transferring for more clocks?
+							}
+							else break; //Can't receive!
 						}
-					}
-					if (likely(sentreceived==0)) //Not sent/received anything yet?
-					{
-						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0)))
+						else break; //Nothing to receive?
+						//Finish transferring fallthrough!
+					case 1: //Transferring data?
+						if (--UART_port[port].receiveTiming) break; //Busy transferring?
+						UART_port].receivePhase = 2; //Finish transferring!
+					case 2: //Finish transfer!
+						//Finished transferring data.
+						UART_port[UART].DataHoldingRegister = UART_port[UART].ReceiverBufferRegister; //We've received this data!
+						UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+						UART_port[UART].receivePhase = 0; //Start polling again!
+						break;
+				}
+
+				switch (UART_port[port].sendPhase) //What receive phase?
+				{
+					case 0: //Checking for start of transfer?
+						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
+							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
-
-							//Start transferring data...
-
-							//Finished transferring data.
-							UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
-
-							//Data is sent, so update status when finished!
-							if ((UART_port[UART].LineStatusRegister&0x20)==0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
-							{
-								UART_port[UART].LineStatusRegister |= 0x40; //The Tranamitter Holding Register and Shift Register are both empty!
-							}
-							UART_port[UART].prioritizeSend = 0; //Not prioritizing sending data anymore!
+							UART_port[port].sendTiming = UART_port[port].UART_bytetransfertiming+1; //Duration of the transfer!
+							UART_port[port].sendPhase = UART_port[port].UART_bytetransfertiming?1:2; //Pending finish of transfer!
+							if (UART_port[port].sendTiming>1) break; //Transferring for more clocks?
 						}
-					}
-					else if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0))) //Data is pending to be sent on the next cycle?
-					{
-						//We're pending to send data, but the receive buffer is still filled! Prioritize sending next time!
-						UART_port[UART].prioritizeSend = 1; //Prioritize sending next time!
-					}
-					else if (UART_port[UART].prioritizeSend) //Nothing to send(and nothing received(yet)) and prioritizing sending?
-					{
-						UART_port[UART].prioritizeSend = 0; //Reset send/receive logic!
-						goto retryUARTreceiving; //Try receiving again!
-					}
-				}
-				else if (likely(UART_port[UART].UART_bytereceivetiming == 0)) //Nothing to process?
-				{
-					UART_port[UART].UART_receivetiming = 0; //Don't handle any timing!
+						else break; //Nothing to send!
+						//Finish transferring fallthrough!
+					case 1: //Transferring data?
+						if (--UART_port[port].sendTiming) break; //Busy transferring?
+						UART_port].sendPhase = 2; //Finish transferring!
+					case 2: //Finish transfer!
+						//Finished transferring data.
+						UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
+
+						//Data is sent, so update status when finished!
+						if ((UART_port[UART].LineStatusRegister&0x20)==0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
+						{
+							UART_port[UART].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
+						}
+						UART_port[UART].sendPhase = 0; //Start polling again!
+						break;
 				}
 			}
 		}
