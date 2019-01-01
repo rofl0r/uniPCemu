@@ -302,6 +302,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				}
 			}
 			*result = UART_port[COMport].LineStatusRegister; //Give the register!
+			UART_port[COMport].LineStatusRegister &= ~0x1E; //Clear the register error flags!
 			break;
 		case 6: //Modem Status Register?
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 0)) //We're to clear?
@@ -450,7 +451,7 @@ void UART_handleInputs() //Handle any input to the UART!
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
-		if (unlikely((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister) || (UART_port[i].interrupt_causes[3]))) //Line status has changed or required to be raised?
+		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister)&0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
 		{
 			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
 		}
