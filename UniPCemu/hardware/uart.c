@@ -28,7 +28,9 @@ struct
 	//Seperate register alternative
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	byte TransmitterHoldingRegister; //Data to be written to the device!
+	byte TransmitterShiftRegister; //Data we're transferring!
 	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
+	byte ReceiverBufferRegister; //The data that's being received.
 	byte prioritizeSend; //Prioritize sending data now!
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
 
@@ -491,8 +493,14 @@ void updateUART(DOUBLE timepassed)
 					{
 						if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
 						{
-							UART_port[UART].DataHoldingRegister = UART_port[UART].receivedata(); //Read the data to receive!
+							UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
+
+							//Start transferring data...
+
+							//Finished transferring data.
+							UART_port[UART].DataHoldingRegister = UART_port[UART].ReceiverBufferRegister; //We've received this data!
 							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+							
 							sentreceived = 1; //We've sent/received something!
 						}
 					}
@@ -500,8 +508,19 @@ void updateUART(DOUBLE timepassed)
 					{
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x60) == 0)))
 						{
-							UART_port[UART].senddata(UART_port[UART].TransmitterHoldingRegister); //Send the data!
-							UART_port[UART].LineStatusRegister |= 0x60; //The Data Holding Register is empty!
+							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
+							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
+
+							//Start transferring data...
+
+							//Finished transferring data.
+							UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
+
+							//Data is sent, so update status when finished!
+							if ((UART_port[UART].LineStatusRegister&0x20)==0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
+							{
+								UART_port[UART].LineStatusRegister |= 0x40; //The Tranamitter Holding Register and Shift Register are both empty!
+							}
 							UART_port[UART].prioritizeSend = 0; //Not prioritizing sending data anymore!
 						}
 					}
