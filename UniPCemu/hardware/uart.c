@@ -467,6 +467,7 @@ void updateUART(DOUBLE timepassed)
 {
 	byte UART; //Check all UARTs!
 	uint_32 clockticks; //The clock ticks to process!
+	uint_32 clocking;
 	UART_clock += timepassed; //Tick our master clock!
 	if (unlikely(UART_clock>=UART_clocktick)) //Ticking the UART clock?
 	{
@@ -476,7 +477,8 @@ void updateUART(DOUBLE timepassed)
 		//Check all UART received data!
 		for (UART=0;UART<4;++UART) //Check all UARTs!
 		{
-			for (;clockticks;--clockticks) //Process all clocks!
+			clocking = clockticks; //How many ticks to tick!
+			for (;clocking;--clocking) //Process all clocks!
 			{
 				//Tick receiver!
 				switch (UART_port[UART].receivePhase) //What receive phase?
