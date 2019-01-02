@@ -132,7 +132,7 @@ void startUARTIRQ(byte IRQ)
 	for (port = 0;port < 2;port++) //List ports!
 	{
 		actualport = portbase + (port << 1); //Take the actual port!
-		for (cause = 0;cause < 4;cause++) //Check all causes!
+		for (cause = 3;cause<4;--cause) //Check all causes, in order of priority!
 		{
 			if (UART_port[actualport].interrupt_causes[cause]) //We're is the cause?
 			{
@@ -449,45 +449,56 @@ byte PORT_writeUART(word port, byte value)
 void UART_handleInputs() //Handle any input to the UART!
 {
 	int i;
-	byte oldmodemstatus;
+	byte modemstatusinterrupt, checknewmodemstatus;
 
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
-		oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
+		//Read the Modem Status, update bits, check for interrupts!
+		modemstatusinterrupt = 0; //Last status!
 		if (UART_port[i].getmodemstatus && ((UART_port[i].ModemControlRegister&0x10)==0)) //Modem status available and not in Loopback mode?
 		{
-			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
+			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status from the peripheral!
 
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister,4,0xF,UART_port[i].activeModemStatus); //Set the high bits of the modem status to our input lines!
-			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
-			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
-			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
+			checknewmodemstatus = 1; //Check the new status!
 		}
 		else if (UART_port[i].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
 		{
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister, 4, 0xF, UART_port[i].ModemControlRegister&0xF); //Set the high bits of the modem status to our input lines!
-			UART_port[i].ModemStatusRegister |= (((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB); //Bits have changed set bits 0,1,3? Ring has other indicators!
-			UART_port[i].ModemStatusRegister |= ((((~UART_port[i].oldModemStatusRegister)&UART_port[i].ModemStatusRegister) >> 4) & 0x4); //Only set the Trailing Edge of Ring Indicator when the ring indicator line is raised!
+			checknewmodemstatus = 1; //Check the new status!
+		}
+		else //No status to report?
+		{
+			checknewmodemstatus = 0; //Check the new status!
+		}
+		if (likely(checknewmodemstatus)) //Are we to verify the new modem status?
+		{
+			//First, check for interrupts to be triggered!
+			modemstatusinterrupt |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
+			modemstatusinterrupt |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			//Report the new delta status to the register and update it with it's new status, where not set yet.
+			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
+			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
-		if (unlikely((oldmodemstatus != UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
+		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
 		{
-			launchUARTIRQ(i, 0); //Modem status changed!
-		}
-		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister)&0x60) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full becomes empty)?
-		{
-			launchUARTIRQ(i, 1); //We've sent data!
+			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
 		}
 		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x01) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
-		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister)&0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
+		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x20) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full transmitter holder register becomes empty)?
 		{
-			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
+			launchUARTIRQ(i, 1); //We've sent data!
+		}
+		if (unlikely((modemstatusinterrupt) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
+		{
+			launchUARTIRQ(i, 0); //Modem status changed!
 		}
 		UART_port[i].oldLineStatusRegister = UART_port[i].LineStatusRegister; //Save for difference checking!
 	}
