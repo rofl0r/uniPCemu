@@ -478,7 +478,7 @@ void CPU286_OP0F02() //LAR /r
 	byte isconforming = 1;
 	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
-	if (getcpumode() == CPU_MODE_REAL)
+	if (getcpumode() != CPU_MODE_PROTECTED)
 	{
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
@@ -547,7 +547,7 @@ void CPU286_OP0F03() //LSL /r
 	byte isconforming = 1;
 	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
-	if (getcpumode() == CPU_MODE_REAL)
+	if (getcpumode() != CPU_MODE_PROTECTED)
 	{
 		unkOP0F_286(); //We're not recognized in real mode!
 		return;
