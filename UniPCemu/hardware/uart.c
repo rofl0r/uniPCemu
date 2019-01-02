@@ -462,7 +462,7 @@ void UART_handleInputs() //Handle any input to the UART!
 
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister,4,0xF,UART_port[i].activeModemStatus); //Set the high bits of the modem status to our input lines!
-			checknewmodemstatus = 1; //Check the new status!
+			checknewmodemstatus = ((UART_port[i].ModemStatusRegister^(UART_port[i].oldModemStatusRegister))&0xF0); //Check the new status!
 		}
 		else if (UART_port[i].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
 		{
@@ -470,7 +470,7 @@ void UART_handleInputs() //Handle any input to the UART!
 			SETBITS(UART_port[i].ModemStatusRegister, 6, 0x3, GETBITS(UART_port[i].ModemControlRegister,2,0x3)); //Set the high bits of the modem status to our input lines!
 			SETBITS(UART_port[i].ModemStatusRegister, 4, 0x1, GETBITS(UART_port[i].ModemControlRegister, 2, 0x1)); //RTS on CTS
 			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, GETBITS(UART_port[i].ModemControlRegister, 1, 0x1)); //DTR on DSR
-			checknewmodemstatus = 1; //Check the new status!
+			checknewmodemstatus = ((UART_port[i].ModemStatusRegister ^ (UART_port[i].oldModemStatusRegister)) & 0xF0); //Check the new status!
 		}
 		else //No status to report?
 		{
