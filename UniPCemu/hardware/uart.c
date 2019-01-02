@@ -423,7 +423,7 @@ byte PORT_writeUART(word port, byte value)
 			UART_port[COMport].LineControlRegister = value; //Set the register!
 			break;
 		case 4:  //Modem Control Register?
-			UART_port[COMport].ModemControlRegister = value; //Set the register!
+			UART_port[COMport].ModemControlRegister = (value&0x1F); //Set the register!
 			//Handle anything concerning this?
 			if (UART_port[COMport].setmodemcontrol) //Line handler added?
 			{
