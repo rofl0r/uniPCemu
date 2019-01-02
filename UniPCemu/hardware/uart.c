@@ -477,11 +477,11 @@ void UART_handleInputs() //Handle any input to the UART!
 		if (likely(checknewmodemstatus)) //Are we to verify the new modem status?
 		{
 			//First, check for interrupts to be triggered!
-			modemstatusinterrupt |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
-			modemstatusinterrupt |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			modemstatusinterrupt |= (((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB); //Bits have changed set bits 0,1,3? Ring has other indicators!
+			modemstatusinterrupt |= (((UART_port[i].oldModemStatusRegister)&(~UART_port[i].ModemStatusRegister)) >> 4) & 0x4; //Only set the Ring lowered bit when the ring indicator is lowered!
 			//Report the new delta status to the register and update it with it's new status, where not set yet.
-			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
-			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			UART_port[i].ModemStatusRegister |= (((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB); //Bits have changed set bits 0,1,3? Ring has other indicators!
+			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister&(~UART_port[i].ModemStatusRegister)) >> 4) & 0x4); //Only set the Ring lowered bit when the ring indicator is lowered!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
 		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
