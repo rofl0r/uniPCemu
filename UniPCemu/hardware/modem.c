@@ -1967,21 +1967,36 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		modem.ringtimer -= timepassed; //Time!
 		if (modem.ringtimer<=0.0) //Timed out?
 		{
-			++modem.registers[1]; //Increase numbr of rings!
-			if ((modem.registers[0]>0) && (modem.registers[1]>=modem.registers[0])) //Autoanswer?
+			if (modem.ringing & 2) //Ring completed?
 			{
-				if (modem_connect(NULL)) //Accept incoming call?
+				++modem.registers[1]; //Increase numbr of rings!
+				if ((modem.registers[0] > 0) && (modem.registers[1] >= modem.registers[0])) //Autoanswer?
 				{
-					modem_Answered(); //We've answered!
-					return; //Abort: not ringing anymore!
+					if (modem_connect(NULL)) //Accept incoming call?
+					{
+						modem_Answered(); //We've answered!
+						return; //Abort: not ringing anymore!
+					}
 				}
+				//Wait for the next ring to start!
+				modem.ringing &= ~2; //Wait to start a new ring!
+				#ifdef IS_LONGDOUBLE
+					modem.ringtimer += 3000000000.0L; //3s timer for every ring!
+				#else
+					modem.ringtimer += 3000000000.0; //3s timer for every ring!
+				#endif
 			}
-			modem_responseResult(MODEMRESULT_RING); //We're ringing!
-			#ifdef IS_LONGDOUBLE
-			modem.ringtimer += 3000000000.0L; //3s timer for every ring!
-			#else
-			modem.ringtimer += 3000000000.0; //3s timer for every ring!
-			#endif
+			else //Starting a ring?
+			{
+				modem_responseResult(MODEMRESULT_RING); //We're ringing!
+				//Wait for the next ring to start!
+				modem.ringing |= 2; //Wait to start a new ring!
+				#ifdef IS_LONGDOUBLE
+					modem.ringtimer += 3000000000.0L; //3s timer for every ring!
+				#else
+					modem.ringtimer += 3000000000.0; //3s timer for every ring!
+				#endif
+			}
 		}
 	}
 
