@@ -19,6 +19,7 @@ struct
 	byte FIFOControlRegister; //FIFO Control register!
 	byte LineControlRegister;
 	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
+	byte oldModemControlRegister; //Old modem control bits!
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
 	byte oldLineStatusRegister; //Old line status register to compare!
 	byte activeModemStatus; //Bit0=CTS, 1=DSR, 2=Ring indicator, 3=Carrier detect
@@ -79,6 +80,8 @@ struct
 //Full Interrupt Identification Register!
 
 DOUBLE UART_clock = 0.0, UART_clocktick = 0.0; //The UART clock ticker!
+
+void UART_handleInputs(); //Handle any input to the UART! Prototype!
 
 byte allocatedUARTs;
 byte allocUARTport()
@@ -381,9 +384,19 @@ byte PORT_writeUART(word port, byte value)
 						break;
 					}
 				}
-				//Write to output buffer, toggling bits by Line Control Register!
-				UART_port[COMport].TransmitterHoldingRegister = value;
-				UART_port[COMport].LineStatusRegister &= ~0x60; //We're full, ready to transmit!
+
+				if (UART_port[COMport].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
+				{
+					UART_port[COMport].DataHoldingRegister = value; //We've received this data!
+					UART_port[COMport].LineStatusRegister |= 0x01; //We've received data!
+					UART_handleInputs(); //Handle any inputs on the UART!
+				}
+				else //Not in loopback mode?
+				{
+					//Write to output buffer, toggling bits by Line Control Register!
+					UART_port[COMport].TransmitterHoldingRegister = value;
+					UART_port[COMport].LineStatusRegister &= ~0x60; //We're full, ready to transmit!
+				}
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -414,8 +427,13 @@ byte PORT_writeUART(word port, byte value)
 			//Handle anything concerning this?
 			if (UART_port[COMport].setmodemcontrol) //Line handler added?
 			{
-				UART_port[COMport].setmodemcontrol(value); //Update the output lines!
+				UART_port[COMport].setmodemcontrol(value&0xF); //Update the output lines!
 			}
+			if (((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&UART_port[COMport].ModemControlRegister) & 0x10) //Loopback mode enabled?
+			{
+				UART_handleInputs(); //Update the loopback status as required by updating the status register!
+			}
+			UART_port[COMport].oldModemControlRegister = UART_port[COMport].ModemControlRegister; //Save the old value for reference!
 			break;
 		case 7: //Scratch register?
 			//UART_port[COMport].ScratchRegister = value; //Set the register!
@@ -437,12 +455,20 @@ void UART_handleInputs() //Handle any input to the UART!
 	for (i = 0;i < 4;i++) //Process all ports!
 	{
 		oldmodemstatus = UART_port[i].activeModemStatus; //Last status!
-		if (UART_port[i].getmodemstatus) //Modem status available?
+		if (UART_port[i].getmodemstatus && ((UART_port[i].ModemControlRegister&0x10)==0)) //Modem status available and not in Loopback mode?
 		{
 			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
 
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister,4,0xF,UART_port[i].activeModemStatus); //Set the high bits of the modem status to our input lines!
+			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
+			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
+		}
+		else if (UART_port[i].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
+		{
+			//Update the modem status register accordingly!
+			SETBITS(UART_port[i].ModemStatusRegister, 4, 0xF, UART_port[i].ModemControlRegister&0xF); //Set the high bits of the modem status to our input lines!
 			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
 			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
@@ -508,6 +534,11 @@ void updateUART(DOUBLE timepassed)
 						UART_port[UART].receivePhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
 						//Finished transferring data.
+						if (UART_port[UART].ModemControlRegister & 0x10) break; //In loopback mode? Prevent any bytes from hardware from arriving until we aren't looping back anymore!
+						if (UART_port[UART].LineStatusRegister & 0x01) //Receiver buffer filled? Overrun!
+						{
+							UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
+						}
 						UART_port[UART].DataHoldingRegister = UART_port[UART].ReceiverBufferRegister; //We've received this data!
 						UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
 						UART_port[UART].receivePhase = 0; //Start polling again!
