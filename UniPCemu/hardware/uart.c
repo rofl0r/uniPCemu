@@ -425,11 +425,11 @@ byte PORT_writeUART(word port, byte value)
 		case 4:  //Modem Control Register?
 			UART_port[COMport].ModemControlRegister = (value&0x1F); //Set the register!
 			//Handle anything concerning this?
-			if (UART_port[COMport].setmodemcontrol) //Line handler added?
+			if (UART_port[COMport].setmodemcontrol && ((UART_port[COMport].ModemControlRegister&0x10)==0)) //Line handler is connected and not in loopback mode?
 			{
 				UART_port[COMport].setmodemcontrol(value&0xF); //Update the output lines!
 			}
-			if (((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&UART_port[COMport].ModemControlRegister) & 0x10) //Loopback mode enabled?
+			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
 			{
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
