@@ -330,16 +330,13 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				}
 			}
 
-			UART_port[COMport].ModemStatusRegister = (UART_port[COMport].activeModemStatus<<4); //Retrieve the current modem status!
-			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
-			UART_port[COMport].ModemStatusRegister |= ((UART_port[COMport].ModemStatusRegister^UART_port[COMport].oldModemStatusRegister)>>4)&0xB; //Bits have changed? Ring has other indicators!
-			UART_port[COMport].ModemStatusRegister |= (((UART_port[COMport].oldModemStatusRegister&0x40)&((~UART_port[COMport].ModemStatusRegister)&0x40))>>4); //Only set the Ring lowered bit when the ring indicator is lowered!
-			UART_port[COMport].oldModemStatusRegister = UART_port[COMport].ModemStatusRegister; //Save the old state of flags to compare!
 			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
+			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
 			break;
 		case 7: //Scratch register?
-			*result = UART_port[COMport].ScratchRegister; //Give the register!
-			break; //We do nothing yet!
+			//*result = UART_port[COMport].ScratchRegister; //Give the register!
+			//Scratch register doesn't exist on a 8250!
+			//break; //We do nothing yet!
 		default:
 			return 0; //Unknown port!
 	}
@@ -402,7 +399,7 @@ byte PORT_writeUART(word port, byte value)
 				//bit1 = transmitter empty
 				//bit2 = break/error
 				//bit3 = status change
-				UART_port[COMport].InterruptEnableRegister = value; //Set the register!
+				UART_port[COMport].InterruptEnableRegister = (value & 0xF); //Set the register! Clear the undefined bits, as per the documentation!
 			}
 			break;
 		case 2: //FIFO control register?
@@ -421,8 +418,9 @@ byte PORT_writeUART(word port, byte value)
 			}
 			break;
 		case 7: //Scratch register?
-			UART_port[COMport].ScratchRegister = value; //Set the register!
-			break; //We do nothing yet!
+			//UART_port[COMport].ScratchRegister = value; //Set the register!
+			//Scratch register doesn't exist on a 8250!
+			//break; //We do nothing yet!
 		default: //Unknown write register?
 			return 0;
 			break;
@@ -442,6 +440,12 @@ void UART_handleInputs() //Handle any input to the UART!
 		if (UART_port[i].getmodemstatus) //Modem status available?
 		{
 			UART_port[i].activeModemStatus = UART_port[i].getmodemstatus(); //Retrieve the modem status!
+
+			//Update the modem status register accordingly!
+			SETBITS(UART_port[i].ModemStatusRegister,4,0xF,UART_port[i].activeModemStatus); //Set the high bits of the modem status to our input lines!
+			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
+			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
 		if (unlikely((oldmodemstatus != UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
 		{
