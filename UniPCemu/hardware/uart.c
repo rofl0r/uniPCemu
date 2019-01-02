@@ -470,7 +470,7 @@ void UART_handleInputs() //Handle any input to the UART!
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister, 4, 0xF, UART_port[i].ModemControlRegister&0xF); //Set the high bits of the modem status to our input lines!
 			UART_port[i].ModemStatusRegister |= ((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB; //Bits have changed set bits 0,1,3? Ring has other indicators!
-			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister & 0x40)&((~UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is lowered!
+			UART_port[i].ModemStatusRegister |= ((((~UART_port[i].oldModemStatusRegister) & 0x40)&((UART_port[i].ModemStatusRegister) & 0x40)) >> 4); //Only set the Ring lowered bit when the ring indicator is raised!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
 		if (unlikely((oldmodemstatus != UART_port[i].activeModemStatus) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
