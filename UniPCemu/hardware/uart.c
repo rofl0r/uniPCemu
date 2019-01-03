@@ -48,6 +48,8 @@ struct
 	byte sendPhase; //What's happening on the sending side?
 	byte receivePhase; //What's happening on the receiving side?
 	uint_32 UART_bytetransfertiming; //UART byte received timing!
+	uint_32 UART_DLABclock; //DLAB-based clock being used!
+	uint_32 UART_DLABtimingdivider; //DLAB timing divider!
 } UART_port[4]; //All UART ports!
 
 //Value = 5+DataBits
@@ -192,11 +194,20 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 
 void updateUARTSpeed(byte COMport, word DLAB)
 {
+	uint_32 newdivider;
 	uint_32 transfertime;
 	transfertime = (7 + UART_LINECONTROLREGISTER_DATABITSR(COMport) + UART_LINECONTROLREGISTER_STOPBITSR(COMport)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
+
 	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
 	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
-	UART_port[COMport].UART_bytetransfertiming = ((uint_32)DLAB<<4) * transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
+	UART_port[COMport].UART_bytetransfertiming = transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
+
+	newdivider = ((uint_32)(DLAB + 1) << 4); //Calculate the new divider!
+	if (UART_port[COMport].UART_DLABtimingdivider != newdivider) //Divider changed?
+	{
+		UART_port[COMport].UART_DLABtimingdivider = newdivider; //Divide by 16 times DLAB for the actual clock to transfer data!
+		UART_port[COMport].UART_DLABclock = 0; //Reset the clock to tick!
+	}
 }
 
 byte PORT_readUART(word port, byte *result) //Read from the uart!
@@ -509,6 +520,7 @@ void UART_handleInputs() //Handle any input to the UART!
 void updateUART(DOUBLE timepassed)
 {
 	byte UART; //Check all UARTs!
+	uint_32 DLAB_clockticks; //DLAB clock ticks!
 	uint_32 clockticks; //The clock ticks to process!
 	uint_32 clocking;
 	UART_clock += timepassed; //Tick our master clock!
@@ -517,25 +529,33 @@ void updateUART(DOUBLE timepassed)
 		clockticks = (uint_32)(UART_clock/UART_clocktick); //Divide the clock by the ticks to apply!
 		UART_clock -= (DOUBLE)clockticks*UART_clocktick; //Rest the clocks!
 
+		//Now we have the amount of raw clock ticks! Apply the DLAB ticking!
+
 		//Check all UART received data!
 		for (UART=0;UART<4;++UART) //Check all UARTs!
 		{
-			clocking = clockticks; //How many ticks to tick!
-			for (;clocking;--clocking) //Process all clocks!
+			UART_port[UART].UART_DLABclock += clockticks; //Tick the DLAB-based clock!
+			if (UART_port[UART].UART_DLABclock >= UART_port[UART].UART_DLABtimingdivider) //Divided tick?
 			{
-				//Tick receiver!
-				switch (UART_port[UART].receivePhase) //What receive phase?
+				DLAB_clockticks = (uint_32)(UART_port[UART].UART_DLABclock / UART_port[UART].UART_DLABtimingdivider); //Tick this much!
+				UART_port[UART].UART_DLABclock -= DLAB_clockticks * UART_port[UART].UART_DLABtimingdivider; //Rest the clocks!
+
+				clocking = DLAB_clockticks; //How many ticks to tick!
+				for (; clocking; --clocking) //Process all clocks!
 				{
+					//Tick receiver!
+					switch (UART_port[UART].receivePhase) //What receive phase?
+					{
 					case 0: //Checking for start of transfer?
 						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
 						if (unlikely(UART_port[UART].hasdata())) //Do we have data to receive and not prioritizing sending data?
 						{
-							if (likely((UART_port[UART].LineStatusRegister&0x01)==0)) //No data received yet?
+							if (likely((UART_port[UART].LineStatusRegister & 0x01) == 0)) //No data received yet?
 							{
 								UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
 
 								//Start transferring data...
-								UART_port[UART].receiveTiming = UART_port[UART].UART_bytetransfertiming+1; //Duration of the transfer!
+								UART_port[UART].receiveTiming = UART_port[UART].UART_bytetransfertiming + 1; //Duration of the transfer!
 								UART_port[UART].receivePhase = 1; //Pending finish of transfer!
 							}
 							else break; //Can't receive!
@@ -556,17 +576,17 @@ void updateUART(DOUBLE timepassed)
 						UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
 						UART_port[UART].receivePhase = 0; //Start polling again!
 						break;
-				}
+					}
 
-				switch (UART_port[UART].sendPhase) //What receive phase?
-				{
+					switch (UART_port[UART].sendPhase) //What receive phase?
+					{
 					case 0: //Checking for start of transfer?
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
-							UART_port[UART].sendTiming = UART_port[UART].UART_bytetransfertiming+1; //Duration of the transfer!
+							UART_port[UART].sendTiming = UART_port[UART].UART_bytetransfertiming + 1; //Duration of the transfer!
 							UART_port[UART].sendPhase = 1; //Pending finish of transfer!
 						}
 						else break; //Nothing to send!
@@ -579,12 +599,13 @@ void updateUART(DOUBLE timepassed)
 						UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
 
 						//Data is sent, so update status when finished!
-						if ((UART_port[UART].LineStatusRegister&0x20)==0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
+						if ((UART_port[UART].LineStatusRegister & 0x20) == 0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
 						{
 							UART_port[UART].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
 						}
 						UART_port[UART].sendPhase = 0; //Start polling again!
 						break;
+					}
 				}
 			}
 		}
@@ -616,8 +637,12 @@ void initUART() //Init software debugger!
 	int i;
 	for (i = 0;i < 4;i++)
 	{
-		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i >> 4,1); //We're not executing!
+		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i,1); //We're not executing!
 		UART_port[i].LineStatusRegister = 0x60; //Receiver buffer not ready for reading, Transmitter Holding register and Shift register are empty.
+
+		//Make sure the DLAB is timed correctly!
+		UART_port[i].UART_DLABtimingdivider = ((uint_32)(UART_port[i].DLAB + 1) << 4); //Calculate the new divider!
+
 	}
 	UART_clock = 0.0; //Init our clock!
 	#ifdef IS_LONGDOUBLE
