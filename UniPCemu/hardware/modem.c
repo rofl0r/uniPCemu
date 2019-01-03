@@ -526,6 +526,7 @@ byte ATresultsCode[6] = {4,0,1,2,6,3}; //Code version!
 #define MODEMRESULT_NODIALTONE 4
 #define MODEMRESULT_NOCARRIER 5
 
+//usecarriagereturn: bit0=before, bit1=after, bit2=use linefeed
 void modem_responseString(byte *s, byte usecarriagereturn)
 {
 	word i, lengthtosend;
@@ -533,7 +534,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	if (usecarriagereturn&1)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		if ((usecarriagereturn&4)==0) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+		if (usecarriagereturn&4) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 	for (i=0;i<lengthtosend;) //Process all data to send!
 	{
@@ -542,7 +543,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 	if (usecarriagereturn&2)
 	{
 		writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter); //Termination character!
-		if ((usecarriagereturn&4)==0) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
+		if (usecarriagereturn&4) writefifobuffer(modem.inputbuffer,modem.linefeedcharacter); //Termination character!
 	}
 }
 void modem_nrcpy(char *s, word size, word nr)
@@ -561,12 +562,12 @@ void modem_responseResult(byte result) //What result to give!
 	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
 	if (modem.verbosemode&1) //Code format result?
 	{
-		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1); //Send the string to the user!
+		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2); //Send the string to the user!
 	}
 	else
 	{
 		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
-		modem_responseString(&s[0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4);
+		modem_responseString(&s[0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2)|4);
 	}
 	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
 	{
@@ -581,7 +582,7 @@ void modem_responseNumber(byte x)
 	{
 		memset(&s,0,sizeof(s));
 		snprintf(s,sizeof(s),"%04u",x); //Convert to a string!
-		modem_responseString((byte *)&s,1); //Send the string to the user!
+		modem_responseString((byte *)&s,2|4); //Send the string to the user!
 	}
 	else
 	{
@@ -1615,7 +1616,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						switch (SETGET) //What kind of set/get?
 						{
 						case 1: //GET?
-							modem_responseString((byte *)&BIOS_Settings.phonebook[n0], 1); //Give the phonenumber!
+							modem_responseString((byte *)&BIOS_Settings.phonebook[n0], 2|4); //Give the phonenumber!
 							break;
 						case 2: //SET?
 							memset(&BIOS_Settings.phonebook[n0], 0, sizeof(BIOS_Settings.phonebook[0])); //Init the phonebook entry!
