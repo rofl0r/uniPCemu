@@ -560,18 +560,18 @@ void modem_responseResult(byte result) //What result to give!
 		result = MODEMRESULT_ERROR; //Error!
 	}
 	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
-	if (modem.verbosemode&1) //Code format result?
+	if (modem.verbosemode&1) //Text format result?
 	{
-		modem_responseString(&ATresultsString[result][0],((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2); //Send the string to the user!
+		modem_responseString(&ATresultsString[result][0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4); //Send the string to the user!
+		if ((result == MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
+		{
+			modem_responseString(&connectionspeed[0], (2 | 4)); //End the command properly with a speed indication in bps!
+		}
 	}
-	else
+	else //Numeric format result?
 	{
 		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
-		modem_responseString(&s[0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:2)|4);
-	}
-	if ((result==MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
-	{
-		modem_responseString(&connectionspeed[0],2|((modem.verbosemode&1)<<2)); //End the command properly with a speed indication in bps!
+		modem_responseString(&s[0],((1|2)|4));
 	}
 }
 
