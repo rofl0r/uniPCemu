@@ -754,8 +754,8 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
 	{
-		if (checkStackAccess(1,1,SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]))) return 0; //Abort on fault!
-		if (SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //32-bit task?
+		if (checkStackAccess(1,1,TSSSize)) return 0; //Abort on fault!
+		if (TSSSize)) //32-bit task?
 		{
 			CPU_PUSH32(&errorcode32); //Push the error on the stack!
 		}
