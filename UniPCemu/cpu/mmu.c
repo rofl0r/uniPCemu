@@ -211,10 +211,13 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 	if (unlikely(checkProtectedModeDebugger(realaddress,dt))) return 1; //Error out!
 	skipdebugger:
 
-	if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
+	if ((readflags&0x20)==0) //Checking against paging?
 	{
-		MMU.invaddr = 3; //Invalid address signaling!
-		return 1; //Error out!
+		if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
+		{
+			MMU.invaddr = 3; //Invalid address signaling!
+			return 1; //Error out!
+		}
 	}
 	checkMMUaccess_linearaddr = realaddress; //Save the last valid access for the BIU to use(we're not erroring out after all)!
 	//We're valid?
