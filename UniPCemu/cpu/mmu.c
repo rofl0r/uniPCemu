@@ -181,7 +181,7 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 }
 
 uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
-//readflags = 1|(opcode<<1) for reads! 0 for writes!
+//readflags = 1|(opcode<<1) for reads! 0 for writes! Bit 4: Disable segmentation check, Bit 5: Disable debugger check, Bit 6: Disable paging check.
 byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	static byte debuggertype[4] = {PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION};
@@ -189,29 +189,35 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0&0x40000) && (EMULATED_CPU>=CPU_80486) && (segdesc!=-1) && (getCPL()==3) && (
-			((offset&7) && (subbyte==0x20))||((offset&3) && (subbyte==0x10))||((offset&1) && (subbyte==0x8))
+	if ((readflags & 0x10) == 0) //Allow basic segmentation checks?
+	{
+		if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (segdesc != -1) && (getCPL() == 3) && (
+			((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))
 			))) //Aligment enforced and wrong? Don't apply on internal accesses!
-	{
-		CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
-		return 1; //Error out!
-	}
+		{
+			CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
+			return 1; //Error out!
+		}
 
-	if (unlikely(CPU_MMU_checklimit(segdesc,segment,offset,readflags,is_offset16))) //Disallowed?
-	{
-		MMU.invaddr = 2; //Invalid address signaling!
-		return 1; //Not found.
+		if (unlikely(CPU_MMU_checklimit(segdesc, segment, offset, readflags, is_offset16))) //Disallowed?
+		{
+			MMU.invaddr = 2; //Invalid address signaling!
+			return 1; //Not found.
+		}
 	}
 
 	//Check for paging and debugging next!
 	realaddress = MMU_realaddr(segdesc, segment, offset, 0,is_offset16); //Real adress!
 
-	dt = debuggertype[readflags&3]; //Load debugger type!
-	if (unlikely(dt==0xFF)) goto skipdebugger; //No debugger supported for this type?
-	if (unlikely(checkProtectedModeDebugger(realaddress,dt))) return 1; //Error out!
+	if ((readflags & 0x20) == 0) //Allow debugger checks?
+	{
+		dt = debuggertype[readflags&3]; //Load debugger type!
+		if (unlikely(dt==0xFF)) goto skipdebugger; //No debugger supported for this type?
+		if (unlikely(checkProtectedModeDebugger(realaddress,dt))) return 1; //Error out!
+	}
 	skipdebugger:
 
-	if ((readflags&0x20)==0) //Checking against paging?
+	if ((readflags&0x40)==0) //Checking against paging?
 	{
 		if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
 		{
