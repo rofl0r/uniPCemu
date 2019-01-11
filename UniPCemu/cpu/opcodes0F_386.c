@@ -1268,6 +1268,7 @@ void CPU80386_OP0FBC_16() {
 			FLAGW_ZF(0);
 			temp = 0;
 			BST_cnt = 0; //Init counter!
+			instructionbufferw2 = 0; //Init to the first result, which doesn't enter the following loop!
 			for (;(((instructionbufferw>>temp)&1)==0) && (temp<16);) //Still searching?
 			{
 				++temp;
@@ -1306,6 +1307,7 @@ void CPU80386_OP0FBC_32() {
 			FLAGW_ZF(0);
 			temp = 0;
 			BST_cnt = 0; //Init counter!
+			instructionbufferd2 = 0; //Init to the first result, which doesn't enter the following loop!
 			for (;(((instructionbufferd>>temp)&1)==0) && (temp<32);) //Still searching?
 			{
 				++temp;
