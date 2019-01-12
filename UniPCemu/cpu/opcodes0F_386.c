@@ -1265,7 +1265,6 @@ void CPU80386_OP0FBC_16() {
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; //Read dest!
 		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			FLAGW_ZF(0);
 			temp = 0;
 			BST_cnt = 0; //Init counter!
 			instructionbufferw2 = 0; //Init to the first result, which doesn't enter the following loop!
@@ -1276,6 +1275,7 @@ void CPU80386_OP0FBC_16() {
 				++BST_cnt; //Increase counter!
 			}
 			flag_log16(instructionbufferw2);
+			FLAGW_ZF(0);
 			++BST_cnt; //Increase counter!
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
@@ -1304,7 +1304,6 @@ void CPU80386_OP0FBC_32() {
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; //Read dest!
 		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			FLAGW_ZF(0);
 			temp = 0;
 			BST_cnt = 0; //Init counter!
 			instructionbufferd2 = 0; //Init to the first result, which doesn't enter the following loop!
@@ -1315,6 +1314,7 @@ void CPU80386_OP0FBC_32() {
 				++BST_cnt; //Increase counter!
 			}
 			flag_log32(instructionbufferd2);
+			FLAGW_ZF(0);
 			++BST_cnt; //Increase counter!
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
@@ -1344,7 +1344,6 @@ void CPU80386_OP0FBD_16() {
 		if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; //Read dest!
 		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			FLAGW_ZF(0);
 			temp = 15;
 			BST_cnt = 0;
 			instructionbufferw2 = temp; //Save the current value!
@@ -1354,6 +1353,7 @@ void CPU80386_OP0FBD_16() {
 				instructionbufferw2 = temp;
 			}
 			flag_log16(instructionbufferw2);
+			FLAGW_ZF(0);
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
@@ -1381,7 +1381,6 @@ void CPU80386_OP0FBD_32() {
 		if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; //Read dest!
 		if (CPU[activeCPU].instructionstep==0) //Executing?
 		{
-			FLAGW_ZF(0);
 			temp = 31;
 			BST_cnt = 0;
 			instructionbufferd2 = temp; //Save the current value!
@@ -1391,6 +1390,7 @@ void CPU80386_OP0FBD_32() {
 				instructionbufferd2 = temp;
 			}
 			flag_log32(instructionbufferd2);
+			FLAGW_ZF(0);
 			++CPU[activeCPU].instructionstep;
 			CPU_apply286cycles(); /* Apply cycles */
 			if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } //Delay when running!
