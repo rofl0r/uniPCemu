@@ -78,8 +78,8 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 			{
 				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
 				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size)+1,0|0x40,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
-				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0x30, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size) + 1, 0|0x30, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size) + 1, 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
 				if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val,!CPU_Address_size[activeCPU])) return; //Write to memory directly!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			}
@@ -266,10 +266,10 @@ void CPU186_OP62()
 		modrm_addoffset = 2; //Max offset!
 		if (modrm_check16(&params,MODRM_src1,1|0x40)) return; //Abort on fault!
 		modrm_addoffset = 0; //No offset!
-		if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
-		if (modrm_check16(&params,MODRM_src1,1|0x30)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; //Abort on fault!
 		modrm_addoffset = 2; //Max offset!
-		if (modrm_check16(&params,MODRM_src1,1|0x30)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; //Abort on fault!
 	}
 
 	modrm_addoffset = 0; //No offset!
@@ -322,7 +322,7 @@ void CPU186_OP69()
 			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check16(&params,1,1|0x40)) return; //Abort on fault!
-				if (modrm_check16(&params,1,1|0x30)) return; //Abort on fault!
+				if (modrm_check16(&params,1,1|0xA0)) return; //Abort on fault!
 			}
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
@@ -378,7 +378,7 @@ void CPU186_OP6B()
 			if (unlikely(CPU[activeCPU].modrmstep==0))
 			{
 				if (modrm_check16(&params,1,1|0x40)) return; //Abort on fault!
-				if (modrm_check16(&params,1,1|0x30)) return; //Abort on fault!
+				if (modrm_check16(&params,1,1|0xA0)) return; //Abort on fault!
 			}
 			if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; //Read R/M!
 			temp1.val16high = 0; //Clear high part by default!
@@ -448,8 +448,8 @@ void CPU186_OP6D()
 	{
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI)+1,0|0x40,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0x30, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI) + 1, 0|0x30, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI) + 1, 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
 	}
 	if (CPU_PORT_IN_W(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
@@ -528,8 +528,8 @@ void CPU186_OP6F()
 	{
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI)+1,1|0x40,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0x30, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI) + 1, 1|0x30, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI) + 1, 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
 	}
 	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSW
 	CPUPROT1
@@ -563,7 +563,7 @@ void CPU186_OP6F()
 }
 
 word temp8Edata;
-void CPU186_OP8E() { modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM_01); if (params.info[MODRM_src0].reg16 == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ { unkOP_186(); return; } if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0x30)) return; } if (CPU8086_instructionstepreadmodrmw(0, &temp8Edata, MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src0].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
+void CPU186_OP8E() { modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM_01); if (params.info[MODRM_src0].reg16 == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ { unkOP_186(); return; } if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0, &temp8Edata, MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); if ((params.info[MODRM_src0].reg16 == &CPU[activeCPU].registers->SS) && (params.info[MODRM_src0].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
 
 void CPU186_OPC0()
 {
@@ -602,8 +602,8 @@ void CPU186_OPC0()
 	{
 		if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check8(&params,MODRM_src0,1|0x30)) return; //Abort when needed!
-		if (modrm_check8(&params,MODRM_src0,0|0x30)) return; //Abort when needed!
+		if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
+		if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==0) //Execution step?
@@ -653,8 +653,8 @@ void CPU186_OPC1()
 	{
 		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort when needed!
-		if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort when needed!
+		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 	if (CPU[activeCPU].instructionstep==0) //Execution step?

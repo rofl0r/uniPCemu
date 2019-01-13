@@ -189,7 +189,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if ((readflags & 0x10) == 0) //Allow basic segmentation checks?
+	if ((readflags & 0x80) == 0) //Allow basic segmentation checks?
 	{
 		if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (segdesc != -1) && (getCPL() == 3) && (
 			((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))

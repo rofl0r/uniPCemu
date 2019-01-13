@@ -78,8 +78,8 @@ void CPU286_OP63() //ARPL r/m16,r16
 	{
 		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort on fault!
 		if (modrm_check16(&params,MODRM_src1,1|0x40)) return; //Abort on fault!
-		if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
-		if (modrm_check16(&params,MODRM_src1,1|0x30)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; //Abort on fault!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&destRPL,MODRM_src0)) return; //Read destination RPL!
 	CPUPROT1
@@ -92,7 +92,7 @@ void CPU286_OP63() //ARPL r/m16,r16
 				FLAGW_ZF(1); //Set ZF!
 				setRPL(destRPL,getRPL(srcRPL)); //Set the new RPL!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 			}
 			else
 			{
@@ -118,7 +118,7 @@ void CPU286_OP9D() {
 	if (CPU80286_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU8086_POPw(2,&tempflags,0)) return;
 	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (getCPL()) { tempflags &= ~0xA000; tempflags |= REG_FLAGS&0xA000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
@@ -148,7 +148,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("SLDT %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->LDTR,MODRM_src0,0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -159,7 +159,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("STR %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].registers->TR,MODRM_src0,0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -175,7 +175,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			if (segmentWritten(CPU_SEGMENT_LDTR,oper1,0)) return; //Write the segment!
@@ -194,7 +194,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			THROWDESCGP(0,0,0); //Throw #GP!
 			return; //Abort!
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			if (segmentWritten(CPU_SEGMENT_TR, oper1, 0)) return; //Write the segment!
@@ -208,7 +208,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERR %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			SEGMENT_DESCRIPTOR verdescriptor;
@@ -249,7 +249,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("VERW %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the descriptor!
 		CPUPROT1
 			SEGMENT_DESCRIPTOR verdescriptor;
@@ -316,11 +316,11 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_addoffset = 4;
 			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort on fault!
 			modrm_addoffset = 0;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 2;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 4;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 		}
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -353,11 +353,11 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_addoffset = 4;
 			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort on fault!
 			modrm_addoffset = 0;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 2;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 4;
-			if (modrm_check16(&params,MODRM_src0,0|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort on fault!
 		}
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -395,11 +395,11 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_addoffset = 4;
 			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort on fault!
 			modrm_addoffset = 0;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 2;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 4;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 		}
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -443,11 +443,11 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			modrm_addoffset = 4;
 			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort on fault!
 			modrm_addoffset = 0;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 2;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 			modrm_addoffset = 4;
-			if (modrm_check16(&params,MODRM_src0,1|0x30)) return; //Abort on fault!
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort on fault!
 		}
 
 		modrm_addoffset = 0; //Add no bytes to the offset!
@@ -471,7 +471,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		break;
 	case 4: //SMSW
 		debugger_setcommand("SMSW %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepwritemodrmw(0,(word)(CPU[activeCPU].registers->CR0&0xFFFF),MODRM_src0,0)) return; //Store the MSW into the specified location!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -482,7 +482,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			THROWDESCGP(0, 0, 0); //Throw #GP!
 			return; //Abort!
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0x30)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort on fault!
 		if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src0)) return; //Read the new register!
 		CPUPROT1
 		oper1 |= (CPU[activeCPU].registers->CR0&CR0_PE); //Keep the protected mode bit on, this isn't toggable anymore once set!
@@ -511,7 +511,7 @@ void CPU286_OP0F02() //LAR /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LAR", 16, 0, PARAM_MODRM12); //Our instruction text!
-	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0x30)) return; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0xA0)) return; } //Abort on fault!
 	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
@@ -543,7 +543,7 @@ void CPU286_OP0F02() //LAR /r
 				}
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0x30)) return; } //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0,0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
@@ -580,7 +580,7 @@ void CPU286_OP0F03() //LSL /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LSL", 16, 0, PARAM_MODRM12); //Our instruction text!
-	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0x30)) return; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0xA0)) return; } //Abort on fault!
 	if (CPU8086_instructionstepreadmodrmw(0,&oper1,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
@@ -616,7 +616,7 @@ void CPU286_OP0F03() //LSL /r
 
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0x30)) return; } //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(limit&0xFFFF),MODRM_src0,0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
