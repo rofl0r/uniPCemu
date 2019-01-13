@@ -154,27 +154,63 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 		}
 
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(),isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(),(isPUSH?0:1)|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+1,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+1,(isPUSH?0:1)|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+2,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+2,(isPUSH?0:1)|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+3,isPUSH?0:1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter())+3,(isPUSH?0:1)|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 		}
 		if (isPUSH==0)
+		{
+			ESP += stack_popchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+		}
+		--poptimesleft; //One POP processed!
+	}
+	poptimesleft = poptimes; //Load the amount to check!
+	ESP = CPU[activeCPU].registers->ESP; //Load the stack pointer to verify!
+	for (; poptimesleft;) //Anything left?
+	{
+		if (isPUSH)
+		{
+			ESP += stack_pushchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+		}
+
+		//We're at least a word access!
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(), (isPUSH ? 0 : 1)|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()) + 1, (isPUSH ? 0 : 1)|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 1 | (8 << isdword))) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (isdword) //DWord?
+		{
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()) + 2, (isPUSH ? 0 : 1)|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 2 | (8 << isdword))) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()) + 3,( isPUSH ? 0 : 1)|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 3 | (8 << isdword))) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+		}
+		if (isPUSH == 0)
 		{
 			ESP += stack_popchange(isdword); //Apply the change in virtual (E)SP to check the next value!
 		}
@@ -192,22 +228,51 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 		EBP -= stack_popchange(isdword); //Apply the change in virtual (E)BP to check the next value(decrease in EBP)!
 		
 		//We're at least a word access!
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(),1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+1,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+1,1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),1|(8<<isdword))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+2,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+2,1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),2|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 
-			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+3,1,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+3,1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),3|(8<<isdword))) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+		}
+		--poptimesleft; //One POP processed!
+	}
+	poptimesleft = poptimes; //Load the amount to check!
+	EBP = CPU[activeCPU].registers->EBP; //Load the stack pointer to verify!
+	for (; poptimesleft;) //Anything left?
+	{
+		EBP -= stack_popchange(isdword); //Apply the change in virtual (E)BP to check the next value(decrease in EBP)!
+
+		//We're at least a word access!
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, EBP&getstackaddrsizelimiter(), 1|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()) + 1, 1|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 1 | (8 << isdword))) //Error accessing memory?
+		{
+			return 1; //Abort on fault!
+		}
+		if (isdword) //DWord?
+		{
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()) + 2, 1|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 2 | (8 << isdword))) //Error accessing memory?
+			{
+				return 1; //Abort on fault!
+			}
+
+			if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()) + 3, 1|0x30, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 3 | (8 << isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}

@@ -45,8 +45,14 @@ byte checkloadTSS16()
 	for (n = 0;n < 0x2C;n+=2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1|0x40, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
+	for (n = 0; n < 0x2C; n += 2) //Load our TSS!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	}
+
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
 }
@@ -98,51 +104,99 @@ byte checkloadTSS32()
 	byte ssspreg;
 	word n;
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		n += 4; //Next item!
 	}
 
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1|0x40, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1|0x40, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+0,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+1,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+1,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+2,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+3,1,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+3,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 0; //Don't log!
+
+	debugger_forceimmediatelogging = 1; //Log!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	//SP0/ESP0 initializing!
+	n = 4; //Start of our block!
+
+	for (ssspreg = 0; ssspreg < 3; ++ssspreg) //Read all required stack registers!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+
+		n += 4; //Next item!
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		n += 4; //Next item!
+	}
+
+	for (n = (7 * 4); n < ((7 + 11) * 4); n += 4) //Write our TSS 32-bit data!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	}
+
+	for (n = (((7 + 11) * 4)); n < ((7 + 11 + 7) * 4); n += 4) //Write our TSS 16-bit data!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	}
+
+	debugger_forceimmediatelogging = 1; //Log!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 0, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 1, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	debugger_forceimmediatelogging = 1; //Log!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 3, 1|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	debugger_forceimmediatelogging = 0; //Don't log!
+
 	return 0; //OK!
 }
 
@@ -165,8 +219,14 @@ byte checksaveTSS16()
 	for (n=((7*2));n<(0x2C-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	}
+	for (n = ((7 * 2)); n < (0x2C - 2); n += 2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
@@ -197,19 +257,38 @@ byte checksaveTSS32()
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+2,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+3,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+1,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 0|0x40, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 0|0x40, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	}
+	debugger_forceimmediatelogging = 0; //Don't log!
+
+	for (n = (8 * 4); n < ((8 + 10) * 4); n += 4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	}
+
+	for (n = (((8 + 10) * 4)); n < ((8 + 10 + 6) * 4); n += 4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
+	{
+		debugger_forceimmediatelogging = 1; //Log!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 1, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 2, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 3, 0|0x30, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!

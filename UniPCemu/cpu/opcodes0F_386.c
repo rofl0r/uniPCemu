@@ -417,36 +417,45 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
-	if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (getCPL() == 3) && (
-		((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))
-		))) //Aligment enforced and wrong? Don't apply on internal accesses!
+	if ((readflags & 0x10) == 0)
 	{
-		CPU_AC(0); //Alignment DWORD check fault!
-		return 1; //Error out!
+		if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (getCPL() == 3) && (
+			((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))
+			))) //Aligment enforced and wrong? Don't apply on internal accesses!
+		{
+			CPU_AC(0); //Alignment DWORD check fault!
+			return 1; //Error out!
+		}
 	}
 
 	//Check for paging and debugging next!
 	realaddress = ((uint_64)segment<<4)+offset; //Real adress, 80386 way!
 
-	switch (readflags) //What kind of flags?
+	if ((readflags & 0x20) == 0)
 	{
+		switch (readflags) //What kind of flags?
+		{
 		case 0: //Data Write?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE))) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress, PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE))) return 1; //Error out!
 			break;
 		case 1: //Data Read?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD))) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress, PROTECTEDMODEDEBUGGER_TYPE_DATAREAD))) return 1; //Error out!
 			break;
 		case 3: //Opcode read?
-			if (unlikely(checkProtectedModeDebugger(realaddress,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION))) return 1; //Error out!
+			if (unlikely(checkProtectedModeDebugger(realaddress, PROTECTEDMODEDEBUGGER_TYPE_EXECUTION))) return 1; //Error out!
 			break;
 		case 2: //Unknown?
 		default: //Unknown? Unsupported!
 			break;
+		}
 	}
 
-	if (checkDirectMMUaccess(realaddress,readflags,CPL)) //Failure in the Paging Unit?
+	if ((readflags & 0x40) == 0)
 	{
-		return 1; //Error out!
+		if (checkDirectMMUaccess(realaddress, readflags, CPL)) //Failure in the Paging Unit?
+		{
+			return 1; //Error out!
+		}
 	}
 
 	//We're valid?
@@ -507,10 +516,17 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
 		for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex)
 		{
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size),1,getCPL(),1,0|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+1,1,getCPL(),1,1|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+2,1,getCPL(),1,2|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+3,1,getCPL(),1,3|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size),1|0x40,getCPL(),1,0|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+1,1|0x40,getCPL(),1,1|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+2,1|0x40,getCPL(),1,2|0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+3,1|0x40,getCPL(),1,3|0x10)) return; //Abort on fault!
+		}
+		for (readindex = 0; readindex < NUMITEMS(LOADALLDATA.datad); ++readindex)
+		{
+			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size), 1 | 0x30, getCPL(), 1, 0 | 0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 1, 1 | 0x30, getCPL(), 1, 1 | 0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 2, 1 | 0x30, getCPL(), 1, 2 | 0x10)) return; //Abort on fault!
+			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 3, 1 | 0x30, getCPL(), 1, 3 | 0x10)) return; //Abort on fault!
 		}
 		++CPU[activeCPU].instructionstep; //Finished check!
 	}
