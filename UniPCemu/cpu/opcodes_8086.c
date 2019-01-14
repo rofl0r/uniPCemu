@@ -5060,8 +5060,21 @@ void CPU8086_OPFF() //GRP5 Ev
 	}
 	if (unlikely((CPU[activeCPU].modrmstep==0) && (CPU[activeCPU].internalmodrmstep==0) && (CPU[activeCPU].instructionstep==0)))
 	{
+		modrm_addoffset = 0;
 		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
+		if ((thereg==3) || (thereg==5)) //extra segment?
+		{
+			modrm_addoffset = 2;
+			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!		
+		}
+		modrm_addoffset = 0;
 		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
+		if ((thereg==3) || (thereg==5)) //extra segment?
+		{
+			modrm_addoffset = 2;
+			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!		
+		}
+		modrm_addoffset = 0;
 	}
 	if (thereg>1) //Data needs to be read directly? Not INC/DEC(which already reads it's data directly)?
 	{
