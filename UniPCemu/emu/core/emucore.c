@@ -1128,7 +1128,7 @@ OPTINLINE byte coreHandler()
 								break;
 							}
 						}
-						else if (unlikely((doEMUtasksinglestep|doEMUCR3singlestep))) //Task&CR3 singlestep for any address?
+						else if (unlikely(((doEMUtasksinglestep|doEMUCR3singlestep) && (doEMUsinglestep==0)))) //Task&CR3 singlestep for any address?
 						{
 							applysinglestep = 1; //Use combined rights!
 						}
