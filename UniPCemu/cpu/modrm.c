@@ -117,6 +117,10 @@ void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check 
 	{
 		if (segmentWritten(index,value,isJMPorCALL)) return; //Update when possible!
 	}
+	else //valid to write?
+	{
+		*location = value; //Write the value!
+	}
 }
 
 word modrm_lastsegment;
@@ -242,7 +246,6 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 		result = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
-			*result = value; //Write the data to the result!
 			destEIP = REG_EIP; //Our instruction pointer!
 			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
 		}
@@ -278,7 +281,6 @@ byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte
 		result = (word *)/*memprotect(*/params->info[whichregister].reg16/*,2,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
-			*result = value; //Write the data to the result!
 			destEIP = REG_EIP; //Our instruction pointer!
 			modrm_updatedsegment(result,value,isJMPorCALL); //Plain update of the segment register, if needed!
 		}

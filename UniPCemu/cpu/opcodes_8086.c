@@ -2608,10 +2608,6 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			destEIP = REG_EIP; //Store (E)IP for safety!
 			modrm_updatedsegment(dest,val,0); //Check for an updated segment!
 			CPUPROT1
-			if (get_segment_index(dest)==-1) //Valid to write directly?
-			{
-				*dest = val;
-			}
 			if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
 			{
 				switch (flags) //What type are we?
