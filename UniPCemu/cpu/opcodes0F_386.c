@@ -793,7 +793,7 @@ void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 	byte shift;
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
-	if (cnt && (cnt<=16)) //To actually shift?
+	if (cnt && (cnt<16)) //To actually shift?
 	{
 		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,MODRM_src0)) return; } //Read source if needed!
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
@@ -871,7 +871,7 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 	byte shift;
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
-	if (cnt && (cnt<=16))
+	if (cnt && (cnt<16))
 	{
 		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,MODRM_src0)) return; } //Read source if needed!
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
