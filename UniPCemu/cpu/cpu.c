@@ -524,7 +524,7 @@ byte CPU_PORT_OUT_B(word base, word port, byte data)
 	//Check rights!
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
@@ -560,12 +560,12 @@ byte CPU_PORT_OUT_W(word base, word port, word data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port+1)) //Not allowed?
+		if ((portrights_error = checkPortRights(port+1))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
@@ -601,22 +601,22 @@ byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 1)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 2)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 2))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 3)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 3))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
@@ -652,7 +652,7 @@ byte CPU_PORT_IN_B(word base, word port, byte *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
@@ -687,12 +687,12 @@ byte CPU_PORT_IN_W(word base, word port, word *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 1)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
@@ -727,22 +727,22 @@ byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if (portrights_error = checkPortRights(port)) //Not allowed?
+		if ((portrights_error = checkPortRights(port))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 1)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 2)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 2))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if (portrights_error = checkPortRights(port + 3)) //Not allowed?
+		if ((portrights_error = checkPortRights(port + 3))) //Not allowed?
 		{
 			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
