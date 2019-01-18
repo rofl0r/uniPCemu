@@ -1655,6 +1655,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		uint_32 maplocation;
 		byte mappos;
 		byte mapvalue;
+		word mapbase;
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
 		mapvalue = 1; //Default to have the value 1!
@@ -1662,12 +1663,13 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
-			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
-			if (maplocation < limit) //Not over the limit? We're an valid entry!
+			mapbase = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,1); //Add the map location to the specified address!
+			maplocation += mapbase; //The actual location!
+			if ((maplocation <= limit) && (mapbase<limit)) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
 			{
-				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0x40|1,0,0,0)) //Check if the address is valid according to segmentation!
-				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0xA0|1,0,0,0)) //Check if the address is valid according to the remainder of checks!
-				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos); //We're the bit to use!
+				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0x40|1,0,1,0)) //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0xA0|1,0,1,0)) //Check if the address is valid according to the remainder of checks!
+				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,1)&mappos); //We're the bit to use!
 			}
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
