@@ -787,24 +787,30 @@ extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
 
 word tempSHLRDW;
 uint_32 tempSHLRDD;
+word backupshiftin;
 
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
 	byte shift;
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
-	if (cnt && (cnt<16)) //To actually shift?
+	if (cnt) //To actually shift?
 	{
 		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,MODRM_src0)) return; } //Read source if needed!
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
+			backupshiftin = src; //Make a backup!
 			BST_cnt = cnt; //Count!
 			for (shift = 1; shift <= cnt; shift++)
 			{
 				if (tempSHLRDW & 0x8000) FLAGW_CF(1); else FLAGW_CF(0);
 				tempSHLRDW = ((tempSHLRDW << 1) & 0xFFFF)|((src>>15)&1);
 				src <<= 1; //Next bit to shift in!
+				if (shift == 16) //All available bits shifted?
+				{
+					src = backupshiftin; //Start reshifting the src!
+				}
 			}
 			if (cnt==1) { if (FLAG_CF == (tempSHLRDW >> 15)) FLAGW_OF(0); else FLAGW_OF(1); }
 			flag_szp16(tempSHLRDW);
@@ -871,12 +877,13 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 	byte shift;
 	cnt &= 0x1F;
 	BST_cnt = 0; //Count!
-	if (cnt && (cnt<16))
+	if (cnt)
 	{
 		if (!dest) { if (CPU8086_internal_stepreadmodrmw(0,&tempSHLRDW,MODRM_src0)) return; } //Read source if needed!
 		else if (CPU[activeCPU].internalinstructionstep==0) tempSHLRDW = *dest;
 		if (CPU[activeCPU].internalinstructionstep==0) //Exection step?
 		{
+			backupshiftin = src; //Make a backup!
 			BST_cnt = cnt; //Count!
 			if (cnt == 1) FLAGW_OF(((tempSHLRDW & 0x8000) ^ ((src & 1) << 15)) ? 1 : 0);
 			for (shift = 1; shift <= cnt; shift++)
@@ -884,6 +891,10 @@ void CPU80386_SHRD_16(word *dest, word src, byte cnt)
 				FLAGW_CF(tempSHLRDW & 1);
 				tempSHLRDW = ((tempSHLRDW >> 1)|((src&1)<<15));
 				src >>= 1; //Next bit to shift in!
+				if (shift == 16) //All available bits shifted?
+				{
+					src = backupshiftin; //Start reshifting the src!
+				}
 			}
 			flag_szp16(tempSHLRDW);
 			++CPU[activeCPU].internalinstructionstep;
