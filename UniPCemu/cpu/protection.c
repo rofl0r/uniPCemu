@@ -1663,13 +1663,21 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
-			mapbase = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,1); //Add the map location to the specified address!
-			maplocation += mapbase; //The actual location!
-			if ((maplocation <= limit) && (mapbase<limit)) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+			if (limit >= 0x68) //Valid to check?
 			{
-				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0x40|1,0,1,0)) //Check if the address is valid according to segmentation!
-				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0xA0|1,0,1,0)) //Check if the address is valid according to the remainder of checks!
-				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,1)&mappos); //We're the bit to use!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				mapbase = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
+				maplocation += mapbase; //The actual location!
+				//Custom, not in documentation: 
+				if ((maplocation <= limit) && (mapbase < limit) && (mapbase >= 0x68)) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+				{
+					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+					mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0, 1)&mappos); //We're the bit to use!
+				}
 			}
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
