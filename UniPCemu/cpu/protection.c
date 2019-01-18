@@ -1665,6 +1665,8 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
 			if (maplocation < limit) //Not over the limit? We're an valid entry!
 			{
+				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0x40|1,0,0,0)) //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,maplocation,0xA0|1,0,0,0)) //Check if the address is valid according to the remainder of checks!
 				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos); //We're the bit to use!
 			}
 		}
