@@ -1155,7 +1155,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
 						
-						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abort on error!
+						if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 
