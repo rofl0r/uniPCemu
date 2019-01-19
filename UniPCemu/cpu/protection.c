@@ -960,6 +960,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
+		&& (!((isJMPorCALL&0x80)==0x80))
 		)
 	{
 		goto throwdescoriginalval; //Throw error!
@@ -1051,8 +1052,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 					}
 					CPU[activeCPU].CallGateStack[CPU[activeCPU].CallGateParamCount++] = argument; //Add the argument to the call gate buffer to transfer to the new stack! Implement us as a LIFO for transfers!
 				}
-
-				CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR); //Changing privilege to this!
 			}
 			else
 			{
