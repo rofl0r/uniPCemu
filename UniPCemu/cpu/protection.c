@@ -1655,6 +1655,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		uint_32 maplocation;
 		byte mappos;
 		byte mapvalue;
+		word mapbase;
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
 		mapvalue = 1; //Default to have the value 1!
@@ -1662,10 +1663,21 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
-			maplocation += MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0x66,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Add the map location to the specified address!
-			if (maplocation < limit) //Not over the limit? We're an valid entry!
+			if (limit >= 0x68) //Valid to check?
 			{
-				mapvalue = (MMU_rb(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0,!CODE_SEGMENT_DESCRIPTOR_D_BIT())&mappos); //We're the bit to use!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
+				maplocation += mapbase; //The actual location!
+				//Custom, not in documentation: 
+				if ((maplocation <= limit) && (mapbase < limit) && (mapbase >= 0x68)) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+				{
+					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+					mapvalue = (MMU_rb0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0, 1)&mappos); //We're the bit to use!
+				}
 			}
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
@@ -1694,9 +1706,36 @@ byte switchStacks(byte newCPL)
 	case AVL_SYSTEM_TSS16BIT:
 		TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
 		TSS_StackPos += (4<<TSSSize)*newCPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
-		ESPn = TSSSize?MMU_rdw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()):MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read (E)SP for the privilege level from the TSS!
+		//Check against memory first!
+		//First two are the SP!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+1, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		//Next two are either high ESP or SS!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+3, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (TSSSize) //Extra checks for 32-bit?
+		{
+			//The 32-bit TSS SSn value!
+			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+5, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		}
+		//First two are the SP!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+1, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		//Next two are either high ESP or SS!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+3, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (TSSSize) //Extra checks for 32-bit?
+		{
+			//The 32-bit TSS SSn value!
+			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+5, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		}
+		//Memory is now validated! Load the values from memory!
+
+		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
-		SSn = MMU_rw(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //SS!
+		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
 		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
 		if (TSSSize) //32-bit?
 		{

@@ -342,6 +342,31 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	return result; //Give the result!
 }
 
+OPTINLINE byte MMU_INTERNAL_rb0(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	INLINEREGISTER byte result; //The result!
+	INLINEREGISTER uint_32 realaddress;
+	byte writewordbackup = writeword; //Save the old value first!
+	if (MMU.memory==NULL) //No mem?
+	{
+		//dolog("MMU","R:No memory present!");
+		MMU.invaddr = 1; //Invalid adress!
+		return 0xFF; //Out of bounds!
+	}
+
+	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+
+	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,0); //Read through the paging unit and hardware layer!
+	processBUS(realaddress, index, result); //Process us on the BUS!
+
+	if (unlikely(MMU_logging==1)) //To log?
+	{
+		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
+	}
+
+	return result; //Give the result!
+}
+
 OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
 {
 	INLINEREGISTER word result;
@@ -350,11 +375,27 @@ OPTINLINE word MMU_INTERNAL_rw(sword segdesc, word segment, uint_32 offset, byte
 	return result; //Give the result!
 }
 
+OPTINLINE word MMU_INTERNAL_rw0(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
+{
+	INLINEREGISTER word result;
+	result = MMU_INTERNAL_rb0(segdesc, segment, offset, opcode,index|0x40,is_offset16); //We're accessing a word!
+	result |= (MMU_INTERNAL_rb0(segdesc, segment, offset + 1, opcode,index|1|0x40,is_offset16) << 8); //Get adress word!
+	return result; //Give the result!
+}
+
 OPTINLINE uint_32 MMU_INTERNAL_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
 {
 	INLINEREGISTER uint_32 result;
 	result = MMU_INTERNAL_rw(segdesc, segment, offset, opcode,index|0x80,is_offset16);
 	result |= (MMU_INTERNAL_rw(segdesc, segment, offset + 2, opcode,(index|2|0x80),is_offset16) << 16); //Get adress dword!
+	return result; //Give the result!
+}
+
+OPTINLINE uint_32 MMU_INTERNAL_rdw0(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress!
+{
+	INLINEREGISTER uint_32 result;
+	result = MMU_INTERNAL_rw0(segdesc, segment, offset, opcode, index | 0x80, is_offset16);
+	result |= (MMU_INTERNAL_rw0(segdesc, segment, offset + 2, opcode, (index | 2 | 0x80), is_offset16) << 16); //Get adress dword!
 	return result; //Give the result!
 }
 
@@ -441,6 +482,20 @@ uint_32 MMU_rdw(sword segdesc, word segment, uint_32 offset, byte opcode, byte i
 {
 	return MMU_INTERNAL_rdw(segdesc,segment,offset,opcode,0,is_offset16);
 }
+
+byte MMU_rb0(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rb0(segdesc,segment,offset,opcode,0,is_offset16);
+}
+word MMU_rw0(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rw0(segdesc,segment,offset,opcode,0,is_offset16);
+}
+uint_32 MMU_rdw0(sword segdesc, word segment, uint_32 offset, byte opcode, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
+{
+	return MMU_INTERNAL_rdw0(segdesc,segment,offset,opcode,0,is_offset16);
+}
+
 
 //Extra routines for the emulator.
 
