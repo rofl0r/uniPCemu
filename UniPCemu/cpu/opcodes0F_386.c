@@ -697,14 +697,14 @@ void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/
 
 //L*S instructions
 
-void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16
-void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
+void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16
+void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
 
-void CPU80386_OP0FB4_16() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r16,m16:16
-void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
+void CPU80386_OP0FB4_16() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r16,m16:16
+void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
 
-void CPU80386_OP0FB5_16() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",0,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r16,m16:16
-void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",0,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r32,m16:32
+void CPU80386_OP0FB5_16() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r16,m16:16
+void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r32,m16:32
 
 //Special debugger support for the following MOV[S/Z]X instructions.
 
