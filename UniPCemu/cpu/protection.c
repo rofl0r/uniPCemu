@@ -414,22 +414,22 @@ typedef struct
 } checkrights_cond;
 
 checkrights_cond checkrights_conditions[0x10] = {
-	{ ~0x10,0,0 }, //0 Data, read-only
-	{ 0,0,0 }, //1 unused
-	{ 0,1,0 }, //2 Data, read/write! Allow always!
-	{ 0,0,0 }, //3 unused
-	{ ~0x10,0,0 }, //4 Data(expand down), read-only
-	{ 0,0,0 }, //5 unused
-	{ 0,1,0 }, //6 Data(expand down), read/write! Allow always!
-	{ 0,0,0 }, //7 unused
-	{ ~0x10,1,3 }, //8 Code, non-conforming, execute-only
-	{ 0,0,0 }, //9 unused
-	{ ~0x10,0,0 }, //10 Code, non-conforming, execute/read
-	{ 0,0,0 }, //11 unused
-	{ ~0x10,1,3 }, //12 Code, conforming, execute-only
-	{ 0,0,0 }, //13 unused
-	{ ~0x10,0,0 }, //14 Code, conforming, execute/read
-	{ 0,0,0 } //15 unused
+	{ 0x13&~0x10,0,0 }, //0 Data, read-only
+	{ 0x13&~0x10,0,0 }, //1 unused
+	{ 0x13&0,1,0 }, //2 Data, read/write! Allow always!
+	{ 0x13&0,1,0 }, //3 unused
+	{ 0x13&~0x10,0,0 }, //4 Data(expand down), read-only
+	{ 0x13&~0x10,0,0 }, //5 unused
+	{ 0x13&0,1,0 }, //6 Data(expand down), read/write! Allow always!
+	{ 0x13&0,1,0 }, //7 unused
+	{ 0x13&~0x10,1,3 }, //8 Code, non-conforming, execute-only
+	{ 0x13&~0x10,1,3 }, //9 unused
+	{ 0x13&~0x10,0,0 }, //10 Code, non-conforming, execute/read
+	{ 0x13&~0x10,0,0 }, //11 unused
+	{ 0x13&~0x10,1,3 }, //12 Code, conforming, execute-only
+	{ 0x13&~0x10,1,3 }, //13 unused
+	{ 0x13&~0x10,0,0 }, //14 Code, conforming, execute/read
+	{ 0x13&~0x10,0,0 } //15 unused
 };
 
 byte checkrights_conditions_rwe_errorout[0x10][0x100]; //All precalculated conditions that are possible!
@@ -960,6 +960,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
+		&& (!((isJMPorCALL&0x80)==0x80))
 		)
 	{
 		goto throwdescoriginalval; //Throw error!
@@ -1051,8 +1052,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 					}
 					CPU[activeCPU].CallGateStack[CPU[activeCPU].CallGateParamCount++] = argument; //Add the argument to the call gate buffer to transfer to the new stack! Implement us as a LIFO for transfers!
 				}
-
-				CPU[activeCPU].CPL = GENERALSEGMENT_DPL(LOADEDDESCRIPTOR); //Changing privilege to this!
 			}
 			else
 			{
@@ -1155,7 +1154,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
 						
-						if (checkStackAccess(2,1,CODE_SEGMENT_DESCRIPTOR_D_BIT())) return 1; //Abort on error!
+						if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 

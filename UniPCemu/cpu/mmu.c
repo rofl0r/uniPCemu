@@ -219,7 +219,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 
 	if ((readflags&0x40)==0) //Checking against paging?
 	{
-		if (unlikely(checkDirectMMUaccess(realaddress,readflags,CPL))) //Failure in the Paging Unit?
+		if (unlikely(checkDirectMMUaccess(realaddress,(readflags&(~0xE0)),CPL))) //Failure in the Paging Unit? Don't give it the special flags we use!
 		{
 			MMU.invaddr = 3; //Invalid address signaling!
 			return 1; //Error out!

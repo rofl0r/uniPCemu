@@ -180,7 +180,7 @@ OPTINLINE byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefe
 
 byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 {
-	return (isvalidpage(address,(readflags==0),CPL,(readflags&0x10))==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
+	return (isvalidpage(address,((readflags&(~0x10))==0),CPL,(readflags&0x10))==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
 }
 
 uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
