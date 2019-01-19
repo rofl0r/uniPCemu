@@ -414,22 +414,22 @@ typedef struct
 } checkrights_cond;
 
 checkrights_cond checkrights_conditions[0x10] = {
-	{ ~0x10,0,0 }, //0 Data, read-only
-	{ 0,0,0 }, //1 unused
-	{ 0,1,0 }, //2 Data, read/write! Allow always!
-	{ 0,0,0 }, //3 unused
-	{ ~0x10,0,0 }, //4 Data(expand down), read-only
-	{ 0,0,0 }, //5 unused
-	{ 0,1,0 }, //6 Data(expand down), read/write! Allow always!
-	{ 0,0,0 }, //7 unused
-	{ ~0x10,1,3 }, //8 Code, non-conforming, execute-only
-	{ 0,0,0 }, //9 unused
-	{ ~0x10,0,0 }, //10 Code, non-conforming, execute/read
-	{ 0,0,0 }, //11 unused
-	{ ~0x10,1,3 }, //12 Code, conforming, execute-only
-	{ 0,0,0 }, //13 unused
-	{ ~0x10,0,0 }, //14 Code, conforming, execute/read
-	{ 0,0,0 } //15 unused
+	{ 0x13&~0x10,0,0 }, //0 Data, read-only
+	{ 0x13&~0x10,0,0 }, //1 unused
+	{ 0x13&0,1,0 }, //2 Data, read/write! Allow always!
+	{ 0x13&0,1,0 }, //3 unused
+	{ 0x13&~0x10,0,0 }, //4 Data(expand down), read-only
+	{ 0x13&~0x10,0,0 }, //5 unused
+	{ 0x13&0,1,0 }, //6 Data(expand down), read/write! Allow always!
+	{ 0x13&0,1,0 }, //7 unused
+	{ 0x13&~0x10,1,3 }, //8 Code, non-conforming, execute-only
+	{ 0x13&~0x10,1,3 }, //9 unused
+	{ 0x13&~0x10,0,0 }, //10 Code, non-conforming, execute/read
+	{ 0x13&~0x10,0,0 }, //11 unused
+	{ 0x13&~0x10,1,3 }, //12 Code, conforming, execute-only
+	{ 0x13&~0x10,1,3 }, //13 unused
+	{ 0x13&~0x10,0,0 }, //14 Code, conforming, execute/read
+	{ 0x13&~0x10,0,0 } //15 unused
 };
 
 byte checkrights_conditions_rwe_errorout[0x10][0x100]; //All precalculated conditions that are possible!
