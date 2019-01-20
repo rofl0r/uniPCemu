@@ -78,27 +78,30 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 {
 	byte uslevel; //Combined US level! 0=Supervisor, 1=User
 	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
-	if (PDEUS&&PTEUS) //User level?
+	uslevel = ((PDEUS&PTEUS) & 1); //User level page?
+	if (uslevel) //User level?
 	{
-		uslevel = 1; //We're user!
-		rwlevel = ((PDERW&&PTERW)?1:0); //Are we writable?
+		rwlevel = ((PDERW&PTERW)&1); //Are we writable?
 	}
 	else //System? Allow read/write if supervisor only! Otherwise, fault!
 	{
-		uslevel = 0; //We're system!
-		rwlevel = 1; //Ignore read/write!
+		rwlevel = 1; //Ignore read/write, make us a writable page!
 	}
+	//Now that we know the read/write permissions and user level, determine errors!
 	if ((uslevel==0) && userlevel) //System access by user isn't allowed!
 	{
 		return 0; //Fault: system access by user!
 	}
-	if (userlevel && (rwlevel==0) && iswrite) //Write to read-only page for user level?
+	if ((rwlevel==0) && iswrite) //Write to read-only user page for any privilege level?
 	{
-		return 0; //Fault: read-only write by user!
-	}
-	if ((userlevel==0) && (rwlevel==0)) //Supervisor can write all?
-	{
-		rwlevel = 1; //Supervisor can write it all!
+		if (userlevel) //We're at user level? Invalid!
+		{
+			return 0; //Fault: read-only write by user!
+		}
+		else //We're at kernel level? Allow!
+		{
+			rwlevel = 1; //Force allow on kernel level!
+		}
 	}
 	*isWritable = rwlevel; //Are we writable?
 	return 1; //OK: verified!
