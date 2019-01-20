@@ -626,7 +626,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				{
 					if (is_paging()) //Are we paging?
 					{
-						physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+						physicaladdress = mappage(physicaladdress, 1, getCPL()); //Map it using the paging mechanism!
 					}
 				}
 				value = (BIU[activeCPU].currentpayload[0] >> (BIU_access_writeshift[((BIU[activeCPU].currentrequest&REQUEST_SUBMASK) >> REQUEST_SUBSHIFT)]) & 0xFF);
@@ -770,7 +770,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					{
 						if (is_paging()) //Are we paging?
 						{
-							physicaladdress = mappage(physicaladdress, 0, getCPL()); //Map it using the paging mechanism!
+							physicaladdress = mappage(physicaladdress, 1, getCPL()); //Map it using the paging mechanism!
 						}
 					}
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
