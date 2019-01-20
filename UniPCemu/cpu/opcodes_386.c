@@ -4370,6 +4370,12 @@ void CPU386_OPC8_32()
 	}
 
 	//page fault if cannot write to esp pointer!
+
+	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
+	{
+		return; //Abort on fault!
+	}
+
 	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
 	{
 		return; //Abort on fault!
@@ -4458,6 +4464,11 @@ void CPU386_OPC8_16()
 	}
 	
 	//page fault if cannot write to esp pointer!
+	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
+	{
+		return; //Abort on fault!
+	}
+
 	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
 	{
 		return; //Abort on fault!
