@@ -74,7 +74,7 @@ void raisePF(uint_32 address, word flags)
 	}
 }
 
-OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW, byte PTEUS, byte *isWritable) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
+byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW, byte PTEUS, byte *isWritable) //userlevel=CPL or 0 (with special instructions LDT, GDT, TSS, IDT, ring-crossing CALL/INT)
 {
 	byte uslevel; //Combined US level! 0=Supervisor, 1=User
 	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
@@ -96,11 +96,15 @@ OPTINLINE byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, b
 	{
 		return 0; //Fault: read-only write by user!
 	}
+	if ((userlevel==0) && (rwlevel==0)) //Supervisor can write all?
+	{
+		rwlevel = 1; //Supervisor can write it all!
+	}
 	*isWritable = rwlevel; //Are we writable?
 	return 1; //OK: verified!
 }
 
-OPTINLINE byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
+byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0; //Not update!
