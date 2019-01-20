@@ -937,6 +937,8 @@ typedef struct
 	//80286 timing support for lookup tables!
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!
+	byte have_oldEBP; //oldEBP is set to use?
+	uint_32 oldEBP; //Back-up of EBP during stack faults to use!
 	byte have_oldSS; //oldSS is set to use?
 	word oldSS;
 	byte have_oldSegments;

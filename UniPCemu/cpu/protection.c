@@ -142,6 +142,10 @@ void CPU_onResettingFault()
 	{
 		REG_ESP = CPU[activeCPU].oldESP; //Restore ESP to it's original value!
 	}
+	if (CPU[activeCPU].have_oldEBP) //Returning the (E)BP to it's old value?
+	{
+		REG_EBP = CPU[activeCPU].oldEBP; //Restore EBP to it's original value!
+	}
 	if (CPU[activeCPU].have_oldEFLAGS) //Returning the (E)SP to it's old value?
 	{
 		REG_EFLAGS = CPU[activeCPU].oldEFLAGS; //Restore EFLAGS to it's original value!
@@ -168,6 +172,8 @@ void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 		CPU[activeCPU].have_oldSS = 1; //Restorable!
 		CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
 		CPU[activeCPU].have_oldESP = 1; //Restorable!
+		CPU[activeCPU].oldEBP = REG_EBP; //Restore EBP to it's original value!
+		CPU[activeCPU].have_oldEBP = 1; //Restorable!
 		CPU[activeCPU].oldEFLAGS = REG_EFLAGS; //Restore EFLAGS to it's original value!
 		CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
 		updateCPUmode(); //Restore the CPU mode!
