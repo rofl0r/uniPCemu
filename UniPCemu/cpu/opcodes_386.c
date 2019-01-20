@@ -4372,6 +4372,13 @@ void CPU386_OPC8_32()
 	{
 		REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
 	}
+
+	//page fault if cannot write to esp pointer!
+	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
+	{
+		return; //Abort on fault!
+	}
+
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
@@ -4453,6 +4460,13 @@ void CPU386_OPC8_16()
 	{
 		REG_SP -= stacksize; //Substract: the stack size is data after the buffer created, not immediately at the params.  
 	}
+	
+	//page fault if cannot write to esp pointer!
+	if (checkMMUaccess(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (0x0))) //Error accessing memory?
+	{
+		return; //Abort on fault!
+	}
+
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
