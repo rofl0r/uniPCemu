@@ -2168,7 +2168,7 @@ extern byte input_buffer_mouse; //Mouse button input also supported!
 byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 {
 	delay(100000); //Wait a bit to make sure nothing's pressed!
-	enableKeyboard(1); //Buffer input!
+	enableKeyboard(2); //Buffer input!
 	char input[256];
 	memset(&input, 0, sizeof(input)); //Init input to empty!
 	TicksHolder ticks;
@@ -2278,7 +2278,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength, byte allowModeAndAddressIgnore, byte allowsegment)
 {
 	delay(100000); //Wait a bit to make sure nothing's pressed!
-	enableKeyboard(1); //Buffer input!
+	enableKeyboard(2); //Buffer input!
 	char input[256];
 	memset(&input, 0, sizeof(input)); //Init input to empty!
 	TicksHolder ticks;
