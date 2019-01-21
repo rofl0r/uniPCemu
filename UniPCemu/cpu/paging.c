@@ -94,7 +94,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	}
 	if ((rwlevel==0) && iswrite) //Write to read-only user page for any privilege level?
 	{
-		if (userlevel) //We're at user level? Invalid!
+		if (userlevel || ((CPU[activeCPU].registers->CR0&0x10000) && (EMULATED_CPU>=CPU_80486))) //We're at user level or write-protect enabled supervisor? Invalid!
 		{
 			return 0; //Fault: read-only write by user!
 		}
