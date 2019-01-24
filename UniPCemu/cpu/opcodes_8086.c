@@ -5848,17 +5848,6 @@ void op_grp5() {
 	case 3: //CALL Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
 
-		if (unlikely(CPU[activeCPU].modrmstep==2)) 
-		{
-			modrm_addoffset = 0; //First IP!
-			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
-			modrm_addoffset = 2; //Then destination CS!
-			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
-			modrm_addoffset = 0; //First IP!
-			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
-			modrm_addoffset = 2; //Then destination CS!
-			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
-		}
 		modrm_addoffset = 0;
 
 		destEIP = (uint_32)oper1; //Convert to EIP!
@@ -5903,17 +5892,6 @@ void op_grp5() {
 		break;
 	case 5: //JMP Mp
 		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
-		if (unlikely(CPU[activeCPU].modrmstep==2)) //Starting and to check?
-		{
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&CPU[activeCPU].address_size)+1,1|0x40,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, ((info.mem_offset+2)&info.memorymask),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, ((info.mem_offset+2)&info.memorymask)+1,1|0x40,getCPL(),!CPU_Address_size[activeCPU],1|0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, (info.mem_offset&CPU[activeCPU].address_size) + 1, 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, ((info.mem_offset + 2)&info.memorymask), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-			if (checkMMUaccess(get_segment_index(info.segmentregister), info.mem_segment, ((info.mem_offset + 2)&info.memorymask) + 1, 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 1 | 0x8)) return; //Abort on fault!
-		}
 
 		CPUPROT1
 		destEIP = (uint_32)oper1; //Convert to EIP!
