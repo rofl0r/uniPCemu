@@ -718,9 +718,7 @@ OPTINLINE byte CPU80386_internal_INC32(uint_32 *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -775,9 +773,7 @@ OPTINLINE byte CPU80386_internal_DEC32(uint_32 *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -883,9 +879,7 @@ OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte fla
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -929,9 +923,7 @@ OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte fla
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -976,9 +968,7 @@ OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1021,10 +1011,8 @@ OPTINLINE byte CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 		{
 			if (dest == NULL)
 			{
-				if (modrm_check32(&params, MODRM_src0, 1|0x40)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check32(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
+				if (modrm_check32(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
+				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
@@ -1068,10 +1056,8 @@ OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte fla
 		{
 			if (dest == NULL)
 			{
-				if (modrm_check32(&params, MODRM_src0, 1|0x40)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check32(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
+				if (modrm_check32(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
+				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
@@ -1114,9 +1100,7 @@ OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte fla
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1161,9 +1145,7 @@ OPTINLINE byte CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check32(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -3181,9 +3163,7 @@ void CPU80386_OPD1() //GRP2 Ev,1
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check32(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
@@ -3231,9 +3211,7 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check32(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
@@ -3763,9 +3741,7 @@ void op_grp5_32() {
 	case 0: //INC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{
-			if (modrm_check32(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check32(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU80386_internal_INC32(modrm_addr32(&params,MODRM_src0,0));
@@ -3773,9 +3749,7 @@ void op_grp5_32() {
 	case 1: //DEC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{
-			if (modrm_check32(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check32(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU80386_internal_DEC32(modrm_addr32(&params,MODRM_src0,0));
@@ -4251,9 +4225,7 @@ void CPU386_OPC1()
 	
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (modrm_check32(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
