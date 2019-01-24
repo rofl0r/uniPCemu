@@ -600,9 +600,7 @@ void CPU186_OPC0()
 
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
@@ -651,9 +649,7 @@ void CPU186_OPC1()
 	
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
