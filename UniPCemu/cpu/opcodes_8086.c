@@ -1136,9 +1136,7 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		{
 			if (reg==NULL) 
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1193,9 +1191,7 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1251,9 +1247,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1308,9 +1302,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1466,9 +1458,7 @@ OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1510,9 +1500,7 @@ OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1556,9 +1544,7 @@ OPTINLINE byte CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1600,9 +1586,7 @@ OPTINLINE byte CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1647,9 +1631,7 @@ OPTINLINE byte CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1691,9 +1673,7 @@ OPTINLINE byte CPU8086_internal_OR16(word *dest, word src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1737,9 +1717,7 @@ OPTINLINE byte CPU8086_internal_AND8(byte *dest, byte src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1781,10 +1759,8 @@ OPTINLINE byte CPU8086_internal_AND16(word *dest, word src, byte flags)
 		{
 			if (dest == NULL)
 			{
-				if (modrm_check16(&params, MODRM_src0, 1|0x40)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
-				if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
+				if (modrm_check16(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
+				if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
@@ -1828,10 +1804,8 @@ OPTINLINE byte CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 		{
 			if (dest == NULL)
 			{
-				if (modrm_check8(&params, MODRM_src0, 1|0x40)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check8(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
-				if (modrm_check8(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check8(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
+				if (modrm_check8(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
+				if (modrm_check8(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
@@ -1872,10 +1846,8 @@ OPTINLINE byte CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 		{
 			if (dest == NULL)
 			{
-				if (modrm_check16(&params, MODRM_src0, 1|0x40)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
-				if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return 1; //Abort on fault!
-				if (dest == NULL) if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
+				if (modrm_check16(&params, MODRM_src0, 0|0x40)) return 1; //Abort on fault on write only!
+				if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return 1; //Abort on fault on write only!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
@@ -1918,9 +1890,7 @@ OPTINLINE byte CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -1962,9 +1932,7 @@ OPTINLINE byte CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -2009,9 +1977,7 @@ OPTINLINE byte CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -2053,9 +2019,7 @@ OPTINLINE byte CPU8086_internal_XOR16(word *dest, word src, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
@@ -2529,7 +2493,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 			}
 			else //ModR/M?
 			{
-				if (modrm_check8(&params,MODRM_src0,0)) return 1; //Abort on fault!
+				if (dest==NULL) if (modrm_check8(&params,MODRM_src0,0)) return 1; //Abort on fault!
 				if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 				{
 					switch (flags) //What type are we?
@@ -2684,8 +2648,11 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 			}
 			else //ModR/M?
 			{
-				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (dest==NULL)
+				{
+					if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
+					if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				}
 				if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
 				{
 					switch (flags) //What type are we?
@@ -3937,18 +3904,22 @@ OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 	{
 		if (data1==NULL)
 		{
-			if (modrm_check8(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 			if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-			if (modrm_check8(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
+		}
+		secondparambase = (data1||data2)?0:2; //Second param base
+		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
+		if (data2==NULL)
+		{
+			if (modrm_check8(&params,MODRM_src1,0|0x40)) return 1; //Abort on fault!
+		}
+		if (data1==NULL)
+		{
 			if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 		}
 		secondparambase = (data1||data2)?0:2; //Second param base
 		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
 		if (data2==NULL)
 		{
-			if (modrm_check8(&params,MODRM_src1,1|0x40)) return 1; //Abort on fault!
-			if (modrm_check8(&params,MODRM_src1,0|0x40)) return 1; //Abort on fault!
-			if (modrm_check8(&params,MODRM_src1,1|0xA0)) return 1; //Abort on fault!
 			if (modrm_check8(&params,MODRM_src1,0|0xA0)) return 1; //Abort on fault!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -4020,27 +3991,22 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 	{
 		if (data1==NULL)
 		{
-			if (modrm_check16(&params,MODRM_src0,1|0x40)) return 1; //Abort on fault!
 			if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
 		}
 		secondparambase = (data1||data2)?0:2; //Second param base
 		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
 		if (data2==NULL)
 		{
-			if (modrm_check16(&params,MODRM_src1,1|0x40)) return 1; //Abort on fault!
 			if (modrm_check16(&params,MODRM_src1,0|0x40)) return 1; //Abort on fault!
 		}
-
 		if (data1==NULL)
 		{
-			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return 1; //Abort on fault!
 			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 		}
 		secondparambase = (data1||data2)?0:2; //Second param base
 		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
 		if (data2==NULL)
 		{
-			if (modrm_check16(&params,MODRM_src1,1|0xA0)) return 1; //Abort on fault!
 			if (modrm_check16(&params,MODRM_src1,0|0xA0)) return 1; //Abort on fault!
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -4689,9 +4655,7 @@ void CPU8086_OPD0() //GRP2 Eb,1
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
@@ -4738,9 +4702,7 @@ void CPU8086_OPD1() //GRP2 Ev,1
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
@@ -4787,9 +4749,7 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
@@ -4836,9 +4796,7 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 	}
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
-		if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 	}
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
@@ -4990,9 +4948,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		}
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 		{
-			if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU8086_internal_INC8(modrm_addr8(&params,MODRM_src0,0));
@@ -5004,9 +4960,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		}
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 		{
-			if (modrm_check8(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check8(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check8(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check8(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU8086_internal_DEC8(modrm_addr8(&params,MODRM_src0,0));
@@ -5810,9 +5764,7 @@ void op_grp5() {
 	case 0: //INC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{
-			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU8086_internal_INC16(modrm_addr16(&params,MODRM_src0,0));
@@ -5820,9 +5772,7 @@ void op_grp5() {
 	case 1: //DEC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{
-			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!
 			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
 		}
 		CPU8086_internal_DEC16(modrm_addr16(&params,MODRM_src0,0));
