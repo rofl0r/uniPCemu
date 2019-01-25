@@ -670,7 +670,10 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	if ((segmentval&~3)==0) return 0; //Don't write the reserved NULL GDT entry, which isn't to be used!
+	if ((segmentval&~3) == 0)
+	{
+		return 0; //Don't write the reserved NULL GDT entry, which isn't to be used!
+	}
 
 	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
 	{
@@ -689,6 +692,7 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 
 	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
+	/*
 	SEGMENT_DESCRIPTOR tempcontainer;
 	if (EMULATED_CPU == CPU_80286) //80286 has less options?
 	{
@@ -703,24 +707,32 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	//Patch back to memory values!
 	container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
 	container->desc.base_low = DESC_16BITS(container->desc.base_low);
-
+	*/
 	int i;
+	/*
 	for (i = 0;i<(int)sizeof(container->desc.bytes);++i) //Process the descriptor data!
 	{
+	*/
+	descriptor_address += 5; //Only the access rights byte!
 		if (checkDirectMMUaccess(descriptor_address++,0,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
 			return -1; //Error out!
 		}
-	}
-	descriptor_address -= sizeof(container->desc.bytes);
+	//}
+	//descriptor_address -= sizeof(container->desc.bytes);
+	descriptor_address -= 6; //Only the access rights byte!
 
+	/*
 	for (i = 0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 	{
+	*/
+	i = 5; //Only the access rights byte!
+	descriptor_address += 5; //Only the access rights byte!
 		if (memory_writelinear(descriptor_address++,container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
 		{
 			return 0; //Failed to load the descriptor!
 		}
-	}
+	//}
 	return 1; //OK!
 }
 
