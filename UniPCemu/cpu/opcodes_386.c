@@ -2468,6 +2468,7 @@ OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
 	CPUPROT1
 	CPU_JMPabs(RETD_val);
 	CPU_flushPIQ(-1); //We're jumping to another address!
+	CPUPROT1
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
 	{
 		REG_ESP += popbytes;
@@ -2476,6 +2477,7 @@ OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
 	{
 		REG_SP += popbytes;
 	}
+	CPUPROT2
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
