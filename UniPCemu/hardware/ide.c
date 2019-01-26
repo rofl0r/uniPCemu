@@ -1516,7 +1516,7 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 }
 
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
-byte ATAPI_supportedmodepagecodes_length[0x4] = {0x6,0x6,0xD,0xC}; //The length of the pages stored in our memory!
+word ATAPI_supportedmodepagecodes_length[0x4] = {0x6,0x6,0xD,0xC}; //The length of the pages stored in our memory!
 
 OPTINLINE void ATAPI_calculateByteCountLeft(byte channel)
 {
@@ -2052,7 +2052,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				//if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].Drive[drive].datablock) //Valid page size?
 				{
 					//Generate a header for the packet!
-					ATA[channel].Drive[drive].data[0] = ATAPI_supportedmodepagecodes_length[i]; //Size of the data following the header!
+					ATA[channel].Drive[drive].data[0] = (ATAPI_supportedmodepagecodes_length[i] >> 8); //MSB of Side of data following the header!
+					ATA[channel].Drive[drive].data[1] = ATAPI_supportedmodepagecodes_length[i]; //LSB of Size of the data following the header!
 
 					//Disc in drive and type of said disc:
 					switch (ATA[channel].Drive[drive].PendingLoadingMode)
@@ -2061,17 +2062,18 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					case LOAD_DISC_READIED:
 					case LOAD_READY:
 					case LOAD_IDLE:
-						ATA[channel].Drive[drive].data[1] = 0x05; //Data CD inserted!
+						ATA[channel].Drive[drive].data[2] = 0x05; //Data CD inserted!
 						break;
+					default:
 					case LOAD_NO_DISC: //No disc inserted?
-						ATA[channel].Drive[drive].data[1] = 0x70; //Closed and no disc
+						ATA[channel].Drive[drive].data[2] = 0x70; //Closed and no disc
 						break;
 					case LOAD_INSERT_CD: //Door open and inserting/removing disc?
-						ATA[channel].Drive[drive].data[1] = 0x71; //Door open
-						break;
-					default: //Door must be opened?
+						ATA[channel].Drive[drive].data[2] = 0x71; //Door open
 						break;
 					}
+
+					memset(&ATA[channel].Drive[drive].data[3], 0, 5); //Remainder of the header is reserved, so clear it!
 
 					//Generate the page itself!
 					ATA[channel].Drive[drive].data[8] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
