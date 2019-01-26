@@ -172,7 +172,7 @@ struct
 
 enum {
 	LOAD_IDLE=0,			/* disc is stationary, not spinning */
-	LOAD_NO_DISC=1,
+	LOAD_NO_DISC=1,			/* caddy inserted, not spinning, no disc */
 	LOAD_INSERT_CD=2,			/* user is "inserting" the CD */
 	LOAD_DISC_LOADING=3,		/* disc is "spinning up" */
 	LOAD_DISC_READIED=4,		/* disc just "became ready" */
@@ -501,11 +501,21 @@ void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
 {
 	switch (ATA[channel].Drive[drive].PendingLoadingMode)
 	{
-	case LOAD_INSERT_CD:
-		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING; //Start loading!
-		ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin down!
-		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINUP_TIMEOUT; //Timeout to spinup complete!
-		ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+	case LOAD_INSERT_CD: //A CD-ROM has been inserted into or removed from the caddy?
+		if (ATA[channel].Drive[drive].diskInserted) //Inserted?
+		{
+			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING; //Start loading!
+			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
+			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINUP_TIMEOUT; //Timeout to spinup complete!
+			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+		}
+		else //No disc?
+		{
+			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_NO_DISC; //No disc inserted!
+			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
+			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0f; //Timeout to spinup complete!
+			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEUNCHANGED; //We're unchanged from now on!
+		}
 		break;
 	default:
 		break;
@@ -2038,30 +2048,61 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_supportedmodepagecodes[i] == (ATA[channel].Drive[drive].ATAPI_PACKET[2]&0x3F)) //Page found in our page storage?
 			{
 				//Valid?
-				ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].datablock, ATAPI_supportedmodepagecodes_length[i]+2); //Limit tothe maximum available length!
+				ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].datablock, ATAPI_supportedmodepagecodes_length[i]+8); //Limit tothe maximum available length, with the header added to it!
 				//if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].Drive[drive].datablock) //Valid page size?
 				{
 					//Generate a header for the packet!
-					ATA[channel].Drive[drive].data[0] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
-					ATA[channel].Drive[drive].data[1] = ATAPI_supportedmodepagecodes_length[i]; //Actual page length that's stored(which follows right after, either fully or partially)!
+					ATA[channel].Drive[drive].data[0] = ATAPI_supportedmodepagecodes_length[i]; //Size of the data following the header!
+
+					//Disc in drive and type of said disc:
+					switch (ATA[channel].Drive[drive].PendingLoadingMode)
+					{
+					case LOAD_DISC_LOADING:
+					case LOAD_DISC_READIED:
+					case LOAD_READY:
+					case LOAD_IDLE:
+						ATA[channel].Drive[drive].data[1] = 0x05; //Data CD inserted!
+						break;
+					case LOAD_NO_DISC: //No disc inserted?
+						ATA[channel].Drive[drive].data[1] = 0x70; //Closed and no disc
+						break;
+					case LOAD_INSERT_CD: //Door open and inserting/removing disc?
+						ATA[channel].Drive[drive].data[1] = 0x71; //Door open
+						break;
+					default: //Door must be opened?
+						break;
+					}
+
+					//Generate the page itself!
+					ATA[channel].Drive[drive].data[8] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
+					ATA[channel].Drive[drive].data[9] = ATAPI_supportedmodepagecodes_length[i]; //Actual page length that's stored(which follows right after, either fully or partially)!
 					switch (ATA[channel].Drive[drive].ATAPI_PACKET[2]>>6) //What kind of packet are we requesting?
 					{
 					case CDROM_PAGECONTROL_CHANGEABLE: //1 bits for all changable values?
-						for (packet_datapos=0;packet_datapos<(ATA[channel].Drive[drive].datablock-2);++packet_datapos) //Process all our bits that are changable!
+						if (ATA[channel].Drive[drive].datablock >= 10) //Valid to give a data result?
 						{
-							ATA[channel].Drive[drive].data[packet_datapos+2] = ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i]<<8)|packet_datapos]; //Give the raw mask we're using!
+							for (packet_datapos = 0; packet_datapos < (ATA[channel].Drive[drive].datablock - 10); ++packet_datapos) //Process all our bits that are changable!
+							{
+								ATA[channel].Drive[drive].data[packet_datapos + 10] = ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							}
 						}
 						break;
 					case CDROM_PAGECONTROL_CURRENT: //Current values?
-						for (packet_datapos = 0;packet_datapos<(ATA[channel].Drive[drive].datablock-2);++packet_datapos) //Process all our bits that are changable!
+						if (ATA[channel].Drive[drive].datablock >= 10) //Valid to give a data result?
 						{
-							ATA[channel].Drive[drive].data[packet_datapos+2] = ATA[channel].Drive[drive].ATAPI_ModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]&ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							for (packet_datapos = 0; packet_datapos < (ATA[channel].Drive[drive].datablock - 10); ++packet_datapos) //Process all our bits that are changable!
+							{
+								ATA[channel].Drive[drive].data[packet_datapos + 10] = ATA[channel].Drive[drive].ATAPI_ModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							}
 						}
 						break;
 					case CDROM_PAGECONTROL_DEFAULT: //Default values?
-						for (packet_datapos = 0;packet_datapos<(ATA[channel].Drive[drive].datablock-2);++packet_datapos) //Process all our bits that are changable!
+						if (ATA[channel].Drive[drive].datablock >= 10) //Valid to give a data result?
 						{
-							ATA[channel].Drive[drive].data[packet_datapos+2] = ATA[channel].Drive[drive].ATAPI_DefaultModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							for (packet_datapos = 0; packet_datapos < (ATA[channel].Drive[drive].datablock - 10); ++packet_datapos) //Process all our bits that are changable!
+							{
+								ATA[channel].Drive[drive].data[packet_datapos + 10] = ATA[channel].Drive[drive].ATAPI_DefaultModeData[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos] & ATA[channel].Drive[drive].ATAPI_SupportedMask[(ATAPI_supportedmodepagecodes[i] << 8) | packet_datapos]; //Give the raw mask we're using!
+							}
 						}
 						break;
 					case CDROM_PAGECONTROL_SAVED: //Currently saved values?
@@ -3551,10 +3592,12 @@ void initATA()
 	register_DISKCHANGE(CDROM0, &ATA_DiskChanged);
 	register_DISKCHANGE(CDROM1, &ATA_DiskChanged);
 	CDROM_DiskChanged = 0; //Init!
+	ATA[CDROM_channel].Drive[0].PendingLoadingMode = is_mounted(CDROM0)?LOAD_IDLE:LOAD_NO_DISC; //Default: no disc is present or idle!
+	ATA[CDROM_channel].Drive[1].PendingLoadingMode = is_mounted(CDROM1)?LOAD_IDLE:LOAD_NO_DISC; //Default: no disc is present or idle!
 	ATA_DiskChanged(HDD0); //Init HDD0!
 	ATA_DiskChanged(HDD1); //Init HDD1!
-	ATA_DiskChanged(CDROM0); //Init HDD0!
-	ATA_DiskChanged(CDROM1); //Init HDD1!
+	ATA_DiskChanged(CDROM0); //Init CDROM0!
+	ATA_DiskChanged(CDROM1); //Init CDROM1!
 	ATA[CDROM_channel].Drive[0].diskInserted = is_mounted(CDROM0); //Init Mounted and inserted?
 	ATA[CDROM_channel].Drive[1].diskInserted = is_mounted(CDROM1); //Init Mounted and inserted?
 	ATA[CDROM_channel].Drive[0].allowDiskInsertion = 1; //Allow disk insertion!
