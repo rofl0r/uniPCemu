@@ -490,6 +490,7 @@ void ATAPI_dynamicloadingprocess_spindown(byte channel, byte drive)
 	case LOAD_DISC_READIED:
 	case LOAD_READY:
 		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_IDLE; //Becoming idle!
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0f; //Nothing!
 		ATAPI_setModePages(channel, drive); //Update with the new status!
 		break;
 	default:
