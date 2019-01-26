@@ -1682,10 +1682,8 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 			if (limit >= 0x68) //Valid to check?
 			{
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x67, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 				mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
 				maplocation += mapbase; //The actual location!
 				//Custom, not in documentation: 
@@ -1725,28 +1723,22 @@ byte switchStacks(byte newCPL)
 		TSS_StackPos += (4<<TSSSize)*newCPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
 		//Check against memory first!
 		//First two are the SP!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+1, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		//Next two are either high ESP or SS!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+3, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		if (TSSSize) //Extra checks for 32-bit?
 		{
 			//The 32-bit TSS SSn value!
-			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+5, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		}
 		//First two are the SP!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+1, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		//Next two are either high ESP or SS!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-		if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+3, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		if (TSSSize) //Extra checks for 32-bit?
 		{
 			//The 32-bit TSS SSn value!
-			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-			if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+5, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		}
 		//Memory is now validated! Load the values from memory!
 

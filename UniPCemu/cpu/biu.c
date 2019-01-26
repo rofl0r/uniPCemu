@@ -478,11 +478,7 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+1),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			if (checkMMUaccess16(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x8)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -525,19 +521,7 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+1),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+2),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
-			{
-				return 1; //Abort on fault!
-			}
-			if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, (CPU[activeCPU].registers->EIP+3),3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x10)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}

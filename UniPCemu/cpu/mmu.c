@@ -230,6 +230,34 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
+byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+{
+	byte result;
+	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	{
+		return result; //Give the result!
+	}
+	if ((result = checkMMUaccess(segdesc, segment, offset+1, readflags, CPL, is_offset16, subbyte|1)) != 0) //Upper bound!
+	{
+		return result; //Give the result!
+	}
+	return 0; //OK!
+}
+
+byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+{
+	byte result;
+	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	{
+		return result; //Give the result!
+	}
+	if ((result = checkMMUaccess(segdesc, segment, offset+3, readflags, CPL, is_offset16, subbyte|3)) != 0) //Upper bound!
+	{
+		return result; //Give the result!
+	}
+	return 0; //OK!
+}
+
 extern byte MMU_logging; //Are we logging?
 extern uint_32 wrapaddr[2]; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
