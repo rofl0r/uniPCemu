@@ -1674,19 +1674,19 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 			switch (ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr]&0x3F) //What page code?
 			{
 				case 0x01: //Read error recovery page (Mandatory)?
-					pagelength = MAX(pagelength, 0x6); //Maximum length to apply!
+					pagelength = MIN(pagelength, 0x6); //Maximum length to apply!
 					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x01 << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x0D: //CD-ROM page?
-					pagelength = MAX(pagelength, 0x6); //Maximum length to apply!
+					pagelength = MIN(pagelength, 0x6); //Maximum length to apply!
 					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0D << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x0E: //CD-ROM audio control page?
-					pagelength = MAX(pagelength,0xD); //Maximum length to apply!
+					pagelength = MIN(pagelength,0xD); //Maximum length to apply!
 					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0E<<8],&ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr+2],pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x2A: //CD-ROM capabilities & Mechanical Status Page?
-					pagelength = MAX(pagelength, 0xC); //Maximum length to apply!
+					pagelength = MIN(pagelength, 0xC); //Maximum length to apply!
 					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x2A << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				default: //Unknown page? Ignore it!
@@ -2074,10 +2074,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				}
 				break; //Stop searching!
 			}
-			if (isvalidpage==0) //Invalid page?
-			{
-				goto ATAPI_invalidcommand; //Error out!
-			}
+		}
+		if (isvalidpage==0) //Invalid page?
+		{
+			goto ATAPI_invalidcommand; //Error out!
 		}
 		break;
 	case 0x1E: //Prevent/Allow Medium Removal(Mandatory)?
