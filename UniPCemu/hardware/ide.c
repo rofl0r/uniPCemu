@@ -452,7 +452,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 
 void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 {
-	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A<<8)|(6 - 2)] |= 8; //CD-ROM capabilities: Eject is supported!
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A<<8)|(6 - 2)] |= 0x28; //CD-ROM capabilities: Eject is supported, tray type loading mechanism!
 }
 
 void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
