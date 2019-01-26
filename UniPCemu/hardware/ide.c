@@ -450,6 +450,11 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	}
 }
 
+void ATAPI_setModePages(byte disk_channel, byte disk_slave)
+{
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A<<8)|(6 - 2)] |= 8; //CD-ROM capabilities: Eject is supported!
+}
+
 void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 {
 	//We do anything a real drive does when a medium is removed or inserted!
@@ -472,6 +477,7 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 	else //Not inserted anymore, if inserted?
 	{
 		ATA[channel].Drive[drive].diskInserted = 0; //We're not inserted(anymore)!
+		ATAPI_setModePages(channel, drive); //Update with the new status!
 		//Don't handle anything when not inserted!
 	}
 	//Don't handle removed?
@@ -484,6 +490,7 @@ void ATAPI_dynamicloadingprocess_spindown(byte channel, byte drive)
 	case LOAD_DISC_READIED:
 	case LOAD_READY:
 		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_IDLE; //Becoming idle!
+		ATAPI_setModePages(channel, drive); //Update with the new status!
 		break;
 	default:
 		break;
@@ -2031,7 +2038,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_supportedmodepagecodes[i] == (ATA[channel].Drive[drive].ATAPI_PACKET[2]&0x3F)) //Page found in our page storage?
 			{
 				//Valid?
-				if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].Drive[drive].datablock) //Valid page size?
+				ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].datablock, ATAPI_supportedmodepagecodes_length[i]+2); //Limit tothe maximum available length!
+				//if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].Drive[drive].datablock) //Valid page size?
 				{
 					//Generate a header for the packet!
 					ATA[channel].Drive[drive].data[0] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
@@ -2068,10 +2076,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 					ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //No result size!
 				}
-				else
+				/*else
 				{
 					goto ATAPI_invalidcommand; //Error out!
-				}
+				}*/
 				break; //Stop searching!
 			}
 		}
@@ -3563,4 +3571,6 @@ void initATA()
 	ATA_reset(0,1); //Hardware reset!
 	ATA_reset(1,0); //Hardware reset!
 	ATA_reset(1,1); //Hardware reset!
+	ATAPI_setModePages(CDROM_channel, 0); //Init specific mode pages!
+	ATAPI_setModePages(CDROM_channel, 1); //Init specifc mode pages!
 }
