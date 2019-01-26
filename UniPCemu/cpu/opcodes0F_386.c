@@ -533,15 +533,11 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 		for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex)
 		{
 			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size),1|0x40,getCPL(),1,0|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+1,1|0x40,getCPL(),1,1|0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+2,1|0x40,getCPL(),1,2|0x10)) return; //Abort on fault!
 			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+3,1|0x40,getCPL(),1,3|0x10)) return; //Abort on fault!
 		}
 		for (readindex = 0; readindex < NUMITEMS(LOADALLDATA.datad); ++readindex)
 		{
 			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size), 1 | 0xA0, getCPL(), 1, 0 | 0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 1, 1 | 0xA0, getCPL(), 1, 1 | 0x10)) return; //Abort on fault!
-			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 2, 1 | 0xA0, getCPL(), 1, 2 | 0x10)) return; //Abort on fault!
 			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 3, 1 | 0xA0, getCPL(), 1, 3 | 0x10)) return; //Abort on fault!
 		}
 		++CPU[activeCPU].instructionstep; //Finished check!
