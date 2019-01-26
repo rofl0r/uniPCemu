@@ -2066,7 +2066,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					}
 					isvalidpage = 1; //Were valid!
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
-					ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datapos*ATA[channel].Drive[drive].datablock,1); //No result size!
+					ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //No result size!
 				}
 				else
 				{
