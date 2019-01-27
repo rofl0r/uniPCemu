@@ -1534,11 +1534,10 @@ MMU: Memory limit!
 OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_64 offset)
 {
 	//Execute address test?
-	INLINEREGISTER byte isvalid,topdown;
-	topdown = descriptor->PRECALCS.topdown; //Are we a top-down segment?
-	isvalid = (offset<=(uint_64)descriptor->PRECALCS.limit); //Valid address range!
-	isvalid ^= topdown; //Apply expand-down data segment, if required, which reverses valid!
-	isvalid &= (((offset>descriptor->PRECALCS.roof) & topdown)^1); //Limit to 16-bit/32-bit address space using topdown descriptors!
+	INLINEREGISTER byte isvalid;
+	isvalid = (offset<=descriptor->PRECALCS.limit); //Valid address range!
+	isvalid ^= descriptor->PRECALCS.topdown; //Apply expand-down data segment, if required, which reverses valid!
+	isvalid &= ((offset>descriptor->PRECALCS.roof)^1); //Limit to 16-bit/32-bit address space using both top-down(required) and bottom-up(resulting in just the limit, which is lower or equal to the roof) descriptors!
 	isvalid &= 1; //Only 1-bit testing!
 	return isvalid; //Are we valid?
 }
@@ -1557,7 +1556,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forr
 	}
 
 	//Basic access rights are always checked!
-	if (GENERALSEGMENTPTR_S(descriptor)) //System segment? Check for additional type information!
+	if (likely(GENERALSEGMENTPTR_S(descriptor))) //System segment? Check for additional type information!
 	{
 		//Entries 0,4,10,14: On writing, Entries 2,6: Never match, Entries 8,12: Writing or reading normally(!=3).
 		//To ignore an entry for errors, specify mask 0, non-equals nonzero, comparison 0(a.k.a. ((forreading&0)!=0)
