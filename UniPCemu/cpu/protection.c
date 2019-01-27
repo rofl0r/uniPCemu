@@ -464,8 +464,9 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	limits[1] = ((limits[0] << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
 	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
-	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
-	if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_NONCALLGATE_D_B(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
+	//Roof: Expand-up: G=0: 1MB, G=1: 4GB. Expand-down: B=0:64K, B=1:4GB.
+	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << ((descriptor->PRECALCS.topdown?SEGDESCPTR_NONCALLGATE_D_B(descriptor):SEGDESCPTR_GRANULARITY(descriptor)) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
+	if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_GRANULARITY(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
 	{
 		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
 	}
