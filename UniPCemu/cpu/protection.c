@@ -1549,7 +1549,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forr
 {
 	//First: type checking!
 
-	if (unlikely(GENERALSEGMENTPTR_P(descriptor)==0)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
+	if (GENERALSEGMENTPTR_P(descriptor)==0) //Not present(invalid in the cache)? This also applies to NULL descriptors!
 	{
 		CPU_MMU_checkrights_cause = 1; //What cause?
 		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
