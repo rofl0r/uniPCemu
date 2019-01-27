@@ -611,6 +611,7 @@ void CALLBACK_SZF(byte val) {
 	{
 		flags = REG_EFLAGS; //Read flags!
 		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
+		updateCPUmode();
 	}
 	if (val) FLAGW_ZF(1);
 	else FLAGW_ZF(0); 
@@ -618,6 +619,7 @@ void CALLBACK_SZF(byte val) {
 	{
 		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
+		updateCPUmode();
 	}
 }
 
@@ -627,6 +629,7 @@ void CALLBACK_SCF(byte val) {
 	{
 		flags = REG_EFLAGS; //Read flags!
 		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
+		updateCPUmode();
 	}
 	if (val) FLAGW_CF(1);
 	else FLAGW_CF(0); 
@@ -634,6 +637,7 @@ void CALLBACK_SCF(byte val) {
 	{
 		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
+		updateCPUmode();
 	}
 }
 
@@ -643,6 +647,7 @@ void CALLBACK_SIF(byte val) {
 	{
 		flags = REG_EFLAGS; //Read flags!
 		REG_EFLAGS = MMU_rw(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), 0,0);
+		updateCPUmode();
 	}
 	if (val) FLAGW_IF(1);
 	else FLAGW_IF(0); 
@@ -650,5 +655,6 @@ void CALLBACK_SIF(byte val) {
 	{
 		MMU_ww(CPU_SEGMENT_SS, REG_SS, FLAGS_offset(), REG_EFLAGS,0);
 		REG_EFLAGS = flags; //Restore!
+		updateCPUmode();
 	}
 }

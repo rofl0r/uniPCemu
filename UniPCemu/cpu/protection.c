@@ -2042,6 +2042,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			{
 				FLAGW_IF(0); //No interrupts!
 			}
+			updateCPUmode(); //flags have been updated!
 
 			if ((errorcode>=0)) //Error code specified?
 			{

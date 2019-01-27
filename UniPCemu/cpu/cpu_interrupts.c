@@ -195,6 +195,7 @@ void CPU_IRET()
 					//VM&IOPL aren't changed by the POP!
 					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
 					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
+					updateCPUmode();
 				}
 				else //16-bit operand size?
 				{
@@ -288,6 +289,7 @@ void CPU_IRET()
 				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IF being changed!
 				//Flags are OK now!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
+				updateCPUmode();
 				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 				CPU_flushPIQ(-1); //We're jumping to another address!
 			}

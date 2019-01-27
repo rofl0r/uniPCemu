@@ -543,7 +543,7 @@ AVL: available to the programmer:
 //Virtual 8086 mode flag (386+ only)
 #define FLAGREGW_V8(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x20000)|(((val)&1)<<17)))
 //Alignment check (486SX+ only)
-#define FLAGREGW_AC(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x40000)|(((val)&1)<<18)))
+#define FLAGREGW_AC(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x40000)|(((val)&1)<<18))); updateCPUmode()
 //Virtual interrupt flag (Pentium+)
 #define FLAGREGW_VIF(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x80000)|(((val)&1)<<19)))
 //Virtual interrupt pending (Pentium+)
@@ -957,6 +957,7 @@ typedef struct
 	byte resetPending; //Is a CPU reset pending?
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
 	byte is_paging; //Are we paging?
+	byte is_aligning; //Is data alignment(align flag) in effect?
 	uint_64 address_size; //Effective address size for the current instruction!
 	byte activeBreakpoint[4]; //Are we an active breakpoint?
 } CPU_type;

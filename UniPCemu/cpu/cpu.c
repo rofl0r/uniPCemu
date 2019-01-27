@@ -1492,6 +1492,7 @@ void updateCPUmode() //Update the CPU mode!
 		CPUmode = mode; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 	}
 	CPU[activeCPU].is_paging = ((CPUmode!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
+	CPU[activeCPU].is_aligning = ((EMULATED_CPU >= CPU_80486) && FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000)); //Alignment check in effect for CPL 3?
 }
 
 byte getcpumode() //Retrieves the current mode!

@@ -185,14 +185,15 @@ uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	static byte debuggertype[4] = {PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION};
+	static byte alignmentrequirement[8] = {0,1,3,0,7,0,0,0}; //What address bits can't be set for byte 0! Index=subbyte bit 3,4,5! Bits 0-2 must be 0! Value 0 means any alignment!
 	INLINEREGISTER byte dt;
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
 	if ((readflags & 0x80) == 0) //Allow basic segmentation checks?
 	{
-		if (unlikely(FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000) && (EMULATED_CPU >= CPU_80486) && (segdesc != -1) && (getCPL() == 3) && (
-			((offset & 7) && (subbyte == 0x20)) || ((offset & 3) && (subbyte == 0x10)) || ((offset & 1) && (subbyte == 0x8))
+		if (unlikely(CPU[activeCPU].is_aligning && (segdesc != -1) && (CPL == 3) && (
+			(((subbyte&7)==0) && (offset & alignmentrequirement[(subbyte>>3)&7])) //Alignment requirements!
 			))) //Aligment enforced and wrong? Don't apply on internal accesses!
 		{
 			CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
