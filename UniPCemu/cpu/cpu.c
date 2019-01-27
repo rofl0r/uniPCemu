@@ -163,7 +163,7 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 		}
 		else //Word?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()) + 1, (isPUSH ? 0 : 1) | 0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+			if (checkMMUaccess16(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()), (isPUSH ? 0 : 1) | 0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -218,7 +218,7 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 		//We're at least a word access!
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter())+2,1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()),1|0x40,getCPL(),!STACK_SEGMENT_DESCRIPTOR_B_BIT(),0|(8<<isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -241,7 +241,7 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 		//We're at least a word access!
 		if (isdword) //DWord?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()) + 2, 1|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (EBP&getstackaddrsizelimiter()), 1|0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
