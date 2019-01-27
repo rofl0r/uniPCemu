@@ -465,6 +465,10 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
 	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
 	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << (SEGDESCPTR_NONCALLGATE_D_B(descriptor) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
+	if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_NONCALLGATE_D_B(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
+	{
+		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
+	}
 	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
 	//Apply read/write/execute permissions to the descriptor!
 	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
