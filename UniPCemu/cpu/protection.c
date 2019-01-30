@@ -1881,6 +1881,11 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 				return 0; //Error, by specified reason!
 			}
+			if (!GENERALSEGMENT_P(newdescriptor)) //Not present?
+			{
+				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				return 0;
+			}
 			if (((GENERALSEGMENT_S(newdescriptor)==0) || (EXECSEGMENT_ISEXEC(newdescriptor)==0))) //Not readable, execute segment? Code/executable segment is allowed!
 			{
 				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
