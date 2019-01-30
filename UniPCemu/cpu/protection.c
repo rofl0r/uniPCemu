@@ -647,16 +647,6 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 		}
 	}
 
-	if ((segment == CPU_SEGMENT_CS) &&
-		(
-		(getLoadedTYPE(container) != 1) //Not an executable segment?
-			|| (isNULLdescriptor) //NULL descriptor loaded? Invalid too!
-			)
-		)
-	{
-		return 0; //Not present: limit exceeded!	
-	}
-
 	if (GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
 	{
 		container->desc.AccessRights |= 1; //Set the accessed bit!
@@ -1842,7 +1832,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCGP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
+		THROWDESCNP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
@@ -1883,9 +1873,18 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			if (!GENERALSEGMENT_P(newdescriptor)) //Not present?
 			{
-				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCNP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
+
+			if (
+				(getLoadedTYPE(&newdescriptor) != 1) //Not an executable segment?
+					) //NULL descriptor loaded? Invalid too(done by the above present check too)!
+			{
+				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				return 0; //Not present: limit exceeded!	
+			}
+
 			if (((GENERALSEGMENT_S(newdescriptor)==0) || (EXECSEGMENT_ISEXEC(newdescriptor)==0))) //Not readable, execute segment? Code/executable segment is allowed!
 			{
 				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
