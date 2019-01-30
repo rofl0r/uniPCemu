@@ -637,6 +637,9 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 			}
 		}
 
+		container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
+		container->desc.base_low = DESC_16BITS(container->desc.base_low);
+
 		if (EMULATED_CPU == CPU_80286) //80286 has less options?
 		{
 			container->desc.base_high = 0; //No high byte is present!
