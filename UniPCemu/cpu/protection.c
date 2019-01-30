@@ -1832,7 +1832,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCNP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
+		THROWDESCGP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
