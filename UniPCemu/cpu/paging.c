@@ -262,6 +262,8 @@ void PagingTLB_initlists()
 //Move a TLB entry index from an old list to a new list!
 void Paging_moveListItem(TLB_ptr *listitem, TLB_ptr **newlist_head, TLB_ptr **newlist_tail, TLB_ptr **oldlist_head, TLB_ptr **oldlist_tail)
 {
+	if (likely(*newlist_head == listitem)) return; //Don't do anything when it's already at the correct spot!
+
 	//First, remove us from the old head list!
 	if (listitem->prev) //Do we have anything before us?
 	{
@@ -347,7 +349,6 @@ void Paging_setNewestTLB(sbyte set, byte TLB_index) //Tick an TLB entry for maki
 	}
 	else //We're not allocated, but marked as newest? Allocate us!
 	{
-		listitem = &CPU[activeCPU].Paging_TLB.TLB_listnodes[set][TLB_index]; //Our entry!
 		//Now take the item from the pool and move it to the used list!
 		listitem->allocated = 1; //We're allocated now!
 		Paging_moveListItem(listitem, //What item to take!
@@ -377,7 +378,7 @@ byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 			return entry->index; //What index is the LRU!
 		}
 	}
-	return 7;
+	return 7; //Safety: return the final entry! Shouldn't happen under normal circumstances.
 }
 
 //W=Writable, U=User, D=Dirty
@@ -469,7 +470,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 	{
 		for (entry = 0; entry < 8; ++entry) //Check all entries!
 		{
-			if (Paging_matchTLBaddress(logicaladdress, CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG)) //Matched?
+			if (Paging_matchTLBaddress(logicaladdress, CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG) && (CPU[activeCPU].Paging_TLB.TLB_listnodes[TLB_set][entry].allocated)) //Matched?
 			{
 				CPU[activeCPU].Paging_TLB.TLB[TLB_set][entry].TAG = 0; //Clear the entry to unused!
 				freeTLB(TLB_set, entry); //Free this entry from the TLB!
