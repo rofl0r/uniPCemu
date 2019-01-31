@@ -1830,15 +1830,28 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
 	memcpy(&idtentry,theidtentry,sizeof(idtentry)); //Make a copy for our own use!
 
-	if (IDTENTRY_P(idtentry)==0) //Not present?
+	if ((is_interrupt&1) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
+		THROWDESCGP(base,EXT,table); //#GP!
+		return 0;
+	}
+	//Now, the (gate) descriptor to use is loaded!
+	switch (IDTENTRY_TYPE(idtentry)) //What type are we?
+	{
+	case IDTENTRY_TASKGATE: //32-bit task gate?
+	case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
+	case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
+	case IDTENTRY_16BIT_INTERRUPTGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //16/32-bit interrupt gate?
+	case IDTENTRY_16BIT_TRAPGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //16/32-bit trap gate?
+		break;
+	default:
 		THROWDESCGP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
 	}
 
-	if ((is_interrupt&1) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
+	if (IDTENTRY_P(idtentry)==0) //Not present?
 	{
-		THROWDESCGP(base,EXT,table); //#GP!
+		THROWDESCNP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead?
 		return 0;
 	}
 
