@@ -147,7 +147,7 @@ byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a re
 }
 
 //Handler for special MMU-based I/O, direct addresses used!
-byte MMU_IO_writehandler(uint_32 offset, byte value)
+OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *current; //Current item!
 	INLINEREGISTER MMU_WHANDLER handler;
@@ -167,7 +167,7 @@ byte MMU_IO_writehandler(uint_32 offset, byte value)
 }
 
 //Reading only!
-byte MMU_IO_readhandler(uint_32 offset, byte *value)
+OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	MMU_RHANDLER *current; //Current item!
 	INLINEREGISTER MMU_RHANDLER handler;
