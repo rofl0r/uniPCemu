@@ -388,7 +388,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 extern byte specialdebugger; //Enable special debugger input?
 
 //Direct memory access (for the entire emulator)
-byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
+OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
@@ -460,7 +460,7 @@ byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from r
 	return result; //Give existant memory!
 }
 
-void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
+OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
