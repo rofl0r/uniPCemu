@@ -1800,9 +1800,9 @@ void initModem(byte enabled) //Initialise modem!
 			modem.supported = 0; //Unsupported!
 			goto unsupportedUARTModem;
 		}
-		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
-		modem.inputdatabuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
-		modem.outputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,1); //Small input buffer!
+		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
+		modem.inputdatabuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
+		modem.outputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
 		if (modem.inputbuffer && modem.inputdatabuffer && modem.outputbuffer) //Gotten buffers?
 		{
 			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
