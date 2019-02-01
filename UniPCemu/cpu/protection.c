@@ -595,12 +595,9 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
-	byte isNULLdescriptor = 0;
-
 	if (((segmentval&~3) == 0) && (segment == CPU_SEGMENT_LDTR)) //LDT loaded with the reserved GDT NULL descriptor?
 	{
 		memset(container, 0, sizeof(*container)); //Load an invalid LDTR, which is marked invalid!
-		isNULLdescriptor = 1; //Special reserved NULL descriptor loading valid!
 	}
 	else //Try to load a normal segment descriptor!
 	{

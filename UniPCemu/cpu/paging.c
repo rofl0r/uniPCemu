@@ -231,7 +231,6 @@ OPTINLINE void PagingTLB_initlists()
 {
 	byte set; //What set?
 	byte index; //What index?
-	TLB_ptr *us; //What is the current entry!
 	for (set = 0; set < 4; ++set) //process all sets!
 	{
 		//Allocate a list-to-entry-mapping from the available entry space, with all items in ascending order in a linked list and index!
@@ -378,7 +377,7 @@ OPTINLINE byte Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwritten!
 	TLB_ptr *entry;
 	if (CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]) //Anything not allocated yet?
 	{
-		if (entry = allocTLB(set)) //Allocated from the free list?
+		if ((entry = allocTLB(set))) //Allocated from the free list?
 		{
 			return entry->index; //Give the index of the resulting entry that's been allocated!
 		}
