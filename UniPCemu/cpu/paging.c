@@ -318,7 +318,7 @@ OPTINLINE void Paging_moveListItem(TLB_ptr *listitem, TLB_ptr **newlist_head, TL
 OPTINLINE TLB_ptr *allocTLB(sbyte set) //Allocate a TLB entry!
 {
 	TLB_ptr *result;
-	if (CPU[activeCPU].Paging_TLB.TLB_freelist_head) //Anything available?
+	if (CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]) //Anything available?
 	{
 		result = CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]; //What item are we allocating, take it from the free list!
 		//Now take the item from the pool and move it to the used list!
