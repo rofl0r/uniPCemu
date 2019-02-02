@@ -376,7 +376,7 @@ void THROWDESCGP(word segmentval, byte external, byte tbl)
 	CPU_GP((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
 
-void THROWDESCSP(word segmentval, byte external, byte tbl)
+void THROWDESCSS(word segmentval, byte external, byte tbl)
 {
 	CPU_StackFault((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
 }
@@ -673,6 +673,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			THROWDESCTS(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!			
 		}
+		else if (segment == CPU_SEGMENT_SS) //SS throws #SS instead of #GP!
+		{
+			THROWDESCSS(*segmentval,((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
 		else //Plain #GP?
 		{
 			THROWDESCGP(*segmentval,((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
@@ -714,7 +718,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(*segmentval,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
+			THROWDESCSS(*segmentval,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
 		}
 		else
 		{
@@ -808,7 +812,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSP(originalval,(isJMPorCALL&0x200)?1:0,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSS(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else
 		{
@@ -842,6 +846,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		if (isJMPorCALL&0x200) //TSS is the cause?
 		{
 			THROWDESCTS(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		else if (segment == CPU_SEGMENT_SS) //SS throws #SS instead of #GP!
+		{
+			THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else //Plain #GP?
 		{

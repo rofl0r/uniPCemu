@@ -20,7 +20,7 @@ byte CPU_faultraised(byte type); //A fault has been raised (286+)?
 
 //Special support for error handling!
 void THROWDESCGP(word segmentval, byte external, byte tbl);
-void THROWDESCSP(word segmentval, byte external, byte tbl);
+void THROWDESCSS(word segmentval, byte external, byte tbl);
 void THROWDESCNP(word segmentval, byte external, byte tbl);
 void THROWDESCTS(word segmentval, byte external, byte tbl);
 
