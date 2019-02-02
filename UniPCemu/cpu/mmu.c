@@ -182,7 +182,7 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 
 uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 //readflags = 1|(opcode<<1) for reads! 0 for writes! Bit 4: Disable segmentation check, Bit 5: Disable debugger check, Bit 6: Disable paging check.
-byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	static byte debuggertype[4] = {PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION};
 	static byte alignmentrequirement[8] = {0,1,3,0,7,0,0,0}; //What address bits can't be set for byte 0! Index=subbyte bit 3,4,5! Bits 0-2 must be 0! Value 0 means any alignment!
@@ -231,7 +231,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, byte readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
-byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
 	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
@@ -245,7 +245,7 @@ byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, byte readflag
 	return 0; //OK!
 }
 
-byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
 	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!

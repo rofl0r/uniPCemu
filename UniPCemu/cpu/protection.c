@@ -1585,8 +1585,8 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forr
 	return 0; //OK!
 }
 
-//Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch.
-int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, byte forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
+//Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch. bit8=bit9 contains EXT bit to use!
+int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	byte rights;
 	//Determine the Limit!
@@ -1614,7 +1614,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, byte forrea
 				return 1; //Error out!
 				break;
 			case 3: //#SS(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?0:-2); //Throw (pseudo) fault when not prefetching!
+				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?((((((forreading&0x200)>>1)&(forreading&0x100))>>8)|((forreading&0x100)?(REG_SS&0xFFFC):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit when requested!
 				return 1; //Error out!
 				break;
 			}
@@ -1740,7 +1740,7 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80|0x200)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
@@ -1900,14 +1900,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				return 0;
 			}
 
-			//Calculate and check the limit!
-
-			if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
-			{
-				THROWDESCGP(0,0,0); //Throw #GP(0)!
-				return 0;
-			}
-
 			byte INTTYPE=0;
 
 			if ((EXECSEGMENT_C(newdescriptor) == 0) && (GENERALSEGMENT_DPL(newdescriptor)<getCPL())) //Not enough rights, but conforming?
@@ -1959,11 +1951,19 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				//Verify that the new stack is available!
 				if (is32bit) //32-bit gate?
 				{
-					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,1)) return 0; //Abort on fault!
+					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),1)) return 0; //Abort on fault!
 				}
 				else //16-bit gate?
 				{
-					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,0)) return 0; //Abort on fault!
+					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),0)) return 0; //Abort on fault!
+				}
+
+				//Calculate and check the limit!
+
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				{
+					THROWDESCGP(0,0,0); //Throw #GP(0)!
+					return 0;
 				}
 
 				//Save the Segment registers on the new stack!
@@ -1996,7 +1996,15 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (switchStacks(newCPL)) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+
+				//Calculate and check the limit!
+
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				{
+					THROWDESCGP(0,0,0); //Throw #GP(0)!
+					return 0;
+				}
 
 				if (is32bit) //32-bit gate?
 				{
@@ -2013,7 +2021,14 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			else
 			{
-				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1,is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				//Calculate and check the limit!
+
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				{
+					THROWDESCGP(0,0,0); //Throw #GP(0)!
+					return 0;
+				}
 			}
 
 			if (is32bit)

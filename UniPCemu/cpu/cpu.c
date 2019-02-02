@@ -142,7 +142,7 @@ uint_32 getstackaddrsizelimiter()
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT()? 0xFFFFFFFF : 0xFFFF; //Stack address size!
 }
 
-byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do we need to POP from the stack?
+byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword) //How much do we need to POP from the stack?
 {
 	uint_32 poptimesleft = poptimes; //Load the amount to check!
 	uint_32 ESP = CPU[activeCPU].registers->ESP; //Load the stack pointer to verify!
@@ -156,14 +156,14 @@ byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword) //How much do
 		//We're at least a word access!
 		if (isdword)
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(), (isPUSH ? 0 : 1) | 0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(), ((isPUSH ? 0 : 1) | 0x40)|(isPUSH&0x300), getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
 		}
 		else //Word?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()), (isPUSH ? 0 : 1) | 0x40, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
+			if (checkMMUaccess16(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (ESP&getstackaddrsizelimiter()), ((isPUSH ? 0 : 1) | 0x40)|(isPUSH&0x300), getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
