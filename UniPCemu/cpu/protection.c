@@ -537,7 +537,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	}
 	else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory(instead clear it's present bit)! Any other register, just clear it's descriptor for a full NULL descriptor!
 	{
-		if ((segment == CPU_SEGMENT_DS) || (segment == CPU_SEGMENT_ES) || (segment == CPU_SEGMENT_FS) || (segment == CPU_SEGMENT_GS))
+		if ((segment == CPU_SEGMENT_DS) || (segment == CPU_SEGMENT_ES) || (segment == CPU_SEGMENT_FS) || (segment == CPU_SEGMENT_GS) || (segment==CPU_SEGMENT_TR))
 		{
 			memcpy(container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
 			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
