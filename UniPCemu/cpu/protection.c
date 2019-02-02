@@ -872,10 +872,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	if (
 		(
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
-		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
+		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level for non-conforming code segment descriptors?
+		(!privilegedone && ((getCPL()!=getRPL(*segmentval)) || (getCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
-		&& (!((isJMPorCALL&0x80)==0x80))
+		&& (!((isJMPorCALL&0x80)==0x80)) //Don't ignore privilege?
 		)
 	{
 		goto throwdescoriginalval; //Throw error!
