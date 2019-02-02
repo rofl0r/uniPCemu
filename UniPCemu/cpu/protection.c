@@ -623,7 +623,7 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 		{
 			if (checkDirectMMUaccess(descriptor_address++, 1,/*getCPL()*/ 0)) //Error in the paging unit?
 			{
-				return 1; //Error out!
+				return -1; //Error out!
 			}
 		}
 		descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
@@ -1877,15 +1877,13 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
-			if (!LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor)) //Error loading new descriptor? The backlink is always at the start of the TSS!
+			if ((loadresult = LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
-				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				if (loadresult==0) //Not faulted already?
+				{
+					THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+				}
 				return 0; //Error, by specified reason!
-			}
-			if (!GENERALSEGMENT_P(newdescriptor)) //Not present?
-			{
-				THROWDESCNP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
-				return 0;
 			}
 
 			if (
@@ -1896,9 +1894,9 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				return 0; //Not present: limit exceeded!	
 			}
 
-			if (((GENERALSEGMENT_S(newdescriptor)==0) || (EXECSEGMENT_ISEXEC(newdescriptor)==0))) //Not readable, execute segment? Code/executable segment is allowed!
+			if (!GENERALSEGMENT_P(newdescriptor)) //Not present?
 			{
-				THROWDESCGP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
+				THROWDESCNP(idtentry.selector,EXT,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw #GP!
 				return 0;
 			}
 
