@@ -1166,7 +1166,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						//TSSSize = 1; //32-bit TSS!
 					case AVL_SYSTEM_BUSY_TSS16BIT:
 					case AVL_SYSTEM_TSS16BIT:
-						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor))) return 1; //Abort failing switching stacks!
+						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor)|((isJMPorCALL&0x400)>>8))) return 1; //Abort failing switching stacks!
 						
 						if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
 
@@ -1700,6 +1700,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 
 extern byte immb; //For CPU_readOP result!
 
+//bit2=EXT when set.
 byte switchStacks(byte newCPL)
 {
 	word SSn;
@@ -1715,7 +1716,7 @@ byte switchStacks(byte newCPL)
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 	case AVL_SYSTEM_TSS16BIT:
 		TSS_StackPos = (2<<TSSSize); //Start of the stack block! 2 for 16-bit TSS, 4 for 32-bit TSS!
-		TSS_StackPos += (4<<TSSSize)*newCPL; //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
+		TSS_StackPos += (4<<TSSSize)*(newCPL&3); //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
 		//Check against memory first!
 		//First two are the SP!
 		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
@@ -1740,7 +1741,7 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80|0x200)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80|0x200|((newCPL<<8)&0x400))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
@@ -1947,7 +1948,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
-				if (switchStacks(newCPL)) return 1; //Abort failing switching stacks!
+				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
 				if (is32bit) //32-bit gate?
 				{
@@ -1993,7 +1994,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
-				if (switchStacks(newCPL)) return 1; //Abort failing switching stacks!
+				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
 				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
