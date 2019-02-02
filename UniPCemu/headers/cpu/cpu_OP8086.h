@@ -244,7 +244,7 @@ void external8086RETF(word popbytes); //Support for special interrupt handlers!
 
 void CPU8086_external_XLAT(); //XLAT for extensions!
 
-byte checkStackAccess(uint_32 poptimes, byte isPUSH, byte isdword); //How much do we need to POP from the stack?
+byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword); //How much do we need to POP from the stack?
 
 byte CPU8086_internal_LXS(int segmentregister); //LDS, LES etc. 16-bit variant!
 

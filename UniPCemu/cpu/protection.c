@@ -1614,7 +1614,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 				return 1; //Error out!
 				break;
 			case 3: //#SS(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?((((((forreading&0x200)>>1)&(forreading&0x100))>>8)|((forreading&0x100)?(REG_SS&0xFFFC):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit when requested!
+				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?(((((forreading&0x200)>>1)&(forreading&0x100))>>8)|((forreading&0x100)?(REG_SS&0xFFFC):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit(bit7) when requested(bit6) and give SS instead of 0!
 				return 1; //Error out!
 				break;
 			}
