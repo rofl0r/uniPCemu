@@ -226,6 +226,10 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
+				else if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
 				else if (!(EXECSEGMENT_ISEXEC(verdescriptor) && (EXECSEGMENT_R(verdescriptor)==0))) //Not an unreadable code segment? We're either a data segment(always readable) or readable code segment!
 				{
 					FLAGW_ZF(1); //We're valid!
@@ -264,6 +268,10 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 					FLAGW_ZF(0); //We're invalid!
 				}
 				else if (GENERALSEGMENT_S(verdescriptor)==0) //Not code/data?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
@@ -541,7 +549,11 @@ void CPU286_OP0F02() //LAR /r
 					isconforming = 0;
 					break;
 				}
-				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0,0)) return; //Write our result!
@@ -614,7 +626,11 @@ void CPU286_OP0F03() //LSL /r
 
 				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
 
-				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
+				{
+					FLAGW_ZF(0); //We're invalid!
+				}
+				else if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(limit&0xFFFF),MODRM_src0,0)) return; //Write our result!
