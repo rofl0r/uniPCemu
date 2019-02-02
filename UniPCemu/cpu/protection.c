@@ -694,7 +694,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_LDTR) //in LDTR? We're valid!
 		{
-			memset(&LOADEDDESCRIPTOR,0,sizeof(LOADEDDESCRIPTOR)); //Allow!
 			goto validLDTR; //Skip all checks, and check out as valid! We're allowed on the LDTR only!
 		}
 		else //Skip checks: we're invalid to check any further!
@@ -706,7 +705,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			}
 			else if (allowNP)
 			{
-				memset(&LOADEDDESCRIPTOR,0,sizeof(LOADEDDESCRIPTOR)); //Allow!
 				goto validLDTR; //Load NULL descriptor!
 			}
 		}
