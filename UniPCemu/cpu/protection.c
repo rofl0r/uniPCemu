@@ -486,150 +486,41 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
 	byte isNULLdescriptor = 0;
-
-	if (((segmentval&~3)==0) && (segment==CPU_SEGMENT_LDTR)) //LDT loaded with the reserved GDT NULL descriptor?
+	isNULLdescriptor = 0; //Default: not a NULL descriptor!
+	if ((segmentval&~3)==0) //NULL descriptor?
 	{
-		memset(container,0,sizeof(*container)); //Load an invalid LDTR, which is marked invalid!
-		isNULLdescriptor = 1; //Special reserved NULL descriptor loading valid!
-	}
-	else //Try to load a normal segment descriptor!
-	{
-		if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
-		{
-			return 0; //Abort: invalid LDTR to use!
-		}
-		if ((word)(descriptor_index|0x7)>((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
-		{
-			return 0; //Not present: limit exceeded!
-		}
-	
-		isNULLdescriptor = 0; //Default: not a NULL descriptor!
-		if ((segmentval&~3)==0) //NULL descriptor?
-		{
-			isNULLdescriptor = 1; //NULL descriptor!
-			if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS)) //NULL segment loaded into CS or SS?
-			{
-				return 0; //Not present: limit exceeded!	
-			}
-			//Otherwise, don't load the descriptor from memory, just clear valid bit!
-		}
-	
-		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
-
-		if (isNULLdescriptor==0) //Not special NULL descriptor handling?
-		{
-			int i;
-			for (i=0;i<(int)sizeof(container->desc.bytes);++i)
-			{
-				if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
-				{
-					return -1; //Error out!
-				}
-			}
-			descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
-			for (i=0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
-			{
-				if (memory_readlinear(descriptor_address++,&container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
-				{
-					return 0; //Failed to load the descriptor!
-				}
-			}
-
-			container->desc.limit_low = DESC_16BITS(container->desc.limit_low);
-			container->desc.base_low = DESC_16BITS(container->desc.base_low);
-
-			if (EMULATED_CPU == CPU_80286) //80286 has less options?
-			{
-				container->desc.base_high = 0; //No high byte is present!
-				container->desc.noncallgate_info &= ~0xF; //No high limit is present!
-			}
-		}
-		else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory!
-		{
-			memcpy(container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
-			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
-		}
+		isNULLdescriptor = 1; //NULL descriptor!
+		//Otherwise, don't load the descriptor from memory, just clear valid bit!
 	}
 
-	if (segment == CPU_SEGMENT_LDTR) //Loading a LDT with no LDT entry used?
+	if ((segmentval&4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0)) //Invalid LDT segment?
 	{
-		if (segmentval & 4) //We're not loading from the GDT?
-		{
-			return 0; //Not present: limit exceeded!
-		}
-		if ((GENERALSEGMENTPTR_TYPE(container) != AVL_SYSTEM_LDT) && (!isNULLdescriptor)) //We're not an LDT while not a NULL LDTR?
-		{
-			return 0; //Not present: limit exceeded!
-		}
+		return 0; //Abort: invalid LDTR to use!
 	}
-	
-	if ((segment==CPU_SEGMENT_SS) && //SS is...
-		((getLoadedTYPE(container)==1) || //An executable segment? OR
-		(!getLoadedTYPE(container) && (DATASEGMENTPTR_W(container)==0)) || //Read-only DATA segment? OR
-		(((getCPL()!=GENERALSEGMENTPTR_DPL(container)) && ((isJMPorCALL&0x80)==0))) //Not the same privilege(when checking for privilege) as CPL?
-		)
-		)
+	if (isNULLdescriptor == 0) //Not NULL descriptor?
 	{
-		return 0; //Not present: limit exceeded!	
-	}
-
-	if(GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
-	{
-		container->desc.AccessRights |= 1; //Set the accessed bit!
-		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
-		{
-			return result; //Error out!
-		}
-	}
-
-	CPU_calcSegmentPrecalcs(container); //Precalculate anything needed!
-	return 1; //OK!
-}
-
-int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container)
-{
-	int result;
-	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
-
-	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
-	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
-
-	if (((segmentval&~3) == 0) && (segment == CPU_SEGMENT_LDTR)) //LDT loaded with the reserved GDT NULL descriptor?
-	{
-		memset(container, 0, sizeof(*container)); //Load an invalid LDTR, which is marked invalid!
-	}
-	else //Try to load a normal segment descriptor!
-	{
-		if ((segmentval & 4) && (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR]) == 0)) //Invalid LDT segment?
-		{
-			return 0; //Abort: invalid LDTR to use!
-		}
-
 		if ((word)(descriptor_index | 0x7) > ((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 		{
 			return 0; //Not present: limit exceeded!
 		}
+	}
+	
+	descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
 
-		if ((!getDescriptorIndex(descriptor_index)) && ((segment == CPU_SEGMENT_CS) || ((segment == CPU_SEGMENT_SS))) && ((segmentval & 4) == 0)) //NULL GDT segment loaded into CS or SS?
-		{
-			return 0; //Not present: limit exceeded!	
-		}
-
-		descriptor_address += descriptor_index; //Add the index multiplied with the width(8 bytes) to get the descriptor!
-
+	if (isNULLdescriptor==0) //Not special NULL descriptor handling?
+	{
 		int i;
-		for (i = 0; i<(int)sizeof(container->desc.bytes); ++i)
+		for (i=0;i<(int)sizeof(container->desc.bytes);++i)
 		{
-			if (checkDirectMMUaccess(descriptor_address++, 1,/*getCPL()*/ 0)) //Error in the paging unit?
+			if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
 			{
 				return -1; //Error out!
 			}
 		}
 		descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
-		for (i = 0; i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
+		for (i=0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 		{
-			if (memory_readlinear(descriptor_address++, &container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
+			if (memory_readlinear(descriptor_address++,&container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
 			{
 				return 0; //Failed to load the descriptor!
 			}
@@ -644,11 +535,23 @@ int LOADINTDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *containe
 			container->desc.noncallgate_info &= ~0xF; //No high limit is present!
 		}
 	}
-
-	if (GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
+	else //NULL descriptor to DS/ES/FS/GS segment registers? Don't load the descriptor from memory(instead clear it's present bit)! Any other register, just clear it's descriptor for a full NULL descriptor!
+	{
+		if ((segment == CPU_SEGMENT_DS) || (segment == CPU_SEGMENT_ES) || (segment == CPU_SEGMENT_FS) || (segment == CPU_SEGMENT_GS))
+		{
+			memcpy(container,&CPU[activeCPU].SEG_DESCRIPTOR[segment],sizeof(*container)); //Copy the old value!
+			container->desc.AccessRights &= 0x7F; //Clear the present flag in the descriptor itself!
+		}
+		else
+		{
+			memset(container, 0, sizeof(*container)); //Load an invalid register, which is marked invalid!
+		}
+	}
+	
+	if(GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
 	{
 		container->desc.AccessRights |= 1; //Set the accessed bit!
-		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, (2|0x80))) <= 0) //Trigger writeback and errored out? We're behaving like a CALL, since we're an interrupt!
+		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
 		{
 			return result; //Error out!
 		}
@@ -1087,7 +990,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		goto throwdescsegmentval; //Throw #GP error!		
 		return NULL; //Not present: invalid descriptor type loaded!
 	}
-	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR))) //Executable segment loaded invalid?
+	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_SS))) //Executable segment loaded invalid?
 	{
 		goto throwdescsegmentval; //Throw #GP error!		
 		return NULL; //Not present: invalid descriptor type loaded!
@@ -1878,7 +1781,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
-			if ((loadresult = LOADINTDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
+			if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_CS, idtentry.selector, &newdescriptor,2))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
 			{
 				if (loadresult==0) //Not faulted already?
 				{
