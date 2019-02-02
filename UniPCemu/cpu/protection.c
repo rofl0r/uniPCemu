@@ -673,10 +673,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			THROWDESCTS(*segmentval,1,(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!			
 		}
-		else if (segment == CPU_SEGMENT_SS) //SS throws #SS instead of #GP!
-		{
-			THROWDESCSS(*segmentval,((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
 		else //Plain #GP?
 		{
 			THROWDESCGP(*segmentval,((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
@@ -846,10 +842,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		if (isJMPorCALL&0x200) //TSS is the cause?
 		{
 			THROWDESCTS(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		else if (segment == CPU_SEGMENT_SS) //SS throws #SS instead of #GP!
-		{
-			THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else //Plain #GP?
 		{
