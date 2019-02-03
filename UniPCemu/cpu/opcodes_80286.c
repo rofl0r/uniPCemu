@@ -540,20 +540,30 @@ void CPU286_OP0F02() //LAR /r
 			case AVL_SYSTEM_RESERVED_3:
 			case AVL_SYSTEM_INTERRUPTGATE32BIT:
 			case AVL_SYSTEM_TRAPGATE32BIT:
-				FLAGW_ZF(0); //Invalid descriptor type!
-				break;
-			default: //Valid type?
-				switch (verdescriptor.desc.AccessRights) //What type?
+				if (GENERALSEGMENT_S(verdescriptor) == 0) //System?
 				{
-				case AVL_CODE_EXECUTEONLY_CONFORMING:
-				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
-				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
-				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
-					isconforming = 1;
+					FLAGW_ZF(0); //Invalid descriptor type!
 					break;
-				default: //Not conforming?
-					isconforming = 0;
-					break;
+				}
+			default: //Valid type?
+				if (GENERALSEGMENT_S(verdescriptor)) //System?
+				{
+					switch (verdescriptor.desc.AccessRights) //What type?
+					{
+					case AVL_CODE_EXECUTEONLY_CONFORMING:
+					case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+					case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+					case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+						isconforming = 1;
+						break;
+					default: //Not conforming?
+						isconforming = 0;
+						break;
+					}
+				}
+				else
+				{
+					isconforming = 0; //Not conforming!
 				}
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
@@ -615,20 +625,30 @@ void CPU286_OP0F03() //LSL /r
 			case AVL_SYSTEM_RESERVED_3:
 			case AVL_SYSTEM_INTERRUPTGATE32BIT:
 			case AVL_SYSTEM_TRAPGATE32BIT:
-				FLAGW_ZF(0); //Invalid descriptor type!
-				break;
-			default: //Valid type?
-				switch (verdescriptor.desc.AccessRights) //What type?
+				if (GENERALSEGMENT_S(verdescriptor) == 0) //System?
 				{
-				case AVL_CODE_EXECUTEONLY_CONFORMING:
-				case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
-				case AVL_CODE_EXECUTE_READONLY_CONFORMING:
-				case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
-					isconforming = 1;
+					FLAGW_ZF(0); //Invalid descriptor type!
 					break;
-				default: //Not conforming?
-					isconforming = 0;
-					break;
+				}
+			default: //Valid type?
+				if (GENERALSEGMENT_S(verdescriptor)) //System?
+				{
+					switch (verdescriptor.desc.AccessRights) //What type?
+					{
+					case AVL_CODE_EXECUTEONLY_CONFORMING:
+					case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
+					case AVL_CODE_EXECUTE_READONLY_CONFORMING:
+					case AVL_CODE_EXECUTE_READONLY_CONFORMING_ACCESSED: //Conforming?
+						isconforming = 1;
+						break;
+					default: //Not conforming?
+						isconforming = 0;
+						break;
+					}
+				}
+				else
+				{
+					isconforming = 0; //Not conforming!
 				}
 
 				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
