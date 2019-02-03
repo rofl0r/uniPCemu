@@ -215,6 +215,10 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			sbyte loadresult;
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
+				if ((oper1 & 0xFFFC) == 0) //NULL segment selector?
+				{
+					goto invalidresultVERR286;
+				}
 				if (
 					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&verdescriptor)==1))) || (getLoadedTYPE(&verdescriptor)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 					((MAX(getCPL(),getRPL(oper1))!=GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&verdescriptor) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
@@ -223,10 +227,6 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 					FLAGW_ZF(0); //We're invalid!
 				}
 				else if (GENERALSEGMENT_S(verdescriptor)==0) //Not code/data?
-				{
-					FLAGW_ZF(0); //We're invalid!
-				}
-				else if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
@@ -241,6 +241,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			}
 			else if (loadresult==0)
 			{
+				invalidresultVERR286:
 				FLAGW_ZF(0); //We're invalid!
 			}
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
@@ -260,6 +261,10 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			sbyte loadresult;
 			if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 			{
+				if ((oper1 & 0xFFFC) == 0) //NULL segment selector?
+				{
+					goto invalidresultVERW286;
+				}
 				if (
 					((MAX(getCPL(), getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (((EXECSEGMENT_ISEXEC(verdescriptor) && EXECSEGMENT_C(verdescriptor) && (getLoadedTYPE(&verdescriptor) == 1))) || (getLoadedTYPE(&verdescriptor) != 1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 					((MAX(getCPL(), getRPL(oper1)) != GENERALSEGMENT_DPL(verdescriptor)) && (EXECSEGMENT_ISEXEC(verdescriptor) && (!EXECSEGMENT_C(verdescriptor)) && (getLoadedTYPE(&verdescriptor) == 1))) //We must be at the same privilege level for non-conforming code segment descriptors?
@@ -268,10 +273,6 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 					FLAGW_ZF(0); //We're invalid!
 				}
 				else if (GENERALSEGMENT_S(verdescriptor)==0) //Not code/data?
-				{
-					FLAGW_ZF(0); //We're invalid!
-				}
-				else if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
 				{
 					FLAGW_ZF(0); //We're invalid!
 				}
@@ -286,6 +287,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 			}
 			else if (loadresult==0)
 			{
+				invalidresultVERW286:
 				FLAGW_ZF(0); //We're invalid!
 			}
 			CPU_apply286cycles(); //Apply the 80286+ cycles!
@@ -524,6 +526,10 @@ void CPU286_OP0F02() //LAR /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 		{
+			if ((oper1 & 0xFFFC) == 0) //NULL segment selector?
+			{
+				goto invalidresultLAR286;
+			}
 			switch (GENERALSEGMENT_TYPE(verdescriptor))
 			{
 			case AVL_SYSTEM_RESERVED_0: //Invalid type?
@@ -549,11 +555,7 @@ void CPU286_OP0F02() //LAR /r
 					isconforming = 0;
 					break;
 				}
-				if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
-				{
-					FLAGW_ZF(0); //We're invalid!
-				}
-				else if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0,0)) return; //Write our result!
@@ -572,6 +574,7 @@ void CPU286_OP0F02() //LAR /r
 		{
 			if (loadresult == 0)
 			{
+				invalidresultLAR286:
 				FLAGW_ZF(0); //Default: not loaded!
 			}
 		}
@@ -597,6 +600,10 @@ void CPU286_OP0F03() //LSL /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1, &verdescriptor,0))==1) //Load the descriptor!
 		{
+			if ((oper1 & 0xFFFC) == 0) //NULL segment selector?
+			{
+				goto invalidresultLSL286;
+			}
 			protection_PortRightsLookedup = (SEGDESC_NONCALLGATE_G(verdescriptor)&CPU[activeCPU].G_Mask); //What granularity are we?
 			switch (GENERALSEGMENT_TYPE(verdescriptor))
 			{
@@ -626,11 +633,7 @@ void CPU286_OP0F03() //LSL /r
 
 				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
 
-				if (GENERALSEGMENT_P(verdescriptor) == 0) //Not present?
-				{
-					FLAGW_ZF(0); //We're invalid!
-				}
-				else if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(limit&0xFFFF),MODRM_src0,0)) return; //Write our result!
@@ -649,6 +652,7 @@ void CPU286_OP0F03() //LSL /r
 		{
 			if (loadresult == 0)
 			{
+				invalidresultLSL286:
 				FLAGW_ZF(0); //Default: not loaded!
 			}
 		}
