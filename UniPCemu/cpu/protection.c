@@ -905,6 +905,19 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
 	}
 
+	if ((segment == CPU_SEGMENT_CS) && (is_gated == 0) && (((isJMPorCALL & 0x1FF) == 2)||((isJMPorCALL & 0x1FF) == 1))) //CALL/JMP to lower or different privilege?
+	{
+		if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) > getCPL()) && EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Conforming and lower privilege?
+		{
+			goto throwdescoriginalval; //Throw #GP error!		
+		}
+		if (((getRPL(*segmentval) > getCPL()) || (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) != getCPL())) && !EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Non-conforming and different privilege or lowering privilege?
+		{
+			goto throwdescoriginalval; //Throw #GP error!		
+		}
+		//Non-conforming always must match CPL, so we don't handle it here(it's in the generic check)!
+	}
+
 	if ((segment == CPU_SEGMENT_CS) && (isGateDescriptor(&GATEDESCRIPTOR) == 1) && (is_gated)) //Gated CS?
 	{
 		switch (GENERALSEGMENT_TYPE(GATEDESCRIPTOR)) //What type of gate are we using?
