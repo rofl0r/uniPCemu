@@ -266,6 +266,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 {
 	byte result;
 	uint_32 originaladdr;
+	originaladdr = realaddress; //The linear address!
 	if (is_paging()) //Are we paging?
 	{
 		realaddress = mappage(realaddress,0,CPL); //Map it using the paging mechanism!
@@ -298,6 +299,8 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 
 void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup, byte CPL)
 {
+	uint_32 originaladdr;
+	originaladdr = realaddress; //The linear address!
 	if (is_paging()) //Are we paging?
 	{
 		realaddress = mappage(realaddress,1,CPL); //Map it using the paging mechanism!
@@ -313,7 +316,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
+		debugger_logmemoryaccess(1,originaladdr,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
 	//Apply A20!
