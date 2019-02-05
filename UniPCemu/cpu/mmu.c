@@ -283,7 +283,6 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	//Apply A20!
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	originaladdr = realaddress;
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
