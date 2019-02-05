@@ -368,7 +368,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
+		debugger_logmemoryaccess(0,offset,result,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
 	return result; //Give the result!
@@ -393,7 +393,7 @@ OPTINLINE byte MMU_INTERNAL_rb0(sword segdesc, word segment, uint_32 offset, byt
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_NORMAL); //Log it!
+		debugger_logmemoryaccess(0,offset,result,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
 	return result; //Give the result!
@@ -453,7 +453,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
-		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_NORMAL); //Log it!
+		debugger_logmemoryaccess(1,offset,val,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
 	processBUS(realaddress, index, val); //Process us on the BUS!
