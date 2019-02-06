@@ -646,11 +646,13 @@ getsegment_seg: Gets a segment, if allowed.
 parameters:
 	whatsegment: What segment is used?
 	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting.
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting, bit 11=bit 12-13 are the CPL instead for privilege checks.
 result:
 	The segment when available, NULL on error or disallow.
 
 */
+
+#define effectiveCPL() ((isJMPorCALL&0x800)?((isJMPorCALL>>12)&3):getCPL())
 
 SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *segmentval, word isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
@@ -873,7 +875,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		(
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1))) || (getLoadedTYPE(&LOADEDDESCRIPTOR)!=1))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level for non-conforming code segment descriptors?
-		(!privilegedone && ((getCPL()!=getRPL(*segmentval)) || (getCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
+		(!privilegedone && ((effectivePL()!=getRPL(*segmentval)) || (effectiveCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		&& (!((isJMPorCALL&0x80)==0x80)) //Don't ignore privilege?
@@ -1170,6 +1172,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 						REG_SP += RETF_popbytes; //Process SP!
 					}
+					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU]) return 1; //Stack fault?
 				}
 
 				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
@@ -1656,8 +1659,7 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
-		CPU[activeCPU].CPL = (newCPL&3); //Must match!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x200|((newCPL<<8)&0x400))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x200|((newCPL<<8)&0x400))|0x800|((newCPL&3)<<12)) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
@@ -1861,7 +1863,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				updateCPUmode(); //Update the CPU mode!
 
 				//We're back in protected mode now!
-				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
@@ -1907,7 +1908,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			{
 				//Unlike the other case, we're still in protected mode!
 				//We're back in protected mode now!
-				CPU[activeCPU].CPL = newCPL; //Apply the new level for the stack load!
 
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
