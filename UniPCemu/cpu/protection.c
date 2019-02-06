@@ -873,9 +873,9 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1)) || ((getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) && (segment!=CPU_SEGMENT_SS))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1)) || ((getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) && (segment!=CPU_SEGMENT_SS)))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level for non-conforming code segment descriptors?
-		(!privilegedone && ((effectivePL()!=getRPL(*segmentval)) || (effectiveCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
+		(!privilegedone && ((effectiveCPL()!=getRPL(*segmentval)) || (effectiveCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
 		)
 		&& (!(((isJMPorCALL&0x1FF)==3) && is_TSS)) //No privilege checking is done on IRET through TSS!
 		&& (!((isJMPorCALL&0x80)==0x80)) //Don't ignore privilege?
@@ -1172,7 +1172,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 						REG_SP += RETF_popbytes; //Process SP!
 					}
-					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU]) return 1; //Stack fault?
+					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU])) return 1; //Stack fault?
 				}
 
 				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
