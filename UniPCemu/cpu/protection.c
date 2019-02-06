@@ -1172,7 +1172,10 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 						REG_SP += RETF_popbytes; //Process SP!
 					}
-					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU])) return 1; //Stack fault?
+					if (oldCPL < getRPL(value)) //Lowering privilege?
+					{
+						if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //Stack fault?
+					}
 				}
 
 				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
