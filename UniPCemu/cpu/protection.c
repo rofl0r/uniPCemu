@@ -1656,7 +1656,8 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x80|0x200|((newCPL<<8)&0x400))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
+		CPU[activeCPU].CPL = (newCPL&3); //Must match!
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x200|((newCPL<<8)&0x400))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
