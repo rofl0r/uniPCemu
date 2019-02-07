@@ -1933,6 +1933,7 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 	if (EMULATED_CPU<CPU_80286) return 0; //Not applied on unsupported processors!
 	word *currentinstructiontiming; //Current timing we're processing!
 	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
+	word currentinstructiontimingindex;
 	MemoryTimingInfo *currenttimingcheck; //Current timing check!
 	//80286 uses other timings than the other chips!
 	ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
@@ -1959,9 +1960,10 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 	{
 		if (*currentinstructiontiming) //Valid timing?
 		{
-			if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
+			currentinstructiontimingindex = (*currentinstructiontiming - 1); //Actual instruction timing index to use(1-base to 0-base)!
+			if (CPUPMTimings[currentinstructiontimingindex].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
 			{
-				currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
+				currenttimingcheck = &CPUPMTimings[currentinstructiontimingindex].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
 				if (currenttimingcheck->addclock&0x80) //Multiply BST_cnt and add to this to get the correct timing?
 				{
 					if ((currenttimingcheck->n&0x80)==((protection_PortRightsLookedup&1)<<7)) //Match case?
