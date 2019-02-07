@@ -1947,20 +1947,21 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 
 	if (CPU_interruptraised) //Any fault is raised?
 	{
-		currentinstructiontiming = &timing286lookup[isPM()][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
+		ismemory = modrm_threevariablesused = 0; //Not to be applied with this!
+		currentinstructiontiming = &timing286lookup[isPM()|((CPU_Operand_size[activeCPU])<<1)][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
 	}
 	else
 	{
-		currentinstructiontiming = &timing286lookup[isPM()][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+		currentinstructiontiming = &timing286lookup[isPM()|((CPU_Operand_size[activeCPU])<<1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
 	}
 	//Try to use the lookup table!
 	for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
 	{
 		if (*currentinstructiontiming) //Valid timing?
 		{
-			if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU])].ismemory[ismemory].basetiming) //Do we have valid timing to use?
+			if (CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
 			{
-				currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()|(CPU_Operand_size[activeCPU]<<1)].ismemory[ismemory]; //Our current info to check!
+				currenttimingcheck = &CPUPMTimings[*currentinstructiontiming].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
 				if (currenttimingcheck->addclock&0x80) //Multiply BST_cnt and add to this to get the correct timing?
 				{
 					if ((currenttimingcheck->n&0x80)==((protection_PortRightsLookedup&1)<<7)) //Match case?
