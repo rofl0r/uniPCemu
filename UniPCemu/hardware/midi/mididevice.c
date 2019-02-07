@@ -1596,7 +1596,7 @@ void MIDIDEVICE_addbuffer(byte command, MIDIPTR data) //Add a command to the buf
 }
 
 /* Init/destroy support */
-
+extern byte RDPDelta; //RDP toggled?
 void done_MIDIDEVICE() //Finish our midi device!
 {
 	#ifdef __HW_DISABLED
@@ -1607,7 +1607,13 @@ void done_MIDIDEVICE() //Finish our midi device!
 	{
 		// turn any MIDI notes currently playing:
 		midiOutReset(device);
-
+		lock(LOCK_INPUT);
+		if (RDPDelta)
+		{
+			unlock(LOCK_INPUT);
+			return;
+		}
+		unlock(LOCK_INPUT);
 		// Remove any data in MIDI device and close the MIDI Output port
 		midiOutClose(device);
 		//We're directly sending MIDI to the output!
@@ -1647,6 +1653,9 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	direct_midi = use_direct_MIDI; //Use direct MIDI synthesis by the OS, if any?
 	if (direct_midi)
 	{
+		lock(LOCK_INPUT);
+		RDPDelta = 0;
+		unlock(LOCK_INPUT);
 		// Open the MIDI output port
 		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);
 		if (flag != MMSYSERR_NOERROR) {
