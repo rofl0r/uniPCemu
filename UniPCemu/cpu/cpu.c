@@ -2534,15 +2534,15 @@ void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
 							}
 					
 							//Now, sort the items in their apropriate order!
-							for (index=0;index<sublistsize;++index) //Process all items to sort!
+							for (index=0;index<(sublistsize-1);++index) //Process all items to sort!
 							{
-								for (sublistindex=index+1;sublistindex<sublistsize;++sublistindex) //The items to compare!
+								for (sublistindex=0;sublistindex<(sublistsize-index-1);++sublistindex) //The items to compare!
 								{
-									if (haslower286timingpriority(CPUmode,ismemory,sublist[index],sublist[sublistindex])) //Do we have lower timing priority (item must be after the item specified)?
+									if (haslower286timingpriority(CPUmode,ismemory,sublist[sublistindex],sublist[sublistindex+1])) //Do we have lower timing priority (item must be after the item specified)?
 									{
-										tempsublist = sublist[index]; //Lower priority index saved!
-										sublist[index] = sublist[sublistindex]; //Higher priority index to higher priority position!
-										sublist[sublistindex] = tempsublist; //Lower priority index to lower priority position!
+										tempsublist = sublist[sublistindex]; //Lower priority index saved!
+										sublist[sublistindex] = sublist[sublistindex+1]; //Higher priority index to higher priority position!
+										sublist[sublistindex+1] = tempsublist; //Lower priority index to lower priority position!
 									}
 								}
 							}
