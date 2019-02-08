@@ -79,13 +79,18 @@ byte CPU_faultraised(byte type)
 			CPU[activeCPU].faultlevel = 1; //We have a fault raised, so don't raise any more!
 			switch (CPU[activeCPU].faultraised_lasttype) //What type was first raised?
 			{
+				//Contributory causing...
 				case EXCEPTION_DIVIDEERROR:
+				case EXCEPTION_COPROCESSOROVERRUN:
 				case EXCEPTION_INVALIDTSSSEGMENT:
 				case EXCEPTION_SEGMENTNOTPRESENT:
 				case EXCEPTION_STACKFAULT:
 				case EXCEPTION_GENERALPROTECTIONFAULT: //First cases?
 					switch (type) //What second cause?
 					{
+						//... Contributory?
+						case EXCEPTION_DIVIDEERROR:
+						case EXCEPTION_COPROCESSOROVERRUN:
 						case EXCEPTION_INVALIDTSSSEGMENT:
 						case EXCEPTION_SEGMENTNOTPRESENT:
 						case EXCEPTION_STACKFAULT:
@@ -97,10 +102,15 @@ byte CPU_faultraised(byte type)
 							break;
 					}
 					break;
+				//Page fault causing...
 				case EXCEPTION_PAGEFAULT: //Page fault? Second case!
 					switch (type) //What second cause?
 					{
+						//... Page fault or ...
 						case EXCEPTION_PAGEFAULT:
+						//... Contributory?
+						case EXCEPTION_DIVIDEERROR:
+						case EXCEPTION_COPROCESSOROVERRUN:
 						case EXCEPTION_INVALIDTSSSEGMENT:
 						case EXCEPTION_SEGMENTNOTPRESENT:
 						case EXCEPTION_STACKFAULT:
