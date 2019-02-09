@@ -11,6 +11,7 @@ typedef struct
 {
 	uint_32 data; //80386 4-way associative TLB results!
 	uint_32 TAG; //All TAGs used with the respective TLB!
+	void *TLB_listnode; //The list node we're associated to!
 } TLBEntry;
 
 typedef struct

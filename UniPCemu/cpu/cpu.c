@@ -1035,7 +1035,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Reset the instruction fetching system!
 	CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase =  1; //We're starting to fetch!
 	CPU_initBIU(); //Initialize the BIU for use!
-	Paging_clearTLB(); //Clear the TLB when resetting!
+	Paging_initTLB(); //Init and clear the TLB when resetting!
 	effectivecpuaddresspins = cpuaddresspins[((EMULATED_CPU<<1)|is_XT)]; //What pins are supported for the current CPU/architecture?
 }
 
