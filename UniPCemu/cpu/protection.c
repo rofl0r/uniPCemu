@@ -63,9 +63,15 @@ void CPU_doublefault()
 	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,2,zerovalue); //Execute the double fault handler!
 }
 
+extern byte CPU_interruptraised; //Interrupt raised flag?
+
 byte CPU_faultraised(byte type)
 {
 	if (EMULATED_CPU<CPU_80286) return 1; //Always allow on older processors without protection!
+	if ((hascallinterrupttaken_type!=0xFF) || (CPU_interruptraised)) //Were we caused while raising an interrupt or other pending timing?
+	{
+		CPU_apply286cycles(); //Apply any cycles that need to be applied for the current interrupt to happen!
+	}
 	if (CPU[activeCPU].faultlevel) //Double/triple fault might have been raised?
 	{
 		if (CPU[activeCPU].faultlevel == 2) //Triple fault?
@@ -1158,16 +1164,13 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 				setRPL(value,getCPL()); //RPL of CS always becomes CPL!
 
-				if (hascallinterrupttaken_type==0xFF) //Not set yet?
+				if (isDifferentCPL==1) //Different CPL?
 				{
-					if (isDifferentCPL==1) //Different CPL?
-					{
-						hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-					}
-					else //Same CPL call gate?
-					{
-						hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
-					}
+					hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+				}
+				else //Same CPL call gate?
+				{
+					hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
 				}
 			}
 			else if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF) == 4)) //RETF needs popped data on the stack?
@@ -1693,6 +1696,8 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
+	hascallinterrupttaken_type = (getCPL())?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume we're jumping to CPL0 when erroring out!
+
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
 
@@ -1744,6 +1749,8 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	byte oldCPL;
 	base = descriptorbase; //The base offset of the interrupt in the IDT!
 	oldCPL = getCPL(); //Save the old CPL for reference!
+
+	hascallinterrupttaken_type = (getRPL(theidtentry->selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 
 	if (errorcode<0) //Invalid error code to use?
 	{
@@ -1806,6 +1813,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 		{
 		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
 		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
+			hascallinterrupttaken_type = (getRPL(idtentry.selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
@@ -1817,6 +1825,8 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				}
 				return 0; //Error, by specified reason!
 			}
+
+			hascallinterrupttaken_type = (GENERALSEGMENT_DPL(newdescriptor)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume destination privilege level for faults!
 
 			if (
 				(getLoadedTYPE(&newdescriptor) != 1) //Not an executable segment?
@@ -1859,6 +1869,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
+				hascallinterrupttaken_type = (newCPL==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 				#ifdef LOG_VIRTUALMODECALLS
 				if ((MMU_logging == 1) && advancedlog)
 				{

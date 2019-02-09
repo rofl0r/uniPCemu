@@ -279,6 +279,23 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	byte TSSSize = 0; //The TSS size!
 	sbyte loadresult;
 
+	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
+	{
+		hascallinterrupttaken_type = INTERRUPTGATETIMING_TASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+	}
+
+	if (hascallinterrupttaken_type==0xFF) //Not set yet?
+	{
+		if (gated) //Different CPL?
+		{
+			hascallinterrupttaken_type = OTHERGATE_NORMALTASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+		}
+		else //Same CPL call gate?
+		{
+			hascallinterrupttaken_type = OTHERGATE_NORMALTSS; //Normal TSS direct call!
+		}
+	}
+
 	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -815,17 +832,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 	}
 
-	if (hascallinterrupttaken_type==0xFF) //Not set yet?
-	{
-		if (gated) //Different CPL?
-		{
-			hascallinterrupttaken_type = OTHERGATE_NORMALTASKGATE; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-		}
-		else //Same CPL call gate?
-		{
-			hascallinterrupttaken_type = OTHERGATE_NORMALTSS; //Normal TSS direct call!
-		}
-	}
 	CPU[activeCPU].executed = 1; //Task switch completed!
 	return 0; //Abort any running instruction operation, finish up!
 }
