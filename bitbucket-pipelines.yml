@@ -12,4 +12,4 @@ pipelines:
           - git submodule update --init
           - cd UniPCemu
           #- ./configure
-#          - make linux build x64
+          - make linux build SDL2repo x64
