@@ -20,7 +20,7 @@ pipelines:
           - chmod 0777 ../configure 
           - ../configure
           - make
-          - sudo make install
+          - make install
           - cd ..
           # Build us now!
           - cd UniPCemu
