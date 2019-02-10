@@ -1141,10 +1141,10 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword); //How much do we nee
 
 void CPU_resetTimings(); //Reset timings before processing the next CPU state!
 
-void CPU_JMPrel(int_32 reladdr);
-void CPU_JMPabs(uint_32 addr);
-uint_32 CPU_EIPmask();
-byte CPU_EIPSize();
+void CPU_JMPrel(int_32 reladdr, byte useAddressSize);
+void CPU_JMPabs(uint_32 addr, byte useAddressSize);
+uint_32 CPU_EIPmask(byte useAddressSize);
+byte CPU_EIPSize(byte useAddressSize);
 
 byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
 

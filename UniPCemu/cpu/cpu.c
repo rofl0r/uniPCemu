@@ -262,38 +262,38 @@ byte checkENTERStackAccess(uint_32 poptimes, byte isdword) //How much do we need
 
 byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
-void CPU_JMPrel(int_32 reladdr)
+void CPU_JMPrel(int_32 reladdr, byte useAddressSize)
 {
 	REG_EIP += reladdr; //Apply to EIP!
-	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
+	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
 }
 
-void CPU_JMPabs(uint_32 addr)
+void CPU_JMPabs(uint_32 addr, byte useAddressSize)
 {
 	REG_EIP = addr; //Apply to EIP!
-	REG_EIP &= CPU_EIPmask(); //Only 16-bits when required!
+	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
 	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
 }
 
-uint_32 CPU_EIPmask()
+uint_32 CPU_EIPmask(byte useAddressSize)
 {
-	if (CPU_Operand_size[activeCPU]==0) //16-bit movement?
+	if (((CPU_Operand_size[activeCPU]==0) && (useAddressSize==0)) || ((CPU_Address_size[activeCPU]==0) && useAddressSize)) //16-bit movement?
 	{
 		return 0xFFFF; //16-bit mask!
 	}
 	return 0xFFFFFFFF; //Full mask!
 }
 
-byte CPU_EIPSize()
+byte CPU_EIPSize(byte useAddressSize)
 {
-	return ((CPU_EIPmask()==0xFFFF) && (debugger_forceEIP()==0))?PARAM_IMM16:PARAM_IMM32; //Full mask or when forcing EIP to be used!
+	return ((CPU_EIPmask(useAddressSize)==0xFFFF) && (debugger_forceEIP()==0))?PARAM_IMM16:PARAM_IMM32; //Full mask or when forcing EIP to be used!
 }
 
 
