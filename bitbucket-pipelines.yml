@@ -17,6 +17,7 @@ pipelines:
           - cd commonemuframework-sdl2
           - mkdir build
           - cd build
+          - chmod 0777 ../configure 
           - ../configure
           - make
           - sudo make install
