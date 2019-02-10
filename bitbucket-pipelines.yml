@@ -26,8 +26,7 @@ pipelines:
           - chmod 0777 ../../commonemuframework-sdl2/configure
           - test -f Makefile || ../../commonemuframework-sdl2/configure
           - test ./Makefile -ot ../../commonemuframework-sdl2/Makefile && ../../commonemuframework-sdl2/configure
-          - make
-          - make install
+          - make && make install
           - cd ..
           - cd ..
     - step:
@@ -41,7 +40,9 @@ pipelines:
           - git submodule update --init
           - cd SDL2
           - cd build
-          - make install
+          # Only rebuild&install when needed!
+          - test -f /usr/local/lib/libSDL2.la || make install
+          - test -f /usr/local/lib/libSDL2main.la || make install
           - cd ..
           - cd ..
           - cd UniPCemu
