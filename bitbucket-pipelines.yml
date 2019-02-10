@@ -11,11 +11,10 @@ pipelines:
         script:
           - echo Automatic build is disabled.
     - step:
-        name: Linux
+        name: Linux libraries
         trigger: manual
         caches:
-          - sdl2 #cache is defined below in the definitions section          
-          - unipcemu
+          - sdl2 #cache is defined below in the definitions section    
         script:
           - git submodule update --init
           #- ./configure
@@ -31,7 +30,20 @@ pipelines:
           - make install
           - cd ..
           - cd ..
+    - step:
+        name: UniPCemu
+        trigger: manual
+        caches:
+          - sdl2 #cache is defined below in the definitions section
+          - unipcemu
+        script:
           # Build us now!
+          - git submodule update --init
+          - cd SDL2
+          - cd build
+          - make install
+          - cd ..
+          - cd ..
           - cd UniPCemu
           - make linux build SDL2 x64
 definitions:
