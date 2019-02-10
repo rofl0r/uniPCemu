@@ -22,11 +22,12 @@ pipelines:
           #- ./configure
           # Build SDL2 first
           - cd ..
-          - cd commonemuframework-sdl2
+          - mkdir -p SDL2
+          - cd SDL2
           - mkdir -p build
           - cd build
           - chmod 0777 ../configure 
-          - ../configure
+          - ../../commonemuframework-sdl2/configure
           - make
           - make install
           - cd ..
@@ -36,5 +37,5 @@ pipelines:
           - make linux build SDL2 x64
 definitions:
   caches:
-    sdl2: commonemuframework-sdl2/build
+    sdl2: SDL2
     unipcemu: ../projects_build/UniPCemu/linux/___/
