@@ -25,4 +25,4 @@ pipelines:
           - cd ..
           # Build us now!
           - cd UniPCemu
-          - make linux build x64
+          - make linux build SDL2 x64
