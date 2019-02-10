@@ -27,7 +27,8 @@ pipelines:
           - mkdir -p build
           - cd build
           - chmod 0777 ../commonemuframework-sdl2/configure 
-          - ../../commonemuframework-sdl2/configure
+          - test -f Makefile || ../../commonemuframework-sdl2/configure
+          - test ./Makefile -ot ../commonemuframework-sdl2/Makefile && ../commonemuframework-sdl2/configure
           - make
           - make install
           - cd ..
