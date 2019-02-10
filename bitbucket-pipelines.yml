@@ -6,23 +6,25 @@
 image: gcc:6.1
 
 pipelines:
-  default:
-    - step:
-        script: # Modify the commands below to build your repository.
-          - git submodule update --init
-          - cd UniPCemu
-          #- ./configure
-          # Build SDL2 first
-          - cd ..
-          - cd commonemuframework-sdl2
-          - mkdir build
-          - cd build
-          - chmod 0777 ../configure 
-          - ../configure
-          - make
-          - make install
-          - cd ..
-          - cd ..
-          # Build us now!
-          - cd UniPCemu
-          - make linux build SDL2 x64
+  custom:
+    unipcemu-linux:
+      - step:
+          name: linux
+          script: # Modify the commands below to build your repository.
+            - git submodule update --init
+            - cd UniPCemu
+             #- ./configure
+            # Build SDL2 first
+            - cd ..
+            - cd commonemuframework-sdl2
+            - mkdir build
+            - cd build
+            - chmod 0777 ../configure 
+            - ../configure
+            - make
+            - make install
+            - cd ..
+            - cd ..
+            # Build us now!
+            - cd UniPCemu
+            - make linux build SDL2 x64
