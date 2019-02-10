@@ -10,6 +10,9 @@ pipelines:
     unipcemu-linux:
       - step:
           name: linux
+          caches:
+            - sdl2 #cache is defined below in the definitions section          
+            - unipcemu
           script: # Modify the commands below to build your repository.
             - git submodule update --init
             - cd UniPCemu
@@ -17,7 +20,7 @@ pipelines:
             # Build SDL2 first
             - cd ..
             - cd commonemuframework-sdl2
-            - mkdir build
+            - mkdir -p build
             - cd build
             - chmod 0777 ../configure 
             - ../configure
@@ -28,3 +31,7 @@ pipelines:
             # Build us now!
             - cd UniPCemu
             - make linux build SDL2 x64
+definitions:
+  caches:
+    sdl2: commonemuframework-sdl2/build
+    unipcemu: ../../projects_build/UniPCemu/linux/___/
