@@ -6,31 +6,34 @@
 image: gcc:6.1
 
 pipelines:
-  custom:
-    unipcemu-linux:
-      - step:
-          name: linux
-          caches:
-            - sdl2 #cache is defined below in the definitions section          
-            - unipcemu
-          script: # Modify the commands below to build your repository.
-            - git submodule update --init
-            - cd UniPCemu
-             #- ./configure
-            # Build SDL2 first
-            - cd ..
-            - cd commonemuframework-sdl2
-            - mkdir -p build
-            - cd build
-            - chmod 0777 ../configure 
-            - ../configure
-            - make
-            - make install
-            - cd ..
-            - cd ..
-            # Build us now!
-            - cd UniPCemu
-            - make linux build SDL2 x64
+  default:
+    - step:
+        script:
+          - echo Automatic build is disabled.
+    - step:
+        name: Linux
+        trigger: manual
+        caches:
+          - sdl2 #cache is defined below in the definitions section          
+          - unipcemu
+        script:
+          - git submodule update --init
+          - cd UniPCemu
+          #- ./configure
+          # Build SDL2 first
+          - cd ..
+          - cd commonemuframework-sdl2
+          - mkdir -p build
+          - cd build
+          - chmod 0777 ../configure 
+          - ../configure
+          - make
+          - make install
+          - cd ..
+          - cd ..
+          # Build us now!
+          - cd UniPCemu
+          - make linux build SDL2 x64
 definitions:
   caches:
     sdl2: commonemuframework-sdl2/build
