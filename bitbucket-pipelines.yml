@@ -34,4 +34,4 @@ pipelines:
 definitions:
   caches:
     sdl2: commonemuframework-sdl2/build
-    unipcemu: ../../projects_build/UniPCemu/linux/___/
+    unipcemu: ../projects_build/UniPCemu/linux/___/
