@@ -728,19 +728,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 	}
 
-	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR)==0) //Not present loaded into non-data segment register?
-	{
-		if (segment==CPU_SEGMENT_SS) //Stack fault?
-		{
-			THROWDESCSS(*segmentval,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
-		}
-		else
-		{
-			THROWDESCNP(*segmentval, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		return NULL; //We're an invalid TSS to execute!
-	}
-
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
 		goto throwdescsegmentval; //Throw #GP error!
@@ -782,6 +769,19 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			goto throwdescsegmentval; //Throw error!
 			return NULL; //We are a lower privilege level, so don't load!				
 		}
+		if (GENERALSEGMENT_P(GATEDESCRIPTOR)==0) //Not present loaded into non-data segment register?
+		{
+			if (segment==CPU_SEGMENT_SS) //Stack fault?
+			{
+				THROWDESCSS(*segmentval,(isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Stack fault!
+			}
+			else
+			{
+				THROWDESCNP(*segmentval, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			}
+			return NULL; //We're an invalid TSS to execute!
+		}
+
 		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
 		if ((loadresult = LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL))<=0) //Error loading current descriptor?
 		{
@@ -802,6 +802,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		else //Normal descriptor?
 		{
+			if (GENERALSEGMENT_S(LOADEDDESCRIPTOR)==0) goto throwdescsegmentval;
 			if (((isJMPorCALL&0x1FF) == 1) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR))) //JMP to a nonconforming segment?
 			{
 				if (GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) != getCPL()) //Different CPL?
@@ -826,11 +827,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
-			THROWDESCSS(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCSS(*segmentval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		else
 		{
-			THROWDESCNP(originalval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			THROWDESCNP(*segmentval,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(*segmentval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //We're an invalid TSS to execute!
 	}
@@ -838,7 +839,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Final descriptor safety check!
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		goto throwdescoriginalval; //Throw #GP error!
+		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
 
