@@ -783,6 +783,13 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 
 		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
+
+		if (((*segmentval&~3)==0)) //NULL GDT segment when not allowed?
+		{
+			THROWDESCGP(0,0,0); //#GP(0)
+			return NULL; //Abort!
+		}
+
 		if ((loadresult = LOADDESCRIPTOR(segment, *segmentval, &LOADEDDESCRIPTOR,isJMPorCALL))<=0) //Error loading current descriptor?
 		{
 			if (loadresult == 0) //Not faulted already?
