@@ -786,7 +786,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 		if (((*segmentval&~3)==0)) //NULL GDT segment when not allowed?
 		{
-			THROWDESCGP(0,0,0); //#GP(0)
+			goto throwdescsegmentval; //Throw #GP(0) error!
 			return NULL; //Abort!
 		}
 
