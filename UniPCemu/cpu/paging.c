@@ -38,7 +38,9 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define PTE_G 0x00000100
 //Address mask/active mask(in the lookup table)
 #define PXE_ADDRESSMASK 0xFFFFF000
+#define PDE_LARGEADDRESSMASK 0xFFC00000
 #define PXE_ACTIVEMASK 0xFFF
+#define PDE_LARGEACTIVEMASK 0x3FFFFF
 //Address shift to get the physical address
 #define PXE_ADDRESSSHIFT 0
 //What to ignore when reading the TLB for read accesses during normal execution? We ignore Dirty and Writable access bits!
@@ -118,20 +120,29 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	
 	byte effectiveUS;
 	byte RW;
+	byte isS;
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,1,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
+		{
+			return 1; //Valid!
+		}
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,0,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
 		}
 	}
 	else //Write?
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0, &temp,0)) //Cache hit dirty for writes?
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,1,0, &temp,0)) //Cache hit dirty for writes?
+		{
+			return 1; //Valid!
+		}
+		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0,0, &temp,0)) //Cache hit dirty for writes?
 		{
 			return 1; //Valid!
 		}
@@ -144,44 +155,66 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
+	isS = ((PDE&PDE_S) >> 7) & ((CPU[activeCPU].registers->CR4 & 0x10) >> 4); //Effective size!
+
 	
 	//Check PTE
-	PTE = memory_BIUdirectrdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2)); //Read the page table entry!
-	if (!(PTE&PXE_P)) //Not present?
+	if (isS == 0) //Not 4MB?
 	{
-		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
-		return 0; //We have an error, abort!
+		PTE = memory_BIUdirectrdw(((PDE&PXE_ADDRESSMASK) >> PXE_ADDRESSSHIFT) + (TABLE << 2)); //Read the page table entry!
+		if (!(PTE&PXE_P)) //Not present?
+		{
+			raisePF(address, (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
+			return 0; //We have an error, abort!
+		}
 	}
 
-	if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PTE&PXE_RW)>>1),((PTE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
+	if (isS) //4MB? Only check the PDE, not the PTE!
 	{
-		raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
-		return 0; //We have an error, abort!		
+		if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
+		{
+			raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
+			return 0; //We have an error, abort!		
+		}
+	}
+	else //4KB?
+	{
+		if (!verifyCPL(RW, effectiveUS, ((PDE&PXE_RW) >> 1), ((PDE&PXE_US) >> 2), ((PTE&PXE_RW) >> 1), ((PTE&PXE_US) >> 2), &RW)) //Protection fault on combined flags?
+		{
+			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
+			return 0; //We have an error, abort!		
+		}
 	}
 	//RW=Are we writable?
-	if (iswrite) //Writing?
+	if (isS == 0) //PTE-only?
 	{
-		if (!(PTE&PTE_D))
+		if (iswrite) //Writing?
 		{
-			PTEUPDATED = 1; //Updated!
+			if (!(PTE&PTE_D))
+			{
+				PTEUPDATED = 1; //Updated!
+			}
+			PTE |= PTE_D; //Dirty!
 		}
-		PTE |= PTE_D; //Dirty!
 	}
 	if (!(PDE&PXE_A)) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
 		memory_BIUdirectwdw(PDBR+(DIR<<2),PDE); //Update in memory!
 	}
-	if (!(PTE&PXE_A))
+	if (isS == 0) //PTE-only?
 	{
-		PTEUPDATED = 1; //Updated!
-		PTE |= PXE_A; //Accessed!
+		if (!(PTE&PXE_A))
+		{
+			PTEUPDATED = 1; //Updated!
+			PTE |= PXE_A; //Accessed!
+		}
 	}
 	if (PTEUPDATED) //Updated?
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(-1,address,RW,effectiveUS,(PTE&PTE_D)?1:0,(PTE&PXE_ADDRESSMASK)); //Save the PTE 32-bit address in the TLB!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(PTE&PTE_D)?1:0,isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB!
 	return 1; //Valid!
 }
 
@@ -201,13 +234,21 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	retrymapping: //Retry the mapping when not cached!
 	if (iswrite) //Writes are limited?
 	{
-		if (Paging_readTLB(-1,address,1,effectiveUS,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+		if (Paging_readTLB(-1,address,1,effectiveUS,1,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+		{
+			return (result|(address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		if (Paging_readTLB(-1,address,1,effectiveUS,1,0,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
 		{
 			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
 		else goto loadWTLB;
 	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,1,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	{
+		return (result|(address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+	}
+	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,0,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
 	{
 		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 	}
@@ -392,14 +433,21 @@ OPTINLINE TLBEntry *Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwrit
 }
 
 //W=Writable, U=User, D=Dirty
-OPTINLINE uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D)
+OPTINLINE uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D, byte S)
 {
-	return (((((((D<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG!
+	return (((((((((S<<1)|D)<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG!
 }
 
 OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 {
-	return (((logicaladdress&0xFFFFF000)|1)==((TAG&0xFFFFF000)|(TAG&1))); //The used TAG matches on address and availability only! Ignore US/RW!
+	if (TAG & 0x10) //4MB page?
+	{
+		return (((logicaladdress & 0xFFC00000) | 1) == ((TAG & 0xFFC00000) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
+	}
+	else //4KB page?
+	{
+		return (((logicaladdress & 0xFFFFF000) | 1) == ((TAG & 0xFFFFF000) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
+	}
 }
 
 //Build for age entry!
@@ -412,20 +460,20 @@ OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 
 #define SWAP(a,b) if (unlikely(AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a]))) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
 
-void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 result)
+void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
 {
 	TLBEntry *curentry=NULL;
 	TLB_ptr *effectiveentry;
 	uint_32 TAG,TAGMASKED;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress, W, U, D); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
 	byte entry;
-	TAGMASKED = (TAG&0xFFFFF001); //Masked tag for fast lookup! Match P/U/W/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
+	TAGMASKED = (TAG&0xFFFFF011); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
 	entry = 0; //Init for entry search not found!
 	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
 	for (;effectiveentry;) //Verify from MRU to LRU!
 	{
-		if ((effectiveentry->entry->TAG & 0xFFFFF001) == TAGMASKED) //Match for our own entry?
+		if ((effectiveentry->entry->TAG & 0xFFFFF011) == TAGMASKED) //Match for our own entry?
 		{
 			curentry = effectiveentry->entry; //The entry to use!
 			Paging_setNewestTLB(TLB_set, effectiveentry); //We're the newest TLB now!
@@ -445,12 +493,12 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 }
 
 //RWDirtyMask: mask for ignoring set bits in the tag, use them otherwise!
-byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, uint_32 WDMask, uint_32 *result, byte updateAges)
+byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 WDMask, uint_32 *result, byte updateAges)
 {
 	INLINEREGISTER uint_32 TAG, TAGMask;
 	INLINEREGISTER TLB_ptr *curentry;
 	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress,W,U,D); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress,W,U,D,S); //Generate a TAG!
 	TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
 	if (likely(WDMask)) //Used?
 	{
@@ -521,19 +569,19 @@ void Paging_TestRegisterWritten(byte TR)
 		{
 			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1)) && P) //Valid complements?
 			{
-				if (Paging_readTLB(0, logicaladdress, W, U, D, 0, &result,1)) //Read?
+				if (Paging_readTLB(0, logicaladdress, W, U, D,0, 0, &result,1)) //Read?
 				{
 					hit = 1; //Hit!
 				}
-				else if (Paging_readTLB(1, logicaladdress, W, U, D, 0, &result,1)) //Read?
+				else if (Paging_readTLB(1, logicaladdress, W, U, D,0, 0, &result,1)) //Read?
 				{
 					hit = 2; //Hit!
 				}
-				else if (Paging_readTLB(2, logicaladdress, W, U, D, 0, &result,1)) //Read?
+				else if (Paging_readTLB(2, logicaladdress, W, U, D,0, 0, &result,1)) //Read?
 				{
 					hit = 3; //Hit!
 				}
-				else if (Paging_readTLB(3, logicaladdress, W, U, D, 0, &result,1)) //Read?
+				else if (Paging_readTLB(3, logicaladdress, W, U, D,0, 0, &result,1)) //Read?
 				{
 					hit = 4; //Hit!
 				}
@@ -558,7 +606,7 @@ void Paging_TestRegisterWritten(byte TR)
 			{
 				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
 				{
-					Paging_writeTLB((CPU[activeCPU].registers->TR7 >> 2) & 3, logicaladdress, W, U, D, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB((CPU[activeCPU].registers->TR7 >> 2) & 3, logicaladdress, W, U, D, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 			}
 		}
