@@ -31,7 +31,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 //Accessed
 #define PXE_A 0x00000020
 //Page size (0 for 4KB, 1 for 4MB)
-#define PDE_S 0x00000040
+#define PDE_S 0x00000080
 //Dirty: we've been written to!
 #define PTE_D 0x00000040
 //Global flag! Must be on PTE only (PDE is cleared always)
@@ -155,7 +155,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
-	isS = ((PDE&PDE_S) >> 6) & ((CPU[activeCPU].registers->CR4 & 0x10) >> 4); //Effective size!
+	isS = ((PDE&PDE_S) >> 7) & ((CPU[activeCPU].registers->CR4 & 0x10) >> 4); //Effective size!
 
 	
 	//Check PTE
