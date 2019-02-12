@@ -214,7 +214,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(-1,address,RW,effectiveUS,(PTE&PTE_D)?1:0,isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):1,isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 4MB pages!
 	return 1; //Valid!
 }
 
