@@ -13,7 +13,7 @@
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
 //20-bit PDBR. Could also be CR3 in total?
-#define PDBR CPU[activeCPU].registers->CR3
+#define PDBR (CPU[activeCPU].registers->CR3&0xFFFFF000)
 //#define PDBR ((CPU[activeCPU].registers->CR3>>12)&0xFFFFF)
 
 //Present: 1 when below is used, 0 is invalid: not present (below not used/to be trusted).
