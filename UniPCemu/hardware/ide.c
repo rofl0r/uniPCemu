@@ -3089,6 +3089,27 @@ byte outATA16(word port, word value)
 	return 1;
 }
 
+byte outATA32(word port, uint_32 value)
+{
+	byte channel = 0; //What channel?
+	if (port != getPORTaddress(channel)) //Primary channel?
+	{
+		channel = 1; //Try secondary channel!
+		if (port != getPORTaddress(channel)) //Secondary channel?
+		{
+			return 0; //Not our port?
+		}
+	}
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET!=1) //Not sending an ATAPI packet?
+	{
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
+	}
+	outATA16(port, (value&0xFFFF)); //Write the data low!
+	outATA16(port, ((value >> 16) & 0xFFFF)); //Write the data high!
+	return 1;
+}
+
+
 byte outATA8(word port, byte value)
 {
 	byte pendingreset = 0;
@@ -3238,6 +3259,31 @@ byte inATA16(word port, word *result)
 	*result = resultbuffer; //Set the result!
 	return 1;
 }
+
+byte inATA32(word port, uint_32 *result)
+{
+	byte channel = 0; //What channel?
+	if (port!=getPORTaddress(channel)) //Primary channel?
+	{
+		channel = 1; //Try secondary channel!
+		if (port!=getPORTaddress(channel)) //Secondary channel?
+		{
+			return 0; //Not our port?
+		}
+	}
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
+	word buffer;
+	uint_32 resultbuffer;
+	buffer = 0x0000; //Default for nothing read!
+	inATA16(port, &buffer); //Read the low data!
+	resultbuffer = buffer; //Load the low byte!
+	buffer = 0x0000; //Default for nothing read!
+	inATA16(port, &buffer); //Read the high data!
+	resultbuffer |= (buffer << 16); //Load the high byte!
+	*result = resultbuffer; //Set the result!
+	return 1;
+}
+
 
 byte inATA8(word port, byte *result)
 {
@@ -3542,6 +3588,10 @@ void initATA()
 	//16-bits port!
 	register_PORTINW(&inATA16);
 	register_PORTOUTW(&outATA16);
+	//32-bits port!
+	register_PORTIND(&inATA32);
+	register_PORTOUTD(&outATA32);
+
 
 	//We don't implement DMA: this is done by our own DMA controller!
 	//First, detect HDDs!
