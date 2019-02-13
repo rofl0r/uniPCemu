@@ -155,7 +155,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		raisePF(address,(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 		return 0; //We have an error, abort!
 	}
-	isS = ((PDE&PDE_S) >> 7) & ((CPU[activeCPU].registers->CR4 & 0x10) >> 4); //Effective size!
+	isS = ((((PDE&PDE_S) >> 7) & ((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))&1); //Effective size!
 
 	
 	//Check PTE
