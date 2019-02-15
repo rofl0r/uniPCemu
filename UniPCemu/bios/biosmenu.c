@@ -7290,7 +7290,9 @@ void BIOS_taskBreakpoint()
 	word semicolonpos;
 	char *temp;
 	word maxsegmentsize = 4;
+#ifndef IS_PSP
 	word maxoffsetsize = 8;
+#endif
 	byte ignoreBase = 0;
 	byte ignoreSegment = 0;
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1,0,1)) //Input text confirmed?
@@ -7363,7 +7365,9 @@ void BIOS_CR3breakpoint()
 	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
 	EMU_unlocktext();
 	//char *temp;
+	#ifndef IS_PSP
 	word maxoffsetsize = 8;
+	#endif
 	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr)-1,0,0)) //Input text confirmed?
 	{
 		if (strcmp(breakpointstr, "") != 0) //Got valid input?

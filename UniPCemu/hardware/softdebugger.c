@@ -386,6 +386,7 @@ OPTINLINE void debugger_flush()
 
 OPTINLINE void debugger_writecharacter(byte c) //Write a character to the debugger!
 {
+	char s[2];
 	if (__HW_DISABLED) return; //Abort!
 	if ((c=='\n') || (c=='\r')) //Newline character?
 	{
@@ -410,7 +411,9 @@ OPTINLINE void debugger_writecharacter(byte c) //Write a character to the debugg
 	}
 	else //Normal character?
 	{
-		snprintf(softdebugger.writtendata,sizeof(softdebugger.writtendata),"%s%c",softdebugger.writtendata,c); //Add to the debugged data!
+		s[0] = c; //What to add!
+		s[1] = 0; //Termination!
+		safestrcat(softdebugger.writtendata, sizeof(softdebugger.writtendata), s); //Add to the debugged data!
 	}
 }
 

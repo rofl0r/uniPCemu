@@ -1367,13 +1367,15 @@ void BIOS_LoadIO(int showchecksumerrors) //Loads basic I/O drives from BIOS!
 
 void BIOS_ShowBIOS() //Shows mounted drives etc!
 {
+	uint_32 blocksize;
 	if (__HW_DISABLED) return; //Abort!
 	exec_showchecksumerrors = 0; //No checksum errors to show!
 	BIOS_LoadData();
 	BIOS_ValidateData(); //Validate all data before continuing!
 
 	printmsg(0xF,"Memory installed: ");
-	printmsg(0xE,"%u blocks (%uKB / %uMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),(is_XT)?MEMORY_BLOCKSIZE_XT:MEMORY_BLOCKSIZE_AT_LOW),(SAFEDIV(BIOS_GetMMUSize(),1024)),(BIOS_GetMMUSize()/MBMEMORY));
+	blocksize = (is_XT) ? MEMORY_BLOCKSIZE_XT : MEMORY_BLOCKSIZE_AT_LOW; //What block size is used?
+	printmsg(0xE,"%u blocks (%uKB / %uMB)\r\n",SAFEDIV(BIOS_GetMMUSize(),blocksize),(BIOS_GetMMUSize()/1024),(BIOS_GetMMUSize()/MBMEMORY));
 
 	printmsg(0xF,"\r\n"); //A bit of space between memory and disks!
 	int numdrives = 0;

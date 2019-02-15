@@ -113,7 +113,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0; //Not update!
-	uint_32 PDE, PTE; //PDE/PTE entries currently used!
+	uint_32 PDE, PTE=0; //PDE/PTE entries currently used!
 	if (!CPU[activeCPU].registers) return 0; //No registers available!
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
