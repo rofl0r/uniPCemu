@@ -28,6 +28,10 @@ AR	= ar
 RANLIB	= ranlib
 WINDRES	= windres
 
+ifneq (,$(findstring linux,$(MAKECMDGOALS)))
+prefix = /usr
+endif
+
 ifeq (,$(ROOTPATH))
 ROOTPATH = .
 endif
