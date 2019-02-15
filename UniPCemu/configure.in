@@ -30,5 +30,9 @@ AR	= @AR@
 RANLIB	= @RANLIB@
 WINDRES	= @WINDRES@
 
+ifeq (,$(ROOTPATH))
+ROOTPATH = .
+endif
+
 #Support multi platform builds, also the list of used files:
-include Makefile.files
+include $(ROOTPATH)/Makefile.files
