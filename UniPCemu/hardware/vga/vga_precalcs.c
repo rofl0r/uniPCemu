@@ -142,35 +142,35 @@ void dump_CRTCTiming()
 		status = getActiveVGA()->CRTC.rowstatus[i]; //Read the status for the row!
 		if (status&VGA_SIGNAL_VTOTAL)
 		{
-			snprintf(information,sizeof(information),"%s+VTOTAL",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VTOTAL"); //Add!
 		}
 		if (status&VGA_SIGNAL_VRETRACESTART)
 		{
-			snprintf(information,sizeof(information),"%s+VRETRACESTART",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VRETRACESTART"); //Add!
 		}
 		if (status&VGA_SIGNAL_VRETRACEEND)
 		{
-			snprintf(information,sizeof(information),"%s+VRETRACEEND",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VRETRACEEND"); //Add!
 		}
 		if (status&VGA_SIGNAL_VBLANKSTART)
 		{
-			snprintf(information,sizeof(information),"%s+VBLANKSTART",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VBLANKSTART"); //Add!
 		}
 		if (status&VGA_SIGNAL_VBLANKEND)
 		{
-			snprintf(information,sizeof(information),"%s+VBLANKEND",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VBLANKEND"); //Add!
 		}
 		if (status&VGA_VACTIVEDISPLAY)
 		{
-			snprintf(information,sizeof(information),"%s+VACTIVEDISPLAY",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VACTIVEDISPLAY"); //Add!
 		}
 		if (status&VGA_OVERSCAN)
 		{
-			snprintf(information,sizeof(information),"%s+OVERSCAN",information); //Add!
+			safescatnprintf(information,sizeof(information),"+OVERSCAN"); //Add!
 		}
 		if (status&VGA_SIGNAL_VSYNCRESET)
 		{
-			snprintf(information,sizeof(information),"%s+VSYNCRESET",information); //Add!
+			safescatnprintf(information,sizeof(information),"+VSYNCRESET"); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_VTOTAL) break; //Total reached? Don't look any further!
@@ -184,47 +184,47 @@ void dump_CRTCTiming()
 		extrahorizontalstatus = getActiveVGA()->CRTC.extrahorizontalstatus[i]; //Read the extra status for the column!
 		if (status&VGA_SIGNAL_HTOTAL)
 		{
-			snprintf(information,sizeof(information),"%s+HTOTAL",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HTOTAL"); //Add!
 		}
 		if (status&VGA_SIGNAL_HRETRACESTART)
 		{
-			snprintf(information,sizeof(information),"%s+HRETRACESTART",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HRETRACESTART"); //Add!
 		}
 		if (status&VGA_SIGNAL_HRETRACEEND)
 		{
-			snprintf(information,sizeof(information),"%s+HRETRACEEND",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HRETRACEEND"); //Add!
 		}
 		if (status&VGA_SIGNAL_HBLANKSTART)
 		{
-			snprintf(information,sizeof(information),"%s+HBLANKSTART",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HBLANKSTART"); //Add!
 		}
 		if (status&VGA_SIGNAL_HBLANKEND)
 		{
-			snprintf(information,sizeof(information),"%s+HBLANKEND",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HBLANKEND"); //Add!
 		}
 		if (status&VGA_HACTIVEDISPLAY)
 		{
-			snprintf(information,sizeof(information),"%s+HACTIVEDISPLAY",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HACTIVEDISPLAY"); //Add!
 		}
 		if (status&VGA_OVERSCAN)
 		{
-			snprintf(information,sizeof(information),"%s+OVERSCAN",information); //Add!
+			safescatnprintf(information,sizeof(information),"+OVERSCAN"); //Add!
 		}
 		if (status&VGA_SIGNAL_HSYNCRESET)
 		{
-			snprintf(information,sizeof(information),"%s+HSYNCRESET",information); //Add!
+			safescatnprintf(information,sizeof(information),"+HSYNCRESET"); //Add!
 		}
 		if (extrahorizontalstatus & 1)
 		{
-			snprintf(information,sizeof(information),"%s+WRITEBACK",information); //Add!
+			safescatnprintf(information,sizeof(information),"+WRITEBACK"); //Add!
 		}
 		if (extrahorizontalstatus & 2)
 		{
-			snprintf(information,sizeof(information), "%s+HALFCLOCK", information); //Add!
+			safescatnprintf(information,sizeof(information), "+HALFCLOCK"); //Add!
 		}
 		if (extrahorizontalstatus & 4)
 		{
-			snprintf(information,sizeof(information), "%s+WHOLECLOCK", information); //Add!
+			safescatnprintf(information,sizeof(information), "+WHOLECLOCK"); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL)

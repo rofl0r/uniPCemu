@@ -605,76 +605,76 @@ static char *debugger_generateFlags(CPU_registers *registers)
 		{
 			if (FLAGREGR_UNMAPPEDHI(registers)&j) //Bit set?
 			{
-				snprintf(flags,sizeof(flags),"%s1",flags); //1!
+				safescatnprintf(flags,sizeof(flags),"1"); //1!
 			}
 			else //Bit cleared?
 			{
-				snprintf(flags,sizeof(flags),"%s0",flags); //0!
+				safescatnprintf(flags,sizeof(flags),"0"); //0!
 			}
 			j <<= 1; //Shift to the next bit!
 		}
 
 		if (EMULATED_CPU>=CPU_80486) //ID is available?
 		{
-			snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_ID(registers)?'I':'i'));
+			safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_ID(registers)?'I':'i'));
 		}
 		else //No ID?
 		{
-			snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_ID(registers));
+			safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_ID(registers));
 		}
 
 		if (EMULATED_CPU>=CPU_PENTIUM) //Pentium+?
 		{
-			snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_VIP(registers)?'P':'p'));
-			snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_VIF(registers)?'F':'f'));
+			safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_VIP(registers)?'P':'p'));
+			safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_VIF(registers)?'F':'f'));
 		}
 		else //386/486?
 		{
-			snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_VIP(registers));
-			snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_VIF(registers));
+			safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_VIP(registers));
+			safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_VIF(registers));
 		}
 
 		if (EMULATED_CPU>=CPU_80486) //486+?
 		{
-			snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_AC(registers)?'A':'a'));
+			safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_AC(registers)?'A':'a'));
 		}
 		else //386?
 		{
-			snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_AC(registers)); //Literal bit!
+			safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_AC(registers)); //Literal bit!
 		}
 
-		snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_V8(registers)?'V':'v'));
-		snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_RF(registers)?'R':'r'));
+		safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_V8(registers)?'V':'v'));
+		safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_RF(registers)?'R':'r'));
 	}
 
 	//Higest 16-bit value!
-	snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_UNMAPPED32768(registers));
+	safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_UNMAPPED32768(registers));
 
 	if (EMULATED_CPU>=CPU_80286) //286+?
 	{
-		snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_NT(registers)?'N':'n'));
-		snprintf(flags,sizeof(flags),"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
-		snprintf(flags,sizeof(flags),"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+		safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_NT(registers)?'N':'n'));
+		safescatnprintf(flags,sizeof(flags),"%u",(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		safescatnprintf(flags,sizeof(flags),"%u",(word)(FLAGREGR_IOPL(registers)&1));
 	}
 	else //186-? Display as numbers!
 	{
-		snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_NT(registers));
-		snprintf(flags,sizeof(flags),"%s%u",flags,(word)((FLAGREGR_IOPL(registers)&2)>>1));
-		snprintf(flags,sizeof(flags),"%s%u",flags,(word)(FLAGREGR_IOPL(registers)&1));
+		safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_NT(registers));
+		safescatnprintf(flags,sizeof(flags),"%u",(word)((FLAGREGR_IOPL(registers)&2)>>1));
+		safescatnprintf(flags,sizeof(flags),"%u",(word)(FLAGREGR_IOPL(registers)&1));
 	}
 
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_OF(registers)?'O':'o'));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_DF(registers)?'D':'d'));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_IF(registers)?'I':'i'));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_TF(registers)?'T':'t'));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_SF(registers)?'S':'s'));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_ZF(registers)?'Z':'z'));
-	snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_UNMAPPED32(registers));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_AF(registers)?'A':'a'));
-	snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_UNMAPPED8(registers));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_PF(registers)?'P':'p'));
-	snprintf(flags,sizeof(flags),"%s%u",flags,FLAGREGR_UNMAPPED2(registers));
-	snprintf(flags,sizeof(flags),"%s%c",flags,(char)(FLAGREGR_CF(registers)?'C':'c'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_OF(registers)?'O':'o'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_DF(registers)?'D':'d'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_IF(registers)?'I':'i'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_TF(registers)?'T':'t'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_SF(registers)?'S':'s'));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_ZF(registers)?'Z':'z'));
+	safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_UNMAPPED32(registers));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_AF(registers)?'A':'a'));
+	safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_UNMAPPED8(registers));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_PF(registers)?'P':'p'));
+	safescatnprintf(flags,sizeof(flags),"%u",FLAGREGR_UNMAPPED2(registers));
+	safescatnprintf(flags,sizeof(flags),"%c",(char)(FLAGREGR_CF(registers)?'C':'c'));
 
 	return &flags[0]; //Give the flags for quick reference!
 }
@@ -780,7 +780,7 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	safestrcpy(buffer,sizeof(buffer),""); //Clear the buffer!
 	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 	{
-		snprintf(buffer,sizeof(buffer),"%s%u",buffer,(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		safescatnprintf(buffer,sizeof(buffer),"%u",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
 	log_timestampbackup = log_logtimestamp(2); //Save state!
 	log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
@@ -788,7 +788,7 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	safestrcpy(buffer,sizeof(buffer),""); //Clear the buffer!
 	for (i = 0xF;i >= 0;i--) //All 16 interrupt flags!
 	{
-		snprintf(buffer,sizeof(buffer),"%s%u",buffer,(i8259.imr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
+		safescatnprintf(buffer,sizeof(buffer),"%u",(i8259.imr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
 	dolog(filename,"Interrupt mask: %s",buffer); //Log the interrupt status!
 	if (getActiveVGA() && debugger_logtimings) //Gotten an active VGA?
@@ -890,8 +890,8 @@ OPTINLINE void debugger_autolog()
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcpy(fullcmd,sizeof(fullcmd), "(");
 				for (i = 0; i < (int)OPlength; i++) //List the full command!
 				{
-					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) snprintf(fullcmd,sizeof(fullcmd), "%s%02X", fullcmd, OPbuffer[i]); //Add part of the opcode!
-					else { snprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?"%s %02X":"%s%02X", fullcmd, OPbuffer[i]); } //Add part of the opcode!
+					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safescatnprintf(fullcmd,sizeof(fullcmd), "%02X", OPbuffer[i]); //Add part of the opcode!
+					else { safescatnprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?" %02X":"%02X", OPbuffer[i]); } //Add part of the opcode!
 				}
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcat(fullcmd,sizeof(fullcmd), ")"); //Our opcode before disassembly!
 				else safestrcat(fullcmd,sizeof(fullcmd), " "); //Our opcode before disassembly!

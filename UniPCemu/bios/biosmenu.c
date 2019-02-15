@@ -3216,7 +3216,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
 								case 1: //Next sector to process?
-									snprintf(errorlog,sizeof(errorlog),"%s\nSource: sector %u",errorlog,sectornr); //This sector!
+									safescatnprintf(errorlog,sizeof(errorlog),"\nSource: sector %u",sectornr); //This sector!
 									break; //Continue running on the next sector to process!
 							}
 							switch (deststatus) //What status?
@@ -3229,10 +3229,10 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 									goto finishedphase2; //Finished transferring!
 								default: //Unknown?
 								case 1: //Next sector to process?
-									snprintf(errorlog,sizeof(errorlog),"%s\nDestination: sector %u",errorlog,sectornr); //This sector!
+									safescatnprintf(errorlog,sizeof(errorlog),"\nDestination: sector %u",sectornr); //This sector!
 									break; //Continue running on the next sector to process!
 							}
-							snprintf(errorlog,sizeof(errorlog),"%s\nPrevious source sector: %u\nPrevious destination sector: %u",errorlog,previoussectornr,previousdestsectornr); //Previous sector numbers!
+							safescatnprintf(errorlog,sizeof(errorlog),"\nPrevious source sector: %u\nPrevious destination sector: %u",previoussectornr,previousdestsectornr); //Previous sector numbers!
 							dolog(originalfilename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr, size, sectorposition?sectorposition-1:0); //Error at this sector!
 							dolog(originalfilename, "\n%s",errorlog); //Error at this sector information!
 						}
@@ -5006,7 +5006,7 @@ setDataBusSize: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Default"); //Default!
 		break;
 	default: //Limited cycles?
-		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sLimited to %u cycles",menuoptions[advancedoptions],BIOS_Settings.CPUSpeed); //Cycle limit!
+		safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Limited to %u cycles",BIOS_Settings.CPUSpeed); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
@@ -5019,7 +5019,7 @@ setDataBusSize: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Default"); //Default!
 		break;
 	default: //Limited cycles?
-		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sLimited to %u cycles", menuoptions[advancedoptions], BIOS_Settings.TurboCPUSpeed); //Cycle limit!
+		safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Limited to %u cycles", BIOS_Settings.TurboCPUSpeed); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
@@ -5233,7 +5233,7 @@ setShowCPUSpeed:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "First instruction"); //Default!
 		break;
 	default: //Limited cycles?
-		snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "%sAt " LONGLONGSPRINTF " instructions", menuoptions[advancedoptions], ((LONG64SPRINTF)(BIOS_Settings.diagnosticsportoutput_timeout+1))); //Cycle limit!
+		safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]), "At " LONGLONGSPRINTF " instructions", ((LONG64SPRINTF)(BIOS_Settings.diagnosticsportoutput_timeout+1))); //Cycle limit!
 		++advancedoptions;
 		break;
 	}
@@ -5247,7 +5247,7 @@ setShowCPUSpeed:
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
 			break;
 		case 1: //Real mode?
-			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%04X",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
@@ -5262,7 +5262,7 @@ setShowCPUSpeed:
 			}
 			break;
 		case 2: //Protected mode?
-			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%08XP",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
@@ -5277,7 +5277,7 @@ setShowCPUSpeed:
 			}
 			break;
 		case 3: //Virtual 8086 mode?
-			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%04XV",menuoptions[advancedoptions],(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
 			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
@@ -5306,7 +5306,7 @@ setShowCPUSpeed:
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
 			break;
 		case 1: //Enabled?
-			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%04X:%08X",menuoptions[advancedoptions],(word)((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.taskBreakpoint&SETTINGS_TASKBREAKPOINT_BASE_MASK)); //seg16:offs16!
+			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%08X",(word)((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.taskBreakpoint&SETTINGS_TASKBREAKPOINT_BASE_MASK)); //seg16:offs16!
 			if ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT)&1) //Ignore Base?
 			{
 				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
@@ -5331,7 +5331,7 @@ setShowCPUSpeed:
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
 			break;
 		case 1: //Enabled?
-			snprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%s%08X",menuoptions[advancedoptions],(uint_32)(BIOS_Settings.CR3breakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK)); //seg16:offs16!
+			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%08X",(uint_32)(BIOS_Settings.CR3breakpoint&SETTINGS_CR3BREAKPOINT_BASE_MASK)); //seg16:offs16!
 			break;
 		default: //Just in case!
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
