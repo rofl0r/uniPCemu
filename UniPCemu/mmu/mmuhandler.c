@@ -390,9 +390,11 @@ extern byte specialdebugger; //Enable special debugger input?
 //Direct memory access (for the entire emulator)
 OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
+	byte is_debugging;
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
+	is_debugging = ((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000))); //Are we debugging?
 	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
 		//Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)).
@@ -432,7 +434,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 	if (unlikely((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3)))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
-		if ((is_XT==0) || (EMULATED_CPU>=CPU_80286)) //To give NOT for detecting memory on AT only?
+		if (likely((is_XT==0) || (EMULATED_CPU>=CPU_80286))) //To give NOT for detecting memory on AT only?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}
@@ -442,18 +444,18 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
-	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	if (unlikely(is_debugging)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_RAM_LOGMMUALL|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 	specialreadcycle:
 	DRAM_access(realaddress); //Tick the DRAM!
-	if (likely(index != 0xFF)) //Don't ignore BUS?
+	if (unlikely((index != 0xFF) && is_XT && (EMULATED_CPU<CPU_80286))) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //To log?
+	if (unlikely(is_debugging)) //To log?
 	{
 		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAM|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
