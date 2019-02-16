@@ -897,7 +897,8 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && EXECSEGMENT_C(LOADEDDESCRIPTOR) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1)) || ((getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) && (segment!=CPU_SEGMENT_SS)))) || //We are a lower privilege level with either non-conforming or a data/system segment descriptor?
+		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) && (segment!=CPU_SEGMENT_SS))) || //We are a lower privilege level with either a data/system segment descriptor? Non-conforming code segments have different check:
+		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))<GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level or higher for conforming code segment descriptors?
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level for non-conforming code segment descriptors?
 		(!privilegedone && ((effectiveCPL()!=getRPL(*segmentval)) || (effectiveCPL()!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR))) && (segment==CPU_SEGMENT_SS)) //SS DPL must match CPL and RPL!
 		)
