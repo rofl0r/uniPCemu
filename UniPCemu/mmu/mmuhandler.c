@@ -537,11 +537,13 @@ void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
 	byte data;
+	byte is_debugging;
+	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
 	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
 	}
-	if (unlikely((MMU_logging==1) || (specialdebugger && (realaddress>=0x100000)))) //To log?
+	if (unlikely(is_debugging)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
@@ -550,12 +552,14 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 
 void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) //Write without segment/offset translation&protection (from system/interrupt)!
 {
+	byte is_debugging;
 	union
 	{
 		uint_32 realaddress; //The address!
 		byte addr[4];
 	} addressconverter;
 	byte status;
+	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
 	if (enableMMUbuffer && MMUBuffer) //To buffer all writes?
 	{
 		if (fifobuffer_freesize(MMUBuffer) >= 7) //Enough size left to buffer?
@@ -572,7 +576,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 			return;
 		}
 	}
-	if (unlikely((MMU_logging==1) || (specialdebugger && (realaddress>=0x100000)))) //To log?
+	if (unlikely(is_debugging)) //To log?
 	{
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
