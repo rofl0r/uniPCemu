@@ -127,22 +127,28 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	uint_32 temp;
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,1,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			return 1; //Valid!
+			if (likely(Paging_readTLB(-1, address, 1, effectiveUS, 0, 1, TLB_IGNOREREADMASK, &temp, 0))) //Cache hit (non)dirty for reads/writes?
+			{
+				return 1; //Valid!
+			}
 		}
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 0,0,TLB_IGNOREREADMASK, &temp,0)) //Cache hit (non)dirty for reads/writes?
+		if (likely(Paging_readTLB(-1, address, 1, effectiveUS, 0,0,TLB_IGNOREREADMASK, &temp,0))) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
 		}
 	}
 	else //Write?
 	{
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,1,0, &temp,0)) //Cache hit dirty for writes?
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			return 1; //Valid!
+			if (likely(Paging_readTLB(-1, address, 1, effectiveUS, 1, 1, 0, &temp, 0))) //Cache hit dirty for writes?
+			{
+				return 1; //Valid!
+			}
 		}
-		if (Paging_readTLB(-1, address, 1, effectiveUS, 1,0,0, &temp,0)) //Cache hit dirty for writes?
+		if (likely(Paging_readTLB(-1, address, 1, effectiveUS, 1,0,0, &temp,0))) //Cache hit dirty for writes?
 		{
 			return 1; //Valid!
 		}
@@ -159,7 +165,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 
 	
 	//Check PTE
-	if (isS == 0) //Not 4MB?
+	if (likely(isS == 0)) //Not 4MB?
 	{
 		PTE = memory_BIUdirectrdw(((PDE&PXE_ADDRESSMASK) >> PXE_ADDRESSSHIFT) + (TABLE << 2)); //Read the page table entry!
 		if (!(PTE&PXE_P)) //Not present?
@@ -169,7 +175,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		}
 	}
 
-	if (isS) //4MB? Only check the PDE, not the PTE!
+	if (unlikely(isS)) //4MB? Only check the PDE, not the PTE!
 	{
 		if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
 		{
@@ -186,7 +192,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		}
 	}
 	//RW=Are we writable?
-	if (isS == 0) //PTE-only?
+	if (likely(isS == 0)) //PTE-only?
 	{
 		if (iswrite) //Writing?
 		{
@@ -202,7 +208,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 		PDE |= PXE_A; //Accessed!
 		memory_BIUdirectwdw(PDBR+(DIR<<2),PDE); //Update in memory!
 	}
-	if (isS == 0) //PTE-only?
+	if (likely(isS == 0)) //PTE-only?
 	{
 		if (!(PTE&PXE_A))
 		{
@@ -234,30 +240,39 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	retrymapping: //Retry the mapping when not cached!
 	if (iswrite) //Writes are limited?
 	{
-		if (Paging_readTLB(-1,address,1,effectiveUS,1,1,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			return (result|(address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+			if (likely(Paging_readTLB(-1, address, 1, effectiveUS, 1, 1, 0, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
+			{
+				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+			}
 		}
-		if (Paging_readTLB(-1,address,1,effectiveUS,1,0,0,&result,1)) //Cache hit for a written dirty entry? Match completely only!
+		if (likely(Paging_readTLB(-1,address,1,effectiveUS,1,0,0,&result,1))) //Cache hit for a written dirty entry? Match completely only!
 		{
 			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
 		else goto loadWTLB;
 	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,1,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
+	else //Read?
 	{
-		return (result|(address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
-	}
-	else if (Paging_readTLB(-1,address,RW,effectiveUS,RW,0,TLB_IGNOREREADMASK,&result,1)) //Cache hit for an the entry, any during reads, Write Dirty on write?
-	{
-		return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
-	}
-	else
-	{
-		loadWTLB:
-		if (isvalidpage(address,iswrite,CPL,0)) //Retry checking if possible!
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			goto retrymapping;
+			if (likely(Paging_readTLB(-1, address, RW, effectiveUS, RW, 1, TLB_IGNOREREADMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+			{
+				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+			}
+		}
+		if (likely(Paging_readTLB(-1, address, RW, effectiveUS, RW, 0, TLB_IGNOREREADMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+		{
+			return (result | (address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		else
+		{
+		loadWTLB:
+			if (likely(isvalidpage(address, iswrite, CPL, 0))) //Retry checking if possible!
+			{
+				goto retrymapping;
+			}
 		}
 	}
 	return address; //Untranslated!
@@ -440,7 +455,7 @@ OPTINLINE uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byt
 
 OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
 {
-	if (TAG & 0x10) //4MB page?
+	if (unlikely(TAG & 0x10)) //4MB page?
 	{
 		return (((logicaladdress & 0xFFC00000) | 1) == ((TAG & 0xFFC00000) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
 	}
