@@ -2082,7 +2082,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
 		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
-		bufferMMU(); //Buffer the MMU writes for us!
+		//bufferMMU(); //Buffer the MMU writes for us!
 		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(); //Process pending REP!
