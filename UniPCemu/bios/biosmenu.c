@@ -2223,7 +2223,6 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				else if (safestrlen(input,sizeof(input)) == 1) //Single character?
 				{
 					if ((input[0] != '`') &&
-						(input[0] != '-') &&
 						(input[0] != '=') &&
 						(input[0] != '\\') &&
 						(input[0] != '[') &&
@@ -2240,6 +2239,11 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 								if ((input[0] >= 'a') && (input[0] <= 'z')) //Able to use shift on this key?
 								{
 									input[0] += (char)((int)'A' - (int)'a'); //Convert to uppercase!
+									safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
+								}
+								else if (input[0] == '-') //Becomes _?
+								{
+									input[0] = '_'; //Convert to uppercase!
 									safestrcat(filename,(maxlength+1), input); //Add the input to the filename!
 								}
 								//Invalid uppercase is ignored!
