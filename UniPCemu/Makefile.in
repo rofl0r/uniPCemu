@@ -16,19 +16,19 @@ distpath = $(srcdir)/..
 distdir = UniPCemu-@SDL_VERSION@
 distfile = $(distdir).tar.gz
 
-@SET_MAKE@
+#@SET_MAKE@
 SHELL	= @SHELL@
 CC      = @CC@
-INCLUDE = @INCLUDE@
-CFLAGS  = @BUILD_CFLAGS@
-EXTRA_CFLAGS = @EXTRA_CFLAGS@
-LDFLAGS = @BUILD_LDFLAGS@
-EXTRA_LDFLAGS = @EXTRA_LDFLAGS@
-LIBTOOL = @LIBTOOL@
-INSTALL = @INSTALL@
-AR	= @AR@
-RANLIB	= @RANLIB@
-WINDRES	= @WINDRES@
+INCLUDE = -I$(includedir)
+CFLAGS  = 
+EXTRA_CFLAGS = 
+LDFLAGS = 
+EXTRA_LDFLAGS = 
+LIBTOOL = libtool
+INSTALL = install
+AR	= ar
+RANLIB	= ranlib
+WINDRES	= windres
 
 ifeq (,$(ROOTPATH))
 ROOTPATH = .
