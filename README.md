@@ -18,9 +18,9 @@ This README would normally document whatever steps are necessary to get your app
 - Install SDL packages for the devkit, in C:\SDL for Windows(copy SDL2-2.* folder contents to C:\SDL\SDL2 (and the SDL2_net folder to C:\SDL\SDL2_net), to use SDL 1.2.*, copy the folder contents to C:\SDL\SDL1.2.15(and the SDL_net folder to C:\SDL\SDL_net-1.2.8)), installers for MinPSPW and /mingw(SDL or SDL2).
 - Install SDL(2) with or without SDL(2)_net for network support on your machine on Linux, according to the official build steps from libsdl.org.
 - For Linux:
-	- Modify the Makefile file prefix(configure isn't working yet) to point to the directory containing your bin folder to install to(e.g. /usr or /).
-	- Run make linux [re]build [SDL2] [SDL[2]_net] [x64], with the optional parts being between brackets(SDL2+, SDL(2)_net for network support, x64 for 64-bit compilation).
-	- Run (with sudo) the above command, replacing [re]build with install to install the application for usage.
+	- Run the configure script to configure and build the Makefile required for the project.
+	- Run make linux [re]build [SDL2] [SDL[2]_net] [x64], with the optional parts being between brackets(SDL2+, SDL(2)_net for network support, x64 for 64-bit compilation is required. All others depend on the libraries to use).
+	- Run (with sudo for installation rights) the above command, replacing [re]build with install to install the application for usage.
 - For Visual C++:
 	- Open the projects within the VisualC subfolders(the solution file) and compile SDL2 and SDL2main. Also compile the SDL2_net project when used(after compiling SDL2 itself).
 		- Don't forget to add the paths **C:\SDL\SDL2\include** to both Win32 and x64 target include directories, as well as **C:\SDL\SDL2\VisualC\$(Platform)\$(Configuration)** to both Win32 and x64 target library directories.
