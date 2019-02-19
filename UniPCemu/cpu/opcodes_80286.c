@@ -852,26 +852,34 @@ void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 
 //FPU non-existant Coprocessor support!
 
-void FPU80287_OPDBE3(){debugger_setcommand("<UNKOP8087: FNINIT>");}
-void FPU80287_OPDFE0() { debugger_setcommand("<UNKOP80287: FSTSW AX>"); }
-void FPU80287_OPDDslash7() { debugger_setcommand("<UNKOP80287: FNSTSW>"); }
-void FPU80287_OPD9slash7() { debugger_setcommand("<UNKOP80287: FNSTCW>"); }
-
-void FPU80287_OP9B() {modrm_generateInstructionTEXT("FWAIT",0,0,PARAM_NONE); if (CPU[activeCPU].registers->CR0&CR0_TS) { FPU80287_noCOOP(); return; } /*if (CPU[activeCPU].registers->CR0&0x20) { THROWDESCMF(); return; / #MF Fault! / } */ /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
-void FPU80287_OPDB(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE3){FPU80287_OPDBE3();} else{FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDF(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 byte subOP = params.modrm; if (subOP==0xE0){FPU80287_OPDFE0();} else {FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPDD(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (thereg==7){FPU80287_OPDDslash7();}else {FPU80287_noCOOP();} CPUPROT2 }
-void FPU80287_OPD9(){if (CPU[activeCPU].registers->CR0&CR0_EM) { FPU80287_noCOOP(); return; /* Emulate! */ } if ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS)) { FPU80287_noCOOP(); return; } CPUPROT1 if (thereg==7){FPU80287_OPD9slash7();} else {FPU80287_noCOOP();} CPUPROT2 }
-
-void FPU80287_noCOOP() {
-	debugger_setcommand("<No COprocessor OPcodes implemented!>");
-	if ((CPU[activeCPU].registers->CR0&CR0_EM) || ((CPU[activeCPU].registers->CR0&CR0_MP) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched?
+void FPU80287_FPU_UD(byte isESC) { //Generic x86 FPU #UD opcode decoder!
+	if (((CPU[activeCPU].registers->CR0&CR0_EM)&&(!isESC)) || (((CPU[activeCPU].registers->CR0&CR0_MP)||isESC) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched(MP needs to be set for TS to have effect during WAIT)?
 	{
+		debugger_setcommand("<FPU EMULATION>");
 		CPU_resetOP();
 		THROWDESCNM(); //Only on 286+!
 	}
-	if (CPU_apply286cycles()==0) //No 286+? Apply the 80286+ cycles!
+	else //Normal execution?
 	{
-		CPU[activeCPU].cycles_OP = MODRM_EA(params) ? 8 : 2; //No hardware interrupt to use anymore!
+		debugger_setcommand("<No COprocessor OPcodes implemented!>");
+		if (CPU_apply286cycles()==0) //No 286+? Apply the 80286+ cycles!
+		{
+			CPU[activeCPU].cycles_OP = MODRM_EA(params) ? 8 : 2; //No hardware interrupt to use anymore!
+		}
 	}
+}
+
+void FPU80287_OPDBE3(){debugger_setcommand("<FPU #UD: FNINIT>");}
+void FPU80287_OPDFE0() { debugger_setcommand("<FPU #UD: FSTSW AX>"); }
+void FPU80287_OPDDslash7() { debugger_setcommand("<FPU #UD: FNSTSW>"); }
+void FPU80287_OPD9slash7() { debugger_setcommand("<FPU #UD: FNSTCW>"); }
+
+void FPU80287_OP9B() {modrm_generateInstructionTEXT("<FPU #UD: FWAIT>",0,0,PARAM_NONE); FPU80287_FPU_UD(0); /* Handle emulation etc. */ /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
+void FPU80287_OPDB(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (params.modrm==0xE3){FPU80287_OPDBE3(); /* Special naming! */} }
+void FPU80287_OPDF(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (params.modrm==0xE0){FPU80287_OPDFE0(); /* Special naming! */} }
+void FPU80287_OPDD(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (thereg==7){FPU80287_OPDDslash7(); /* Special naming! */} }
+void FPU80287_OPD9(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (thereg==7){FPU80287_OPD9slash7(); /* Special naming! */} }
+
+void FPU80287_noCOOP() { //Generic x86 FPU opcode decoder!
+		FPU80287_FPU_UD(1); //Generic #UD for FPU!
 }
