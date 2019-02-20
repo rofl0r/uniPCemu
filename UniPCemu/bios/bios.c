@@ -102,7 +102,7 @@ byte is_writablepath(char *path)
 	return 0; //We're not writable!
 }
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(IS_LINUX)
 byte is_textcharacter(char c)
 {
 	if ((c>='a') && (c<='z')) return 1; //Text!
@@ -198,6 +198,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			goto scanNextSecondaryPath; //Scan the next path in the list!
 		}
 
+		#ifdef ANDROID
 		scanAndroiddefaultpath:
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
@@ -227,6 +228,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), SDL_AndroidGetInternalStoragePath()); //Internal path!
 				}
 			}
+		#endif
 		#endif
 
 		finishpathsetting:
