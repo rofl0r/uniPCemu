@@ -169,7 +169,8 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#endif
 		{
 			scanNextSecondaryPath:
-			if (environment=='\0') goto scanAndroiddefaultpath; //Start scanning the default path, nothing found!
+			if (environment==NULL) goto scanDefaultpath; //Start scanning the default path, nothing found!
+			if (*environment=='\0') goto scanDefaultpath; //Start scanning the default path, nothing found!
 			if ((multipathseperator = storage_strpos(environment,':'))!=-1) //Multiple environments left to check?
 			{
 				environment[multipathseperator] = '\0'; //Convert the seperator into an EOS for reading the current value out!
@@ -194,12 +195,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 				environment[multipathseperator] = ':'; //Restore the path seperator from the EOS!
 				environment += (multipathseperator+1); //Skip past the multiple path seperator!
 			}
-			else goto scanAndroiddefaultpath; //Finished scanning without multiple paths left!
+			else goto scanDefaultpath; //Finished scanning without multiple paths left!
 			goto scanNextSecondaryPath; //Scan the next path in the list!
 		}
 
+		scanDefaultpath:
 		#ifdef ANDROID
-		scanAndroiddefaultpath:
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
 			safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir) getenv("SDCARD")); //path!
