@@ -33,7 +33,12 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 //What file to use for saving the BIOS!
 #define DEFAULT_SETTINGS_FILE "SETTINGS.INI"
 #define DEFAULT_REDIRECT_FILE "redirect.txt"
+#if defined(IS_WINDOWS) || defined(IS_PSP)
 #define DEFAULT_ROOT_PATH "."
+#else
+//*nix? Use the root directory!
+#define DEFAULT_ROOT_PATH "~/UniPCemu"
+#endif
 
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
 char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
@@ -52,7 +57,7 @@ extern char ROMpath[256];
 
 void BIOS_updateDirectories()
 {
-#ifdef ANDROID
+#if defined(ANDROID) || defined(IS_LINUX)
 	safestrcpy(diskpath,sizeof(diskpath),UniPCEmu_root_dir); //Root dir!
 	safestrcat(diskpath,sizeof(diskpath),"/");
 	safestrcpy(soundfontpath,sizeof(soundfontpath),diskpath); //Clone!
@@ -146,7 +151,7 @@ byte is_textcharacter(char c)
 
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
-	#ifdef ANDROID
+	#if defined(ANDROID) || defined(IS_LINUX)
 		FILE *f;
 		byte is_redirected=0;
 		is_redirected = 0; //Init redirect status for main directory!
