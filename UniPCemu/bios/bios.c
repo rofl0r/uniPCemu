@@ -187,7 +187,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		}
 		#endif
 		#endif
-		FILE *f;
+		BIGFILE *f;
 		byte is_redirected=0;
 		is_redirected = 0; //Init redirect status for main directory!
 		//Try external media first!
