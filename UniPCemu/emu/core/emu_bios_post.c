@@ -45,6 +45,7 @@
 #include "headers/emu/emu_vga_bios.h" //VGA BIOS support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 
 extern byte reset; //To fully reset emu?
@@ -537,7 +538,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 		case EXECUTIONMODE_TESTROM:
 			lock(LOCK_CPU); //Lock the main thread!
-			f = fopen("TESTROM.DAT", "rb"); //Try TESTROM.DAT?
+			f = emufopen64("TESTROM.DAT", "rb"); //Try TESTROM.DAT?
 			int verified;
 			romsize = 0; //Default: no ROM!
 
@@ -548,13 +549,13 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 
 			if (f) //Boot ROM?
 			{
-				fseek(f, 0, SEEK_END); //Goto EOF!
-				romsize = ftell(f); //ROM size!
-				fseek(f, 0, SEEK_SET); //Goto BOF!
+				emufseek64(f, 0, SEEK_END); //Goto EOF!
+				romsize = emuftell64(f); //ROM size!
+				emufseek64(f, 0, SEEK_SET); //Goto BOF!
 				byte *ptr = (byte *)MMU_ptr(-1, 0x0000, 0x0000, 0, romsize); //Read a pointer to test ROM memory!
 				if (ptr) //Valid pointer?
 				{
-					verified = fread(ptr, 1, romsize, f); //Read ROM to memory adress 0!
+					verified = emufread64(ptr, 1, romsize, f); //Read ROM to memory adress 0!
 				}
 				else
 				{
@@ -565,7 +566,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				CPU_flushPIQ(-1); //We're jumping to another address!
 				CPU[activeCPU].registers->SS = 0;
 				CPU[activeCPU].registers->SP = 0x100; //For ROM specific!
-				fclose(f); //Close boot rom!
+				emufclose64(f); //Close boot rom!
 				if (!verified) //Error reading ROM?
 				{
 					CPU_executionphase_startinterrupt(0x18,0,-1); //Error: no ROM!

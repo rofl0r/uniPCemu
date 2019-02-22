@@ -8,6 +8,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/hardware/dram.h" //DRAM_access support!
 #include "headers/emu/gpu/gpu.h" //Need GPU comp!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
@@ -626,9 +627,9 @@ void MMU_dumpmemory(char *filename) //Dump the memory to a file!
 	snprintf(filenamefull,sizeof(filenamefull),"%s/%s",capturepath,filename); //Capture path file!
 	domkdir(capturepath); //Make sure we exist!
 	FILE *f;
-	f = fopen(filenamefull,"wb"); //Open file!
-	fwrite(MMU.memory,1,user_memory_used,f); //Write memory to file!
-	fclose(f); //Close file!
+	f = emufopen64(filenamefull,"wb"); //Open file!
+	emufwrite64(MMU.memory,1,user_memory_used,f); //Write memory to file!
+	emufclose64(f); //Close file!
 }
 
 //Have memory available?

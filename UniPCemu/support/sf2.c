@@ -3,6 +3,7 @@
 #include "headers/support/zalloc.h" //ZAlloc support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/signedness.h" //For converting between signed/unsigned samples!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Makes sure the format is 16-bit little endian what's read!
 #ifndef IS_PSP
@@ -505,38 +506,38 @@ RIFFHEADER *readSF(char *filename)
 	uint_32 filesize;
 	byte *buffer;
 	static RIFFHEADER *riffheader;
-	f = fopen(filename,"rb"); //Read the file!
+	f = emufopen64(filename,"rb"); //Read the file!
 	if (!f)
 	{
 		return NULL; //Error!
 	}
-	fseek(f,0,SEEK_END); //Goto EOF!
-	filesize = ftell(f); //Look for the size!
-	fseek(f,0,SEEK_SET); //Goto BOF!
+	emufseek64(f,0,SEEK_END); //Goto EOF!
+	filesize = emuftell64(f); //Look for the size!
+	emufseek64(f,0,SEEK_SET); //Goto BOF!
 	if (!filesize) //No size?
 	{
 		dolog("SF2","Error: Soundfont %s is empty!",filename);
-		fclose(f); //Close!
+		emufclose64(f); //Close!
 		return NULL; //File has no size!
 	}
 	buffer = (byte *)zalloc(filesize+sizeof(RIFFHEADER),"RIFF_FILE",NULL); //A RIFF file entry in memory!
 	if (!buffer) //Not enough memory?
 	{
 		dolog("SF2","Error: Ran out of memory to allocate the soundfont!");
-		fclose(f); //Close the file!
+		emufclose64(f); //Close the file!
 		return NULL; //Error allocating the file!
 	}
 	riffheader = (RIFFHEADER *)buffer; //Convert to integer!
 	riffheader->filesize = filesize; //Save the file size for checking!
 	riffheader->rootentry.byteentry = (byte *)buffer+sizeof(RIFFHEADER); //Start of the data!
-	if (fread(riffheader->rootentry.voidentry,1,filesize,f)!=filesize) //Error reading to memory?
+	if (emufread64(riffheader->rootentry.voidentry,1,filesize,f)!=filesize) //Error reading to memory?
 	{
 		dolog("SF2","Error: %s could not be read!",filename);
-		fclose(f); //Close the file!
+		emufclose64(f); //Close the file!
 		freez((void **)&buffer,filesize,"RIFF_FILE"); //Free the file!
 		return NULL; //Error!
 	}
-	fclose(f); //Close the file!
+	emufclose64(f); //Close the file!
 	if (validateSF(riffheader)) //Give the allocated buffer with the file!
 	{
 		return riffheader; //Give the result!

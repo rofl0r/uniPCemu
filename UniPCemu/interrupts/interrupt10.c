@@ -17,6 +17,7 @@ Interrupt 10h: Video interrupt
 #include "headers/interrupts/interrupt10.h" //Our typedefs etc.
 #include "headers/cpu/cb_manager.h" //Callback detection!
 #include "headers/cpu/protection.h" //For reading RAM!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Are we disabled for checking?
 #define __HW_DISABLED 0
@@ -2215,8 +2216,8 @@ OPTINLINE void writehex(FILE *f, byte num) //Write a number (byte) to a file!
 {
 	byte low = bytetonum(num,0); //Low!
 	byte high = bytetonum(num,1); //High!
-	fwrite(&high,1,sizeof(high),f); //High!
-	fwrite(&low,1,sizeof(low),f); //High!
+	emufwrite64(&high,1,sizeof(high),f); //High!
+	emufwrite64(&low,1,sizeof(low),f); //High!
 }
 
 
@@ -2230,7 +2231,7 @@ void int10_dumpscreen() //Dump screen to file!
 	int y;
 	FILE *f;
 	int firstrow = 1;
-	f = fopen("INT10.TXT","w"); //Open file!
+	f = emufopen64("INT10.TXT","w"); //Open file!
 	byte displaypage;
 	displaypage = MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE,0,1); //Active video page!
 
@@ -2242,13 +2243,13 @@ void int10_dumpscreen() //Dump screen to file!
 	cleardata(&lb[0],sizeof(lb));
 	safestrcpy(lb,sizeof(lb),"\r\n"); //Line break!
 
-	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Write a line break first!
+	emufwrite64(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Write a line break first!
 
 	for (y=0; y<MMU_rb(-1,BIOSMEM_SEG,BIOSMEM_NB_ROWS,0,1); y++) //Process rows!
 	{
 		if (!firstrow)
 		{
-			fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
+			emufwrite64(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
 		}
 		else
 		{
@@ -2258,10 +2259,10 @@ void int10_dumpscreen() //Dump screen to file!
 		{
 			byte c,a; //Character&attribute!
 			int10_vram_readcharacter(x,y,0,&c,&a);
-			fwrite(&c,1,sizeof(c),f); //The character at the page!
+			emufwrite64(&c,1,sizeof(c),f); //The character at the page!
 		}
 	}
-	fclose(f); //Close the file!
+	emufclose64(f); //Close the file!
 }
 
 

@@ -9,6 +9,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/highrestimer.h" //Time support!
 #include "headers/emu/emucore.h" //Emulator start/stop support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Player time update interval in ns!
 #define PLAYER_USINTERVAL 1000.0f
@@ -120,33 +121,33 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	uint_32 filesize;
 	FILE *f; //The file!
 	uint_32 oldpos;
-	f = fopen(filename,"rb"); //Open the filename!
+	f = emufopen64(filename,"rb"); //Open the filename!
 	if (!f) return 0; //File not found!
 	byte empty[3] = {0,0,0}; //Empty data!
-	if (fread(header,1,sizeof(*header),f)!=sizeof(*header))
+	if (emufread64(header,1,sizeof(*header),f)!=sizeof(*header))
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error reading the file!
 	}
 	if (memcmp(&header->cSignature,&correctSignature,8)!=0) //Signature error?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error: Invalid signature!
 	}
 	if (((header->iVersionMajor==0) && (header->iVersionMinor==1)) || ((header->iVersionMajor == 1) && (header->iVersionMinor == 0))) //Version 1.0(old) or 0.1(new)?
 	{
-		oldpos = ftell(f); //Save the old position to jump back to!
-		if (fread(oldheader,1,sizeof(*oldheader),f)!=sizeof(*oldheader)) //New header invalid size/read error?
+		oldpos = emuftell64(f); //Save the old position to jump back to!
+		if (emufread64(oldheader,1,sizeof(*oldheader),f)!=sizeof(*oldheader)) //New header invalid size/read error?
 		{
-			fclose(f);
+			emufclose64(f);
 			return 0; //Error reading the file!
 		}
 		if (memcmp(&oldheader->iHardwareExtra,&empty,sizeof(oldheader->iHardwareExtra))!=0) //Maybe earlier version?
 		{
-			fseek(f,oldpos,SEEK_SET); //Return!
-			if (fread(earlyheader,1,sizeof(*earlyheader),f)!=sizeof(*earlyheader)) //New header invalid size/read error?
+			emufseek64(f,oldpos,SEEK_SET); //Return!
+			if (emufread64(earlyheader,1,sizeof(*earlyheader),f)!=sizeof(*earlyheader)) //New header invalid size/read error?
 			{
-				fclose(f);
+				emufclose64(f);
 				return 0; //Error reading the file!
 			}
 			version = 1; //Early old-style header!
@@ -185,55 +186,55 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	}
 	else if ((header->iVersionMajor==2) && (header->iVersionMinor==0)) //Version 2.0?
 	{
-		if (fread(newheader,1,sizeof(*newheader),f)!=sizeof(*newheader)) //New header invalid size/read error?
+		if (emufread64(newheader,1,sizeof(*newheader),f)!=sizeof(*newheader)) //New header invalid size/read error?
 		{
-			fclose(f);
+			emufclose64(f);
 			return 0; //Error reading the file!
 		}
 		if (!newheader->iCodemapLength) //Invalid code map length?
 		{
-			fclose(f);
+			emufclose64(f);
 			return 0; //Error reading the file: invalid code map length!
 		}
 		memset(CodemapTable,0,256); //Clear the entire table for the new file!
-		if (fread(CodemapTable,1,newheader->iCodemapLength,f)!=newheader->iCodemapLength) //New header invalid size/read error?
+		if (emufread64(CodemapTable,1,newheader->iCodemapLength,f)!=newheader->iCodemapLength) //New header invalid size/read error?
 		{
-			fclose(f);
+			emufclose64(f);
 			return 0; //Error reading the file!
 		}
 		version = 3; //2.0 version!
 	}
 	else //Invalid version?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error: Invalid signature!
 	}
 
-	oldpos = ftell(f); //Save the old position to jump back to!
-	fseek(f,0,SEEK_END);
-	filesize = ftell(f); //File size!
-	fseek(f,oldpos,SEEK_SET); //Return to the start of the data!
+	oldpos = emuftell64(f); //Save the old position to jump back to!
+	emufseek64(f,0,SEEK_END);
+	filesize = emuftell64(f); //File size!
+	emufseek64(f,oldpos,SEEK_SET); //Return to the start of the data!
 	filesize -= oldpos; //Difference is the file size!
 	if (!filesize)
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error: invalid file size!
 	}
 
 	*data = zalloc(filesize,"DROFILE",NULL); //Allocate a DR0 file's contents!
 	if (!*data) //Failed to allocate?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error: ran out of memory!
 	}
 
-	if (fread(*data,1,filesize,f)!=filesize) //Error reading contents?
+	if (emufread64(*data,1,filesize,f)!=filesize) //Error reading contents?
 	{
 		freez((void **)data,filesize,"DROFILE"); //Release the file!
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error: file couldn't be read!
 	}
-	fclose(f); //Finished, close the file!
+	emufclose64(f); //Finished, close the file!
 	*datasize = filesize; //Save the filesize for reference!
 	return version; //Successfully read the file!
 }

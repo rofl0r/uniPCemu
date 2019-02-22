@@ -176,9 +176,9 @@ OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we acc
         video_sharpness = (int) (sharpness*256/100);
 
 #if 0
-	df = fopen("CGA_Composite_Table.dmp", "wb");
-	fwrite(CGA_Composite_Table, 1024, sizeof(int), df);
-	fclose(df);
+	df = emufopen64("CGA_Composite_Table.dmp", "wb");
+	emufwrite64(CGA_Composite_Table, 1024, sizeof(int), df);
+	emufclose64(df);
 #endif
 }
 

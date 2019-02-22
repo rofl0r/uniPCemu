@@ -15,6 +15,7 @@
 #include "headers/emu/threads.h" //Multithreading support!
 #include "headers/cpu/easyregs.h" //Flag support!
 #include "headers/cpu/biu.h" //PIQ flushing support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 extern byte reset; //To reset?
 extern byte dosoftreset; //To soft-reset?
@@ -53,7 +54,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	dolog("debugger","RunROMVerify...");
 	FILE *f;
 	int memloc = 0;
-	f = fopen(filename,"rb"); //First, load file!
+	f = emufopen64(filename,"rb"); //First, load file!
 
 	dolog("debugger","RUNROMVERIFY: initEMU...");
 
@@ -81,16 +82,16 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		return 0; //Error: file doesn't exist!
 	}
 
-	fseek(f,0,SEEK_END); //Goto EOF!
+	emufseek64(f,0,SEEK_END); //Goto EOF!
 	int fsize;
-	fsize = ftell(f); //Size!
-	fseek(f,0,SEEK_SET); //Goto BOF!		
+	fsize = emuftell64(f); //Size!
+	emufseek64(f,0,SEEK_SET); //Goto BOF!		
 
 	if (!fsize) //Invalid?
 	{
 		if (f)
 		{
-			fclose(f);    //Close when needed!
+			emufclose64(f);    //Close when needed!
 		}
 		unlock(LOCK_CPU); //Finished with the CPU!
 		doneEMU();
@@ -98,7 +99,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		return 1; //OK!
 	}
 	
-	fclose(f); //Close the ROM!
+	emufclose64(f); //Close the ROM!
 	
 	if (!BIOS_load_custom("",filename)) //Failed to load the BIOS ROM?
 	{
@@ -204,7 +205,7 @@ doshutdown:
 	EMU_Shutdown(0);
 
 	int verified = 1; //Data verified!
-	f = fopen(resultfile,"rb"); //Result file verification!
+	f = emufopen64(resultfile,"rb"); //Result file verification!
 	memloc = 0; //Start location!
 	if (!f)
 	{
@@ -222,9 +223,9 @@ doshutdown:
 	verified = 1; //Default: OK!
 	byte data; //Data to verify!
 	byte last; //Last data read in memory!
-	for (;!feof(f);) //Data left?
+	for (;!emufeof64(f);) //Data left?
 	{
-		if (fread(&data, 1, sizeof(data), f) != sizeof(data)) break; //Read data to verify!
+		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) break; //Read data to verify!
 		last = MMU_rb(-1,datastart,memloc,0,0); //One byte to compare from memory!
 		byte verified2;
 		verified2 = (data==last); //Verify with memory!
@@ -236,7 +237,7 @@ doshutdown:
 		}
 		++memloc; //Increase the location!
 	}
-	fclose(f); //Close the file!
+	emufclose64(f); //Close the file!
 	//dolog("ROM_log","Finishing emulator...");	
 	unlock(LOCK_CPU); //Finished with the CPU!
 	lock(LOCK_MAINTHREAD); //Lock the main thread(our other user)!

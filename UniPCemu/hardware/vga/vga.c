@@ -24,6 +24,7 @@ VGA ROM and handling functions.
 #include "headers/support/locks.h" //Lock support!
 #include "headers/hardware/vga/vga_dacrenderer.h" //DAC support for initialisation!
 #include "headers/hardware/pci.h" //PCI support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -235,7 +236,7 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 	if (__HW_DISABLED) return; //Abort!
 	if (getActiveVGA()) //Got active VGA?
 	{
-		FILE *f = fopen("VRAM.dat","wb");
+		FILE *f = emufopen64("VRAM.dat","wb");
 		if (f) //Opened?
 		{
 			byte plane,c;
@@ -245,10 +246,10 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 				for (c=0;c<(getActiveVGA()->VRAM_size>>2);c++) //Process all data in VRAM!
 				{
 					byte data = readVRAMplane(getActiveVGA(),plane,0,c); //Read a direct byte from memory!
-					fwrite(&data,1,1,f); //Write the VRAM byte!
+					emufwrite64(&data,1,1,f); //Write the VRAM byte!
 				}
 			}
-			fclose(f); //Close the dump!
+			emufclose64(f); //Close the dump!
 		}
 	}
 }

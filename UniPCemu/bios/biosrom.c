@@ -4,6 +4,7 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/cpu/paging.h" //Paging support for address decoding (for Turbo XT BIOS detection)!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Comment this define to disable logging
 //#define __ENABLE_LOGGING
@@ -166,7 +167,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		}
 		else //Try to open!
 		{
-			f = fopen(filename,"rb");
+			f = emufopen64(filename,"rb");
 		}
 		if (!f)
 		{
@@ -180,11 +181,11 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			}
 			continue; //Failed to load!
 		}
-		fseek(f,0,SEEK_END); //Goto EOF!
-		if (ftell(f)) //Gotten size?
+		emufseek64(f,0,SEEK_END); //Goto EOF!
+		if (emuftell64(f)) //Gotten size?
 		{
-			OPTROM_size[i] = ftell(f); //Save the size!
-			fseek(f,0,SEEK_SET); //Goto BOF!
+			OPTROM_size[i] = emuftell64(f); //Save the size!
+			emufseek64(f,0,SEEK_SET); //Goto BOF!
 			if ((location+OPTROM_size[i])>0x20000) //Overflow?
 			{
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
@@ -198,7 +199,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			OPT_ROMS[i] = (byte *)nzalloc(OPTROM_size[i],filename,getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
 			if (!OPT_ROMS[i]) //Failed to allocate?
 			{
-				fclose(f); //Close the file!
+				emufclose64(f); //Close the file!
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 				{
 					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
@@ -206,10 +207,10 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				continue; //Failed to allocate!
 			}
-			if (fread(OPT_ROMS[i],1,OPTROM_size[i],f)!=OPTROM_size[i]) //Not fully read?
+			if (emufread64(OPT_ROMS[i],1,OPTROM_size[i],f)!=OPTROM_size[i]) //Not fully read?
 			{
 				freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Failed to read!
-				fclose(f); //Close the file!
+				emufclose64(f); //Close the file!
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 				{
 					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
@@ -217,7 +218,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				}
 				continue; //Failed to read!
 			}
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
 			
 			OPTROM_location[i] = location; //The option ROM location we're loaded at!
 			cleardata(&OPTROM_filename[i][0],sizeof(OPTROM_filename[i])); //Init filename!
@@ -233,7 +234,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 			continue; //Loaded!
 		}
 		
-		fclose(f);
+		emufclose64(f);
 	}
 	return 1; //Just run always!
 }
@@ -293,7 +294,7 @@ int BIOS_load_ROM(byte nr)
 			snprintf(filename,sizeof(filename),"%s/BIOSROM.U%u.BIN",ROMpath,nr); //Create the filename for the ROM!
 		}
 	}
-	f = fopen(filename,"rb");
+	f = emufopen64(filename,"rb");
 	if (!f)
 	{
 		if (tryext==1) //Extension try and tried?
@@ -303,24 +304,24 @@ int BIOS_load_ROM(byte nr)
 		}
 		return 0; //Failed to load!
 	}
-	fseek(f,0,SEEK_END); //Goto EOF!
-	if (ftell(f)) //Gotten size?
+	emufseek64(f,0,SEEK_END); //Goto EOF!
+	if (emuftell64(f)) //Gotten size?
  	{
-		BIOS_ROM_size[nr] = ftell(f); //Save the size!
-		fseek(f,0,SEEK_SET); //Goto BOF!
+		BIOS_ROM_size[nr] = emuftell64(f); //Save the size!
+		emufseek64(f,0,SEEK_SET); //Goto BOF!
 		BIOS_ROMS[nr] = (byte *)nzalloc(BIOS_ROM_size[nr],filename, getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
 		if (!BIOS_ROMS[nr]) //Failed to allocate?
 		{
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 0; //Failed to allocate!
 		}
-		if (fread(BIOS_ROMS[nr],1,BIOS_ROM_size[nr],f)!=BIOS_ROM_size[nr]) //Not fully read?
+		if (emufread64(BIOS_ROMS[nr],1,BIOS_ROM_size[nr],f)!=BIOS_ROM_size[nr]) //Not fully read?
 		{
 			freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Failed to read!
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 0; //Failed to read!
 		}
-		fclose(f); //Close the file!
+		emufclose64(f); //Close the file!
 
 		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?2:0)|((tryext==1)?1:0); //Extension enabled?
 
@@ -393,7 +394,7 @@ int BIOS_load_ROM(byte nr)
 		return 1; //Loaded!
 	}
 	
-	fclose(f);
+	emufclose64(f);
 	return 0; //Failed to load!
 }
 
@@ -418,29 +419,29 @@ int BIOS_load_custom(char *path, char *rom)
 	}
 	if (strcmp(filename, "") != 0) safestrcat(filename,sizeof(filename), "/"); //Only a seperator when not empty!
 	safestrcat(filename,sizeof(filename),rom); //Create the filename for the ROM!
-	f = fopen(filename,"rb");
+	f = emufopen64(filename,"rb");
 	if (!f)
 	{
 		return 0; //Failed to load!
 	}
-	fseek(f,0,SEEK_END); //Goto EOF!
-	if (ftell(f)) //Gotten size?
+	emufseek64(f,0,SEEK_END); //Goto EOF!
+	if (emuftell64(f)) //Gotten size?
  	{
-		BIOS_custom_ROM_size = ftell(f); //Save the size!
-		fseek(f,0,SEEK_SET); //Goto BOF!
+		BIOS_custom_ROM_size = emuftell64(f); //Save the size!
+		emufseek64(f,0,SEEK_SET); //Goto BOF!
 		BIOS_custom_ROM = (byte *)nzalloc(BIOS_custom_ROM_size,filename, getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
 		if (!BIOS_custom_ROM) //Failed to allocate?
 		{
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 0; //Failed to allocate!
 		}
-		if (fread(BIOS_custom_ROM,1,BIOS_custom_ROM_size,f)!=BIOS_custom_ROM_size) //Not fully read?
+		if (emufread64(BIOS_custom_ROM,1,BIOS_custom_ROM_size,f)!=BIOS_custom_ROM_size) //Not fully read?
 		{
 			freez((void **)&BIOS_custom_ROM,BIOS_custom_ROM_size,filename); //Failed to read!
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
 			return 0; //Failed to read!
 		}
-		fclose(f); //Close the file!
+		emufclose64(f); //Close the file!
 		safestrcpy(customROMname,sizeof(customROMname),filename); //Custom ROM name for easy dealloc!
 		//Update the base address to use for this CPU!
 		ROM_doubling = 0; //Default: no ROM doubling!
@@ -459,7 +460,7 @@ int BIOS_load_custom(char *path, char *rom)
 		return 1; //Loaded!
 	}
 	
-	fclose(f);
+	emufclose64(f);
 	return 0; //Failed to load!
 }
 
@@ -538,9 +539,9 @@ void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purpose
 		safestrcat(path,sizeof(path),"/SYSROM.DMP.BIN"); //Dump path!
 		//Dump our own BIOS ROM!
 		FILE *f;
-		f = fopen(path, "wb");
-		fwrite(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
-		fclose(f);
+		f = emufopen64(path, "wb");
+		emufwrite64(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
+		emufclose64(f);
 	}
 }
 
@@ -813,24 +814,24 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					}
 					//We're a EEPROM with write protect disabled!
 					FILE *f; //For opening the ROM file!
-					f = fopen(OPTROM_filename[i], "rb+"); //Open the ROM for writing!
+					f = emufopen64(OPTROM_filename[i], "rb+"); //Open the ROM for writing!
 					if (!f) return 1; //Couldn't open the ROM for writing!
-					if (fseek(f, (uint_32)OPTROM_address, SEEK_SET)) //Couldn't seek?
+					if (emufseek64(f, (uint_32)OPTROM_address, SEEK_SET)) //Couldn't seek?
 					{
-						fclose(f); //Close the file!
+						emufclose64(f); //Close the file!
 						return 1; //Abort!
 					}
-					if (ftell(f) != OPTROM_address) //Failed seek position?
+					if (emuftell64(f) != OPTROM_address) //Failed seek position?
 					{
-						fclose(f); //Close the file!
+						emufclose64(f); //Close the file!
 						return 1; //Abort!
 					}
-					if (fwrite(&value, 1, 1, f) != 1) //Failed to write the data to the file?
+					if (emufwrite64(&value, 1, 1, f) != 1) //Failed to write the data to the file?
 					{
-						fclose(f); //Close thefile!
+						emufclose64(f); //Close thefile!
 						return 1; //Abort!
 					}
-					fclose(f); //Close the file!
+					emufclose64(f); //Close the file!
 					OPT_ROMS[i][OPTROM_address] = value; //Write the data to the ROM in memory!
 					if (OPTROM_pending55_0AAA[i] && ((OPTROM_location[i]>>32)>0x0AAA)) //Pending write and within ROM range?
 					{
@@ -1184,19 +1185,19 @@ void BIOSROM_dumpBIOS()
 		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
 		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
 
-		f = fopen(filename[0],"wb");
+		f = emufopen64(filename[0],"wb");
 		if (!f) return;
 		for (;baseloc<endloc;++baseloc)
 		{
 			if (BIOS_readhandler((uint_32)baseloc,&data)) //Read directly!
 			{
-				if (!fwrite(&data,1,1,f)) //Failed to write?
+				if (!emufwrite64(&data,1,1,f)) //Failed to write?
 				{
-					fclose(f); //close!
+					emufclose64(f); //close!
 					delete_file(ROMpath,filename[1]); //Remove: invalid!
 					return;
 				}
 			}
 		}
-		fclose(f); //close!
+		emufclose64(f); //close!
 }

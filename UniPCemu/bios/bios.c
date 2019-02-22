@@ -15,6 +15,7 @@
 #include "headers/hardware/midi/mididevice.h" //MIDI support!
 #include "headers/hardware/ps2_keyboard.h" //For timeout support!
 #include "headers/support/iniparser.h" //INI file parsing for our settings storage!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -87,10 +88,10 @@ byte is_writablepath(char *path)
 	safestrcpy(fullpath,sizeof(fullpath),path); //Set the path!
 	safestrcat(fullpath,sizeof(fullpath),"/"); //Add directory seperator!
 	safestrcat(fullpath,sizeof(fullpath),"writable.txt"); //test file!
-	f = fopen(fullpath,"wb");
+	f = emufopen64(fullpath,"wb");
 	if (f)
 	{
-		fclose(f); //Close the file!
+		emufclose64(f); //Close the file!
 		delete_file(path,"writable.txt"); //Delete the file!
 		return 1; //We're writable!
 	}
@@ -290,12 +291,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		char lb[2] = {0xD,0xA}; //Line break!
 		memset(&buffer,0,sizeof(buffer)); //Init buffer!
 		snprintf(buffer,sizeof(buffer),"Redirect file: %s",redirectdir);
-		f2 = fopen(temppath,"wb"); //Log the filename!
+		f2 = emufopen64(temppath,"wb"); //Log the filename!
 		if (f2) //Valid?
 		{
-			fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-			fwrite(&lb,1,sizeof(lb),f2); //Line break!
-			fclose(f2); //Close!
+			emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+			emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+			emufclose64(f2); //Close!
 		}
 		#endif
 		if (file_exists(redirectdir) && (is_redirected==0)) //Redirect for main directory?
@@ -303,55 +304,55 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			#ifdef LOG_REDIRECT
 			memset(&buffer,0,sizeof(buffer)); //Init buffer!
 			snprintf(buffer,sizeof(buffer),"Attempting redirect...");
-			f2 = fopen(temppath,"ab"); //Log the filename!
+			f2 = emufopen64(temppath,"ab"); //Log the filename!
 			if (f2) //Valid?
 			{
-				fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-				fwrite(&lb,1,sizeof(lb),f2); //Line break!
-				fclose(f2); //Close!
+				emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+				emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+				emufclose64(f2); //Close!
 			}
 			#endif
-			f = fopen(redirectdir,"rb");
+			f = emufopen64(redirectdir,"rb");
 			if (f) //Valid?
 			{
 				#ifdef LOG_REDIRECT
 				memset(&buffer,0,sizeof(buffer)); //Init buffer!
 				snprintf(buffer,sizeof(buffer),"Valid file!");
-				f2 = fopen(temppath,"ab"); //Log the filename!
+				f2 = emufopen64(temppath,"ab"); //Log the filename!
 				if (f2) //Valid?
 				{
-					fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-					fwrite(&lb,1,sizeof(lb),f2); //Line break!
-					fclose(f2); //Close!
+					emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+					emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+					emufclose64(f2); //Close!
 				}
 				#endif
-				fseek(f,0,SEEK_END); //Goto EOF!
-				if (((redirectdirsize = ftell(f))<sizeof(redirectdir)) && redirectdirsize) //Valid to read?
+				emufseek64(f,0,SEEK_END); //Goto EOF!
+				if (((redirectdirsize = emuftell64(f))<sizeof(redirectdir)) && redirectdirsize) //Valid to read?
 				{
 					#ifdef LOG_REDIRECT
 					memset(&buffer,0,sizeof(buffer)); //Init buffer!
 					snprintf(buffer,sizeof(buffer),"Valid size!");
-					f2 = fopen(temppath,"ab"); //Log the filename!
+					f2 = emufopen64(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
 					{
-						fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-						fwrite(&lb,1,sizeof(lb),f2); //Line break!
-						fclose(f2); //Close!
+						emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+						emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+						emufclose64(f2); //Close!
 					}
 					#endif
-					fseek(f,0,SEEK_SET); //Goto BOF!
+					emufseek64(f,0,SEEK_SET); //Goto BOF!
 					memset(&redirectdir,0,sizeof(redirectdir)); //Clear for our result to be stored safely!
-					if (fread(&redirectdir,1,redirectdirsize,f)==redirectdirsize) //Read?
+					if (emufread64(&redirectdir,1,redirectdirsize,f)==redirectdirsize) //Read?
 					{
 						#ifdef LOG_REDIRECT
 						memset(&buffer,0,sizeof(buffer)); //Init buffer!
 						snprintf(buffer,sizeof(buffer),"Valid content!");
-						f2 = fopen(temppath,"ab"); //Log the filename!
+						f2 = emufopen64(temppath,"ab"); //Log the filename!
 						if (f2) //Valid?
 						{
-							fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-							fwrite(&lb,1,sizeof(lb),f2); //Line break!
-							fclose(f2); //Close!
+							emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+							emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+							emufclose64(f2); //Close!
 						}
 						#endif
 						for (;safestrlen(redirectdir,sizeof(redirectdir));) //Valid to process?
@@ -377,12 +378,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 									#ifdef LOG_REDIRECT
 									memset(&buffer,0,sizeof(buffer)); //Init buffer!
 									snprintf(buffer,sizeof(buffer),"Trying: Redirecting to: %s",redirectdir); //Where are we redirecting to?
-									f2 = fopen(temppath,"ab"); //Log the filename!
+									f2 = emufopen64(temppath,"ab"); //Log the filename!
 									if (f2) //Valid?
 									{
-										fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-										fwrite(&lb,1,sizeof(lb),f2); //Line break!
-										fclose(f2); //Close!
+										emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+										emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+										emufclose64(f2); //Close!
 									}
 									#endif
 									if (is_writablepath(redirectdir)) //Writable path?
@@ -400,7 +401,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					}
 				}
 				finishredirect: //Finishing redirect!
-				fclose(f); //Stop checking!
+				emufclose64(f); //Stop checking!
 				#ifdef LOG_REDIRECT
 				dolog("redirect","Content:%s/%i!",redirectdir,is_redirected);
 				#endif
@@ -410,12 +411,12 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 					#ifdef LOG_REDIRECT
 					memset(&buffer,0,sizeof(buffer)); //Init buffer!
 					snprintf(buffer,sizeof(buffer),"Redirecting to: %s",UniPCEmu_root_dir); //Where are we redirecting to?
-					f2 = fopen(temppath,"ab"); //Log the filename!
+					f2 = emufopen64(temppath,"ab"); //Log the filename!
 					if (f2) //Valid?
 					{
-						fwrite(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
-						fwrite(&lb,1,sizeof(lb),f2); //Line break!
-						fclose(f2); //Close!
+						emufwrite64(&buffer,1,safestrlen(buffer,sizeof(buffer)),f2); //Log!
+						emufwrite64(&lb,1,sizeof(lb),f2); //Line break!
+						emufclose64(f2); //Close!
 					}
 					#endif
 					goto finishpathsetting; //Go and apply the redirection!
@@ -723,11 +724,11 @@ int telleof(FILE *f) //Are we @eof?
 	int curpos = 0; //Cur pos!
 	int endpos = 0; //End pos!
 	int result = 0; //Result!
-	curpos = ftell(f); //Cur position!
-	fseek(f,0,SEEK_END); //Goto EOF!
-	endpos = ftell(f); //End position!
+	curpos = emuftell64(f); //Cur position!
+	emufseek64(f,0,SEEK_END); //Goto EOF!
+	endpos = emuftell64(f); //End position!
 
-	fseek(f,curpos,SEEK_SET); //Return!
+	emufseek64(f,curpos,SEEK_SET); //Return!
 	result = (curpos==endpos); //@EOF?
 	return result; //Give the result!
 }
@@ -784,7 +785,7 @@ void BIOS_LoadData() //Load BIOS settings!
 		memcpy(&BIOS_Settings,&loadedsettings,sizeof(BIOS_Settings)); //Reload from buffer!
 		return;
 	}
-	f = fopen(BIOS_Settings_file,"rb"); //Open BIOS file!
+	f = emufopen64(BIOS_Settings_file,"rb"); //Open BIOS file!
 
 	if (!f) //Not loaded?
 	{
@@ -792,7 +793,7 @@ void BIOS_LoadData() //Load BIOS settings!
 		return; //We've loaded the defaults!
 	}
 
-	fclose(f); //Close the settings file!
+	emufclose64(f); //Close the settings file!
 
 	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Init settings to their defaults!
 

@@ -1,5 +1,6 @@
 #include "headers/emu/gpu/gpu.h" //GPU typedefs etc.
 #include "headers/interrupts/interrupt10.h" //getscreenwidth() support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 extern GPU_type GPU; //GPU!
 
@@ -10,7 +11,7 @@ void dumpscreen()
 //First, calculate the relative destination on the PSP screen!.
 
 	FILE *f;
-	f = fopen("SCREEN.TXT","w"); //Open file!
+	f = emufopen64("SCREEN.TXT","w"); //Open file!
 	char lb[3];
 	cleardata(&lb[0],sizeof(lb));
 	safestrcpy(lb,sizeof(lb),"\r\n"); //Line break!
@@ -19,18 +20,18 @@ void dumpscreen()
 	cleardata(&message[0],sizeof(message)); //Init!
 	snprintf(message,sizeof(message),"Screen width: %u",getscreenwidth());
 
-	fwrite(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
-	fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
+	emufwrite64(&message,1,safe_strlen(message,sizeof(message)),f); //Write message!
+	emufwrite64(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
 
 	for (emuy=0; emuy<GPU.xres; emuy++) //Process row!
 	{
-		fwrite(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
+		emufwrite64(&lb,1,safe_strlen(lb,sizeof(lb)),f); //Line break!
 		for (emux=0; emux<GPU.xres; emux++) //Process column!
 		{
 			char c;
 			c = (GPU.emu_screenbuffer[(emuy*GPU.xres)+emux]!=0)?'X':' '; //Data!
-			fwrite(&c,1,sizeof(c),f); //1 or 0!
+			emufwrite64(&c,1,sizeof(c),f); //1 or 0!
 		}
 	}
-	fclose(f); //Done!
+	emufclose64(f); //Done!
 }

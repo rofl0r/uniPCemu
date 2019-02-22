@@ -6,6 +6,7 @@
 #include "headers/emu/debugger/debugger.h" //Debugging support for logging POST codes!
 #include "headers/support/log.h" //For logging POST codes!
 #include "headers/hardware/pic.h" //Interrupt support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 byte SystemControlPortB=0x00; //System control port B!
 byte SystemControlPortA=0x00; //System control port A!

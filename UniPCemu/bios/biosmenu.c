@@ -6369,112 +6369,112 @@ void BIOS_DumpVGA()
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_vram.dat"); //The full filename!
-		f = fopen(fullfilename,"wb");
+		f = emufopen64(fullfilename,"wb");
 		if (f)
 		{
-			fwrite(VGA->VRAM,1,VGA->VRAM_size,f); //Write the VRAM to the file!
-			fclose(f); //We've written the VRAM to the file!
+			emufwrite64(VGA->VRAM,1,VGA->VRAM_size,f); //Write the VRAM to the file!
+			emufclose64(f); //We've written the VRAM to the file!
 		}
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_graphregs.dat"); //The full filename!
-		f = fopen(fullfilename,"wb");
+		f = emufopen64(fullfilename,"wb");
 		if (f)
 		{
-			fwrite(&VGA->registers->GraphicsRegisters.DATA,1,sizeof(VGA->registers->GraphicsRegisters.DATA),f);
-			fclose(f); //We've written the Graphics Registers to the file!
+			emufwrite64(&VGA->registers->GraphicsRegisters.DATA,1,sizeof(VGA->registers->GraphicsRegisters.DATA),f);
+			emufclose64(f); //We've written the Graphics Registers to the file!
 		}
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_seqregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
+		f = emufopen64(fullfilename, "wb");
 		if (f)
 		{
-			fwrite(&VGA->registers->SequencerRegisters.DATA,1,sizeof(VGA->registers->SequencerRegisters.DATA),f);
-			fclose(f); //We've written the Sequencer Registers to the file!
+			emufwrite64(&VGA->registers->SequencerRegisters.DATA,1,sizeof(VGA->registers->SequencerRegisters.DATA),f);
+			emufclose64(f); //We've written the Sequencer Registers to the file!
 		}
 
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_attrregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
+		f = emufopen64(fullfilename, "wb");
 		if (f)
 		{
-			fwrite(&VGA->registers->AttributeControllerRegisters.DATA,1,sizeof(VGA->registers->AttributeControllerRegisters.DATA),f);
-			fclose(f); //We've written the Attribute Controller Registers to the file!
+			emufwrite64(&VGA->registers->AttributeControllerRegisters.DATA,1,sizeof(VGA->registers->AttributeControllerRegisters.DATA),f);
+			emufclose64(f); //We've written the Attribute Controller Registers to the file!
 		}
 
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_crtcregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
+		f = emufopen64(fullfilename, "wb");
 		if (f)
 		{
-			fwrite(&VGA->registers->CRTControllerRegisters.DATA,1,sizeof(VGA->registers->CRTControllerRegisters.DATA),f);
-			fclose(f); //We've written the Graphics Registers to the file!
+			emufwrite64(&VGA->registers->CRTControllerRegisters.DATA,1,sizeof(VGA->registers->CRTControllerRegisters.DATA),f);
+			emufclose64(f); //We've written the Graphics Registers to the file!
 		}
 
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_dacregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
+		f = emufopen64(fullfilename, "wb");
 		if (f)
 		{
 			DACPos = 0; //Start with the first entry!
 			for (DACIndex=0;DACIndex<0x100;DACIndex++) //Process DAC entries!
 			{
-				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC R!
-				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC G!
-				fwrite(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC B!
+				emufwrite64(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC R!
+				emufwrite64(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC G!
+				emufwrite64(&VGA->registers->DAC[DACPos++],1,1,f); //Write the DAC B!
 				++DACPos; //Skip the DAC entry for the fourth entry: we're unused!
 			}
-			fwrite(&VGA->registers->DACMaskRegister,1,1,f); //Finish with the DAC mask register!
-			fclose(f); //We've written the Graphics Registers to the file!
+			emufwrite64(&VGA->registers->DACMaskRegister,1,1,f); //Finish with the DAC mask register!
+			emufclose64(f); //We've written the Graphics Registers to the file!
 		}
 		
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_colorregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
-		fwrite(&VGA->registers->ColorRegisters,1,sizeof(VGA->registers->ColorRegisters),f); //Literal color registers!
-		fclose(f);
+		f = emufopen64(fullfilename, "wb");
+		emufwrite64(&VGA->registers->ColorRegisters,1,sizeof(VGA->registers->ColorRegisters),f); //Literal color registers!
+		emufclose64(f);
 
 		safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 		safestrcat(fullfilename,sizeof(fullfilename), "/");
 		safestrcat(fullfilename,sizeof(fullfilename), "vga_externalregs.dat"); //The full filename!
-		f = fopen(fullfilename, "wb");
-		fwrite(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
-		fclose(f);
+		f = emufopen64(fullfilename, "wb");
+		emufwrite64(&VGA->registers->ExternalRegisters,1,sizeof(VGA->registers->ExternalRegisters),f); //Literal color registers!
+		emufclose64(f);
 
 		if (VGA->registers->specialCGAflags&1) //CGA compatiblity enabled?
 		{
 			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 			safestrcat(fullfilename,sizeof(fullfilename), "/");
 			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgamdacrtcregs.dat"); //The full filename!
-			f = fopen(fullfilename, "wb");
-			fwrite(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
-			fclose(f);
+			f = emufopen64(fullfilename, "wb");
+			emufwrite64(&VGA->registers->CGARegisters,1,sizeof(VGA->registers->CGARegisters),f); //CGA CRTC registers!
+			emufclose64(f);
 
 			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 			safestrcat(fullfilename,sizeof(fullfilename), "/");
 			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgamodecontrol.dat"); //The full filename!
-			f = fopen(fullfilename, "wb");
-			fwrite(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
-			fclose(f);
+			f = emufopen64(fullfilename, "wb");
+			emufwrite64(&VGA->registers->Compatibility_CGAModeControl,1,1,f); //CGA mode control register!
+			emufclose64(f);
 			
 			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 			safestrcat(fullfilename,sizeof(fullfilename), "/");
 			safestrcat(fullfilename,sizeof(fullfilename), "vga_cgapaletteregister.dat"); //The full filename!
-			f = fopen(fullfilename, "wb");
-			fwrite(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
-			fclose(f);
+			f = emufopen64(fullfilename, "wb");
+			emufwrite64(&VGA->registers->Compatibility_CGAPaletteRegister,1,1,f); //CGA mode control register!
+			emufclose64(f);
 
 			safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 			safestrcat(fullfilename,sizeof(fullfilename), "/");
 			safestrcat(fullfilename,sizeof(fullfilename), "vga_mdamodecontrol.dat"); //The full filename!
-			f = fopen(fullfilename, "wb");
-			fwrite(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
-			fclose(f);
+			f = emufopen64(fullfilename, "wb");
+			emufwrite64(&VGA->registers->Compatibility_MDAModeControl,1,1,f); //MDA mode control register!
+			emufclose64(f);
 		}
 		else //Clean up CGA compatiblity register dumps: we're not supposed to be used!
 		{
@@ -6492,48 +6492,48 @@ void BIOS_DumpVGA()
 				safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 				safestrcat(fullfilename,sizeof(fullfilename), "/");
 				safestrcat(fullfilename,sizeof(fullfilename), "vga_et4000.dat"); //The full filename!
-				f = fopen(fullfilename, "wb");
-				fwrite(&et34k(VGA)->store_et4k_3d4_31,1,1,f); //Register 31h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_32,1,1,f); //Register 32h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_33,1,1,f); //Register 33h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_34,1,1,f); //Register 34h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_35,1,1,f); //Register 35h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_36,1,1,f); //Register 36h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_37,1,1,f); //Register 37h!
-				fwrite(&et34k(VGA)->store_et4k_3d4_3f,1,1,f); //Register 3fh!
+				f = emufopen64(fullfilename, "wb");
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_31,1,1,f); //Register 31h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_32,1,1,f); //Register 32h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_33,1,1,f); //Register 33h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_34,1,1,f); //Register 34h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_35,1,1,f); //Register 35h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_36,1,1,f); //Register 36h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_37,1,1,f); //Register 37h!
+				emufwrite64(&et34k(VGA)->store_et4k_3d4_3f,1,1,f); //Register 3fh!
 				break;
 			case 2: //ET3000?
 				safestrcpy(fullfilename,sizeof(fullfilename), capturepath); //Disk path!
 				safestrcat(fullfilename,sizeof(fullfilename), "/");
 				safestrcat(fullfilename,sizeof(fullfilename), "vga_et3000.dat"); //The full filename!
-				f = fopen(fullfilename, "wb");
-				fwrite(&et34k(VGA)->store_et3k_3d4_1b,1,1,f); //Register 1bh!
-				fwrite(&et34k(VGA)->store_et3k_3d4_1c,1,1,f); //Register 1ch!
-				fwrite(&et34k(VGA)->store_et3k_3d4_1d,1,1,f); //Register 1dh!
-				fwrite(&et34k(VGA)->store_et3k_3d4_1e,1,1,f); //Register 1eh!
-				fwrite(&et34k(VGA)->store_et3k_3d4_1f,1,1,f); //Register 1fh!
-				fwrite(&et34k(VGA)->store_et3k_3d4_20,1,1,f); //Register 20h!
-				fwrite(&et34k(VGA)->store_et3k_3d4_21,1,1,f); //Register 21h!
-				fwrite(&et34k(VGA)->store_et3k_3d4_23,1,1,f); //Register 23h!
-				fwrite(&et34k(VGA)->store_et3k_3d4_24,1,1,f); //Register 24h!
-				fwrite(&et34k(VGA)->store_et3k_3d4_25,1,1,f); //Register 25h!
+				f = emufopen64(fullfilename, "wb");
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_1b,1,1,f); //Register 1bh!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_1c,1,1,f); //Register 1ch!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_1d,1,1,f); //Register 1dh!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_1e,1,1,f); //Register 1eh!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_1f,1,1,f); //Register 1fh!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_20,1,1,f); //Register 20h!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_21,1,1,f); //Register 21h!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_23,1,1,f); //Register 23h!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_24,1,1,f); //Register 24h!
+				emufwrite64(&et34k(VGA)->store_et3k_3d4_25,1,1,f); //Register 25h!
 				break;
 			default: //Unknown SVGA?
 				goto cleanSVGAdumps;
 			}
 			//General register and data shared by the SVGA cards!
-			fwrite(&et34k(VGA)->store_3c0_16,1,1,f); //Register 16h!
-			fwrite(&et34k(VGA)->store_3c0_17,1,1,f); //Register 17h!
-			fwrite(&et34k(VGA)->store_3c4_06,1,1,f); //Register 06h!
-			fwrite(&et34k(VGA)->store_3c4_07,1,1,f); //Register 07h!
-			fwrite(&et34k(VGA)->herculescompatibilitymode,1,1,f); //Hercules Compatibility Mode Register!
-			fwrite(&et34k(VGA)->segmentselectregister,1,1,f); //Segment Select Register!
-			fwrite(&et34k(VGA)->hicolorDACcommand,1,1,f); //Hi-color DAC register!
-			fwrite(&et34k(VGA)->CGAModeRegister,1,1,f); //CGA Mode Control Compatibility register!
-			fwrite(&et34k(VGA)->MDAModeRegister,1,1,f); //MDA Mode Control Compatibility register!
-			fwrite(&et34k(VGA)->CGAColorSelectRegister,1,1,f); //CGA Color Select Compatiblity register!
-			fwrite(&et34k(VGA)->ExtendedFeatureControlRegister,1,1,f); //Extended Feature Control register!
-			fclose(f);
+			emufwrite64(&et34k(VGA)->store_3c0_16,1,1,f); //Register 16h!
+			emufwrite64(&et34k(VGA)->store_3c0_17,1,1,f); //Register 17h!
+			emufwrite64(&et34k(VGA)->store_3c4_06,1,1,f); //Register 06h!
+			emufwrite64(&et34k(VGA)->store_3c4_07,1,1,f); //Register 07h!
+			emufwrite64(&et34k(VGA)->herculescompatibilitymode,1,1,f); //Hercules Compatibility Mode Register!
+			emufwrite64(&et34k(VGA)->segmentselectregister,1,1,f); //Segment Select Register!
+			emufwrite64(&et34k(VGA)->hicolorDACcommand,1,1,f); //Hi-color DAC register!
+			emufwrite64(&et34k(VGA)->CGAModeRegister,1,1,f); //CGA Mode Control Compatibility register!
+			emufwrite64(&et34k(VGA)->MDAModeRegister,1,1,f); //MDA Mode Control Compatibility register!
+			emufwrite64(&et34k(VGA)->CGAColorSelectRegister,1,1,f); //CGA Color Select Compatiblity register!
+			emufwrite64(&et34k(VGA)->ExtendedFeatureControlRegister,1,1,f); //Extended Feature Control register!
+			emufclose64(f);
 		}
 		else //Clean up SVGA dumps?
 		{

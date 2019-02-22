@@ -10,6 +10,7 @@
 #include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/emu/emucore.h" //Emulator start/stop support!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Enable this define to log all midi commands executed here!
 //#define MID_LOG
@@ -180,55 +181,55 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 	uint_32 tracklength;
 
 	byte *data;
-	f = fopen(filename, "rb"); //Try to open!
+	f = emufopen64(filename, "rb"); //Try to open!
 	if (!f) return 0; //Error: file not found!
-	if (fread(header, 1, sizeof(*header), f) != sizeof(*header))
+	if (emufread64(header, 1, sizeof(*header), f) != sizeof(*header))
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Error reading header!
 	}
 	if (header->Header != MIDIHEADER_ID)
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Nothing!
 	}
 	if (byteswap32(header->header_length) != 6)
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Nothing!
 	}
 	header->format = byteswap16(header->format); //Preswap!
 	if (header->format>2) //Not single/multiple tracks played single or simultaneously?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Not single/valid multi track!
 	}
 	nexttrack: //Read the next track!
-	if (fread(&currenttrack, 1, sizeof(currenttrack), f) != sizeof(currenttrack)) //Error in track?
+	if (emufread64(&currenttrack, 1, sizeof(currenttrack), f) != sizeof(currenttrack)) //Error in track?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Invalid track!
 	}
 	if (currenttrack.Header != MIDIHEADER_TRACK_ID) //Not a track ID?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Invalid track header!
 	}
 	if (!currenttrack.length) //No length?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Invalid track length!
 	}
 	tracklength = byteswap32(currenttrack.length); //Calculate the length of the track!
 	data = zalloc(tracklength+sizeof(uint_32),"MIDI_DATA",NULL); //Allocate data and cursor!
 	if (!data) //Ran out of memory?
 	{
-		fclose(f);
+		emufclose64(f);
 		return 0; //Ran out of memory!
 	}
-	if (fread(data+sizeof(uint_32), 1, tracklength, f) != tracklength) //Error reading data?
+	if (emufread64(data+sizeof(uint_32), 1, tracklength, f) != tracklength) //Error reading data?
 	{
-		fclose(f);
+		emufclose64(f);
 		freez((void **)&data, tracklength+sizeof(uint_32), "MIDI_DATA");
 		return 0; //Error reading data!
 	}
@@ -248,13 +249,13 @@ word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **cha
 		goto nexttrack; //Next track to check!
 	}
 
-	/*if (!feof(f)) //Not @EOF when required?
+	/*if (!emufeof64(f)) //Not @EOF when required?
 	{
-		fclose(f);
+		emufclose64(f);
 		freez((void **)data, byteswap32(currenttrack.length), "MIDI_DATA"); //Release current if there!
 		return 0; //Incomplete file!
 	}*/
-	fclose(f);
+	emufclose64(f);
 	return currenttrackn; //Give the result: the ammount of tracks loaded!
 }
 

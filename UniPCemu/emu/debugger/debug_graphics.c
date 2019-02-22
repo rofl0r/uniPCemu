@@ -4,6 +4,7 @@
 #include "headers/cpu/cpu.h" //CPU!
 #include "headers/interrupts/interrupt10.h" //INT10 support!
 #include "headers/emu/emu_vga_bios.h" //VGA misc functionality for INT10!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Debugger functions!
 #include "headers/emu/timers.h" //Timer support!
@@ -40,32 +41,32 @@ byte *loadfile(char *filename, int_32 *size)
 	byte *buffer;
 	FILE *f;
 	int_32 thesize;
-	f = fopen(filename,"rb");
+	f = emufopen64(filename,"rb");
 	if (!f) //failed to open?
 	{
 		return NULL; //Not existant!
 	}
-	fseek(f,0,SEEK_END); //EOF!
-	thesize = ftell(f); //Size!
-	fseek(f,0,SEEK_SET); //BOF!
+	emufseek64(f,0,SEEK_END); //EOF!
+	thesize = emuftell64(f); //Size!
+	emufseek64(f,0,SEEK_SET); //BOF!
 	if (!thesize) //No size?
 	{
-		fclose(f); //Close!
+		emufclose64(f); //Close!
 		return NULL; //No file!
 	}
 	buffer = (byte *)zalloc(thesize,"LOADEDFILE",NULL);
 	if (!buffer) //No buffer?
 	{
-		fclose(f); //Close
+		emufclose64(f); //Close
 		return NULL; //No file!
 	}
-	if (fread(buffer,1,thesize,f)!=thesize) //Error reading?
+	if (emufread64(buffer,1,thesize,f)!=thesize) //Error reading?
 	{
 		freez((void **)&buffer,thesize,"LOADEDFILE"); //Release!
-		fclose(f); //Close!
+		emufclose64(f); //Close!
 		return NULL; //No file!
 	}
-	fclose(f); //Close!
+	emufclose64(f); //Close!
 	*size = thesize; //Set the size!
 	return buffer; //Give the buffer read!
 }
@@ -581,19 +582,19 @@ void dumpVGA()
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Dumping VGA data...");
 	GPU_text_releasesurface(frameratesurface);
 	FILE *f;
-	f = fopen("VGA.DAT","wb"); //Open it!
+	f = emufopen64("VGA.DAT","wb"); //Open it!
 	byte *b = (byte *)MainVGA->VRAM;
 	uint_32 i=0;
 	for (;i<MainVGA->VRAM_size;)
 	{
-		fwrite(&b[i],1,1,f); //Write VRAM!
+		emufwrite64(&b[i],1,1,f); //Write VRAM!
 		++i; //Next byte!
 	}
-	fclose(f); //Close it!
-	f = fopen("DISPLAY.DAT","wb"); //Display!
-	fwrite(&GPU.xres,1,sizeof(GPU.xres),f); //X size!
-	fwrite(&GPU.yres,1,sizeof(GPU.yres),f); //Y size!
-	fwrite(&GPU.emu_screenbuffer,1,1024*sizeof(GPU.emu_screenbuffer[0])*GPU.yres,f); //Video data!
-	fclose(f); //Close it!
+	emufclose64(f); //Close it!
+	f = emufopen64("DISPLAY.DAT","wb"); //Display!
+	emufwrite64(&GPU.xres,1,sizeof(GPU.xres),f); //X size!
+	emufwrite64(&GPU.yres,1,sizeof(GPU.yres),f); //Y size!
+	emufwrite64(&GPU.emu_screenbuffer,1,1024*sizeof(GPU.emu_screenbuffer[0])*GPU.yres,f); //Video data!
+	emufclose64(f); //Close it!
 	raiseError("Debugging","Main VGA&Display dumped!");
 }

@@ -8,6 +8,7 @@
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_emu.h" //Text output support!
 #include "headers/support/locks.h" //Locking support for input!
+#include "headers/fopen64.h" //64-bit fopen support!
 
 //Stuff we need!
 //Bootable indicator
@@ -32,12 +33,12 @@ word ISOREADER_SEGMENT = 0x0000; //Segment read to load image!
 OPTINLINE int WriteData(char *filename, void *buffer, uint_32 len) //Write buffer to file!
 {
 	FILE *f;
-	f = fopen(filename,"wb"); //Open file for writing!
+	f = emufopen64(filename,"wb"); //Open file for writing!
 	if (f) //Opened?
 	{
 		uint_32 dummy = 0;
-		dummy = (uint_32)fwrite(buffer,1,len,f); //Write data!
-		fclose(f); //Close file!
+		dummy = (uint_32)emufwrite64(buffer,1,len,f); //Write data!
+		emufclose64(f); //Close file!
 		if (dummy!=len) //Error writing?
 		{
 			return FALSE; //Error!
@@ -281,7 +282,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 
 	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 
-	f = fopen(fullfilename,"wb"); //Open the image file!
+	f = emufopen64(fullfilename,"wb"); //Open the image file!
 	if (!f)
 	{
 		dolog("ISOReader","Failed to boot from CD-ROM: could not open temporary image file %s.",imagefile); //Log our error!
@@ -300,21 +301,21 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 		}
 		if (!readdata(device,&sectorbuffer,(CD_SEC_SIZE * StartingSector)+byteswritten, data_size)) //Reading failed?
 		{
-			fclose(f); //Close the image file!
+			emufclose64(f); //Close the image file!
 			delete_file(diskpath,imagefile); //Remove the image file!
 			dolog("ISOReader","Failed to boot from CD-ROM: could not read image file."); //Log our error!
 			return FALSE; //No boot sector found!
 		}
-		if (fwrite(&sectorbuffer,1,data_size,f)!=data_size) //Write error?
+		if (emufwrite64(&sectorbuffer,1,data_size,f)!=data_size) //Write error?
 		{
-			fclose(f); //Close the image file!
+			emufclose64(f); //Close the image file!
 			delete_file(diskpath,imagefile); //Remove the image file!
 			dolog("ISOReader","Failed to boot from CD-ROM: could not write to temporary image file %s. Disk full?",imagefile); //Log our error!
 			return FALSE; //No boot sector found!
 		}
 		byteswritten += data_size; //We've processed this, advance the start position of our current block!
 	}
-	fclose(f); //Close the image file: we've written it!
+	emufclose64(f); //Close the image file: we've written it!
 
 //Clean up before leaving!
 

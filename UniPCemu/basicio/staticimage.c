@@ -176,18 +176,18 @@ byte generateStaticImageFormat(char *filename, byte format)
 			delete_file(NULL,fullfilename); //Remove, if present!
 			safestrcpy(fullfilename,sizeof(fullfilename),fullfilenamebackup); //Restore!
 			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
-			f = fopen(fullfilename,"wb");
+			f = emufopen64(fullfilename,"wb");
 			if (!f) return 0; //Failed!
-			else fclose(f);
+			else emufclose64(f);
 			break;
 		case 2: //.unipcemu.txt
 			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
 			delete_file(NULL,fullfilename); //Remove, if present!
 			safestrcpy(fullfilename,sizeof(fullfilename),fullfilenamebackup); //Restore!
 			safestrcat(fullfilename,sizeof(fullfilename),".unipcemu.txt"); //UniPCemu compatibility type!
-			f = fopen(fullfilename,"wb");
+			f = emufopen64(fullfilename,"wb");
 			if (!f) return 0; //Failed!
-			else fclose(f);
+			else emufclose64(f);
 			break;
 		default: //Neither, remove all identifier files!
 			safestrcat(fullfilename,sizeof(fullfilename),".bochs.txt"); //Bochs type!
