@@ -33,12 +33,7 @@ byte exec_showchecksumerrors = 0; //Show checksum errors?
 //What file to use for saving the BIOS!
 #define DEFAULT_SETTINGS_FILE "SETTINGS.INI"
 #define DEFAULT_REDIRECT_FILE "redirect.txt"
-#if defined(IS_WINDOWS) || defined(IS_PSP)
 #define DEFAULT_ROOT_PATH "."
-#else
-//*nix? Use the root directory!
-#define DEFAULT_ROOT_PATH "~/UniPCemu"
-#endif
 
 char BIOS_Settings_file[256] = DEFAULT_SETTINGS_FILE; //Our settings file!
 char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
@@ -149,9 +144,48 @@ byte is_textcharacter(char c)
 }
 #endif
 
+#if defined(IS_LINUX) && !defined(ANDROID)
+static void recursive_mkdir(const char *dir) {
+        char tmp[256];
+        char *p = NULL;
+        size_t len;
+
+        snprintf(tmp, sizeof(tmp),"%s",dir);
+        len = safestrlen(tmp,sizeof(tmp));
+        if(tmp[len - 1] == '/')
+                tmp[len - 1] = 0;
+        for(p = tmp + 1; *p; p++)
+                if(*p == '/') {
+                        *p = 0;
+                        domkdir(tmp);
+                        *p = '/';
+                }
+        domkdir(tmp);
+}
+#endif
+
 void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start only!
 {
 	#if defined(ANDROID) || defined(IS_LINUX)
+		#ifndef ANDROID
+		#ifdef SDL2
+		char *base_path = SDL_GetPrefPath("Superfury", "UniPCemu");
+		if (base_path) //Gotten?
+		{
+			safestrcpy(UniPCEmu_root_dir, sizeof(UniPCEmu_root_dir), base_path);
+			SDL_free(base_path); //Release it, now that we have it!
+			if (safestrlen(UniPCEmu_root_dir, sizeof(UniPCEmu_root_dir))>1) //Valid length?
+			{
+				UniPCEmu_root_dir[safestrlen(UniPCEmu_root_dir, sizeof(UniPCEmu_root_dir) - 1)] = '\0'; //Strip off the trailing slash!
+			}
+			else //Default length?
+			{
+				safestrcat(UniPCEmu_root_dir, sizeof(UniPCEmu_root_dir), "."); //Take said directory directly as a safety measure!
+			}
+			recursive_mkdir(UniPCEmu_root_dir); //Make sure our directory exists, if it doesn't yet!
+		}
+		#endif
+		#endif
 		FILE *f;
 		byte is_redirected=0;
 		is_redirected = 0; //Init redirect status for main directory!
