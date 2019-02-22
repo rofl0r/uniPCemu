@@ -502,7 +502,7 @@ OPTINLINE byte validateSF(RIFFHEADER *RIFF) //Validate a soundfont file!
 RIFFHEADER *readSF(char *filename)
 {
 	
-	FILE *f;
+	BIGFILE *f;
 	uint_32 filesize;
 	byte *buffer;
 	static RIFFHEADER *riffheader;

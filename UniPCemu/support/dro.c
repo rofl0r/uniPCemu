@@ -119,7 +119,7 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	byte version = 0; //The version to return!
 	word temp;
 	uint_32 filesize;
-	FILE *f; //The file!
+	BIGFILE *f; //The file!
 	uint_32 oldpos;
 	f = emufopen64(filename,"rb"); //Open the filename!
 	if (!f) return 0; //File not found!

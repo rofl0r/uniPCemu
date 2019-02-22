@@ -236,7 +236,7 @@ void dumpVRAM() //Diagnostic dump of VRAM!
 	if (__HW_DISABLED) return; //Abort!
 	if (getActiveVGA()) //Got active VGA?
 	{
-		FILE *f = emufopen64("VRAM.dat","wb");
+		BIGFILE *f = emufopen64("VRAM.dat","wb");
 		if (f) //Opened?
 		{
 			byte plane,c;

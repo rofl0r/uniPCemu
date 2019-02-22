@@ -83,7 +83,7 @@ int storage_strpos(char *str, char ch)
 byte is_writablepath(char *path)
 {
 	char fullpath[256];
-	FILE *f;
+	BIGFILE *f;
 	memset(&fullpath,0,sizeof(fullpath)); //init!
 	safestrcpy(fullpath,sizeof(fullpath),path); //Set the path!
 	safestrcat(fullpath,sizeof(fullpath),"/"); //Add directory seperator!
@@ -719,7 +719,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	}
 }
 
-int telleof(FILE *f) //Are we @eof?
+int telleof(BIGFILE *f) //Are we @eof?
 {
 	int curpos = 0; //Cur pos!
 	int endpos = 0; //End pos!
@@ -775,7 +775,7 @@ BIOS_Settings_TYPE loadedsettings; //The settings that have been loaded!
 void BIOS_LoadData() //Load BIOS settings!
 {
 	if (__HW_DISABLED) return; //Abort!
-	FILE *f;
+	BIGFILE *f;
 	byte defaultsapplied = 0; //Defaults have been applied?
 	byte c;
 	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!

@@ -515,7 +515,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		//First debugger step: custom bios check!
 
 		//Emulate anything here!
-		FILE *f; //The file to use for loading ROMs.
+		BIGFILE *f; //The file to use for loading ROMs.
 		//Try booting of different disks:
 
 		switch (BIOS_Settings.executionmode) //What execution mode?

@@ -2865,7 +2865,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 				sectorupdateinterval = MAX((size/100),sizeof(sector)); //Update interval!
 				sectorupdateintervalcnt = 0; //Reset counter for the first update!
 				byte firstupdate = 1; //First update!
-				FILE *dest;
+				BIGFILE *dest;
 				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
 				memset(&fullfilename, 0, sizeof(fullfilename));
 				safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
@@ -6351,7 +6351,7 @@ void BIOS_DumpVGA()
 	char fullfilename[256];
 	cleardata(&fullfilename[0], sizeof(fullfilename)); //Init!
 
-	FILE *f;
+	BIGFILE *f;
 	int DACIndex;
 	uint_32 DACPos;
 	BIOS_Title("Dumping VGA data");

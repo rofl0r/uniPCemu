@@ -58,7 +58,7 @@ typedef struct
 byte emptylookuptable_ready = 0;
 int_64 emptylookuptable[4096]; //A full sector lookup table (4096 entries for either block (1024) or sector (4096) lookup)!
 
-OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
+OPTINLINE byte writedynamicheader(BIGFILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	if (!f) return 0; //Failed!
 	if (emufseek64(f, 0, SEEK_SET) != 0)
@@ -76,7 +76,7 @@ OPTINLINE byte writedynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
 	return 1; //We've been updated!
 }
 
-OPTINLINE int_64 readdynamicheader_extensionlocation(FILE *f, EXTENDEDDYNAMICIMAGE_HEADER *header) //Read the extension location!
+OPTINLINE int_64 readdynamicheader_extensionlocation(BIGFILE *f, EXTENDEDDYNAMICIMAGE_HEADER *header) //Read the extension location!
 {
 	if (!emptylookuptable_ready) //Not allocated yet?
 	{
@@ -103,7 +103,7 @@ OPTINLINE int_64 readdynamicheader_extensionlocation(FILE *f, EXTENDEDDYNAMICIMA
 	return 0; //Not found!
 }
 
-OPTINLINE byte readdynamicheader(FILE *f, DYNAMICIMAGE_HEADER *header)
+OPTINLINE byte readdynamicheader(BIGFILE *f, DYNAMICIMAGE_HEADER *header)
 {
 	PADDEDDYNAMICIMAGE_HEADER oldheader; //The older header data!
 	EXTENDEDDYNAMICIMAGE_HEADER extendedheader; //The newest extended header data!
@@ -187,7 +187,7 @@ int is_dynamicimage(char *filename)
 	{
 		return 0; //Not a dynamic image!
 	}
-	FILE *f = emufopen64(filename, "rb"); //Open!
+	BIGFILE *f = emufopen64(filename, "rb"); //Open!
 	result = readdynamicheader(f,&header); //Is dynamic?
 	emufclose64(f);
 	return result; //Give the result!
@@ -196,7 +196,7 @@ int is_dynamicimage(char *filename)
 FILEPOS dynamicimage_getsize(char *filename)
 {
 	DYNAMICIMAGE_HEADER header; //Header to read!
-	FILE *f = emufopen64(filename, "rb"); //Open!
+	BIGFILE *f = emufopen64(filename, "rb"); //Open!
 	FILEPOS result;
 	if (readdynamicheader(f,&header)) //Is dynamic?
 	{
@@ -254,7 +254,7 @@ byte dynamictostatic_imagetype(char *filename)
 	return 0; //Not retrieved!
 }
 
-OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
+OPTINLINE byte dynamicimage_updatesize(BIGFILE *f, int_64 size)
 {
 	DYNAMICIMAGE_HEADER header;
 	if (!readdynamicheader(f, &header)) //Header failed to read?
@@ -265,7 +265,7 @@ OPTINLINE byte dynamicimage_updatesize(FILE *f, int_64 size)
 	return writedynamicheader(f,&header); //Try to update the header!
 }
 
-OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
+OPTINLINE byte dynamicimage_allocatelookuptable(BIGFILE *f, int_64 *location, int_64 numentries) //Allocate a table with numentries entries, give location of allocation!
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 newsize, entrysize;
@@ -291,7 +291,7 @@ OPTINLINE byte dynamicimage_allocatelookuptable(FILE *f, int_64 *location, int_6
 	return 0; //Error!
 }
 
-OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
+OPTINLINE int_64 dynamicimage_readlookuptable(BIGFILE *f, int_64 location, int_64 numentries, int_64 entry) //Read a table with numentries entries, give location of an entry!
 {
 	int_64 result;
 	if (entry >= numentries) return 0; //Invalid entry: out of bounds!
@@ -307,7 +307,7 @@ OPTINLINE int_64 dynamicimage_readlookuptable(FILE *f, int_64 location, int_64 n
 	return 0; //Error: not readable!
 }
 
-OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 numentries, int_64 entry, int_64 value) //Update a table with numentries entries, set location of an entry!
+OPTINLINE byte dynamicimage_updatelookuptable(BIGFILE *f, int_64 location, int_64 numentries, int_64 entry, int_64 value) //Update a table with numentries entries, set location of an entry!
 {
 	DYNAMICIMAGE_HEADER header;
 	if (readdynamicheader(f, &header)) //Check the image first!
@@ -332,7 +332,7 @@ OPTINLINE byte dynamicimage_updatelookuptable(FILE *f, int_64 location, int_64 n
 
 byte lookuptabledepth = 0; //Lookup table depth found?
 
-OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
+OPTINLINE int_64 dynamicimage_getindex(BIGFILE *f, uint_32 sector) //Get index!
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 index;
@@ -360,7 +360,7 @@ OPTINLINE int_64 dynamicimage_getindex(FILE *f, uint_32 sector) //Get index!
 	return index; //We're present at this index, if at all!
 }
 
-OPTINLINE sbyte dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
+OPTINLINE sbyte dynamicimage_datapresent(BIGFILE *f, uint_32 sector) //Get present?
 {
 	int_64 index;
 	index = dynamicimage_getindex(f, sector); //Try to get the index!
@@ -371,7 +371,7 @@ OPTINLINE sbyte dynamicimage_datapresent(FILE *f, uint_32 sector) //Get present?
 	return (index!=0); //We're present?
 }
 
-OPTINLINE byte dynamicimage_setindex(FILE *f, uint_32 sector, int_64 index)
+OPTINLINE byte dynamicimage_setindex(BIGFILE *f, uint_32 sector, int_64 index)
 {
 	DYNAMICIMAGE_HEADER header;
 	int_64 firstlevellocation,secondlevellocation,sectorlevellocation;
@@ -454,7 +454,7 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 	static byte emptyblock[512]; //An empty block!
 	static byte emptyready = 0;
 	int_64 newsize;
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb+"); //Open for writing!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
@@ -553,7 +553,7 @@ byte dynamicimage_writesector(char *filename,uint_32 sector, void *buffer) //Wri
 byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
 	DYNAMICIMAGE_HEADER header;
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
@@ -601,7 +601,7 @@ byte dynamicimage_readsector(char *filename,uint_32 sector, void *buffer) //Read
 byte dynamicimage_readexistingsector(char *filename,uint_32 sector, void *buffer) //Has a 512-byte sector! Result=1 on present&filled(buffer filled), 0 on not present or error! Used for simply copying the sector to a different image!
 {
 	DYNAMICIMAGE_HEADER header;
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
@@ -660,7 +660,7 @@ byte dummydata[512]; //Loaded sector!
 sbyte dynamicimage_nextallocatedsector(char *filename, uint_32 *sector) //Finds the next allocated sector which isn't empty!
 {
 	DYNAMICIMAGE_HEADER header;
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open!
 	if (!readdynamicheader(f, &header)) //Failed to read the header?
 	{
@@ -720,7 +720,7 @@ char diskpath[256]; //Disk path!
 FILEPOS generateDynamicImage(char *filename, FILEPOS size, int percentagex, int percentagey, byte format)
 {
 	EXTENDEDDYNAMICIMAGE_HEADER header;
-	FILE *f;
+	BIGFILE *f;
 	EXTENDEDDYNAMICIMAGE_FORMATBLOCK formatblock;
 
 	char fullfilename[256];

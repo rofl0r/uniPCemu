@@ -2,6 +2,7 @@
 #include "headers/hardware/vga/vga.h" //VGA/CGA support!
 #include "headers/header_dosbox.h" //Dosbox support!
 #include "headers/hardware/vga/vga_cga_ntsc.h" //Our own definitions!
+#include "headers/fopen64.h"
 
 //Main functions for rendering NTSC and RGBI by superfury:
 
@@ -86,7 +87,7 @@ bool new_cga = 0;
 
 //static Bit8u byte_clamp_other(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); } //Superfury: defined but not used!
 
-FILE *df;
+BIGFILE *df;
 
 OPTINLINE void update_cga16_color() { //Superfury: Removed the parameter: we access the emulation directly!
 	int x;

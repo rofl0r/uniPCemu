@@ -39,7 +39,7 @@ extern GPU_type GPU; //For x&y initialisation!
 byte *loadfile(char *filename, int_32 *size)
 {
 	byte *buffer;
-	FILE *f;
+	BIGFILE *f;
 	int_32 thesize;
 	f = emufopen64(filename,"rb");
 	if (!f) //failed to open?
@@ -581,7 +581,7 @@ void dumpVGA()
 	GPU_textgotoxy(frameratesurface,0,0);
 	GPU_textprintf(frameratesurface,RGB(0xFF,0xFF,0xFF),RGB(0x00,0x00,0x00),"Dumping VGA data...");
 	GPU_text_releasesurface(frameratesurface);
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64("VGA.DAT","wb"); //Open it!
 	byte *b = (byte *)MainVGA->VRAM;
 	uint_32 i=0;

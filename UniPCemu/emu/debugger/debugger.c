@@ -88,7 +88,7 @@ typedef struct PACKED
 OPTINLINE byte readverification(uint_32 index, VERIFICATIONDATA *entry)
 {
 	const word size = sizeof(*entry);
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64("debuggerverify16.dat", "rb"); //Open verify data!
 	if (emufseek64(f, index*size, SEEK_SET) == 0) //OK?
 	{

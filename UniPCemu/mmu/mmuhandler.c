@@ -626,7 +626,7 @@ void MMU_dumpmemory(char *filename) //Dump the memory to a file!
 	cleardata(&filenamefull[0],sizeof(filenamefull)); //Clear memory!
 	snprintf(filenamefull,sizeof(filenamefull),"%s/%s",capturepath,filename); //Capture path file!
 	domkdir(capturepath); //Make sure we exist!
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filenamefull,"wb"); //Open file!
 	emufwrite64(MMU.memory,1,user_memory_used,f); //Write memory to file!
 	emufclose64(f); //Close file!

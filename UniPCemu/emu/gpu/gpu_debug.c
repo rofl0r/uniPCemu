@@ -10,7 +10,7 @@ void dumpscreen()
 	int emuy; //psp x&y!
 //First, calculate the relative destination on the PSP screen!.
 
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64("SCREEN.TXT","w"); //Open file!
 	char lb[3];
 	cleardata(&lb[0],sizeof(lb));

@@ -175,7 +175,7 @@ void resetMID() //Reset our settings for playback of a new file!
 
 word readMID(char *filename, HEADER_CHNK *header, TRACK_CHNK *tracks, byte **channels, word maxchannels)
 {
-	FILE *f;
+	BIGFILE *f;
 	TRACK_CHNK currenttrack;
 	word currenttrackn = 0; //Ammount of tracks loaded!
 	uint_32 tracklength;

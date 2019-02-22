@@ -2212,7 +2212,7 @@ OPTINLINE byte bytetonum(byte b, byte nibble)
 	return int2hex((b>>4)&0xF); //High nibble!
 }
 
-OPTINLINE void writehex(FILE *f, byte num) //Write a number (byte) to a file!
+OPTINLINE void writehex(BIGFILE *f, byte num) //Write a number (byte) to a file!
 {
 	byte low = bytetonum(num,0); //Low!
 	byte high = bytetonum(num,1); //High!
@@ -2229,7 +2229,7 @@ void int10_dumpscreen() //Dump screen to file!
 	if (__HW_DISABLED) return; //Abort!
 	int x;
 	int y;
-	FILE *f;
+	BIGFILE *f;
 	int firstrow = 1;
 	f = emufopen64("INT10.TXT","w"); //Open file!
 	byte displaypage;

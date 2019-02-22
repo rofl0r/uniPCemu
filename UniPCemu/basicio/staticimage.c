@@ -10,7 +10,7 @@
 byte is_staticimage(char *filename)
 {
 	char sidefile[256];
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open file!
 	if (!f)
 	{
@@ -52,7 +52,7 @@ byte is_staticimage(char *filename)
 FILEPOS staticimage_getsize(char *filename)
 {
 	if (strcmp(filename, "") == 0) return 0; //Not mountable!
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename,"rb"); //Open!
 	if (!f) //Not found?
 	{
@@ -110,7 +110,7 @@ byte statictodynamic_imagetype(char *filename)
 
 byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Write a 512-byte sector! Result=1 on success, 0 on error!
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename,"rb+"); //Open!
 	++sector; //Find the next sector!
 	if (emufseek64(f, (uint_64)sector << 9, SEEK_SET)) //Invalid sector!
@@ -141,7 +141,7 @@ byte staticimage_writesector(char *filename,uint_32 sector, void *buffer) //Writ
 
 byte staticimage_readsector(char *filename,uint_32 sector, void *buffer) //Read a 512-byte sector! Result=1 on success, 0 on error!
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename,"rb"); //Open!
 	emufseek64(f,(uint_64)sector<<9,SEEK_SET); //Find block info!
 	if (emuftell64(f)!=((int_64)sector<<9)) //Not found?
@@ -162,7 +162,7 @@ extern char diskpath[256]; //Disk path!
 
 byte generateStaticImageFormat(char *filename, byte format)
 {
-	FILE *f;
+	BIGFILE *f;
 	char fullfilename[256], fullfilenamebackup[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!
 	memset(&fullfilenamebackup[0],0,sizeof(fullfilenamebackup)); //Init!
@@ -205,7 +205,7 @@ void generateStaticImage(char *filename, FILEPOS size, int percentagex, int perc
 	FILEPOS sizeleft = size; //Init size left!
 	byte buffer[4096]; //Buffer!
 	DOUBLE percentage;
-	FILE *f;
+	BIGFILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
 	char originalfilename[256];
@@ -309,7 +309,7 @@ void generateFloppyImage(char *filename, FLOPPY_GEOMETRY *geometry, int percenta
 	sizeleft = size; //Load the size that's left!
 	byte buffer[1024]; //Buffer!
 	DOUBLE percentage;
-	FILE *f;
+	BIGFILE *f;
 	int_64 byteswritten, totalbyteswritten = 0;
 	char fullfilename[256];
 	memset(&fullfilename[0],0,sizeof(fullfilename)); //Init!

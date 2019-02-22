@@ -32,7 +32,7 @@ word ISOREADER_SEGMENT = 0x0000; //Segment read to load image!
 
 OPTINLINE int WriteData(char *filename, void *buffer, uint_32 len) //Write buffer to file!
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename,"wb"); //Open file for writing!
 	if (f) //Opened?
 	{
@@ -100,7 +100,7 @@ int getBootImage(int device, char *imagefile) //Returns TRUE on bootable (image 
 	DWORD dwLen;
 	int do_boot, counter;
 	byte sectorbuffer[CD_SEC_SIZE]; //A buffer to contain a sector!
-	FILE *f;
+	BIGFILE *f;
 	uint_32 byteswritten = 0; //Ammount of data bytes written!
 	uint_32 data_size;
 	char fullfilename[256];

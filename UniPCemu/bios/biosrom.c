@@ -83,7 +83,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 	ISVGA = 0; //Are we a VGA ROM?
 	for (i=0;(i<NUMITEMS(OPT_ROMS)) && (location<0x20000);i++) //Process all ROMS we can process!
 	{
-		FILE *f;
+		BIGFILE *f;
 		char filename[256];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
 		if (i) //Not Graphics Adapter ROM?
@@ -267,7 +267,7 @@ int BIOS_load_ROM(byte nr)
 {
 	byte tryext = 0; //Try extra ROMs?
 	uint_32 ROM_size=0; //The size of both ROMs!
-	FILE *f;
+	BIGFILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 	retryext:
@@ -406,7 +406,7 @@ byte ROM_doubling = 0; //Double the ROM?
 
 int BIOS_load_custom(char *path, char *rom)
 {
-	FILE *f;
+	BIGFILE *f;
 	char filename[256];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 	if (!path)
@@ -538,7 +538,7 @@ void BIOS_DUMPSYSTEMROM() //Dump the SYSTEM ROM currently set (debugging purpose
 		safestrcpy(path,sizeof(path),ROMpath); //Current ROM path!
 		safestrcat(path,sizeof(path),"/SYSROM.DMP.BIN"); //Dump path!
 		//Dump our own BIOS ROM!
-		FILE *f;
+		BIGFILE *f;
 		f = emufopen64(path, "wb");
 		emufwrite64(&EMU_BIOS, 1, sizeof(EMU_BIOS), f); //Save our BIOS!
 		emufclose64(f);
@@ -813,7 +813,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						OPTROM_address = ((OPTROM_location[i]>>32)-OPTROM_address)-1; //The ROM is reversed, so reverse write too!
 					}
 					//We're a EEPROM with write protect disabled!
-					FILE *f; //For opening the ROM file!
+					BIGFILE *f; //For opening the ROM file!
 					f = emufopen64(OPTROM_filename[i], "rb+"); //Open the ROM for writing!
 					if (!f) return 1; //Couldn't open the ROM for writing!
 					if (emufseek64(f, (uint_32)OPTROM_address, SEEK_SET)) //Couldn't seek?
@@ -1178,7 +1178,7 @@ void BIOSROM_dumpBIOS()
 			baseloc = BIOSROM_BASE_AT;
 			endloc = 0x1000000;
 		}
-		FILE *f;
+		BIGFILE *f;
 		byte data;
 		char filename[2][100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!

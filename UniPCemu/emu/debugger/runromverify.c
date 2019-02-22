@@ -52,7 +52,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	safestrcat(filename2,sizeof(filename2),".hwint.txt"); //Use HW interrupts? Simple text file will do!
 	useHWInterrupts = file_exists(filename2); //Use hardware interrupts when specified!
 	dolog("debugger","RunROMVerify...");
-	FILE *f;
+	BIGFILE *f;
 	int memloc = 0;
 	f = emufopen64(filename,"rb"); //First, load file!
 

@@ -4,7 +4,7 @@
 
 //First, functions to actually read&write the DSK file&sectors.
 
-byte readDSKInformation(FILE *f, DISKINFORMATIONBLOCK *result)
+byte readDSKInformation(BIGFILE *f, DISKINFORMATIONBLOCK *result)
 {
 	byte ID[8] = { 'M', 'V', ' ', '-', ' ', 'C', 'P', 'C' }; //Identifier!
 	emufseek64(f, 0, SEEK_SET); //Goto BOF!
@@ -14,7 +14,7 @@ byte readDSKInformation(FILE *f, DISKINFORMATIONBLOCK *result)
 	return 1; //OK!
 }
 
-byte readDSKTrackInformation(FILE *f, byte side, byte track, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *result)
+byte readDSKTrackInformation(BIGFILE *f, byte side, byte track, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *result)
 {
 	uint_32 position;
 	word actualtracknr;
@@ -29,7 +29,7 @@ byte readDSKTrackInformation(FILE *f, byte side, byte track, DISKINFORMATIONBLOC
 	return 1; //OK!
 }
 
-byte readDSKSectorInformation(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *result)
+byte readDSKSectorInformation(BIGFILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *result)
 {
 	uint_32 position;
 	word actualtracknr;
@@ -56,7 +56,7 @@ word getDSKSectorSize(SECTORINFORMATIONBLOCK *sectorinfo)
 	return (word)powf((long)2, (float)sectorinfo->SectorSize); //Apply sector size!
 }
 
-byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *result)
+byte readDSKSector(BIGFILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *result)
 {
 	if (sectorinfo->SectorSize != sectorsize) return 0; //Wrong sector size!
 	uint_32 position;
@@ -73,7 +73,7 @@ byte readDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONB
 	return 1; //Read!
 }
 
-byte writeDSKSector(FILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *sectordata)
+byte writeDSKSector(BIGFILE *f, byte side, word track, byte sector, DISKINFORMATIONBLOCK *info, TRACKINFORMATIONBLOCK *trackinfo, SECTORINFORMATIONBLOCK *sectorinfo, byte sectorsize, void *sectordata)
 {
 	if (sectorinfo->SectorSize != sectorsize) return 0; //Wrong sector size!
 	uint_32 position;
@@ -99,7 +99,7 @@ byte is_DSKimage(char *filename)
 	{
 		return 0; //Not a dynamic image!
 	}
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation; //The read information!
@@ -114,7 +114,7 @@ byte is_DSKimage(char *filename)
 
 byte readDSKSectorInfo(char *filename, byte side, byte track, byte sector, SECTORINFORMATIONBLOCK *result)
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
@@ -140,7 +140,7 @@ byte readDSKSectorInfo(char *filename, byte side, byte track, byte sector, SECTO
 
 byte readDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *result)
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
@@ -173,7 +173,7 @@ byte readDSKSectorData(char *filename, byte side, byte track, byte sector, byte 
 
 byte writeDSKSectorData(char *filename, byte side, byte track, byte sector, byte sectorsize, void *sectordata)
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
@@ -206,7 +206,7 @@ byte writeDSKSectorData(char *filename, byte side, byte track, byte sector, byte
 
 byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result)
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (!readDSKInformation(f, result)) //Invalid header?
@@ -220,7 +220,7 @@ byte readDSKInfo(char *filename, DISKINFORMATIONBLOCK *result)
 
 byte readDSKTrackInfo(char *filename, byte side, byte track, TRACKINFORMATIONBLOCK *result)
 {
-	FILE *f;
+	BIGFILE *f;
 	f = emufopen64(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	DISKINFORMATIONBLOCK DSKInformation;
