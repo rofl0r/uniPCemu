@@ -853,7 +853,8 @@ void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 //FPU non-existant Coprocessor support!
 
 void FPU80287_FPU_UD(byte isESC) { //Generic x86 FPU #UD opcode decoder!
-	if (((CPU[activeCPU].registers->CR0&CR0_EM)&&(!isESC)) || (((CPU[activeCPU].registers->CR0&CR0_MP)||isESC) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched(MP needs to be set for TS to have effect during WAIT)?
+	//MP needs to be set for TS to have effect during WAIT(throw emulation). It's always in effect with ESC instructions(ignoring MP). EM only has effect on ESC instructions(throw emulation if set).
+	if (((CPU[activeCPU].registers->CR0&CR0_EM)&&(isESC)) || (((CPU[activeCPU].registers->CR0&CR0_MP)||isESC) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched?
 	{
 		debugger_setcommand("<FPU EMULATION>");
 		CPU_resetOP();
