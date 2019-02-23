@@ -283,8 +283,7 @@ void CPU80386_OP0FB5_32(); //LGS /r r32,m16:32
 void CPU80386_OP0FB6_16(); //MOVZX /r r16,r/m8
 void CPU80386_OP0FB6_32(); //MOVZX /r r32,r/m8
 
-void CPU80386_OP0FB7_16(); //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32(); //MOVZX /r r32,r/m16
+void CPU80386_OP0FB7(); //MOVZX /r r32,r/m16
 
 void CPU80386_OP0FBA_16();
 void CPU80386_OP0FBA_32();
@@ -301,8 +300,7 @@ void CPU80386_OP0FBD_32(); //BSR /r r32,r/m32
 void CPU80386_OP0FBE_16(); //MOVSX /r r16,r/m8
 void CPU80386_OP0FBE_32(); //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16(); //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32(); //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF(); //MOVSX /r r32,r/m16
 
 byte CPU80386_internal_LXS(int segmentregister); //LDS, LES etc. 32-bit variant!
 
