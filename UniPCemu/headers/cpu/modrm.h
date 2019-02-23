@@ -242,8 +242,8 @@ Slashr:
 2: REG1=> SEGMENTREGISTER (Use displacement if needed!)
 3: Reg=> CRn(/r implied), R/M is General Purpose register!
 4: Reg=> DRn(/r implied), R/M is General Purpose register!
-5: General purpose register(Reg) is 16-bits instead!
-6: General purpose register(Reg) is 32-bits instead!
+5: R/M register is 8-bits instead!
+6: R/M register is 16-bits instead!
 7: Reg=>TRn(/r implied), R/M is General Purpose register!
 
 */
