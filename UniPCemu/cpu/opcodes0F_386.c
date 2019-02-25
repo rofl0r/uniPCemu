@@ -104,7 +104,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("SLDT %s", info.text);
 		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
-		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->LDTR,MODRM_src0,0)) return; //Try and write it to the address specified!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->LDTR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
@@ -120,7 +120,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("STR %s", info.text);
 		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
-		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->TR,MODRM_src0,0)) return; //Try and write it to the address specified!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->TR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	default:
@@ -287,7 +287,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		}
 		debugger_setcommand("SMSW %s", info.text);
 		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
-		if (CPU80386_instructionstepwritemodrmdw(0,CPU[activeCPU].registers->CR0,MODRM_src0,0)) return; //Store the MSW into the specified location!
+		if (CPU80386_instructionstepwritemodrmdw(0,CPU[activeCPU].registers->CR0,MODRM_src0)) return; //Store the MSW into the specified location!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 6: //LMSW
