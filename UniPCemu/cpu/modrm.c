@@ -2413,19 +2413,11 @@ specialflags:
 byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP)
 {
 //Special data we already know:
-	if ((CPU[activeCPU].is0Fopcode) && (OP==0x1)) //Special case for 0x0F01 opcode?
-	{
-		if ((MODRM_REG(param->modrm)==4) || (MODRM_REG(param->modrm)==6)) //Always 16-bit ModR/M?
-		{
-			size = 1; //Force word size instead of DWORD size(LMSW/SMSW)!
-		}
-	}
 	if (param->instructionfetch.MODRM_instructionfetch==0) //To reset?
 	{
 		//Reset and initialize all our parameters!
 		memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
 		param->reg_is_segmentregister = 0; //REG2 is NORMAL!
-		param->size = (size&0x80)?2:((size&0x40)?1:((size&0x20)?0:size)); //What size is used, with autodetection?
 
 		param->specialflags = specialflags; //Is this a /r modr/m?
 
@@ -2435,19 +2427,33 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		}
 
 		param->error = 0; //Default: no errors detected during decoding!
+		param->instructionfetch.MODRM_instructionfetch = 1; //Start fetching now!
 	}
 
 	//Start fetching the parameters from the opcode parser!
-	if (param->instructionfetch.MODRM_instructionfetch==0) //Fetching ModR/M byte?
+	if (param->instructionfetch.MODRM_instructionfetch==1) //Fetching ModR/M byte?
 	{
 		if (CPU_readOP(&param->modrm,1)) return 1; /* modrm byte first */
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		param->instructionfetch.MODRM_instructionfetch = 1; //SIB checking now!
+		param->instructionfetch.MODRM_instructionfetch = 2; //SIB checking now!
+		if ((CPU[activeCPU].is0Fopcode) && (OP<=0x1)) //Special case for 0x0F01 opcode?
+		{
+			if ((OP==0x1) && (((MODRM_REG(param->modrm)==4) && ((param->modrm&0xC0)!=0xC0)) || (MODRM_REG(param->modrm)==6))) //Always 16-bit ModR/M?
+			{
+				size = 1; //Force word size instead of DWORD size(LMSW/SMSW(memory))!
+			}
+			if ((OP==0x0) && ((((MODRM_REG(param->modrm)<=1) && ((param->modrm&0xC0)!=0xC0)) || (MODRM_REG(param->modrm)>1)))) //Always 16-bit ModR/M(for memory or always)?
+			{
+				size = 1; //Force word size instead of DWORD size(SLDT/STR(memory) and other opcodes)!
+			}
+		}
+		param->sizeparam = size; //Actual size!
+		param->size = (size&0x80)?2:((size&0x40)?1:((size&0x20)?0:size)); //What size is used, with autodetection?
 	}
 
-	if (param->instructionfetch.MODRM_instructionfetch==1) //Fetching SIB byte if needed?
+	if (param->instructionfetch.MODRM_instructionfetch==2) //Fetching SIB byte if needed?
 	{
-		if (modrm_useSIB(param,size)) //Using SIB byte?
+		if (modrm_useSIB(param,param->sizeparam)) //Using SIB byte?
 		{
 			if (CPU_readOP(&param->SIB,1)) return 1; //Read SIB byte or 0!
 			if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
@@ -2456,14 +2462,14 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		{
 			param->SIB = 0; //No SIB byte!
 		}
-		param->instructionfetch.MODRM_instructionfetch = 2; //Fetching immediate data!
+		param->instructionfetch.MODRM_instructionfetch = 3; //Fetching immediate data!
 		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position for new parameters!
 		param->displacement.dword = 0; //Reset DWORD (biggest) value (reset value to 0)!
 	}
 
-	if (param->instructionfetch.MODRM_instructionfetch==2) //Fetching displacement byte(s) if needed?
+	if (param->instructionfetch.MODRM_instructionfetch==3) //Fetching displacement byte(s) if needed?
 	{
-		switch (modrm_useDisplacement(param,size)) //Displacement?
+		switch (modrm_useDisplacement(param,param->sizeparam)) //Displacement?
 		{
 		case 1: //DISP8?
 			if (CPU_readOP(&param->displacement.low16_low,1)) return 1; //Use 8-bit!
@@ -2480,7 +2486,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		default: //Unknown/no displacement?
 			break; //No displacement!
 		}
-		param->instructionfetch.MODRM_instructionfetch = 3; //Finished with all stages of the modR/M data!
+		param->instructionfetch.MODRM_instructionfetch = 4; //Finished with all stages of the modR/M data!
 	}
 
 	param->EA_cycles = 0; //No EA cycles for register accesses by default!
@@ -2493,7 +2499,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	param->havethreevariables = 0; //Default: not 3 params added!
 	
 	//Decode appropiately!
-	switch (size&7) //What size?
+	switch (param->sizeparam&7) //What size?
 	{
 	case 0: //8-bits?
 		modrm_decode8(param, &param->info[0], 0); //#0 reg!
@@ -2508,7 +2514,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		modrm_decode32(param, &param->info[1], 1); //#0 modr/m!
 		break;
 	default:
-		halt_modrm("Unknown decoder size: %u",size); //Unknown size!
+		halt_modrm("Unknown decoder size: %u",param->sizeparam); //Unknown size!
 	}
 
 	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register specified?

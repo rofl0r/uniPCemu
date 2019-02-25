@@ -174,6 +174,7 @@ No 80286 normal extensions exist.
 
 */
 
+void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 void CPU386_OP0F01(); //Various extended 286+ instruction GRP opcode.
 void CPU386_OP0F02(); //LAR /r
 void CPU386_OP0F03(); //LSL /r

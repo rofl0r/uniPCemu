@@ -86,6 +86,49 @@ extern byte custommem; //Custom memory address?
 
 //Based on http://ref.x86asm.net/coder32.html
 
+void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
+{
+	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
+	switch (thereg) //What function?
+	{
+	case 0: //SLDT
+		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		{
+			CPU286_OP0F00(); //Same as 80286!
+			return;
+		}
+		if (getcpumode() == CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
+		debugger_setcommand("SLDT %s", info.text);
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->LDTR,MODRM_src0,0)) return; //Try and write it to the address specified!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+		break;
+	case 1: //STR
+		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		{
+			CPU286_OP0F00(); //Same as 80286!
+			return;
+		}
+		if (getcpumode() == CPU_MODE_REAL)
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
+		debugger_setcommand("STR %s", info.text);
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->TR,MODRM_src0,0)) return; //Try and write it to the address specified!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
+		break;
+	default:
+		CPU286_OP0F00(); //Same as 80286!
+		break;
+	}
+}
+
 void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
@@ -237,7 +280,15 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 4: //SMSW
-		CPU286_OP0F01(); //Same as 80286!
+		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		{
+			CPU286_OP0F01(); //Same as 80286!
+			return;
+		}
+		debugger_setcommand("SMSW %s", info.text);
+		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (CPU80386_instructionstepwritemodrmdw(0,CPU[activeCPU].registers->CR0,MODRM_src0,0)) return; //Store the MSW into the specified location!
+		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 6: //LMSW
 		CPU286_OP0F01(); //Same as 80286!
