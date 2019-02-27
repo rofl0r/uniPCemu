@@ -560,7 +560,7 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, byte W, byte U, byte 
 		{
 			*result = curentry->entry->data; //Give the stored data!
 			Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
-			if (TLB_way) //Requested way?
+			if (unlikely(TLB_way)) //Requested way?
 			{
 				*TLB_way = curentry->index; //What way was found!
 			}
