@@ -24,10 +24,10 @@ typedef struct
 
 typedef struct
 {
-	TLBEntry TLB[4][8]; //All TLB entries to use!
-	TLB_ptr TLB_listnodes[4][8]; //All nodes for all TLB entries!
-	TLB_ptr *TLB_freelist_head[4], *TLB_freelist_tail[4]; //Head and tail of the free list!
-	TLB_ptr *TLB_usedlist_head[4], *TLB_usedlist_tail[4]; //Head and tail of the used list!
+	TLBEntry TLB[8][8]; //All TLB entries to use!
+	TLB_ptr TLB_listnodes[8][8]; //All nodes for all TLB entries!
+	TLB_ptr *TLB_freelist_head[8], *TLB_freelist_tail[8]; //Head and tail of the free list!
+	TLB_ptr *TLB_usedlist_head[8], *TLB_usedlist_tail[8]; //Head and tail of the used list!
 } CPU_TLB; //A TLB to use for the CPU!
 
 void Paging_clearTLB(); //Clears the TLB for further fetching!
