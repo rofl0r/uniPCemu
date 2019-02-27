@@ -280,21 +280,27 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 
 OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress, byte S) //Automatic set determination when using a set number <0!
 {
-	return ((logicaladdress&0x3000)>>12)|(S<<2); //The set is determined by the lower 2(3 on i486) bits of the entry(according to the i486), the memory block!
+	return ((logicaladdress&(0x3000|((EMULATED_CPU>=CPU_80486)?0x4000:0)))>>12)|(S<<2); //The set is determined by the lower 2(3 on i486) bits of the entry(according to the i486), the memory block!
 }
 
 OPTINLINE void PagingTLB_initlists()
 {
 	byte set; //What set?
 	byte index; //What index?
-	for (set = 0; set < 8; ++set) //process all sets!
+	byte setsize;
+	byte indexsize;
+	byte whichentry;
+	setsize = (8<<((EMULATED_CPU>=CPU_80486)?1:0));
+	indexsize = (8>>((EMULATED_CPU>=CPU_80486)?1:0));
+	for (set = 0; set < setsize; ++set) //process all sets!
 	{
 		//Allocate a list-to-entry-mapping from the available entry space, with all items in ascending order in a linked list and index!
-		for (index = 0; (index<8); ++index) //process all indexes!
+		for (index = 0; (index<indexsize; ++index) //process all indexes!
 		{
-			CPU[activeCPU].Paging_TLB.TLB_listnodes[set][index].entry = &CPU[activeCPU].Paging_TLB.TLB[set][index]; //What entry(constant value)!
-			CPU[activeCPU].Paging_TLB.TLB_listnodes[set][index].index = index; //What index are we(for lookups)?
-			CPU[activeCPU].Paging_TLB.TLB[set][index].TLB_listnode = (void *)&CPU[activeCPU].Paging_TLB.TLB_listnodes[set][index]; //Tell the TLB which node it belongs to!
+			whichentry = (set*indexsize)+index; //Which one?
+			CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry].entry = &CPU[activeCPU].Paging_TLB.TLB[whichentry]; //What entry(constant value)!
+			CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry].index = index; //What index are we(for lookups)?
+			CPU[activeCPU].Paging_TLB.TLB[whichentry].TLB_listnode = (void *)&CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry]; //Tell the TLB which node it belongs to!
 		}
 	}
 }
@@ -303,16 +309,20 @@ OPTINLINE void PagingTLB_clearlists()
 {
 	byte set; //What set?
 	byte index; //What index?
+	byte highindex;
 	TLB_ptr *us; //What is the current entry!
-	for (set = 0; set < 8; ++set) //process all sets!
+	setsize = (8<<((EMULATED_CPU>=CPU_80486)?1:0));
+	indexsize = (8>>((EMULATED_CPU>=CPU_80486)?1:0));
+	for (set = 0; set < setsize; ++set) //process all sets!
 	{
 		//Allocate a list from the available entry space, with all items in ascending order in a linked list and index!
 		CPU[activeCPU].Paging_TLB.TLB_freelist_head[set] = CPU[activeCPU].Paging_TLB.TLB_freelist_tail[set] = NULL; //Nothing!
 		CPU[activeCPU].Paging_TLB.TLB_usedlist_head[set] = CPU[activeCPU].Paging_TLB.TLB_usedlist_tail[set] = NULL; //Nothing!
-		for (index = 7; ((index&0xFF)!=0xFF); --index) //process all indexes!
+		for (index = (indexsize-1); ((index&0xFF)!=0xFF); --index) //process all indexes!
 		{
-			CPU[activeCPU].Paging_TLB.TLB_listnodes[set][index].allocated = 0; //We're in the free list!
-			us = &CPU[activeCPU].Paging_TLB.TLB_listnodes[set][index]; //What entry are we?
+			whichentry = (set*indexsize)+index; //Which one?
+			CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry].allocated = 0; //We're in the free list!
+			us = &CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry]; //What entry are we?
 			us->prev = NULL; //We start out as the head for the added items here, so never anything before us!
 			us->next = NULL; //We start out as the head, so next is automatically filled!
 			if (likely(CPU[activeCPU].Paging_TLB.TLB_freelist_head[set])) //Head already set?
@@ -444,7 +454,11 @@ OPTINLINE TLBEntry *Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwrit
 			return listentry->entry; //What index is the LRU!
 		}
 	}
-	return &CPU[activeCPU].Paging_TLB.TLB[set][7]; //Safety: return the final entry! Shouldn't happen under normal circumstances.
+	byte indexsize, whichentry;
+	indexsize = (8>>((EMULATED_CPU>=CPU_80486)?1:0));
+	whichentry = (set*indexsize)+7; //Which one?
+
+	return &CPU[activeCPU].Paging_TLB.TLB[whichentry]; //Safety: return the final entry! Shouldn't happen under normal circumstances.
 }
 
 //W=Writable, U=User, D=Dirty
