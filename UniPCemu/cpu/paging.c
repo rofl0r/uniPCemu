@@ -295,7 +295,7 @@ OPTINLINE void PagingTLB_initlists()
 	for (set = 0; set < setsize; ++set) //process all sets!
 	{
 		//Allocate a list-to-entry-mapping from the available entry space, with all items in ascending order in a linked list and index!
-		for (index = 0; (index<indexsize; ++index) //process all indexes!
+		for (index = 0; index<indexsize; ++index) //process all indexes!
 		{
 			whichentry = (set*indexsize)+index; //Which one?
 			CPU[activeCPU].Paging_TLB.TLB_listnodes[whichentry].entry = &CPU[activeCPU].Paging_TLB.TLB[whichentry]; //What entry(constant value)!
@@ -311,6 +311,9 @@ OPTINLINE void PagingTLB_clearlists()
 	byte index; //What index?
 	byte highindex;
 	TLB_ptr *us; //What is the current entry!
+	byte setsize;
+	byte indexsize;
+	byte whichentry;
 	setsize = /*(8<<((EMULATED_CPU>=CPU_80486)?1:0)) =*/ 16;
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	for (set = 0; set < setsize; ++set) //process all sets!
@@ -645,7 +648,7 @@ void Paging_TestRegisterWritten(byte TR)
 			{
 				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
 				{
-					Paging_writeTLB((CPU[activeCPU].registers->TR7 >> 2) & 3, logicaladdress, W, U, D, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB((sbyte)((CPU[activeCPU].registers->TR7 >> 2) & 3), logicaladdress, W, U, D, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 				else //LRU algorithm?
 				{
