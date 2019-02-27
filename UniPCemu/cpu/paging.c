@@ -278,9 +278,9 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	return address; //Untranslated!
 }
 
-OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress) //Automatic set determination when using a set number <0!
+OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress, byte S) //Automatic set determination when using a set number <0!
 {
-	return ((logicaladdress&((0x3000)|((EMULATED_CPU>=CPU_80486)?0x4000:0)))>>12); //The set is determined by the lower 2(3 on i486) bits of the entry(according to the i486), the memory block!
+	return ((logicaladdress&0x3000)>>12)|(S<<2); //The set is determined by the lower 2(3 on i486) bits of the entry(according to the i486), the memory block!
 }
 
 OPTINLINE void PagingTLB_initlists()
@@ -480,7 +480,7 @@ void Paging_writeTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte
 	TLBEntry *curentry=NULL;
 	TLB_ptr *effectiveentry;
 	uint_32 TAG,TAGMASKED;
-	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
+	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress,S); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
 	byte entry;
 	TAGMASKED = (TAG&0xFFFFF011); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
@@ -512,7 +512,7 @@ byte Paging_readTLB(sbyte TLB_set, uint_32 logicaladdress, byte W, byte U, byte 
 {
 	INLINEREGISTER uint_32 TAG, TAGMask;
 	INLINEREGISTER TLB_ptr *curentry;
-	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress); //Auto set?
+	if (TLB_set < 0) TLB_set = Paging_TLBSet(logicaladdress,S); //Auto set?
 	TAG = Paging_generateTAG(logicaladdress,W,U,D,S); //Generate a TAG!
 	TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
 	if (likely(WDMask)) //Used?
@@ -537,7 +537,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 {
 	INLINEREGISTER byte TLB_set;
 	INLINEREGISTER TLB_ptr *curentry;
-	for (TLB_set = 0; TLB_set < 4; ++TLB_set) //Process all possible sets!
+	for (TLB_set = 0; TLB_set < 8; ++TLB_set) //Process all possible sets!
 	{
 		curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
 		for (;curentry;) //Check all entries that are allocated!
