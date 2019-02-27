@@ -24,8 +24,8 @@ typedef struct
 
 typedef struct
 {
-	TLBEntry TLB[32]; //All TLB entries to use!
-	TLB_ptr TLB_listnodes[32]; //All nodes for all TLB entries!
+	TLBEntry TLB[64]; //All TLB entries to use!
+	TLB_ptr TLB_listnodes[64]; //All nodes for all TLB entries!
 	TLB_ptr *TLB_freelist_head[16], *TLB_freelist_tail[16]; //Head and tail of the free list!
 	TLB_ptr *TLB_usedlist_head[16], *TLB_usedlist_tail[16]; //Head and tail of the used list!
 } CPU_TLB; //A TLB to use for the CPU!
