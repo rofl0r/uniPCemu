@@ -309,7 +309,6 @@ OPTINLINE void PagingTLB_clearlists()
 {
 	byte set; //What set?
 	byte index; //What index?
-	byte highindex;
 	TLB_ptr *us; //What is the current entry!
 	byte setsize;
 	byte indexsize;
