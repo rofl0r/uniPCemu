@@ -304,11 +304,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 
 	uint_32 limit; //The limit we use!
-	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR) == 0) //Not present?
-	{
-		THROWDESCNP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #NP!
-		return 0; //Error out!
-	}
 
 	switch (GENERALSEGMENTPTR_TYPE(LOADEDDESCRIPTOR)) //Check the type of descriptor we're switching to!
 	{
@@ -329,6 +324,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	default: //Invalid descriptor!
 	invaliddsttask:
 		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
+		return 0; //Error out!
+	}
+
+	if (GENERALSEGMENTPTR_P(LOADEDDESCRIPTOR) == 0) //Not present?
+	{
+		THROWDESCNP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #NP!
 		return 0; //Error out!
 	}
 
