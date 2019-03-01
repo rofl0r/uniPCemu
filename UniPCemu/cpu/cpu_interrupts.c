@@ -42,7 +42,7 @@ extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by ou
 extern byte advancedlog; //Advanced log setting
 
 extern byte MMU_logging; //Are we logging from the MMU?
-
+extern byte REPPending; //Pending REP reset?
 word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode, byte is_interrupt) //Used by soft (below) and exceptions/hardware!
 {
@@ -51,6 +51,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	word destCS;
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	CPU_interruptraised = 1; //We've raised an interrupt!
+	REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
 	{
 		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?
