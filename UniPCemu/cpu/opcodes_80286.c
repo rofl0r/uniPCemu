@@ -849,7 +849,7 @@ extern byte MMU_logging; //Are we logging from the MMU?
 
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 {
-	debugger_setcommand("ICEBP");
+	debugger_setcommand("INT1");
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger","#DB fault(-1)!");
