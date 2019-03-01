@@ -843,7 +843,7 @@ void CPU_TSSFault(word segmentval, byte is_external, byte tbl)
 	errorcode = (segmentval&0xFFF8)|(is_external&1)|((tbl&3)<<1);
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
-		dolog("debugger","#TSS fault(%08X)!",errorcode);
+		dolog("debugger","#TS fault(%08X)!",errorcode);
 	}
 	CPU_resetOP(); //Point to the faulting instruction!
 	

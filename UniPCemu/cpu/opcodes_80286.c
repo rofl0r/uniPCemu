@@ -843,11 +843,23 @@ void CPU286_OP0FB9() //#UD instruction
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
+extern byte advancedlog; //Advanced log setting
+
+extern byte MMU_logging; //Are we logging from the MMU?
+
 void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 {
 	debugger_setcommand("ICEBP");
-	if (EMULATED_CPU>=CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
-	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //ICEBP!
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#DB fault(-1)!");
+	}
+
+	if (CPU_faultraised(EXCEPTION_DEBUG))
+	{
+		if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
+		CPU_executionphase_startinterrupt(EXCEPTION_DEBUG, 0, -1); //ICEBP!
+	}
 }
 
 //FPU non-existant Coprocessor support!

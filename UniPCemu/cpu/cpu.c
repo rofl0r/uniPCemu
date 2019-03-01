@@ -2592,9 +2592,17 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 //8086+ exceptions (real mode)
 
 byte tempcycles;
+extern byte advancedlog; //Advanced log setting
+
+extern byte MMU_logging; //Are we logging from the MMU?
 
 void CPU_exDIV0() //Division by 0!
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#DE fault(-1)!");
+	}
+
 	if (CPU_faultraised(EXCEPTION_DIVIDEERROR)==0)
 	{
 		return; //Abort handling when needed!
@@ -2612,6 +2620,11 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 void CPU_exSingleStep() //Single step (after the opcode only)
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#DB fault(-1)!");
+	}
+
 	if (CPU_faultraised(EXCEPTION_DEBUG)==0)
 	{
 		return; //Abort handling when needed!
@@ -2627,6 +2640,11 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 
 void CPU_BoundException() //Bound exception!
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#BR fault(-1)!");
+	}
+
 	//Point to opcode origins!
 	if (CPU_faultraised(EXCEPTION_BOUNDSCHECK)==0)
 	{
@@ -2639,6 +2657,11 @@ void CPU_BoundException() //Bound exception!
 
 void THROWDESCNM() //#NM exception handler!
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#NM fault(-1)!");
+	}
+
 	//Point to opcode origins!
 	if (CPU_faultraised(EXCEPTION_COPROCESSORNOTAVAILABLE)==0) //Throw #NM exception!
 	{
@@ -2656,6 +2679,11 @@ void CPU_COOP_notavailable() //COProcessor not available!
 
 void THROWDESCMF() //#MF(Coprocessor Error) exception handler!
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#MF fault(-1)!");
+	}
+
 	//Point to opcode origins!
 	if (CPU_faultraised(EXCEPTION_COPROCESSORERROR)==0) //Throw #NM exception!
 	{

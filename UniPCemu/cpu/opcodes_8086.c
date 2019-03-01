@@ -3780,9 +3780,18 @@ void external8086RETF(word popbytes)
 	CPU8086_internal_RETF(popbytes,1); //Return immediate variant!
 }
 
+extern byte advancedlog; //Advanced log setting
+
+extern byte MMU_logging; //Are we logging from the MMU?
+
 OPTINLINE byte CPU8086_internal_INTO()
 {
 	if (FLAG_OF==0) goto finishINTO; //Finish?
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#OF fault(-1)!");
+	}
+
 	if (CPU_faultraised(EXCEPTION_OVERFLOW)==0) //Fault raised?
 	{
 		return 1; //Abort handling when needed!
@@ -4243,7 +4252,18 @@ void CPU8086_OPC6() {byte val = immb; modrm_debugger8(&params,MODRM_src0,MODRM_s
 void CPU8086_OPC7() { word val = immw; modrm_debugger16(&params, MODRM_src0, MODRM_src1); debugger_setcommand("MOV %s,%04x", modrm_param1, val); if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } if (CPU8086_instructionstepwritemodrmw(0, val, MODRM_src0, 0)) return; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { if (MODRM_EA(params)) { CPU[activeCPU].cycles_OP += 3; /* Imm->Mem */ } else CPU[activeCPU].cycles_OP += 2; /* Imm->Reg */ } }
 void CPU8086_OPCA() {INLINEREGISTER word popbytes = immw;/*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ modrm_generateInstructionTEXT("RETF",0,popbytes,PARAM_IMM16); /*RETF imm16 (Far return to calling proc and pop imm16 bytes)*/ CPU8086_internal_RETF(popbytes,1); }
 void CPU8086_OPCB() {modrm_generateInstructionTEXT("RETF",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/ CPU8086_internal_RETF(0,0); }
-void CPU8086_OPCC() {modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT)) { CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-2); } /*INT 3*/ }
+void CPU8086_OPCC() {
+	modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#BP fault(-1)!");
+	}
+
+	if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT))
+	{
+		CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-2);
+	} /*INT 3*/
+}
 void CPU8086_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger8086(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU_executionphase_startinterrupt(theimm,0,-2); /*INT imm8*/ }
 void CPU8086_OPCE() {modrm_generateInstructionTEXT("INTO",0,0,PARAM_NONE);/*INTO*/ CPU8086_internal_INTO();/*INTO*/ }
 void CPU8086_OPCF() {modrm_generateInstructionTEXT("IRET",0,0,PARAM_NONE);/*IRET*/ CPU8086_IRET();/*IRET : also restore interrupt flag!*/ }

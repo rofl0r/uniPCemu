@@ -55,6 +55,11 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	{
 		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?
 		{
+			if ((MMU_logging == 1) && advancedlog) //Are we logging?
+			{
+				dolog("debugger","#DF fault(-1)!");
+			}
+
 			if (CPU_faultraised(8)) //Able to fault?
 			{
 				CPU_executionphase_startinterrupt(8,2,0); //IVT limit problem or double fault redirect!
@@ -361,6 +366,11 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		NMIMasked = 1; //Mask future NMI!
 		if (doNMI && CPU[activeCPU].allowInterrupts) //I/O error on memory or bus?
 		{
+			if ((MMU_logging == 1) && advancedlog) //Are we logging?
+			{
+				dolog("debugger","#NMI fault(-1)!");
+			}
+
 			if (CPU_faultraised(EXCEPTION_NMI))
 			{
 				CPU_executionphase_startinterrupt(EXCEPTION_NMI,2,-1); //Return to opcode!

@@ -3,6 +3,10 @@
 #include "headers/cpu/easyregs.h" //Easy register addressing support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
 
+extern byte advancedlog; //Advanced log setting
+
+extern byte MMU_logging; //Are we logging from the MMU?
+
 OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte type, byte DR) //Check a single breakpoint. Return 0 for not triggered!
 {
 	INLINEREGISTER uint_32 breakpointinfo;
@@ -49,8 +53,16 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 				{
 					SETBITS(CPU[activeCPU].registers->DR6,DR,1,1); //Set this trap to fire!
 					SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
-					if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
-					CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
+					if ((MMU_logging == 1) && advancedlog) //Are we logging?
+					{
+						dolog("debugger","#DB fault(-1)!");
+					}
+
+					if (CPU_faultraised(EXCEPTION_DEBUG))
+					{
+						if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
+						CPU_executionphase_startinterrupt(EXCEPTION_DEBUG, 0, -1); //Call the interrupt, no error code!
+					}
 					return 1; //Triggered!
 				}
 				else //Data is a trap: report after executing!
@@ -70,13 +82,21 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 	{
 		if (CPU[activeCPU].debuggerFaultRaised && ((FLAG_RF==0)||(EMULATED_CPU<CPU_80386))) //Debugger fault raised?
 		{
-			for (DR=0;DR<4;++DR) //Check any exception that's occurred!
+			if ((MMU_logging == 1) && advancedlog) //Are we logging?
 			{
-				SETBITS(CPU[activeCPU].registers->DR6,DR,1,(GETBITS(CPU[activeCPU].debuggerFaultRaised,DR,1)|GETBITS(CPU[activeCPU].registers->DR6,DR,1))); //We're trapping this/these data breakpoint(s), set if so, otherwise, leave alone!
+				dolog("debugger","#DB fault(-1)!");
 			}
-			SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
-			if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
-			CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,0,-1); //Call the interrupt, no error code!
+
+			if (CPU_faultraised(EXCEPTION_DEBUG))
+			{
+				for (DR = 0; DR < 4; ++DR) //Check any exception that's occurred!
+				{
+					SETBITS(CPU[activeCPU].registers->DR6, DR, 1, (GETBITS(CPU[activeCPU].debuggerFaultRaised, DR, 1) | GETBITS(CPU[activeCPU].registers->DR6, DR, 1))); //We're trapping this/these data breakpoint(s), set if so, otherwise, leave alone!
+				}
+				SETBITS(CPU[activeCPU].registers->DR6, 14, 1, 1); //Set bit 14, the new task's trap indicator!
+				if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
+				CPU_executionphase_startinterrupt(EXCEPTION_DEBUG, 0, -1); //Call the interrupt, no error code!
+			}
 		}
 		else //Successful completion of an instruction?
 		{
@@ -103,9 +123,17 @@ void protectedModeDebugger_taskswitching() //Task switched?
 	//Clear the local debugger breakpoints(bits 0,2,4,6 of DR7)
 	CPU[activeCPU].registers->DR7 &= ~0x55; //Clear bits 0,2,4,6 on any task switch!
 }
+extern byte advancedlog; //Advanced log setting
+
+extern byte MMU_logging; //Are we logging from the MMU?
 
 byte protectedModeDebugger_taskswitched()
 {
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger","#DB fault(-1)!");
+	}
+
 	if (CPU_faultraised(EXCEPTION_DEBUG)) //We're raising a fault!
 	{
 		SETBITS(CPU[activeCPU].registers->DR6,15,1,1); //Set bit 15, the new task's T-bit: we're trapping this instruction when this context is to be run!
