@@ -12,8 +12,8 @@
 //Define to use traditional CHS translation!
 //#define TRADITIONALCHSTRANSLATION
 
-//Timeout for a reset! We're up to 3us!
-#define ATA_RESET_TIMEOUT 2000.0
+//Timeout for a reset! We're up to 300ms!
+#define ATA_RESET_TIMEOUT 300000000.0
 //Timing for drive select
 #define ATA_DRIVESELECT_TIMEOUT 50000.0
 //Timing to execute an ATAPI command
@@ -25,7 +25,7 @@
 //Timing until ATAPI becomes ready for a new command.
 #define ATAPI_FINISHREADYTIMING 20000.0
 
-#define ATA_FINISHREADYTIMING 2000.0
+#define ATA_FINISHREADYTIMING 670.0
 
 //Time between inserting/removing a disk, must be at least the sum of a transfer, something human usable!
 #define ATAPI_DISKCHANGETIMING 100000.0
