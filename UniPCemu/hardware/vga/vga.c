@@ -295,7 +295,8 @@ void setupVGA() //Sets the VGA up for PC usage (CPU access etc.)!
 	VGAmemIO_reset(); //Initialise/reset memory mapped I/O!
 	VGA_initIO(); //Initialise I/O suppport!
 	memset(&PCI_VGA, 0, sizeof(PCI_VGA)); //Initialise to 0!
-	register_PCI(&PCI_VGA,2,0,sizeof(PCI_VGA),&VGA_ConfigurationSpaceChanged); //Register the PCI data area!
+	//PNP VGA isn't supported for the current hardware(based on http://www.lanpol.pl/sprzet/-5.PCI.vendors%20and%20Devices.txt)!
+	//register_PCI(&PCI_VGA,2,0,sizeof(PCI_VGA),&VGA_ConfigurationSpaceChanged); //Register the PCI data area!
 	resetPCISpaceVGA(); //Make sure our space is initialized to detect!
 }
 
