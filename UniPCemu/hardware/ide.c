@@ -25,7 +25,10 @@
 //Timing until ATAPI becomes ready for a new command.
 #define ATAPI_FINISHREADYTIMING 20000.0
 
-#define ATA_FINISHREADYTIMING 670.0
+//Base clock for the IDE devices!
+#define IDE_BASETIMING ATAPI_PENDINGEXECUTETRANSFER_DATATIMING
+
+#define ATA_FINISHREADYTIMING(mul) (IDE_BASETIMING*mul)
 
 //Time between inserting/removing a disk, must be at least the sum of a transfer, something human usable!
 #define ATAPI_DISKCHANGETIMING 100000.0
@@ -1546,7 +1549,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		{
 			if (ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(6.0)); //Give our requesting IRQ!
 			}
 		}
         return result; //Give the result!
@@ -1611,7 +1614,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 			{
 				ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
 			}
-			ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING); //Raise an IRQ: we're needing attention!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING(1.0)); //Raise an IRQ: we're needing attention!
 		}
 		return result; //Give the result byte!
 	default: //Unknown?
@@ -1642,7 +1645,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 		{
 			if (ATA_writesector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Sector written and to write another sector?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(6.0)); //Give our requesting IRQ!
 			}
 		}
 		break;
@@ -2621,7 +2624,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			giveSignature(channel,1); //Give our signature!
 		}
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //IRQ!
 		break;
 	case 0xDB: //Acnowledge media change?
 #ifdef ATA_LOG
@@ -2669,7 +2672,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've completed seeking!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
-			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Raise the IRQ!
 		}
 		else
 		{
@@ -2713,7 +2716,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No error!
 				ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
 				ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),(command & 0xF)); //Select the following head!
-				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Raise the IRQ!
 			}
 			else goto invalidcommand; //Error out!
 		}
@@ -2745,7 +2748,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
 		if (ATA_readsector(channel,command)) //OK?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Give our requesting IRQ!
 		}
 		break;
 	case 0x40: //Read verify sector(s) (w/retry)?
@@ -2773,7 +2776,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		if (!ATA_STATUSREGISTER_ERRORR(channel,ATA_activeDrive(channel))) //Finished OK?
 		{
-			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Raise the OK IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Raise the OK IRQ!
 		}
 		break;
 	case 0xC5: //Write multiple?
@@ -2795,7 +2798,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Give our requesting IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Give our requesting IRQ!
 
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
 		{
@@ -2855,7 +2858,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //We're requesting data to be read!
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING); //Execute an IRQ from us!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0)); //Execute an IRQ from us!
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
@@ -3010,7 +3013,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		//Reset of the status register is 0!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING);
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(0.0));
 		break;
 	}
 }
