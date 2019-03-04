@@ -177,6 +177,8 @@ void CPU486_BSWAP16(word *reg)
 	buf = *reg; //Read to start!
 	buf = (((buf>>8)&0xFF)|((buf<<8)&0xFF00)); //Swap bytes to finish!
 	*reg = buf; //Save the result!
+	//Undocumented behaviour on 80486+: clears the register(essentially zero-extend to 32-bits, then BSWAP val32, then truncated to 16-bits to write the result)!
+	*reg = 0; //Apply the undocumented behaviour!
 }
 
 void CPU486_BSWAP32(uint_32 *reg)
@@ -187,8 +189,6 @@ void CPU486_BSWAP32(uint_32 *reg)
 	buf = ((buf>>16)|(buf<<16)); //Swap words!
 	buf = (((buf>>8)&0xFF00FF)|((buf<<8)&0xFF00FF00)); //Swap bytes to finish!
 	*reg = buf; //Save the result!
-	//Undocumented behaviour on 80486+: clears the register(essentially zero-extend to 32-bits, then BSWAP val32, then truncated to 16-bits to write the result)!
-	*reg = 0; //Apply the undocumented behaviour!
 }
 
 void CPU486_OP0FC8_16() {debugger_setcommand("BSWAP AX"); CPU486_BSWAP16(&REG_AX);} //BSWAP AX
