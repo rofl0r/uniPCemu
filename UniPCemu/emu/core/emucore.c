@@ -1386,18 +1386,21 @@ void startEMUTimers()
 
 extern Controller8042_t Controller8042;
 extern byte SystemControlPortA;
-void EMU_onCPUReset()
+void EMU_onCPUReset(byte isInit)
 {
-	SystemControlPortA &= ~2; //Clear A20 here!
-	if ((is_XT==0) || (EMULATED_CPU>=CPU_80286) || (is_Compaq==1)) //AT-class CPU?
+	if (isInit) //Initializing?
 	{
-		Controller8042.outputport |= 2; //Set A20 here!
+		SystemControlPortA &= ~2; //Clear A20 here!
+		if ((is_XT == 0) || (EMULATED_CPU >= CPU_80286) || (is_Compaq == 1)) //AT-class CPU?
+		{
+			Controller8042.outputport |= 2; //Set A20 here!
+		}
+		else
+		{
+			Controller8042.outputport &= ~2; //Clear A20 here!
+		}
+		Controller8042.outputport |= 1; //Prevent us from deadlocking(calling this function over and over infinitely within itself)!
+		refresh_outputport(); //Refresh from 8042!
+		checkPPIA20(); //Refresh from Fast A20!
 	}
-	else
-	{
-		Controller8042.outputport &= ~2; //Clear A20 here!
-	}
-	Controller8042.outputport |= 1; //Prevent us from deadlocking(calling this function over and over infinitely within itself)!
-	refresh_outputport(); //Refresh from 8042!
-	checkPPIA20(); //Refresh from Fast A20!
 }

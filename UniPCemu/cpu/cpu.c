@@ -1028,7 +1028,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
 	#endif
-	EMU_onCPUReset(); //Make sure all hardware, like CPU A20 is updated for the reset!
+	EMU_onCPUReset(isInit); //Make sure all hardware, like CPU A20 is updated for the reset!
 	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
 	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
 	CPU[activeCPU].is_reset = 1; //We're reset!
