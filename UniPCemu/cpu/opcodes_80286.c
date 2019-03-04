@@ -9,6 +9,7 @@
 #include "headers/cpu/cpu_execution.h" //Execution support!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/biu.h" //PIQ flushing support!
+#include "headers/support/log.h" //Logging support!
 
 //Reading of the 16-bit entries within descriptors!
 #define DESC_16BITS(x) SDL_SwapLE16(x)

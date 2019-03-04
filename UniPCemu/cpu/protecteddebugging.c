@@ -2,6 +2,7 @@
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/cpu/easyregs.h" //Easy register addressing support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
+#include "headers/support/log.h" //Logging support!
 
 extern byte advancedlog; //Advanced log setting
 

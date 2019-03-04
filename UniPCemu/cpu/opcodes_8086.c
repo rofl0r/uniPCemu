@@ -13,6 +13,7 @@
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!
 #include "headers/cpu/cpu_OP80386.h" //For 32-bit ADD for (I)MUL!
+#include "headers/support/log.h" //Logging support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

@@ -22,6 +22,7 @@
 #include "headers/cpu/cpu_execution.h" //Execution support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/flags.h" //Flag support for IMUL!
+#include "headers/support/log.h" //Logging support!
 
 //Waitstate delay on 80286.
 #define CPU286_WAITSTATE_DELAY 1
