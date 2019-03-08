@@ -2470,10 +2470,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
 		ATA[channel].Drive[drive].datablock = 8; //Size of a block of information to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //Number of blocks of information to transfer!
-		ATA[channel].Drive[drive].data[0] = (disk_size&0xFF);
-		ATA[channel].Drive[drive].data[1] = ((disk_size>>8) & 0xFF);
-		ATA[channel].Drive[drive].data[2] = ((disk_size>>16) & 0xFF);
-		ATA[channel].Drive[drive].data[3] = ((disk_size>>24) & 0xFF);
+		ATA[channel].Drive[drive].data[0] = ((disk_size>>24)&0xFF);
+		ATA[channel].Drive[drive].data[1] = ((disk_size>>16) & 0xFF);
+		ATA[channel].Drive[drive].data[2] = ((disk_size>>8) & 0xFF);
+		ATA[channel].Drive[drive].data[3] = (disk_size & 0xFF);
 		ATA[channel].Drive[drive].data[4] = 0;
 		ATA[channel].Drive[drive].data[5] = 8;
 		ATA[channel].Drive[drive].data[6] = 0;
