@@ -1392,6 +1392,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	{
 		if (!--ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //Finished?
 		{
+			finishedreadingATAPI: //No logical blocks shall be transferred?
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
@@ -1400,6 +1401,9 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			return 0; //We're finished!
 		}
 	}
+
+	if (ATA[channel].Drive[ATA_activeDrive(channel)].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
+
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
 	{
 #ifdef ATA_LOG
@@ -2162,7 +2166,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		else //Normal processing!
 		{
-			if ((LBA>disk_size) || ((LBA + ATA[channel].Drive[drive].datasize - 1)>disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST;additionalsensecode = ASC_LOGICAL_BLOCK_OOR;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+			if ((LBA>disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize,1) - 1)>disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST;additionalsensecode = ASC_LOGICAL_BLOCK_OOR;goto ATAPI_invalidcommand; } //Error out when invalid sector!
 
 			ATA[channel].Drive[drive].datapos = 0; //Start at the beginning properly!
 			ATA[channel].Drive[drive].datablock = 0x800; //Default block size!
@@ -2216,7 +2220,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datapos = 0; //Start at the beginning properly!
 			ATA[channel].Drive[drive].datablock = 0x800; //Default block size!
 
-			if ((LBA>disk_size) || ((LBA + ATA[channel].Drive[drive].datasize - 1)>disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST;additionalsensecode = ASC_LOGICAL_BLOCK_OOR;goto ATAPI_invalidcommand; } //Error out when invalid sector!
+			if ((LBA>disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize,1) - 1)>disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST;additionalsensecode = ASC_LOGICAL_BLOCK_OOR;goto ATAPI_invalidcommand; } //Error out when invalid sector!
 
 			switch (transfer_req&0xF8) //What type to transfer?
 			{
@@ -2446,7 +2450,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[6]<<3) | (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<2) | (ATA[channel].Drive[drive].ATAPI_PACKET[8] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]); //How many sectors to transfer
 			}
 
-			if ((LBA>disk_size) || ((LBA+ATA[channel].Drive[drive].datasize-1)>disk_size)){abortreason=5;additionalsensecode=0x21;goto ATAPI_invalidcommand;} //Error out when invalid sector!
+			if ((LBA>disk_size) || ((LBA+MIN(ATA[channel].Drive[drive].datasize,1)-1)>disk_size)){abortreason = SENSE_ILLEGAL_REQUEST;additionalsensecode = ASC_LOGICAL_BLOCK_OOR;goto ATAPI_invalidcommand;} //Error out when invalid sector!
 		
 			ATA[channel].Drive[drive].datapos = 0; //Start of data!
 			ATA[channel].Drive[drive].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
@@ -2758,7 +2762,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		ATA_readLBACHS(channel);
 		nextverification: //Verify the next sector!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<disk_size) //OK?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
 		{
 			ATA_increasesector(channel); //Next sector!
 			if (--ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //Still left?
