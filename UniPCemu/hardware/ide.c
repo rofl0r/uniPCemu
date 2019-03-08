@@ -2475,8 +2475,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].data[2] = ((disk_size>>8) & 0xFF);
 		ATA[channel].Drive[drive].data[3] = (disk_size & 0xFF);
 		ATA[channel].Drive[drive].data[4] = 0;
-		ATA[channel].Drive[drive].data[5] = 8;
-		ATA[channel].Drive[drive].data[6] = 0;
+		ATA[channel].Drive[drive].data[5] = 0;
+		ATA[channel].Drive[drive].data[6] = 8;
 		ATA[channel].Drive[drive].data[7] = 0; //We're 4096 byte sectors!
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
