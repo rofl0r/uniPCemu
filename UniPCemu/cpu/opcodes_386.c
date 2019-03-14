@@ -2646,18 +2646,19 @@ void CPU80386_OP9D_32() {
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU80386_POPdw(2,&tempflags)) return;
 	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
+	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode?
 	{
 		if (FLAG_PL==3) //IOPL 3?
 		{
-			tempflags = ((tempflags&~0x1B3000)|(REG_EFLAGS&0x1B3000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+			tempflags = ((tempflags&~0x1B0000)|(REG_EFLAGS&0x1B0000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
 		} //Otherwise, fault is raised!
 	}
 	else //Protected/real mode?
 	{
 		if (getCPL())
 		{
-			tempflags = ((tempflags&~0x1A3000)|(REG_EFLAGS&0x23000)); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */			
+			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */			
 		}
 		else
 		{
