@@ -536,6 +536,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	//Fill the found entry with our (new) data!
 	curentry->data = result; //The result for the lookup!
 	curentry->TAG = TAG; //The TAG to find it by!
+	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
 //RWDirtyMask: mask for ignoring set bits in the tag, use them otherwise!
@@ -592,6 +593,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 void Paging_clearTLB()
 {
 	PagingTLB_clearlists(); //Initialize the TLB lists to become empty!
+	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
 void Paging_initTLB()

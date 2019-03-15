@@ -23,6 +23,7 @@ typedef struct
 	//PIQ support!
 	FIFOBUFFER *PIQ; //Our Prefetch Input Queue!
 	uint_32 PIQ_Address; //EIP of the current PIQ data!
+	byte PIQ_checked; //How many bytes of data have been checked and don't need to be rechecked?
 
 	uint_32 currentrequest; //Current request!
 	uint_64 currentpayload[2]; //Current payload!
@@ -42,6 +43,7 @@ void CPU_tickBIU(); //Tick the BIU!
 
 //IPS clocking support!
 void BIU_instructionStart(); //Handle all when instructions are starting!
+void BIU_recheckmemory(); //Recheck any memory that's preloaded and/or validated for the BIU!
 
 byte BIU_Ready(); //Are we ready to continue execution?
 

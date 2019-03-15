@@ -87,6 +87,7 @@ void CPU_initBIU()
 	BIU_is_486 = (EMULATED_CPU >= CPU_80486); //486+ handling?
 	detectBIUactiveCycleHandler(); //Detect the active cycle handler to use!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
+	BIU[activeCPU].PIQ_checked = 0; //Reset to not checked!
 	CPU_flushPIQ(-1); //Init us to start!
 }
 
@@ -99,12 +100,18 @@ void CPU_doneBIU()
 	memset(&BIU[activeCPU],0,sizeof(BIU)); //Full init!
 }
 
+void BIU_recheckmemory() //Recheck any memory that's preloaded and/or validated for the BIU!
+{
+	BIU[activeCPU].PIQ_checked = 0; //Recheck anything that's fetching from now on!
+}
+
 void CPU_flushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
 	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
+	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 	BIU_instructionStart(); //Prepare for a new instruction!
 }
 
@@ -354,13 +361,20 @@ extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to 
 byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
+	INLINEREGISTER byte checkflags;
 	uint_32 realaddress, linearaddress;
 	byte value;
 	if (((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
 	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.base+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
-	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,realaddress,0x10|3,getCPL(),0,0))) return; //Abort on fault!
+	checkflags = 0x10 | 3; //Default: not ignoring any checks!
+	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
+	{
+		--BIU[activeCPU].PIQ_checked; //Tick checked data to not check!
+		checkflags |= 0x20 | 0x40 | 0x80; //Ignoring these checks for now!
+	}
+	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, checkflags, getCPL(), 0, 0))) return; //Abort on fault!
 	linearaddress = checkMMUaccess_linearaddr; //Logical address!
 	if (unlikely(is_paging())) //Are we paging?
 	{
@@ -385,11 +399,45 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 
 void BIU_dosboxTick()
 {
+	uint_32 BIUsize;
+	uint_32 realaddress;
+	uint_64 maxaddress, endpos;
 	if (BIU[activeCPU].PIQ) //Prefetching?
 	{
+		recheckmemory: //Recheck the memory that we're fetching!
+		//Precheck anything that can be checked!
+		BIUsize = fifobuffer_freesize(BIU[activeCPU].PIQ); //How much might be filled?
+		realaddress = BIU[activeCPU].PIQ_Address; //Where to start checking!
+		endpos = (((uint_64)realaddress + (uint_64)BIUsize) - 1ULL); //Our last byte fetched!
+		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), 0xFFFFFFFF); //Prevent 32-bit overflow from occurring!
+		if (unlikely(endpos > maxaddress)) //More left than we can handle(never less than 1 past us)?
+		{
+			BIUsize -= endpos - maxaddress; //Only check until the maximum address!
+		}
+
+		BIUsize = MAX(BIUsize, 1); //Must be at least 1, just for safety!
+
+		//First, check the lower bound! If this fails, we can't continue(we're immediately failing)!
+		MMU_resetaddr(); //Reset the address error line for trying some I/O!
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
+
+		//Next, check the higher bound! While it fails, decrease until we don't anymore!
+		realaddress += (BIUsize-1); //Take the last byte we might be fetching!
+		retry_lowerbyte: //When the below check fails, try for the next address!
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
+		{
+			--realaddress; //Go back one byte!
+			--BIUsize; //One less byte is available to fetch!
+			MMU_resetaddr(); //Reset the address error line for trying some I/O!
+			goto retry_lowerbyte; //Try the next address!
+		}
+
+		BIU[activeCPU].PIQ_checked = BIUsize; //Check off any that we have verified!
+
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
 		for (;fifobuffer_freesize(BIU[activeCPU].PIQ) && (MMU_invaddr()==0);)
 		{
+			if ((BIU[activeCPU].PIQ_checked == 0) && BIUsize) goto recheckmemory; //Recheck anything that's needed, only when not starting off as zeroed!
 			PIQ_block = 0; //We're never blocking(only 1 access)!
 			CPU_fillPIQ(); //Keep the FIFO fully filled!
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
@@ -400,11 +448,13 @@ void BIU_dosboxTick()
 	}
 }
 
+byte BIU_DosboxTickPending = 0; //We're pending to reload the entire buffer with whatever's available?
+
 void BIU_instructionStart() //Handle all when instructions are starting!
 {
 	if (unlikely(useIPSclock)) //Using IPS clock?
 	{
-		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+		BIU_DosboxTickPending = 1; //We're pending to reload!
 	}
 }
 
@@ -418,6 +468,11 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 	if (unlikely(CPU[activeCPU].resetPending)) return 1; //Disable all instruction fetching when we're resetting!
 	if (likely(BIU[activeCPU].PIQ)) //PIQ present?
 	{
+		if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+		{
+			BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+			BIU_DosboxTickPending = 0; //Not pending anymore!
+		}
 		PIQ_retry: //Retry after refilling PIQ!
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		//Execution can start on any cycle!
@@ -429,6 +484,11 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		if (unlikely(MMU.invaddr)) //Was an invalid address signaled? We might have to update the prefetch unit to prefetch all that's needed, since it's validly mapped now!
 		{
 			BIU_instructionStart();
+		}
+		if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+		{
+			BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+			BIU_DosboxTickPending = 0; //Not pending anymore!
 		}
 		if (EMULATED_CPU >= CPU_80286)
 		{
@@ -448,8 +508,8 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		}
 		//Not enough data in the PIQ? Refill for the next data!
 		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
-		CPU_fillPIQ(); //Fill instruction cache with next data!
-		goto PIQ_retry; //Read again!
+		//CPU_fillPIQ(); //Fill instruction cache with next data!
+		//goto PIQ_retry; //Read again!
 	}
 	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 	{
@@ -486,6 +546,11 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 			{
 				BIU_instructionStart();
 			}
+			if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+			{
+				BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+				BIU_DosboxTickPending = 0; //Not pending anymore!
+			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-1)) //Enough free to read the entire part?
 			{
 				if (CPU_readOP(&temp,0)) return 1; //Read OPcode!
@@ -496,6 +561,11 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 			return 1; //Abort: not loaded in the PIQ yet!
 		}
 		//No PIQ installed? Use legacy method!
+	}
+	if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+	{
+		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+		BIU_DosboxTickPending = 0; //Not pending anymore!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
 	{
@@ -529,6 +599,11 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 			{
 				BIU_instructionStart();
 			}
+			if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+			{
+				BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+				BIU_DosboxTickPending = 0; //Not pending anymore!
+			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-3)) //Enough free to read the entire part?
 			{
 				if (CPU_readOPw(&resultw1,0)) return 1; //Read OPcode!
@@ -539,6 +614,11 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 			return 1; //Abort: not loaded in the PIQ yet!
 		}
 		//No PIQ installed? Use legacy method!
+	}
+	if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+	{
+		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
+		BIU_DosboxTickPending = 0; //Not pending anymore!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
 	{
