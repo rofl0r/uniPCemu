@@ -134,10 +134,17 @@ void reset_modrm()
 	last_modrm = 0; //Last wasn't a modr/m anymore by default!
 	params.EA_cycles = 0; //Default: no cycles used!
 	modrm_addoffset = 0; //Add this offset to ModR/M reads: default to none!
+	params.notdecoded = 1; //Default: no ModR/M has been decoded!
+}
+
+void modrm_notdecoded(MODRM_PARAMS *params)
+{
+	dolog("modrm", "Not properly loaded and used with opcode: is32:%i 0F: %i OP:%02X R/M:%02X", CPU_Operand_size[activeCPU], CPU[activeCPU].is0Fopcode, CPU[activeCPU].lastopcode, params->modrm); //Log the invalid access!
 }
 
 byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -164,6 +171,7 @@ byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)
 }
 void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -199,6 +207,7 @@ void modrm_write8(MODRM_PARAMS *params, int whichregister, byte value)
 
 byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -238,6 +247,7 @@ extern uint_32 destEIP; //For control transfers!
 
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	word *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -273,6 +283,7 @@ void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJ
 
 byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	word *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -310,6 +321,7 @@ byte modrm_write16_BIU(MODRM_PARAMS *params, int whichregister, word value, byte
 
 byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -340,6 +352,7 @@ byte modrm_check16(MODRM_PARAMS *params, int whichregister, byte isread)
 
 byte modrm_check32(MODRM_PARAMS *params, int whichregister, byte isread)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -397,6 +410,7 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
@@ -465,6 +479,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 
 byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
@@ -544,6 +559,7 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 
 byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -578,6 +594,7 @@ byte modrm_read8(MODRM_PARAMS *params, int whichregister)
 
 byte modrm_read8_BIU(MODRM_PARAMS *params, int whichregister, byte *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	byte *resultsrc; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -613,6 +630,7 @@ byte modrm_read8_BIU(MODRM_PARAMS *params, int whichregister, byte *result) //Re
 
 word modrm_read16(MODRM_PARAMS *params, int whichregister)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	word *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -649,6 +667,7 @@ word modrm_read16(MODRM_PARAMS *params, int whichregister)
 
 byte modrm_read16_BIU(MODRM_PARAMS *params, int whichregister, word *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	word *resultsrc; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -686,6 +705,7 @@ byte modrm_read16_BIU(MODRM_PARAMS *params, int whichregister, word *result) //R
 
 uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	uint_32 *result; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -729,6 +749,7 @@ uint_32 modrm_read32(MODRM_PARAMS *params, int whichregister)
 
 byte modrm_read32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 *result) //Returns: 0: Busy, 1=Finished request(memory to be read back from BIU), 2=Register written, no BIU to read a response from.
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	uint_32 *resultsrc; //The result holder if needed!
 	uint_32 offset;
 	switch (params->info[whichregister].isreg) //What type?
@@ -2132,6 +2153,7 @@ void modrm_decode8(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2150,6 +2172,7 @@ byte *modrm_addr8(MODRM_PARAMS *params, int whichregister, int forreading)
 
 word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2168,21 +2191,25 @@ word *modrm_addr16(MODRM_PARAMS *params, int whichregister, int forreading)
 
 void modrm_text8(MODRM_PARAMS *params, int whichregister, char *result)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	safestrcpy(result,256,params->info[whichregister].text); //Use the text representation!
 }
 
 void modrm_text16(MODRM_PARAMS *params, int whichregister, char *result)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	safestrcpy(result,256,params->info[whichregister].text); //Use the text representation!
 }
 
 void modrm_text32(MODRM_PARAMS *params, int whichregister, char *result)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	safestrcpy(result,256, params->info[whichregister].text); //Use the text representation!
 }
 
 word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -2210,6 +2237,7 @@ word modrm_lea16(MODRM_PARAMS *params, int whichregister) //For LEA instructions
 
 uint_32 modrm_lea32(MODRM_PARAMS *params, int whichregister) //For LEA instructions!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -2236,6 +2264,7 @@ uint_32 modrm_lea32(MODRM_PARAMS *params, int whichregister) //For LEA instructi
 
 void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result) //For LEA instructions!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2252,6 +2281,7 @@ void modrm_lea16_text(MODRM_PARAMS *params, int whichregister, char *result) //F
 
 void modrm_lea32_text(MODRM_PARAMS *params, int whichregister, char *result) //For LEA instructions!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2269,6 +2299,7 @@ void modrm_lea32_text(MODRM_PARAMS *params, int whichregister, char *result) //F
 //modrm_offset16: same as lea16, but allow registers too!
 word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for JMP, CALL etc.!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -2291,6 +2322,7 @@ word modrm_offset16(MODRM_PARAMS *params, int whichregister) //Gives address for
 
 uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister) //Gives address for JMP, CALL etc.!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	INLINEREGISTER uint_32 result;
 	switch (params->info[whichregister].isreg) //What type?
 	{
@@ -2314,6 +2346,7 @@ uint_32 modrm_offset32(MODRM_PARAMS *params, int whichregister) //Gives address 
 //Used for LDS, LES, LSS, LEA
 word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA related instructions, returning the register!
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2354,6 +2387,7 @@ word *modrm_addr_reg16(MODRM_PARAMS *params, int whichregister) //For LEA relate
 
 uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 {
+	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
 	switch (params->info[whichregister].isreg) //What type?
 	{
 	case 1: //Register?
@@ -2417,6 +2451,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	{
 		//Reset and initialize all our parameters!
 		memset(param,0,sizeof(*param)); //Initialise the structure for filling it!
+		param->notdecoded = 1; //Init: not decoded fully and ready for use!
 		param->reg_is_segmentregister = 0; //REG2 is NORMAL!
 
 		param->specialflags = specialflags; //Is this a /r modr/m?
@@ -2598,5 +2633,6 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		}
 	}
 	thereg = MODRM_REG(params.modrm); //The register for multifunction grp opcodes!
+	params.notdecoded = 0; //The ModR/M data is ready to be used!
 	return 0; //We're finished fetching!
 }

@@ -165,6 +165,7 @@ typedef struct
 
 typedef struct
 {
+	byte notdecoded; //Are we not loaded with ModR/M information and it hasn't been decoded properly?
 	byte modrm; //MODR/M!
 	SIBType SIB; //SIB Byte if applied.
 	dwordsplitterb displacement; //byte/word/dword!
