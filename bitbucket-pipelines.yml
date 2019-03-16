@@ -34,7 +34,7 @@ pipelines:
         trigger: manual
         caches:
           - sdl2 #cache is defined below in the definitions section
-          - unipcemu
+          - unipcemu #cache is defined below in the definitions section
         script:
           # Build us now!
           - git submodule update --init
@@ -49,5 +49,5 @@ pipelines:
           - make linux build SDL2 x64
 definitions:
   caches:
-    sdl2: SDL2
-    unipcemu: ../projects_build/UniPCemu/linux/___/
+    sdl2: SDL2/build
+    unipcemu: ../projects_build/UniPCemu/linux
