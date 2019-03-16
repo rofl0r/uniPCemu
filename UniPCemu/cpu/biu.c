@@ -409,7 +409,12 @@ void BIU_dosboxTick()
 		BIUsize = fifobuffer_freesize(BIU[activeCPU].PIQ); //How much might be filled?
 		realaddress = BIU[activeCPU].PIQ_Address; //Where to start checking!
 		endpos = (((uint_64)realaddress + (uint_64)BIUsize) - 1ULL); //Our last byte fetched!
-		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), 0xFFFFFFFF); //Prevent 32-bit overflow from occurring!
+		maxaddress = 0xFFFFFFFF; //Default to a top-down segment's maximum size being the limit!
+		if (likely(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.topdown == 0)) //Not a top-down segment?
+		{
+			maxaddress = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.limit; //The limit of the CS segment is the limit instead!
+		}
+		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), maxaddress); //Prevent 32-bit overflow and segmentation limit from occurring!
 		if (unlikely(endpos > maxaddress)) //More left than we can handle(never less than 1 past us)?
 		{
 			BIUsize -= endpos - maxaddress; //Only check until the maximum address!
@@ -426,8 +431,22 @@ void BIU_dosboxTick()
 		retry_lowerbyte: //When the below check fails, try for the next address!
 		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
 		{
-			--realaddress; //Go back one byte!
-			--BIUsize; //One less byte is available to fetch!
+			//The only thing stopping us here is the page boundary, so round down to a lower one, if possible!
+			endpos = MMU_realaddr(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0,0); //Linear address of the failing byte!
+			maxaddress = 0; //Our flag for determining if we can just take the previous page by calculating it normally!
+			endpos -= (((endpos&0xFFFFF000ULL) - 1)&0xFFFFFFFFULL); //How much to substract for getting the valid previous page!
+			endpos &= 0xFFFFFFFFULL; //Make sure we're proper 32-bit!
+			maxaddress = (endpos<=BIUsize); //Valid to use(and not underflowing the remainder we're able to fetch)?
+			if (maxaddress) //Can we just take the previous page?
+			{
+				realaddress -= endpos; //Round down to the previous page!
+				BIUsize -= endpos; //Some bytes are not available to fetch!
+			}
+			else //Rounding down to the previous page not possible? Just step back!
+			{
+				--realaddress; //Go back one byte!
+				--BIUsize; //One less byte is available to fetch!
+			}
 			MMU_resetaddr(); //Reset the address error line for trying some I/O!
 			goto retry_lowerbyte; //Try the next address!
 		}
