@@ -150,9 +150,15 @@ byte CPU_faultraised(byte type)
 
 void CPU_onResettingFault()
 {
+	if (CPU[activeCPU].have_oldCPL) //Returning the CPL to it's old value?
+	{
+		CPU[activeCPU].CPL = CPU[activeCPU].oldCPL; //Restore CPL to it's original value!
+	}
 	if (CPU[activeCPU].have_oldSS) //Returning the SS to it's old value?
 	{
 		REG_SS = CPU[activeCPU].oldSS; //Restore SS to it's original value!
+		//Restore backing descriptor!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_SS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
 	}
 	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
 	{
@@ -173,6 +179,11 @@ void CPU_onResettingFault()
 		REG_ES = CPU[activeCPU].oldSegmentES; //Restore ESP to it's original value!
 		REG_FS = CPU[activeCPU].oldSegmentFS; //Restore ESP to it's original value!
 		REG_GS = CPU[activeCPU].oldSegmentGS; //Restore ESP to it's original value!
+		//Restore backing descriptor!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_DS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_DS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_ES], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_ES], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_FS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_GS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_GS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
 	}
 	if (CPU[activeCPU].have_oldTR) //Returning the TR to it's old value?
 	{
@@ -184,20 +195,30 @@ void CPU_onResettingFault()
 
 void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 {
-		CPU[activeCPU].oldSS = REG_SS; //Restore SS to it's original value!
-		CPU[activeCPU].have_oldSS = 1; //Restorable!
-		CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldESP = 1; //Restorable!
-		CPU[activeCPU].oldEBP = REG_EBP; //Restore EBP to it's original value!
-		CPU[activeCPU].have_oldEBP = 1; //Restorable!
-		CPU[activeCPU].oldEFLAGS = REG_EFLAGS; //Restore EFLAGS to it's original value!
-		CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
-		updateCPUmode(); //Restore the CPU mode!
-		CPU[activeCPU].oldSegmentDS = REG_DS; //Restore ESP to it's original value!
-		CPU[activeCPU].oldSegmentES = REG_ES; //Restore ESP to it's original value!
-		CPU[activeCPU].oldSegmentFS = REG_FS; //Restore ESP to it's original value!
-		CPU[activeCPU].oldSegmentGS = REG_GS; //Restore ESP to it's original value!
-		CPU[activeCPU].have_oldSegments = 1; //Restorable!
+	//SS descriptor is linked to the CPL in some cases, so backup that as well!
+	CPU[activeCPU].oldCPL = CPU[activeCPU].CPL; //Restore CPL to it's original value!
+	CPU[activeCPU].have_oldCPL = 1; //Restorable!
+	//Backup the descriptor itself!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_SS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
+	CPU[activeCPU].oldSS = REG_SS; //Restore SS to it's original value!
+	CPU[activeCPU].have_oldSS = 1; //Restorable!
+	CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
+	CPU[activeCPU].have_oldESP = 1; //Restorable!
+	CPU[activeCPU].oldEBP = REG_EBP; //Restore EBP to it's original value!
+	CPU[activeCPU].have_oldEBP = 1; //Restorable!
+	CPU[activeCPU].oldEFLAGS = REG_EFLAGS; //Restore EFLAGS to it's original value!
+	CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
+	updateCPUmode(); //Restore the CPU mode!
+	//Backup the descriptors themselves!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_DS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_DS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_ES], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_ES], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_FS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_GS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_GS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
+	CPU[activeCPU].oldSegmentDS = REG_DS; //Restore DS to it's original value!
+	CPU[activeCPU].oldSegmentES = REG_ES; //Restore ES to it's original value!
+	CPU[activeCPU].oldSegmentFS = REG_FS; //Restore FS to it's original value!
+	CPU[activeCPU].oldSegmentGS = REG_GS; //Restore GS to it's original value!
+	CPU[activeCPU].have_oldSegments = 1; //Restorable!
 }
 
 //More info: http://wiki.osdev.org/Paging

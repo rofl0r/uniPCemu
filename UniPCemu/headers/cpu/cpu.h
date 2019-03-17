@@ -880,6 +880,7 @@ typedef struct
 
 	//Everything containing and buffering segment registers!
 	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
+	SEGMENT_DESCRIPTOR SEG_DESCRIPTORbackup[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
 	word *SEGMENT_REGISTERS[8]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
 	byte CPL; //The current privilege level, registered on descriptor load!
 
@@ -936,6 +937,8 @@ typedef struct
 	byte permanentreset; //Are we in a permanent reset lock?
 
 	//80286 timing support for lookup tables!
+	byte have_oldCPL; //oldCPL is set to use?
+	byte oldCPL; //CPL backup
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!
 	byte have_oldEBP; //oldEBP is set to use?
