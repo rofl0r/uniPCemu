@@ -361,21 +361,22 @@ extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to 
 byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
-	INLINEREGISTER byte checkflags;
 	uint_32 realaddress, linearaddress;
 	byte value;
 	if (((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
-	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch!
-	checkMMUaccess_linearaddr = (CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.base+realaddress); //Default 8086-compatible address to use, otherwise, it's overwritten by checkMMUaccess with the proper linear address!
-	checkflags = 0x10 | 3; //Default: not ignoring any checks!
+	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
+	checkMMUaccess_linearaddr = MMU_realaddr(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0,0); //Linear adress!
 	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
 	{
 		--BIU[activeCPU].PIQ_checked; //Tick checked data to not check!
-		checkflags |= 0x20 | 0x40 | 0x80; //Ignoring these checks for now!
+		linearaddress = checkMMUaccess_linearaddr; //Linear address isn't retranslated!
 	}
-	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, checkflags, getCPL(), 0, 0))) return; //Abort on fault!
-	linearaddress = checkMMUaccess_linearaddr; //Logical address!
+	else //Full check and translation to a linear address?
+	{
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault!
+		linearaddress = checkMMUaccess_linearaddr; //Linear address!
+	}
 	if (unlikely(is_paging())) //Are we paging?
 	{
 		checkMMUaccess_linearaddr = mappage(checkMMUaccess_linearaddr,0,getCPL()); //Map it using the paging mechanism to a physical address!		
