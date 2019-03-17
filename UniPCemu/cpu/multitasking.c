@@ -475,7 +475,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 
 	//Backup the entire TR descriptor!
-	memcpy(&CPU[activeCPU].oldTRdesc, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].oldTRdesc)); //Backup TR segment descriptor!
+	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_TR], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup TR segment descriptor!
 	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
 	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
 

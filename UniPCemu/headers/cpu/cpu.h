@@ -951,7 +951,6 @@ typedef struct
 	uint_32 oldEFLAGS;
 	byte have_oldTR; //TR backup to restore on faults!
 	word oldTR;
-	SEGMENT_DESCRIPTOR oldTRdesc;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?

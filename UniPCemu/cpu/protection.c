@@ -188,7 +188,7 @@ void CPU_onResettingFault()
 	if (CPU[activeCPU].have_oldTR) //Returning the TR to it's old value?
 	{
 		CPU[activeCPU].registers->TR = CPU[activeCPU].oldTR;
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],&CPU[activeCPU].oldTRdesc,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore segment descriptor!
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore segment descriptor!
 		CPU[activeCPU].have_oldTR = 0; //We've been reversed manually!
 	}
 }
@@ -219,6 +219,7 @@ void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 	CPU[activeCPU].oldSegmentFS = REG_FS; //Restore FS to it's original value!
 	CPU[activeCPU].oldSegmentGS = REG_GS; //Restore GS to it's original value!
 	CPU[activeCPU].have_oldSegments = 1; //Restorable!
+	//TR is only to be restored during a section of the task switching process, so we don't save it right here(as it's unmodified, except during task switches)!
 }
 
 //More info: http://wiki.osdev.org/Paging
