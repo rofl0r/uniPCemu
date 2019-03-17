@@ -757,7 +757,7 @@ OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase
 
 float convertphase_real(word phase)
 {
-	return ((double)unsigned2signed16(((phase&0x200)<<6)+(double)((phase&0x1FF)*((1.0/(double)0x1FF)*(double)SHRT_MAX))))*((1.0/(double)(SHRT_MAX+(((phase&0x200)>>9))))); //Give the phase to execute, normalized!
+	return ((double)unsigned2signed16(((phase&0x200)<<6)+((double)(phase&0x1FF)*((1.0/(double)0x1FF)*(double)SHRT_MAX))))*((1.0/(double)(SHRT_MAX+(((phase&0x200)>>9))))); //Give the phase to execute, normalized!
 }
 
 float convertphase(word phase)
