@@ -107,6 +107,7 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 			MMU.maxsize = (MMU.size&0xFFF00000); //Round memory down to 1MB chunks!
 			if (MMU.maxsize==0) MMU.maxsize = 0x100000; //1MB at least!
 			MMU.maxsize -= (0x100000-0xA0000); //Substract reserved memory to be inaddressable!
+			MMU_updatemaxsize(); //updated the maximum size!
 		}
 		register_PORTOUT(&Inboard_writeIO);
 		register_PORTIN(&Inboard_readIO);

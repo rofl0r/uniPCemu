@@ -196,6 +196,65 @@ byte memoryprotect_FE0000 = 1; //Memory-protect block at FE0000?
 byte BIOSROM_LowMemoryBecomesHighMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
+byte MMU_memorymapinfo[0x10000]; //What memory hole is this? Low nibble=Block number of the memory! High nibble=Hole number
+byte MMU_memorymaphole[0x2000]; //Memory hole identification. Bit set(for that 64KB memory aperture) means memory hole is present!
+
+//Memory hole start/end locations!
+#define LOW_MEMORYHOLE_START 0xA0000
+#define LOW_MEMORYHOLE_END 0x100000
+#define MID_MEMORYHOLE_START 0xF00000
+#define MID_MEMORYHOLE_END 0x1000000
+#define HIGH_MEMORYHOLE_START 0xC0000000
+#define HIGH_MEMORYHOLE_END 0x100000000ULL
+
+void MMU_precalcMemoryHoles()
+{
+	byte memloc, memoryhole;
+	uint_32 address;
+	uint_32 precalcpos;
+	memset(&MMU_memorymaphole, 0, sizeof(MMU_memorymaphole)); //Init!
+	for (address = 0, precalcpos = 0; precalcpos < 0x10000; ++precalcpos, address+=0x10000) //Map all memory blocks possible with 32-bit addresses!
+	{
+		memloc = 0; //Default: first memory block: low memory!
+		memoryhole = 0; //Default: memory unavailable!
+		if (address >= LOW_MEMORYHOLE_START) //Start of first hole?
+		{
+			if (unlikely(address < LOW_MEMORYHOLE_END)) //First hole?
+			{
+				memoryhole = 1; //First memory hole!
+			}
+			else //Mid memory?
+			{
+				memloc = 1; //Second memory block: mid memory!
+				if (address >= MID_MEMORYHOLE_START) //Start of second hole?
+				{
+					if (unlikely(address < MID_MEMORYHOLE_END)) //Second hole?
+					{
+						memoryhole = 2; //Second memory hole!
+					}
+					else //High memory?
+					{
+						memloc = 2; //Third memory block!
+						if (unlikely((address >= HIGH_MEMORYHOLE_START) && ((uint_64)address < (uint_64)HIGH_MEMORYHOLE_END))) //Start of third hole?
+						{
+							memoryhole = 3; //Third memory hole!
+						}
+						else
+						{
+							memloc = 3; //Fourth memory block!
+						}
+					}
+				}
+			}
+		}
+		if (memoryhole) //Is a memory hole?
+		{
+			MMU_memorymaphole[precalcpos >> 3] |= (1 << (precalcpos & 7)); //Set us up as a memory hole!
+		}
+		MMU_memorymapinfo[precalcpos] = ((memloc) | (memoryhole << 4)); //Save the block and hole number together!
+	}
+}
+
 void resetMMU()
 {
 	byte memory_allowresize = 1; //Do we allow resizing?
@@ -250,6 +309,8 @@ resetmmu:
 	memoryprotect_FE0000 = 0; //Don't enable memory protection on FE0000+ by default!
 	//Reset the register!
 	MMU.maxsize = -1; //Default to not using any maximum size: full memory addressable!
+	MMU_updatemaxsize(); //updated the maximum size!
+	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 	memory_directwb(0x80C00000,0xFF); //Init to all bits set!
 }
 
@@ -294,51 +355,31 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 	*/
 }
 
-//Memory hole start/end locations!
-#define LOW_MEMORYHOLE_START 0xA0000
-#define LOW_MEMORYHOLE_END 0x100000
-#define MID_MEMORYHOLE_START 0xF00000
-#define MID_MEMORYHOLE_END 0x1000000
-#define HIGH_MEMORYHOLE_START 0xC0000000
-#define HIGH_MEMORYHOLE_END 0x100000000ULL
+struct
+{
+	uint_32 maskedaddress; //Masked address to match!
+	byte mapped;
+	byte memLocHole; //Prefetched data!
+} memorymapinfo[2]; //One for reads, one for writes!
 
 OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte iswrite)
 {
-	uint_32 originaladdress = *realaddress; //Original address!
-	INLINEREGISTER byte memloc; //What memory block?
-	INLINEREGISTER byte memoryhole;
-	memloc = 0; //Default: first memory block: low memory!
-	memoryhole = 0; //Default: memory unavailable!
-	if (*realaddress>=LOW_MEMORYHOLE_START) //Start of first hole?
+	INLINEREGISTER uint_32 originaladdress = *realaddress, maskedaddress; //Original address!
+	byte memloc; //What memory block?
+	byte memoryhole;
+
+	maskedaddress = (originaladdress >> 0x10); //Take the block number we're trying to access!
+	if (unlikely(!(memorymapinfo[iswrite].mapped && memorymapinfo[iswrite].maskedaddress == maskedaddress))) //Not matched already? Load the cache with it's information!
 	{
-		if (unlikely(*realaddress<LOW_MEMORYHOLE_END)) //First hole?
-		{
-			memoryhole = 1; //First memory hole!
-		}
-		else //Mid memory?
-		{
-			memloc = 1; //Second memory block: mid memory!
-			if (*realaddress>=MID_MEMORYHOLE_START) //Start of second hole?
-			{
-				if (unlikely(*realaddress<MID_MEMORYHOLE_END)) //Second hole?
-				{
-					memoryhole = 2; //Second memory hole!
-				}
-				else //High memory?
-				{
-					memloc = 2; //Third memory block!
-					if (unlikely((*realaddress>=HIGH_MEMORYHOLE_START) && ((uint_64)*realaddress<(uint_64)HIGH_MEMORYHOLE_END))) //Start of third hole?
-					{
-						memoryhole = 3; //Third memory hole!
-					}
-					else
-					{
-						memloc = 3; //Fourth memory block!
-					}
-				}
-			}
-		}
+		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
+		memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
+		memorymapinfo[iswrite].mapped = 1; //We're mapped!
 	}
+
+	//Now that our cache is loaded with relevant data, start processing it!
+	memloc = memoryhole = memorymapinfo[iswrite].memLocHole; //Load it to split it into our two results!
+	memloc &= 0xF; //The location of said memory!
+	memoryhole >>= 4; //The map number that it's in, when it's not a hole!
 
 	if (unlikely(memoryhole)) //Memory hole?
 	{
@@ -388,6 +429,11 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 
 extern byte specialdebugger; //Enable special debugger input?
 
+void MMU_updatemaxsize() //updated the maximum size!
+{
+	MMU.effectivemaxsize = ((MMU.maxsize >= 0) ? MIN(MMU.maxsize, MMU.size) : MMU.size); //Precalculate the effective maximum size!
+}
+
 //Direct memory access (for the entire emulator)
 OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
@@ -432,7 +478,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
-	if (unlikely((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3)))) //Overflow/invalid location?
+	if (unlikely((realaddress>=MMU.size) || ((realaddress>=MMU.effectivemaxsize) && (nonexistant!=3)) || (nonexistant==1))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if (likely((is_XT==0) || (EMULATED_CPU>=CPU_80286))) //To give NOT for detecting memory on AT only?
@@ -485,6 +531,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		}
 		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
+		MMU_updatemaxsize(); //updated the maximum size!
 		return; //Count as a memory mapped register!
 	}
 	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
@@ -493,7 +540,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (unlikely((realaddress>=MMU.size) || (((realaddress>=((MMU.maxsize>=0)?MIN(MMU.maxsize,MMU.size):MMU.size))) && (nonexistant!=3)) || ((nonexistant) && (nonexistant!=3)))) //Overflow/invalid location?
+	if (unlikely((realaddress>=MMU.size) || ((realaddress>=MMU.effectivemaxsize) && (nonexistant!=3)) || (nonexistant==1))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
