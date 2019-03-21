@@ -1388,6 +1388,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 							{
 								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights = 0; //Invalid!
 							}
+							CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]); //Update the precalcs for said access rights!
 							continue; //Next register!
 						}
 					}
