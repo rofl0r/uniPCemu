@@ -473,11 +473,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		dolog("debugger", "Switching active TSS to segment selector %04X", destinationtask);
 	}
-
-	//Backup the entire TR descriptor!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_TR], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup TR segment descriptor!
-	CPU[activeCPU].oldTR = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR];
-	CPU[activeCPU].have_oldTR = 1; //Old task information loaded!
+	//Backup of the TR register&descriptor isn't needed, as this is automatically done when loading it!
 
 	if (segmentWritten(CPU_SEGMENT_TR, destinationtask, (isJMPorCALL & 0x400)|((isJMPorCALL == 3)?0x800:0))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
 
@@ -584,6 +580,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Loading incoming TSS %04X state into the registers.", CPU[activeCPU].registers->TR);
 	}
 
+	if ((CPU[activeCPU].have_oldSegReg&(1 << CPU_SEGMENT_LDTR)) == 0) //Backup not loaded yet?
+	{
+		memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_LDTR], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+		CPU[activeCPU].oldSegReg[CPU_SEGMENT_LDTR] = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR]; //Backup the register too!
+		CPU[activeCPU].have_oldSegReg |= (1 << CPU_SEGMENT_LDTR); //Loaded!
+	}
+
 	//Now we're ready to load all registers!
 	if (TSSSize) //We're a 32-bit TSS?
 	{
@@ -668,8 +671,8 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	//At this point, the basic task switch is complete. All that remains is loading all segment descriptors as required!
 
-	CPU[activeCPU].have_oldTR = 0; //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
-	CPU_saveFaultData(); //Set the new fault as a return point when faulting!
+	CPU[activeCPU].have_oldSegReg &= ~(1<<CPU_SEGMENT_TR); //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
 	CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 	//No last: we're entering a task that has this information, so no return point is given!

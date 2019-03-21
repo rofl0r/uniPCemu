@@ -649,6 +649,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		REG_IP = 0xFFFF;
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		lock(LOCK_CPU);
+		CPU_commitState(); //Commit the current state!
 		CPU[activeCPU].halt &= ~0x12; //Make sure the CPU is just halted!
 		unlock(LOCK_CPU); //We're done with the CPU!
 	}

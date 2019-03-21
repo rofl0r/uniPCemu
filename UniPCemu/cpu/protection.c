@@ -150,15 +150,10 @@ byte CPU_faultraised(byte type)
 
 void CPU_onResettingFault()
 {
+	byte segRegLeft,segRegIndex,segRegShift;
 	if (CPU[activeCPU].have_oldCPL) //Returning the CPL to it's old value?
 	{
 		CPU[activeCPU].CPL = CPU[activeCPU].oldCPL; //Restore CPL to it's original value!
-	}
-	if (CPU[activeCPU].have_oldSS) //Returning the SS to it's old value?
-	{
-		REG_SS = CPU[activeCPU].oldSS; //Restore SS to it's original value!
-		//Restore backing descriptor!
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_SS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
 	}
 	if (CPU[activeCPU].have_oldESP) //Returning the (E)SP to it's old value?
 	{
@@ -173,35 +168,36 @@ void CPU_onResettingFault()
 		REG_EFLAGS = CPU[activeCPU].oldEFLAGS; //Restore EFLAGS to it's original value!
 		updateCPUmode(); //Restore the CPU mode!
 	}
-	if (CPU[activeCPU].have_oldSegments) //Returning the (E)SP to it's old value?
+
+	//Restore any segment register caches that are changed!
+	segRegIndex = 0; //Init!
+	segRegLeft = CPU[activeCPU].have_oldSegReg; //What segment registers are loaded to restore!
+	segRegShift = 1; //Current bit to test!
+	if (unlikely(segRegLeft)) //Anything to restore?
 	{
-		REG_DS = CPU[activeCPU].oldSegmentDS; //Restore ESP to it's original value!
-		REG_ES = CPU[activeCPU].oldSegmentES; //Restore ESP to it's original value!
-		REG_FS = CPU[activeCPU].oldSegmentFS; //Restore ESP to it's original value!
-		REG_GS = CPU[activeCPU].oldSegmentGS; //Restore ESP to it's original value!
-		//Restore backing descriptor!
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_DS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_DS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_ES], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_ES], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_FS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_GS], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_GS], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore!
-	}
-	if (CPU[activeCPU].have_oldTR) //Returning the TR to it's old value?
-	{
-		CPU[activeCPU].registers->TR = CPU[activeCPU].oldTR;
-		memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR], &CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_TR], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore segment descriptor!
-		CPU[activeCPU].have_oldTR = 0; //We've been reversed manually!
+		for (;(segRegLeft);) //Any segment register and cache left to restore?
+		{
+			if (segRegLeft&segRegShift) //Something to restore at the current segment register?
+			{
+				*CPU[activeCPU].SEGMENT_REGISTERS[segRegIndex] = CPU[activeCPU].oldSegReg[segRegIndex]; //Restore the segment register selector/value to it's original value!
+				//Restore backing descriptor!
+				memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segRegIndex], &CPU[activeCPU].SEG_DESCRIPTORbackup[segRegIndex], sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Restore the descriptor!
+				segRegLeft &= ~segRegShift; //Not set anymore!
+			}
+			segRegShift <<= 1; //Next segment register!
+			++segRegIndex; //Next index to process!
+		}
+		CPU[activeCPU].have_oldSegReg = 0; //All segment registers and their caches have been restored!
 	}
 }
 
-void CPU_saveFaultData() //Prepare for a fault by saving all required data!
+void CPU_commitState() //Prepare for a fault by saving all required data!
 {
 	//SS descriptor is linked to the CPL in some cases, so backup that as well!
+	CPU[activeCPU].oldSS = REG_SS; //Save the most frequently used SS state!
 	CPU[activeCPU].oldCPL = CPU[activeCPU].CPL; //Restore CPL to it's original value!
 	CPU[activeCPU].have_oldCPL = 1; //Restorable!
 	//Backup the descriptor itself!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_SS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
-	CPU[activeCPU].oldSS = REG_SS; //Restore SS to it's original value!
-	CPU[activeCPU].have_oldSS = 1; //Restorable!
 	CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
 	CPU[activeCPU].have_oldESP = 1; //Restorable!
 	CPU[activeCPU].oldEBP = REG_EBP; //Restore EBP to it's original value!
@@ -210,16 +206,8 @@ void CPU_saveFaultData() //Prepare for a fault by saving all required data!
 	CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
 	updateCPUmode(); //Restore the CPU mode!
 	//Backup the descriptors themselves!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_DS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_DS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_ES], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_ES], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_FS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
-	memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_GS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_GS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Backup!
-	CPU[activeCPU].oldSegmentDS = REG_DS; //Restore DS to it's original value!
-	CPU[activeCPU].oldSegmentES = REG_ES; //Restore ES to it's original value!
-	CPU[activeCPU].oldSegmentFS = REG_FS; //Restore FS to it's original value!
-	CPU[activeCPU].oldSegmentGS = REG_GS; //Restore GS to it's original value!
-	CPU[activeCPU].have_oldSegments = 1; //Restorable!
 	//TR is only to be restored during a section of the task switching process, so we don't save it right here(as it's unmodified, except during task switches)!
+	CPU[activeCPU].have_oldSegReg = 0; //Commit the segment registers!
 }
 
 //More info: http://wiki.osdev.org/Paging
@@ -1344,6 +1332,12 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				}
 			}
 			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
+			if ((CPU[activeCPU].have_oldSegReg&(1 << segment)) == 0) //Backup not loaded yet?
+			{
+				memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[segment], &CPU[activeCPU].SEG_DESCRIPTOR[segment], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+				CPU[activeCPU].oldSegReg[segment] = *CPU[activeCPU].SEGMENT_REGISTERS[segment]; //Backup the register too!
+				CPU[activeCPU].have_oldSegReg |= (1 << segment); //Loaded!
+			}
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[segment],descriptor,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[segment])); //Load the segment descriptor into the cache!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{
@@ -1378,6 +1372,12 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
 						{
 						invalidRETFsegment:
+							if ((CPU[activeCPU].have_oldSegReg&(1 << RETF_whatsegment)) == 0) //Backup not loaded yet?
+							{
+								memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[RETF_whatsegment], &CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+								CPU[activeCPU].oldSegReg[RETF_whatsegment] = *CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]; //Backup the register too!
+								CPU[activeCPU].have_oldSegReg |= (1 << RETF_whatsegment); //Loaded!
+							}
 							//Selector and Access rights are zeroed!
 							*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
 							if ((isJMPorCALL&0x1FF) == 3) //IRET?
@@ -1441,6 +1441,14 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return 1;
 			}
 		}
+
+		if ((CPU[activeCPU].have_oldSegReg&(1 << segment)) == 0) //Backup not loaded yet?
+		{
+			memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[segment], &CPU[activeCPU].SEG_DESCRIPTOR[segment], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+			CPU[activeCPU].oldSegReg[segment] = *CPU[activeCPU].SEGMENT_REGISTERS[segment]; //Backup the register too!
+			CPU[activeCPU].have_oldSegReg |= (1 << segment); //Loaded!
+		}
+
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 		{
 			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
@@ -2027,6 +2035,12 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				CPU_PUSH16(&CPU[activeCPU].registers->IP,0); //Push IP!
 			}
 
+			if ((CPU[activeCPU].have_oldSegReg&(1 << CPU_SEGMENT_CS)) == 0) //Backup not loaded yet?
+			{
+				memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[CPU_SEGMENT_CS], &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+				CPU[activeCPU].oldSegReg[CPU_SEGMENT_CS] = *CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]; //Backup the register too!
+				CPU[activeCPU].have_oldSegReg |= (1 << CPU_SEGMENT_CS); //Loaded!
+			}
 			memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], &newdescriptor, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])); //Load the segment descriptor into the cache!
 			//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
 			{

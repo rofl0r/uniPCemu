@@ -882,6 +882,8 @@ typedef struct
 	SEGMENT_DESCRIPTOR SEG_DESCRIPTOR[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
 	SEGMENT_DESCRIPTOR SEG_DESCRIPTORbackup[8]; //Segment descriptor for all segment registers, currently cached, loaded when it's used!
 	word *SEGMENT_REGISTERS[8]; //Segment registers pointers container (CS, SS, DS, ES, FS, GS, TR; in that order)!
+	byte have_oldSegReg; //old segment register and cache is set to use(bit index=segment index)?
+	word oldSegReg[8];
 	byte CPL; //The current privilege level, registered on descriptor load!
 
 	uint_32 cycles; //Total cycles number (adjusted after operation)
@@ -939,18 +941,13 @@ typedef struct
 	//80286 timing support for lookup tables!
 	byte have_oldCPL; //oldCPL is set to use?
 	byte oldCPL; //CPL backup
+	word oldSS; //SS backup for fault handling!
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!
 	byte have_oldEBP; //oldEBP is set to use?
 	uint_32 oldEBP; //Back-up of EBP during stack faults to use!
-	byte have_oldSS; //oldSS is set to use?
-	word oldSS;
-	byte have_oldSegments;
-	word oldSegmentFS, oldSegmentGS, oldSegmentDS, oldSegmentES; //Back-up of the segment registers to restore during faults!
 	byte have_oldEFLAGS;
 	uint_32 oldEFLAGS;
-	byte have_oldTR; //TR backup to restore on faults!
-	word oldTR;
 	byte debuggerFaultRaised; //Debugger faults raised after execution flags?
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?

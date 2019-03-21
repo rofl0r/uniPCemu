@@ -897,6 +897,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR] = &CPU[activeCPU].registers->LDTR; //Link!
 
 	memset(&CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
+	CPU[activeCPU].have_oldSegReg = 0; //No backups for any segment registers are loaded!
 	 //Now, load the default descriptors!
 
 	//IDTR
@@ -2108,10 +2109,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			BIU_readResultb(&BIUresponsedummy); //Discard the result: we're logging but continuing on simply!
 		}
 
+		CPU[activeCPU].have_oldCPL = 0; //Default: no CPL to return to during exceptions!
 		CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
 		CPU[activeCPU].have_oldEBP = 0; //Default: no EBP to return to during exceptions!
-		CPU[activeCPU].have_oldSS = 0; //Default: no SS to return to during exceptions!
-		CPU[activeCPU].have_oldSegments = 0; //Default: no Segments to return during exceptions!
 		CPU[activeCPU].have_oldEFLAGS = 0; //Default: no EFLAGS to return during exceptions!
 
 		//Initialize stuff needed for local CPU timing!
@@ -2136,7 +2136,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//Save the starting point when debugging!
 		CPU_debugger_CS = CPU_exec_CS;
 		CPU_debugger_EIP = CPU_exec_EIP;
-		CPU_saveFaultData(); //Save any fault data!
+		CPU_commitState(); //Save any fault data!
 
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
@@ -2635,7 +2635,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	//Points to next opcode!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
-	CPU_saveFaultData(); //Save the current state for any future faults to return to!
+	CPU_commitState(); //Save the current state for any future faults to return to!
 	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,2,-1); //Execute INT1 normally using current CS:(E)IP!
 	CPU[activeCPU].trapped = 0; //We're not trapped anymore: we're handling the single-step!
 }
