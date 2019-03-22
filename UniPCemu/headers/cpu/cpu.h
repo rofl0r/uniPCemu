@@ -941,6 +941,7 @@ typedef struct
 	//80286 timing support for lookup tables!
 	byte have_oldCPL; //oldCPL is set to use?
 	byte oldCPL; //CPL backup
+	byte oldCPUmode; //For debugging purposes!
 	word oldSS; //SS backup for fault handling!
 	byte have_oldESP; //oldESP is set to use?
 	uint_32 oldESP; //Back-up of ESP during stack faults to use!

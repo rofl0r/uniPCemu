@@ -196,6 +196,7 @@ void CPU_commitState() //Prepare for a fault by saving all required data!
 	//SS descriptor is linked to the CPL in some cases, so backup that as well!
 	CPU[activeCPU].oldSS = REG_SS; //Save the most frequently used SS state!
 	CPU[activeCPU].oldCPL = CPU[activeCPU].CPL; //Restore CPL to it's original value!
+	CPU[activeCPU].oldCPUmode = getcpumode(); //Save the CPU mode!
 	CPU[activeCPU].have_oldCPL = 1; //Restorable!
 	//Backup the descriptor itself!
 	CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
@@ -1093,6 +1094,8 @@ byte is_stackswitching=0; //Are we busy stack switching?
 
 byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
 
+word segmentWrittenVal, isJMPorCALLval;
+
 byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment register has been written to!
 {
 	byte RETF_segmentregister=0,RETF_whatsegment; //A segment register we're checking during a RETF instruction!
@@ -1100,6 +1103,8 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	byte isDifferentCPL;
 	byte isnonconformingcodeordata;
 	uint_32 tempesp;
+	segmentWrittenVal = value; //What value is written!
+	isJMPorCALLval = isJMPorCALL; //What type of write are we?
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
 		isDifferentCPL = 0; //Default: same CPL!
