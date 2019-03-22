@@ -1071,7 +1071,6 @@ uint_32 modrm_SIB_reg(MODRM_PARAMS *params, byte reg, byte mod, uint_32 disp32, 
 		}
 		else //Base?
 		{
-			if (mod==0) { textnr[0] = '\0'; disprel = effectivedisp = 0; } //No displacement on mod 0!
 			if (unlikely(cpudebugger)) safestrcpy(result,resultsize,"EBX");
 			return REG_EBX;
 		}
