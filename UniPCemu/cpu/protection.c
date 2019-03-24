@@ -793,7 +793,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			return NULL; //We're an invalid TSS to execute!
 		}
 
-		*segmentval = (GATEDESCRIPTOR.desc.selector & ~3) | (*segmentval & 3); //We're loading this segment now, with requesting privilege!
+		*segmentval = GATEDESCRIPTOR.desc.selector; //We're loading this segment now, with requesting privilege!
 
 		if (((*segmentval&~3)==0)) //NULL GDT segment when not allowed?
 		{
