@@ -3153,7 +3153,7 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Sector count write: %02X %u.%u", value,channel, ATA_activeDrive(channel));
 #endif
-		if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //ATAPI device? Unsupported! Otherwise, supported and process!
+		//if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //ATAPI device? Unsupported! Otherwise, supported and process!
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = value; //Set sector count!
 		}
