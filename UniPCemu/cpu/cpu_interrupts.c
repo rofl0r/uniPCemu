@@ -160,6 +160,9 @@ void CPU_IRET()
 	byte oldCPL = getCPL(); //Original CPL
 	word tempCS, tempSS;
 	uint_32 tempEFLAGS;
+	//Special effect: re-enable NMI! This isn't dependent on the instruction succeeding or not(nor documented, just when it's executed)!
+	NMIMasked = 0; //We're allowing NMI again!
+
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		//uint_32 backupESP = REG_ESP;
@@ -183,127 +186,125 @@ void CPU_IRET()
 			}
 		}
 		#endif
+		return; //Finished!
 	}
-	else //Use protected mode IRET?
+
+	//NT flag is set? If so, perform a task switch back to the task we're nested in(undocumented)! http://nicolascormier.com/documentation/hardware/microprocessors/intel/i80386/Chap15.html 
+	if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
 	{
-		if (FLAG_V8) //Virtual 8086 mode?
+		SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
+		word desttask;
+		sbyte loadresult;
+		desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
+		if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
 		{
-			//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
-			if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
-			{
-				if (CPU_Operand_size[activeCPU]) //32-bit operand size?
-				{
-					if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
-					destEIP = CPU_POP32();
-					tempCS = (CPU_POP32()&0xFFFF);
-					tempEFLAGS = CPU_POP32();
-					if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
-					//VM&IOPL aren't changed by the POP!
-					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
-					REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
-					updateCPUmode();
-				}
-				else //16-bit operand size?
-				{
-					if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-					destEIP = (uint_32)CPU_POP16(0);
-					tempCS = CPU_POP16(0);
-					tempEFLAGS = CPU_POP16(0);
-					if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
-					//VM&IOPL aren't changed by the POP!
-					tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
-					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
-				}
-			}
-			else
-			{
-				THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
-			}
-			return; //Abort!
+			if (loadresult == -1) return; //Abort on page fault!
+			CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return; //Error, by specified reason!
 		}
-
-		//Normal protected mode?
-		if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
-		{
-			SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
-			word desttask;
-			sbyte loadresult;
-			desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
-			if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
-			{
-				if (loadresult == -1) return; //Abort on page fault!
-				CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-				return; //Error, by specified reason!
-			}
-			CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
-		}
-		else //Normal IRET?
-		{
-			uint_32 tempesp;
-			if (CPU_Operand_size[activeCPU]) //32-bit?
-			{
-				if (checkStackAccess(3,0,1)) return; //Top 12 bytes!
-			}
-			else //16-bit?
-			{
-				if (checkStackAccess(3,0,0)) return; //Top 6 bytes!
-			}
-			
-			if (CPU_Operand_size[activeCPU]) //32-bit mode?
-			{
-				destEIP = CPU_POP32(); //POP EIP!
-			}
-			else
-			{
-				destEIP = (uint_32)CPU_POP16(0); //POP IP!
-			}
-			tempCS = CPU_POP16(CPU_Operand_size[activeCPU]); //CS to be loaded!
-			if (CPU_Operand_size[activeCPU]) //32-bit mode?
-			{
-				tempEFLAGS = CPU_POP32(); //Pop eflags!
-			}
-			else
-			{
-				tempEFLAGS = (uint_32)CPU_POP16(0); //Pop flags!
-			}
-
-			if ((tempEFLAGS&0x20000) && (!oldCPL)) //Returning to virtual 8086 mode?
-			{
-				if (checkStackAccess(6,0,1)) return; //First level IRET data?
-				tempesp = CPU_POP32(); //POP ESP!
-				tempSS = (CPU_POP32()&0xFFFF); //POP SS!
-				for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
-				{
-					V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register! Throw away high word!
-				}
-				REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
-				updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
-				//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
-				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
-				if (segmentWritten(CPU_SEGMENT_SS,tempSS,0)) return; //Load SS!
-				REG_ESP = tempesp; //Set the new ESP of the V86 task!
-				if (segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0)) return; //Load ES!
-				if (segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0)) return; //Load DS!
-				if (segmentWritten(CPU_SEGMENT_FS, V86SegRegs[2], 0)) return; //Load FS!
-				if (segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0)) return; //Load GS!
-			}
-			else //Normal protected mode return?
-			{
-				if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
-				//Check unchanging bits!
-				tempEFLAGS = (tempEFLAGS&~F_V8)|(REG_EFLAGS&F_V8); //When returning to a V86-mode task from a non-PL0 handler, the VM flag isn't updated, so it stays in protected mode!
-				if (getCPL()) tempEFLAGS = (tempEFLAGS&~F_IOPL)|(REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
-				if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IF being changed!
-				//Flags are OK now!
-				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
-				updateCPUmode();
-				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
-				CPU_flushPIQ(-1); //We're jumping to another address!
-			}
-		}
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
+		return; //Finished!
 	}
-	//Special effect: re-enable NMI!
-	NMIMasked = 0; //We're allowing NMI again!
+
+	//Use protected mode IRET?
+	if (FLAG_V8) //Virtual 8086 mode?
+	{
+		//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
+		if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
+		{
+			if (CPU_Operand_size[activeCPU]) //32-bit operand size?
+			{
+				if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
+				destEIP = CPU_POP32();
+				tempCS = (CPU_POP32()&0xFFFF);
+				tempEFLAGS = CPU_POP32();
+				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
+				//VM&IOPL aren't changed by the POP!
+				tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
+				updateCPUmode();
+			}
+			else //16-bit operand size?
+			{
+				if (checkStackAccess(3,0,0)) return; //3 Word POPs!
+				destEIP = (uint_32)CPU_POP16(0);
+				tempCS = CPU_POP16(0);
+				tempEFLAGS = CPU_POP16(0);
+				if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
+				//VM&IOPL aren't changed by the POP!
+				tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+				REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
+			}
+		}
+		else
+		{
+			THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
+		}
+		return; //Finished!
+	}
+
+	//Normal protected mode IRET?
+	uint_32 tempesp;
+	if (CPU_Operand_size[activeCPU]) //32-bit?
+	{
+		if (checkStackAccess(3,0,1)) return; //Top 12 bytes!
+	}
+	else //16-bit?
+	{
+		if (checkStackAccess(3,0,0)) return; //Top 6 bytes!
+	}
+			
+	if (CPU_Operand_size[activeCPU]) //32-bit mode?
+	{
+		destEIP = CPU_POP32(); //POP EIP!
+	}
+	else
+	{
+		destEIP = (uint_32)CPU_POP16(0); //POP IP!
+	}
+	tempCS = CPU_POP16(CPU_Operand_size[activeCPU]); //CS to be loaded!
+	if (CPU_Operand_size[activeCPU]) //32-bit mode?
+	{
+		tempEFLAGS = CPU_POP32(); //Pop eflags!
+	}
+	else
+	{
+		tempEFLAGS = (uint_32)CPU_POP16(0); //Pop flags!
+	}
+
+	if ((tempEFLAGS&0x20000) && (!oldCPL)) //Returning to virtual 8086 mode?
+	{
+		if (checkStackAccess(6,0,1)) return; //First level IRET data?
+		tempesp = CPU_POP32(); //POP ESP!
+		tempSS = (CPU_POP32()&0xFFFF); //POP SS!
+		for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
+		{
+			V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register! Throw away high word!
+		}
+		REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
+		updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
+		//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
+		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
+		if (segmentWritten(CPU_SEGMENT_SS,tempSS,0)) return; //Load SS!
+		REG_ESP = tempesp; //Set the new ESP of the V86 task!
+		if (segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0)) return; //Load ES!
+		if (segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0)) return; //Load DS!
+		if (segmentWritten(CPU_SEGMENT_FS, V86SegRegs[2], 0)) return; //Load FS!
+		if (segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0)) return; //Load GS!
+	}
+	else //Normal protected mode return?
+	{
+		if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
+		//Check unchanging bits!
+		tempEFLAGS = (tempEFLAGS&~F_V8)|(REG_EFLAGS&F_V8); //When returning to a V86-mode task from a non-PL0 handler, the VM flag isn't updated, so it stays in protected mode!
+		if (getCPL()) tempEFLAGS = (tempEFLAGS&~F_IOPL)|(REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
+		if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IF being changed!
+		//Flags are OK now!
+		REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
+		updateCPUmode();
+		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
+		CPU_flushPIQ(-1); //We're jumping to another address!
+	}
 }
 
 extern byte SystemControlPortA; //System control port A data!
