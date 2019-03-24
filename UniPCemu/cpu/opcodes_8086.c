@@ -3829,7 +3829,7 @@ OPTINLINE byte CPU8086_internal_XLAT()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),((REG_BX+REG_AL)&(CPU_Address_size[activeCPU]?~0:0xFFFF)),&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),((REG_BX+REG_AL)&CPU[activeCPU].address_size),&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
