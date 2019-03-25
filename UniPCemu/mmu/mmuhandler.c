@@ -393,19 +393,22 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	if (unlikely(!(memorymapinfo[iswrite].mapped && memorymapinfo[iswrite].maskedaddress == maskedaddress))) //Not matched already? Load the cache with it's information!
 	{
 		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
-		memloc = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
-		maskedaddress = memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc&0xF]; //The patch address to substract!
+		memloc = memoryhole = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
 		memorymapinfo[iswrite].mapped = 1; //We're mapped!
+		memloc &= 0xF; //The location of said memory!
+		memoryhole >>= 4; //The map number that it's in, when it's not a hole!
+		maskedaddress = memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
+		//Now that our cache is loaded with relevant data, start processing it!
 	}
 	else //Already loaded?
 	{
 		maskedaddress = memorymapinfo[iswrite].memorylocpatch; //Load the patch address!
+		//Now that our cache is loaded with relevant data, start processing it!
+		memloc = memoryhole = memorymapinfo[iswrite].memLocHole; //Load it to split it into our two results!
+		memloc &= 0xF; //The location of said memory!
+		memoryhole >>= 4; //The map number that it's in, when it's not a hole!
 	}
 
-	//Now that our cache is loaded with relevant data, start processing it!
-	memloc = memoryhole = memorymapinfo[iswrite].memLocHole; //Load it to split it into our two results!
-	memloc &= 0xF; //The location of said memory!
-	memoryhole >>= 4; //The map number that it's in, when it's not a hole!
 
 	if (unlikely(memoryhole)) //Memory hole?
 	{
@@ -419,26 +422,26 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 				*realaddress = originaladdress; //This is what we're remapping to!
 			}
 		}
+		//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
+		if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
+		{
+			if (unlikely(memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000))) //Memory protected?
+			{
+				//*nonexistant = 1; //We're non-existant!
+				return; //Abort!
+			}
+			//Reading or not protected?
+			if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
+			{
+				*realaddress += MMU.size-(0xFA0000+(0x100000-0xA0000)); //Patch to physical FE0000-FFFFFF reserved memory range to use, at the end of the physical memory!
+				*nonexistant = 3; //Reserved memory!
+			}
+		}
 	}
 	else //Plain memory?
 	{
 		*nonexistant = 0; //We're to be used directly!
 		*realaddress -= maskedaddress; //Patch into memory holes as required!
-	}
-	//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
-	if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
-	{
-		if (unlikely(memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000))) //Memory protected?
-		{
-			*nonexistant = 1; //We're non-existant!
-			return; //Abort!
-		}
-		//Reading or not protected?
-		if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
-		{
-			*realaddress += MMU.size-(0xFA0000+(0x100000-0xA0000)); //Patch to physical FE0000-FFFFFF reserved memory range to use, at the end of the physical memory!
-			*nonexistant = 3; //Reserved memory!
-		}
 	}
 }
 
