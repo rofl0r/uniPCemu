@@ -449,8 +449,8 @@ void MMU_updatemaxsize() //updated the maximum size!
 		MMU_memorymaplocpatch[loc] = MMU_calcmaplocpatch(loc);
 	}
 	//Invalidate the caches, since it's become invalid(due to updating memory locations)!
-	MMU_memorymapinfo[0].mapped = 0; //Invalidate!
-	MMU_memorymapinfo[1].mapped = 0; //Invalidate!
+	memorymapinfo[0].mapped = 0; //Invalidate!
+	memorymapinfo[1].mapped = 0; //Invalidate!
 }
 
 //Direct memory access (for the entire emulator)
