@@ -198,6 +198,7 @@ extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS a
 
 byte MMU_memorymapinfo[0x10000]; //What memory hole is this? Low nibble=Block number of the memory! High nibble=Hole number
 byte MMU_memorymaphole[0x2000]; //Memory hole identification. Bit set(for that 64KB memory aperture) means memory hole is present!
+uint_32 MMU_memorymaplocpatch[4]; //Memory to substract for the mapped memory when mapped!
 
 //Memory hole start/end locations!
 #define LOW_MEMORYHOLE_START 0xA0000
@@ -206,6 +207,25 @@ byte MMU_memorymaphole[0x2000]; //Memory hole identification. Bit set(for that 6
 #define MID_MEMORYHOLE_END 0x1000000
 #define HIGH_MEMORYHOLE_START 0xC0000000
 #define HIGH_MEMORYHOLE_END 0x100000000ULL
+
+uint_32 MMU_calcmaplocpatch(byte memloc)
+{
+	uint_32 address;
+	address = 0; //Default: don't substract!
+	if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
+	{
+		address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
+	}
+	if ((MoveLowMemoryHigh&2) && (memloc>=2)) //Move second block lower?
+	{
+		address += (MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch into memory hole!
+	}
+	if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
+	{
+		address += (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
+	}
+	return address; //How much to substract!
+}
 
 void MMU_precalcMemoryHoles()
 {
@@ -358,6 +378,7 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 struct
 {
 	uint_32 maskedaddress; //Masked address to match!
+	uint_32 memorylocpatch; //How much to substract for the physical memory location?
 	byte mapped;
 	byte memLocHole; //Prefetched data!
 } memorymapinfo[2]; //One for reads, one for writes!
@@ -372,7 +393,8 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	if (unlikely(!(memorymapinfo[iswrite].mapped && memorymapinfo[iswrite].maskedaddress == maskedaddress))) //Not matched already? Load the cache with it's information!
 	{
 		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
-		memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
+		memloc = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
+		memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc&0xF]; //The patch address to substract!
 		memorymapinfo[iswrite].mapped = 1; //We're mapped!
 	}
 
@@ -397,18 +419,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	else //Plain memory?
 	{
 		*nonexistant = 0; //We're to be used directly!
-		if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
-		{
-			*realaddress -= (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
-		}
-		if ((MoveLowMemoryHigh&2) && (memloc>=2)) //Move second block lower?
-		{
-			*realaddress -= (MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch into memory hole!
-		}
-		if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
-		{
-			*realaddress -= (uint_32)((uint_64)HIGH_MEMORYHOLE_END - (uint_64)HIGH_MEMORYHOLE_START); //Patch into memory hole!
-		}
+		*realaddress -= memorymapinfo[iswrite].memorylocpatch; //Patch into memory holes as required!
 	}
 	//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
 	if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
@@ -431,7 +442,15 @@ extern byte specialdebugger; //Enable special debugger input?
 
 void MMU_updatemaxsize() //updated the maximum size!
 {
+	byte loc;
 	MMU.effectivemaxsize = ((MMU.maxsize >= 0) ? MIN(MMU.maxsize, MMU.size) : MMU.size); //Precalculate the effective maximum size!
+	for (loc=0;loc<=3;++loc)
+	{
+		MMU_memorymaplocpatch[loc] = MMU_calcmaplocpatch(loc);
+	}
+	//Invalidate the caches, since it's become invalid(due to updating memory locations)!
+	MMU_memorymapinfo[0].mapped = 0; //Invalidate!
+	MMU_memorymapinfo[1].mapped = 0; //Invalidate!
 }
 
 //Direct memory access (for the entire emulator)

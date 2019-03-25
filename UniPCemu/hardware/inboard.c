@@ -73,6 +73,7 @@ byte Inboard_writeIO(word port, byte value)
 					#endif
 					break;
 			}
+			MMU_updatemaxsize(); //updated the maximum size!
 			updateInboardWaitStates(); //Update the 80386 Wait States!
 			return 1; //Handled!
 			break;
@@ -113,4 +114,5 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 		register_PORTIN(&Inboard_readIO);
 		updateInboardWaitStates(); //Set the default Wait States!
 	}
+	MMU_updatemaxsize(); //updated the maximum size!
 }
