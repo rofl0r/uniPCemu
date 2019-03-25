@@ -394,8 +394,12 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	{
 		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
 		memloc = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
-		memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc&0xF]; //The patch address to substract!
+		maskedaddress = memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc&0xF]; //The patch address to substract!
 		memorymapinfo[iswrite].mapped = 1; //We're mapped!
+	}
+	else //Already loaded?
+	{
+		maskedaddress = memorymapinfo[iswrite].memorylocpatch; //Load the patch address!
 	}
 
 	//Now that our cache is loaded with relevant data, start processing it!
@@ -419,7 +423,7 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 	else //Plain memory?
 	{
 		*nonexistant = 0; //We're to be used directly!
-		*realaddress -= memorymapinfo[iswrite].memorylocpatch; //Patch into memory holes as required!
+		*realaddress -= maskedaddress; //Patch into memory holes as required!
 	}
 	//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
 	if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
