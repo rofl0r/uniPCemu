@@ -452,11 +452,12 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
 	else //Plain memory?
 	{
 		// *nonexistant = 0; //We're to be used directly!
-		*realaddress -= maskedaddress; //Patch into memory holes as required!
-		if (unlikely(/*(realaddress>=MMU.size) ||*/ ((realaddress>=MMU.effectivemaxsize) /*&& (nonexistant!=3)*/ ) /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
+		originaladdress -= maskedaddress; //Patch into memory holes as required!
+		if (unlikely(/*(realaddress>=MMU.size) ||*/ ((originaladdress>=MMU.effectivemaxsize) /*&& (nonexistant!=3)*/ ) /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
 		{
 			return 1; //Not mapped or invalid!
 		}
+		*realaddress = originaladdress; //Save our new location!
 	}
 	return 0; //We're mapped!
 }
