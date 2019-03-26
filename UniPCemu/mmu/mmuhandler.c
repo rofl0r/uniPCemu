@@ -377,7 +377,7 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 
 struct
 {
-	uint_32 maskedaddress; //Masked address to match!
+	uint_64 maskedaddress; //Masked address to match!
 	uint_32 memorylocpatch; //How much to substract for the physical memory location?
 	byte mapped;
 	byte memLocHole; //Prefetched data!
@@ -390,11 +390,10 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
 	byte memoryhole;
 
 	maskedaddress = (originaladdress >> 0x10); //Take the block number we're trying to access!
-	if (unlikely(!(memorymapinfo[iswrite].mapped && memorymapinfo[iswrite].maskedaddress == maskedaddress))) //Not matched already? Load the cache with it's information!
+	if (unlikely(((memorymapinfo[iswrite].maskedaddress != (uint_64)maskedaddress)))) //Not matched already? Load the cache with it's information!
 	{
 		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
 		memloc = memoryhole = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
-		memorymapinfo[iswrite].mapped = 1; //We're mapped!
 		memloc &= 0xF; //The location of said memory!
 		memoryhole >>= 4; //The map number that it's in, when it's a hole!
 		memorymapinfo[iswrite].memLocHole = memoryhole; //Save the memory hole to use, if any!
@@ -473,8 +472,8 @@ void MMU_updatemaxsize() //updated the maximum size!
 		MMU_memorymaplocpatch[loc] = MMU_calcmaplocpatch(loc);
 	}
 	//Invalidate the caches, since it's become invalid(due to updating memory locations)!
-	memorymapinfo[0].mapped = 0; //Invalidate!
-	memorymapinfo[1].mapped = 0; //Invalidate!
+	memorymapinfo[0].maskedaddress = ~0; //Invalidate!
+	memorymapinfo[1].maskedaddress = ~0; //Invalidate!
 }
 
 //Direct memory access (for the entire emulator)
