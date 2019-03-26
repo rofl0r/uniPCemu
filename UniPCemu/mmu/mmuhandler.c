@@ -438,6 +438,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
 				*realaddress = originaladdress; //Save our new location!
 				// *nonexistant = 3; //Reserved memory!
 				if (unlikely((originaladdress>=MMU.size) /*|| ((originaladdress>=MMU.effectivemaxsize) && (nonexistant!=3))*/ /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
+					return 1; //Invalid memory location!
 			}
 			else
 				return 1; //Unmapped memory!
