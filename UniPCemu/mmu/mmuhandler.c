@@ -383,7 +383,7 @@ struct
 	byte memLocHole; //Prefetched data!
 } memorymapinfo[2]; //One for reads, one for writes!
 
-OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte iswrite)
+OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
 {
 	INLINEREGISTER uint_32 originaladdress = *realaddress, maskedaddress; //Original address!
 	byte memloc; //What memory block?
@@ -413,14 +413,14 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 
 	if (unlikely(memoryhole)) //Memory hole?
 	{
-		*nonexistant = 1; //We're non-existant!
+		// *nonexistant = 1; //We're non-existant!
 		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1) && BIOSROM_LowMemoryBecomesHighMemory) //Compaq remaps RAM from E0000-FFFFF to FE0000-FFFFFF.
 		{
 			if ((originaladdress>=0xE0000) && (originaladdress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
 			{
 				//memloc = 2; //We're the second block instead! Don't need to assign, as it's unused!
 				originaladdress |= 0xF00000; //Patch to physical FE0000-FFFFFF reserved memory range to use!
-				//*realaddress = originaladdress; //This is what we're remapping to!
+				// *realaddress = originaladdress; //This is what we're remapping to!
 			}
 		}
 		//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
@@ -428,23 +428,36 @@ OPTINLINE void applyMemoryHoles(uint_32 *realaddress, byte *nonexistant, byte is
 		{
 			if (unlikely(memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000))) //Memory protected?
 			{
-				//*nonexistant = 1; //We're non-existant!
-				return; //Abort!
+				// *nonexistant = 1; //We're non-existant!
+				return 1; //Abort!
 			}
 			//Reading or not protected?
-			if (((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1)) //Compaq or XT reserved area?
+			if (likely(((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1))) //Compaq or XT reserved area?
 			{
 				/**realaddress*/ originaladdress += MMU.size-(0xFA0000+(0x100000-0xA0000)); //Patch to physical FE0000-FFFFFF reserved memory range to use, at the end of the physical memory!
 				*realaddress = originaladdress; //Save our new location!
-				*nonexistant = 3; //Reserved memory!
+				// *nonexistant = 3; //Reserved memory!
+				if (unlikely((originaladdress>=MMU.size) /*|| ((originaladdress>=MMU.effectivemaxsize) && (nonexistant!=3))*/ /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
 			}
+			else
+				return 1; //Unmapped memory!
+			//if (unlikely((realaddress>=MMU.size) || ((realaddress>=MMU.effectivemaxsize) && (nonexistant!=3)) || (nonexistant==1))) //Overflow/invalid location?
+		}
+		else
+		{
+			return 1; //Not mapped!
 		}
 	}
 	else //Plain memory?
 	{
-		//*nonexistant = 0; //We're to be used directly!
+		// *nonexistant = 0; //We're to be used directly!
 		*realaddress -= maskedaddress; //Patch into memory holes as required!
+		if (unlikely(/*(realaddress>=MMU.size) ||*/ ((realaddress>=MMU.effectivemaxsize) /*&& (nonexistant!=3)*/ ) /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
+		{
+			return 1; //Not mapped or invalid!
+		}
 	}
+	return 0; //We're mapped!
 }
 
 extern byte specialdebugger; //Enable special debugger input?
@@ -505,8 +518,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		result = ~result; //Reverse to get the correct output!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
-	applyMemoryHoles(&realaddress,&nonexistant,0); //Apply the memory holes!
-	if (unlikely((realaddress>=MMU.size) || ((realaddress>=MMU.effectivemaxsize) && (nonexistant!=3)) || (nonexistant==1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress,0))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if (likely((is_XT==0) || (EMULATED_CPU>=CPU_80286))) //To give NOT for detecting memory on AT only?
@@ -562,13 +574,12 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		MMU_updatemaxsize(); //updated the maximum size!
 		return; //Count as a memory mapped register!
 	}
-	applyMemoryHoles(&realaddress,&nonexistant,1); //Apply the memory holes!
 	if (likely(index != 0xFF)) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (unlikely((realaddress>=MMU.size) || ((realaddress>=MMU.effectivemaxsize) && (nonexistant!=3)) || (nonexistant==1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress,1))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
