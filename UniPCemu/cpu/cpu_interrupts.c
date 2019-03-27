@@ -189,23 +189,6 @@ void CPU_IRET()
 		return; //Finished!
 	}
 
-	//NT flag is set? If so, perform a task switch back to the task we're nested in(undocumented)! http://nicolascormier.com/documentation/hardware/microprocessors/intel/i80386/Chap15.html 
-	if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
-	{
-		SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
-		word desttask;
-		sbyte loadresult;
-		desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
-		if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
-		{
-			if (loadresult == -1) return; //Abort on page fault!
-			CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-			return; //Error, by specified reason!
-		}
-		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
-		return; //Finished!
-	}
-
 	//Use protected mode IRET?
 	if (FLAG_V8) //Virtual 8086 mode?
 	{
@@ -240,6 +223,23 @@ void CPU_IRET()
 		{
 			THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
 		}
+		return; //Finished!
+	}
+
+	//NT flag is set? If so, perform a task switch back to the task we're nested in(undocumented)! http://nicolascormier.com/documentation/hardware/microprocessors/intel/i80386/Chap15.html 
+	if (FLAG_NT && (getcpumode() != CPU_MODE_REAL)) //Protected mode Nested Task IRET?
+	{
+		SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
+		word desttask;
+		sbyte loadresult;
+		desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
+		if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
+		{
+			if (loadresult == -1) return; //Abort on page fault!
+			CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+			return; //Error, by specified reason!
+		}
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
 		return; //Finished!
 	}
 
