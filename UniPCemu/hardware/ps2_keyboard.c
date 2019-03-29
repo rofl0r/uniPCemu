@@ -297,6 +297,7 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				break;
 			case 0xF0: //ACK and next phase!
 			case 0xED: //ACK and next phase!
+			case 0xF3: //Set typematic rate/delay?
 				if (Keyboard.cmdOK) //Second+ step?
 				{
 					if ((Keyboard.cmdOK&3) == 1) //OK?
