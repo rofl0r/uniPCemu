@@ -93,6 +93,7 @@ OPTINLINE void PS2_raiseirq(byte which)
 byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 {
 	byte whatport;
+	static byte readdata = 0x00;
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
 		Controller8042.output_buffer = 0; //Undefined to start with!
@@ -152,23 +153,24 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 						continue; //This port is disabled, don't receive!
 					if (Controller8042.portread[whatport] && Controller8042.portpeek[whatport]) //Read handlers from the first PS/2 port available?
 					{
-						if (Controller8042.portpeek[whatport](&Controller8042.output_buffer)) //Got something?
+						if (Controller8042.portpeek[whatport](&readdata)) //Got something?
 						{
- 							Controller8042.output_buffer = Controller8042.portread[whatport](); //Execute the handler!
+ 							readdata = Controller8042.portread[whatport](); //Execute the handler!
 							//Handle first port translation here, if needed!
 							if (PS2_FIRSTPORTTRANSLATION(Controller8042) && (!whatport)) //Translating the first port?
 							{
-								if (Controller8042.output_buffer == 0xF0) //Escaped data?
+								if (readdata == 0xF0) //Escaped data?
 								{
 									Controller8042.TranslationEscaped = 0x80; //We're escaped!
 									return 1; //Abort: we're escaped, so translate us!
 								}
 								else //Non-escaped or escaped data?
 								{
-									Controller8042.output_buffer = Controller8042.TranslationEscaped|translation8042[Controller8042.output_buffer]; //Translate it according to our lookup table!
+									readdata = Controller8042.TranslationEscaped|translation8042[readdata]; //Translate it according to our lookup table!
 									Controller8042.TranslationEscaped = 0; //We're not escaped anymore!
 								}
 							}
+							Controller8042.output_buffer = readdata; //This has been read!
 							Controller8042.status_buffer |= 0x1; //Set input buffer full!
 							processoutput:
 							if (whatport) //AUX port?
