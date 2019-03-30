@@ -277,6 +277,7 @@ void MMU_precalcMemoryHoles()
 
 void resetMMU()
 {
+	void *memorycheckdummy;
 	byte memory_allowresize = 1; //Do we allow resizing?
 	if (__HW_DISABLED) return; //Abort!
 	doneMMU(); //We're doing a full reset!
@@ -314,10 +315,12 @@ resetmmu:
 			goto resetmmu; //Try again!
 		}
 	}
-	if (freemem()<FREEMEMALLOC) //Not enough free memory?
+	memorycheckdummy = zalloc(FREEMEMALLOC, "freememcheck", NULL); //Lockless free memory check!
+	if (memorycheckdummy==NULL) //Not enough free memory?
 	{
 		goto MMU_redetectMemory; //Force memory redetection to make free memory!
 	}
+	freez(&memorycheckdummy, FREEMEMALLOC, "freememcheck"); //Release the checked memory!
 	memory_allowresize = 1; //Allow resizing again!
 	if (!MMU.size || !MMU.memory) //No size?
 	{
