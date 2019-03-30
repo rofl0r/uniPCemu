@@ -2089,6 +2089,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
+			CPU_interruptcomplete(); //Prepare us for new instructions!
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?

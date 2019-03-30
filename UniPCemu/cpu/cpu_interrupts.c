@@ -129,6 +129,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		CPU[activeCPU].executed = 1; //We've executed: process the next instruction!
+		CPU_interruptcomplete(); //Prepare us for new instructions!
 
 		//No error codes are pushed in (un)real mode! Only in protected mode!
 		return 1; //OK!

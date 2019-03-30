@@ -1140,6 +1140,7 @@ byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword); //How much d
 byte checkENTERStackAccess(uint_32 poptimes, byte isdword); //How much do we need to POP from the stack?
 
 void CPU_resetTimings(); //Reset timings before processing the next CPU state!
+void CPU_interruptcomplete(); //What to do when an interrupt is completed!
 
 void CPU_JMPrel(int_32 reladdr, byte useAddressSize);
 void CPU_JMPabs(uint_32 addr, byte useAddressSize);

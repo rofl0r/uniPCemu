@@ -1171,6 +1171,11 @@ OPTINLINE void CPU_resetInstructionSteps()
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 }
 
+void CPU_interruptcomplete()
+{
+	CPU_resetInstructionSteps(); //Reset the instruction steps to properly handle it!
+}
+
 uint_32 last_eip;
 byte ismultiprefix = 0; //Are we multi-prefix?
 OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
