@@ -96,7 +96,6 @@ byte fill8042_output_buffer(byte flags) //Fill input buffer from full buffer!
 	static byte readdata = 0x00;
 	if (!(Controller8042.status_buffer&1)) //Buffer empty?
 	{
-		Controller8042.output_buffer = 0; //Undefined to start with!
 		Controller8042.status_buffermask = ~0; //Enable all bits to be viewed by default!
 		if (is_XT==0) //We're an AT?
 		{
