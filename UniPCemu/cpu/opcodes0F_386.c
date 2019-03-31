@@ -1259,7 +1259,7 @@ void CPU80386_OP0FBA_32() {
 				debugger_setcommand("BT %s,%02X",modrm_param1,immb); //Log the command!
 			}
 			//Actual execution!
-			modrm_addoffset = (int_32)((unsigned2signed8(immb)>>4)<<1);
+			modrm_addoffset = (int_32)((unsigned2signed8(immb)>>5)<<2);
 			if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 1|0x40)) return; if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return; }
 			if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 			CPU80386_BT32(instructionbufferd,immb);
