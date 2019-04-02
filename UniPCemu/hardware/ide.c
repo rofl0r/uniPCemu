@@ -950,10 +950,10 @@ OPTINLINE uint_32 getPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[0] > 1) ? PCI_IDE.BAR[0] : 0x1F0; //Give the BAR!
+		return (PCI_IDE.BAR[0] > 3) ? (PCI_IDE.BAR[0]&~3) : 0x1F0; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[2] > 1) ? PCI_IDE.BAR[2] : 0x170; //Give the BAR!
+		return (PCI_IDE.BAR[2] > 3) ? (PCI_IDE.BAR[2]~3) : 0x170; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -965,10 +965,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[1] > 1) ? PCI_IDE.BAR[1] : 0x3F4; //Give the BAR!
+		return (PCI_IDE.BAR[1] > 3) ? (PCI_IDE.BAR[1]&~3) : 0x3F4; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[3] > 1) ? PCI_IDE.BAR[3] : 0x374; //Give the BAR!
+		return (PCI_IDE.BAR[3] > 3) ? (PCI_IDE.BAR[3]&~3) : 0x374; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -3431,6 +3431,16 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	if ((addr<(byte *)&PCI_IDE.BAR[0]) || (addr>((byte *)&PCI_IDE.BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
 	{
 		memset(addr,0,1); //Clear the set data!
+	}
+	else
+	{
+		//Fix BAR reserved bits!
+		PCI_IDE.BAR[0] = (PCI_IDE.BAR[0]&~3)|1; //IO BAR!
+		PCI_IDE.BAR[1] = (PCI_IDE.BAR[1]&~3)|1; //IO BAR!
+		PCI_IDE.BAR[2] = (PCI_IDE.BAR[2]&~3)|1; //IO BAR!
+		PCI_IDE.BAR[3] = (PCI_IDE.BAR[3]&~3)|1; //IO BAR!
+		PCI_IDE.BAR[4] = (PCI_IDE.BAR[4]&~3)|1; //IO BAR!
+		PCI_IDE.BAR[5] = (PCI_IDE.BAR[5]&~3)|1; //IO BAR!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
