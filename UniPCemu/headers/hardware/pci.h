@@ -41,9 +41,8 @@ bit0=1: I/O port. Bits 2+ are the port.
 Bit0=0: Memory address:
 	Bit1-2: Memory size(0=32-bit, 1=20-bit, 2=64-bit).
 	Bit3: Prefetchable
-	Bits 4-31: The base address. This has a special value when a BAR is written with all ones(value 0xFFFFFFFF):
-		The value of the BAR becomes the negated size of the memory area this takes up((~x)+1). x must be 16-byte multiple due to the low 4 bits becoming zeroed).
-		Otherwise, bits 0-3 are as defined above, with these values being the base address.
+	Bits 4-31: The base address. This has a special value when a BAR is written with all ones in it's address bits(value 0xFFFFFFF0):
+		The value of the BAR becomes the negated size of the memory area this takes up((~x)+1). x must be 16-byte multiple due to the low 4 bits being ROM values(see bits 0-3 above)).
 
 */
 
