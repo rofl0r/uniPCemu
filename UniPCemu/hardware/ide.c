@@ -953,7 +953,7 @@ OPTINLINE uint_32 getPORTaddress(byte channel)
 		return (PCI_IDE.BAR[0] > 3) ? (PCI_IDE.BAR[0]&~3) : 0x1F0; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[2] > 3) ? (PCI_IDE.BAR[2]~3) : 0x170; //Give the BAR!
+		return (PCI_IDE.BAR[2] > 3) ? (PCI_IDE.BAR[2]&~3) : 0x170; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
