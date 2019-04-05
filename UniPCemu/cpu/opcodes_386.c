@@ -2749,7 +2749,7 @@ void CPU80386_OPE9(){INLINEREGISTER int_32 reloffset = imm32s(); modrm_generateI
 void CPU80386_OPEA(){INLINEREGISTER uint_64 segmentoffset = imm64; debugger_setcommand("JMPD %04X:%08X", (segmentoffset>>32), (segmentoffset&CPU_EIPmask(0))); destEIP = (segmentoffset&CPU_EIPmask(0)); if (segmentWritten(CPU_SEGMENT_CS, (word)(segmentoffset>>32), 1)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 15; } /* Intersegment direct */}
 void CPU80386_OPED(){modrm_generateInstructionTEXT("IN EAX,DX",0,0,PARAM_NONE); if (CPU_PORT_IN_D(0,REG_DX,&REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/ } }
 void CPU80386_OPEF(){modrm_generateInstructionTEXT("OUT DX,EAX",0,0,PARAM_NONE); if (CPU_PORT_OUT_D(0,REG_DX,REG_EAX)) return; if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{ CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/ } /*To memory?*/}
-void CPU80386_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
+//void CPU80386_OPF1(){modrm_generateInstructionTEXT("<Undefined and reserved opcode, no error>",0,0,PARAM_NONE);}
 
 /*
 

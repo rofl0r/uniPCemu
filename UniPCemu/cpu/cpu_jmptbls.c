@@ -1125,7 +1125,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, CPU80386_OPEF }, //EFh:
 		//0xF0:
 		{ NULL, NULL }, //F0h: Special
-		{ NULL, CPU80386_OPF1 }, //F1h: UNK
+		{ NULL, NULL}, //F1h: UNK
 		{ NULL, NULL }, //F2h: Special
 		{ NULL, NULL }, //F3h: Special
 		{ NULL, NULL }, //F4h:

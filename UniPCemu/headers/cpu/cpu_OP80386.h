@@ -120,7 +120,7 @@ void CPU80386_OPE9();
 void CPU80386_OPEA();
 void CPU80386_OPED();
 void CPU80386_OPEF();
-void CPU80386_OPF1();
+//void CPU80386_OPF1();
 
 /*
 
