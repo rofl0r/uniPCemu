@@ -380,7 +380,7 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 			if (CPU8086_instructionstepwritemodrmw(2,(CPU[activeCPU].registers->IDTR.base & 0xFFFF),MODRM_src0,0)) return; //Only 24-bits of limit, high byte is cleared with 386+, set with 286!
 			CPUPROT1
 				modrm_addoffset = 4; //Add 4 bytes to the offset!
-				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->IDTR.base >> 16) & 0xFF)|((EMULATED_CPU==CPU_80286)?0xFF00:0x0000,MODRM_src0,0)) return; //Write rest value!
+				if (CPU8086_instructionstepwritemodrmw(4,((CPU[activeCPU].registers->IDTR.base >> 16) & 0xFF)|((EMULATED_CPU==CPU_80286)?0xFF00:0x0000),MODRM_src0,0)) return; //Write rest value!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			CPUPROT2
 		CPUPROT2
