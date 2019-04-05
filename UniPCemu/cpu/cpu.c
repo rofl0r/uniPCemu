@@ -151,11 +151,11 @@ byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword) //How much do
 	{
 		if (isPUSH)
 		{
-			ESP += stack_pushchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+			ESP += stack_pushchange((isdword&1)); //Apply the change in virtual (E)SP to check the next value!
 		}
 
 		//We're at least a word access!
-		if (isdword)
+		if ((isdword&1)&(((~isdword)>>1)&1)) //When bit0=1 and bit 2=0(not forcing 16-bit operand size), use 32-bit accesses! This is required for segment PUSH/POP!
 		{
 			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(), ((isPUSH ? 0 : 1) | 0x40)|(isPUSH&0x300), getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
@@ -171,7 +171,7 @@ byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword) //How much do
 		}
 		if (isPUSH==0)
 		{
-			ESP += stack_popchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+			ESP += stack_popchange((isdword&1)); //Apply the change in virtual (E)SP to check the next value!
 		}
 		--poptimesleft; //One POP processed!
 	}
@@ -181,11 +181,11 @@ byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword) //How much do
 	{
 		if (isPUSH)
 		{
-			ESP += stack_pushchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+			ESP += stack_pushchange((isdword&1)); //Apply the change in virtual (E)SP to check the next value!
 		}
 
 		//We're at least a word access!
-		if (isdword) //Dword
+		if ((isdword&1)&(((~isdword)>>1)&1)) //When bit0=1 and bit 2=0(not forcing 16-bit operand size), use 32-bit accesses! This is required for segment PUSH/POP!
 		{
 			if (checkMMUaccess32(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, ESP&getstackaddrsizelimiter(), (isPUSH ? 0 : 1) | 0xA0, getCPL(), !STACK_SEGMENT_DESCRIPTOR_B_BIT(), 0 | (8 << isdword))) //Error accessing memory?
 			{
@@ -201,7 +201,7 @@ byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword) //How much do
 		}
 		if (isPUSH == 0)
 		{
-			ESP += stack_popchange(isdword); //Apply the change in virtual (E)SP to check the next value!
+			ESP += stack_popchange((isdword&1)); //Apply the change in virtual (E)SP to check the next value!
 		}
 		--poptimesleft; //One POP processed!
 	}
