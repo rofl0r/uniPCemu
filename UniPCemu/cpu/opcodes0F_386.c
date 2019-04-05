@@ -135,6 +135,11 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT
+		if (CPU_Operand_size[activeCPU] == 0) //16-bit?
+		{
+			CPU286_OP0F01(); //Same as 80286!
+			return;
+		}
 		debugger_setcommand("SGDT %s", info.text);
 		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
@@ -163,6 +168,11 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 1: //SIDT
+		if (CPU_Operand_size[activeCPU] == 0) //16-bit?
+		{
+			CPU286_OP0F01(); //Same as 80286!
+			return;
+		}
 		debugger_setcommand("SIDT %s", info.text);
 		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
 		{
