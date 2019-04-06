@@ -328,10 +328,12 @@ void CPU386_OP0F02() //LAR /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
+			/*
 			if ((loadresult = touchSegment(-1, oper1d, &verdescriptor, 0)) != 1) //Errored out during touching?
 			{
 				goto failedlar386;
 			}
+			*/
 			if ((oper1d & 0xFFFC) == 0) //NULL segment selector?
 			{
 				goto invalidresultLAR386;
@@ -388,7 +390,7 @@ void CPU386_OP0F02() //LAR /r
 		}
 		else //Couldn't be loaded?
 		{
-			failedlar386:
+			//failedlar386:
 			if (loadresult == 0)
 			{
 				invalidresultLAR386:
@@ -417,10 +419,12 @@ void CPU386_OP0F03() //LSL /r
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
 		{
+			/*
 			if ((loadresult = touchSegment(-1, oper1d, &verdescriptor, 0)) != 1) //Errored out during touching?
 			{
 				goto failedlsl386;
 			}
+			*/
 			if ((oper1d & 0xFFFC) == 0) //NULL segment selector?
 			{
 				goto invalidresultLSL386;
@@ -481,7 +485,7 @@ void CPU386_OP0F03() //LSL /r
 		}
 		else //Couldn't be loaded?
 		{
-			failedlsl386:
+			//failedlsl386:
 			if (loadresult == 0)
 			{
 				invalidresultLSL386:
