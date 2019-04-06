@@ -574,15 +574,6 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 			memset(container, 0, sizeof(*container)); //Load an invalid register, which is marked invalid!
 		}
 	}
-	
-	if(GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
-	{
-		container->desc.AccessRights |= 1; //Set the accessed bit!
-		if ((result = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
-		{
-			return result; //Error out!
-		}
-	}
 
 	CPU_calcSegmentPrecalcs(container); //Precalculate anything needed!
 	return 1; //OK!
@@ -680,6 +671,20 @@ result:
 */
 
 #define effectiveCPL() ((isJMPorCALL&0x1000)?((isJMPorCALL>>13)&3):getCPL())
+
+sbyte touchSegment(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL)
+{
+	sbyte saveresult;
+	if(GENERALSEGMENTPTR_P(container) && (getLoadedTYPE(container) != 2) && (CODEDATASEGMENTPTR_A(container) == 0) && ((isJMPorCALL&0x100)==0)) //Non-accessed loaded and needs to be set? Our reserved bit 8 in isJMPorCALL tells us not to cause writeback for accessed!
+	{
+		container->desc.AccessRights |= 1; //Set the accessed bit!
+		if ((saveresult = SAVEDESCRIPTOR(segment, segmentval, container, isJMPorCALL))<=0) //Trigger writeback and errored out?
+		{
+			return saveresult;
+		}
+	}
+	return 1; //Success!
+}
 
 SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *segmentval, word isJMPorCALL, byte *isdifferentCPL) //Get this corresponding segment descriptor (or LDT. For LDT, specify LDT register as segment) for loading into the segment descriptor cache!
 {
@@ -1102,6 +1107,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	byte oldCPL= getCPL();
 	byte isDifferentCPL;
 	byte isnonconformingcodeordata;
+	sbyte loadresult;
 	uint_32 tempesp;
 	segmentWrittenVal = value; //What value is written!
 	isJMPorCALLval = isJMPorCALL; //What type of write are we?
@@ -1348,6 +1354,23 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			{
 				*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Set the segment register to the allowed value!
 			}
+
+			if ((loadresult = touchSegment(segment,value,descriptor,isJMPorCALL))<=0) //Errored out during touching?
+			{
+				if (loadresult == 0) //Not already faulted?
+				{
+					if (isJMPorCALL&0x200) //TSS is the cause?
+					{
+						THROWDESCTS(value,1,(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!			
+					}
+					else //Plain #GP?
+					{
+						THROWDESCGP(value,((isJMPorCALL&0x400)>>10),(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+					}
+				}
+				return 1; //Abort on fault!
+			}
+
 			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
 				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
@@ -2085,6 +2108,22 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				{
 					CPU_PUSH16(&errorcode16,is32bit); //Push the error on the stack!
 				}
+			}
+
+			if ((loadresult = touchSegment(CPU_SEGMENT_CS,idtentry.selector,&newdescriptor,2))<=0) //Errored out during touching?
+			{
+				if (loadresult == 0) //Not already faulted?
+				{
+					if (2&0x200) //TSS is the cause?
+					{
+						THROWDESCTS(idtentry.selector,1,(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!			
+					}
+					else //Plain #GP?
+					{
+						THROWDESCGP(idtentry.selector,((idtentry.selector&0x400)>>10),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+					}
+				}
+				return 1; //Abort on fault!
 			}
 
 			hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
