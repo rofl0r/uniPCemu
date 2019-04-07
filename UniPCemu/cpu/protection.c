@@ -195,9 +195,6 @@ void CPU_commitState() //Prepare for a fault by saving all required data!
 {
 	//SS descriptor is linked to the CPL in some cases, so backup that as well!
 	CPU[activeCPU].oldSS = REG_SS; //Save the most frequently used SS state!
-	CPU[activeCPU].oldCPL = CPU[activeCPU].CPL; //Restore CPL to it's original value!
-	CPU[activeCPU].oldCPUmode = getcpumode(); //Save the CPU mode!
-	CPU[activeCPU].have_oldCPL = 1; //Restorable!
 	//Backup the descriptor itself!
 	CPU[activeCPU].oldESP = REG_ESP; //Restore ESP to it's original value!
 	CPU[activeCPU].have_oldESP = 1; //Restorable!
@@ -206,6 +203,9 @@ void CPU_commitState() //Prepare for a fault by saving all required data!
 	CPU[activeCPU].oldEFLAGS = REG_EFLAGS; //Restore EFLAGS to it's original value!
 	CPU[activeCPU].have_oldEFLAGS = 1; //Restorable!
 	updateCPUmode(); //Restore the CPU mode!
+	CPU[activeCPU].have_oldCPL = 1; //Restorable!
+	CPU[activeCPU].oldCPL = CPU[activeCPU].CPL; //Restore CPL to it's original value!
+	CPU[activeCPU].oldCPUmode = getcpumode(); //Save the CPU mode!
 	//Backup the descriptors themselves!
 	//TR is only to be restored during a section of the task switching process, so we don't save it right here(as it's unmodified, except during task switches)!
 	CPU[activeCPU].have_oldSegReg = 0; //Commit the segment registers!
