@@ -898,7 +898,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Now check for CPL,DPL&RPL! (chapter 6.3.2)
 	if (
 		(
-		(!privilegedone) && (getRPL(*segmentval)<getCPL()) && ((isJMPorCALL&0x1FF)==4) //RETF to higher privilege level?
+		(!privilegedone && (getRPL(*segmentval)<getCPL()) && ((isJMPorCALL&0x1FF)==4)) || //RETF to higher privilege level?
 		(!privilegedone && (MAX(getCPL(),getRPL(*segmentval))>GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && ((getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) && (segment!=CPU_SEGMENT_SS)) && ((isJMPorCALL&0x1FF)!=4)) || //We are a lower privilege level with either a data/system segment descriptor? Non-conforming code segments have different check:
 		(!privilegedone && (MAX(((isJMPorCALL&0x1FF)==4)?getRPL(*segmentval):getCPL(),getRPL(*segmentval))<GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level or higher compared to MAX(CPL,RPL) (or just RPL for RETF) for conforming code segment descriptors?
 		(!privilegedone && (MAX(((isJMPorCALL&0x1FF)==4)?getRPL(*segmentval):getCPL(),getRPL(*segmentval))!=GENERALSEGMENT_DPL(LOADEDDESCRIPTOR)) && (EXECSEGMENT_ISEXEC(LOADEDDESCRIPTOR) && (!EXECSEGMENT_C(LOADEDDESCRIPTOR)) && (getLoadedTYPE(&LOADEDDESCRIPTOR) == 1))) || //We must be at the same privilege level compared to MAX(CPL,RPL) (or just RPL for RETF) for non-conforming code segment descriptors?
