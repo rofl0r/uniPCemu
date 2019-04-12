@@ -21,6 +21,19 @@ cli ; Prevent any interrupts while testing!
 
 ; Now start the tests!
 
+; Initialize memory and registers to known values
+mov eax,0
+mov edx,0
+mov ecx,0
+mov ebx,0
+mov esp,0
+mov ebp,0
+mov esi,0
+mov edi,0
+mov al,1
+mov ah,0
+mov dword [0],1
+
 ; Set 00
 db 0x00,NULLMEMORY ; ADD [0000],al
 db 0x01,NULLMEMORY ; ADD [0000],ax
@@ -109,7 +122,165 @@ db 0x3C,TESTREG8 ; ADD al,0xff
 db 0x3D,TESTREG16 ; ADD ax,0xffff
 db IS32BIT,0x3D,TESTREG32 ; ADD eax,0xffffffff
 
-; TODO: 0x80-0x83 range
+; Make sure all buffers are empty(flush all buffers)!
+mov dword [0],0
+mov word [0],0
+mov byte [0],0
+mov eax, dword [0]
+mov ax, word [0]
+mov al, byte [0]
+
+; 80-83 range as memory
+; 80/8:
+mov byte [0],0 ; Init!
+add byte [0],1
+and byte [0],2
+adc byte [0],1
+sbb byte [0],1
+or byte [0],1
+sub byte [0],1
+xor byte [0],4
+cmp byte [0],0
+
+; 81/16:
+mov word [0],0 ; Init!
+add word [0],1
+and word [0],2
+adc word [0],1
+sbb word [0],1
+or word [0],1
+sub word [0],1
+xor word [0],4
+cmp word [0],0
+
+; 81/32:
+mov dword [0],0 ; Init!
+add dword [0],1
+and dword [0],2
+adc dword [0],1
+sbb dword [0],1
+or dword [0],1
+sub dword [0],1
+xor dword [0],4
+cmp dword [0],0
+
+; F6/F7 test!
+
+; Divide test!
+; Init 32-bit!
+; Make sure all buffers are empty(flush all buffers)!
+mov dword [0],0
+mov word [0],0
+mov byte [0],0
+mov eax, dword [0]
+mov ax, word [0]
+mov al, byte [0]
+
+mov eax,2 ; What to multiply(2)
+mov dword [0],1 ; To multiply by(1)
+mul dword [0] ; Multiply(2/1)
+mov [0],eax ; Store the result(2)
+mov eax,4 ; What to divide(4)
+div dword [0] ; Divide 4 by 2!
+mov eax,[0] ; Get the result(2)!
+
+; Now 16-bit!
+; Depend on the previous result, which shuld have been the input!
+mov dword [0],0 ; To multiply init 32-bit!
+mov word [0],1 ; To multiply by(1)
+mul word [0] ; Multiply(2/1)
+mov [0],ax ; Store the result(2)
+mov ax,4 ; What to divide(4)
+div word [0] ; Divide 4 by 2!
+mov ax,[0] ; Get the result(2)!
+mov eax,[0] ; Get the result(2) as 32-bits!
+
+; Finally 8-bit!
+; Depend on the previous result, which shuld have been the input!
+mov dword [0],0 ; To multiply init 32-bit!
+mov byte [0],1 ; To multiply by(1)
+mul byte [0] ; Multiply(2/1)
+mov [0],al ; Store the result(2)
+mov al,4 ; What to divide(4)
+div byte [0] ; Divide 4 by 2!
+mov al,[0] ; Get the result(2)!
+mov ax,[0] ; Get the result(2) as 16-bits!
+mov eax,[0] ; Get the result(2) as 32-bits!
+
+; Init 32-bit!
+; Make sure all buffers are empty(flush all buffers)!
+mov dword [0],0
+mov word [0],0
+mov byte [0],0
+mov eax, dword [0]
+mov ax, word [0]
+mov al, byte [0]
+
+mov eax,2 ; What to not affect(2)
+mov dword [0],1 ; To increase by(1)
+inc dword [0] ; Increase ; To 2
+dec dword [0] ; Decrease! ; To 1
+mov eax,[0] ; Get the result(1)!
+
+mov eax,2 ; What to not affect(2)
+mov word [0],1 ; To increase by(1)
+inc word [0] ; Increase ; To 2
+dec word [0] ; Decrease! ; To 1
+mov eax,[0] ; Get the result(1)!
+
+mov eax,2 ; What to not affect(2)
+mov byte [0],1 ; To increase by(1)
+inc byte [0] ; Increase ; To 2
+dec byte [0] ; Decrease! ; To 1
+mov eax,[0] ; Get the result(1)!
+
+mov eax,2 ; What to not affect(2)
+mov byte [0],1 ; To increase by(1)
+inc byte [0] ; Increase ; To 2
+dec byte [0] ; Decrease! ; To 1
+mov eax,[0] ; Get the result(1)!
+
+; D0/D1/C0/C1 shift/rotate instructions
+; Make sure all buffers are empty(flush all buffers)!
+mov dword [0],0
+mov word [0],0
+mov byte [0],0
+mov eax, dword [0]
+mov ax, word [0]
+mov al, byte [0]
+
+mov dword [0],1 ; The value to operate on!
+mov dword [1],2 ; What to shift!
+
+; D0/D1 first
+; Make sure all buffers are empty(flush all buffers)!
+mov dword [0],0
+mov word [0],0
+mov byte [0],0
+mov eax, dword [0]
+mov ax, word [0]
+mov al, byte [0]
+
+; Perform the tests!
+; With 1 constant(D0/D1)
+shl dword [0],1
+shr dword [0],1
+shl word [0],1
+shr word [0],1
+shl byte [0],1
+shr byte [0],1
+
+; With immediate(C0/C1)
+shl dword [0],2
+shr dword [0],2
+shl word [0],2
+shr word [0],2
+shl byte [0],2
+shr byte [0],2
+
+
+
+
 
 ; INC reg
 inc ax
@@ -290,6 +461,8 @@ subfuncn:
 ret
 
 succeedretfar:
+
+
 
 jmp finishup 
 
