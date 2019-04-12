@@ -260,6 +260,10 @@ mov byte [0],0
 mov eax, dword [0]
 mov ax, word [0]
 mov al, byte [0]
+; Load our data to process!
+mov dword [0],1
+mov word [0],1
+mov byte [0],1
 
 ; Perform the tests!
 ; With 1 constant(D0/D1)
