@@ -499,6 +499,12 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
 	}
 	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
+	if (descriptor->PRECALCS.topdown && (SEGDESCPTR_GRANULARITY(descriptor)==0)) //Top-down descriptor?
+	{
+		descriptor->PRECALCS.base += descriptor->PRECALCS.limit; //Add the limit field!
+		descriptor->PRECALCS.base -= 0x10000; //Substract the modulus!
+		descriptor->PRECALCS.base &= 0xFFFFFFFF; //Mask to 32-bit size!
+	}
 	//Apply read/write/execute permissions to the descriptor!
 	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
 }
@@ -2076,6 +2082,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!
 			}
 
+			if (INTTYPE==1) CPU[activeCPU].CPL = newCPL; //Privilege level changes!
 			if (INTTYPE==1) CPU[activeCPU].CPL = newCPL; //Privilege level changes!
 
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
