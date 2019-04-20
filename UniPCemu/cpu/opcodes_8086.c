@@ -4262,7 +4262,7 @@ void CPU8086_OPCC() {
 
 	if (CPU_faultraised(EXCEPTION_CPUBREAKPOINT))
 	{
-		CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,1,-2);
+		CPU_executionphase_startinterrupt(EXCEPTION_CPUBREAKPOINT,0,-2);
 	} /*INT 3*/
 }
 void CPU8086_OPCD() {INLINEREGISTER byte theimm = immb; INTdebugger8086(); modrm_generateInstructionTEXT("INT",0,theimm,PARAM_IMM8);/*INT imm8*/ CPU_executionphase_startinterrupt(theimm,0,-2); /*INT imm8*/ }
