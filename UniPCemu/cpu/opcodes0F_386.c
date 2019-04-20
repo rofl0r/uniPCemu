@@ -740,7 +740,7 @@ OPTINLINE byte allowCRDRaccess()
 	return ((getCPL()==0) || (getcpumode()==CPU_MODE_REAL)); //Do we allow access?
 }
 
-void CPU80386_OP0F_MOVCRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} uint_32 val=modrm_read32(&params,MODRM_src1); if (((val&(CR0_PE|CR0_PG))==CR0_PG) && (MODRM_src0==0)) {THROWDESCGP(0,0,0); return;/* Enabling Paging whilst disabling protection is forbidden! */} modrm_write32(&params,MODRM_src0,val); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r CRn/r32,r32/CRn
+void CPU80386_OP0F_MOVCRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} uint_32 val=modrm_read32(&params,MODRM_src1); if (((val&(CR0_PE|CR0_PG))==CR0_PG) && (MODRM_src0==0) && (modrm_addr32(&params,MODRM_src0,0)==&CPU[activeCPU].registers->CR0)) {THROWDESCGP(0,0,0); return;/* Enabling Paging whilst disabling protection is forbidden! */} modrm_write32(&params,MODRM_src0,val); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r CRn/r32,r32/CRn
 void CPU80386_OP0F_MOVDRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r DRn/r32,r32/DRn
 void CPU80386_OP0F_MOVTRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r TRn/r32,r32/TRn
 
