@@ -356,6 +356,10 @@ int get_segment_index(word *location)
 	{
 		return CPU_SEGMENT_TR;
 	}
+	else if (location == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR])
+	{
+		return CPU_SEGMENT_LDTR;
+	}
 	return -1; //Unknown segment!
 }
 
