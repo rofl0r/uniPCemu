@@ -497,7 +497,6 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 		result = (uint_32 *)/*memprotect(*/params->info[whichregister].reg32/*,4,"CPU_REGISTERS")*/; //Give register!
 		if (result) //Gotten?
 		{
-			*result = value; //Write the data to the result!
 			backupval = *result;
 			*result = value; //Write the data to the result!
 			if (result==&CPU[activeCPU].registers->CR0) //CR0 has been updated? Update the CPU mode, if needed!
