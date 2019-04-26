@@ -1925,7 +1925,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			else
 			{
-				if ((EXECSEGMENT_C(newdescriptor)) || (GENERALSEGMENT_DPL(newdescriptor)==getCPL())) //Not enough rights, but conforming?
+				if (((EXECSEGMENT_C(newdescriptor)) && (GENERALSEGMENT_DPL(newdescriptor)<getCPL())) || (GENERALSEGMENT_DPL(newdescriptor)==getCPL())) //Conforming with more or same privilege or non-conforming with same privilege?
 				{
 					INTTYPE = 2; //Interrupt to same privilege level!
 				}
