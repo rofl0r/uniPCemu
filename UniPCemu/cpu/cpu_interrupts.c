@@ -278,9 +278,9 @@ void CPU_IRET()
 		if (checkStackAccess(6,0,1)) return; //First level IRET data?
 		tempesp = CPU_POP32(); //POP ESP!
 		tempSS = (CPU_POP32()&0xFFFF); //POP SS!
-		for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);++V86SegReg)//POP required remaining registers into buffers first!
+		for (V86SegReg=0;V86SegReg<NUMITEMS(V86SegRegs);)//POP required remaining registers into buffers first!
 		{
-			V86SegRegs[V86SegReg] = (CPU_POP32()&0xFFFF); //POP segment register! Throw away high word!
+			V86SegRegs[V86SegReg++] = (CPU_POP32()&0xFFFF); //POP segment register! Throw away high word!
 		}
 		REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
 		updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!

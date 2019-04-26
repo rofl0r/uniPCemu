@@ -1942,6 +1942,9 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			byte newCPL;
 			newCPL = GENERALSEGMENT_DPL(newdescriptor); //New CPL to use!
 
+			byte forcepush32;
+			forcepush32 = 0; //Default: automatic 32-bit push!
+
 			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
 				hascallinterrupttaken_type = (newCPL==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
@@ -1963,17 +1966,12 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//We're back in protected mode now!
 
+				forcepush32 = 1; //We're enforcing 32-bit pushes regardless of the interrupt gate being 32-bit or not!
+
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
-				if (is32bit) //32-bit gate?
-				{
-					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),1)) return 0; //Abort on fault!
-				}
-				else //16-bit gate?
-				{
-					if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),0)) return 0; //Abort on fault!
-				}
+				if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),1)) return 0; //Abort on fault!
 
 				//Calculate and check the limit!
 
@@ -1983,13 +1981,37 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 					return 0;
 				}
 
-				//Save the Segment registers on the new stack!
-				CPU_PUSH16(&REG_GS,is32bit);
-				CPU_PUSH16(&REG_FS,is32bit);
-				CPU_PUSH16(&REG_DS,is32bit);
-				CPU_PUSH16(&REG_ES,is32bit);
-				CPU_PUSH16(&CPU[activeCPU].oldSS,is32bit);
-				CPU_PUSH32(&CPU[activeCPU].oldESP);
+				//Save the Segment registers on the new stack! Always push in 32-bit quantities(pad to 32-bits) when in 32-bit mode, according to documentation?
+				uint_32 val;
+				//if (is32bit)
+				{
+					val = REG_GS;
+					CPU_PUSH32(&val);
+					val = REG_FS;
+					CPU_PUSH32(&val);
+					val = REG_DS;
+					CPU_PUSH32(&val);
+					val = REG_ES;
+					CPU_PUSH32(&val);
+				}
+				//Note: 16-bit pushes don't make sense. If that's true, IRETD would fail(required for a return to V86 mode) due to always popping 32-bit values in that case?
+				/*
+				else //16-bit mode?
+				{
+					word val16;
+					CPU_PUSH16(&REG_GS,0);
+					CPU_PUSH16(&REG_FS,0);
+					CPU_PUSH16(&REG_DS,0);
+					CPU_PUSH16(&REG_ES,0);
+				}
+				*/
+
+				//SS and ESP are always 32-bit!
+				val = CPU[activeCPU].oldSS;
+				CPU_PUSH32(&val);
+				val = CPU[activeCPU].oldESP;
+				CPU_PUSH32(&val);
+
 				//Other registers are the normal variants!
 
 				//Load all Segment registers with zeroes!
@@ -2024,7 +2046,9 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				if (is32bit) //32-bit gate?
 				{
-					CPU_PUSH16(&CPU[activeCPU].oldSS,1);
+					uint_32 temp;
+					temp = CPU[activeCPU].oldSS;
+					CPU_PUSH32(&temp);
 					CPU_PUSH32(&CPU[activeCPU].oldESP);
 				}
 				else //16-bit gate?
@@ -2035,7 +2059,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				}
 				//Other registers are the normal variants!
 			}
-			else
+			else //No privilege level change?
 			{
 				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 				//Calculate and check the limit!
@@ -2047,24 +2071,19 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				}
 			}
 
-			if (is32bit)
+			if (is32bit || forcepush32)
 			{
 				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
+				uint_32 val;
+				val = CPU[activeCPU].registers->CS;
+				CPU_PUSH32(&val);
+				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
 			}
 			else
 			{
 				word temp2 = (word)(EFLAGSbackup&0xFFFF);
 				CPU_PUSH16(&temp2,0); //Push FLAGS!
-			}
-
-			CPU_PUSH16(&CPU[activeCPU].registers->CS,is32bit); //Push CS!
-
-			if (is32bit)
-			{
-				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
-			}
-			else
-			{
+				CPU_PUSH16(&CPU[activeCPU].registers->CS, 0); //Push CS!
 				CPU_PUSH16(&CPU[activeCPU].registers->IP,0); //Push IP!
 			}
 
@@ -2104,7 +2123,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			if ((errorcode>=0)) //Error code specified?
 			{
-				if (/*SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask*/ is32bit) //32-bit task?
+				if (/*SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])&CPU[activeCPU].D_B_Mask*/ is32bit || forcepush32) //32-bit task?
 				{
 					CPU_PUSH32(&errorcode32); //Push the error on the stack!
 				}
