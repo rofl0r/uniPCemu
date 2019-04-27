@@ -758,11 +758,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
 	CPU_flushPIQ(-1); //We're jumping to another address!
+	/*
 	if ((getRPL(CPU[activeCPU].registers->CS) != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])) && (getcpumode()==CPU_MODE_PROTECTED)) //Non-matching CS RPL vs CS CPL if not V86?
 	{
 		CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 		return 0; //Not present: limit exceeded!
 	}
+	*/ //Doesn't make sense with conforming segments, nor with V86 segments! Also, already handled by segmentWritten.
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
