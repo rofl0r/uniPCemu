@@ -1480,11 +1480,15 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		{
 			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
-				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,1)) return 1;
+				if (checkStackAccess(2, 1, 1)) return 1; //We're trying to push on the stack!
+				uint_32 pushingval;
+				pushingval = CPU[activeCPU].registers->CS; //What to push!
+				if (CPU80386_internal_PUSHdw(0,&pushingval)) return 1;
 				if (CPU80386_internal_PUSHdw(2,&CPU[activeCPU].registers->EIP)) return 1;
 			}
 			else //16-bit?
 			{
+				if (checkStackAccess(2, 1, 0)) return 1; //We're trying to push on the stack!
 				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return 1;
 				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return 1;
 			}
