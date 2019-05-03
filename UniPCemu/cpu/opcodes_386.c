@@ -3160,6 +3160,17 @@ void CPU80386_OPFF() //GRP5 Ev
 			if (modrm_check16(&params,MODRM_src0,1|0x40)) return; //Abort when needed!		
 		}
 		modrm_addoffset = 0;
+		if (thereg == 3) //far JMP/CALL?
+		{
+			if (getcpumode() != CPU_MODE_PROTECTED) //Real mode or V86 mode?
+			{
+				if (checkStackAccess(2, 1, 1)) return; //We're trying to push on the stack!
+			}
+		}
+		else if ((thereg == 2) || (thereg == 6)) //pushing something on the stack normally?
+		{
+			if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 1, 1)) return; ++CPU[activeCPU].stackchecked; }
+		}
 		if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if ((thereg==3) || (thereg==5)) //extra segment?
 		{
