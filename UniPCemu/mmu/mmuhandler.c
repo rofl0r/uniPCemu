@@ -384,30 +384,31 @@ struct
 	uint_32 memorylocpatch; //How much to substract for the physical memory location?
 	byte mapped;
 	byte memLocHole; //Prefetched data!
-} memorymapinfo[2]; //One for reads, one for writes!
+} memorymapinfo[4]; //One for reads, one for writes!
 
-OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
+//isread: 0=write, 1=read, 3=Instruction read
+OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 {
 	INLINEREGISTER uint_32 originaladdress = *realaddress, maskedaddress; //Original address!
 	byte memloc; //What memory block?
 	byte memoryhole;
 
 	maskedaddress = (originaladdress >> 0x10); //Take the block number we're trying to access!
-	if (unlikely(((memorymapinfo[iswrite].maskedaddress != (uint_64)maskedaddress)))) //Not matched already? Load the cache with it's information!
+	if (unlikely(((memorymapinfo[isread].maskedaddress != (uint_64)maskedaddress)))) //Not matched already? Load the cache with it's information!
 	{
-		memorymapinfo[iswrite].maskedaddress = maskedaddress; //Map!
-		memloc = memoryhole = memorymapinfo[iswrite].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
+		memorymapinfo[isread].maskedaddress = maskedaddress; //Map!
+		memloc = memoryhole = memorymapinfo[isread].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
 		memloc &= 0xF; //The location of said memory!
 		memoryhole >>= 4; //The map number that it's in, when it's a hole!
-		memorymapinfo[iswrite].memLocHole = memoryhole; //Save the memory hole to use, if any!
-		maskedaddress = memorymapinfo[iswrite].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
+		memorymapinfo[isread].memLocHole = memoryhole; //Save the memory hole to use, if any!
+		maskedaddress = memorymapinfo[isread].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
 		//Now that our cache is loaded with relevant data, start processing it!
 	}
 	else //Already loaded?
 	{
-		maskedaddress = memorymapinfo[iswrite].memorylocpatch; //Load the patch address!
+		maskedaddress = memorymapinfo[isread].memorylocpatch; //Load the patch address!
 		//Now that our cache is loaded with relevant data, start processing it!
-		/*memloc =*/ memoryhole = memorymapinfo[iswrite].memLocHole; //Load it to split it into our two results!
+		/*memloc =*/ memoryhole = memorymapinfo[isread].memLocHole; //Load it to split it into our two results!
 		//memloc &= 0xF; //The location of said memory!
 		//memoryhole >>= 4; //The map number that it's in, when it's not a hole!
 	}
@@ -428,7 +429,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte iswrite)
 		//Implemented (According to PCJs): Compaq has 384Kb of RAM at 0xFA0000-0xFFFFFF always. The rest of RAM is mapped low and above 16MB. The FE0000-FFFFFF range can be remapped to E0000-FFFFF, while it can be write-protected.
 		if ((originaladdress>=0xFA0000) && (originaladdress<=0xFFFFFF)) //Special area addressed?
 		{
-			if (unlikely(memoryprotect_FE0000 && iswrite && (originaladdress>=0xFE0000))) //Memory protected?
+			if (unlikely(memoryprotect_FE0000 && (!isread) && (originaladdress>=0xFE0000))) //Memory protected?
 			{
 				// *nonexistant = 1; //We're non-existant!
 				return 1; //Abort!
@@ -522,7 +523,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		result = ~result; //Reverse to get the correct output!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress,0))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress,(((index&0x20)>>4))|1))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
 		if (likely((is_XT==0) || (EMULATED_CPU>=CPU_80286))) //To give NOT for detecting memory on AT only?
@@ -583,7 +584,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)value << ((index & 3) << 3)); //Or into the last read/written value!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress,1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress,0))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
