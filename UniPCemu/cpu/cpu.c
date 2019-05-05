@@ -1626,9 +1626,9 @@ byte CPU_PUSH16_BIU(word *val, byte is32instruction) //Push Word!
 			stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
-		/*if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
+		if (is32instruction) //32-bit?
 		{
-			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), (uint_32)oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -1636,14 +1636,12 @@ byte CPU_PUSH16_BIU(word *val, byte is32instruction) //Push Word!
 		}
 		else
 		{
-		*/
 			if (CPU_request_MMUww(CPU_SEGMENT_SS,(CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()),oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
 			}
-			//MMU_ww(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), oldval,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
-		//}
+		}
 	}
 	return 0; //Not ready yet!
 }
