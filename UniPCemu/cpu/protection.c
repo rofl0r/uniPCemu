@@ -1985,12 +1985,12 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//We're back in protected mode now!
 
-				forcepush32 = 1; //We're enforcing 32-bit pushes regardless of the interrupt gate being 32-bit or not!
+				//forcepush32 = 1; //We're enforcing 32-bit pushes regardless of the interrupt gate being 32-bit or not!
 
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
-				if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),1)) return 0; //Abort on fault!
+				if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 
 				//Calculate and check the limit!
 
@@ -2002,7 +2002,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//Save the Segment registers on the new stack! Always push in 32-bit quantities(pad to 32-bits) when in 32-bit mode, according to documentation?
 				uint_32 val;
-				//if (is32bit)
+				if (is32bit)
 				{
 					val = REG_GS;
 					CPU_PUSH32(&val);
@@ -2012,9 +2012,12 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 					CPU_PUSH32(&val);
 					val = REG_ES;
 					CPU_PUSH32(&val);
+					val = CPU[activeCPU].oldSS;
+					CPU_PUSH32(&val);
+					val = CPU[activeCPU].oldESP;
+					CPU_PUSH32(&val);
 				}
-				//Note: 16-bit pushes don't make sense. If that's true, IRETD would fail(required for a return to V86 mode) due to always popping 32-bit values in that case?
-				/*
+				//Note: 16-bit pushes are supposed to be patched by the running V86 monitor before IRETD?
 				else //16-bit mode?
 				{
 					word val16;
@@ -2022,14 +2025,11 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 					CPU_PUSH16(&REG_FS,0);
 					CPU_PUSH16(&REG_DS,0);
 					CPU_PUSH16(&REG_ES,0);
+					val16 = CPU[activeCPU].oldSS;
+					CPU_PUSH16(&val16,0);
+					val16 = (CPU[activeCPU].oldESP&0xFFFF);
+					CPU_PUSH16(&val16,0);
 				}
-				*/
-
-				//SS and ESP are always 32-bit!
-				val = CPU[activeCPU].oldSS;
-				CPU_PUSH32(&val);
-				val = CPU[activeCPU].oldESP;
-				CPU_PUSH32(&val);
 
 				//Other registers are the normal variants!
 
