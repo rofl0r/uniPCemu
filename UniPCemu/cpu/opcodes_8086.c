@@ -5838,7 +5838,14 @@ void op_grp5() {
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; }
-		if (CPU8086_PUSHw(0,&oper1,0)) return;
+		if (modrm_addr16(&params,modrm_src0,0)==&CPU[activeCPU].registers->SP) //SP?
+		{
+			if (CPU8086_PUSHw(0,&CPU[activeCPU].registers->SP)) return;
+		}
+		else
+		{
+			if (CPU8086_PUSHw(0,&oper1,0)) return;
+		}
 		CPUPROT1
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
