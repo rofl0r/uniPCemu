@@ -1869,12 +1869,13 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	//Now, the (gate) descriptor to use is loaded!
 	switch (IDTENTRY_TYPE(idtentry)) //What type are we?
 	{
-	case IDTENTRY_TASKGATE: //32-bit task gate?
-	case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
-	case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
-	case IDTENTRY_16BIT_INTERRUPTGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //16/32-bit interrupt gate?
-	case IDTENTRY_16BIT_TRAPGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //16/32-bit trap gate?
+	case IDTENTRY_TASKGATE: //task gate?
+	case IDTENTRY_INTERRUPTGATE: //16-bit interrupt gate?
+	case IDTENTRY_TRAPGATE: //16-bit trap gate?
 		break;
+	case IDTENTRY_INTERRUPTGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //32-bit interrupt gate?
+	case IDTENTRY_TRAPGATE|IDTENTRY_32BIT_GATEEXTENSIONFLAG: //32-bit trap gate?
+		if (EMULATED_CPU>=CPU_80386) break; //OK on 80386+ only!
 	default:
 		THROWDESCGP(base,EXT,table); //#NP isn't triggered with IDT entries! #GP is triggered instead!
 		return 0;
@@ -1889,7 +1890,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	//Now, the (gate) descriptor to use is loaded!
 	switch (IDTENTRY_TYPE(idtentry)) //What type are we?
 	{
-	case IDTENTRY_TASKGATE: //32-bit task gate?
+	case IDTENTRY_TASKGATE: //task gate?
 		desttask = idtentry.selector; //Read the destination task!
 		if (((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,2|(EXT<<10)))<=0) || (desttask&4)) //Error loading new descriptor? The backlink is always at the start of the TSS! It muse also always be in the GDT!
 		{
@@ -1905,8 +1906,8 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 		is32bit = ((IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG)>>IDTENTRY_32BIT_GATEEXTENSIONFLAG_SHIFT); //Enable 32-bit gate?
 		switch (IDTENTRY_TYPE(idtentry) & 0x7) //What type are we?
 		{
-		case IDTENTRY_16BIT_INTERRUPTGATE: //16/32-bit interrupt gate?
-		case IDTENTRY_16BIT_TRAPGATE: //16/32-bit trap gate?
+		case IDTENTRY_INTERRUPTGATE: //interrupt gate?
+		case IDTENTRY_TRAPGATE: //trap gate?
 			hascallinterrupttaken_type = (getRPL(idtentry.selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
@@ -2134,7 +2135,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				FLAGW_AC(0); //Clear Alignment Check flag too!
 			}
 
-			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_16BIT_INTERRUPTGATE)
+			if ((IDTENTRY_TYPE(idtentry) & 0x7) == IDTENTRY_INTERRUPTGATE)
 			{
 				FLAGW_IF(0); //No interrupts!
 			}

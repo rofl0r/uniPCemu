@@ -308,8 +308,8 @@ typedef union PACKED
 #define IDTENTRY_TASKGATE 0x5
 
 //Partial value for interrupt/trap gates!
-#define IDTENTRY_16BIT_INTERRUPTGATE 0x6
-#define IDTENTRY_16BIT_TRAPGATE 0x7
+#define IDTENTRY_INTERRUPTGATE 0x6
+#define IDTENTRY_TRAPGATE 0x7
 //32-bit variants (gate extensino set with interrupt&trap gates)
 #define IDTENTRY_32BIT_GATEEXTENSIONFLAG 0x8
 //How much to shift the gate extension flag to obtain 0/1 instead!
