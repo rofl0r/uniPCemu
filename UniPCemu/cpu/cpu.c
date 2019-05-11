@@ -1011,6 +1011,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
 	{
 		CPU[i].allowInterrupts = 1; //Default to allowing all interrupts to run!
+		CPU[i].TSC = 0; //Reset timestamp counter!
 	}
 	CPU_initRegisters(isInit); //Initialise the registers!
 	CPU_initPrefixes(); //Initialise all prefixes!

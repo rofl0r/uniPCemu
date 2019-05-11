@@ -147,6 +147,7 @@ extern PIC i8259; //PIC processor!
 
 DOUBLE MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Time of a 14 MHZ tick!
 DOUBLE MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
+DOUBLE Pentiumtick = (1000000000 / (DOUBLE)33000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
 
 extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
 
@@ -370,6 +371,7 @@ void initEMU(int full) //Init!
 	doneEMU(); //Make sure we're finished too!
 
 	MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Initialize the 14 MHZ tick timing!
+	Pentiumtick = (1000000000/(DOUBLE)33000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
@@ -1191,6 +1193,17 @@ OPTINLINE byte coreHandler()
 		{
 			instructiontime = CPU[activeCPU].executed*CPU_speed_cycle; //Increase timing with the instruction time!
 		}
+
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Pentium has a time stamp counter?
+		{
+			//Tick the Pentium TSC!
+			uint_64 clocks;
+			CPU[activeCPU].TSCtiming += instructiontime; //Time some in realtime!
+			clocks = floor(CPU[activeCPU].TSCtiming / Pentiumtick); //How much to tick!
+			CPU[activeCPU].TSCtiming -= clocks * Pentiumtick; //Rest the time to keep us constant!
+			CPU[activeCPU].TSC += clocks; //Tick the clocks to keep us running!
+		}
+
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 

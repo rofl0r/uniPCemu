@@ -961,6 +961,8 @@ typedef struct
 	byte is_aligning; //Is data alignment(align flag) in effect?
 	uint_64 address_size; //Effective address size for the current instruction!
 	byte activeBreakpoint[4]; //Are we an active breakpoint?
+	uint_64 TSC; //Timestamp counter, counts raw clock cycles!
+	double TSCtiming; //How much remaining time has been counted on top of the time-stamp counter?
 } CPU_type;
 
 #ifndef IS_CPU
