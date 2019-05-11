@@ -5980,7 +5980,7 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 			{ 0,1,1,0,0,0,0,0x00 }, //C4 LES
 			{ 0,1,1,0,0,0,0,0x00 }, //C5 LDS
 			{ 0,1,0,0,0,0,1,0x00 }, //C6 MOV Mem/reg,imm8
-			{ 1,1,2,0,1,0,0,0x00 }, //C7 CMPXCHG8B r/m32
+			{ 1,1,2,0,1,0,0,0x81 }, //C7 CMPXCHG8B r/m32
 			{ 0,0,0,0,0,0,8,0x00 }, //C8 186+ ENTER imm16,imm8
 			{ 0,0,0,0,0,0,0,0x00 }, //C9 186+ LEAVE
 			{ 0,0,0,0,0,0,2,0x00 }, //CA RETF imm16
