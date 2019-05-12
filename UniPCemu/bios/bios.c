@@ -1516,7 +1516,7 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	}
 	else if (BIOS_Settings.emulated_CPU == CPU_PENTIUM) //80286?
 	{
-		printmsg(0xF, "Installed CPU: Intel Pentium(unfinished)\r\n"); //Emulated CPU!
+		printmsg(0xF, "Installed CPU: Intel Pentium(without FPU)\r\n"); //Emulated CPU!
 	}
 	else //Unknown CPU?
 	{
