@@ -25,7 +25,7 @@ void CPU586_CPUID()
 			break;
 		case 0x01: //Processor info and feature bits!
 			REG_EAX = 0x00000000; //Defaults!
-			REG_EDX = 8; //Just Page Size Extensions have been implemented!
+			REG_EDX = 0x13C; //Just Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8 have been implemented!
 			REG_ECX = 0x00000000; //No features!
 			break;
 		default: //Unknown parameter?
