@@ -1081,7 +1081,7 @@ void CPU_tickPendingReset()
 0x67 Address-size override
 */
 
-OPTINLINE void CPU_setprefix(byte prefix) //Sets a prefix on!
+void CPU_setprefix(byte prefix) //Sets a prefix on!
 {
 	CPU_prefixes[activeCPU][(prefix>>3)] |= (1<<(prefix&7)); //Have prefix!
 	switch (prefix) //Which prefix?

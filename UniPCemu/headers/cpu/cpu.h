@@ -1032,6 +1032,7 @@ void resetCPU(byte isInit); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
 void CPU_resetMode(); //Reset the mode to the default mode! (see above)
 byte CPU_getprefix(byte prefix); //Prefix set? (might be used by OPcodes!)
+void CPU_setprefix(byte prefix); //Sets a prefix on!
 byte getcpumode(); //Get current CPU mode (see CPU modes above!)
 
 void CPU_resetOP(); //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
