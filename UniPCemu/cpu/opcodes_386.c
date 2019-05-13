@@ -2395,12 +2395,14 @@ OPTINLINE byte CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte fla
 	{
 		if (data1==NULL)
 		{
+			CPU_setprefix(0xF0); //Locked!
 			if (modrm_check32(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
 		}
 		secondparambase = (data1||data2)?0:2; //Second param base
 		writebackbase = ((data2==NULL) && (data1==NULL))?4:2; //Write back param base
 		if (data2==NULL)
 		{
+			CPU_setprefix(0xF0); //Locked!
 			if (modrm_check32(&params,MODRM_src1,0|0x40)) return 1; //Abort on fault!
 		}
 		if (data1==NULL)
