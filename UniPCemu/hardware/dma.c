@@ -477,7 +477,7 @@ void DMA_StateHandler_S0()
 	{
 		if (CPU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
 		{
-			if (CPU[activeCPU].BUSactive==0) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now)!
+			if ((CPU[activeCPU].BUSactive==0) && (CPU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
 				CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 			}
@@ -485,6 +485,7 @@ void DMA_StateHandler_S0()
 			return; //NOP state!
 		}
 	}
+	else if (unlikely(CPU[activeCPU]._lock)) return; //Block us while the bus is locked in IPS clocking mode!
 	//We now have control of the BUS! DLDA=1. Resolve DRQn priorities!
 	INLINEREGISTER byte channelindex, MCMReversed;
 	INLINEREGISTER byte channel,controller;
