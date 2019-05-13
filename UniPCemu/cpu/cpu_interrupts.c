@@ -52,9 +52,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
-	if (getcpumode()==CPU_MODE_REAL) //Use IVT structure in real mode only!
+	if ((getcpumode()==CPU_MODE_REAL) || (errorcode==-4)) //Use IVT structure in real mode only, or during VME when processing real-mode style interrupts(errorcode of -4)!
 	{
-		if (CPU[activeCPU].registers->IDTR.limit<((intnr<<2)|3)) //IVT limit too low?
+		if (((errorcode == -4)?0x3FF:(CPU[activeCPU].registers->IDTR.limit))<((intnr<<2)|3)) //IVT limit too low?
 		{
 			if ((MMU_logging == 1) && advancedlog) //Are we logging?
 			{
@@ -68,6 +68,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			}
 			else return 0; //Abort on triple fault!
 		}
+		//errorcode=-4: Consult TSS for the VME extensions!
 		#ifdef LOG_ET34K640480256_SET
 		if ((intnr==0x10) && (CPU[activeCPU].registers->AX==0x002E) && (errorcode==-1)) //Setting the video mode to 0x2E?
 		{
@@ -77,7 +78,15 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		#endif
 		checkinterruptstep = 0; //Init!
-		if (CPU[activeCPU].internalinterruptstep==checkinterruptstep) if (checkStackAccess(3, 1, 0)) return 0; //We must allow three pushes to succeed to be able to throw an interrupt!
+		if (CPU[activeCPU].internalinterruptstep == checkinterruptstep)
+		{
+			if (errorcode == -4) //VME extensions require paging check as well?
+			{
+				if (checkMMUaccess16(-1, 0, (intnr << 2), 1|0xA0, getCPL(), 0, 0 | 0x8)) return 0; //Direct access Fault on IP?
+				if (checkMMUaccess16(-1, 0, ((intnr << 2)|2), 1|0xA0, getCPL(), 0, 0 | 0x8)) return 0; //Direct access Fault on CS?
+			}
+			if (checkStackAccess(3, 1, 0)) return 0; //We must allow three pushes to succeed to be able to throw an interrupt!
+		}
 		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS,0)) return 0; //Busy pushing flags!
 		checkinterruptstep += 2;
 		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment,0)) return 0; //Busy pushing return segment!
@@ -97,9 +106,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
 		}
 		++checkinterruptstep;
-		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,(intnr<<2)+CPU[activeCPU].registers->IDTR.base,&destINTIP,0)) return 0; //Read destination IP!
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,(intnr<<2)+((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTIP,0)) return 0; //Read destination IP!
 		checkinterruptstep += 2;
-		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + CPU[activeCPU].registers->IDTR.base,&destINTCS,0)) return 0; //Read destination CS!
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + ((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTCS,0)) return 0; //Read destination CS!
 		checkinterruptstep += 2;
 
 		FLAGW_IF(0); //We're calling the interrupt!

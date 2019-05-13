@@ -18,7 +18,7 @@ byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrb(offset,0); //Request a read!
+		return BIU_request_Memoryrb(offset, (segdesc == -1) ? 1 : 0); //Request a read!
 	}
 }
 
@@ -31,7 +31,7 @@ byte CPU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrw(offset,0); //Request a read!
+		return BIU_request_Memoryrw(offset,(segdesc==-1)?1:0); //Request a read!
 	}
 }
 
@@ -44,7 +44,7 @@ byte CPU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrdw(offset,0); //Request a read!
+		return BIU_request_Memoryrdw(offset, (segdesc == -1) ? 1 : 0); //Request a read!
 	}
 }
 
@@ -57,7 +57,7 @@ byte CPU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memorywb(offset,val,0); //Request a write!
+		return BIU_request_Memorywb(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
 	}
 }
 
@@ -70,7 +70,7 @@ byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryww(offset,val,0); //Request a write!
+		return BIU_request_Memoryww(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
 	}
 }
 
@@ -83,7 +83,7 @@ byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offs
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memorywdw(offset,val,0); //Request a write!
+		return BIU_request_Memorywdw(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
 	}
 }
 
@@ -160,6 +160,7 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 
 extern word INTreturn_CS; //Return CS
 extern uint_32 INTreturn_EIP; //Return EIP
+//errorcode: >=0: error code, -1=No error code, -2=Plain INT without error code, -3=T-bit in TSS is being triggered, -4=VME V86-mode IVT-style interrupt.
 void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcode) //Starting a new interrupt to handle?
 {
 	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!

@@ -98,6 +98,7 @@ uint_32 addresswrapping[12] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V2
 							}; //Address wrapping lookup table!
 
 //Address translation routine.
+//segdesc: >=0=use it's descriptor for segment #x, -1=No descriptor, use paging, -2=Direct physical memory access, -3=Use special ES, calculated in a 8086 way
 uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
 {
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
