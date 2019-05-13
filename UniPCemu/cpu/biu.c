@@ -801,6 +801,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 			{
 				//Memory operations!
 				case REQUEST_MMUREAD:
+					CPU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
@@ -844,6 +845,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					return 1; //Handled!
 					break;
 				case REQUEST_MMUWRITE:
+					CPU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					CPU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{

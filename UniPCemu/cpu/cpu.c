@@ -2371,6 +2371,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
+		CPU[activeCPU]._lock = 0; //Unlock!
 		//Prepare for the next (fetched or repeated) instruction to start executing!
 		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
 		//Handle REP instructions post-instruction next!

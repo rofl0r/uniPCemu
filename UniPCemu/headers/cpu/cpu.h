@@ -963,6 +963,7 @@ typedef struct
 	byte activeBreakpoint[4]; //Are we an active breakpoint?
 	uint_64 TSC; //Timestamp counter, counts raw clock cycles!
 	double TSCtiming; //How much remaining time has been counted on top of the time-stamp counter?
+	byte _lock; //Lock signal status!
 } CPU_type;
 
 #ifndef IS_CPU
