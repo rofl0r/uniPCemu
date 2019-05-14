@@ -92,6 +92,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		if ((getcpumode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
 		{
 			flags = (flags&~F_IF) | (FLAG_VIF ? F_IF : 0); //Replace the interrupt flag on the stack image with the Virtual Interrupt flag instead!
+			flags |= 0x3000; //IOPL of 3 on the stack image!
 		}
 
 		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&flags,0)) return 0; //Busy pushing flags!
