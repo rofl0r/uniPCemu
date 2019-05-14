@@ -39,7 +39,7 @@ void CPU586_CPUID()
 			break;
 		case 0x01: //Processor info and feature bits!
 			REG_EAX = 0x00000000; //Defaults!
-			REG_EDX = 0x13C; //Just Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8 have been implemented!
+			REG_EDX = 0x13D; //Just VME, Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8 have been implemented!
 			REG_ECX = 0x00000000; //No features!
 			break;
 		default: //Unknown parameter?
@@ -173,7 +173,19 @@ void CPU80586_OPFA() {
 	}
 	else //Normal operation!
 	{
-		if (checkSTICLI()) { FLAGW_IF(0); }
+		if (
+			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
+			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2))) == 0) //PVI==0
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() < 3)) //Normal behaviour when PVI 1, CPL < 3
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+			)
+		{
+			if (checkSTICLI()) { FLAGW_IF(0); }
+		}
+		else //PVI=1, CPL=3 and IOPL<3 in protected mode?
+		{
+			FLAGW_VIF(0); //Clear the Virtual Interrupt Flag!
+		}
 	}
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 1; } /*Special timing!*/
 }
@@ -184,13 +196,33 @@ void CPU80586_OPFB() {
 		if (FLAG_VIP) //VIP already set? Fault!
 		{
 			THROWDESCGP(0, 0, 0); //#GP(0)!
-			return;
+			return; //Abort!
 		}
 		FLAGW_VIF(1); //Set the virtual interrupt flag instead!
 	}
 	else //Normal operation!
 	{
-		if (checkSTICLI()) { FLAGW_IF(1); CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ }
+		if (
+			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
+			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() < 3)) //Normal behaviour when PVI 1, CPL < 3
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL()==3) && (FLAG_PL==3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+			)
+		{
+			if (checkSTICLI()) { FLAGW_IF(1); CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ }
+		}
+		else //PVI=1, CPL=3 and IOPL<3 in protected mode?
+		{
+			if (FLAG_VIP == 0) //No pending interrupts present?
+			{	
+				FLAGW_VIF(1); //Set the Virtual Interrupt Flag!
+			}
+			else //Pending interrupt must be handled!
+			{
+				THROWDESCGP(0, 0, 0); //#GP(0)!
+				return; //Abort!
+			}
+		}
 	}
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 1; } /*Special timing!*/
 }

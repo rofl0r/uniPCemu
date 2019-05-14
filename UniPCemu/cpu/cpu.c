@@ -2157,6 +2157,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 
 		cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!
+
+		if (FLAG_VIP && FLAG_VIF) //VIP and VIF both set on the new code?
+		{
+			CPU_commitState(); //Commit to the new instruction!
+			THROWDESCGP(0, 0, 0); //#GP(0)!
+			return; //Abort! Don't fetch or execute!
+		}
 	}
 
 	static byte OP = 0xCC; //The opcode!

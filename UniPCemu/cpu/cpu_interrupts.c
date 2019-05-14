@@ -337,13 +337,27 @@ void CPU_IRET()
 		if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
 		//Check unchanging bits!
 		tempEFLAGS = (tempEFLAGS&~F_V8)|(REG_EFLAGS&F_V8); //When returning to a V86-mode task from a non-PL0 handler, the VM flag isn't updated, so it stays in protected mode!
-		if (getCPL()) tempEFLAGS = (tempEFLAGS&~F_IOPL)|(REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
+		if (getCPL())
+		{
+			tempEFLAGS = (tempEFLAGS&~F_IOPL) | (REG_EFLAGS&F_IOPL); //Disallow IOPL being changed!
+			if (EMULATED_CPU >= CPU_PENTIUM) //VIP and VIF as well are protected?
+			{
+				tempEFLAGS = (tempEFLAGS&~(F_VIP|F_VIF)) | (REG_EFLAGS&(F_VIP|F_VIF)); //Disallow VIP&VIF being changed!
+			}
+		}
 		if (getCPL()>FLAG_PL) tempEFLAGS = (tempEFLAGS&~F_IF)|(REG_EFLAGS&F_IF); //Disallow IF being changed!
+
 		//Flags are OK now!
 		REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 		updateCPUmode();
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
+
+		if ((tempEFLAGS&(F_VIP | F_VIF)) == (F_VIP | F_VIF)) //VIP and VIF both set on the new code?
+		{
+			CPU_commitState(); //Commit to the new instruction!
+			THROWDESCGP(0, 0, 0); //#GP(0)!
+		}
 	}
 }
 
