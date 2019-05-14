@@ -1745,7 +1745,7 @@ byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform 
 			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 			mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
 			//Custom, not in documentation: 
-			if ((mapbase <= limit) && (mapbase >= (0x68+0x20))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+			if (((mapbase-1) <= limit) && (mapbase >= (0x68+0x20))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
 			{
 				maplocation += mapbase; //The actual location!
 				maplocation -= 0x20; //Start of the IR map!
