@@ -1703,7 +1703,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
-			if (limit >= 0x68) //Valid to check?
+			if (limit >= 0x67) //Valid to check?
 			{
 				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
@@ -1722,6 +1722,42 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		{
 			return 1; //Trigger an exception!
 		}
+	}
+	return 0; //Allow all for now!
+}
+
+byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform V86 real-mode interrupt. 1=Perform protected mode interrupt(legacy). 2=Faulted on the TSS; Abort INT instruction processing.
+{
+	uint_32 maplocation;
+	byte mappos;
+	byte mapvalue;
+	word mapbase;
+	maplocation = (intnr>>3); //8 bits per byte!
+	mappos = (1<<(intnr&7)); //The bit within the byte specified!
+	mapvalue = 1; //Default to have the value 1!
+	if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
+	{
+		uint_32 limit;
+		limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
+		if (limit >= 0x67) //Valid to check?
+		{
+			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+			mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
+			//Custom, not in documentation: 
+			if ((mapbase <= limit) && (mapbase >= (0x68+0x20))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+			{
+				maplocation += mapbase; //The actual location!
+				maplocation -= 0x20; //Start of the IR map!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				mapvalue = (MMU_rb0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0, 1)&mappos); //We're the bit to use!
+			}
+		}
+	}
+	if (mapvalue) //The map bit is set(or not a 32-bit task)?
+	{
+		return 1; //Count as set!
 	}
 	return 0; //Allow all for now!
 }

@@ -30,6 +30,7 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 sbyte touchSegment(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL); //Touch a system segment descriptor that's successfully loaded into the cache!
 
 byte checkPortRights(word port); //Are we allowed to not use this port?
+byte getTSSIRmap(word intnr); //What are we to do with this interrupt? 0=Perform V86 real-mode interrupt. 1=Perform protected mode interrupt(legacy). 2=Faulted on the TSS; Abort INT instruction processing.
 byte disallowPOPFI(); //Allow POPF to not change the interrupt flag?
 byte checkSTICLI(); //Check STI/CLI rights! 1 when allowed, 0 when to be ignored!
 
