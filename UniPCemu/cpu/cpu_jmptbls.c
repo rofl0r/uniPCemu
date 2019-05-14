@@ -4,6 +4,7 @@
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 REAL opcode functions!
 #include "headers/cpu/cpu_OP80286.h" //All opcodes under 80286+!
 #include "headers/cpu/cpu_OP80386.h" //Opcodes from the 80386+
+#include "headers/cpu/cpu_OP80586.h" //80586 opcode extensions!
 
 /*
 
@@ -1586,8 +1587,8 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //99h:
 		{ NULL, NULL }, //9Ah:
 		{ NULL, NULL }, //9Bh:
-		{ NULL, NULL }, //9Ch:
-		{ NULL, NULL }, //9Dh:
+		{ CPU80586_OP9C_16, NULL }, //9Ch:
+		{ CPU80586_OP9D_16, NULL }, //9Dh:
 		{ NULL, NULL }, //9Eh:
 		{ NULL, NULL }, //9Fh:
 		//0xA0:
@@ -1638,7 +1639,7 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //CAh:
 		{ NULL, NULL }, //CBh:
 		{ NULL, NULL }, //CCh:
-		{ NULL, NULL }, //CDh:
+		{ CPU80586_OPCD, NULL }, //CDh:
 		{ NULL, NULL }, //CEh:
 		{ NULL, NULL }, //CFh:
 		//0xD0:
@@ -1686,8 +1687,8 @@ Handler opcode_jmptbl[NUMCPUS][256][2] =   //Our standard internal standard inte
 		{ NULL, NULL }, //F7h:
 		{ NULL, NULL }, //F8h:
 		{ NULL, NULL }, //F9h:
-		{ NULL, NULL }, //FAh:
-		{ NULL, NULL }, //FBh:
+		{ CPU80586_OPFA, NULL }, //FAh:
+		{ CPU80586_OPFB, NULL }, //FBh:
 		{ NULL, NULL }, //FCh:
 		{ NULL, NULL }, //FDh:
 		{ NULL, NULL }, //FEh:
