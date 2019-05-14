@@ -169,7 +169,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcod
 	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
 	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
 	CPU_executionphaseinterrupt_type = type; //Are we a what kind of type are we?
-	CPU_executionphaseinterrupt_is_interrupt = (((errorcode==-2)?1:0)|(type<<1)); //Interrupt?
+	CPU_executionphaseinterrupt_is_interrupt = ((((errorcode==-2)|(errorcode==-4))?1:0)|(type<<1)); //Interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	INTreturn_CS = CPU[activeCPU].registers->CS; //Return segment!
 	INTreturn_EIP = CPU[activeCPU].registers->EIP; //Save the return offset!

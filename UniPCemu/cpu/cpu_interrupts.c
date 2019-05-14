@@ -68,7 +68,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			}
 			else return 0; //Abort on triple fault!
 		}
-		//errorcode=-4: Consult TSS for the VME extensions!
+		//errorcode=-4: VME extensions are used!
 		#ifdef LOG_ET34K640480256_SET
 		if ((intnr==0x10) && (CPU[activeCPU].registers->AX==0x002E) && (errorcode==-1)) //Setting the video mode to 0x2E?
 		{
@@ -213,7 +213,7 @@ void CPU_IRET()
 				tempEFLAGS = CPU_POP32();
 				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
 				//VM&IOPL aren't changed by the POP!
-				tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+				tempEFLAGS = (tempEFLAGS&~(0x23000|F_VIF|F_VIP))|(REG_EFLAGS&(0x23000|F_VIF|F_VIP)); //Don't modfiy changed flags that we're not allowed to!
 				REG_EFLAGS = tempEFLAGS; //Restore EFLAGS!
 				updateCPUmode();
 			}
@@ -225,13 +225,43 @@ void CPU_IRET()
 				tempEFLAGS = CPU_POP16(0);
 				if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
 				//VM&IOPL aren't changed by the POP!
-				tempEFLAGS = (tempEFLAGS&~0x23000)|(REG_EFLAGS&0x23000); //Don't modfiy changed flags that we're not allowed to!
+				tempEFLAGS = (tempEFLAGS&~(0x23000|F_VIF|F_VIP))|(REG_EFLAGS&(0x23000|F_VIF|F_VIP)); //Don't modfiy changed flags that we're not allowed to!
 				REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 			}
 		}
-		else
+		else //PL!=3?
 		{
-			THROWDESCGP(0,0,0); //Throw #GP(0) to trap to the VM monitor!
+			if (((CPU[activeCPU].registers->CR4 & 1) && (EMULATED_CPU>=CPU_PENTIUM)) && (CPU_Operand_size[activeCPU]==0)) //Pentium with VME enabled, executing 16-bit IRET?
+			{
+				//Execute 16-bit POP normally
+				if (checkStackAccess(3, 0, 0)) return; //3 Word POPs!
+				destEIP = (uint_32)CPU_POP16(0);
+				tempCS = CPU_POP16(0);
+				tempEFLAGS = CPU_POP16(0);
+				if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
+				//VM&IOPL aren't changed by the POP!
+				if (tempEFLAGS&F_TF) //Trap flag set?
+				{
+					THROWDESCGP(0, 0, 0); //Throw #GP(0) to trap to the VM monitor!
+				}
+				else //VIF from IF!
+				{
+					FLAGW_VIF((tempEFLAGS&F_IF) ? 1 : 0); //Virtual interrupt flag from Interrupt flag on the stack!
+				}
+				tempEFLAGS = (tempEFLAGS&~(0x23000 | F_VIF | F_VIP | F_IF)) | (REG_EFLAGS&(0x23000 | F_VIF | F_VIP | F_IF)); //Don't modfiy changed flags that we're not allowed to!
+				if (FLAG_VIP && FLAG_VIF) //Virtual interrupt flag has been set by software while pending?
+				{
+					THROWDESCGP(0, 0, 0); //Throw #GP(0) to trap to the VM monitor!
+				}
+				else //Finish normally!
+				{
+					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
+				}
+			}
+			else //Normal handling?
+			{
+				THROWDESCGP(0, 0, 0); //Throw #GP(0) to trap to the VM monitor!
+			}
 		}
 		return; //Finished!
 	}

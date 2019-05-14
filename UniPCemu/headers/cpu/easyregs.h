@@ -71,6 +71,8 @@ extern byte parity[0x100]; //Our parity table!
 #define FLAG_AF FLAGREGR_AF(CPU[activeCPU].registers)
 #define FLAG_PF FLAGREGR_PF(CPU[activeCPU].registers)
 #define FLAG_CF FLAGREGR_CF(CPU[activeCPU].registers)
+#define FLAG_VIF FLAGREGR_VIF(CPU[activeCPU].registers)
+#define FLAG_VIP FLAGREGR_VIP(CPU[activeCPU].registers)
 
 //Flags(write version default)
 #define FLAGW_AC(val) FLAGREGW_AC(CPU[activeCPU].registers,val)
@@ -87,5 +89,7 @@ extern byte parity[0x100]; //Our parity table!
 #define FLAGW_AF(val) FLAGREGW_AF(CPU[activeCPU].registers,val)
 #define FLAGW_PF(val) FLAGREGW_PF(CPU[activeCPU].registers,val)
 #define FLAGW_CF(val) FLAGREGW_CF(CPU[activeCPU].registers,val)
+#define FLAGW_VIF(val) FLAGREGW_VIF(CPU[activeCPU].registers,val)
+#define FLAGW_VIP(val) FLAGREGW_VIP(CPU[activeCPU].registers,val)
 
 #endif

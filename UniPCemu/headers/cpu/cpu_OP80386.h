@@ -335,5 +335,5 @@ byte CPU80386_internal_stepreadinterruptdw(word base, sword segment, word segval
 byte CPU80386_internal_stepwritemodrmdw(word base, uint_32 value, byte paramnr);
 
 void op_add32(); //32-bit add for 8086 (I)MUL!
-
+void INTdebugger80386(); //Special INTerrupt debugger!
 #endif

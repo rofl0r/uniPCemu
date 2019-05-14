@@ -74,7 +74,7 @@ void op_grp3_32(); //Prototype!
 uint_32 op_grp2_32(byte cnt, byte varshift); //Prototype!
 void op_grp5_32(); //Prototype
 
-OPTINLINE void INTdebugger80386() //Special INTerrupt debugger!
+void INTdebugger80386() //Special INTerrupt debugger!
 {
 	if (DEBUGGER_LOG==DEBUGGERLOG_INT) //Interrupts only?
 	{

@@ -465,6 +465,17 @@ AVL: available to the programmer:
 #define F_V8 0x20000
 //Virtual 8086 MODE flag
 
+//New flags in 80486:
+#define F_AC 0x40000
+
+//New flags in 80486:
+//Virtual interrupt flag
+#define F_VIF 0x80000
+//Virtual interrupt pending
+#define F_VIP 0x100000
+//Able to use CPUID instruction
+#define F_ID 0x200000
+
 //Same, but shorter:
 
 #define F_CF F_CARRY
