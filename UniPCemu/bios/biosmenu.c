@@ -1698,7 +1698,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 5; //Amount of CPU types!
+	numlist = 6; //Amount of CPU types!
 	for (i=0; i<6; i++) //Process options!
 	{
 		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
