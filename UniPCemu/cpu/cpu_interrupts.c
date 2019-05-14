@@ -111,7 +111,14 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + ((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTCS,0)) return 0; //Read destination CS!
 		checkinterruptstep += 2;
 
-		FLAGW_IF(0); //We're calling the interrupt!
+		if ((getCPUmode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
+		{
+			FLAGW_VIF(0); //We're calling the interrupt!
+		}
+		else //Normal interrupt flag handling!
+		{
+			FLAGW_IF(0); //We're calling the interrupt!
+		}
 		FLAGW_TF(0); //We're calling an interrupt, resetting debuggers!
 		
 		if (EMULATED_CPU>=CPU_80486)
