@@ -89,7 +89,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		word flags;
 		flags = REG_FLAGS; //Default flags!
-		if ((getCPUmode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
+		if ((getcpumode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
 		{
 			flags = (flags&~F_IF) | (FLAG_VIF ? F_IF : 0); //Replace the interrupt flag on the stack image with the Virtual Interrupt flag instead!
 		}
@@ -118,7 +118,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + ((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTCS,0)) return 0; //Read destination CS!
 		checkinterruptstep += 2;
 
-		if ((getCPUmode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
+		if ((getcpumode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
 		{
 			FLAGW_VIF(0); //We're calling the interrupt!
 		}
