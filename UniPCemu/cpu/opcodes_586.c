@@ -283,3 +283,36 @@ void CPU80586_OP9D_16() {
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 }
+
+void CPU80586_OP9D_32() {
+	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
+	if (unlikely((getcpumode() == CPU_MODE_8086) && (FLAG_PL != 3))) { THROWDESCGP(0, 0, 0); return; }//#GP fault!
+	static uint_32 tempflags;
+	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 0, 1)) return; ++CPU[activeCPU].stackchecked; }
+	if (CPU80586_instructionstepPOPtimeout(0)) return; /*POP timeout*/
+	if (CPU80386_POPdw(2, &tempflags)) return;
+	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */ }
+	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (getcpumode() == CPU_MODE_8086) //Virtual 8086 mode?
+	{
+		if (FLAG_PL == 3) //IOPL 3?
+		{
+			tempflags = ((tempflags&~(0x1B0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x1B0000 | F_VIP | F_VIF))); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+		} //Otherwise, fault is raised!
+	}
+	else //Protected/real mode?
+	{
+		if (getCPL())
+		{
+			tempflags = ((tempflags&~(0x1A0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x20000 | F_VIP | F_VIF))); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */
+		}
+		else
+		{
+			tempflags = ((tempflags&~0x1A0000) | (REG_EFLAGS & 0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */
+		}
+	}
+	REG_EFLAGS = tempflags;
+	updateCPUmode(); /*POPF*/
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
+}

@@ -17,4 +17,5 @@ void CPU80586_OPFA();
 void CPU80586_OPFB();
 void CPU80586_OP9C_16();
 void CPU80586_OP9D_16();
+void CPU80586_OP9D_32();
 #endif
