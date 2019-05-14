@@ -87,7 +87,14 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			}
 			if (checkStackAccess(3, 1, 0)) return 0; //We must allow three pushes to succeed to be able to throw an interrupt!
 		}
-		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&REG_FLAGS,0)) return 0; //Busy pushing flags!
+		word flags;
+		flags = REG_FLAGS; //Default flags!
+		if ((getCPUmode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
+		{
+			flags = (flags&~F_IF) | (FLAG_VIF ? F_IF : 0); //Replace the interrupt flag on the stack image with the Virtual Interrupt flag instead!
+		}
+
+		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&flags,0)) return 0; //Busy pushing flags!
 		checkinterruptstep += 2;
 		if (CPU8086_internal_interruptPUSHw(checkinterruptstep,&retsegment,0)) return 0; //Busy pushing return segment!
 		checkinterruptstep += 2;
