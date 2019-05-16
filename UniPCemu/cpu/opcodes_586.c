@@ -175,9 +175,16 @@ void CPU80586_OPFA() {
 	{
 		if (
 			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
-			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2))) == 0) //PVI==0
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() < 3)) //Normal behaviour when PVI 1, CPL < 3
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
+					(
+					(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+						(
+						(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
+						|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+						)
+					)
+				)
 			)
 		{
 			if (checkSTICLI()) { FLAGW_IF(0); }
@@ -205,8 +212,15 @@ void CPU80586_OPFB() {
 		if (
 			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
 			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL() < 3)) //Normal behaviour when PVI 1, CPL < 3
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && (CPU[activeCPU].registers->CR4 & 2) && (getCPL()==3) && (FLAG_PL==3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+			|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
+					(
+					(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+						(
+						(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
+						|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+						)
+					)
+				)
 			)
 		{
 			if (checkSTICLI()) { FLAGW_IF(1); CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ }
