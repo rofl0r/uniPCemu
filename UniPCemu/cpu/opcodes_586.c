@@ -174,14 +174,16 @@ void CPU80586_OPFA() {
 	else //Normal operation!
 	{
 		if (
-			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
-			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
-					(
-					(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+			likely(
+				(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
+				|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
+				|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
 						(
-						(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
-						|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+							(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+								(
+								(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
+								|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+								)
 						)
 					)
 				)
@@ -210,14 +212,16 @@ void CPU80586_OPFB() {
 	else //Normal operation!
 	{
 		if (
-			(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
-			|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
-			|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
-					(
-					(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+			likely(
+				(getcpumode() != CPU_MODE_PROTECTED) //Not protected mode has normal behaviour as well
+				|| (((getcpumode() == CPU_MODE_PROTECTED) && ((CPU[activeCPU].registers->CR4 & 2)))==0) //PVI==0
+				|| ((getcpumode() == CPU_MODE_PROTECTED) && //PVI possible?
 						(
-						(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
-						|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+							(CPU[activeCPU].registers->CR4 & 2) && //Enabled?
+								(
+								(getCPL() < 3) //Normal behaviour when PVI 1, CPL < 3
+								|| ((getCPL() == 3) && (FLAG_PL == 3)) //Normal behaviour when PVI 1, CPL == 3, IOPL == 3
+								)
 						)
 					)
 				)
