@@ -97,7 +97,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 			CPU286_OP0F00(); //Same as 80286!
 			return;
 		}
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -113,7 +113,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 			CPU286_OP0F00(); //Same as 80286!
 			return;
 		}
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;

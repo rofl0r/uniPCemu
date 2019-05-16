@@ -143,7 +143,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SLDT
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -154,7 +154,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -165,7 +165,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 2: //LLDT
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -184,7 +184,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 3: //LTR
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -203,7 +203,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT2
 		break;
 	case 4: //VERR
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
@@ -261,7 +261,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPUPROT2
 		break;
 	case 5: //VERW
-		if (getcpumode() == CPU_MODE_REAL)
+		if (getcpumode() != CPU_MODE_PROTECTED)
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
