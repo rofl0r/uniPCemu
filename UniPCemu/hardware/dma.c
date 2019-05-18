@@ -472,6 +472,7 @@ void DMA_StateHandler_SI()
 	}
 }
 
+extern byte blockDMA; //Blocking DMA ?
 void DMA_StateHandler_S0()
 {
 	//S0: Sample DLDA. Resolve DRQn priorities.
@@ -482,10 +483,10 @@ void DMA_StateHandler_S0()
 			if ((CPU[activeCPU].BUSactive==0) && (CPU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
 				CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
-				if (BIU[activeCPU].blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
+				if (blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
 				{
-					DMA_waitstate = BIU[activeBIU].blockDMA; //Apply this waitstate!
-					BIU[activeCPU].blockDMA = 0; //We're used!
+					DMA_waitstate = blockDMA; //Apply this waitstate!
+					blockDMA = 0; //We're used!
 				}
 				else
 				{
