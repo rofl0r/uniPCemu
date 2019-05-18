@@ -485,6 +485,7 @@ void DMA_StateHandler_S0()
 				if (BIU[activeCPU].blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
 				{
 					DMA_waitstate = BIU[activeBIU].blockDMA; //Apply this waitstate!
+					BIU[activeCPU].blockDMA = 0; //We're used!
 				}
 				else
 				{
