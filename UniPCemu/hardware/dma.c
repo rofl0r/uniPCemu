@@ -349,6 +349,7 @@ void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
 byte lastcycle = 0; //Current channel in total (0-7)
 
 extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 2=DMA
+byte DMA_waitstate = 0; //DMA T1 waitstate?
 
 /*
 	DMA states:
@@ -465,6 +466,7 @@ void DMA_StateHandler_SI()
 			if (processchannel) //Processing this channel?
 			{
 				++DMA_S; //Proceed into the next DMA state: S0!
+				return; //Abort search!
 			}
 		}
 	}
@@ -480,12 +482,26 @@ void DMA_StateHandler_S0()
 			if ((CPU[activeCPU].BUSactive==0) && (CPU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
 				CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+				if (BIU[activeCPU].blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
+				{
+					DMA_waitstate = BIU[activeBIU].blockDMA; //Apply this waitstate!
+				}
+				else
+				{
+					DMA_waitstate = 0; //Don't use any waitstate. Start immediately!
+				}
 			}
 			//BUS is taken or waiting the cycle?
 			return; //NOP state!
 		}
 	}
 	else if (unlikely(CPU[activeCPU]._lock)) return; //Block us while the bus is locked in IPS clocking mode!
+
+	if (DMA_waitstate) //Waiting on DMA transfer start?
+	{
+		--DMA_waitstate; //Tick a waitstate!
+		return; //Executing a DMA waitstate by the CPU to properly start on T1 or actual bus freed!
+	}
 	//We now have control of the BUS! DLDA=1. Resolve DRQn priorities!
 	INLINEREGISTER byte channelindex, MCMReversed;
 	INLINEREGISTER byte channel,controller;

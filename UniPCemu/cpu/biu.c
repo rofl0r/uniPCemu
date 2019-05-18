@@ -1077,6 +1077,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 	}
 	else //Active CPU cycle?
 	{
+		BIU[activeCPU].blockDMA = 0; //Not blocking DMA anymore!
 		cycleinfo->curcycle = (BIU[activeCPU].prefetchclock&3); //Current cycle!
 		if (unlikely(cycleinfo->cycles_stallBIU)) //To stall?
 		{
@@ -1134,6 +1135,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 		{
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+			BIU[activeCPU].blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
 
 		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
@@ -1151,6 +1153,7 @@ void BIU_cycle_active286()
 	}
 	else //Active CPU cycle?
 	{
+		BIU[activeCPU].blockDMA = 0; //Not blocking DMA anymore!
 		cycleinfo->curcycle = (BIU[activeCPU].prefetchclock&1); //Current cycle!
 		if (unlikely(cycleinfo->cycles_stallBIU)) //To stall?
 		{
@@ -1214,6 +1217,7 @@ void BIU_cycle_active286()
 		{
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+			BIU[activeCPU].blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
 		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
@@ -1230,6 +1234,7 @@ void BIU_cycle_active486()
 	}
 	else //Active CPU cycle?
 	{
+		BIU[activeCPU].blockDMA = 0; //Not blocking DMA anymore!
 		cycleinfo->curcycle = (BIU[activeCPU].prefetchclock & 1); //Current cycle!
 		if (unlikely(cycleinfo->cycles_stallBIU)) //To stall?
 		{
@@ -1279,6 +1284,7 @@ void BIU_cycle_active486()
 		{
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+			BIU[activeCPU].blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
 		if (unlikely(cycleinfo->cycles && BIU_active)) --cycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
