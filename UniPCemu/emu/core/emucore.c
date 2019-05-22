@@ -994,6 +994,7 @@ OPTINLINE byte coreHandler()
 
 	DOUBLE instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
 	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
+	if (unlikely((currentCPUtime-last_timing)>2000000000.0)) last_timing = currentCPUtime-1000.0; //Safety: 2 seconds or more(should be impossible normally) becomes 1us.
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
 	{
 		if (unlikely(debugger_thread))
