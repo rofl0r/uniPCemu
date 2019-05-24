@@ -1890,12 +1890,13 @@ byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 byte gotREP = 0; //Default: no REP-prefix used!
 byte REPPending = 0; //Pending REP reset?
 
-void CPU_8086REPPending() //Execute this before CPU_exec!
+//specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
+void CPU_8086REPPending(byte specialReset) //Execute this before CPU_exec!
 {
 	if (REPPending) //Pending REP?
 	{
 		REPPending = 0; //Disable pending REP!
-		CPU_resetOP(); //Rerun the last instruction!
+		CPU_RealResetOP(specialReset); //Rerun the last instruction!
 	}
 }
 
@@ -2091,7 +2092,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//bufferMMU(); //Buffer the MMU writes for us!
 		debugger_beforeCPU(); //Everything that needs to be done before the CPU executes!
 		MMU_resetaddr(); //Reset invalid address for our usage!
-		CPU_8086REPPending(); //Process pending REP!
+		CPU_8086REPPending(0); //Process pending REP!
 		protection_nextOP(); //Prepare protection for the next instruction!
 		if (!CPU[activeCPU].repeating)
 		{
@@ -2593,11 +2594,20 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 
 extern uint_32 destEIP;
 
+void CPU_RealResetOP(byte isREPeating) //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
+{
+	if (isREPeating == 0) //Not a repeating reset?
+	{
+		//Actually reset the currrent instruction!
+		CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
+		CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
+		CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
+	}
+}
+
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
-	CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
-	CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
-	CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
+	CPU_RealResetOP(0); //Non-repeating reset!
 }
 
 //Exceptions!

@@ -168,11 +168,11 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
 							if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
 							{
-								CPU_8086REPPending(); //Process pending REPs normally as documented!
+								CPU_8086REPPending(1); //Process pending REPs normally as documented!
 							}
 							else //Execute the CPU bug!
 							{
-								CPU_8086REPPending(); //Process pending REPs normally as documented!
+								CPU_8086REPPending(1); //Process pending REPs normally as documented!
 								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
 							CPU_exec_lastCS = CPU_exec_CS;

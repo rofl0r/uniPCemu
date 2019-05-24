@@ -1127,7 +1127,8 @@ void generate_timings_tbl(); //Generate the timings table!
 void updateCPUmode(); //Update the CPU mode!
 
 byte CPU_segmentOverridden(byte activeCPU);
-void CPU_8086REPPending(); //Execute this before CPU_exec!
+//specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
+void CPU_8086REPPending(byte specialReset); //Execute this before CPU_exec!
 
 byte execNMI(byte causeisMemory); //Execute an NMI!
 
