@@ -819,11 +819,13 @@ char fullcmd[65536];
 
 OPTINLINE void debugger_autolog()
 {
+	byte dologinstruction = 1;
+	dologinstruction = 1; //Default: log the instruction!
 	if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 	{
-		if ((debuggerregisters.EIP == CPU[activeCPU].registers->EIP) && (debuggerregisters.CS == CPU[activeCPU].registers->CS) && (!CPU[activeCPU].faultraised) && (!forcerepeat) && (!debuggerHLT))
+		if ((CPU[activeCPU].repeating|debuggerHLT) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
 		{
-			return; //Are we the same address as the executing command and no fault or HLT state has been raised? We're a repeat operation!
+			dologinstruction = 0; //Are we a repeating(REP-prefixed) instruction that's still looping internally or halted CPU state and no fault has been raised? We're a repeat/<HLT> operation that we don't log instructions for!
 		}
 		forcerepeat = 0; //Don't force repeats anymore if forcing!
 	}
@@ -832,7 +834,7 @@ OPTINLINE void debugger_autolog()
 	{
 		log_timestampbackup = log_logtimestamp(2); //Save state!
 		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
-		if (CPU[activeCPU].executed)
+		if (CPU[activeCPU].executed && dologinstruction)
 		{
 			//Now generate debugger information!
 			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single-line?
@@ -1084,6 +1086,8 @@ OPTINLINE void debugger_autolog()
 			safestrcpy(debugger_memoryaccess_text,sizeof(debugger_memoryaccess_text),""); //Clear the text to apply: we're done!
 		}
 		log_logtimestamp(log_timestampbackup); //Restore state!
+
+		if (unlikely(dologinstruction == 0)) return; //Abort when not logging the instruction(don't check below)!
 
 		if (CPU[activeCPU].executed && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) //Multiple lines and finished executing?
 		{
