@@ -1890,6 +1890,8 @@ byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 byte gotREP = 0; //Default: no REP-prefix used!
 byte REPPending = 0; //Pending REP reset?
 
+void CPU_RealResetOP(byte isREPeating); //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
+
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
 void CPU_8086REPPending(byte specialReset) //Execute this before CPU_exec!
 {
