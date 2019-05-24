@@ -1128,7 +1128,7 @@ void updateCPUmode(); //Update the CPU mode!
 
 byte CPU_segmentOverridden(byte activeCPU);
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
-void CPU_8086REPPending(byte specialReset); //Execute this before CPU_exec!
+void CPU_8086REPPending(byte doReset); //Execute this before CPU_exec!
 
 byte execNMI(byte causeisMemory); //Execute an NMI!
 

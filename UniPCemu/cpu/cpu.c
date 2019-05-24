@@ -1890,15 +1890,15 @@ byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 byte gotREP = 0; //Default: no REP-prefix used!
 byte REPPending = 0; //Pending REP reset?
 
-void CPU_RealResetOP(byte isREPeating); //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
+void CPU_RealResetOP(byte doReset); //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
-void CPU_8086REPPending(byte specialReset) //Execute this before CPU_exec!
+void CPU_8086REPPending(byte doReset) //Execute this before CPU_exec!
 {
 	if (REPPending) //Pending REP?
 	{
 		REPPending = 0; //Disable pending REP!
-		CPU_RealResetOP(specialReset); //Rerun the last instruction!
+		CPU_RealResetOP(doReset); //Rerun the last instruction!
 	}
 }
 
@@ -2177,6 +2177,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //New instruction to start?
 		{
 			CPU_resetInstructionSteps(); //Reset all timing that's still running!
+			CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 		}
 		memset(&CPU[activeCPU].instructionfetch,0,sizeof(CPU[activeCPU].instructionfetch)); //Not fetching anything anymore, we're ready to use!
 	}
@@ -2596,9 +2597,9 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 
 extern uint_32 destEIP;
 
-void CPU_RealResetOP(byte isREPeating) //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
+void CPU_RealResetOP(byte doReset) //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
-	if (isREPeating == 0) //Not a repeating reset?
+	if (likely(doReset)) //Not a repeating reset?
 	{
 		//Actually reset the currrent instruction!
 		CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
@@ -2609,7 +2610,7 @@ void CPU_RealResetOP(byte isREPeating) //Rerun current Opcode? (From interrupt c
 
 void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
-	CPU_RealResetOP(0); //Non-repeating reset!
+	CPU_RealResetOP(1); //Non-repeating reset!
 }
 
 //Exceptions!
