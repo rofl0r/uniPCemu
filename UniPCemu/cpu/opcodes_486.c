@@ -68,7 +68,10 @@ void CPU486_CPUID()
 		REG_EAX |= (4<<8); //Family: 80486/AMD 5x86/Cyrix 5x86
 		REG_EAX |= (2<<4); //Model: i80486SX
 		REG_EAX |= (0<<0); //Processor stepping: unknown with 80486SX!
+		REG_EBX = 0; //Unknown, leave zeroed!
 		REG_EDX = 0; //No extensions!
+		REG_ECX = 0x00000000; //No features!
+		break;
 	default:
 		break;
 	}
