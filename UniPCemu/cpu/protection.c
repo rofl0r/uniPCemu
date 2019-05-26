@@ -667,7 +667,7 @@ getsegment_seg: Gets a segment, if allowed.
 parameters:
 	whatsegment: What segment is used?
 	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting, bit 11=TSS Busy requirement(1=Busy, 0=Non-busy), bit 12=bit 13-14 are the CPL instead for privilege checks.
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting, bit 11=TSS Busy requirement(1=Busy, 0=Non-busy), bit 12=bit 13-14 are the CPL instead for privilege checks. bit13-14: used CPL, bit 15: don't throw #SS when set and not a present cause of the fault.
 result:
 	The segment when available, NULL on error or disallow.
 
@@ -705,7 +705,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if ((*segmentval&4) && (((GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) || (segment==CPU_SEGMENT_LDTR))) //Invalid LDT segment and LDT is addressed or LDTR in LDT?
 	{
-		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL&0x200)) goto throwSSsegmentval;
+		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL&0x200) && ((isJMPorCALL&0x8000)==0)) goto throwSSsegmentval;
 	throwdescsegmentval:
 		if (isJMPorCALL&0x200) //TSS is the cause?
 		{
@@ -725,7 +725,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	{
 		if (loadresult == 0) //Not already faulted?
 		{
-			if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSsegmentval;
+			if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
 			goto throwdescsegmentval;
 		}
 		return NULL; //Error, by specified reason!
@@ -742,7 +742,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		{
 			if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_SS)) //Not allowed?
 			{
-				if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSsegmentval;
+				if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
 				goto throwdescsegmentval; //Throw #GP error!
 				return NULL; //Error, by specified reason!
 			}
@@ -755,7 +755,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSsegmentval;
+		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
 		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
@@ -858,7 +858,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	//Final descriptor safety check!
 	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
 	{
-		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSsegmentval;
+		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
 		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //We're an invalid descriptor to use!
 	}
@@ -877,7 +877,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		)
 		)
 	{
-		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSoriginalval;
+		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSoriginalval;
 		throwdescoriginalval:
 		if (isJMPorCALL&0x200) //TSS is the cause?
 		{
@@ -926,7 +926,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		&& (!((isJMPorCALL&0x80)==0x80)) //Don't ignore privilege?
 		)
 	{
-		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200)) goto throwSSoriginalval;
+		if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSoriginalval;
 		goto throwdescoriginalval; //Throw error!
 		return NULL; //We are a lower privilege level, so don't load!
 	}
@@ -1805,7 +1805,7 @@ byte switchStacks(byte newCPL)
 		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
 		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
-		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x200|((newCPL<<8)&0x400)|0x1000|((newCPL&3)<<13))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL.
+		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x8000|0x200|((newCPL<<8)&0x400)|0x1000|((newCPL&3)<<13))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL. Don't throw #SS for normal faults, throw #TS instead!
 		if (TSSSize) //32-bit?
 		{
 			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
