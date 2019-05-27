@@ -773,12 +773,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if (TSSSize) //32-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_SS, TSS32.SS, /*0x200 |*/ (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+		if (segmentWritten(CPU_SEGMENT_SS, TSS32.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 		CPU[activeCPU].registers->ESP = TSS32.ESP;
 	}
 	else //16-bit?
 	{
-		if (segmentWritten(CPU_SEGMENT_SS, TSS16.SS, /*0x200 |*/ (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
+		if (segmentWritten(CPU_SEGMENT_SS, TSS16.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
 		CPU[activeCPU].registers->SP = TSS16.SP;
 	}
 
