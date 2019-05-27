@@ -1039,7 +1039,7 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 {
 	CPUPROT1
 	flag_sub16(a,b); //Flags only!
-	if (CPU_apply286cycles()) return; //80286+ cycles instead?
+	if (flags!=4) if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	switch (flags & 7)
 	{
 	case 0: //Default?
@@ -1080,7 +1080,7 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 {
 	CPUPROT1
 	flag_sub8(a,b); //Flags only!
-	if (CPU_apply286cycles()) return; //80286+ cycles instead?
+	if (flags!=4) if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	switch (flags&7)
 	{
 	case 0: //Default?

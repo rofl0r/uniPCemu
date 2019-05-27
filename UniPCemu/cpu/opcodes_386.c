@@ -656,7 +656,7 @@ OPTINLINE void CMP_dw(uint_32 a, uint_32 b, byte flags) //Compare instruction!
 {
 	CPUPROT1
 	flag_sub32(a,b); //Flags only!
-	if (CPU_apply286cycles()) return; //80286+ cycles instead?
+	if (flags != 4) if (CPU_apply286cycles()) return; //80286+ cycles instead?
 	switch (flags & 7)
 	{
 	case 0: //Default?
@@ -685,7 +685,7 @@ OPTINLINE void CMP_dw(uint_32 a, uint_32 b, byte flags) //Compare instruction!
 		}
 		break;
 	case 4: //Mem-Mem instruction?
-		CPU[activeCPU].cycles_OP += 18-(EU_CYCLES_SUBSTRACT_ACCESSREAD*2); //Assume two times Reg->Mem
+		CPU[activeCPU].cycles_OP += 0; //Assume two times Reg->Mem
 		break;
 	default:
 		break;
