@@ -888,7 +888,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			THROWDESCGP(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //Not present: limit exceeded!
-	throwSSoriginalval:
+	//throwSSoriginalval:
 		THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //Not present: limit exceeded!
 	}
