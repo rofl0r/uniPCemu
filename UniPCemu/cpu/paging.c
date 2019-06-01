@@ -51,6 +51,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
 extern byte advancedlog; //Advanced log setting
 extern byte MMU_logging; //Are we logging from the MMU?
+word PFflags;
 void raisePF(uint_32 address, word flags)
 {
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -58,6 +59,7 @@ void raisePF(uint_32 address, word flags)
 		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
 	}
 	CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
+	PFflags = flags; //Save a copy of the flags for debugging purposes!
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
 	/*
