@@ -167,7 +167,7 @@ OPTINLINE byte getunprocessedinterrupt(byte PIC)
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (getunprocessedinterrupt(0) || interruptsaved) //Primary PIC interrupt?
+	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
 	{
 		i8259.activePIC = 0; //From PIC0!
 		return 1;
@@ -224,7 +224,7 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte realir = IR; //Default: nothing changed!
-	return ((i8259.icw[PIC][1]&0x78)|(realir&0x7)); //Get interrupt!
+	return ((i8259.icw[PIC][1]&0xF8)|(realir&0x7)); //Get interrupt!
 }
 
 byte nextintr()
