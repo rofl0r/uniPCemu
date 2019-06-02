@@ -2027,7 +2027,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
-				if (checkStackAccess(9+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(9+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 
 				//Calculate and check the limit!
 
@@ -2090,7 +2090,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(5+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 
 				//Calculate and check the limit!
 
@@ -2117,7 +2117,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			else //No privilege level change?
 			{
-				if (checkStackAccess(3+(((errorcode!=-1) && (errorcode!=-2))?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(3+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 				//Calculate and check the limit!
 
 				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?

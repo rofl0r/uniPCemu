@@ -3166,7 +3166,7 @@ void CPU80386_OPFF() //GRP5 Ev
 		{
 			if (getcpumode() != CPU_MODE_PROTECTED) //Real mode or V86 mode?
 			{
-				if (checkStackAccess(2, 1, 1)) return; //We're trying to push on the stack!
+				if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(2, 1, 1)) return; /*We're trying to push on the stack!*/ ++CPU[activeCPU].stackchecked; }
 			}
 		}
 		else if ((thereg == 2) || (thereg == 6)) //pushing something on the stack normally?
@@ -3718,7 +3718,7 @@ void op_grp5_32() {
 void CPU386_OP60()
 {
 	debugger_setcommand("PUSHAD");
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,1,1)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 1, 1)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
 	static uint_32 oldESP;
 	oldESP = CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU80386_PUSHdw(0,&REG_EAX)) return;
@@ -3750,7 +3750,7 @@ void CPU386_OP61()
 {
 	uint_32 dummy;
 	debugger_setcommand("POPAD");
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,0,1)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 0, 1)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
 	if (CPU80386_POPdw(0,&REG_EDI)) return;
 	CPUPROT1
 	if (CPU80386_POPdw(2,&REG_ESI)) return;

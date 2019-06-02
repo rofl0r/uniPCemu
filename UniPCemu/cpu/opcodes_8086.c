@@ -4984,7 +4984,7 @@ void CPU8086_OPFF() //GRP5 Ev
 		{
 			if (getcpumode() != CPU_MODE_PROTECTED) //Real mode or V86 mode?
 			{
-				if (checkStackAccess(2, 1, 0)) return; //We're trying to push on the stack!
+				if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(2, 1, 0)) return; /*We're trying to push on the stack!*/ ++CPU[activeCPU].stackchecked; }
 			}
 		}
 		else if ((thereg == 2) || (thereg == 6)) //pushing something on the stack normally?

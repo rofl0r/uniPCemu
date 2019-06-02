@@ -182,7 +182,7 @@ New opcodes for 80186+!
 void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,1,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 1, 0)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
 	static word oldSP;
 	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU8086_PUSHw(0,&REG_AX,0)) return;
@@ -214,7 +214,7 @@ void CPU186_OP61()
 {
 	word dummy;
 	debugger_setcommand("POPA");
-	if (unlikely(CPU[activeCPU].instructionstep==0)) if (checkStackAccess(8,0,0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 0, 0)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
 	if (CPU8086_POPw(0,&REG_DI,0)) return;
 	CPUPROT1
 	if (CPU8086_POPw(2,&REG_SI,0)) return;
