@@ -147,6 +147,7 @@ struct
 			};
 			byte features;
 			byte sectorcount;
+			byte reportReady; //Not ready and above ROM until received ATAPI command!
 		} PARAMETERS;
 		word driveparams[0x100]; //All drive parameters for a drive!
 		uint_32 current_LBA_address; //Current LBA address!
@@ -2574,6 +2575,16 @@ OPTINLINE void giveSignature(byte channel, byte drive)
 void ATA_reset(byte channel, byte slave)
 {
 	//Clear errors!
+	if ((slave & 0x80) || (!(ATA_Drives[channel][(slave & 0x7F)] >= CDROM0))) //ATAPI reset or non-ATAPI?
+	{
+		slave &= 0x7F;
+		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
+	}
+	else
+	{
+		slave &= 0x7F;
+		ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
+	}
 	ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error!
 	//Clear Drive/Head register, leaving the specified drive as it is!
 	ATA_DRIVEHEAD_HEADW(channel,slave,0); //What head?
@@ -2836,6 +2847,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA1; //We're running this command!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now!
 			goto CDROMIDENTIFY; //Execute CDROM identification!
 		}
 		goto invalidcommand; //We're an invalid command: we're not a CDROM drive!
@@ -2866,6 +2878,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA0; //We're sending a ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
@@ -2962,7 +2975,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidcommand;
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
-		ATA_reset(channel,ATA_activeDrive(channel)); //Reset the channel's device!
+		ATA_reset(channel,ATA_activeDrive(channel)|0x80); //Reset the channel's device!
 		break;
 	case 0xC6: //Set multiple mode?
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //ATAPI device? Unsupported!
@@ -3028,7 +3041,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	{
 	case 0: //Ready for command?
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */)))||DRIVECONTROLREGISTER_SRSTR(channel)||(ATA[channel].Drive[ATA_activeDrive(channel)].resetTiming))?1:0); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))||DRIVECONTROLREGISTER_SRSTR(channel))?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)) || (ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout))||DRIVECONTROLREGISTER_SRSTR(channel))?0:1)&(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Hard disk?
@@ -3155,6 +3168,7 @@ byte outATA8(word port, byte value)
 #endif
 		//if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //ATAPI device? Unsupported! Otherwise, supported and process!
 		{
+			if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = value; //Set sector count!
 		}
 		return 1; //OK!
@@ -3163,6 +3177,7 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Sector number write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = value; //Set sector number!
 		return 1; //OK!
 		break;
@@ -3170,6 +3185,7 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Cylinder low write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = value; //Set cylinder low!
 		return 1; //OK!
 		break;
@@ -3177,6 +3193,7 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Cylinder high write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = value; //Set cylinder high!
 		return 1; //OK!
 		break;
@@ -3185,6 +3202,10 @@ byte outATA8(word port, byte value)
 		dolog("ATA", "Drive/head write: %02X %u.%u", value, channel, ATA_activeDrive(channel));
 #endif
 		ATA[channel].activedrive = (value >> 4) & 1; //The active drive!
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) //Partial ROM(non-drive bit)
+		{
+			value = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead&(~0x10)) | (value & 0x10); //ROM all but d4ive bit!
+		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.drivehead = value; //Set drive head!
 		ATA[channel].driveselectTiming = ATA_DRIVESELECT_TIMEOUT; //Drive select timing to use!
 		return 1; //OK!
