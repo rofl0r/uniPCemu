@@ -3247,6 +3247,7 @@ port3_write: //Special port #3?
 			ATA_removeIRQ(ATA_channel,1); //Resetting lowers the IRQ when transitioning from 0 to 1!
 			ATA_reset(ATA_channel,0); //Reset the specified channel Master!
 			ATA_reset(ATA_channel,1); //Reset the specified channel Slave!
+			ATA[ATA_channel].activedrive = 0; //Drive 0 becomes active!
 		}
 		return 1; //OK!
 		break;
