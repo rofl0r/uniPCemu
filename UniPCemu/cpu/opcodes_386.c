@@ -3493,7 +3493,7 @@ void op_grp3_32() {
 	case 3: //NEG
 		res32 = (~oper1d) + 1;
 		flag_sub32(0, oper1d);
-		if (res32) FLAGW_CF(1); else FLAGW_CF(0);
+		//if (res32) FLAGW_CF(1); else FLAGW_CF(0);
 		//FLAGW_AF((res16&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
