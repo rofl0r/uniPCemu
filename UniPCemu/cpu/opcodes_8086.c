@@ -5462,7 +5462,7 @@ void op_grp3_8() {
 	case 3: //NEG
 		res8 = (~oper1b) + 1;
 		flag_sub8(0, oper1b);
-		if (oper1b==0) FLAGW_CF(0); else FLAGW_CF(1);
+		if (res8 == 0) FLAGW_CF(0); else FLAGW_CF(1);
 		//FLAGW_AF((res8&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
@@ -5641,7 +5641,7 @@ void op_grp3_16() {
 	case 3: //NEG
 		res16 = (~oper1) + 1;
 		flag_sub16(0, oper1);
-		if (oper1) FLAGW_CF(1); else FLAGW_CF(0);
+		if (res16) FLAGW_CF(1); else FLAGW_CF(0);
 		//FLAGW_AF((res16&0xF)?1:0); //Auxiliary flag!
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
