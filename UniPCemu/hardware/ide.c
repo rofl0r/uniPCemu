@@ -2884,7 +2884,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[56] = (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount); //Set the current sectors per track!
 		ATA_updateCapacity(channel,ATA_activeDrive(channel)); //Update the capacity!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
-		ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming = ATA_FINISHREADYTIMING(200.0); //Keep us busy for a bit!
+		ATA_IRQ(channel,ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0),1); //Keep us busy for a bit, raise IRQ afterwards!
 		break;
 	case 0xA1: //ATAPI: IDENTIFY PACKET DEVICE (ATAPI Mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
