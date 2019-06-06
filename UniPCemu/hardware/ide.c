@@ -1594,7 +1594,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		{
 			if (ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(6.0),1); //Give our requesting IRQ!
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(6.0),ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus?1:0); //Give our requesting IRQ!
 			}
 		}
         return result; //Give the result!
