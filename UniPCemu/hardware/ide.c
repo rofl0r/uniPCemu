@@ -121,6 +121,8 @@ struct
 		byte ATAPI_SupportedMask[0x10000]; //Supported mask bits for all saved values! 0=Not supported, 1=Supported!
 		byte ERRORREGISTER;
 		byte STATUSREGISTER;
+		byte readmultipleerror;
+		byte readmultiple_partialtransfer; //For error cases, how much is actually transferred(in sectors)!
 
 		byte SensePacket[0x10]; //Data of a request sense packet.
 
@@ -1218,11 +1220,16 @@ void strcpy_padded(byte *buffer, byte sizeinbytes, byte *s)
 OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sector set up!
 {
 	byte multiple = 1; //Multiple to read!
-	byte counter;
-	byte wasmultiple = 0; //Are we still transferring multiple?
+	word counter;
+	byte partialtransfer;
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus == 1) //We're reading already?
 	{
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].readmultipleerror && ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Error during the previous part of the read multiple command?)
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].datasize -= ATA[channel].Drive[ATA_activeDrive(channel)].readmultiple_partialtransfer; //How much was actually transferred!
+			goto handleReadSectorRangeError;
+		}
 		if (!(ATA[channel].Drive[ATA_activeDrive(channel)].datasize-=ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred)) //Finished?
 		{
 			ATA_writeLBACHS(channel); //Update the current sector!
@@ -1235,15 +1242,21 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		else
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is updated!
-			wasmultiple = 1; //Keep transferring, no interrupt!
 		}
 	}
 	else //New read command?
 	{
+		ATA[channel].Drive[ATA_activeDrive(channel)].readmultipleerror = 0; //Don't allow errors to occur on read multiple yet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is initialized!
 	}
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
+	if ((ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) && //Past the end of the disk?
+		(
+			(ATA[channel].Drive[ATA_activeDrive(channel)].readmultipleerror && ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //During the previous part of the read multiple command?
+			|| (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode==0) //Not in multiple mode?
+		)
+		)
 	{
+		handleReadSectorRangeError:
 #ifdef ATA_LOG
 		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, disk_size);
 #endif
@@ -1266,10 +1279,21 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 	}
 	ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How many have we transferred?
 
-	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (multiple<<9))) //Read the data from disk?
+	//Safety: verify LBA past end of disk, if it's happening!
+	for (counter = 0; counter < multiple; ++counter) //Check all that we try to read!
 	{
-		for (counter=0;counter<multiple;++counter) //Increase sector count as much as required!
+		if ((ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address + counter) > disk_size) //Past the end of the disk?
+		{
+			break; //Give us an indication of how far we can read!
+		}
+	}
+
+	partialtransfer = counter; //How much has been transferred!
+	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
+	memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data,0, (multiple<<9)); //Clear the buffer for any errors we take!
+	if ((readdata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (partialtransfer<<9))) || ((partialtransfer==0) && multiple)) //Read the data from disk as far as we can?
+	{
+		for (counter=0;counter<partialtransfer;++counter) //Increase sector count as much as required!
 		{
 			ATA_increasesector(channel); //Increase the current sector!
 		}
@@ -1279,7 +1303,14 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //Set the command to use when reading!
-		return wasmultiple?0:1; //Process the block! Don't raise an interrupt when continuing to transfer!
+
+		if (partialtransfer != multiple) //Not all was transferred correctly?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].readmultiple_partialtransfer = partialtransfer; //How much was actually transferred!
+			ATA[channel].Drive[ATA_activeDrive(channel)].readmultipleerror = 1; //Don't allow errors to occur on read multiple yet! Raise the error at the next block!
+		}
+
+		return 1; //Process the block! Don't raise an interrupt when continuing to transfer(which automatically happens due to the larger block size applied)!
 	}
 	else //Error reading?
 	{
@@ -1296,11 +1327,10 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 OPTINLINE byte ATA_writesector(byte channel, byte command)
 {
 	byte multiple = 1; //Multiple to read!
-	byte counter;
-	byte wasmultiple = 0;
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
 	{
+		writeoutofbounds:
 #ifdef ATA_LOG
 		dolog("ATA", "Write Sector out of range:%u,%u=%08X/%08X!",channel,ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address,disk_size);
 #endif
@@ -1317,13 +1347,27 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 	dolog("ATA", "Writing sector #%u!", ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address); //Log the sector we're writing to!
 #endif
 
-	if (writedata(ATA_Drives[channel][ATA_activeDrive(channel)], &ATA[channel].Drive[ATA_activeDrive(channel)].data, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), (ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred<<9))) //Write the data to the disk?
+	byte numwritten;
+	byte writeresult;
+	byte *p;
+	writeresult = 1; //Written correctly?
+	p = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0]; //What to start writing!
+	for (numwritten = 0; ((numwritten < ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred) && writeresult); ++numwritten) //Write the sectors to disk!
 	{
-		for (counter=0;counter<ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred;++counter) //Increase sector count as much as required!
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address > disk_size) //Past the end of the disk?
+		{
+			goto writeoutofbounds; //We're out of bounds!
+		}
+		writeresult = writedata(ATA_Drives[channel][ATA_activeDrive(channel)], p, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address << 9), 0x200); //Try to write the sector!
+		p += 0x200; //How much have we written!
+		if (writeresult) //Written without error?
 		{
 			ATA_increasesector(channel); //Increase the current sector!
 		}
+	}
 
+	if (writeresult) //Written all the data to the disk?
+	{
 		if (!(ATA[channel].Drive[ATA_activeDrive(channel)].datasize-=ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred)) //Finished?
 		{
 			ATA_writeLBACHS(channel); //Update the current sector!
@@ -1339,7 +1383,6 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 		else //Busy transferring?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is updated!
-			wasmultiple = 1; //We're still transferring!
 		}
 
 #ifdef ATA_LOG
@@ -1354,12 +1397,12 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 		{
 			multiple = ATA[channel].Drive[ATA_activeDrive(channel)].datasize; //Only take what's requested!
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How many have we transferred?
+		ATA[channel].Drive[ATA_activeDrive(channel)].multipletransferred = multiple; //How much do we want transferred?
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //Set the command to use when writing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //Transferring data OUT!
-		return (wasmultiple && ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode)?0:1; //Process the block! Don't raise an interrupt when continuing to transfer!
+		return 1; //Process the block! Don't raise an interrupt when continuing to transfer!
 	}
 	else //Write failed?
 	{
