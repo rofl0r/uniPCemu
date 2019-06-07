@@ -1310,7 +1310,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA[channel].Drive[ATA_activeDrive(channel)].readmultipleerror = 1; //Don't allow errors to occur on read multiple yet! Raise the error at the next block!
 		}
 
-		return 1; //Process the block! Don't raise an interrupt when continuing to transfer(which automatically happens due to the larger block size applied)!
+		return 2; //Process the block! Don't raise an interrupt when continuing to transfer(which automatically happens due to the larger block size applied)!
 	}
 	else //Error reading?
 	{
@@ -1624,6 +1624,7 @@ OPTINLINE void ATAPI_calculateByteCountLeft(byte channel)
 
 OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 {
+	byte readsector_result;
 	byte result;
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].command) //What command?
 	{
@@ -1635,9 +1636,16 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		result = ATA[channel].Drive[ATA_activeDrive(channel)].data[ATA[channel].Drive[ATA_activeDrive(channel)].datapos++]; //Read the data byte!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 		{
-			if (ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
+			if (readsector_result = ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
 			{
-				ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(6.0),ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus?1:0); //Give our requesting IRQ!
+				if (readsector_result == 1) //Continuing?
+				{
+					ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(6.0),/*ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus?1:0*/ 0); //Give our requesting IRQ!
+				}
+				else //Finishing?
+				{
+					ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(6.0),/*ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus?1:0*/ 0); //Give our requesting IRQ!
+				}
 			}
 		}
         return result; //Give the result!
