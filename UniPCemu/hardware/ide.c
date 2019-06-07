@@ -2845,6 +2845,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			goto invalidatedcommand; //Execute an invalid command result!
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
 		if (ATA_readsector(channel,command)) //OK?
 		{
@@ -2856,6 +2857,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel);
 		nextverification: //Verify the next sector!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
@@ -2897,6 +2899,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) goto invalidcommand; //Special action for CD-ROM drives?
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
+		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel);
 		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0),0); //Give our requesting IRQ!
 
