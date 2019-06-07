@@ -25,8 +25,8 @@
 //Timing until ATAPI becomes ready for a new command.
 #define ATAPI_FINISHREADYTIMING 20000.0
 
-//Base clock for the IDE devices!
-#define IDE_BASETIMING ATAPI_PENDINGEXECUTETRANSFER_RESULTTIMING
+//Base clock for the IDE devices(10us)!
+#define IDE_BASETIMING 10000.0
 
 #define ATA_FINISHREADYTIMING(mul) (IDE_BASETIMING*mul)
 
@@ -2723,7 +2723,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			giveSignature(channel,1); //Give our signature!
 		}
-		ATA_IRQ(channel, 0, ATA_FINISHREADYTIMING(300.0), 1); //IRQ from Master(after the slave has it's say with PDIAG communication), if selected!
+		ATA_IRQ(channel, 0, ATA_FINISHREADYTIMING(205.0), 1); //IRQ from Master(after the slave has it's say with PDIAG communication), if selected!
 		ATA_IRQ(channel, 1, ATA_FINISHREADYTIMING(200.0), 1); //IRQ from Slave, if selected!
 		break;
 	case 0xDB: //Acnowledge media change?
