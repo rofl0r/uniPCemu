@@ -1636,7 +1636,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		result = ATA[channel].Drive[ATA_activeDrive(channel)].data[ATA[channel].Drive[ATA_activeDrive(channel)].datapos++]; //Read the data byte!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 		{
-			if (readsector_result = ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command)) //Next sector read?
+			if ((readsector_result = ATA_readsector(channel,ATA[channel].Drive[ATA_activeDrive(channel)].command))) //Next sector read?
 			{
 				if (readsector_result == 1) //Continuing?
 				{
