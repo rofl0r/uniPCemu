@@ -287,6 +287,7 @@ void CPU_IRET()
 		SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
 		word desttask;
 		sbyte loadresult;
+		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1 | 0x40, 0, 0, 0)) return; //Error out!
 		desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
 		if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
 		{
