@@ -2222,7 +2222,15 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
-		//REPNZ INSB/INSW and REPNZ OUTSB/OUTSW doesn't exist!
+		case 0x6C: //A4: REP INSB
+		case 0x6D: //A4: REP INSW
+		case 0x6E: //A4: REP OUTSB
+		case 0x6F: //A4: REP OUTSW
+			//REPNZ INSB/INSW and REPNZ OUTSB/OUTSW doesn't exist! But handle us as a plain REP!
+			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
+			if (EMULATED_CPU < CPU_NECV30) goto noREPNE0Fand8086; //Not existant on 8086!
+			break;
+
 		//8086 REPable opcodes!	
 		//New:
 		case 0xA4: //A4: REPNZ MOVSB
