@@ -2088,7 +2088,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction(or repeating one)?
 	{
-		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 		CPU[activeCPU].allowTF = 1; //Default: allow TF to be triggered after the instruction!
 		CPU[activeCPU].debuggerFaultRaised = 0; //Default: no debugger fault raised!
 		//bufferMMU(); //Buffer the MMU writes for us!
@@ -2161,12 +2160,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 		cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!
 
-		if (FLAG_VIP && FLAG_VIF) //VIP and VIF both set on the new code?
+		if (FLAG_VIP && FLAG_VIF && CPU[activeCPU].allowInterrupts) //VIP and VIF both set on the new code?
 		{
 			CPU_commitState(); //Commit to the new instruction!
 			THROWDESCGP(0, 0, 0); //#GP(0)!
 			return; //Abort! Don't fetch or execute!
 		}
+		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	}
 
 	static byte OP = 0xCC; //The opcode!
