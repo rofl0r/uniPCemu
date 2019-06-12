@@ -718,6 +718,8 @@ void modem_hangup() //Hang up, if possible!
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
 	modem.offhook = 0; //We're on-hook!
+	fifobuffer_clear(modem.inputdatabuffer); //Clear anything we still received!
+	fifobuffer_clear(modem.outputbuffer); //Clear anything we still need to send!
 }
 
 void modem_updateRegister(byte reg)
@@ -2577,6 +2579,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						else //Disconnect from packet server?
 						{
 							terminatePacketServer(); //Clean up the packet server!
+							fifobuffer_clear(modem.inputdatabuffer); //Clear the output buffer for the next client!
+							fifobuffer_clear(modem.outputbuffer); //Clear the output buffer for the next client!
 						}
 						goto skiptransfers;
 						break; //Abort!
@@ -2608,6 +2612,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						else //Disconnect from packet server?
 						{
 							terminatePacketServer(); //Clean up the packet server!
+							fifobuffer_clear(modem.inputdatabuffer); //Clear the output buffer for the next client!
+							fifobuffer_clear(modem.outputbuffer); //Clear the output buffer for the next client!
 						}
 						break;
 					default: //Unknown function?
