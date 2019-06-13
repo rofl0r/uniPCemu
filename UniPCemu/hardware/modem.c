@@ -194,6 +194,7 @@ struct
 	byte port; //What port are we allocated to?
 	byte canrecvdata; //Can we start receiving data to the UART?
 	byte linechanges; //For detecting line changes!
+	sword connectionid; //Normal connection ID for the internal modem!
 } modem;
 
 byte readIPnumber(char **x, byte *number); //Prototype!
@@ -704,7 +705,7 @@ byte modem_connect(char *phonenumber)
 			port = modem.connectionport; //Use the default port as specified!
 		}
 	}
-	if (TCP_ConnectClient(ipaddress,port)) //Connected on the port specified(use the server port by default)?
+	if ((modem.connectionid = TCP_ConnectClient(ipaddress,port))>=0) //Connected on the port specified(use the server port by default)?
 	{
 		modem.connected = 1; //We're connected!
 		return 1; //We're connected!
@@ -714,7 +715,7 @@ byte modem_connect(char *phonenumber)
 
 void modem_hangup() //Hang up, if possible!
 {
-	TCPServer_restart(); //Start into the server mode!
+	TCPServer_restart(NULL); //Start into the server mode!
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
 	modem.offhook = 0; //We're on-hook!
@@ -813,7 +814,7 @@ byte resetModem(byte state)
 	{
 		modem.connected &= ~1; //Disconnect!
 		modem_responseResult(MODEMRESULT_NOCARRIER); //Report no carrier!
-		TCPServer_restart(); //Start into the server mode!
+		TCPServer_restart(NULL); //Start into the server mode!
 	}
 
 	//Default handling of the Hardware lines is also loaded:
@@ -1813,7 +1814,7 @@ void initModem(byte enabled) //Initialise modem!
 			{
 				modem.connectionport = 23; //Telnet port by default!
 			}
-			TCP_ConnectServer(modem.connectionport); //Connect the server on the default port!
+			TCP_ConnectServer(modem.connectionport,1); //Connect the server on the default port!
 			resetModem(0); //Reset the modem to the default state!
 			#ifdef IS_LONGDOUBLE
 			modem.serverpolltick = (1000000000.0L/(DOUBLE)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
@@ -1847,7 +1848,7 @@ void doneModem() //Finish modem!
 	{
 		free_fifobuffer(&modem.outputbuffer); //Free our buffer!
 	}
-	TCP_DisconnectClientServer(); //Disconnect, if needed!
+	TCP_DisconnectClientServer(0); //Disconnect, if needed!
 	stopTCPServer(); //Stop the TCP server!
 	terminatePacketServer(); //Stop the packet server, if used!
 }
@@ -1908,6 +1909,7 @@ void logpacket(byte send, byte *buffer, uint_32 size)
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
+	sword connectionid;
 	byte isbackspace = 0;
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader;
@@ -1939,27 +1941,33 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		modem.serverpolltimer = fmod(modem.serverpolltimer,modem.serverpolltick); //Polling once every turn!
 		if ((!TCPServerRunning()) && (!modem.connected)) //Server isn't running when need to be?
 		{
-			TCPServer_restart(); //Try to restart the TCP server!
+			TCPServer_restart(NULL); //Try to restart the TCP server!
 		}
-		if (acceptTCPServer()) //Are we connected to?
+		if ((connectionid = acceptTCPServer())>=0) //Are we connected to?
 		{
 			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
 			{
-				TCPServer_restart(); //Restart into the TCP server!
+				TCPServer_restart(NULL); //Restart into the TCP server!
 			}
 			else //Able to accept?
 			{
 				if (PacketServer_running) //Packet server is running?
 				{
+					modem.connectionid = connectionid; //We're connected like this!
 					modem.connected = 2; //Connect as packet server instead, we start answering manually instead of the emulated modem!
 					modem.ringing = 0; //Never ring!
 					initPacketServer(); //Initialize the packet server to be used!
 				}
-				else //Normal behaviour: start ringing!
+				else if (connectionid==0) //Normal behaviour: start ringing!
 				{
+					modem.connectionid = connectionid; //We're connected like this!
 					modem.ringing = 1; //We start ringing!
 					modem.registers[1] = 0; //Reset ring counter!
 					modem.ringtimer = timepassed; //Automatic time timer, start immediately!
+				}
+				else //Invalid ID to handle right now(single host only atm)?
+				{
+					TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
 				}
 			}
 		}
@@ -2564,12 +2572,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				sendoutputbuffer:
 				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
 				{
-					switch (TCP_SendData(datatotransmit)) //Send the data?
+					switch (TCP_SendData(modem.connectionid,datatotransmit)) //Send the data?
 					{
 					case 0: //Failed to send?
 						packetserver_autherror: //Packet server authentication error?
 						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(); //Restart the server!
+						TCPServer_restart(NULL); //Restart the server!
 						if (PacketServer_running==0) //Not running a packet server?
 						{
 							modem_responseResult(MODEMRESULT_NOCARRIER);
@@ -2593,7 +2601,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				}
 				if (fifobuffer_freesize(modem.inputdatabuffer)) //Free to receive?
 				{
-					switch (TCP_ReceiveData(&datatotransmit))
+					switch (TCP_ReceiveData(modem.connectionid,&datatotransmit))
 					{
 					case 0: //Nothing received?
 						break;
@@ -2602,7 +2610,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						break;
 					case -1: //Disconnected?
 						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(); //Restart server!
+						TCPServer_restart(NULL); //Restart server!
 						if (PacketServer_running==0) //Not running a packet server?
 						{
 							modem_responseResult(MODEMRESULT_NOCARRIER);
