@@ -8,12 +8,20 @@
 #include "headers/support/tcphelper.h" //TCP support!
 #include "headers/support/log.h" //Logging support for errors!
 
+//Compile without PCAP support, but with server simulation when NOPCAP and PACKERSERVER_ENABLED is defined(essentially a server without login information and PCap support(thus no packets being sent/received))?
+/*
+#define NOPCAP
+#define PACKETSERVER_ENABLED
+*/
+
 #if defined(PACKETSERVER_ENABLED)
 #define HAVE_REMOTE
 #ifdef IS_WINDOWS
 #define WPCAP
 #endif
+#ifndef NOPCAP
 #include <pcap.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #endif
@@ -38,12 +46,6 @@ extern BIOS_Settings_TYPE BIOS_Settings; //Currently used settings!
 byte PacketServer_running = 0; //Is the packet server running(disables all emulation but hardware)?
 uint8_t maclocal[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //The MAC address of the modem we're emulating!
 uint8_t packetserver_broadcastMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; //The MAC address of the modem we're emulating!
-FIFOBUFFER *packetserver_receivebuffer = NULL; //When receiving anything!
-byte *packetserver_transmitbuffer = NULL; //When sending a packet, this contains the currently built decoded data, which is already decoded!
-uint_32 packetserver_bytesleft = 0;
-uint_32 packetserver_transmitlength = 0; //How much has been built?
-uint_32 packetserver_transmitsize = 0; //How much has been allocated so far, allocated in whole chunks?
-byte packetserver_transmitstate = 0; //Transmit state for processing escaped values!
 byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
 byte packetserver_staticIP[4] = { 0,0,0,0 }; //Static IP to use?
@@ -51,18 +53,38 @@ byte packetserver_broadcastIP[4] = { 0xFF,0xFF,0xFF,0xFF }; //Broadcast IP to us
 byte packetserver_useStaticIP = 0; //Use static IP?
 char packetserver_staticIPstr[256] = ""; //Static IP, string format
 
-//Authentication data!
-char packetserver_username[256]; //Username(settings must match)
-char packetserver_password[256]; //Password(settings must match)
-char packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
-byte packetserver_slipprotocol = 1; //Are we using the slip protocol?
-byte packetserver_stage = 0; //Current login/service/packet(connected and authenticated state).
-word packetserver_stage_byte = 0; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
-byte packetserver_stage_byte_overflown = 0; //Overflown?
-char packetserver_stage_str[4096]; //Buffer containing output data for a stage
-byte packetserver_credentials_invalid = 0; //Marked invalid by username/password/service credentials?
-char packetserver_staticIPstr_information[256] = "";
-DOUBLE packetserver_delay = 0.0; //Delay for the packet server until doing something!
+//Authentication data and user-specific data!
+typedef struct
+{
+	uint16_t pktlen;
+	byte *packet; //Current packet received!
+	FIFOBUFFER *packetserver_receivebuffer; //When receiving anything!
+	byte *packetserver_transmitbuffer; //When sending a packet, this contains the currently built decoded data, which is already decoded!
+	uint_32 packetserver_bytesleft;
+	uint_32 packetserver_transmitlength; //How much has been built?
+	uint_32 packetserver_transmitsize; //How much has been allocated so far, allocated in whole chunks?
+	byte packetserver_transmitstate; //Transmit state for processing escaped values!
+	char packetserver_username[256]; //Username(settings must match)
+	char packetserver_password[256]; //Password(settings must match)
+	char packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
+	byte packetserver_slipprotocol; //Are we using the slip protocol?
+	byte packetserver_stage; //Current login/service/packet(connected and authenticated state).
+	word packetserver_stage_byte; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
+	byte packetserver_stage_byte_overflown; //Overflown?
+	char packetserver_stage_str[4096]; //Buffer containing output data for a stage
+	byte packetserver_credentials_invalid; //Marked invalid by username/password/service credentials?
+	char packetserver_staticIPstr_information[256];
+	DOUBLE packetserver_delay; //Delay for the packet server until doing something!
+	uint_32 packetserver_packetpos; //Current pos of sending said packet!
+	byte packetserver_packetack;
+	sword connectionid; //The used connection!
+	byte used; //Used client record?
+} PacketServer_client;
+
+PacketServer_client Packetserver_clients[0x100]; //Up to 100 clients!
+word Packetserver_availableClients = 0; //How many clients are available?
+word Packetserver_totalClients = 0; //How many clients are available?
+
 //How much to delay before sending a message while authenticating?
 #define PACKETSERVER_MESSAGE_DELAY 10000000.0
 //How much to delay before starting the SLIP service?
@@ -129,9 +151,6 @@ typedef union PACKED
 } ETHERNETHEADER;
 #include "headers/endpacked.h"
 
-uint_32 packetserver_packetpos; //Current pos of sending said packet!
-byte packetserver_packetack = 0;
-
 //Normal modem operations!
 #define MODEM_BUFFERSIZE 256
 
@@ -142,8 +161,8 @@ struct
 {
 	byte supported; //Are we supported?
 	FIFOBUFFER *inputbuffer; //The input buffer!
-	FIFOBUFFER *inputdatabuffer; //The input buffer, data mode only!
-	FIFOBUFFER *outputbuffer; //The output buffer!
+	FIFOBUFFER *inputdatabuffer[0x100]; //The input buffer, data mode only!
+	FIFOBUFFER *outputbuffer[0x100]; //The output buffer!
 	byte datamode; //1=Data mode, 0=Command mode!
 	byte connected; //Are we connected?
 	word connectionport; //What port to connect to by default?
@@ -209,6 +228,7 @@ uint8_t ethif=255, pcap_enabled = 0;
 uint8_t dopktrecv = 0;
 uint16_t rcvseg, rcvoff, hdrlen, handpkt;
 
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 pcap_if_t *alldevs;
 pcap_if_t *d;
 pcap_t *adhandle;
@@ -217,6 +237,7 @@ struct pcap_pkthdr *hdr;
 int inum;
 uint16_t curhandle = 0;
 char errbuf[PCAP_ERRBUF_SIZE];
+#endif
 uint8_t maclocal_default[6] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x13, 0x37 }; //The MAC address of the modem we're emulating!
 byte pcap_verbose = 0;
 
@@ -231,17 +252,22 @@ void initPcap() {
 	Custom by superfury
 
 	*/
+	memset(&Packetserver_clients, 0, sizeof(Packetserver_clients)); //Initialize the clients!
+	Packetserver_availableClients = NUMITEMS(Packetserver_clients); //How many available clients!
 	PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if ((BIOS_Settings.ethernetserver_settings.ethernetcard==-1) || (BIOS_Settings.ethernetserver_settings.ethernetcard<0) || (BIOS_Settings.ethernetserver_settings.ethernetcard>255)) //No ethernet card to emulate?
 	{
 		return; //Disable ethernet emulation!
 	}
 	ethif = BIOS_Settings.ethernetserver_settings.ethernetcard; //What ethernet card to use?
+#endif
 
 	//Load MAC address!
 	int values[6];
 
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if( 6 == sscanf( BIOS_Settings.ethernetserver_settings.MACaddress, "%02x:%02x:%02x:%02x:%02x:%02x%*c",
 		&values[0], &values[1], &values[2],
 		&values[3], &values[4], &values[5] ) ) //Found a MAC address to emulate?
@@ -269,13 +295,15 @@ void initPcap() {
 		dolog("ethernetcard", "Gateway MAC address is required on this platform! Aborting server installation!");
 		return; //Disable ethernet emulation!
 	}
-	
+#endif
+
 	memcpy(&packetserver_sourceMAC,&maclocal,sizeof(packetserver_sourceMAC)); //Load sender MAC to become active!
 
 	memset(&packetserver_staticIPstr, 0, sizeof(packetserver_staticIPstr));
 	memset(&packetserver_staticIP, 0, sizeof(packetserver_staticIP));
 	packetserver_useStaticIP = 0; //Default to unused!
 
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 12) //Valid length to convert IP addresses?
 	{
 		p = &BIOS_Settings.ethernetserver_settings.IPaddress[0]; //For scanning the IP!
@@ -299,7 +327,10 @@ void initPcap() {
 			}
 		}
 	}
-
+#else
+	memset(&maclocal, 0, sizeof(maclocal));
+	memset(&packetserver_gatewayMAC, 0, sizeof(packetserver_gatewayMAC));
+#endif
 
 	dolog("ethernetcard","Receiver MAC address: %02x:%02x:%02x:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
 	dolog("ethernetcard","Gateway MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]); //Log loaded address!
@@ -308,8 +339,11 @@ void initPcap() {
 		dolog("ethernetcard","Static IP configured: %s(%02x%02x%02x%02x)",packetserver_staticIPstr,packetserver_staticIP[0],packetserver_staticIP[1],packetserver_staticIP[2],packetserver_staticIP[3]); //Log it!
 	}
 
-	packetserver_receivebuffer = allocfifobuffer(2,0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
-	packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+	for (i = 0; i < NUMITEMS(Packetserver_clients); ++i) //Initialize client data!
+	{
+		Packetserver_clients[i].packetserver_receivebuffer = allocfifobuffer(2, 0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+		Packetserver_clients[i].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+	}
 
 	/*
 
@@ -321,6 +355,7 @@ void initPcap() {
 
 	dolog("ethernetcard","Obtaining NIC list via libpcap...");
 
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	/* Retrieve the device list from the local machine */
 #if defined(_WIN32)
 	if (pcap_findalldevs_ex (PCAP_SRC_IF_STRING, NULL /* auth is not needed */, &alldevs, errbuf) == -1)
@@ -393,10 +428,12 @@ void initPcap() {
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs (alldevs);
 	pcap_enabled = 1;
+#endif
 	PacketServer_running = 1; //We're using the packet server emulation, disable normal modem(we don't connect to other systems ourselves)!
 }
 
 void fetchpackets_pcap() { //Handle any packets to process!
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if (pcap_enabled) //Enabled?
 	{
 		//Cannot receive until buffer cleared!
@@ -418,13 +455,16 @@ void fetchpackets_pcap() { //Handle any packets to process!
 			}
 		}
 	}
+#endif
 }
 
 void sendpkt_pcap (uint8_t *src, uint16_t len) {
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if (pcap_enabled) //Enabled?
 	{
 		pcap_sendpacket (adhandle, src, len);
 	}
+#endif
 }
 
 void termPcap()
@@ -433,19 +473,29 @@ void termPcap()
 	{
 		freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Cleanup!
 	}
-	if (packetserver_receivebuffer)
+	word client;
+	for (client = 0; client < NUMITEMS(Packetserver_clients); ++client) //Process all clients!
 	{
-		free_fifobuffer(&packetserver_receivebuffer); //Cleanup!
+		if (Packetserver_clients[client].packet)
+		{
+			freez((void **)&Packetserver_clients[client].packet, Packetserver_clients[client].pktlen, "SERVER_PACKET"); //Cleanup!
+		}
+		if (Packetserver_clients[client].packetserver_receivebuffer)
+		{
+			free_fifobuffer(&Packetserver_clients[client].packetserver_receivebuffer); //Cleanup!
+		}
+		if (Packetserver_clients[client].packetserver_transmitbuffer && Packetserver_clients[client].packetserver_transmitsize) //Gotten a send buffer allocated?
+		{
+			freez((void **)&Packetserver_clients[client].packetserver_transmitbuffer, Packetserver_clients[client].packetserver_transmitsize, "MODEM_SENDPACKET"); //Clear the transmit buffer!
+			if (Packetserver_clients[client].packetserver_transmitbuffer == NULL) Packetserver_clients[client].packetserver_transmitsize = 0; //Nothing allocated anymore!
+		}
 	}
-	if (packetserver_transmitbuffer && packetserver_transmitsize) //Gotten a send buffer allocated?
-	{
-		freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
-		if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Nothing allocated anymore!
-	}
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if (pcap_enabled)
 	{
 		pcap_close(adhandle); //Close the capture/transmit device!
 	}
+#endif
 }
 #else
 //Not supported?
@@ -464,55 +514,87 @@ void termPcap()
 }
 #endif
 
-void terminatePacketServer() //Cleanup the packet server after being disconnected!
+sword allocPacketserver_client()
 {
-	fifobuffer_clear(packetserver_receivebuffer); //Clear the receive buffer!
-	freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
-	if (packetserver_transmitbuffer==NULL) packetserver_transmitsize = 0; //Clear!
+	sword i;
+	if (Packetserver_availableClients == 0) return -1; //None available!
+	--Packetserver_availableClients; //One taken!
+	for (i = 0; i < NUMITEMS(Packetserver_clients); ++i) //Find an unused one!
+	{
+		if (Packetserver_clients[i].used) continue; //Take unused only!
+		if (!Packetserver_clients[i].packetserver_receivebuffer) continue; //Required to receive properly!
+		Packetserver_clients[i].used = 1; //We're used now!
+		return i; //Give the ID!
+	}
+	++Packetserver_availableClients; //Couldn't allocate, discard!
+	return -1; //Failed to allocate!
 }
 
-void initPacketServer() //Initialize the packet server for use when connected to!
+byte freePacketserver_client(sword client)
 {
-	terminatePacketServer(); //First, make sure we're terminated properly!
-	packetserver_transmitsize = 1024; //Initialize transmit buffer!
-	packetserver_transmitbuffer = zalloc(packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
-	packetserver_transmitlength = 0; //Nothing buffered yet!
-	packetserver_transmitstate = 0; //Initialize transmitter state to the default state!
-	packetserver_stage = PACKETSTAGE_INIT; //Initial state when connected.
-#ifdef PACKETSERVER_ENABLED
+	if (client >= NUMITEMS(Packetserver_clients)) return 0; //Failure: invalid client!
+	if (Packetserver_clients[client].used) //Used?
+	{
+		Packetserver_clients[client].used = 0; //Not used anymore!
+		++Packetserver_availableClients; //One client became available!
+		return 1; //Success!
+	}
+	return 0; //Failure!
+}
+
+void terminatePacketServer(sword client) //Cleanup the packet server after being disconnected!
+{
+	fifobuffer_clear(Packetserver_clients[client].packetserver_receivebuffer); //Clear the receive buffer!
+	freez((void **)&Packetserver_clients[client].packetserver_transmitbuffer,Packetserver_clients[client].packetserver_transmitsize,"MODEM_SENDPACKET"); //Clear the transmit buffer!
+	if (Packetserver_clients[client].packetserver_transmitbuffer==NULL) Packetserver_clients[client].packetserver_transmitsize = 0; //Clear!
+}
+
+void initPacketServer(sword client) //Initialize the packet server for use when connected to!
+{
+	terminatePacketServer(client); //First, make sure we're terminated properly!
+	Packetserver_clients[client].packetserver_transmitsize = 1024; //Initialize transmit buffer!
+	Packetserver_clients[client].packetserver_transmitbuffer = zalloc(Packetserver_clients[client].packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
+	Packetserver_clients[client].packetserver_transmitlength = 0; //Nothing buffered yet!
+	Packetserver_clients[client].packetserver_transmitstate = 0; //Initialize transmitter state to the default state!
+	Packetserver_clients[client].packetserver_stage = PACKETSTAGE_INIT; //Initial state when connected.
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	if (BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0]) //Gotten credentials?
 	{
-		packetserver_stage = PACKETSTAGE_INIT_PASSWORD; //Initial state when connected: ask for credentials too.
+		Packetserver_clients[client].packetserver_stage = PACKETSTAGE_INIT_PASSWORD; //Initial state when connected: ask for credentials too.
 	}
 #endif
-	packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Reset stage byte: uninitialized!
-	if (net.packet)
+	Packetserver_clients[client].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Reset stage byte: uninitialized!
+	if (Packetserver_clients[client].packet)
 	{
-		freez((void **)&net.packet, net.pktlen, "MODEM_PACKET"); //Release the buffered packet: we're a new client!
-		net.packet = NULL; //No packet anymore!
+		freez((void **)&Packetserver_clients[client].packet, Packetserver_clients[client].pktlen, "SERVER_PACKET"); //Release the buffered packet: we're a new client!
+		Packetserver_clients[client].packet = NULL; //No packet anymore!
 	}
-	packetserver_packetpos = 0; //No packet buffered anymore! New connections must read a new packet!
-	packetserver_packetack = 0; //Not acnowledged yet!
-	fifobuffer_clear(modem.inputdatabuffer); //Nothing is received yet!
-	fifobuffer_clear(modem.outputbuffer); //Nothing is sent yet!
+	Packetserver_clients[client].packetserver_packetpos = 0; //No packet buffered anymore! New connections must read a new packet!
+	Packetserver_clients[client].packetserver_packetack = 0; //Not acnowledged yet!
+	fifobuffer_clear(modem.inputdatabuffer[client]); //Nothing is received yet!
+	fifobuffer_clear(modem.outputbuffer[client]); //Nothing is sent yet!
 }
 
-byte packetserver_authenticate()
+byte packetserver_authenticate(sword client)
 {
-	if ((strcmp(packetserver_protocol,"slip")==0) || (strcmp(packetserver_protocol,"ethernetslip")==0)) //Valid protocol?
+	if ((strcmp(Packetserver_clients[client].packetserver_protocol,"slip")==0) || (strcmp(Packetserver_clients[client].packetserver_protocol,"ethernetslip")==0)) //Valid protocol?
 	{
 #ifdef PACKETSERVER_ENABLED
+#ifndef NOPCAP
 		if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
 		{
 			return 1; //Always valid: no credentials required!
 		}
 		else
 		{
-			if (!(strcmp(BIOS_Settings.ethernetserver_settings.username,packetserver_username)||strcmp(BIOS_Settings.ethernetserver_settings.password,packetserver_password))) //Gotten no credentials?
+			if (!(strcmp(BIOS_Settings.ethernetserver_settings.username,Packetserver_clients[client].packetserver_username)||strcmp(BIOS_Settings.ethernetserver_settings.password,Packetserver_clients[client].packetserver_password))) //Gotten no credentials?
 			{
 				return 1; //Valid credentials!
 			}
 		}
+#else
+		return 1; //Valid credentials!
+#endif
 #endif
 	}
 	return 0; //Invalid credentials!
@@ -595,7 +677,7 @@ byte modem_sendData(byte value) //Send data to the connected device!
 {
 	//Handle sent data!
 	if (PacketServer_running) return 0; //Not OK to send data this way!
-	return writefifobuffer(modem.outputbuffer,value); //Try to write to the output buffer!
+	return writefifobuffer(modem.outputbuffer[0],value); //Try to write to the output buffer!
 }
 
 byte readIPnumber(char **x, byte *number)
@@ -719,8 +801,8 @@ void modem_hangup() //Hang up, if possible!
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
 	modem.offhook = 0; //We're on-hook!
-	fifobuffer_clear(modem.inputdatabuffer); //Clear anything we still received!
-	fifobuffer_clear(modem.outputbuffer); //Clear anything we still need to send!
+	fifobuffer_clear(modem.inputdatabuffer[0]); //Clear anything we still received!
+	fifobuffer_clear(modem.outputbuffer[0]); //Clear anything we still need to send!
 }
 
 void modem_updateRegister(byte reg)
@@ -872,7 +954,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 byte modem_hasData() //Do we have data for input?
 {
 	byte temp;
-	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer,&temp) && (modem.datamode==1)))&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
+	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer[0],&temp) && (modem.datamode==1)))&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
 }
 
 byte modem_getstatus()
@@ -897,7 +979,7 @@ byte modem_readData()
 	}
 	if (modem.datamode==1) //Data mode?
 	{
-		if (readfifobuffer(modem.inputdatabuffer, &result))
+		if (readfifobuffer(modem.inputdatabuffer[0], &result))
 		{
 			return result; //Give the data!
 		}
@@ -1793,9 +1875,10 @@ void modem_writeData(byte value)
 
 void initModem(byte enabled) //Initialise modem!
 {
+	word i;
 	memset(&modem, 0, sizeof(modem));
 	modem.supported = enabled; //Are we to be emulated?
-	if (useSERModem()) //Is this mouse enabled?
+	if (useSERModem()) //Is this modem enabled?
 	{
 		modem.port = allocUARTport(); //Try to allocate a port to use!
 		if (modem.port==0xFF) //Unable to allocate?
@@ -1804,9 +1887,22 @@ void initModem(byte enabled) //Initialise modem!
 			goto unsupportedUARTModem;
 		}
 		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
-		modem.inputdatabuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
-		modem.outputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
-		if (modem.inputbuffer && modem.inputdatabuffer && modem.outputbuffer) //Gotten buffers?
+		Packetserver_availableClients = 0; //Init: 0 clients available!
+		for (i = 0; i < MIN(NUMITEMS(modem.inputdatabuffer),NUMITEMS(modem.outputbuffer)); ++i) //Allocate buffers for server and client purposes!
+		{
+			modem.inputdatabuffer[i] = allocfifobuffer(MODEM_BUFFERSIZE, 0); //Small input buffer!
+			modem.outputbuffer[i] = allocfifobuffer(MODEM_BUFFERSIZE, 0); //Small input buffer!
+			if (modem.inputdatabuffer[i] && modem.outputbuffer[i]) //Both allocated?
+			{
+				if (Packetserver_clients[i].packetserver_receivebuffer) //Packet server buffers allocated?
+				{
+					++Packetserver_availableClients; //One more client available!
+				}
+			}
+			else break; //Failed to allocate? Not available client anymore!
+		}
+		Packetserver_totalClients = Packetserver_availableClients; //Init: n clients available in total!
+		if (modem.inputbuffer && modem.inputdatabuffer[0] && modem.outputbuffer[0]) //Gotten buffers?
 		{
 			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
 			modem.connectionport = BIOS_Settings.modemlistenport; //Default port to connect to if unspecified!
@@ -1814,7 +1910,7 @@ void initModem(byte enabled) //Initialise modem!
 			{
 				modem.connectionport = 23; //Telnet port by default!
 			}
-			TCP_ConnectServer(modem.connectionport,1); //Connect the server on the default port!
+			TCP_ConnectServer(modem.connectionport,Packetserver_availableClients?Packetserver_availableClients:1); //Connect the server on the default port!
 			resetModem(0); //Reset the modem to the default state!
 			#ifdef IS_LONGDOUBLE
 			modem.serverpolltick = (1000000000.0L/(DOUBLE)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
@@ -1827,30 +1923,51 @@ void initModem(byte enabled) //Initialise modem!
 		else
 		{
 			if (modem.inputbuffer) free_fifobuffer(&modem.inputbuffer);
-			if (modem.outputbuffer) free_fifobuffer(&modem.outputbuffer);
+			for (i = 0; i < NUMITEMS(modem.inputdatabuffer); ++i)
+			{
+				if (modem.outputbuffer[i]) free_fifobuffer(&modem.outputbuffer[i]);
+				if (modem.inputdatabuffer[i]) free_fifobuffer(&modem.inputdatabuffer[i]);
+			}
 		}
 	}
 	else
 	{
 		unsupportedUARTModem: //Unsupported!
 		modem.inputbuffer = NULL; //No buffer present!
-		modem.outputbuffer = NULL; //No buffer present!
+		memset(&modem.inputdatabuffer,0,sizeof(modem.inputdatabuffer)); //No buffer present!
+		memset(&modem.outputbuffer, 0, sizeof(modem.outputbuffer)); //No buffer present!
 	}
 }
 
 void doneModem() //Finish modem!
 {
+	word i;
 	if (modem.inputbuffer) //Allocated?
 	{
 		free_fifobuffer(&modem.inputbuffer); //Free our buffer!
 	}
-	if (modem.outputbuffer) //Allocated?
+	if (modem.outputbuffer[0] && modem.inputdatabuffer[0]) //Allocated?
 	{
-		free_fifobuffer(&modem.outputbuffer); //Free our buffer!
+		for (i = 0; i < MIN(NUMITEMS(modem.inputdatabuffer), NUMITEMS(modem.outputbuffer)); ++i) //Allocate buffers for server and client purposes!
+		{
+			free_fifobuffer(&modem.outputbuffer[i]); //Free our buffer!
+			free_fifobuffer(&modem.inputdatabuffer[i]); //Free our buffer!
+		}
 	}
-	TCP_DisconnectClientServer(0); //Disconnect, if needed!
+	for (i = 0; i < NUMITEMS(Packetserver_clients); ++i) //Process all clients!
+	{
+		if (Packetserver_clients[i].used) //Connected?
+		{
+			TCP_DisconnectClientServer(Packetserver_clients[i].connectionid); //Stop connecting!
+			terminatePacketServer(i); //Stop the packet server, if used!
+			freePacketserver_client(i); //Free the client!
+		}
+	}
+	if (TCP_DisconnectClientServer(modem.connectionid)) //Disconnect client, if needed!
+	{
+		modem.connectionid = -1; //Not connected!
+	}
 	stopTCPServer(); //Stop the TCP server!
-	terminatePacketServer(); //Stop the packet server, if used!
 }
 
 void cleanModem()
@@ -1858,25 +1975,25 @@ void cleanModem()
 	//Nothing to do!
 }
 
-byte packetServerAddWriteQueue(byte data) //Try to add something to the write queue!
+byte packetServerAddWriteQueue(sword client, byte data) //Try to add something to the write queue!
 {
 	byte *newbuffer;
-	if (packetserver_transmitlength>=packetserver_transmitsize) //We need to expand the buffer?
+	if (Packetserver_clients[client].packetserver_transmitlength>= Packetserver_clients[client].packetserver_transmitsize) //We need to expand the buffer?
 	{
-		newbuffer = zalloc(packetserver_transmitsize+1024,"MODEM_SENDPACKET",NULL); //Try to allocate a larger buffer!
+		newbuffer = zalloc(Packetserver_clients[client].packetserver_transmitsize+1024,"MODEM_SENDPACKET",NULL); //Try to allocate a larger buffer!
 		if (newbuffer) //Allocated larger buffer?
 		{
-			memcpy(newbuffer,packetserver_transmitbuffer,packetserver_transmitsize); //Copy the new data over to the larger buffer!
-			freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Release the old buffer!
-			packetserver_transmitbuffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
-			packetserver_transmitsize += 1024; //We've been increased to this larger buffer!
-			packetserver_transmitbuffer[packetserver_transmitlength++] = data; //Add the data to the buffer!
+			memcpy(newbuffer, Packetserver_clients[client].packetserver_transmitbuffer, Packetserver_clients[client].packetserver_transmitsize); //Copy the new data over to the larger buffer!
+			freez((void **)&Packetserver_clients[client].packetserver_transmitbuffer, Packetserver_clients[client].packetserver_transmitsize,"MODEM_SENDPACKET"); //Release the old buffer!
+			Packetserver_clients[client].packetserver_transmitbuffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
+			Packetserver_clients[client].packetserver_transmitsize += 1024; //We've been increased to this larger buffer!
+			Packetserver_clients[client].packetserver_transmitbuffer[Packetserver_clients[client].packetserver_transmitlength++] = data; //Add the data to the buffer!
 			return 1; //Success!
 		}
 	}
 	else //Normal buffer usage?
 	{
-		packetserver_transmitbuffer[packetserver_transmitlength++] = data; //Add the data to the buffer!
+		Packetserver_clients[client].packetserver_transmitbuffer[Packetserver_clients[client].packetserver_transmitlength++] = data; //Add the data to the buffer!
 		return 1; //Success!
 	}
 	return 0; //Failed!
@@ -1909,6 +2026,7 @@ void logpacket(byte send, byte *buffer, uint_32 size)
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
+	sword connectedclient;
 	sword connectionid;
 	byte isbackspace = 0;
 	byte datatotransmit;
@@ -1953,10 +2071,18 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 			{
 				if (PacketServer_running) //Packet server is running?
 				{
-					modem.connectionid = connectionid; //We're connected like this!
-					modem.connected = 2; //Connect as packet server instead, we start answering manually instead of the emulated modem!
-					modem.ringing = 0; //Never ring!
-					initPacketServer(); //Initialize the packet server to be used!
+					connectedclient = allocPacketserver_client(); //Try to allocate!
+					if (connectedclient >= 0) //Allocated?
+					{
+						Packetserver_clients[connectedclient].connectionid = connectionid; //We're connected like this!
+						modem.connected = 2; //Connect as packet server instead, we start answering manually instead of the emulated modem!
+						modem.ringing = 0; //Never ring!
+						initPacketServer(connectedclient); //Initialize the packet server to be used!
+					}
+					else //Failed to allocate?
+					{
+						TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
+					}
 				}
 				else if (connectionid==0) //Normal behaviour: start ringing!
 				{
@@ -2017,620 +2143,716 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		for (;modem.networkdatatimer>=modem.networkpolltick;) //While polling!
 		{
 			modem.networkdatatimer -= modem.networkpolltick; //Timing this byte by byte!
-			if (net.packet && (!((modem.connected&2) && (packetserver_stage==PACKETSTAGE_SLIP)))) //Received a packet while not listening?
-			{
-				freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!				
-			}
 			if (modem.connected || modem.ringing) //Are we connected?
 			{
-				if (modem.connected==2) //Running the packet server?
+				if (modem.connected == 2) //Running the packet server?
 				{
-					if (packetserver_stage!=PACKETSTAGE_SLIP) goto skipSLIP; //Don't handle SLIP!
-					//Handle packet server packet data transfers into the inputdatabuffer/outputbuffer to the network!
-					if (packetserver_receivebuffer) //Properly allocated?
+					for (connectedclient = 0; connectedclient < Packetserver_totalClients; ++connectedclient) //Check all connected clients!
 					{
-						if (net.packet) //Packet has been received? Try to start transmit it!
+						if (Packetserver_clients[connectedclient].used == 0) continue; //Skip unused clients!
+						if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto skipSLIP; //Don't handle SLIP!
+						//Handle packet server packet data transfers into the inputdatabuffer/outputbuffer to the network!
+						if (Packetserver_clients[connectedclient].packetserver_receivebuffer) //Properly allocated?
 						{
-							if (fifobuffer_freesize(packetserver_receivebuffer)>=2) //Valid to produce more data?
+							if (net.packet || Packetserver_clients[connectedclient].packet) //Packet has been received or processing? Try to start transmit it!
 							{
-								if ((packetserver_packetpos==0) && (packetserver_packetack==0)) //New packet?
+								if (Packetserver_clients[connectedclient].packet == NULL) //Ready to receive?
 								{
-									if (net.pktlen>(sizeof(ethernetheader.data)+20)) //Length OK(at least one byte of data and complete IP header)?
+									Packetserver_clients[connectedclient].packet = zalloc(net.pktlen,"SERVER_PACKET",NULL); //Allocate a packet to receive!
+									if (Packetserver_clients[connectedclient].packet) //Allocated?
 									{
-										memcpy(&ethernetheader.data,net.packet,sizeof(ethernetheader.data)); //Copy for inspection!
-										if (ethernetheader.type!=SDL_SwapBE16(0x0800)) //Invalid type?
+										Packetserver_clients[connectedclient].pktlen = net.pktlen; //Save the length of the packet!
+										memcpy(Packetserver_clients[connectedclient].packet, net.packet, net.pktlen); //Copy the packet to the active buffer!
+									}
+								}
+								if (fifobuffer_freesize(Packetserver_clients[connectedclient].packetserver_receivebuffer) >= 2) //Valid to produce more data?
+								{
+									if ((Packetserver_clients[connectedclient].packetserver_packetpos == 0) && (Packetserver_clients[connectedclient].packetserver_packetack == 0)) //New packet?
+									{
+										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + 20)) //Length OK(at least one byte of data and complete IP header)?
 										{
-											//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
-											goto invalidpacket; //Invalid packet!
-										}
-										if ((memcmp(&ethernetheader.dst,&packetserver_sourceMAC,sizeof(ethernetheader.dst))!=0) && (memcmp(&ethernetheader.dst,&packetserver_broadcastMAC,sizeof(ethernetheader.dst))!=0)) //Invalid destination(and not broadcasting)?
-										{
-											//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
-											goto invalidpacket; //Invalid packet!
-										}
-										if (packetserver_useStaticIP) //IP filter?
-										{
-											if ((memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) && (memcmp(&net.packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
+											memcpy(&ethernetheader.data, Packetserver_clients[connectedclient].packet, sizeof(ethernetheader.data)); //Copy for inspection!
+											if (ethernetheader.type != SDL_SwapBE16(0x0800)) //Invalid type?
 											{
+												//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 												goto invalidpacket; //Invalid packet!
 											}
+											if ((memcmp(&ethernetheader.dst, &packetserver_sourceMAC, sizeof(ethernetheader.dst)) != 0) && (memcmp(&ethernetheader.dst, &packetserver_broadcastMAC, sizeof(ethernetheader.dst)) != 0)) //Invalid destination(and not broadcasting)?
+											{
+												//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
+												goto invalidpacket; //Invalid packet!
+											}
+											if (packetserver_useStaticIP) //IP filter?
+											{
+												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
+												{
+													goto invalidpacket; //Invalid packet!
+												}
+											}
+											//Valid packet! Receive it!
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol) //Using slip protocol?
+											{
+												Packetserver_clients[connectedclient].packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
+												Packetserver_clients[connectedclient].packetserver_bytesleft = MIN(Packetserver_clients[connectedclient].pktlen - Packetserver_clients[connectedclient].packetserver_packetpos, SDL_SwapBE16(*((word *)&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2]))); //How much is left to send?
+											}
+											else //We're using the ethernet header protocol?
+											{
+												//else, we're using ethernet header protocol, so take the
+												Packetserver_clients[connectedclient].packetserver_packetack = 1; //We're acnowledging the packet, so start transferring it!
+												Packetserver_clients[connectedclient].packetserver_bytesleft = Packetserver_clients[connectedclient].pktlen; //Use the entire packet, unpatched!
+											}
+											//dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
 										}
-										//Valid packet! Receive it!
-										if (packetserver_slipprotocol) //Using slip protocol?
+										else //Invalid length?
 										{
-											packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
-											packetserver_bytesleft = MIN(net.pktlen - packetserver_packetpos, SDL_SwapBE16(*((word *)&net.packet[sizeof(ethernetheader.data) + 2]))); //How much is left to send?
-										}
-										else //We're using the ethernet header protocol?
-										{
-											//else, we're using ethernet header protocol, so take the
-											packetserver_packetack = 1; //We're acnowledging the packet, so start transferring it!
-											packetserver_bytesleft = net.pktlen; //Use the entire packet, unpatched!
-										}
-										//dolog("ethernetcard","Skipping %u bytes of header data...",packetserver_packetpos); //Log it!
-									}
-									else //Invalid length?
-									{
-										//dolog("ethernetcard","Discarding invalid packet size: %u...",net.pktlen); //Log it!
+											//dolog("ethernetcard","Discarding invalid packet size: %u...",net.pktlen); //Log it!
 										invalidpacket:
-										//Discard the invalid packet!
-										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
-										//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
-										net.packet = NULL; //No packet!
-										packetserver_packetpos = 0; //Reset packet position!
-										packetserver_packetack = 0; //Not acnowledged yet!
+											//Discard the invalid packet!
+											freez((void **)&net.packet, net.pktlen, "MODEM_PACKET"); //Release the packet to receive new packets again!
+											freez((void **)&Packetserver_clients[connectedclient].packet, Packetserver_clients[connectedclient].pktlen, "SERVER_PACKET"); //Release the packet to receive new packets again!
+											//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
+											net.packet = NULL; //No packet!
+											Packetserver_clients[connectedclient].packet = NULL; //No packet!
+											Packetserver_clients[connectedclient].packetserver_packetpos = 0; //Reset packet position!
+											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
+										}
 									}
-								}
-								if (net.packet) //Still a valid packet to send?
-								{
-									//Convert the buffer into transmittable bytes using the proper encoding!
-									if (packetserver_bytesleft) //Not finished yet?
+									if (Packetserver_clients[connectedclient].packet) //Still a valid packet to send?
 									{
-										//Start transmitting data into the buffer, according to the protocol!
-										--packetserver_bytesleft;
-										datatotransmit = net.packet[packetserver_packetpos++]; //Read the data to construct!
-										if (datatotransmit==SLIP_END) //End byte?
+										//Convert the buffer into transmittable bytes using the proper encoding!
+										if (Packetserver_clients[connectedclient].packetserver_bytesleft) //Not finished yet?
 										{
-											//dolog("ethernetcard","transmitting escaped SLIP END to client");
-											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
-											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_END); //END raw data!
+											//Start transmitting data into the buffer, according to the protocol!
+											--Packetserver_clients[connectedclient].packetserver_bytesleft;
+											datatotransmit = Packetserver_clients[connectedclient].packet[Packetserver_clients[connectedclient].packetserver_packetpos++]; //Read the data to construct!
+											if (datatotransmit == SLIP_END) //End byte?
+											{
+												//dolog("ethernetcard","transmitting escaped SLIP END to client");
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_END); //END raw data!
+											}
+											else if (datatotransmit == SLIP_ESC) //ESC byte?
+											{
+												//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_ESC); //ESC raw data!
+											}
+											else //Normal data?
+											{
+												//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Unescaped!
+											}
 										}
-										else if (datatotransmit==SLIP_ESC) //ESC byte?
+										else //Finished transferring a frame?
 										{
-											//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
-											writefifobuffer(packetserver_receivebuffer,SLIP_ESC); //Escaped ...
-											writefifobuffer(packetserver_receivebuffer,SLIP_ESC_ESC); //ESC raw data!
-										}
-										else //Normal data?
-										{
-											//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
-											writefifobuffer(packetserver_receivebuffer,datatotransmit); //Unescaped!
+											//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
+											writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_END); //END of frame!
+											//logpacket(0,Packetserver_clients[connectedclient].packet,Packetserver_clients[connectedclient].pktlen); //Log it!
+											freez((void **)&Packetserver_clients[connectedclient].packet, Packetserver_clients[connectedclient].pktlen, "SERVER_PACKET"); //Release the packet to receive new packets again!
+											Packetserver_clients[connectedclient].packet = NULL; //Discard the packet anyway, no matter what!
+											Packetserver_clients[connectedclient].packetserver_packetpos = 0; //Reset packet position!
+											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
 										}
 									}
-									else //Finished transferring a frame?
+								}
+							}
+
+							//Transmit the encoded packet buffer to the client!
+							if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) && peekfifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, &datatotransmit)) //Able to transmit something?
+							{
+								for (; fifobuffer_freesize(modem.outputbuffer[connectedclient]) && peekfifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, &datatotransmit);) //Can we still transmit something more?
+								{
+									if (writefifobuffer(modem.outputbuffer[connectedclient], datatotransmit)) //Transmitted?
 									{
-										//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
-										writefifobuffer(packetserver_receivebuffer,SLIP_END); //END of frame!
-										//logpacket(0,net.packet,net.pktlen); //Log it!
-										freez((void **)&net.packet,net.pktlen,"MODEM_PACKET"); //Release the packet to receive new packets again!
-										net.packet = NULL; //Discard the packet anyway, no matter what!
-										packetserver_packetpos = 0; //Reset packet position!
-										packetserver_packetack = 0; //Not acnowledged yet!
+										//dolog("ethernetcard","transmitted SLIP data to client: %02X",datatotransmit);
+										datatotransmit = readfifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, &datatotransmit); //Discard the data that's being transmitted!
 									}
 								}
 							}
 						}
 
-						//Transmit the encoded packet buffer to the client!
-						if (fifobuffer_freesize(modem.outputbuffer) && peekfifobuffer(packetserver_receivebuffer,&datatotransmit)) //Able to transmit something?
+						//Handle transmitting packets(with automatically increasing buffer sizing, as a packet can be received of any size theoretically)!
+						if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit)) //Is anything transmitted yet?
 						{
-							for (;fifobuffer_freesize(modem.outputbuffer) && peekfifobuffer(packetserver_receivebuffer,&datatotransmit);) //Can we still transmit something more?
+							if ((Packetserver_clients[connectedclient].packetserver_transmitlength == 0) && (Packetserver_clients[connectedclient].packetserver_slipprotocol)) //We might need to create an ethernet header?
 							{
-								if (writefifobuffer(modem.outputbuffer,datatotransmit)) //Transmitted?
+								//Build an ethernet header, platform dependent!
+								//Use the data provided by the settings!
+								byte b;
+								for (b = 0; b < 6; ++b) //Process MAC addresses!
 								{
-									//dolog("ethernetcard","transmitted SLIP data to client: %02X",datatotransmit);
-									datatotransmit = readfifobuffer(packetserver_receivebuffer,&datatotransmit); //Discard the data that's being transmitted!
+									ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
+									ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
 								}
-							}
-						}
-					}
-
-					//Handle transmitting packets(with automatically increasing buffer sizing, as a packet can be received of any size theoretically)!
-					if (peekfifobuffer(modem.inputdatabuffer,&datatotransmit)) //Is anything transmitted yet?
-					{
-						if ((packetserver_transmitlength==0) && (packetserver_slipprotocol)) //We might need to create an ethernet header?
-						{
-							//Build an ethernet header, platform dependent!
-							//Use the data provided by the settings!
-							byte b;
-							for (b=0;b<6;++b) //Process MAC addresses!
-							{
-								ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
-								ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
-							}
-							ethernetheader.type = SDL_SwapBE16(0x0800); //We're an IP packet!
-							for (b=0;b<14;++b) //Use the provided ethernet packet header!
-							{
-								if (!packetServerAddWriteQueue(ethernetheader.data[b])) //Failed to add?
+								ethernetheader.type = SDL_SwapBE16(0x0800); //We're an IP packet!
+								for (b = 0; b < 14; ++b) //Use the provided ethernet packet header!
 								{
-									break; //Stop adding!
+									if (!packetServerAddWriteQueue(connectedclient,ethernetheader.data[b])) //Failed to add?
+									{
+										break; //Stop adding!
+									}
 								}
-							}
-							if (packetserver_transmitlength!=14) //Failed to generate header?
-							{
-								dolog("ethernetcard","Error: Transmit initialization failed. Resetting transmitter!");
-								packetserver_transmitlength = 0; //Abort the packet generation!
-							}
-							else
-							{
-								//dolog("ethernetcard","Header for transmitting to the server has been setup!");
-							}
-						}
-						if (datatotransmit==SLIP_END) //End-of-frame? Send the frame!
-						{
-							readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet END!
-							//Clean up the packet container!
-							if (packetserver_transmitlength>sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
-							{
-								//Send the frame to the server, if we're able to!
-								if (packetserver_transmitlength<=0xFFFF) //Within length range?
+								if (Packetserver_clients[connectedclient].packetserver_transmitlength != 14) //Failed to generate header?
 								{
-									//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
-									//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
-
-									sendpkt_pcap(packetserver_transmitbuffer,packetserver_transmitlength); //Send the packet!
+									dolog("ethernetcard", "Error: Transmit initialization failed. Resetting transmitter!");
+									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //Abort the packet generation!
 								}
 								else
 								{
-									dolog("ethernetcard","Error: Can't send packet: packet is too large to send(size: %u)!",packetserver_transmitlength);									
+									//dolog("ethernetcard","Header for transmitting to the server has been setup!");
 								}
+							}
+							if (datatotransmit == SLIP_END) //End-of-frame? Send the frame!
+							{
+								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
+								//Clean up the packet container!
+								if (Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
+								{
+									//Send the frame to the server, if we're able to!
+									if (Packetserver_clients[connectedclient].packetserver_transmitlength <= 0xFFFF) //Within length range?
+									{
+										//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
+										//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
 
-								//Now, cleanup the buffered frame!
-								freez((void **)&packetserver_transmitbuffer,packetserver_transmitsize,"MODEM_SENDPACKET"); //Free 
-								packetserver_transmitsize = 1024; //How large is out transmit buffer!
-								packetserver_transmitbuffer = zalloc(1024,"MODEM_SENDPACKET",NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+										sendpkt_pcap(Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitlength); //Send the packet!
+									}
+									else
+									{
+										dolog("ethernetcard", "Error: Can't send packet: packet is too large to send(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
+									}
+
+									//Now, cleanup the buffered frame!
+									freez((void **)&Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitsize, "MODEM_SENDPACKET"); //Free 
+									Packetserver_clients[connectedclient].packetserver_transmitsize = 1024; //How large is out transmit buffer!
+									Packetserver_clients[connectedclient].packetserver_transmitbuffer = zalloc(1024, "MODEM_SENDPACKET", NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+								}
+								else
+								{
+									dolog("ethernetcard", "Error: Not enough buffered to send to the server(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
+								}
+								Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+								Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
 							}
-							else
+							else if (datatotransmit == SLIP_ESC) //Escaped something?
 							{
-								dolog("ethernetcard","Error: Not enough buffered to send to the server(size: %u)!",packetserver_transmitlength);
+								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Discard, as it's processed!
+								Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
 							}
-							packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
-							packetserver_transmitstate = 0; //Not escaped anymore!
-						}
-						else if (datatotransmit==SLIP_ESC) //Escaped something?
-						{
-							readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Discard, as it's processed!
-							packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
-						}
-						else //Active data?
-						{
-							if (packetserver_transmitlength) //Gotten a valid packet?
+							else //Active data?
 							{
-								if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_END)) //END sent?
+								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
 								{
-									if (packetServerAddWriteQueue(SLIP_END)) //Added to the queue?
+									if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_END)) //END sent?
 									{
-										readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-										packetserver_transmitstate = 0; //We're not escaping something anymore!
+										if (packetServerAddWriteQueue(connectedclient,SLIP_END)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
 									}
-								}
-								else if (packetserver_transmitstate && (datatotransmit==SLIP_ESC_ESC)) //ESC sent?
-								{
-									if (packetServerAddWriteQueue(SLIP_ESC)) //Added to the queue?
+									else if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_ESC)) //ESC sent?
 									{
-										readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-										packetserver_transmitstate = 0; //We're not escaping something anymore!
+										if (packetServerAddWriteQueue(connectedclient,SLIP_ESC)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
 									}
-								}
-								else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
-								{
-									if (packetServerAddWriteQueue(datatotransmit)) //Added to the queue?
+									else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
 									{
-										readfifobuffer(modem.inputdatabuffer,&datatotransmit); //Ignore the data, just discard the packet byte!
-										packetserver_transmitstate = 0; //We're not escaping something anymore!
+										if (packetServerAddWriteQueue(connectedclient,datatotransmit)) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
 									}
 								}
 							}
 						}
-					}
 					skipSLIP: //SLIP isn't available?
 
 					//Handle an authentication stage
-					if (packetserver_stage==PACKETSTAGE_REQUESTUSERNAME)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTUSERNAME)
 						{
-							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"username:");
-							packetserver_stage_byte = 0; //Init to start of string!
-							packetserver_credentials_invalid = 0; //No invalid field detected yet!
-							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-						}
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
-						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "username:");
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+								Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //No invalid field detected yet!
+								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
+							}
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+							{
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
 								{
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
+									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+									{
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
+									}
 								}
 							}
 						}
-					}
 
-					byte textinputfield=0;
-					if (packetserver_stage==PACKETSTAGE_ENTERUSERNAME)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						byte textinputfield = 0;
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERUSERNAME)
 						{
-							memset(&packetserver_username,0,sizeof(packetserver_username));
-							packetserver_stage_byte = 0; //Init to start filling!
-							packetserver_stage_byte_overflown = 0; //Not yet overflown!
-						}
-						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
-						{
-							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-							if (isbackspace) //Backspace?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputusername; //To ignore?
-								//We're a valid backspace!
-								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
-								{
-									goto sendoutputbuffer; //Not ready to process the writes!
-								}
+								memset(&Packetserver_clients[connectedclient].packetserver_username, 0, sizeof(Packetserver_clients[connectedclient].packetserver_username));
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
+								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
 							}
-							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
+							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
 							{
-								if (isbackspace) //Backspace requires extra data?
+								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+								if (isbackspace) //Backspace?
 								{
-									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
-									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputusername; //To ignore?
+									//We're a valid backspace!
+									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
+									{
+										goto sendoutputbuffer; //Not ready to process the writes!
+									}
 								}
+								if (writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) //Echo back to user!
+								{
+									if (isbackspace) //Backspace requires extra data?
+									{
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									}
 								ignorebackspaceoutputusername: //Ignore the output part! Don't send back to the user!
-								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
-								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
-								{
-									packetserver_username[packetserver_stage_byte] = '\0'; //Finish the string!
-									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
-								}
-								else
-								{
-									if (isbackspace) //Backspace?
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
+									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
 									{
-										packetserver_username[packetserver_stage_byte] = '\0'; //Ending!
-										if (packetserver_stage_byte) //Non-empty?
+										Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
+										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
+									}
+									else
+									{
+										if (isbackspace) //Backspace?
 										{
-											--packetserver_stage_byte; //Previous character!
-											packetserver_username[packetserver_stage_byte] = '\0'; //Erase last character!
+											Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
+											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
+											{
+												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
+												Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
+											}
+										}
+										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_username)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
+										}
+										else //Valid content to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
 										}
 									}
-									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_username)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-									{
-										packetserver_stage_byte_overflown = 1; //Overflow detected!
-									}
-									else //Valid content to add?
-									{
-										packetserver_username[packetserver_stage_byte++] = textinputfield; //Add input!
-									}
 								}
 							}
 						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_REQUESTPASSWORD)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTPASSWORD)
 						{
-							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"password:");
-							packetserver_stage_byte = 0; //Init to start of string!
-							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-						}
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
-						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "password:");
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
+							}
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+							{
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
 								{
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
+									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+									{
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
+									}
 								}
 							}
 						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_ENTERPASSWORD)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERPASSWORD)
 						{
-							memset(&packetserver_password,0,sizeof(packetserver_password));
-							packetserver_stage_byte = 0; //Init to start filling!
-							packetserver_stage_byte_overflown = 0; //Not yet overflown!
-						}
-						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
-						{
-							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-							if (isbackspace) //Backspace?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputpassword; //To ignore?
-								//We're a valid backspace!
-								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
-								{
-									goto sendoutputbuffer; //Not ready to process the writes!
-								}
+								memset(&Packetserver_clients[connectedclient].packetserver_password, 0, sizeof(Packetserver_clients[connectedclient].packetserver_password));
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
+								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
 							}
-							if (writefifobuffer(modem.outputbuffer,(isbackspace || (textinputfield=='\r') || (textinputfield=='\n'))?textinputfield:'*')) //Echo back to user, encrypted if needed!
+							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
 							{
-								if (isbackspace) //Backspace requires extra data?
+								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+								if (isbackspace) //Backspace?
 								{
-									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
-									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputpassword; //To ignore?
+									//We're a valid backspace!
+									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
+									{
+										goto sendoutputbuffer; //Not ready to process the writes!
+									}
 								}
+								if (writefifobuffer(modem.outputbuffer[connectedclient], (isbackspace || (textinputfield == '\r') || (textinputfield == '\n')) ? textinputfield : '*')) //Echo back to user, encrypted if needed!
+								{
+									if (isbackspace) //Backspace requires extra data?
+									{
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									}
 								ignorebackspaceoutputpassword: //Ignore the output part! Don't send back to the user!
-								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
-								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
-								{
-									packetserver_password[packetserver_stage_byte] = '\0'; //Finish the string!
-									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
-								}
-								else
-								{
-									if (isbackspace) //Backspace?
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
+									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
 									{
-										packetserver_password[packetserver_stage_byte] = '\0'; //Ending!
-										if (packetserver_stage_byte) //Non-empty?
+										Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
+										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
+									}
+									else
+									{
+										if (isbackspace) //Backspace?
 										{
-											--packetserver_stage_byte; //Previous character!
-											packetserver_password[packetserver_stage_byte] = '\0'; //Erase last character!
+											Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
+											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
+											{
+												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
+												Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
+											}
+										}
+										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_password)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
+										}
+										else //Valid content to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
 										}
 									}
-									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_password)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-									{
-										packetserver_stage_byte_overflown = 1; //Overflow detected!
-									}
-									else //Valid content to add?
-									{
-										packetserver_password[packetserver_stage_byte++] = textinputfield; //Add input!
-									}
 								}
 							}
 						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_REQUESTPROTOCOL)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTPROTOCOL)
 						{
-							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"protocol:");
-							packetserver_stage_byte = 0; //Init to start of string!
-							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-						}
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
-						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "protocol:");
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
+							}
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+							{
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
 								{
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
+									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+									{
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
+									}
 								}
 							}
 						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_ENTERPROTOCOL)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERPROTOCOL)
 						{
-							memset(&packetserver_protocol,0,sizeof(packetserver_protocol));
-							packetserver_stage_byte = 0; //Init to start filling!
-							packetserver_stage_byte_overflown = 0; //Not yet overflown!
-#ifdef PACKETSERVER_ENABLED
-							if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								packetserver_credentials_invalid = 0; //Init!
-							}
-#endif
-						}
-						if (peekfifobuffer(modem.inputdatabuffer,&textinputfield)) //Transmitted?
-						{
-							isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-							if (isbackspace) //Backspace?
-							{
-								if (packetserver_stage_byte == 0) goto ignorebackspaceoutputprotocol; //To ignore?
-								//We're a valid backspace!
-								if (fifobuffer_freesize(modem.outputbuffer) < 3) //Not enough to contain backspace result?
+								memset(&Packetserver_clients[connectedclient].packetserver_protocol, 0, sizeof(Packetserver_clients[connectedclient].packetserver_protocol));
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
+								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
+	#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
+								if (!(BIOS_Settings.ethernetserver_settings.username[0] && BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
 								{
-									goto sendoutputbuffer; //Not ready to process the writes!
+									Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //Init!
 								}
+	#endif
 							}
-							if (writefifobuffer(modem.outputbuffer,textinputfield)) //Echo back to user!
+							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
 							{
-								if (isbackspace) //Backspace requires extra data?
+								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+								if (isbackspace) //Backspace?
 								{
-									if (!writefifobuffer(modem.outputbuffer, ' ')) goto sendoutputbuffer; //Clear previous input!
-									if (!writefifobuffer(modem.outputbuffer, textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputprotocol; //To ignore?
+									//We're a valid backspace!
+									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
+									{
+										goto sendoutputbuffer; //Not ready to process the writes!
+									}
 								}
+								if (writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) //Echo back to user!
+								{
+									if (isbackspace) //Backspace requires extra data?
+									{
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
+										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
+									}
 								ignorebackspaceoutputprotocol: //Ignore the output part! Don't send back to the user!
-								readfifobuffer(modem.inputdatabuffer,&textinputfield); //Discard the input!
-								if ((textinputfield=='\r') || (textinputfield=='\n')) //Finished?
-								{
-									packetserver_protocol[packetserver_stage_byte] = '\0'; //Finish the string!
-									packetserver_credentials_invalid |= packetserver_stage_byte_overflown; //Overflow has occurred?
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									if (packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
-									if (packetserver_authenticate()) //Authenticated?
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
+									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
 									{
-										packetserver_slipprotocol = (strcmp(packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
-										packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
-									}
-									else goto packetserver_autherror; //Authentication error!
-								}
-								else
-								{
-									if (isbackspace) //Backspace?
-									{
-										packetserver_protocol[packetserver_stage_byte] = '\0'; //Ending!
-										if (packetserver_stage_byte) //Non-empty?
+										Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
+										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										if (Packetserver_clients[connectedclient].packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
+										if (packetserver_authenticate(connectedclient)) //Authenticated?
 										{
-											--packetserver_stage_byte; //Previous character!
-											packetserver_protocol[packetserver_stage_byte] = '\0'; //Erase last character!
+											Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
+											Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
+										}
+										else goto packetserver_autherror; //Authentication error!
+									}
+									else
+									{
+										if (isbackspace) //Backspace?
+										{
+											Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
+											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
+											{
+												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
+												Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
+											}
+										}
+										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_protocol)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
+										}
+										else //Valid content to add?
+										{
+											Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
 										}
 									}
-									else if ((textinputfield=='\0') || ((packetserver_stage_byte+1)>=sizeof(packetserver_protocol)) || packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-									{
-										packetserver_stage_byte_overflown = 1; //Overflow detected!
-									}
-									else //Valid content to add?
-									{
-										packetserver_protocol[packetserver_stage_byte++] = textinputfield; //Add input!
-									}
+								}
 								}
 							}
-						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_INFORMATION)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_INFORMATION)
 						{
-							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							snprintf(packetserver_stage_str,sizeof(packetserver_stage_str),"\r\nMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\n",packetserver_sourceMAC[0],packetserver_sourceMAC[1],packetserver_sourceMAC[2],packetserver_sourceMAC[3],packetserver_sourceMAC[4],packetserver_sourceMAC[5],packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]);
-							if (packetserver_useStaticIP) //IP filter?
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
 							{
-								memset(&packetserver_staticIPstr_information,0,sizeof(packetserver_staticIPstr_information));
-								snprintf(packetserver_staticIPstr_information,sizeof(packetserver_staticIPstr_information),"IPaddress:%s\r\n",packetserver_staticIPstr); //Static IP!
-								safestrcat(packetserver_stage_str,sizeof(packetserver_stage_str),packetserver_staticIPstr_information); //Inform about the static IP!
-							}
-							packetserver_stage_byte = 0; //Init to start of string!
-							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-						}
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
-						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
-							{
-								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+								snprintf(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "\r\nMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\n", packetserver_sourceMAC[0], packetserver_sourceMAC[1], packetserver_sourceMAC[2], packetserver_sourceMAC[3], packetserver_sourceMAC[4], packetserver_sourceMAC[5], packetserver_gatewayMAC[0], packetserver_gatewayMAC[1], packetserver_gatewayMAC[2], packetserver_gatewayMAC[3], packetserver_gatewayMAC[4], packetserver_gatewayMAC[5]);
+								if (packetserver_useStaticIP) //IP filter?
 								{
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-									packetserver_stage = PACKETSTAGE_READY;
+									memset(&Packetserver_clients[connectedclient].packetserver_staticIPstr_information, 0, sizeof(Packetserver_clients[connectedclient].packetserver_staticIPstr_information));
+									snprintf(Packetserver_clients[connectedclient].packetserver_staticIPstr_information, sizeof(Packetserver_clients[connectedclient].packetserver_staticIPstr_information), "IPaddress:%s\r\n", packetserver_staticIPstr); //Static IP!
+									safestrcat(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), Packetserver_clients[connectedclient].packetserver_staticIPstr_information); //Inform about the static IP!
 								}
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
 							}
-						}
-					}
-
-					if (packetserver_stage==PACKETSTAGE_READY)
-					{
-						if (packetserver_stage_byte==PACKETSTAGE_INITIALIZING)
-						{
-							memset(&packetserver_stage_str,0,sizeof(packetserver_stage_str));
-							safestrcpy(packetserver_stage_str,sizeof(packetserver_stage_str),"\rCONNECTED\r");
-							packetserver_stage_byte = 0; //Init to start of string!
-							packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-						}
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay<=0.0) || (!packetserver_delay)) //Finished?
-						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							if (writefifobuffer(modem.outputbuffer,packetserver_stage_str[packetserver_stage_byte])) //Transmitted?
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
 							{
-								if (++packetserver_stage_byte==safestrlen(packetserver_stage_str,sizeof(packetserver_stage_str))) //Finished?
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
 								{
-									packetserver_stage = PACKETSTAGE_SLIPDELAY;
-									packetserver_delay = PACKETSERVER_SLIP_DELAY; //Delay this much!
-									packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+									{
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_READY;
+									}
 								}
 							}
 						}
-					}
 
-					if (packetserver_stage==PACKETSTAGE_SLIPDELAY) //Delay before starting SLIP communications?
-					{
-						packetserver_delay -= timepassed; //Delaying!
-						if ((packetserver_delay <= 0.0) || (!packetserver_delay)) //Finished?
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_READY)
 						{
-							packetserver_delay = (DOUBLE)0; //Finish the delay!
-							packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-							packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
+							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+							{
+								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "\rCONNECTED\r");
+								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
+							}
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+							{
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
+								{
+									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+									{
+										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_SLIPDELAY;
+										Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_SLIP_DELAY; //Delay this much!
+										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+									}
+								}
+							}
+						}
+
+						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_SLIPDELAY) //Delay before starting SLIP communications?
+						{
+							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+							{
+								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+								Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+								Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_SLIP; //Start the SLIP service!
+							}
 						}
 					}
 				}
 
-				sendoutputbuffer:
-				if (peekfifobuffer(modem.outputbuffer,&datatotransmit)) //Byte available to send?
+			sendoutputbuffer:
+				if ((modem.connected == 1) && (modem.connectionid>=0)) //Normal connection?
 				{
-					switch (TCP_SendData(modem.connectionid,datatotransmit)) //Send the data?
+					if (peekfifobuffer(modem.outputbuffer[0], &datatotransmit)) //Byte available to send?
 					{
-					case 0: //Failed to send?
-						packetserver_autherror: //Packet server authentication error?
-						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(NULL); //Restart the server!
-						if (PacketServer_running==0) //Not running a packet server?
+						switch (TCP_SendData(modem.connectionid, datatotransmit)) //Send the data?
 						{
-							modem_responseResult(MODEMRESULT_NOCARRIER);
-							modem.datamode = 0; //Drop out of data mode!
-							modem.ringing = 0; //Not ringing anymore!
+						case 0: //Failed to send?
+							modem.connected = 0; //Not connected anymore!
+							TCPServer_restart(NULL); //Restart the server!
+							if (PacketServer_running == 0) //Not running a packet server?
+							{
+								modem_responseResult(MODEMRESULT_NOCARRIER);
+								modem.datamode = 0; //Drop out of data mode!
+								modem.ringing = 0; //Not ringing anymore!
+							}
+							else //Disconnect from packet server?
+							{
+								terminatePacketServer(modem.connectionid); //Clean up the packet server!
+								fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+								fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
+							}
+							//goto skiptransfers;
+							break; //Abort!
+						case 1: //Sent?
+							readfifobuffer(modem.outputbuffer[0], &datatotransmit); //We're send!
+							break;
+						default: //Unknown function?
+							break;
 						}
-						else //Disconnect from packet server?
+					}
+					if (fifobuffer_freesize(modem.inputdatabuffer[0])) //Free to receive?
+					{
+						switch (TCP_ReceiveData(modem.connectionid, &datatotransmit))
 						{
-							terminatePacketServer(); //Clean up the packet server!
-							fifobuffer_clear(modem.inputdatabuffer); //Clear the output buffer for the next client!
-							fifobuffer_clear(modem.outputbuffer); //Clear the output buffer for the next client!
+						case 0: //Nothing received?
+							break;
+						case 1: //Something received?
+							writefifobuffer(modem.inputdatabuffer[0], datatotransmit); //Add the transmitted data to the input buffer!
+							break;
+						case -1: //Disconnected?
+							modem.connected = 0; //Not connected anymore!
+							TCPServer_restart(NULL); //Restart server!
+							if (PacketServer_running == 0) //Not running a packet server?
+							{
+								modem_responseResult(MODEMRESULT_NOCARRIER);
+								modem.datamode = 0; //Drop out of data mode!
+								modem.ringing = 0; //Not ringing anymore!
+							}
+							else //Disconnect from packet server?
+							{
+								terminatePacketServer(modem.connectionid); //Clean up the packet server!
+								fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+								fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
+							}
+							break;
+						default: //Unknown function?
+							break;
 						}
-						goto skiptransfers;
-						break; //Abort!
-					case 1: //Sent?
-						readfifobuffer(modem.outputbuffer,&datatotransmit); //We're send!
-						break;
-					default: //Unknown function?
-						break;
 					}
 				}
-				if (fifobuffer_freesize(modem.inputdatabuffer)) //Free to receive?
+				//Next, process the connected clients!
+				else if (modem.connected == 2) //SLIP server connection is active?
 				{
-					switch (TCP_ReceiveData(modem.connectionid,&datatotransmit))
+					for (connectedclient = 0; connectedclient < Packetserver_totalClients; ++connectedclient) //Check all connected clients!
 					{
-					case 0: //Nothing received?
-						break;
-					case 1: //Something received?
-						writefifobuffer(modem.inputdatabuffer,datatotransmit); //Add the transmitted data to the input buffer!
-						break;
-					case -1: //Disconnected?
-						modem.connected = 0; //Not connected anymore!
-						TCPServer_restart(NULL); //Restart server!
-						if (PacketServer_running==0) //Not running a packet server?
+						if (Packetserver_clients[connectedclient].used == 0) continue; //Skip unused clients!
+						if (peekfifobuffer(modem.outputbuffer[connectedclient], &datatotransmit)) //Byte available to send?
 						{
-							modem_responseResult(MODEMRESULT_NOCARRIER);
-							modem.datamode = 0; //Drop out of data mode!
-							modem.ringing = 0; //Not ringing anymore!
+							switch (TCP_SendData(Packetserver_clients[connectedclient].connectionid, datatotransmit)) //Send the data?
+							{
+							case 0: //Failed to send?
+							packetserver_autherror: //Packet server authentication error?
+								TCPServer_restart(NULL); //Restart the server!
+								if (PacketServer_running == 0) //Not running a packet server?
+								{
+									modem.connected = 0; //Not connected anymore!
+									modem_responseResult(MODEMRESULT_NOCARRIER);
+									modem.datamode = 0; //Drop out of data mode!
+									modem.ringing = 0; //Not ringing anymore!
+								}
+								else //Disconnect from packet server?
+								{
+									TCP_DisconnectClientServer(Packetserver_clients[connectedclient].connectionid); //Clean up the packet server!
+									terminatePacketServer(connectedclient); //Stop the packet server, if used!
+									freePacketserver_client(connectedclient); //Free the client list item!
+									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
+									fifobuffer_clear(modem.outputbuffer[connectedclient]); //Clear the output buffer for the next client!
+									if (Packetserver_availableClients == Packetserver_totalClients) //All cleared?
+									{
+										modem.connected = 0; //Not connected anymore!
+									}
+								}
+								//goto skiptransfers;
+								break; //Abort!
+							case 1: //Sent?
+								readfifobuffer(modem.outputbuffer[connectedclient], &datatotransmit); //We're send!
+								break;
+							default: //Unknown function?
+								break;
+							}
 						}
-						else //Disconnect from packet server?
+						if (fifobuffer_freesize(modem.inputdatabuffer[connectedclient])) //Free to receive?
 						{
-							terminatePacketServer(); //Clean up the packet server!
-							fifobuffer_clear(modem.inputdatabuffer); //Clear the output buffer for the next client!
-							fifobuffer_clear(modem.outputbuffer); //Clear the output buffer for the next client!
+							switch (TCP_ReceiveData(Packetserver_clients[connectedclient].connectionid, &datatotransmit))
+							{
+							case 0: //Nothing received?
+								break;
+							case 1: //Something received?
+								writefifobuffer(modem.inputdatabuffer[connectedclient], datatotransmit); //Add the transmitted data to the input buffer!
+								break;
+							case -1: //Disconnected?
+								TCPServer_restart(NULL); //Restart server!
+								if (PacketServer_running == 0) //Not running a packet server?
+								{
+									modem.connected = 0; //Not connected anymore!
+									modem_responseResult(MODEMRESULT_NOCARRIER);
+									modem.datamode = 0; //Drop out of data mode!
+									modem.ringing = 0; //Not ringing anymore!
+								}
+								else //Disconnect from packet server?
+								{
+									terminatePacketServer(Packetserver_clients[connectedclient].connectionid); //Clean up the packet server!
+									freePacketserver_client(connectedclient); //Free the client list item!
+									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
+									fifobuffer_clear(modem.outputbuffer[connectedclient]); //Clear the output buffer for the next client!
+									if (Packetserver_availableClients == Packetserver_totalClients) //All cleared?
+									{
+										modem.connected = 0; //Not connected anymore!
+									}
+								}
+								break;
+							default: //Unknown function?
+								break;
+							}
 						}
-						break;
-					default: //Unknown function?
-						break;
 					}
 				}
 			} //Connected?
 
-			skiptransfers: //For disconnects!
+			//skiptransfers: //For disconnects!
+			if (net.packet) //Packet received? Discard anything we receive now for other users!
+			{
+				freez((void **)&net.packet, net.pktlen, "MODEM_PACKET");
+				net.packet = NULL; //Discard if failed to deallocate!
+				net.pktlen = 0; //Not allocated!
+			}
 
 			fetchpackets_pcap(); //Handle any packets that need fetching!
 		} //While polling?
