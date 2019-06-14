@@ -757,6 +757,7 @@ byte readIPnumber(char **x, byte *number)
 
 byte modem_connect(char *phonenumber)
 {
+	sword connectionid;
 	char ipaddress[256];
 	byte a,b,c,d;
 	char *p; //For normal port resolving!
@@ -773,6 +774,14 @@ byte modem_connect(char *phonenumber)
 		return 0; //Not connected!
 	}
 	if (PacketServer_running) return 0; //Don't accept when the packet server is running instead!
+	if (modem.connected == 1) //Connected and dialing out?
+	{
+		if (TCP_DisconnectClientServer(modem.connectionid)) //Try and disconnect, if possible!
+		{
+			modem.connectionid = -1; //Not connected anymore if succeeded!
+			modem.connected = 0; //Not connected anymore!
+		}
+	}
 	memset(&ipaddress,0,sizeof(ipaddress)); //Init IP address to translate!
 	if (safestrlen(phonenumber,256)>=12) //Valid length to convert IP addresses?
 	{
@@ -844,8 +853,9 @@ byte modem_connect(char *phonenumber)
 			port = modem.connectionport; //Use the default port as specified!
 		}
 	}
-	if ((modem.connectionid = TCP_ConnectClient(ipaddress,port))>=0) //Connected on the port specified(use the server port by default)?
+	if ((connectionid = TCP_ConnectClient(ipaddress,port))>=0) //Connected on the port specified(use the server port by default)?
 	{
+		modem.connectionid = connectionid; //We're connected to this!
 		modem.connected = 1; //We're connected!
 		return 1; //We're connected!
 	}
@@ -854,6 +864,11 @@ byte modem_connect(char *phonenumber)
 
 void modem_hangup() //Hang up, if possible!
 {
+	if (modem.connected == 1) //Connected?
+	{
+		TCP_DisconnectClientServer(modem.connectionid); //Try and disconnect, if possible!
+		modem.connectionid = -1; //Not connected anymore
+	}
 	TCPServer_restart(NULL); //Start into the server mode!
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
@@ -2122,6 +2137,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		{
 			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
 			{
+				TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
 				TCPServer_restart(NULL); //Restart into the TCP server!
 			}
 			else //Able to accept?
