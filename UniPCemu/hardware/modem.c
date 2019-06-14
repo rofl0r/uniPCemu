@@ -554,7 +554,9 @@ void terminatePacketServer(sword client) //Cleanup the packet server after being
 
 void initPacketServer(sword client) //Initialize the packet server for use when connected to!
 {
+#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
 	word c;
+#endif
 	terminatePacketServer(client); //First, make sure we're terminated properly!
 	Packetserver_clients[client].packetserver_transmitsize = 1024; //Initialize transmit buffer!
 	Packetserver_clients[client].packetserver_transmitbuffer = zalloc(Packetserver_clients[client].packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
