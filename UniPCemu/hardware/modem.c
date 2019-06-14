@@ -1958,6 +1958,7 @@ void initModem(byte enabled) //Initialise modem!
 			modem.supported = 0; //Unsupported!
 			goto unsupportedUARTModem;
 		}
+		modem.connectionid = -1; //Default: not connected!
 		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
 		Packetserver_availableClients = 0; //Init: 0 clients available!
 		for (i = 0; i < MIN(NUMITEMS(modem.inputdatabuffer),NUMITEMS(modem.outputbuffer)); ++i) //Allocate buffers for server and client purposes!
@@ -2138,7 +2139,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
 			{
 				TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
-				TCPServer_restart(NULL); //Restart into the TCP server!
+				//TCPServer_restart(NULL); //Restart into the TCP server!
 			}
 			else //Able to accept?
 			{
