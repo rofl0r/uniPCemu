@@ -777,15 +777,15 @@ void BIOS_LoadData() //Load BIOS settings!
 	if (__HW_DISABLED) return; //Abort!
 	BIGFILE *f;
 	byte defaultsapplied = 0; //Defaults have been applied?
-	byte c;
+	word c;
 	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
 	if (loadedsettings_loaded)
 	{
-		memcpy(&BIOS_Settings,&loadedsettings,sizeof(BIOS_Settings)); //Reload from buffer!
+		memcpy(&BIOS_Settings, &loadedsettings, sizeof(BIOS_Settings)); //Reload from buffer!
 		return;
 	}
-	f = emufopen64(BIOS_Settings_file,"rb"); //Open BIOS file!
+	f = emufopen64(BIOS_Settings_file, "rb"); //Open BIOS file!
 
 	if (!f) //Not loaded?
 	{
@@ -795,63 +795,63 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	emufclose64(f); //Close the settings file!
 
-	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Init settings to their defaults!
+	memset(&BIOS_Settings, 0, sizeof(BIOS_Settings)); //Init settings to their defaults!
 
 	//General
-	BIOS_Settings.version = (byte)get_private_profile_uint64("general","version",BIOS_VERSION,BIOS_Settings_file);
-	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general","firstrun",1,BIOS_Settings_file); //Is this the first run of this BIOS?
-	BIOS_Settings.BIOSmenu_font = (byte)get_private_profile_uint64("general","settingsmenufont",0,BIOS_Settings_file); //The selected font for the BIOS menu!
+	BIOS_Settings.version = (byte)get_private_profile_uint64("general", "version", BIOS_VERSION, BIOS_Settings_file);
+	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general", "firstrun", 1, BIOS_Settings_file); //Is this the first run of this BIOS?
+	BIOS_Settings.BIOSmenu_font = (byte)get_private_profile_uint64("general", "settingsmenufont", 0, BIOS_Settings_file); //The selected font for the BIOS menu!
 	BIOS_Settings.backgroundpolicy = (byte)get_private_profile_uint64("general", "backgroundpolicy", DEFAULT_BACKGROUNDPOLICY, BIOS_Settings_file); //The selected font for the BIOS menu!
 
 	//Machine
-	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine","cpu",DEFAULT_CPU,BIOS_Settings_file);
-	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine","databussize",0,BIOS_Settings_file); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	BIOS_Settings.memory = (uint_32)get_private_profile_uint64("machine","memory",0,BIOS_Settings_file);
-	BIOS_Settings.architecture = (byte)get_private_profile_uint64("machine","architecture",ARCHITECTURE_XT,BIOS_Settings_file); //Are we using the XT/AT/PS/2 architecture?
-	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine","executionmode",DEFAULT_EXECUTIONMODE,BIOS_Settings_file); //What mode to execute in during runtime?
-	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine","cpuspeed",0,BIOS_Settings_file);
-	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine","showcpuspeed",0,BIOS_Settings_file); //Show the relative CPU speed together with the framerate?
-	BIOS_Settings.TurboCPUSpeed = (uint_32)get_private_profile_uint64("machine","turbocpuspeed",0,BIOS_Settings_file);
-	BIOS_Settings.useTurboSpeed = (byte)get_private_profile_uint64("machine","useturbocpuspeed",0,BIOS_Settings_file); //Are we to use Turbo CPU speed?
-	BIOS_Settings.clockingmode = (byte)get_private_profile_uint64("machine","clockingmode",DEFAULT_CLOCKINGMODE,BIOS_Settings_file); //Are we using the IPS clock?
-	BIOS_Settings.BIOSROMmode = (byte)get_private_profile_uint64("machine","BIOSROMmode",DEFAULT_BIOSROMMODE,BIOS_Settings_file); //BIOS ROM mode.
-	BIOS_Settings.InboardInitialWaitstates = (byte)get_private_profile_uint64("machine","inboardinitialwaitstates",DEFAULT_INBOARDINITIALWAITSTATES,BIOS_Settings_file); //Inboard 386 initial delay used?
+	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine", "cpu", DEFAULT_CPU, BIOS_Settings_file);
+	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine", "databussize", 0, BIOS_Settings_file); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	BIOS_Settings.memory = (uint_32)get_private_profile_uint64("machine", "memory", 0, BIOS_Settings_file);
+	BIOS_Settings.architecture = (byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, BIOS_Settings_file); //Are we using the XT/AT/PS/2 architecture?
+	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine", "executionmode", DEFAULT_EXECUTIONMODE, BIOS_Settings_file); //What mode to execute in during runtime?
+	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine", "cpuspeed", 0, BIOS_Settings_file);
+	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine", "showcpuspeed", 0, BIOS_Settings_file); //Show the relative CPU speed together with the framerate?
+	BIOS_Settings.TurboCPUSpeed = (uint_32)get_private_profile_uint64("machine", "turbocpuspeed", 0, BIOS_Settings_file);
+	BIOS_Settings.useTurboSpeed = (byte)get_private_profile_uint64("machine", "useturbocpuspeed", 0, BIOS_Settings_file); //Are we to use Turbo CPU speed?
+	BIOS_Settings.clockingmode = (byte)get_private_profile_uint64("machine", "clockingmode", DEFAULT_CLOCKINGMODE, BIOS_Settings_file); //Are we using the IPS clock?
+	BIOS_Settings.BIOSROMmode = (byte)get_private_profile_uint64("machine", "BIOSROMmode", DEFAULT_BIOSROMMODE, BIOS_Settings_file); //BIOS ROM mode.
+	BIOS_Settings.InboardInitialWaitstates = (byte)get_private_profile_uint64("machine", "inboardinitialwaitstates", DEFAULT_INBOARDINITIALWAITSTATES, BIOS_Settings_file); //Inboard 386 initial delay used?
 
 	//Debugger
-	BIOS_Settings.debugmode = (byte)get_private_profile_uint64("debugger","debugmode",DEFAULT_DEBUGMODE,BIOS_Settings_file);
-	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger","debuggerlog",DEFAULT_DEBUGGERLOG,BIOS_Settings_file);
-	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger","logstates",DEFAULT_DEBUGGERSTATELOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
-	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger","logregisters",DEFAULT_DEBUGGERREGISTERSLOG,BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
-	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger","breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
-	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger","taskbreakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
-	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger","CR3breakpoint",0,BIOS_Settings_file); //The used breakpoint segment:offset and mode!
-	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger","diagnosticsport_breakpoint",DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT,BIOS_Settings_file); //Use a diagnostics port breakpoint?
-	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger","diagnosticsport_timeout",DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT,BIOS_Settings_file); //Breakpoint timeout used!
+	BIOS_Settings.debugmode = (byte)get_private_profile_uint64("debugger", "debugmode", DEFAULT_DEBUGMODE, BIOS_Settings_file);
+	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger", "debuggerlog", DEFAULT_DEBUGGERLOG, BIOS_Settings_file);
+	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger", "logstates", DEFAULT_DEBUGGERSTATELOG, BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
+	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger", "logregisters", DEFAULT_DEBUGGERREGISTERSLOG, BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
+	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger", "breakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger", "taskbreakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger", "CR3breakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger", "diagnosticsport_breakpoint", DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT, BIOS_Settings_file); //Use a diagnostics port breakpoint?
+	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger", "diagnosticsport_timeout", DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT, BIOS_Settings_file); //Breakpoint timeout used!
 	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("debugger", "advancedlog", DEFAULT_ADVANCEDLOG, BIOS_Settings_file); //The selected font for the BIOS menu!
 
 	//Video
-	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video","videocard",DEFAULT_VIDEOCARD,BIOS_Settings_file); //Enable VGA NMI on precursors?
-	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video","CGAmodel",DEFAULT_CGAMODEL,BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
-	BIOS_Settings.VRAM_size = (uint_32)get_private_profile_uint64("video","VRAM",0,BIOS_Settings_file); //(S)VGA VRAM size!
-	BIOS_Settings.VGASynchronization = (byte)get_private_profile_uint64("video","synchronization",DEFAULT_VGASYNCHRONIZATION,BIOS_Settings_file); //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
-	BIOS_Settings.GPU_AllowDirectPlot = (byte)get_private_profile_uint64("video","directplot",DEFAULT_DIRECTPLOT,BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
-	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video","aspectratio",DEFAULT_ASPECTRATIO,BIOS_Settings_file); //The aspect ratio to use?
-	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video","bwmonitor",DEFAULT_BWMONITOR,BIOS_Settings_file); //Are we a b/w monitor?
-	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video","showframerate",DEFAULT_FRAMERATE,BIOS_Settings_file); //Show the frame rate?
+	BIOS_Settings.VGA_Mode = (byte)get_private_profile_uint64("video", "videocard", DEFAULT_VIDEOCARD, BIOS_Settings_file); //Enable VGA NMI on precursors?
+	BIOS_Settings.CGAModel = (byte)get_private_profile_uint64("video", "CGAmodel", DEFAULT_CGAMODEL, BIOS_Settings_file); //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	BIOS_Settings.VRAM_size = (uint_32)get_private_profile_uint64("video", "VRAM", 0, BIOS_Settings_file); //(S)VGA VRAM size!
+	BIOS_Settings.VGASynchronization = (byte)get_private_profile_uint64("video", "synchronization", DEFAULT_VGASYNCHRONIZATION, BIOS_Settings_file); //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
+	BIOS_Settings.GPU_AllowDirectPlot = (byte)get_private_profile_uint64("video", "directplot", DEFAULT_DIRECTPLOT, BIOS_Settings_file); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video", "aspectratio", DEFAULT_ASPECTRATIO, BIOS_Settings_file); //The aspect ratio to use?
+	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video", "bwmonitor", DEFAULT_BWMONITOR, BIOS_Settings_file); //Are we a b/w monitor?
+	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video", "showframerate", DEFAULT_FRAMERATE, BIOS_Settings_file); //Show the frame rate?
 
 	//Sound
-	BIOS_Settings.usePCSpeaker = (byte)get_private_profile_uint64("sound","speaker",1,BIOS_Settings_file); //Emulate PC Speaker sound?
-	BIOS_Settings.useAdlib = (byte)get_private_profile_uint64("sound","adlib",1,BIOS_Settings_file); //Emulate Adlib?
-	BIOS_Settings.useLPTDAC = (byte)get_private_profile_uint64("sound","LPTDAC",1,BIOS_Settings_file); //Emulate Covox/Disney Sound Source?
-	get_private_profile_string("sound","soundfont","",&BIOS_Settings.SoundFont[0],sizeof(BIOS_Settings.SoundFont),BIOS_Settings_file); //Read entry!
-	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound","directmidi",DEFAULT_DIRECTMIDIMODE,BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
-	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound","gameblaster",1,BIOS_Settings_file); //Emulate Game Blaster?
-	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound","gameblaster_volume",100,BIOS_Settings_file); //The Game Blaster volume knob!
-	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound","soundblaster",DEFAULT_SOUNDBLASTER,BIOS_Settings_file); //Emulate Sound Blaster?
-	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound","soundsource_volume",DEFAULT_SSOURCEVOL,BIOS_Settings_file); //The sound source volume knob!
+	BIOS_Settings.usePCSpeaker = (byte)get_private_profile_uint64("sound", "speaker", 1, BIOS_Settings_file); //Emulate PC Speaker sound?
+	BIOS_Settings.useAdlib = (byte)get_private_profile_uint64("sound", "adlib", 1, BIOS_Settings_file); //Emulate Adlib?
+	BIOS_Settings.useLPTDAC = (byte)get_private_profile_uint64("sound", "LPTDAC", 1, BIOS_Settings_file); //Emulate Covox/Disney Sound Source?
+	get_private_profile_string("sound", "soundfont", "", &BIOS_Settings.SoundFont[0], sizeof(BIOS_Settings.SoundFont), BIOS_Settings_file); //Read entry!
+	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound", "directmidi", DEFAULT_DIRECTMIDIMODE, BIOS_Settings_file); //Use Direct MIDI synthesis by using a passthrough to the OS?
+	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound", "gameblaster", 1, BIOS_Settings_file); //Emulate Game Blaster?
+	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound", "gameblaster_volume", 100, BIOS_Settings_file); //The Game Blaster volume knob!
+	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound", "soundblaster", DEFAULT_SOUNDBLASTER, BIOS_Settings_file); //Emulate Sound Blaster?
+	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound", "soundsource_volume", DEFAULT_SSOURCEVOL, BIOS_Settings_file); //The sound source volume knob!
 
 	//Modem
-	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem","listenport",DEFAULT_MODEMLISTENPORT,BIOS_Settings_file); //Modem listen port!
+	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem", "listenport", DEFAULT_MODEMLISTENPORT, BIOS_Settings_file); //Modem listen port!
 	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
 	{
 		snprintf(phonebookentry, sizeof(phonebookentry), "phonebook%u", c); //The entry to use!
@@ -859,12 +859,40 @@ void BIOS_LoadData() //Load BIOS settings!
 	}
 
 #ifdef PACKETSERVER_ENABLED
-	BIOS_Settings.ethernetserver_settings.ethernetcard = get_private_profile_int64("modem","ethernetcard",-1,BIOS_Settings_file); //Ethernet card to use!
-	get_private_profile_string("modem","MACaddress","",&BIOS_Settings.ethernetserver_settings.MACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.MACaddress),BIOS_Settings_file); //Read entry!
-	get_private_profile_string("modem","gatewayMACaddress","",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.gatewayMACaddress),BIOS_Settings_file); //Read entry!
-	get_private_profile_string("modem","username","",&BIOS_Settings.ethernetserver_settings.username[0],sizeof(BIOS_Settings.ethernetserver_settings.username),BIOS_Settings_file); //Read entry!
-	get_private_profile_string("modem","password","",&BIOS_Settings.ethernetserver_settings.password[0],sizeof(BIOS_Settings.ethernetserver_settings.password),BIOS_Settings_file); //Read entry!
-	get_private_profile_string("modem","IPaddress","",&BIOS_Settings.ethernetserver_settings.IPaddress[0],sizeof(BIOS_Settings.ethernetserver_settings.IPaddress),BIOS_Settings_file); //Read entry!
+	BIOS_Settings.ethernetserver_settings.ethernetcard = get_private_profile_int64("modem", "ethernetcard", -1, BIOS_Settings_file); //Ethernet card to use!
+	get_private_profile_string("modem", "MACaddress", "", &BIOS_Settings.ethernetserver_settings.MACaddress[0], sizeof(BIOS_Settings.ethernetserver_settings.MACaddress), BIOS_Settings_file); //Read entry!
+	get_private_profile_string("modem", "gatewayMACaddress", "", &BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0], sizeof(BIOS_Settings.ethernetserver_settings.gatewayMACaddress), BIOS_Settings_file); //Read entry!
+
+	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
+	{
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "username%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "username"); //The entry to use!
+		}
+		get_private_profile_string("modem", phonebookentry, "", &BIOS_Settings.ethernetserver_settings.users[c].username[0], sizeof(BIOS_Settings.ethernetserver_settings.users[c].username), BIOS_Settings_file); //Read entry!
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "password%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "password"); //The entry to use!
+		}
+		get_private_profile_string("modem", phonebookentry, "", &BIOS_Settings.ethernetserver_settings.users[c].password[0], sizeof(BIOS_Settings.ethernetserver_settings.users[c].password), BIOS_Settings_file); //Read entry!
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "IPaddress%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "IPaddress"); //The entry to use!
+		}
+		get_private_profile_string("modem", phonebookentry, "", &BIOS_Settings.ethernetserver_settings.users[c].IPaddress[0], sizeof(BIOS_Settings.ethernetserver_settings.users[c].IPaddress), BIOS_Settings_file); //Read entry!
+	}
 #endif
 
 	//Disks
@@ -996,137 +1024,144 @@ extern uint8_t maclocal_default[6]; //Default MAC of the sender!
 
 int BIOS_SaveData() //Save BIOS settings!
 {
-	byte c;
+	word c;
 	if (__HW_DISABLED) return 1; //Abort!
-	if ((memcmp(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings))==0) && loadedsettings_loaded) //Unchanged from buffer?
+	if ((memcmp(&loadedsettings, &BIOS_Settings, sizeof(BIOS_Settings)) == 0) && loadedsettings_loaded) //Unchanged from buffer?
 	{
 		return 1; //Nothing to do! Report success!
 	}
-	
+
 	memset(&phonebookentry, 0, sizeof(phonebookentry)); //Init!
 
-	delete_file(NULL,BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
+	delete_file(NULL, BIOS_Settings_file); //We're rewriting the file entirely, also updating the comments if required!
 
 	//General
-	char *general_commentused=NULL;
+	char *general_commentused = NULL;
 	if (general_comment[0]) general_commentused = &general_comment[0];
-	if (!write_private_profile_uint64("general",general_commentused,"version",BIOS_VERSION,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("general",general_commentused,"firstrun",BIOS_Settings.firstrun,BIOS_Settings_file)) return 0; //Is this the first run of this BIOS?
-	if (!write_private_profile_uint64("general",general_commentused,"settingsmenufont",BIOS_Settings.BIOSmenu_font,BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
+	if (!write_private_profile_uint64("general", general_commentused, "version", BIOS_VERSION, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("general", general_commentused, "firstrun", BIOS_Settings.firstrun, BIOS_Settings_file)) return 0; //Is this the first run of this BIOS?
+	if (!write_private_profile_uint64("general", general_commentused, "settingsmenufont", BIOS_Settings.BIOSmenu_font, BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 	if (!write_private_profile_uint64("general", general_commentused, "backgroundpolicy", BIOS_Settings.backgroundpolicy, BIOS_Settings_file)) return 0; //The selected font for the BIOS menu!
 
 	//Machine
-	memset(&machine_comment,0,sizeof(machine_comment)); //Init!
-	safestrcat(machine_comment,sizeof(machine_comment),"cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"memory: memory size in bytes\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"showcpuspeed: 0=Don't show, 1=Show\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"useturbocpuspeed: 0=Don't use, 1=Use\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
-	safestrcat(machine_comment,sizeof(machine_comment),"inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
-	char *machine_commentused=NULL;
+	memset(&machine_comment, 0, sizeof(machine_comment)); //Init!
+	safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "memory: memory size in bytes\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "showcpuspeed: 0=Don't show, 1=Show\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "useturbocpuspeed: 0=Don't use, 1=Use\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
+	char *machine_commentused = NULL;
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];
-	if (!write_private_profile_uint64("machine",machine_commentused,"cpu",BIOS_Settings.emulated_CPU,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine",machine_commentused,"databussize",BIOS_Settings.DataBusSize,BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	if (!write_private_profile_uint64("machine",machine_commentused,"memory",BIOS_Settings.memory,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine",machine_commentused,"architecture",BIOS_Settings.architecture,BIOS_Settings_file)) return 0; //Are we using the XT/AT/PS/2 architecture?
-	if (!write_private_profile_uint64("machine",machine_commentused,"executionmode",BIOS_Settings.executionmode,BIOS_Settings_file)) return 0; //What mode to execute in during runtime?
-	if (!write_private_profile_uint64("machine",machine_commentused,"cpuspeed",BIOS_Settings.CPUSpeed,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine",machine_commentused,"showcpuspeed",BIOS_Settings.ShowCPUSpeed,BIOS_Settings_file)) return 0; //Show the relative CPU speed together with the framerate?
-	if (!write_private_profile_uint64("machine",machine_commentused,"turbocpuspeed",BIOS_Settings.TurboCPUSpeed,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine",machine_commentused,"useturbocpuspeed",BIOS_Settings.useTurboSpeed,BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
-	if (!write_private_profile_uint64("machine",machine_commentused,"clockingmode",BIOS_Settings.clockingmode,BIOS_Settings_file)) return 0; //Are we using the IPS clock?
-	if (!write_private_profile_uint64("machine",machine_commentused,"BIOSROMmode",BIOS_Settings.BIOSROMmode,BIOS_Settings_file)) return 0; //BIOS ROM mode.
-	if (!write_private_profile_uint64("machine",machine_commentused,"inboardinitialwaitstates",BIOS_Settings.InboardInitialWaitstates,BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
+	if (!write_private_profile_uint64("machine", machine_commentused, "cpu", BIOS_Settings.emulated_CPU, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine", machine_commentused, "databussize", BIOS_Settings.DataBusSize, BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	if (!write_private_profile_uint64("machine", machine_commentused, "memory", BIOS_Settings.memory, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine", machine_commentused, "architecture", BIOS_Settings.architecture, BIOS_Settings_file)) return 0; //Are we using the XT/AT/PS/2 architecture?
+	if (!write_private_profile_uint64("machine", machine_commentused, "executionmode", BIOS_Settings.executionmode, BIOS_Settings_file)) return 0; //What mode to execute in during runtime?
+	if (!write_private_profile_uint64("machine", machine_commentused, "cpuspeed", BIOS_Settings.CPUSpeed, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine", machine_commentused, "showcpuspeed", BIOS_Settings.ShowCPUSpeed, BIOS_Settings_file)) return 0; //Show the relative CPU speed together with the framerate?
+	if (!write_private_profile_uint64("machine", machine_commentused, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("machine", machine_commentused, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
+	if (!write_private_profile_uint64("machine", machine_commentused, "clockingmode", BIOS_Settings.clockingmode, BIOS_Settings_file)) return 0; //Are we using the IPS clock?
+	if (!write_private_profile_uint64("machine", machine_commentused, "BIOSROMmode", BIOS_Settings.BIOSROMmode, BIOS_Settings_file)) return 0; //BIOS ROM mode.
+	if (!write_private_profile_uint64("machine", machine_commentused, "inboardinitialwaitstates", BIOS_Settings.InboardInitialWaitstates, BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 
 	//Debugger
-	memset(&debugger_comment,0,sizeof(debugger_comment)); //Init!
-	safestrcat(debugger_comment,sizeof(debugger_comment),"debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons, 4=Enabled, just run, don't show, ignore shoulder buttons\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"logstates: 0=Disabled, 1=Enabled\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"logregisters: 0=Disabled, 1=Enabled\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bit 57: Break on EIP only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"taskbreakpoint: bits 60-61: 0=Not set, 1=Enabled; bit 59: Break on TR only; bit 57: Break on base address only. bits 32-47: TR segment, bits 31-0: base address within the descriptor cache\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"CR3breakpoint: bits 60-61: 0=Not set, 1=Enabled; bits 31-0: Base address\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
-	safestrcat(debugger_comment,sizeof(debugger_comment),"diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction\n");
+	memset(&debugger_comment, 0, sizeof(debugger_comment)); //Init!
+	safestrcat(debugger_comment, sizeof(debugger_comment), "debugmode: 0=Disabled, 1=Enabled, RTrigger=Step, 2=Enabled, Step through, 3=Enabled, just run, ignore shoulder buttons, 4=Enabled, just run, don't show, ignore shoulder buttons\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "debuggerlog: 0=Don't log, 1=Only when debugging, 2=Always log, 3=Interrupt calls only, 4=BIOS Diagnostic codes only, 5=Always log, no register state, 6=Always log, even during skipping, 7=Always log, even during skipping, single line format, 8=Only when debugging, single line format, 9=Always log, even during skipping, single line format, simplified, 10=Only when debugging, single line format, simplified, 11=Always log, common log format, 12=Always log, even during skipping, common log format, 13=Only when debugging, common log format\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "logstates: 0=Disabled, 1=Enabled\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "logregisters: 0=Disabled, 1=Enabled\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bit 57: Break on EIP only. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "taskbreakpoint: bits 60-61: 0=Not set, 1=Enabled; bit 59: Break on TR only; bit 57: Break on base address only. bits 32-47: TR segment, bits 31-0: base address within the descriptor cache\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "CR3breakpoint: bits 60-61: 0=Not set, 1=Enabled; bits 31-0: Base address\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "advancedlog: 0=Disable advanced logging, 1: Use advanced logging");
-	char *debugger_commentused=NULL;
+	char *debugger_commentused = NULL;
 	if (debugger_comment[0]) debugger_commentused = &debugger_comment[0];
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"debugmode",BIOS_Settings.debugmode,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"debuggerlog",BIOS_Settings.debugger_log,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"logstates",BIOS_Settings.debugger_logstates,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"logregisters",BIOS_Settings.debugger_logregisters,BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"breakpoint",BIOS_Settings.breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"taskbreakpoint",BIOS_Settings.taskBreakpoint,BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and enable!
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"CR3breakpoint",BIOS_Settings.CR3breakpoint,BIOS_Settings_file)) return 0; //The used breakpoint offset ans enable!
-	if (!write_private_profile_int64("debugger",debugger_commentused,"diagnosticsport_breakpoint",BIOS_Settings.diagnosticsportoutput_breakpoint,BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
-	if (!write_private_profile_uint64("debugger",debugger_commentused,"diagnosticsport_timeout",BIOS_Settings.diagnosticsportoutput_timeout,BIOS_Settings_file)) return 0; //Breakpoint timeout used!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "debugmode", BIOS_Settings.debugmode, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "debuggerlog", BIOS_Settings.debugger_log, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "logstates", BIOS_Settings.debugger_logstates, BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "logregisters", BIOS_Settings.debugger_logregisters, BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint", BIOS_Settings.breakpoint, BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "taskbreakpoint", BIOS_Settings.taskBreakpoint, BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and enable!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "CR3breakpoint", BIOS_Settings.CR3breakpoint, BIOS_Settings_file)) return 0; //The used breakpoint offset ans enable!
+	if (!write_private_profile_int64("debugger", debugger_commentused, "diagnosticsport_breakpoint", BIOS_Settings.diagnosticsportoutput_breakpoint, BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "diagnosticsport_timeout", BIOS_Settings.diagnosticsportoutput_timeout, BIOS_Settings_file)) return 0; //Breakpoint timeout used!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "advancedlog", BIOS_Settings.advancedlog, BIOS_Settings_file)) return 0; //Advanced logging feature!
 
 	//Video
-	memset(&video_comment,0,sizeof(video_comment)); //Init!
-	safestrcat(video_comment,sizeof(video_comment),"videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
-	safestrcat(video_comment,sizeof(video_comment),"CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
-	safestrcat(video_comment,sizeof(video_comment),"VRAM: Ammount of VRAM installed, in bytes\n");
-	safestrcat(video_comment,sizeof(video_comment),"synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
-	safestrcat(video_comment,sizeof(video_comment),"directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
-	safestrcat(video_comment,sizeof(video_comment),"aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
-	safestrcat(video_comment,sizeof(video_comment),"bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
-	safestrcat(video_comment,sizeof(video_comment),"showframerate: 0=Disabled, otherwise Enabled");
-	char *video_commentused=NULL;
+	memset(&video_comment, 0, sizeof(video_comment)); //Init!
+	safestrcat(video_comment, sizeof(video_comment), "videocard: 0=Pure VGA, 1=VGA with NMI, 2=VGA with CGA, 3=VGA with MDA, 4=Pure CGA, 5=Pure MDA, 6=Tseng ET4000, 7=Tseng ET3000, 8=Pure EGA\n");
+	safestrcat(video_comment, sizeof(video_comment), "CGAmodel: 0=Old-style RGB, 1=Old-style NTSC, 2=New-style RGB, 3=New-style NTSC\n");
+	safestrcat(video_comment, sizeof(video_comment), "VRAM: Ammount of VRAM installed, in bytes\n");
+	safestrcat(video_comment, sizeof(video_comment), "synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
+	safestrcat(video_comment, sizeof(video_comment), "directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
+	safestrcat(video_comment, sizeof(video_comment), "aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
+	safestrcat(video_comment, sizeof(video_comment), "bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
+	safestrcat(video_comment, sizeof(video_comment), "showframerate: 0=Disabled, otherwise Enabled");
+	char *video_commentused = NULL;
 	if (video_comment[0]) video_commentused = &video_comment[0];
-	if (!write_private_profile_uint64("video",video_commentused,"videocard",BIOS_Settings.VGA_Mode,BIOS_Settings_file)) return 0; //Enable VGA NMI on precursors?
-	if (!write_private_profile_uint64("video",video_commentused,"CGAmodel",BIOS_Settings.CGAModel,BIOS_Settings_file)) return 0; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
-	if (!write_private_profile_uint64("video",video_commentused,"VRAM",BIOS_Settings.VRAM_size,BIOS_Settings_file)) return 0; //(S)VGA VRAM size!
-	if (!write_private_profile_uint64("video",video_commentused,"synchronization",BIOS_Settings.VGASynchronization,BIOS_Settings_file)) return 0; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
-	if (!write_private_profile_uint64("video",video_commentused,"directplot",BIOS_Settings.GPU_AllowDirectPlot,BIOS_Settings_file)) return 0; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
-	if (!write_private_profile_uint64("video",video_commentused,"aspectratio",BIOS_Settings.aspectratio,BIOS_Settings_file)) return 0; //The aspect ratio to use?
-	if (!write_private_profile_uint64("video",video_commentused,"bwmonitor",BIOS_Settings.bwmonitor,BIOS_Settings_file)) return 0; //Are we a b/w monitor?
-	if (!write_private_profile_uint64("video",video_commentused,"showframerate",BIOS_Settings.ShowFramerate,BIOS_Settings_file)) return 0; //Show the frame rate?
+	if (!write_private_profile_uint64("video", video_commentused, "videocard", BIOS_Settings.VGA_Mode, BIOS_Settings_file)) return 0; //Enable VGA NMI on precursors?
+	if (!write_private_profile_uint64("video", video_commentused, "CGAmodel", BIOS_Settings.CGAModel, BIOS_Settings_file)) return 0; //What kind of CGA is emulated? Bit0=NTSC, Bit1=New-style CGA
+	if (!write_private_profile_uint64("video", video_commentused, "VRAM", BIOS_Settings.VRAM_size, BIOS_Settings_file)) return 0; //(S)VGA VRAM size!
+	if (!write_private_profile_uint64("video", video_commentused, "synchronization", BIOS_Settings.VGASynchronization, BIOS_Settings_file)) return 0; //VGA synchronization setting. 0=Automatic synchronization based on Host CPU. 1=Tight VGA Synchronization with the CPU.
+	if (!write_private_profile_uint64("video", video_commentused, "directplot", BIOS_Settings.GPU_AllowDirectPlot, BIOS_Settings_file)) return 0; //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
+	if (!write_private_profile_uint64("video", video_commentused, "aspectratio", BIOS_Settings.aspectratio, BIOS_Settings_file)) return 0; //The aspect ratio to use?
+	if (!write_private_profile_uint64("video", video_commentused, "bwmonitor", BIOS_Settings.bwmonitor, BIOS_Settings_file)) return 0; //Are we a b/w monitor?
+	if (!write_private_profile_uint64("video", video_commentused, "showframerate", BIOS_Settings.ShowFramerate, BIOS_Settings_file)) return 0; //Show the frame rate?
 
 	//Sound
-	memset(&sound_comment,0,sizeof(sound_comment)); //Init!
-	safestrcat(sound_comment,sizeof(sound_comment),"speaker: 0=Disabled, 1=Enabled\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"adlib: 0=Disabled, 1=Enabled\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"LPTDAC: 0=Disabled, 1=Enabled\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"soundfont: The path to the soundfont file. Empty for none.\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"directmidi: 0=Disabled, 1=Enabled\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"gameblaster: 0=Disabled, 1=Enabled\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
-	safestrcat(sound_comment,sizeof(sound_comment),"soundsource_volume: Volume of the sound source, in percent(>=0)");
-	char *sound_commentused=NULL;
+	memset(&sound_comment, 0, sizeof(sound_comment)); //Init!
+	safestrcat(sound_comment, sizeof(sound_comment), "speaker: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "adlib: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "LPTDAC: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "soundfont: The path to the soundfont file. Empty for none.\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "directmidi: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "gameblaster: 0=Disabled, 1=Enabled\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "soundsource_volume: Volume of the sound source, in percent(>=0)");
+	char *sound_commentused = NULL;
 	if (sound_comment[0]) sound_commentused = &sound_comment[0];
-	if (!write_private_profile_uint64("sound",sound_commentused,"speaker",BIOS_Settings.usePCSpeaker,BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
-	if (!write_private_profile_uint64("sound",sound_commentused,"adlib",BIOS_Settings.useAdlib,BIOS_Settings_file)) return 0; //Emulate Adlib?
-	if (!write_private_profile_uint64("sound",sound_commentused,"LPTDAC",BIOS_Settings.useLPTDAC,BIOS_Settings_file)) return 0; //Emulate Covox/Disney Sound Source?
-	if (!write_private_profile_string("sound",sound_commentused,"soundfont",&BIOS_Settings.SoundFont[0],BIOS_Settings_file)) return 0; //Read entry!
-	if (!write_private_profile_uint64("sound",sound_commentused,"directmidi",BIOS_Settings.useDirectMIDI,BIOS_Settings_file)) return 0; //Use Direct MIDI synthesis by using a passthrough to the OS?
-	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster",BIOS_Settings.useGameBlaster,BIOS_Settings_file)) return 0; //Emulate Game Blaster?
-	if (!write_private_profile_uint64("sound",sound_commentused,"gameblaster_volume",BIOS_Settings.GameBlaster_Volume,BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
-	if (!write_private_profile_uint64("sound",sound_commentused,"soundblaster",BIOS_Settings.useSoundBlaster,BIOS_Settings_file)) return 0; //Emulate Sound Blaster?
-	if (!write_private_profile_uint64("sound",sound_commentused,"soundsource_volume",BIOS_Settings.SoundSource_Volume,BIOS_Settings_file)) return 0; //The sound source volume knob!
+	if (!write_private_profile_uint64("sound", sound_commentused, "speaker", BIOS_Settings.usePCSpeaker, BIOS_Settings_file)) return 0; //Emulate PC Speaker sound?
+	if (!write_private_profile_uint64("sound", sound_commentused, "adlib", BIOS_Settings.useAdlib, BIOS_Settings_file)) return 0; //Emulate Adlib?
+	if (!write_private_profile_uint64("sound", sound_commentused, "LPTDAC", BIOS_Settings.useLPTDAC, BIOS_Settings_file)) return 0; //Emulate Covox/Disney Sound Source?
+	if (!write_private_profile_string("sound", sound_commentused, "soundfont", &BIOS_Settings.SoundFont[0], BIOS_Settings_file)) return 0; //Read entry!
+	if (!write_private_profile_uint64("sound", sound_commentused, "directmidi", BIOS_Settings.useDirectMIDI, BIOS_Settings_file)) return 0; //Use Direct MIDI synthesis by using a passthrough to the OS?
+	if (!write_private_profile_uint64("sound", sound_commentused, "gameblaster", BIOS_Settings.useGameBlaster, BIOS_Settings_file)) return 0; //Emulate Game Blaster?
+	if (!write_private_profile_uint64("sound", sound_commentused, "gameblaster_volume", BIOS_Settings.GameBlaster_Volume, BIOS_Settings_file)) return 0; //The Game Blaster volume knob!
+	if (!write_private_profile_uint64("sound", sound_commentused, "soundblaster", BIOS_Settings.useSoundBlaster, BIOS_Settings_file)) return 0; //Emulate Sound Blaster?
+	if (!write_private_profile_uint64("sound", sound_commentused, "soundsource_volume", BIOS_Settings.SoundSource_Volume, BIOS_Settings_file)) return 0; //The sound source volume knob!
 
 	//Modem
-	memset(&modem_comment,0,sizeof(modem_comment)); //Init!
-	memset(currentstr,0,sizeof(currentstr)); //Init!
-	snprintf(modem_comment,sizeof(modem_comment),"listenport: listen port to listen on when not connected(defaults to %u)\n",DEFAULT_MODEMLISTENPORT);
-	snprintf(currentstr, sizeof(currentstr), "phonebook0-%u: Phonebook entry #n\n", (byte)(NUMITEMS(BIOS_Settings.phonebook)-1)); //Information about the phonebook!
+	memset(&modem_comment, 0, sizeof(modem_comment)); //Init!
+	memset(currentstr, 0, sizeof(currentstr)); //Init!
+	snprintf(modem_comment, sizeof(modem_comment), "listenport: listen port to listen on when not connected(defaults to %u)\n", DEFAULT_MODEMLISTENPORT);
+	snprintf(currentstr, sizeof(currentstr), "phonebook0-%u: Phonebook entry #n\n", (byte)(NUMITEMS(BIOS_Settings.phonebook) - 1)); //Information about the phonebook!
 	safestrcat(modem_comment, sizeof(modem_comment), currentstr); //MAC address information!
 #ifdef PACKETSERVER_ENABLED
-	safestrcat(modem_comment,sizeof(modem_comment),"ethernetcard: -1 for disabled(use normal emulation), 0-254 selected and use a network card, 255 to generate a list of network cards to select\n");
-	snprintf(currentstr,sizeof(currentstr),"MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %02x:%02x:%02x:%02x:%02x:%02x)\n",maclocal_default[0],maclocal_default[1],maclocal_default[2],maclocal_default[3],maclocal_default[4],maclocal_default[5]);
-	safestrcat(modem_comment,sizeof(modem_comment),currentstr); //MAC address information!
-	safestrcat(modem_comment,sizeof(modem_comment),"gatewayMACaddress: gateway MAC address to send/receive packets on\n");
-	safestrcat(modem_comment,sizeof(modem_comment),"username: set username and password to non-empty values for a credential protected server\n");
-	safestrcat(modem_comment,sizeof(modem_comment),"password: set username and password to non-empty values for a credential protected server\n");
-	safestrcat(modem_comment,sizeof(modem_comment),"IPaddress: static IP address to use for this NIC (account). Format 0123456789AB for IP 012.345.678.9AB\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "ethernetcard: -1 for disabled(use normal emulation), 0-254 selected and use a network card, 255 to generate a list of network cards to select\n");
+	snprintf(currentstr, sizeof(currentstr), "MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %02x:%02x:%02x:%02x:%02x:%02x)\n", maclocal_default[0], maclocal_default[1], maclocal_default[2], maclocal_default[3], maclocal_default[4], maclocal_default[5]);
+	safestrcat(modem_comment, sizeof(modem_comment), currentstr); //MAC address information!
+	safestrcat(modem_comment, sizeof(modem_comment), "gatewayMACaddress: gateway MAC address to send/receive packets on\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "username: set username and password to non-empty values for a credential protected server\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "password: set username and password to non-empty values for a credential protected server\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "IPaddress: static IP address to use for this NIC (account). Format 0123456789AB for IP 012.345.678.9AB\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "Specify username/password/IPaddress for the default account(required when using authentication).");
+	if (NUMITEMS(BIOS_Settings.ethernetserver_settings.users) > 1) //More than one available?
+	{
+		snprintf(currentstr, sizeof(currentstr), "Add 1 - %i to the username/password/IPaddress key for multiple accounts(when username and password are non - empty, it's used).", (int)NUMITEMS(BIOS_Settings.ethernetserver_settings.users) - 1);
+		safestrcat(modem_comment, sizeof(modem_comment), currentstr); //Extra user information!
+		safestrcat(modem_comment, sizeof(modem_comment), "Specifying no or an invalid IP address for the numbered IPaddress fields other than the default will use the default field instead.\n");
+	}
 #endif
 	char *modem_commentused=NULL;
 	if (modem_comment[0]) modem_commentused = &modem_comment[0];
@@ -1134,15 +1169,43 @@ int BIOS_SaveData() //Save BIOS settings!
 	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
 	{
 		snprintf(phonebookentry, sizeof(phonebookentry), "phonebook%u", c); //The entry to use!
-		if (!write_private_profile_string("modem",modem_commentused,phonebookentry,&BIOS_Settings.phonebook[c][0],BIOS_Settings_file)) return 0; //Entry!
+		if (!write_private_profile_string("modem", modem_commentused, phonebookentry, &BIOS_Settings.phonebook[c][0], BIOS_Settings_file)) return 0; //Entry!
 	}
 #ifdef PACKETSERVER_ENABLED
-	if (!write_private_profile_int64("modem",modem_commentused,"ethernetcard",BIOS_Settings.ethernetserver_settings.ethernetcard,BIOS_Settings_file)) return 0; //Ethernet card to use!
-	if (!write_private_profile_string("modem",modem_commentused,"MACaddress",&BIOS_Settings.ethernetserver_settings.MACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
-	if (!write_private_profile_string("modem",modem_commentused,"gatewayMACaddress",&BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
-	if (!write_private_profile_string("modem",modem_commentused,"username",&BIOS_Settings.ethernetserver_settings.username[0],BIOS_Settings_file)) return 0; //MAC address to use!
-	if (!write_private_profile_string("modem",modem_commentused,"password",&BIOS_Settings.ethernetserver_settings.password[0],BIOS_Settings_file)) return 0; //MAC address to use!
-	if (!write_private_profile_string("modem",modem_commentused,"IPaddress",&BIOS_Settings.ethernetserver_settings.IPaddress[0],BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_int64("modem", modem_commentused, "ethernetcard", BIOS_Settings.ethernetserver_settings.ethernetcard, BIOS_Settings_file)) return 0; //Ethernet card to use!
+	if (!write_private_profile_string("modem", modem_commentused, "MACaddress", &BIOS_Settings.ethernetserver_settings.MACaddress[0], BIOS_Settings_file)) return 0; //MAC address to use!
+	if (!write_private_profile_string("modem", modem_commentused, "gatewayMACaddress", &BIOS_Settings.ethernetserver_settings.gatewayMACaddress[0], BIOS_Settings_file)) return 0; //MAC address to use!
+
+	for (c = 0; c < NUMITEMS(BIOS_Settings.ethernetserver_settings.users); ++c) //Process all phonebook entries!
+	{
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "username%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "username"); //The entry to use!
+		}
+		if (!write_private_profile_string("modem", modem_commentused, phonebookentry, &BIOS_Settings.ethernetserver_settings.users[c].username[0], BIOS_Settings_file)) return 0; //MAC address to use!
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "password%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "password"); //The entry to use!
+		}
+		if (!write_private_profile_string("modem", modem_commentused, phonebookentry, &BIOS_Settings.ethernetserver_settings.users[c].password[0], BIOS_Settings_file)) return 0; //MAC address to use!
+		if (c) //Normal user?
+		{
+			snprintf(phonebookentry, sizeof(phonebookentry), "IPaddress%u", c); //The entry to use!
+		}
+		else
+		{
+			safestrcpy(phonebookentry, sizeof(phonebookentry), "IPaddress"); //The entry to use!
+		}
+		if (!write_private_profile_string("modem", modem_commentused, phonebookentry, &BIOS_Settings.ethernetserver_settings.users[c].IPaddress[0], BIOS_Settings_file)) return 0; //MAC address to use!
+	}
 #endif
 
 	//Disks

@@ -17,12 +17,17 @@
 #ifdef PACKETSERVER_ENABLED
 typedef struct
 {
+	CharacterType IPaddress[256]; //Credentials IP address, otherwise default(the 0th user)!
+	CharacterType username[256]; //Credentials username
+	CharacterType password[256]; //Credentials password
+} ETHERNETSERVER_USER;
+
+typedef struct
+{
 	int_64 ethernetcard; //What adapter to use? 255=List adapters!
 	CharacterType MACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
 	CharacterType gatewayMACaddress[256]; //MAC address, formatted with hexadecimal characters and : only!
-	CharacterType username[256]; //Credentials username
-	CharacterType password[256]; //Credentials password
-	CharacterType IPaddress[256]; //Credentials IP address
+	ETHERNETSERVER_USER users[256]; //Up to 256 users!
 } ETHERNETSERVER_SETTINGS_TYPE;
 #endif
 

@@ -48,10 +48,10 @@ uint8_t maclocal[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //The MAC address 
 uint8_t packetserver_broadcastMAC[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; //The MAC address of the modem we're emulating!
 byte packetserver_sourceMAC[6]; //Our MAC to send from!
 byte packetserver_gatewayMAC[6]; //Gateway MAC to send to!
-byte packetserver_staticIP[4] = { 0,0,0,0 }; //Static IP to use?
+byte packetserver_defaultstaticIP[4] = { 0,0,0,0 }; //Static IP to use?
 byte packetserver_broadcastIP[4] = { 0xFF,0xFF,0xFF,0xFF }; //Broadcast IP to use?
-byte packetserver_useStaticIP = 0; //Use static IP?
-char packetserver_staticIPstr[256] = ""; //Static IP, string format
+byte packetserver_usedefaultStaticIP = 0; //Use static IP?
+char packetserver_defaultstaticIPstr[256] = ""; //Static IP, string format
 
 //Authentication data and user-specific data!
 typedef struct
@@ -67,6 +67,9 @@ typedef struct
 	char packetserver_username[256]; //Username(settings must match)
 	char packetserver_password[256]; //Password(settings must match)
 	char packetserver_protocol[256]; //Protocol(slip). Hangup when sent with username&password not matching setting.
+	char packetserver_staticIP[4]; //Static IP to assign this user!
+	char packetserver_staticIPstr[256]; //Static IP, string format
+	byte packetserver_useStaticIP; //Use static IP?
 	byte packetserver_slipprotocol; //Are we using the slip protocol?
 	byte packetserver_stage; //Current login/service/packet(connected and authenticated state).
 	word packetserver_stage_byte; //Byte of data within the current stage(else, use string length or connected stage(no position; in SLIP mode). 0xFFFF=Init new stage.
@@ -299,14 +302,14 @@ void initPcap() {
 
 	memcpy(&packetserver_sourceMAC,&maclocal,sizeof(packetserver_sourceMAC)); //Load sender MAC to become active!
 
-	memset(&packetserver_staticIPstr, 0, sizeof(packetserver_staticIPstr));
-	memset(&packetserver_staticIP, 0, sizeof(packetserver_staticIP));
-	packetserver_useStaticIP = 0; //Default to unused!
+	memset(&packetserver_defaultstaticIPstr, 0, sizeof(packetserver_defaultstaticIPstr));
+	memset(&packetserver_defaultstaticIP, 0, sizeof(packetserver_defaultstaticIP));
+	packetserver_usedefaultStaticIP = 0; //Default to unused!
 
 #if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
-	if (safestrlen(&BIOS_Settings.ethernetserver_settings.IPaddress[0], 256) >= 12) //Valid length to convert IP addresses?
+	if (safestrlen(&BIOS_Settings.ethernetserver_settings.users[0].IPaddress[0], 256) >= 12) //Valid length to convert IP addresses?
 	{
-		p = &BIOS_Settings.ethernetserver_settings.IPaddress[0]; //For scanning the IP!
+		p = &BIOS_Settings.ethernetserver_settings.users[0].IPaddress[0]; //For scanning the IP!
 		if (readIPnumber(&p, &IPnumbers[0]))
 		{
 			if (readIPnumber(&p, &IPnumbers[1]))
@@ -318,9 +321,9 @@ void initPcap() {
 						if (*p == '\0') //EOS?
 						{
 							//Automatic port?
-							snprintf(packetserver_staticIPstr, sizeof(packetserver_staticIPstr), "%u.%u.%u.%u", IPnumbers[0], IPnumbers[1], IPnumbers[2], IPnumbers[3]); //Formulate the address!
-							memcpy(&packetserver_staticIP, &IPnumbers, 4); //Set read IP!
-							packetserver_useStaticIP = 1; //Static IP set!
+							snprintf(packetserver_defaultstaticIPstr, sizeof(packetserver_defaultstaticIPstr), "%u.%u.%u.%u", IPnumbers[0], IPnumbers[1], IPnumbers[2], IPnumbers[3]); //Formulate the address!
+							memcpy(&packetserver_defaultstaticIP, &IPnumbers, 4); //Set read IP!
+							packetserver_usedefaultStaticIP = 1; //Static IP set!
 						}
 					}
 				}
@@ -334,9 +337,9 @@ void initPcap() {
 
 	dolog("ethernetcard","Receiver MAC address: %02x:%02x:%02x:%02x:%02x:%02x",maclocal[0],maclocal[1],maclocal[2],maclocal[3],maclocal[4],maclocal[5]);
 	dolog("ethernetcard","Gateway MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",packetserver_gatewayMAC[0],packetserver_gatewayMAC[1],packetserver_gatewayMAC[2],packetserver_gatewayMAC[3],packetserver_gatewayMAC[4],packetserver_gatewayMAC[5]); //Log loaded address!
-	if (packetserver_useStaticIP) //Static IP configured?
+	if (packetserver_usedefaultStaticIP) //Static IP configured?
 	{
-		dolog("ethernetcard","Static IP configured: %s(%02x%02x%02x%02x)",packetserver_staticIPstr,packetserver_staticIP[0],packetserver_staticIP[1],packetserver_staticIP[2],packetserver_staticIP[3]); //Log it!
+		dolog("ethernetcard","Static IP configured: %s(%02x%02x%02x%02x)",packetserver_defaultstaticIPstr,packetserver_defaultstaticIP[0],packetserver_defaultstaticIP[1],packetserver_defaultstaticIP[2],packetserver_defaultstaticIP[3]); //Log it!
 	}
 
 	for (i = 0; i < NUMITEMS(Packetserver_clients); ++i) //Initialize client data!
@@ -551,6 +554,7 @@ void terminatePacketServer(sword client) //Cleanup the packet server after being
 
 void initPacketServer(sword client) //Initialize the packet server for use when connected to!
 {
+	word c;
 	terminatePacketServer(client); //First, make sure we're terminated properly!
 	Packetserver_clients[client].packetserver_transmitsize = 1024; //Initialize transmit buffer!
 	Packetserver_clients[client].packetserver_transmitbuffer = zalloc(Packetserver_clients[client].packetserver_transmitsize,"MODEM_SENDPACKET",NULL); //Initial transmit buffer!
@@ -558,9 +562,13 @@ void initPacketServer(sword client) //Initialize the packet server for use when 
 	Packetserver_clients[client].packetserver_transmitstate = 0; //Initialize transmitter state to the default state!
 	Packetserver_clients[client].packetserver_stage = PACKETSTAGE_INIT; //Initial state when connected.
 #if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
-	if (BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0]) //Gotten credentials?
+	for (c=0;c<NUMITEMS(BIOS_Settings.ethernetserver_settings.users);++c)
 	{
-		Packetserver_clients[client].packetserver_stage = PACKETSTAGE_INIT_PASSWORD; //Initial state when connected: ask for credentials too.
+		if (BIOS_Settings.ethernetserver_settings.users[c].username[0]&&BIOS_Settings.ethernetserver_settings.users[c].password[0]) //Gotten credentials?
+		{
+			Packetserver_clients[client].packetserver_stage = PACKETSTAGE_INIT_PASSWORD; //Initial state when connected: ask for credentials too.
+			break;
+		}
 	}
 #endif
 	Packetserver_clients[client].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Reset stage byte: uninitialized!
@@ -577,19 +585,68 @@ void initPacketServer(sword client) //Initialize the packet server for use when 
 
 byte packetserver_authenticate(sword client)
 {
-	if ((strcmp(Packetserver_clients[client].packetserver_protocol,"slip")==0) || (strcmp(Packetserver_clients[client].packetserver_protocol,"ethernetslip")==0)) //Valid protocol?
+#ifdef PACKETSERVER_ENABLED
+#ifndef NOPCAP
+	byte IPnumbers[4];
+	word c;
+	char *p;
+#endif
+#endif
+	if ((strcmp(Packetserver_clients[client].packetserver_protocol, "slip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ethernetslip") == 0)) //Valid protocol?
 	{
 #ifdef PACKETSERVER_ENABLED
 #ifndef NOPCAP
-		if (!(BIOS_Settings.ethernetserver_settings.username[0]&&BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
+		if (!(BIOS_Settings.ethernetserver_settings.users[0].username[0] && BIOS_Settings.ethernetserver_settings.users[0].password[0])) //Gotten no default credentials?
 		{
+			safestrcpy(Packetserver_clients[client].packetserver_staticIPstr, sizeof(Packetserver_clients[client].packetserver_staticIPstr), packetserver_defaultstaticIPstr); //Default!
+			memcpy(&Packetserver_clients[client].packetserver_staticIP, &packetserver_defaultstaticIP, 4); //Set read IP!
+			Packetserver_clients[client].packetserver_useStaticIP = packetserver_usedefaultStaticIP; //Static IP set!
 			return 1; //Always valid: no credentials required!
 		}
 		else
 		{
-			if (!(strcmp(BIOS_Settings.ethernetserver_settings.username,Packetserver_clients[client].packetserver_username)||strcmp(BIOS_Settings.ethernetserver_settings.password,Packetserver_clients[client].packetserver_password))) //Gotten no credentials?
+			for (c = 0; c < NUMITEMS(BIOS_Settings.ethernetserver_settings.users); ++c) //Check all users!
 			{
-				return 1; //Valid credentials!
+				if (!(BIOS_Settings.ethernetserver_settings.users[c].username[c] && BIOS_Settings.ethernetserver_settings.users[c].password[c])) //Gotten no credentials?
+					continue;
+				if (!(strcmp(BIOS_Settings.ethernetserver_settings.users[c].username, Packetserver_clients[client].packetserver_username) || strcmp(BIOS_Settings.ethernetserver_settings.users[c].password, Packetserver_clients[client].packetserver_password))) //Gotten no credentials?
+				{
+					//Determine the IP address!
+					memcpy(&Packetserver_clients[client].packetserver_staticIP, &packetserver_defaultstaticIP, sizeof(Packetserver_clients[client].packetserver_staticIP)); //Use the default IP!
+					safestrcpy(Packetserver_clients[client].packetserver_staticIPstr, sizeof(Packetserver_clients[client].packetserver_staticIPstr), packetserver_defaultstaticIPstr); //Formulate the address!
+					Packetserver_clients[client].packetserver_useStaticIP = 0; //Default: not detected!
+					if (safestrlen(&BIOS_Settings.ethernetserver_settings.users[c].IPaddress[0], 256) >= 12) //Valid length to convert IP addresses?
+					{
+						p = &BIOS_Settings.ethernetserver_settings.users[c].IPaddress[0]; //For scanning the IP!
+
+						if (readIPnumber(&p, &IPnumbers[0]))
+						{
+							if (readIPnumber(&p, &IPnumbers[1]))
+							{
+								if (readIPnumber(&p, &IPnumbers[2]))
+								{
+									if (readIPnumber(&p, &IPnumbers[3]))
+									{
+										if (*p == '\0') //EOS?
+										{
+											//Automatic port?
+											snprintf(Packetserver_clients[client].packetserver_staticIPstr, sizeof(Packetserver_clients[client].packetserver_staticIPstr), "%u.%u.%u.%u", IPnumbers[0], IPnumbers[1], IPnumbers[2], IPnumbers[3]); //Formulate the address!
+											memcpy(&Packetserver_clients[client].packetserver_staticIP, &IPnumbers, 4); //Set read IP!
+											Packetserver_clients[client].packetserver_useStaticIP = 1; //Static IP set!
+										}
+									}
+								}
+							}
+						}
+					}
+					if (!Packetserver_clients[client].packetserver_useStaticIP) //Not specified? Use default!
+					{
+						safestrcpy(Packetserver_clients[client].packetserver_staticIPstr, sizeof(Packetserver_clients[client].packetserver_staticIPstr), packetserver_defaultstaticIPstr); //Default!
+						memcpy(&Packetserver_clients[client].packetserver_staticIP, &packetserver_defaultstaticIP, 4); //Set read IP!
+						Packetserver_clients[client].packetserver_useStaticIP = packetserver_usedefaultStaticIP; //Static IP set!
+					}
+					return 1; //Valid credentials!
+				}
 			}
 		}
 #else
@@ -2182,9 +2239,9 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 												goto invalidpacket; //Invalid packet!
 											}
-											if (packetserver_useStaticIP) //IP filter?
+											if (Packetserver_clients[connectedclient].packetserver_useStaticIP) //IP filter?
 											{
-												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
+												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], Packetserver_clients[connectedclient].packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
 												{
 													goto invalidpacket; //Invalid packet!
 												}
@@ -2574,7 +2631,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
 								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
 	#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
-								if (!(BIOS_Settings.ethernetserver_settings.username[0] && BIOS_Settings.ethernetserver_settings.password[0])) //Gotten no credentials?
+								if (!(BIOS_Settings.ethernetserver_settings.users[0].username[0] && BIOS_Settings.ethernetserver_settings.users[0].password[0])) //Gotten no credentials?
 								{
 									Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //Init!
 								}
@@ -2644,10 +2701,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
 								snprintf(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "\r\nMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\ngatewayMACaddress:%02x:%02x:%02x:%02x:%02x:%02x\r\n", packetserver_sourceMAC[0], packetserver_sourceMAC[1], packetserver_sourceMAC[2], packetserver_sourceMAC[3], packetserver_sourceMAC[4], packetserver_sourceMAC[5], packetserver_gatewayMAC[0], packetserver_gatewayMAC[1], packetserver_gatewayMAC[2], packetserver_gatewayMAC[3], packetserver_gatewayMAC[4], packetserver_gatewayMAC[5]);
-								if (packetserver_useStaticIP) //IP filter?
+								if (Packetserver_clients[connectedclient].packetserver_useStaticIP) //IP filter?
 								{
 									memset(&Packetserver_clients[connectedclient].packetserver_staticIPstr_information, 0, sizeof(Packetserver_clients[connectedclient].packetserver_staticIPstr_information));
-									snprintf(Packetserver_clients[connectedclient].packetserver_staticIPstr_information, sizeof(Packetserver_clients[connectedclient].packetserver_staticIPstr_information), "IPaddress:%s\r\n", packetserver_staticIPstr); //Static IP!
+									snprintf(Packetserver_clients[connectedclient].packetserver_staticIPstr_information, sizeof(Packetserver_clients[connectedclient].packetserver_staticIPstr_information), "IPaddress:%s\r\n", Packetserver_clients[connectedclient].packetserver_staticIPstr); //Static IP!
 									safestrcat(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), Packetserver_clients[connectedclient].packetserver_staticIPstr_information); //Inform about the static IP!
 								}
 								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
