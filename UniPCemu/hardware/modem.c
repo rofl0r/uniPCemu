@@ -1906,38 +1906,46 @@ void modem_writeData(byte value)
 	else //Command mode?
 	{
 		modem.timer = 0.0; //Reset the timer when anything is received!
-		if (modem.echomode) //Echo enabled?
+		if (value=='~') //Pause stream for half a second?
 		{
-			writefifobuffer(modem.inputbuffer,value); //Echo the value back to the terminal!
+			//Ignore this time?
+			if (modem.echomode) //Echo enabled?
+			{
+				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+			}
 		}
-		if (modem.ATcommandsize<(sizeof(modem.ATcommand)-1)) //Valid to input(leave 1 byte for the terminal character)?
+		else if (value==modem.backspacecharacter) //Backspace?
 		{
-			if (value=='~') //Pause stream for half a second?
+			if (modem.ATcommandsize) //Valid to backspace?
 			{
-				//Ignore this time?
+				--modem.ATcommandsize; //Remove last entered value!
 			}
-			else if (value==modem.backspacecharacter) //Backspace?
+			if (modem.echomode) //Echo enabled?
 			{
-				if (modem.ATcommandsize) //Valid to backspace?
+				if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
 				{
-					--modem.ATcommandsize; //Remove last entered value!
-				}
-				if (modem.echomode) //Echo enabled?
-				{
-					if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
-					{
-						writefifobuffer(modem.inputbuffer,' '); //Space to clear the character followed by...
-						writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
-					}
+					writefifobuffer(modem.inputbuffer,' '); //Space to clear the character followed by...
+					writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
 				}
 			}
-			else if (value==modem.carriagereturncharacter) //Carriage return? Execute the command!
+		}
+		else if (value==modem.carriagereturncharacter) //Carriage return? Execute the command!
+		{
+			if (modem.echomode) //Echo enabled?
 			{
-				modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
-				modem.ATcommandsize = 0; //Start the new command!
-				modem_executeCommand();
+				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
 			}
-			else if (value!=0x20) //Not space? Command byte!
+			modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
+			modem.ATcommandsize = 0; //Start the new command!
+			modem_executeCommand();
+		}
+		else if (value!=0x20) //Not space? Command byte!
+		{
+			if (modem.echomode) //Echo enabled?
+			{
+				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+			}
+			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
 			}
