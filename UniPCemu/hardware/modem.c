@@ -2183,6 +2183,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				++modem.registers[1]; //Increase numbr of rings!
 				if ((modem.registers[0] > 0) && (modem.registers[1] >= modem.registers[0])) //Autoanswer?
 				{
+					modem.registers[1] = 0; //When connected, clear the register!
 					if (modem_connect(NULL)) //Accept incoming call?
 					{
 						modem_Answered(); //We've answered!
