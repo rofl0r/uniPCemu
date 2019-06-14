@@ -1882,31 +1882,16 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	}
 }
 
-void modem_writeData(byte value)
+void modem_writeCommandData(byte value)
 {
-	//Handle the data sent to the modem!
 	if (modem.datamode) //Data mode?
 	{
-		//Unhandled yet!
-		if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F) && ((modem.escaping && (modem.escaping<3)) || ((modem.timer>=modem.escapecodeguardtime) && (modem.escaping==0)))) //Possible escape sequence? Higher values than 127 disables the escape character! Up to 3 escapes after the guard timer is allowed!
-		{
-			++modem.escaping; //Increase escape info!
-		}
-		else //Not escaping(anymore)?
-		{
-			for (;modem.escaping;) //Process escape characters as data!
-			{
-				--modem.escaping; //Handle one!
-				modem_sendData(modem.escapecharacter); //Send it as data!
-			}
-			modem_sendData(value); //Send the data!
-		}
-		modem.timer = 0.0; //Reset the timer when anything is received!
+		modem_sendData(value); //Send the data!
 	}
 	else //Command mode?
 	{
 		modem.timer = 0.0; //Reset the timer when anything is received!
-		if (value=='~') //Pause stream for half a second?
+		if (value == '~') //Pause stream for half a second?
 		{
 			//Ignore this time?
 			if (modem.echomode) //Echo enabled?
@@ -1914,7 +1899,7 @@ void modem_writeData(byte value)
 				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
 			}
 		}
-		else if (value==modem.backspacecharacter) //Backspace?
+		else if (value == modem.backspacecharacter) //Backspace?
 		{
 			if (modem.ATcommandsize) //Valid to backspace?
 			{
@@ -1924,12 +1909,12 @@ void modem_writeData(byte value)
 			{
 				if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
 				{
-					writefifobuffer(modem.inputbuffer,' '); //Space to clear the character followed by...
+					writefifobuffer(modem.inputbuffer, ' '); //Space to clear the character followed by...
 					writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
 				}
 			}
 		}
-		else if (value==modem.carriagereturncharacter) //Carriage return? Execute the command!
+		else if (value == modem.carriagereturncharacter) //Carriage return? Execute the command!
 		{
 			if (modem.echomode) //Echo enabled?
 			{
@@ -1939,7 +1924,7 @@ void modem_writeData(byte value)
 			modem.ATcommandsize = 0; //Start the new command!
 			modem_executeCommand();
 		}
-		else if (value!=0x20) //Not space? Command byte!
+		else if (value != 0x20) //Not space? Command byte!
 		{
 			if (modem.echomode) //Echo enabled?
 			{
@@ -1951,6 +1936,25 @@ void modem_writeData(byte value)
 			}
 		}
 	}
+}
+
+void modem_writeData(byte value)
+{
+	//Handle the data sent to the modem!
+	if ((value==modem.escapecharacter) && (modem.escapecharacter<=0x7F) && ((modem.escaping && (modem.escaping<3)) || ((modem.timer>=modem.escapecodeguardtime) && (modem.escaping==0)))) //Possible escape sequence? Higher values than 127 disables the escape character! Up to 3 escapes after the guard timer is allowed!
+	{
+		++modem.escaping; //Increase escape info!
+	}
+	else //Not escaping(anymore)?
+	{
+		for (;modem.escaping;) //Process escape characters as data!
+		{
+			--modem.escaping; //Handle one!
+			modem_writeCommandData(modem.escapecharacter); //Send it as data/command!
+		}
+		modem_writeCommandData(value); //Send it as data/command!
+	}
+	modem.timer = 0.0; //Reset the timer when anything is received!
 }
 
 void initModem(byte enabled) //Initialise modem!
@@ -2113,7 +2117,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader;
 	modem.timer += timepassed; //Add time to the timer!
-	if (modem.datamode && modem.escaping) //Data mode and escapes buffered?
+	if (modem.escaping) //Escapes buffered and escaping?
 	{
 		if (modem.timer>=modem.escapecodeguardtime) //Long delay time?
 		{
@@ -2128,7 +2132,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				for (;modem.escaping;) //Send the escaped data after all!
 				{
 					--modem.escaping;
-					modem_sendData(modem.escapecharacter); //Send the escaped data!
+					modem_writeCommandData(modem.escapecharacter); //Send the escaped data!
 				}
 			}
 		}
