@@ -2125,6 +2125,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 			{
 				modem.escaping = 0; //Stop escaping!
 				modem.datamode = 0; //Return to command mode!
+				modem.ATcommandsize = 0; //Start a new command!
 				modem_responseResult(MODEMRESULT_OK); //OK message to escape!
 			}
 			else //Not 3 escapes buffered to be sent?
