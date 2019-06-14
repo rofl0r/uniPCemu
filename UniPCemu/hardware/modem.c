@@ -1924,7 +1924,7 @@ void modem_writeCommandData(byte value)
 			modem.ATcommandsize = 0; //Start the new command!
 			modem_executeCommand();
 		}
-		else if (value != 0x20) //Not space? Command byte!
+		else if ((value != 0x20) && value) //Not space or NULL-terminator? Command byte!
 		{
 			if (modem.echomode) //Echo enabled?
 			{
