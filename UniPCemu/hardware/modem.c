@@ -221,6 +221,11 @@ struct
 
 byte readIPnumber(char **x, byte *number); //Prototype!
 
+void initPacketServerClients()
+{
+	Packetserver_availableClients = Packetserver_totalClients = NUMITEMS(Packetserver_clients); //How many available clients!
+}
+
 //Supported and enabled the packet setver?
 #if defined(PACKETSERVER_ENABLED)
 #ifndef _WIN32
@@ -256,7 +261,7 @@ void initPcap() {
 
 	*/
 	memset(&Packetserver_clients, 0, sizeof(Packetserver_clients)); //Initialize the clients!
-	Packetserver_availableClients = NUMITEMS(Packetserver_clients); //How many available clients!
+	initPacketServerClients();
 	PacketServer_running = 0; //We're not using the packet server emulation, enable normal modem(we don't connect to other systems ourselves)!
 
 #if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
@@ -871,7 +876,6 @@ void modem_hangup() //Hang up, if possible!
 		TCP_DisconnectClientServer(modem.connectionid); //Try and disconnect, if possible!
 		modem.connectionid = -1; //Not connected anymore
 	}
-	TCPServer_restart(NULL); //Start into the server mode!
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
 	modem.offhook = 0; //We're on-hook!
@@ -970,7 +974,8 @@ byte resetModem(byte state)
 	{
 		modem.connected &= ~1; //Disconnect!
 		modem_responseResult(MODEMRESULT_NOCARRIER); //Report no carrier!
-		TCPServer_restart(NULL); //Start into the server mode!
+		TCP_DisconnectClientServer(modem.connectionid); //Disconnect the client!
+		modem.connectionid = -1; //Not connected anymore!
 	}
 
 	//Default handling of the Hardware lines is also loaded:
@@ -1974,8 +1979,9 @@ void initModem(byte enabled) //Initialise modem!
 		}
 		modem.connectionid = -1; //Default: not connected!
 		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
+		initPacketServerClients(); //Prepare the clients for use!
 		Packetserver_availableClients = 0; //Init: 0 clients available!
-		for (i = 0; i < MIN(NUMITEMS(modem.inputdatabuffer),NUMITEMS(modem.outputbuffer)); ++i) //Allocate buffers for server and client purposes!
+		for (i = 0; i < MIN(MIN(NUMITEMS(modem.inputdatabuffer),NUMITEMS(modem.outputbuffer)),(Packetserver_totalClients?Packetserver_totalClients:1)); ++i) //Allocate buffers for server and client purposes!
 		{
 			modem.inputdatabuffer[i] = allocfifobuffer(MODEM_BUFFERSIZE, 0); //Small input buffer!
 			modem.outputbuffer[i] = allocfifobuffer(MODEM_BUFFERSIZE, 0); //Small input buffer!
@@ -2046,6 +2052,7 @@ void doneModem() //Finish modem!
 		if (Packetserver_clients[i].used) //Connected?
 		{
 			TCP_DisconnectClientServer(Packetserver_clients[i].connectionid); //Stop connecting!
+			Packetserver_clients[i].connectionid = -1; //Unused!
 			terminatePacketServer(i); //Stop the packet server, if used!
 			freePacketserver_client(i); //Free the client!
 		}
@@ -2145,18 +2152,9 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	if ((modem.serverpolltimer>=modem.serverpolltick) && modem.serverpolltick) //To poll?
 	{
 		modem.serverpolltimer = fmod(modem.serverpolltimer,modem.serverpolltick); //Polling once every turn!
-		if ((!TCPServerRunning()) && (!modem.connected)) //Server isn't running when need to be?
+		if (!(((modem.linechanges & 1) == 0) && (PacketServer_running == 0))) //Able to accept?
 		{
-			TCPServer_restart(NULL); //Try to restart the TCP server!
-		}
-		if ((connectionid = acceptTCPServer())>=0) //Are we connected to?
-		{
-			if (((modem.linechanges&1)==0) && (PacketServer_running==0)) //Not able to accept?
-			{
-				TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
-				//TCPServer_restart(NULL); //Restart into the TCP server!
-			}
-			else //Able to accept?
+			if ((connectionid = acceptTCPServer()) >= 0) //Are we connected to?
 			{
 				if (PacketServer_running) //Packet server is running?
 				{
@@ -2173,7 +2171,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
 					}
 				}
-				else if (connectionid==0) //Normal behaviour: start ringing!
+				else if (connectionid == 0) //Normal behaviour: start ringing!
 				{
 					modem.connectionid = connectionid; //We're connected like this!
 					modem.ringing = 1; //We start ringing!
@@ -2184,6 +2182,15 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				{
 					TCP_DisconnectClientServer(connectionid); //Try and disconnect, if possible!
 				}
+			}
+		}
+		else //We can't be connected to, stop the server if so!
+		{
+			TCPServer_Unavailable(); //We're unavailable to connect to!
+			if ((modem.connected==1) || modem.ringing) //We're connected as a modem?
+			{
+				TCP_DisconnectClientServer(modem.connectionid);
+				modem.connectionid = -1; //Not connected anymore!
 			}
 		}
 	}
@@ -2805,9 +2812,11 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 						{
 						case 0: //Failed to send?
 							modem.connected = 0; //Not connected anymore!
-							TCPServer_restart(NULL); //Restart the server!
 							if (PacketServer_running == 0) //Not running a packet server?
 							{
+								TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
+								modem.connectionid = -1;
+								modem.connected = 0; //Not connected anymore!
 								modem_responseResult(MODEMRESULT_NOCARRIER);
 								modem.datamode = 0; //Drop out of data mode!
 								modem.ringing = 0; //Not ringing anymore!
@@ -2838,9 +2847,11 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							break;
 						case -1: //Disconnected?
 							modem.connected = 0; //Not connected anymore!
-							TCPServer_restart(NULL); //Restart server!
 							if (PacketServer_running == 0) //Not running a packet server?
 							{
+								TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
+								modem.connectionid = -1;
+								modem.connected = 0; //Not connected anymore!
 								modem_responseResult(MODEMRESULT_NOCARRIER);
 								modem.datamode = 0; //Drop out of data mode!
 								modem.ringing = 0; //Not ringing anymore!
@@ -2869,9 +2880,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 							case 0: //Failed to send?
 							packetserver_autherror: //Packet server authentication error?
-								TCPServer_restart(NULL); //Restart the server!
 								if (PacketServer_running == 0) //Not running a packet server?
 								{
+									TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
+									modem.connectionid = -1;
 									modem.connected = 0; //Not connected anymore!
 									modem_responseResult(MODEMRESULT_NOCARRIER);
 									modem.datamode = 0; //Drop out of data mode!
@@ -2880,6 +2892,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								else //Disconnect from packet server?
 								{
 									TCP_DisconnectClientServer(Packetserver_clients[connectedclient].connectionid); //Clean up the packet server!
+									Packetserver_clients[connectedclient].connectionid = -1; //Not connected!
 									terminatePacketServer(connectedclient); //Stop the packet server, if used!
 									freePacketserver_client(connectedclient); //Free the client list item!
 									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
@@ -2908,9 +2921,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								writefifobuffer(modem.inputdatabuffer[connectedclient], datatotransmit); //Add the transmitted data to the input buffer!
 								break;
 							case -1: //Disconnected?
-								TCPServer_restart(NULL); //Restart server!
 								if (PacketServer_running == 0) //Not running a packet server?
 								{
+									TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
+									modem.connectionid = -1;
 									modem.connected = 0; //Not connected anymore!
 									modem_responseResult(MODEMRESULT_NOCARRIER);
 									modem.datamode = 0; //Drop out of data mode!
