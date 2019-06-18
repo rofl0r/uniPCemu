@@ -323,7 +323,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		break;
 	default: //Invalid descriptor!
 	invaliddsttask:
-		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
+		if (isJMPorCALL == 3) //IRET?
+		{
+			CPU_TSSFault(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
+			return 0; //Error out!
+		}
+		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
 
@@ -375,6 +380,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		break;
 	default: //Invalid descriptor!
 	invalidsrctask:
+		//if (isJMPorCALL == 3) //IRET?
+		{
+			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
+			return 0; //Error out!
+		}
 		THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
@@ -507,6 +517,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		break;
 	default: //Invalid descriptor!
 	invaliddesttask:
+		if (isJMPorCALL == 3) //IRET?
+		{
+			CPU_TSSFault(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
+			return 0; //Error out!
+		}
 		THROWDESCGP(destinationtask, ((isJMPorCALL & 0x400) >> 10), (destinationtask & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
