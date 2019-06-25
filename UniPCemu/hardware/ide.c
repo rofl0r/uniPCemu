@@ -1265,7 +1265,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 		ATA_writeLBACHS(channel); //Update the current sector!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-		return 0; //Stop!
+		return 1; //Stop! Error interrupt!
 	}
 
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
