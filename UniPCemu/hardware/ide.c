@@ -1237,7 +1237,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0; //How many sectors are left is updated!
-			return 1; //We're finished!
+			return 0; //We're finished!
 		}
 		else
 		{
