@@ -3263,7 +3263,8 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Feature register write: %02X %u.%u", value,ATA_channel,ATA_activeDrive(ATA_channel));
 #endif
-		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.features = value; //Use the set data! Ignore!
+		ATA[ATA_channel].Drive[0].PARAMETERS.features = value; //Use the set data! Ignore!
+		ATA[ATA_channel].Drive[1].PARAMETERS.features = value; //Use the set data! Ignore!
 		return 1; //OK!
 		break;
 	case 2: //Sector count?
@@ -3272,8 +3273,10 @@ byte outATA8(word port, byte value)
 #endif
 		//if (!(ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] >= CDROM0)) //ATAPI device? Unsupported! Otherwise, supported and process!
 		{
-			if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
-			ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.sectorcount = value; //Set sector count!
+			if (ATA[ATA_channel].Drive[0].PARAMETERS.reportReady) //Ready!
+				ATA[ATA_channel].Drive[0].PARAMETERS.sectorcount = value; //Set sector count!
+			if (ATA[ATA_channel].Drive[1].PARAMETERS.reportReady) //Ready!
+				ATA[ATA_channel].Drive[1].PARAMETERS.sectorcount = value; //Set sector count!
 		}
 		return 1; //OK!
 		break;
@@ -3281,24 +3284,30 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Sector number write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
-		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.sectornumber = value; //Set sector number!
+		if (ATA[ATA_channel].Drive[0].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[0].PARAMETERS.sectornumber = value; //Set sector number!
+		if (ATA[ATA_channel].Drive[1].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[1].PARAMETERS.sectornumber = value; //Set sector number!
 		return 1; //OK!
 		break;
 	case 4: //Cylinder low?
 #ifdef ATA_LOG
 		dolog("ATA", "Cylinder low write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
-		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.cylinderlow = value; //Set cylinder low!
+		if (ATA[ATA_channel].Drive[0].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[0].PARAMETERS.cylinderlow = value; //Set cylinder low!
+		if (ATA[ATA_channel].Drive[1].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[1].PARAMETERS.cylinderlow = value; //Set cylinder low!
 		return 1; //OK!
 		break;
 	case 5: //Cylinder high?
 #ifdef ATA_LOG
 		dolog("ATA", "Cylinder high write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady == 0) return 1; //Abort: ROM!
-		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.cylinderhigh = value; //Set cylinder high!
+		if (ATA[ATA_channel].Drive[0].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[0].PARAMETERS.cylinderhigh = value; //Set cylinder high!
+		if (ATA[ATA_channel].Drive[1].PARAMETERS.reportReady) //Ready!
+			ATA[ATA_channel].Drive[1].PARAMETERS.cylinderhigh = value; //Set cylinder high!
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
