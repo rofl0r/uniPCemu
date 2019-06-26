@@ -1945,10 +1945,10 @@ OPTINLINE void floppy_writeData(byte value)
 		,0 //10
 		,8 //11
 		,0 //12
-		,0 //13
-		,0 //14
-		,0 //15
-		,0 //16
+		,3 //13
+		,1 //14
+		,3 //15
+		,8 //16
 		,0 //17
 		,0 //18
 		,8 //19
@@ -1977,6 +1977,7 @@ OPTINLINE void floppy_writeData(byte value)
 				case SENSE_INTERRUPT: //Check interrupt status
 				case DUMPREG: //Dumpreg command
 				case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
+				case VERSION: //Version
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
@@ -1993,7 +1994,6 @@ OPTINLINE void floppy_writeData(byte value)
 				case SEEK: //Seek/park head
 				case READ_ID: //Read sector ID
 				case FORMAT_TRACK: //Format sector
-				case VERSION: //Version
 				case CONFIGURE: //Configure
 				case LOCK: //Lock
 				case SCAN_EQUAL:
