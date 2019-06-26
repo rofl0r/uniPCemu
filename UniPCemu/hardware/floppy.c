@@ -1947,7 +1947,7 @@ OPTINLINE void floppy_writeData(byte value)
 		,0 //12
 		,3 //13
 		,1 //14
-		,3 //15
+		,0 //15
 		,8 //16
 		,0 //17
 		,0 //18
