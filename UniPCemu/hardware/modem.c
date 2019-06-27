@@ -999,6 +999,41 @@ byte resetModem(byte state)
 	return 0; //Invalid profile!
 }
 
+void MODEM_sendAutodetectionPNPmessage()
+{
+	//return; //We don't know what to send yet, so disable the PNP feature for now!
+	char message[] = "\x28\x01\x24MDC0288\\00000001\\MODEM,ATM0096\\ModemCC\x29";
+	byte checksum;
+	char *p, *e;
+	e = &message[sizeof(message)]; //End of the message buffer(when to stop, to allow for NULL characters to be sent as well)!
+	//Start generating the checksum!
+	message[sizeof(message) - 2] = 0; //Second checksum nibble!
+	message[sizeof(message) - 3] = 0; //First checksum nibble!
+	p = &message[0]; //Init message!
+	checksum = 0; //Init checksum!
+	for (; (p != e);) //Not finished processing the entire checksum?
+	{
+		checksum += *p++; //Add to the checksum(minus the actual checksum bytes!)
+	}
+	checksum &= 0xFF; //It's MOD 256 for all but the checksum fields itself to get the actual checksum!
+	message[sizeof(message) - 2] = ((checksum & 0xF) > 0xA) ? (((checksum & 0xF) - 0xA) + (byte)'A') : ((checksum & 0xF) + (byte)'0'); //Convert hex digit the low nibble checksum!
+	message[sizeof(message) - 3] = (((checksum>>4) & 0xF) > 0xA) ? ((((checksum>>4) & 0xF) - 0xA) + (byte)'A') : (((checksum>>4) & 0xF) + (byte)'0'); //Convert hex digit the high nibble checksum!
+
+	//The PNP message is now ready to be sent to the Data Terminal!
+
+	fifobuffer_clear(modem.inputbuffer); //Clear the input buffer for out message!
+	char c;
+	p = &message[0]; //Init message!
+	for (; (p!=e) && ((fifobuffer_freesize(modem.inputbuffer)>2));) //Process the message, until either finished or not enough size left!
+	{
+		c = *p++; //Read a character to send!
+		writefifobuffer(modem.inputbuffer, c); //Write the character!
+	}
+	//Finally, the CR/LF combination is sent!
+	writefifobuffer(modem.inputbuffer,modem.carriagereturncharacter);
+	writefifobuffer(modem.inputbuffer,modem.linefeedcharacter);
+}
+
 void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
@@ -1046,6 +1081,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	if ((line&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
 	{
 		//Send serial PNP message!
+		MODEM_sendAutodetectionPNPmessage();
 		goto modem_startidling; //Start idling again!
 	}
 	if ((line&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
