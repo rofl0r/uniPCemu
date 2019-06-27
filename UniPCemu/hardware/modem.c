@@ -1959,6 +1959,7 @@ void modem_writeCommandData(byte value)
 			{
 				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
 			}
+			handlemodemCR: //Handle a carriage return!
 			modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
 			modem.ATcommandsize = 0; //Start the new command!
 			modem_executeCommand();
@@ -1972,6 +1973,20 @@ void modem_writeCommandData(byte value)
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
+				if (modem.ATcommand[0] != 'A') //Not a valid start?
+				{
+					modem.ATcommand[0] = 0;
+					modem.ATcommandsize = 0; //Reset!
+				}
+				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] != '/') && (modem.ATcommand[1] != 'T')) //Invalid second character!
+				{
+					modem.ATcommand[0] = 0;
+					modem.ATcommandsize = 0; //Reset!
+				}
+				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] == '/')) //Doesn't need an carriage return?
+				{
+					goto handlemodemCR; //Handle the carriage return automatically, because A/ is received!
+				}
 			}
 		}
 	}
