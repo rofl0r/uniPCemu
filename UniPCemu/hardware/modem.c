@@ -180,6 +180,7 @@ struct
 
 	DOUBLE serverpolltick; //How long it takes!
 	DOUBLE networkpolltick;
+	DOUBLE detectiontimer[2]; //For autodetection!
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -1005,6 +1006,8 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	modem.canrecvdata = (line&2); //Can we receive data?
 	if (((line&1)==0) && ((modem.linechanges^line)&1)) //Became not ready?
 	{
+		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 		switch (modem.DTROffResponse) //What reponse?
 		{
 			case 0: //Ignore the line?
@@ -1027,6 +1030,29 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 		}
 	}
+	if (((line&1)==1) && ((modem.linechanges^line)&1)) //DTR set?
+	{
+		modem.detectiontimer[0] = (DOUBLE)150000000.0; //Timer 150ms!
+		modem.detectiontimer[1] = (DOUBLE)250000000.0; //Timer 250ms!
+		//Run the RTS checks now!
+	}
+	if ((line&2) && (modem.detectiontimer[0])) //RTS and T1 not expired?
+	{
+		modem_startidling:
+		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
+		goto finishupmodemlinechanges; //Finish up!
+	}
+	if ((line&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
+	{
+		//Send serial PNP message!
+		goto modem_startidling; //Start idling again!
+	}
+	if ((line&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
+	{
+		goto modem_startidling; //Start idling again!
+	}
+	finishupmodemlinechanges:
 	modem.linechanges = line; //Save for reference!
 }
 
@@ -1110,6 +1136,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	if (strcmp((char *)&modem.ATcommand[0],"A/")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
+		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	}
 	//Check for a command to send!
 	//Parse the AT command!
@@ -1118,6 +1146,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	{
 		modem.registers[0] = 0; //Autoanswer off!
 		modem_updateRegister(0); //Register has been updated!
+		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 		return;
 	}
 
@@ -1125,6 +1155,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		modem_responseResult(MODEMRESULT_ERROR); //Error out!
 		return;
 	}
+	modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+	modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
 	verbosemodepending = modem.verbosemode; //Save the old verbose mode, to detect and apply changes after the command is successfully completed!
 	word pos=2,posbackup; //Position to read!
@@ -2146,6 +2178,19 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 				}
 			}
 		}
+	}
+
+	if (modem.detectiontimer[0]) //Timer running?
+	{
+		modem.detectiontimer[0] -= timepassed;
+		if (modem.detectiontimer[0]<=(DOUBLE)0.0f) //Expired?
+			modem.detectiontimer[0] = (DOUBLE)0; //Stop timer!
+	}
+	if (modem.detectiontimer[1]) //Timer running?
+	{
+		modem.detectiontimer[1] -= timepassed;
+		if (modem.detectiontimer[1]<=(DOUBLE)0.0f) //Expired?
+			modem.detectiontimer[1] = (DOUBLE)0; //Stop timer!
 	}
 
 	modem.serverpolltimer += timepassed;
