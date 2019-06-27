@@ -1140,10 +1140,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	}
-	if (strcmp((char *)&modem.ATcommand[0], "a/") == 0) //Repeat last command?
-	{
-		goto previousATcommand; //Previous command also!
-	}
 	//Check for a command to send!
 	//Parse the AT command!
 
