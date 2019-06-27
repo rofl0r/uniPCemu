@@ -1980,8 +1980,15 @@ void modem_writeCommandData(byte value)
 				}
 				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] != '/') && (modem.ATcommand[1] != 'T')) //Invalid second character!
 				{
-					modem.ATcommand[0] = 0;
-					modem.ATcommandsize = 0; //Reset!
+					if (modem.ATcommand[1] == 'A') //Another start marker entered?
+					{
+						--modem.ATcommandsize; //Just discard to get us back to inputting another one!
+					}
+					else //Invalid start marker after starting!
+					{
+						modem.ATcommand[0] = 0;
+						modem.ATcommandsize = 0; //Reset!
+					}
 				}
 				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] == '/')) //Doesn't need an carriage return?
 				{
