@@ -1002,28 +1002,34 @@ byte resetModem(byte state)
 void MODEM_sendAutodetectionPNPmessage()
 {
 	//return; //We don't know what to send yet, so disable the PNP feature for now!
-	char message[] = "\x28\x01\x24MDC0288\\00000001\\MODEM,ATM0096\\ModemCC\x29";
+	char actualmessage[] = "\x28\x01\x24MDC0288\\00000001\\MODEM,ATM0096\\ModemCC\x29";
+	char message[256]; //Buffer for the message to be modified into!
+	memset(&message, 0, sizeof(message)); //Init the message to fill!
+	word size;
+	size = sizeof(actualmessage); //Size to send! Sizeof includes a final NULL byte, which we don't want to include! Taking sizeof's position gives us the byte past the string!
 	byte checksum;
-	char *p, *e;
-	e = &message[sizeof(message)]; //End of the message buffer(when to stop, to allow for NULL characters to be sent as well)!
+	char *p, *e, *y;
+	e = &actualmessage[size-1]; //End of the message buffer(when to stop, to allow for NULL characters to be sent as well)!
 	//Start generating the checksum!
-	message[sizeof(message) - 2] = 0; //Second checksum nibble!
-	message[sizeof(message) - 3] = 0; //First checksum nibble!
-	p = &message[0]; //Init message!
+	message[size - 3] = 0; //Second checksum nibble!
+	message[size - 4] = 0; //First checksum nibble!
+	p = &actualmessage[0]; //Init message to fill in(a ROMmed constant)!
+	y = &message[0]; //Destination of the message to copy to!
 	checksum = 0; //Init checksum!
 	for (; (p != e);) //Not finished processing the entire checksum?
 	{
-		checksum += *p++; //Add to the checksum(minus the actual checksum bytes!)
+		checksum += (*y++ = *p++); //Add to the checksum(minus the actual checksum bytes)! Also copy to the active message buffer!
 	}
 	checksum &= 0xFF; //It's MOD 256 for all but the checksum fields itself to get the actual checksum!
-	message[sizeof(message) - 2] = ((checksum & 0xF) > 0xA) ? (((checksum & 0xF) - 0xA) + (byte)'A') : ((checksum & 0xF) + (byte)'0'); //Convert hex digit the low nibble checksum!
-	message[sizeof(message) - 3] = (((checksum>>4) & 0xF) > 0xA) ? ((((checksum>>4) & 0xF) - 0xA) + (byte)'A') : (((checksum>>4) & 0xF) + (byte)'0'); //Convert hex digit the high nibble checksum!
+	message[size - 3] = ((checksum & 0xF) > 0xA) ? (((checksum & 0xF) - 0xA) + (byte)'A') : ((checksum & 0xF) + (byte)'0'); //Convert hex digit the low nibble checksum!
+	message[size - 4] = (((checksum>>4) & 0xF) > 0xA) ? ((((checksum>>4) & 0xF) - 0xA) + (byte)'A') : (((checksum>>4) & 0xF) + (byte)'0'); //Convert hex digit the high nibble checksum!
 
 	//The PNP message is now ready to be sent to the Data Terminal!
 
 	fifobuffer_clear(modem.inputbuffer); //Clear the input buffer for out message!
 	char c;
 	p = &message[0]; //Init message!
+	e = &message[size-1]; //End of the message buffer! Don't include the terminating NULL character, so substract one to stop when reaching the NULL byte instead of directly after it!
 	for (; (p!=e) && ((fifobuffer_freesize(modem.inputbuffer)>2));) //Process the message, until either finished or not enough size left!
 	{
 		c = *p++; //Read a character to send!
