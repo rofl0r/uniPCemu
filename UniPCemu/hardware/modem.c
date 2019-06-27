@@ -1135,14 +1135,19 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	//Read and execute the AT command, if it's valid!
 	if (strcmp((char *)&modem.ATcommand[0],"A/")==0) //Repeat last command?
 	{
+		previousATcommand: //Previous command!
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	}
+	if (strcmp((char *)&modem.ATcommand[0], "a/") == 0) //Repeat last command?
+	{
+		goto previousATcommand; //Previous command also!
+	}
 	//Check for a command to send!
 	//Parse the AT command!
 
-	if (modem.ATcommand[0]==0) //Empty line? Stop dialing and autoanswer!
+	if (modem.ATcommand[2]==0) //Empty line? Stop dialing and autoanswer!
 	{
 		modem.registers[0] = 0; //Autoanswer off!
 		modem_updateRegister(0); //Register has been updated!
@@ -1151,10 +1156,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		return;
 	}
 
-	if ((modem.ATcommand[0] != 'A') || (modem.ATcommand[1] != 'T')) {
-		modem_responseResult(MODEMRESULT_ERROR); //Error out!
-		return;
-	}
 	modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 	modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
@@ -1973,21 +1974,28 @@ void modem_writeCommandData(byte value)
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
-				if (modem.ATcommand[0] != 'A') //Not a valid start?
+				if ((modem.ATcommand[0] != 'A') && (modem.ATcommand[0]!='a')) //Not a valid start?
 				{
 					modem.ATcommand[0] = 0;
 					modem.ATcommandsize = 0; //Reset!
 				}
-				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] != '/') && (modem.ATcommand[1] != 'T')) //Invalid second character!
+				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] != '/')) //Invalid repeat or possible attention(AT/at) request!
 				{
-					if (modem.ATcommand[1] == 'A') //Another start marker entered?
+					if (!( //Not either valid combination of AT or at to get the attention?
+						((modem.ATcommand[1] == 'T') && (modem.ATcommand[0] == 'A')) //Same case AT?
+						|| ((modem.ATcommand[1] == 't') && (modem.ATcommand[0] == 'a')) //Same case at?
+						))
 					{
-						--modem.ATcommandsize; //Just discard to get us back to inputting another one!
-					}
-					else //Invalid start marker after starting!
-					{
-						modem.ATcommand[0] = 0;
-						modem.ATcommandsize = 0; //Reset!
+						if ((modem.ATcommand[1] == 'A') || (modem.ATcommand[1] == 'a')) //Another start marker entered?
+						{
+							modem.ATcommand[0] = modem.ATcommand[1]; //Becomes the new start marker!
+							--modem.ATcommandsize; //Just discard to get us back to inputting another one!
+						}
+						else //Invalid start marker after starting!
+						{
+							modem.ATcommand[0] = 0;
+							modem.ATcommandsize = 0; //Reset!
+						}
 					}
 				}
 				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] == '/')) //Doesn't need an carriage return?
