@@ -983,7 +983,7 @@ byte resetModem(byte state)
 	modem.DTROffResponse = 2; //Default: full reset!
 	modem.DSRisConnectionEstablished = 0; //Default: assert high always!
 	modem.DCDisCarrier = 1; //Default: DCD=Carrier detected.
-	modem.CTSAlwaysActive = 1; //Default: always active!
+	modem.CTSAlwaysActive = 0; //Default: not always active!
 
 	//Misc data
 	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
@@ -1107,7 +1107,7 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):2)|(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)|(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring(ringing and not waiting for a next ring), 3=Carrier detect!
+	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.linechanges&1)<<1))|(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)|(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring(ringing and not waiting for a next ring), 3=Carrier detect!
 }
 
 byte modem_readData()
