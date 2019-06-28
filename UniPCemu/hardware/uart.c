@@ -438,7 +438,10 @@ byte PORT_writeUART(word port, byte value)
 			//Handle anything concerning this?
 			if (UART_port[COMport].setmodemcontrol && ((UART_port[COMport].ModemControlRegister&0x10)==0)) //Line handler is connected and not in loopback mode?
 			{
-				UART_port[COMport].setmodemcontrol(value&0xF); //Update the output lines!
+				if (UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister) //Modem control register changes are posted only(relieve the )?
+				{
+					UART_port[COMport].setmodemcontrol(value & 0xF); //Update the output lines!
+				}
 			}
 			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
 			{
