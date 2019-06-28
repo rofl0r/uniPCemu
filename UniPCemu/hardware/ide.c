@@ -1429,7 +1429,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 	}
-	return 0; //Finished!
+	return 1; //Finished!
 }
 
 OPTINLINE void ATAPI_giveresultsize(byte channel, word size, byte raiseIRQ) //Store the result size to use in the Task file
