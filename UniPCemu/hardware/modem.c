@@ -983,7 +983,7 @@ byte resetModem(byte state)
 	modem.DTROffResponse = 2; //Default: full reset!
 	modem.DSRisConnectionEstablished = 0; //Default: assert high always!
 	modem.DCDisCarrier = 1; //Default: DCD=Carrier detected.
-	modem.CTSAlwaysActive = 0; //Default: not always active!
+	modem.CTSAlwaysActive = 2; //Default: always active!
 
 	//Misc data
 	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
@@ -1107,7 +1107,10 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return (modem.datamode?(modem.CTSAlwaysActive?1:((modem.linechanges>>1)&1)):1)|(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.linechanges&1)<<1))|(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)|(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //0=CTS(can we receive data to send?), 1=DSR(are we ready for use), 2=Ring(ringing and not waiting for a next ring), 3=Carrier detect!
+	return ((modem.CTSAlwaysActive==0)? ((modem.linechanges >> 1) & 1) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
+			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.linechanges&1)<<1))| //DSRisConnectionEstablished: 0:1, 1:DTR
+			(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)| //Ringing?
+			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
 }
 
 byte modem_readData()
@@ -1704,10 +1707,13 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
-					n0 = 0; //Ignore RTS in command mode, CTS=RTS in data mode.
+					n0 = 0; //Modem turns on the Clear To Send signal when it detects the Request To Send (RTS) signal from host.
 					goto setAT_R;
 				case '1':
-					n0 = 1; //Force CTS active
+					n0 = 1; //Modem ignores the Request To Send signal and turns on its Clear To Send signal when ready to receive data.
+					goto setAT_R;
+				case '2':
+					n0 = 2; // *Clear To Send force on.
 					setAT_R:
 					if (n0<2) //Valid?
 					{
@@ -1727,10 +1733,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
-					n0 = 0; //DCD is always high
+					n0 = 0; // Keep Data Carrier Detect (DCD) signal always ON.
 					goto setAT_C;
 				case '1':
-					n0 = 1; //DCD is Carrier detect
+					n0 = 1; // * Set Data Carrier Detect (DCD) signal according to remote modem data carrier signal.
 					setAT_C:
 					if (n0<2) //Valid?
 					{
@@ -1750,10 +1756,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
-					n0 = 0; //DSR=Always high.
+					n0 = 0; // * Data Set Ready is forced on
 					goto setAT_S;
 				case '1':
-					n0 = 1; //DSR=Connection established.
+					n0 = 1; // Data Set Ready to operate according to RS-232 specification(follow DTR)
 					setAT_S:
 					if (n0<2) //Valid?
 					{
