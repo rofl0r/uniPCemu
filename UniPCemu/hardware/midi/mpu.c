@@ -201,6 +201,11 @@ struct {
 
 
 void QueueByte(Bit8u data) {
+	if (mpu.queue_used == 0 && mpu.intelligent)
+	{
+		mpu.state.irq_pending = true;
+		PIC_ActivateIRQ(mpu.irq);
+	}
 	if (mpu.queue_used<MPU_QUEUE) {
 		Bitu pos=mpu.queue_used+mpu.queue_pos;
 		if (mpu.queue_pos>=MPU_QUEUE) mpu.queue_pos-=MPU_QUEUE;
@@ -259,7 +264,7 @@ void MPU401_WriteCommand(Bit8u val) {
 				mpu.state.playing=true;
 				PIC_RemoveEvents(MPU401_Event);
 				PIC_AddEvent(MPU401_Event,(float)60000000.0f/(mpu.clock.tempo*mpu.clock.timebase*2));
-				mpu.state.irq_pending=false;
+				ClrQueue();
 				break;
 			default:
 				break;
@@ -373,6 +378,7 @@ void MPU401_WriteCommand(Bit8u val) {
 			mpu.condbuf.type=OVERFLOW;
 			if (!(mpu.state.conductor=mpu.state.cond_set)) mpu.state.cond_req=0;
 			mpu.state.amask=mpu.state.tmask;
+			mpu.state.irq_pending = true;
 			ClrRequestQueue();
 			break;
 		case CMD_RESET:			/* Reset MPU401 */
@@ -425,6 +431,8 @@ Bit8u MPU401_ReadData() {
 		mpu.state.data_onoff=-1;
 	}
 	mpu.state.irq_pending=0;
+	if (!mpu.intelligent) return ret;
+	if (mpu.queue_used == 0) PIC_DeActivateIRQ(mpu.irq);
 	return ret;
 }
 
@@ -642,6 +650,10 @@ next_irq:
 		ClrRequestQueue();
 		mpu.clock.timer_pos=0;
 	}
+	if (!mpu.state.irq_pending)
+	{
+		mpu.state.irq_pending = 0;
+	}
 next_event:
 	if (!even_odd)	even_odd=true;
 	else {even_odd=false;mpu.clock.timer_pos++;}
@@ -663,7 +675,7 @@ void MPU401_Reset() {
 	mpu.state.realtime=true;
 	mpu.state.playing=false;
 	mpu.state.run_irq=false;
-	mpu.state.irq_pending=true;
+	mpu.state.irq_pending=false;
 	mpu.state.cmask=0xff;
 	mpu.state.amask=mpu.state.tmask=0;
 	mpu.state.midi_mask=0xffff;
