@@ -183,6 +183,8 @@ struct
 	DOUBLE detectiontimer[2]; //For autodetection!
 	DOUBLE CTSlineDelay; //Delay line on the CTS!
 	DOUBLE effectiveCTSlineDelay; //Effective CTS line delay to use!
+	DOUBLE DSRlineDelay; //Delay line on the DSR!
+	DOUBLE effectiveDSRlineDelay; //Effective DSR line delay to use!
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -916,6 +918,13 @@ void modem_updateRegister(byte reg)
 			modem.escapecodeguardtime = (modem.registers[reg]*20000000.0); //Set the escape code guard time, in nanoseconds!
 			#endif
 			break;
+		case 25: //DTR to DSR Delay Interval(hundredths of a second)
+			#ifdef IS_LONGDOUBLE
+			modem.effectiveDSRlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
+			#else
+			modem.effectiveDSRlineDelay = (modem.registers[reg] * 10000000.0); //Set the RTC to CTS line delay, in nanoseconds!
+			#endif
+			break;
 		case 26: //RTC to CTS Delay Interval(hundredths of a second)
 			#ifdef IS_LONGDOUBLE
 			modem.effectiveCTSlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
@@ -1086,6 +1095,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	}
 	if (((line&1)==1) && ((modem.linechanges^line)&1)) //DTR set?
 	{
+		modem.DSRlineDelay = modem.effectiveDSRlineDelay; //Start timing the CTS line delay!
 		modem.detectiontimer[0] = (DOUBLE)150000000.0; //Timer 150ms!
 		modem.detectiontimer[1] = (DOUBLE)250000000.0; //Timer 250ms!
 		//Run the RTS checks now!
@@ -1121,7 +1131,7 @@ byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
 	return ((modem.CTSAlwaysActive==0)? (((modem.linechanges >> 1) & 1)?(modem.CTSlineDelay?0:1):0) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
-			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.linechanges&1)<<1))| //DSRisConnectionEstablished: 0:1, 1:DTR
+			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):(((modem.linechanges&1)&&(!modem.DSRlineDelay))?2:0))| //DSRisConnectionEstablished: 0:1, 1:DTR
 			(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)| //Ringing?
 			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
 }
@@ -2284,6 +2294,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		modem.CTSlineDelay -= timepassed;
 		if (modem.CTSlineDelay<=(DOUBLE)0.0f) //Expired?
 			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
+	}
+	if (modem.DSRlineDelay) //Timer running?
+	{
+		modem.DSRlineDelay -= timepassed;
+		if (modem.DSRlineDelay<=(DOUBLE)0.0f) //Expired?
+			modem.DSRlineDelay = (DOUBLE)0; //Stop timer!
 	}
 
 	modem.serverpolltimer += timepassed;
