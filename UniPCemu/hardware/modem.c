@@ -221,6 +221,9 @@ struct
 	byte port; //What port are we allocated to?
 	byte canrecvdata; //Can we start receiving data to the UART?
 	byte linechanges; //For detecting line changes!
+	byte outputline; //Raw line that's output!
+	byte effectivelinechanges; //For detecting line changes!
+	byte effectiveline; //Effective line to actually use!
 	sword connectionid; //Normal connection ID for the internal modem!
 } modem;
 
@@ -1063,7 +1066,22 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	//Handle modem specifics here!
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data)
 	modem.canrecvdata = (line&2); //Can we receive data?
-	if (((line&1)==0) && ((modem.linechanges^line)&1)) //Became not ready?
+	modem.outputline = line; //The line that's output!
+	if ((modem.linechanges^line)) //RTS changed?
+	{
+		modem.CTSlineDelay = modem.effectiveCTSlineDelay; //Start timing the CTS line delay!
+	}
+	if (((modem.linechanges^line)&1)) //DTR changed?
+	{
+		modem.DSRlineDelay = modem.effectiveDSRlineDelay; //Start timing the CTS line delay!
+	}
+	modem.linechanges = line; //Save for reference!
+}
+
+void modem_updatelines(byte lines)
+{
+	modem.effectiveline = ((modem.effectiveline&~lines)|(modem.outputline&lines)); //Apply the line(s)!
+	if (((modem.effectiveline&1)==0) && ((modem.effectivelinechanges^modem.effectiveline)&1)) //Became not ready?
 	{
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
@@ -1089,36 +1107,31 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 				break;
 		}
 	}
-	if ((line&2)&(modem.linechanges^line)) //RTS set?
+	if (((modem.effectiveline&1)==1) && ((modem.effectivelinechanges^modem.effectiveline)&1)) //DTR set?
 	{
-		modem.CTSlineDelay = modem.effectiveCTSlineDelay; //Start timing the CTS line delay!
-	}
-	if (((line&1)==1) && ((modem.linechanges^line)&1)) //DTR set?
-	{
-		modem.DSRlineDelay = modem.effectiveDSRlineDelay; //Start timing the CTS line delay!
 		modem.detectiontimer[0] = (DOUBLE)150000000.0; //Timer 150ms!
 		modem.detectiontimer[1] = (DOUBLE)250000000.0; //Timer 250ms!
 		//Run the RTS checks now!
 	}
-	if ((line&2) && (modem.detectiontimer[0])) //RTS and T1 not expired?
+	if ((modem.effectiveline&2) && (modem.detectiontimer[0])) //RTS and T1 not expired?
 	{
 		modem_startidling:
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 		goto finishupmodemlinechanges; //Finish up!
 	}
-	if ((line&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
+	if ((modem.effectiveline&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
 	{
 		//Send serial PNP message!
 		MODEM_sendAutodetectionPNPmessage();
 		goto modem_startidling; //Start idling again!
 	}
-	if ((line&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
+	if ((modem.effectiveline&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
 	{
 		goto modem_startidling; //Start idling again!
 	}
 	finishupmodemlinechanges:
-	modem.linechanges = line; //Save for reference!
+	modem.effectivelinechanges = modem.effectiveline; //Save for reference!
 }
 
 byte modem_hasData() //Do we have data for input?
@@ -1130,8 +1143,8 @@ byte modem_hasData() //Do we have data for input?
 byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return ((modem.CTSAlwaysActive==0)? (((modem.linechanges >> 1) & 1)?(modem.CTSlineDelay?0:1):0) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
-			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):(((modem.linechanges&1)&&(!modem.DSRlineDelay))?2:0))| //DSRisConnectionEstablished: 0:1, 1:DTR
+	return ((modem.CTSAlwaysActive==0)? ((modem.effectiveline >> 1) & 1) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
+			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.effectiveline&1)<<1))| //DSRisConnectionEstablished: 0:1, 1:DTR
 			(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)| //Ringing?
 			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
 }
@@ -2292,14 +2305,35 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	if (modem.CTSlineDelay) //Timer running?
 	{
 		modem.CTSlineDelay -= timepassed;
-		if (modem.CTSlineDelay<=(DOUBLE)0.0f) //Expired?
-			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
 	}
 	if (modem.DSRlineDelay) //Timer running?
 	{
 		modem.DSRlineDelay -= timepassed;
-		if (modem.DSRlineDelay<=(DOUBLE)0.0f) //Expired?
+	}
+	if (modem.CTSlineDelay && modem.DSRlineDelay) //Both timing?
+	{
+		if ((modem.CTSlineDelay<=(DOUBLE)0.0f) && (modem.DSRlineDelay<=(DOUBLE)0.0f)) //Both expired?
+		{
+			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
 			modem.DSRlineDelay = (DOUBLE)0; //Stop timer!
+			modem_updatelines(3); //Update lines!
+		}
+	}
+	if (modem.CTSlineDelay) //Timer running?
+	{
+		if (modem.CTSlineDelay<=(DOUBLE)0.0f) //Expired?
+		{
+			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
+			modem_updatelines(1); //Update line!
+		}
+	}
+	if (modem.DSRlineDelay) //Timer running?
+	{
+		if (modem.DSRlineDelay<=(DOUBLE)0.0f) //Expired?
+		{
+			modem.DSRlineDelay = (DOUBLE)0; //Stop timer!
+			modem_updatelines(2); //Update line!
+		}
 	}
 
 	modem.serverpolltimer += timepassed;
