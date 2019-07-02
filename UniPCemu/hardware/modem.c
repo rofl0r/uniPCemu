@@ -181,10 +181,10 @@ struct
 	DOUBLE serverpolltick; //How long it takes!
 	DOUBLE networkpolltick;
 	DOUBLE detectiontimer[2]; //For autodetection!
-	DOUBLE CTSlineDelay; //Delay line on the CTS!
-	DOUBLE effectiveCTSlineDelay; //Effective CTS line delay to use!
-	DOUBLE DSRlineDelay; //Delay line on the DSR!
-	DOUBLE effectiveDSRlineDelay; //Effective DSR line delay to use!
+	DOUBLE RTSlineDelay; //Delay line on the CTS!
+	DOUBLE effectiveRTSlineDelay; //Effective CTS line delay to use!
+	DOUBLE DTRlineDelay; //Delay line on the DSR!
+	DOUBLE effectiveDTRlineDelay; //Effective DSR line delay to use!
 
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
@@ -923,16 +923,16 @@ void modem_updateRegister(byte reg)
 			break;
 		case 25: //DTR to DSR Delay Interval(hundredths of a second)
 			#ifdef IS_LONGDOUBLE
-			modem.effectiveDSRlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
+			modem.effectiveDTRlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
 			#else
-			modem.effectiveDSRlineDelay = (modem.registers[reg] * 10000000.0); //Set the RTC to CTS line delay, in nanoseconds!
+			modem.effectiveDTRlineDelay = (modem.registers[reg] * 10000000.0); //Set the RTC to CTS line delay, in nanoseconds!
 			#endif
 			break;
 		case 26: //RTC to CTS Delay Interval(hundredths of a second)
 			#ifdef IS_LONGDOUBLE
-			modem.effectiveCTSlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
+			modem.effectiveRTSlineDelay = (modem.registers[reg] * 10000000.0L); //Set the RTC to CTS line delay, in nanoseconds!
 			#else
-			modem.effectiveCTSlineDelay = (modem.registers[reg] * 10000000.0); //Set the RTC to CTS line delay, in nanoseconds!
+			modem.effectiveRTSlineDelay = (modem.registers[reg] * 10000000.0); //Set the RTC to CTS line delay, in nanoseconds!
 			#endif
 			break;
 		default: //Unknown/unsupported?
@@ -1067,13 +1067,13 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data)
 	modem.canrecvdata = (line&2); //Can we receive data?
 	modem.outputline = line; //The line that's output!
-	if ((modem.linechanges^line)) //RTS changed?
+	if ((modem.linechanges^line)&2) //RTS changed?
 	{
-		modem.CTSlineDelay = modem.effectiveCTSlineDelay; //Start timing the CTS line delay!
+		modem.RTSlineDelay = modem.effectiveRTSlineDelay; //Start timing the CTS line delay!
 	}
 	if (((modem.linechanges^line)&1)) //DTR changed?
 	{
-		modem.DSRlineDelay = modem.effectiveDSRlineDelay; //Start timing the CTS line delay!
+		modem.DTRlineDelay = modem.effectiveDTRlineDelay; //Start timing the CTS line delay!
 	}
 	modem.linechanges = line; //Save for reference!
 }
@@ -2302,36 +2302,36 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		if (modem.detectiontimer[1]<=(DOUBLE)0.0f) //Expired?
 			modem.detectiontimer[1] = (DOUBLE)0; //Stop timer!
 	}
-	if (modem.CTSlineDelay) //Timer running?
+	if (modem.RTSlineDelay) //Timer running?
 	{
-		modem.CTSlineDelay -= timepassed;
+		modem.RTSlineDelay -= timepassed;
 	}
-	if (modem.DSRlineDelay) //Timer running?
+	if (modem.DTRlineDelay) //Timer running?
 	{
-		modem.DSRlineDelay -= timepassed;
+		modem.DTRlineDelay -= timepassed;
 	}
-	if (modem.CTSlineDelay && modem.DSRlineDelay) //Both timing?
+	if (modem.RTSlineDelay && modem.DTRlineDelay) //Both timing?
 	{
-		if ((modem.CTSlineDelay<=(DOUBLE)0.0f) && (modem.DSRlineDelay<=(DOUBLE)0.0f)) //Both expired?
+		if ((modem.RTSlineDelay<=(DOUBLE)0.0f) && (modem.DTRlineDelay<=(DOUBLE)0.0f)) //Both expired?
 		{
-			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
-			modem.DSRlineDelay = (DOUBLE)0; //Stop timer!
+			modem.RTSlineDelay = (DOUBLE)0; //Stop timer!
+			modem.DTRlineDelay = (DOUBLE)0; //Stop timer!
 			modem_updatelines(3); //Update lines!
 		}
 	}
-	if (modem.CTSlineDelay) //Timer running?
+	if (modem.RTSlineDelay) //Timer running?
 	{
-		if (modem.CTSlineDelay<=(DOUBLE)0.0f) //Expired?
+		if (modem.RTSlineDelay<=(DOUBLE)0.0f) //Expired?
 		{
-			modem.CTSlineDelay = (DOUBLE)0; //Stop timer!
+			modem.RTSlineDelay = (DOUBLE)0; //Stop timer!
 			modem_updatelines(1); //Update line!
 		}
 	}
-	if (modem.DSRlineDelay) //Timer running?
+	if (modem.DTRlineDelay) //Timer running?
 	{
-		if (modem.DSRlineDelay<=(DOUBLE)0.0f) //Expired?
+		if (modem.DTRlineDelay<=(DOUBLE)0.0f) //Expired?
 		{
-			modem.DSRlineDelay = (DOUBLE)0; //Stop timer!
+			modem.DTRlineDelay = (DOUBLE)0; //Stop timer!
 			modem_updatelines(2); //Update line!
 		}
 	}
