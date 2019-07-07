@@ -145,7 +145,7 @@ CDROM_TRACK_MODE cdrom_track_modes[10] = {
 
 uint_32 CUE_MSF2LBA(byte M, byte S, byte F)
 {
-	return (((M * 60) + S) * 75) + decodeBCD8ATA(F); //75 frames per second, 60 seconds in a minute!
+	return (((M * 60) + S) * 75) + F; //75 frames per second, 60 seconds in a minute!
 }
 
 void CUE_LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
@@ -207,7 +207,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			if (!cue_status.got_track) continue; //If no track is specified, abort this command!
 			
 			//First, read the index!
-			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)]) //Track number, high number!
+			switch (cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 1]) //Track number, high number!
 			{
 			case '0':
 				track_number_high = 0;
@@ -221,14 +221,14 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1'); //Number!
+				track_number_high = cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 1] - (byte)('1') + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
 				break;
 			}
-			track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 3)]; //Default: track mode space difference!
-			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)]) //Track number, high number!
+			track_mode = &cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 3]; //Default: track mode space difference!
+			switch (cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 2]) //Track number, high number!
 			{
 			case '0':
 				track_number_low = 0;
@@ -242,12 +242,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)] - (byte)('1'); //Number!
+				track_number_low = cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 2] - (byte)('1') + 1; //Number!
 				break;
 			case ' ': //Nothing? Single digit?
 				track_number_low = track_number_high;
 				track_number_high = 0;
-				track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)]; //We're the start of the mode processing instead!
+				track_mode = &cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 2]; //We're the start of the mode processing instead!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -264,6 +264,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			{
 			case '0':
 				track_number_high = 0;
+				++track_mode; //Handle!
 				break;
 			case '1':
 			case '2':
@@ -274,16 +275,17 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1'); //Number!
+				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
 				break;
 			}
-			switch (*track_mode++) //Track number, high number!
+			switch (*track_mode) //Track number, high number!
 			{
 			case '0':
 				track_number_low = 0;
+				++track_mode;
 				break;
 			case '1':
 			case '2':
@@ -294,12 +296,11 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)] - (byte)('1'); //Number!
+				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
 				break;
 			case ':': //Nothing? Single digit?
 				track_number_low = track_number_high;
 				track_number_high = 0;
-				--track_mode; //We're the start of the mode processing instead!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -310,11 +311,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 
 			index_M = (track_number_high * 10) + track_number_low; //M!
 
-//First, read the index!
+			//First, read the index!
 			switch (*track_mode) //Track number, high number!
 			{
 			case '0':
 				track_number_high = 0;
+				++track_mode;
 				break;
 			case '1':
 			case '2':
@@ -325,16 +327,17 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1'); //Number!
+				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
 				break;
 			}
-			switch (*track_mode++) //Track number, high number!
+			switch (*track_mode) //Track number, high number!
 			{
 			case '0':
 				track_number_low = 0;
+				++track_mode;
 				break;
 			case '1':
 			case '2':
@@ -345,12 +348,11 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)] - (byte)('1'); //Number!
+				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
 				break;
 			case ':': //Nothing? Single digit?
 				track_number_low = track_number_high;
 				track_number_high = 0;
-				--track_mode; //We're the start of the mode processing instead!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -361,11 +363,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 
 			index_S = (track_number_high * 10) + track_number_low; //S!
 
-//First, read the index!
+			//First, read the index!
 			switch (*track_mode) //Track number, high number!
 			{
 			case '0':
 				track_number_high = 0;
+				++track_mode;
 				break;
 			case '1':
 			case '2':
@@ -376,16 +379,21 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1'); //Number!
+				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
 				break;
 			}
-			switch (*track_mode++) //Track number, high number!
+			switch (*track_mode) //Track number, high number!
 			{
 			case '0':
 				track_number_low = 0;
+				++track_mode;
 				break;
 			case '1':
 			case '2':
@@ -396,12 +404,11 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)] - (byte)('1'); //Number!
+				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
 				break;
 			case '\0': //Nothing? Single digit?
 				track_number_low = track_number_high;
 				track_number_high = 0;
-				--track_mode; //We're the start of the mode processing instead!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -458,8 +465,6 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			}
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
 			cue_next.is_present = 0; //Set cue_next to not present!
-
-
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
 		{
@@ -474,7 +479,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			//Specify a new track and track mode to use if a file is specified!
 			if (!cue_status.got_file) continue; //Ingore if no file is specified!
 			if (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK))] != ' ') continue; //Ignore if the command is incorrect!
-			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)]) //Track number, high number!
+			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK))+1]) //Track number, high number!
 			{
 			case '0':
 				track_number_high = 0;
@@ -488,14 +493,14 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1'); //Number!
+				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1') + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
 				break;
 			}
-			track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 3)]; //Default: track mode space difference!
-			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)]) //Track number, high number!
+			track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 3]; //Default: track mode space difference!
+			switch (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 2]) //Track number, high number!
 			{
 			case '0':
 				track_number_low = 0;
@@ -509,12 +514,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)] - (byte)('1'); //Number!
+				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 2] - (byte)('1') + 1; //Number!
 				break;
 			case ' ': //Nothing? Single digit?
 				track_number_low = track_number_high;
 				track_number_high = 0;
-				track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 2)]; //We're the start of the mode processing instead!
+				track_mode = &cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 2]; //We're the start of the mode processing instead!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -568,7 +573,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 						{
 							file_wasescaped = 1; //We were escaped!
 						}
-						if ((!file_wasescaped) || (file_string != file_stringend)) //Not escaped or the end?
+						if ((!file_wasescaped) || ((file_string != file_stringend) && (file_string != file_stringstart))) //Not escaped or the end?
 						{
 							safe_scatnprintf(cue_status.filename, sizeof(cue_status.filename), "%c", *file_string); //Add to the result!
 						}
