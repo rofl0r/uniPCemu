@@ -1615,9 +1615,10 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Ready!
 		return 0; //Process the error as we're ready!
 	}
-
+	if (datablock_ready) goto ATAPI_alreadyread; //Already read? Skip normal reading if so!
 	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
+		ATAPI_alreadyread: //Already read!
 		ATAPI_increasesector(channel); //Increase the current sector!
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
