@@ -120,6 +120,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!
 	disks[device].staticimage = staticimage; //Static image!
 	disks[device].cueimage = cueimage; //CUE image?
+	disks[device].selectedtrack = 1; //Default to the data track, track 1!
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	if (cueimage) //CUE image?
@@ -274,7 +275,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 
 	if ((device == CDROM0) || (device == CDROM1)) //CD-ROM devices support tracks?
 	{
-		if ((disks[device].selectedtrack != 0) && disks[device].readhandler) //Non-track 0 isn't supported for disk images!
+		if ((disks[device].selectedtrack != 1) && disks[device].readhandler) //Non-track 0 isn't supported for disk images!
 		{
 			return FALSE; //Error: invalid track!
 		}
@@ -331,6 +332,7 @@ byte is_mounted(int drive) //Device inserted?
 {
 	if (drive<0 || drive>0xFF) return 0; //No disk available!
 	byte buf[512];
+	if (getCUEimage(drive)) return 1; //Mounted a CUE image, normal sector reads won't work, but still mounted!
 	if (!readdata(drive,&buf,0,512)) //First sector invalid?
 	{
 		return FALSE; //No drive!
