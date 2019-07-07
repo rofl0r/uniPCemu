@@ -744,7 +744,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if (!emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
+				if (emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Couldn't seek to sector!
