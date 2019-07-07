@@ -42,7 +42,7 @@ byte cuesheet_readline(BIGFILE *f)
 	memset(&cuesheet_line_lc, 0, sizeof(cuesheet_line_lc)); //Init!
 	for (; !emufeof64(f);) //Not EOF?
 	{
-		c = emufread64(&c, 1, 1, f); //Read a character from the file!
+		if (emufread64(&c, 1, 1, f) != 1) return 0; //Read a character from the file, otherwise fail!
 		switch (c) //What character?
 		{
 		case 0: //Invalid?
