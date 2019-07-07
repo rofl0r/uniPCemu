@@ -3736,6 +3736,8 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 
 void ATA_DiskChanged(int disk)
 {
+	byte cue_M, cue_S, cue_F;
+	char *cueimage;
 	char newserial[21]; //A serial to build!
 	byte disk_ATA, disk_channel, disk_nr;
 	switch (disk) //What disk?
@@ -3793,8 +3795,22 @@ void ATA_DiskChanged(int disk)
 		memset(&ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		if (disk_mounted) //Do we even have this drive?
 		{
-			disk_size = disksize(disk); //Get the disk's size!
-			disk_size >>= IS_CDROM?11:9; //Get the disk size in sectors!
+			if (cueimage = getCUEimage(disk)) //CUE image?
+			{
+				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F) != 0) //Geometry gotten?
+				{
+					disk_size = MSF2LBA(cue_M, cue_S, cue_F); //The disk size in sectors!
+				}
+				else //Failed to get the geometry?
+				{
+					disk_size = 0; //No disk size available!
+				}
+			}
+			else
+			{
+				disk_size = disksize(disk); //Get the disk's size!
+				disk_size >>= IS_CDROM ? 11 : 9; //Get the disk size in sectors!
+			}
 		}
 		else
 		{
