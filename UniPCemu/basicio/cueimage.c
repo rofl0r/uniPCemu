@@ -749,7 +749,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 					emufclose64(source);
 					return 0; //Couldn't seek to sector!
 				}
-				if (emufread64(buffer, size, 1, source) != size) //Failed reading the data?
+				if (emufread64(buffer, 1, size, source) != size) //Failed reading the data?
 				{
 					emufclose64(source);
 					return 0; //Couldn't read the data!
