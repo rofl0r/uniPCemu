@@ -121,6 +121,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].staticimage = staticimage; //Static image!
 	disks[device].cueimage = cueimage; //CUE image?
 	disks[device].selectedtrack = 1; //Default to the data track, track 1!
+	disks[device].selectedsubtrack = 1; //Default to the data subtrack, subtrack 1!
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	if (cueimage) //CUE image?
@@ -234,6 +235,14 @@ void CDROM_selecttrack(int device, uint_32 track)
 	if ((device & 0xFF) == device) //Valid device?
 	{
 		disks[device].selectedtrack = track; //Select the track to use, if any is supported!
+	}
+}
+
+void CDROM_selectsubtrack(int device, uint_32 subtrack)
+{
+	if ((device & 0xFF) == device) //Valid device?
+	{
+		disks[device].selectedsubtrack = subtrack; //Select the subtrack to use, if any is supported!
 	}
 }
 

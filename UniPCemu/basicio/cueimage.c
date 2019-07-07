@@ -159,8 +159,27 @@ void CUE_LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 	*F = rest % 75; //Frame, if any!
 }
 
+void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_current, CUESHEET_ENTRYINFO *cue_next, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Current to check and next entries(if any)!
+{
+	if (((disks[device].selectedtrack == cue_current->status.track_number) || (disks[device].selectedtrack == 0)) && //Current track number to lookup?
+		((disks[device].selectedsubtrack == cue_current->status.index) || (disks[device].selectedsubtrack == 0))) //Current subtrack number to lookup?
+	{
+		if (*got_startMSF == 0)
+		{
+			*startM = cue_current->status.M;
+			*startS = cue_current->status.S;
+			*startF = cue_current->status.F;
+			*got_startMSF = 1; //Got!
+		}
+		*endM = cue_current->endM;
+		*endS = cue_current->endS;
+		*endF = cue_current->endF;
+	}
+
+}
+
 //Result: -1: Out of range, 0: Failed to read, 1: Read successfully
-sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte orig_M, orig_S, orig_F;
 	sbyte result=-1; //The result! Default: out of range!
@@ -181,6 +200,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 	char *track_mode;
 	CDROM_TRACK_MODE *curtrackmode;
 	uint_32 LBA,prev_LBA;
+	byte got_startMSF = 0;
 
 	if ((device != CDROM0) && (device != CDROM1)) return 0; //Abort: invalid disk!
 	if (!isext(disks[device].filename, "cue")) return 0; //Not a cue sheet!
@@ -454,6 +474,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			finishMSFscan:
 			if (cue_current.is_present && cue_next.is_present) //Got current to advance?
 			{
+				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
 				prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the current LBA position we're advancing?
 				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
 				cue_next.status.datafilepos += ((LBA-prev_LBA) * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
@@ -650,7 +671,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 			++cue_next.status.index; //Take the index one up!
 			LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the LBA of the last block the entry as the start of the final block!
 			fsize -= cue_current.status.datafilepos; //Get the address of the last block the entry starts as!
-			LBA += (fsize/cue_current.status.track_mode->sectorsize); //What LBA are we going to try to read at most!
+			LBA += (uint_32)(fsize/cue_current.status.track_mode->sectorsize); //What LBA are we going to try to read at most!
 			CUE_LBA2MSF(LBA, &cue_next.status.M, &cue_next.status.S, &cue_next.status.F); //Convert the LBA back to MSF for the fake next record based on the file size(for purposes on the final index entry going until EOF of the source file)!
 		}
 		else //Couldn't goto EOF?
@@ -666,6 +687,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 		*S = cue_current.endS;
 		*F = cue_current.endF;
 
+		cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
+
 		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
 		if (disks[device].selectedtrack == cue_current.status.track_number) //Current track number to lookup?
 		{
@@ -676,6 +699,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 				if (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
 			foundMSF: //Found the location of our data?
+				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
 				if (!(strcmp(cue_current.status.file_type, "binary") == 0)) //Not supported file backend type!
 				{
 					goto finishup; //Finish up!
@@ -687,24 +711,24 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 				if (!source) goto finishupno_f; //Couldn't open the source!
 				if (emufseek64(source, 0, SEEK_END) == 0) //Went to EOF?
 				{
-					size = emuftell64(source); //What is the size of the file!
+					fsize = emuftell64(source); //What is the size of the file!
 				}
 				if (!buffer) //No buffer?
 				{
 					emufclose64(source);
 					return 2; //No buffer to read to, silently abort, with an extra result code for being a NOP!
 				}
-				if (cue_current.status.datafilepos >= size) //Past EOF?
+				if (cue_current.status.datafilepos >= fsize) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize)) //Past EOF?
+				if ((cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize))>=fsize) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if (cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))+1)*cue_current.status.track_mode->sectorsize)) //Past EOF?
+				if ((cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))+1)*cue_current.status.track_mode->sectorsize)>fsize)) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
@@ -735,15 +759,16 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, void *buff
 
 sbyte cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
+	byte startM, startS, startF, endM, endS, endF;
 	byte M2 = M, S2 = S, F2 = F; //Duplicates for handling!
-	return cueimage_REAL_readsector(device, &M2, &S2, &F2, buffer, size); //Direct call!
+	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size); //Direct call!
 }
 
-sbyte cueimage_getgeometry(int device, byte *M, byte *S, byte *F) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+sbyte cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
 {
 	//Apply maximum numbers!
 	*M = 0xFF;
 	*S = 59;
 	*F = 74;
-	return cueimage_REAL_readsector(device, M, S, F, NULL, 2048); //Just apply a read from the disk without result buffer(nothing to read after all)!
+	return cueimage_REAL_readsector(device, M, S, F, startM, startS, startF, endM, endS, endF, NULL, 2048); //Just apply a read from the disk without result buffer(nothing to read after all)!
 }

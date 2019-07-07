@@ -20,6 +20,7 @@ byte DSKimage; //Are we a DSK image?
 byte cueimage; //Are we a CUE image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 uint_32 selectedtrack; //The track selected for this disk!
+uint_32 selectedsubtrack; //The subtrack selected for this disk!
 } IODISK; //I/O mounted disk info.
 
 //Basic img/ms0 input/output for BIOS I/O
@@ -50,5 +51,6 @@ char *getDSKimage(int drive); //Get DSK image filename OR NULL if not a DSK imag
 char *getCUEimage(int drive); //Get CUE image filename or NULL if not a CUE image!
 
 void CDROM_selecttrack(int device, uint_32 track); //Select a track for CD-ROM devices to read!
+void CDROM_selectsubtrack(int device, uint_32 subtrack); //Select a subtrack for CD-ROM devices to read!
 void requestEjectDisk(int drive); //Request for an ejectable disk to be ejected!
 #endif

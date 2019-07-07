@@ -1895,7 +1895,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 {
 	char *cuedisk;
 	sbyte cueresult=0;
-	byte cue_M, cue_S, cue_F;
+	byte cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_M, cue_S, cue_F;
 	unsigned i;
 	uint_32 blocks;
 	int len = 4;
@@ -1935,7 +1935,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 					if (is_cueimage(cuedisk)) //Valid disk image?
 					{
 						LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
-						cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F); //Try to read as specified!
+						cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 						cueresult = 1; //Loaded!
 					}
 				}
@@ -2015,7 +2015,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							if (is_cueimage(cuedisk)) //Valid disk image?
 							{
 								LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
-								cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F); //Try to read as specified!
+								cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 								cueresult = 1; //Loaded!
 							}
 						}
@@ -3736,7 +3736,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 
 void ATA_DiskChanged(int disk)
 {
-	byte cue_M, cue_S, cue_F;
+	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF;
 	char *cueimage;
 	char newserial[21]; //A serial to build!
 	byte disk_ATA, disk_channel, disk_nr;
@@ -3797,9 +3797,9 @@ void ATA_DiskChanged(int disk)
 		{
 			if (cueimage = getCUEimage(disk)) //CUE image?
 			{
-				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F) != 0) //Geometry gotten?
+				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
-					disk_size = MSF2LBA(cue_M, cue_S, cue_F); //The disk size in sectors!
+					disk_size = MSF2LBA(cue_startM, cue_startS, cue_startF)+MSF2LBA(cue_endM, cue_endS, cue_endF)+1; //The disk size in sectors!
 				}
 				else //Failed to get the geometry?
 				{
