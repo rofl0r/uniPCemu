@@ -1321,7 +1321,7 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
 	{
 		BIOS_Title("Mount First CD-ROM");
-		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
+		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
 		EMU_gotoxy(0, 4); //Goto 4th row!
 		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1401,7 +1401,7 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 	if (ATA_allowDiskChange(CDROM1,1)) //Allowed to change? Double as the eject button!
 	{
 		BIOS_Title("Mount Second CD-ROM");
-		generateFileList(diskpath,"iso",0,0); //Generate file list for all .img files!
+		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
 		EMU_gotoxy(0,4); //Goto 4th row!
 		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!

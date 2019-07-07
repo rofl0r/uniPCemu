@@ -4,6 +4,7 @@
 #include "headers/basicio/dskimage.h" //DSK image support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support for requesting ejecting a disk!
+#include "headers/basicio/cueimage.h" //CUE image support!
 //Basic low level i/o functions!
 
 char diskpath[256] = "disks"; //The full disk path of the directory containing the disk images!
@@ -96,14 +97,18 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 
 	byte dynamicimage = is_dynamicimage(fullfilename); //Dynamic image detection!
 	byte staticimage = 0;
+	byte cueimage = 0;
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
 		if (!is_DSKimage(fullfilename)) //Not a DSK image?
 		{
-			if (!(staticimage = is_staticimage(fullfilename))) //Not a static image? We're invalid!
+			if (!(cueimage = is_cueimage(fullfilename))) //Not a cue image?
 			{
-				memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
-				goto registerdiskchange; //Unmount us! Don't abort, because we need to register properly(as in the case of removable media)!
+				if (!(staticimage = is_staticimage(fullfilename))) //Not a static image? We're invalid!
+				{
+					memset(&disks[device], 0, sizeof(disks[device])); //Delete the entry!
+					goto registerdiskchange; //Unmount us! Don't abort, because we need to register properly(as in the case of removable media)!
+				}
 			}
 		}
 	}
@@ -113,11 +118,20 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!
-	disks[device].staticimage = staticimage; //Dynamic image!
+	disks[device].staticimage = staticimage; //Static image!
+	disks[device].cueimage = cueimage; //CUE image?
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
-	disks[device].readhandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_readsector:&staticimage_readsector); //What read sector function to use!
-	disks[device].writehandler = disks[device].DSKimage?NULL:(disks[device].dynamicimage?&dynamicimage_writesector:&staticimage_writesector); //What write sector function to use!
+	if (cueimage) //CUE image?
+	{
+		disks[device].readhandler = NULL; //No read handler!
+		disks[device].writehandler = NULL; //No write handler!
+	}
+	else
+	{
+		disks[device].readhandler = disks[device].DSKimage ? NULL : (disks[device].dynamicimage ? &dynamicimage_readsector : &staticimage_readsector); //What read sector function to use!
+		disks[device].writehandler = disks[device].DSKimage ? NULL : (disks[device].dynamicimage ? &dynamicimage_writesector : &staticimage_writesector); //What write sector function to use!
+	}
 
 	registerdiskchange: //Register any disk changes!
 	if (diskchangedhandlers[device])
@@ -208,6 +222,12 @@ char *getDSKimage(int drive)
 	return disks[drive].DSKimage?&disks[drive].filename[0]:NULL; //Filename for DSK images, NULL otherwise!
 }
 
+char *getCUEimage(int drive)
+{
+	if (drive < 0 || drive>0xFF) return NULL; //Readonly with unknown drives!
+	return disks[drive].cueimage ? &disks[drive].filename[0] : NULL; //Filename for CUE images, NULL otherwise!
+}
+
 void CDROM_selecttrack(int device, uint_32 track)
 {
 	if ((device & 0xFF) == device) //Valid device?
@@ -254,7 +274,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread)
 
 	if ((device == CDROM0) || (device == CDROM1)) //CD-ROM devices support tracks?
 	{
-		if (disks[device].selectedtrack != 0) //Non-track 0 isn't supported for disk images!
+		if ((disks[device].selectedtrack != 0) && disks[device].readhandler) //Non-track 0 isn't supported for disk images!
 		{
 			return FALSE; //Error: invalid track!
 		}

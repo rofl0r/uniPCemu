@@ -6,6 +6,7 @@
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/support/log.h" //Logging support for debugging!
+#include "headers/basicio/cueimage.h" //CUE image support!
 
 //#define ATA_LOG
 
@@ -1468,8 +1469,30 @@ OPTINLINE uint_32 ATAPI_getresultsize(byte channel) //Retrieve the current resul
 	return result; //Give the result!
 }
 
+uint_32 MSF2LBAbin(byte M, byte S, byte F)
+{
+	return (((M * 60) + S) * 75) + F; //75 frames per second, 60 seconds in a minute!
+}
+
+void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
+{
+	uint_32 rest;
+	rest = LBA; //Load LBA!
+	*M = rest / (60 * 75); //Minute!
+	rest -= *M*(60 * 75); //Rest!
+	*S = rest / 75; //Second!
+	rest -= *S * 75;
+	*F = rest % 75; //Frame, if any!
+}
+
+byte decreasebuffer[2352];
+
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 {
+	sbyte cueresult;
+	byte datablock_ready = 0;
+	byte M, S, F;
+	char *cuedisk;
 	byte *datadest = NULL; //Destination of our loaded data!
 	uint_32 disk_size = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_disksize; //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus == 1) //We're reading already?
@@ -1488,8 +1511,51 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
 
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) //Past the end of the disk?
+	if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
 	{
+		if (is_cueimage(cuedisk)) //Valid disk image?
+		{
+			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			if (cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock)==1) //Try to read as specified!
+			{
+				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+				datablock_ready = 1; //Read and ready to process!
+			}
+			else
+			{
+				if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock == 2352) //Needs extensions from usual size?
+				{
+					datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
+					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data, 0, 2352); //Clear any data we use!
+					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data[1], 0xff, 10);
+					uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA + 150;
+					ATA[channel].Drive[ATA_activeDrive(channel)].data[12] = (raw_block / 75) / 60;
+					ATA[channel].Drive[ATA_activeDrive(channel)].data[13] = (raw_block / 75) % 60;
+					ATA[channel].Drive[ATA_activeDrive(channel)].data[14] = (raw_block % 75);
+					ATA[channel].Drive[ATA_activeDrive(channel)].data[15] = 0x01;
+					datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
+					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, datadest, 0x800)) //Try to read as specified!
+					{
+						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+						datablock_ready = 1; //Ready!
+					}
+				}
+				else if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock == 2048) //Needs stripping from usual size?
+				{
+					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, &decreasebuffer, 2352)==1) //Try to read as specified!
+					{
+						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+						memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
+						datablock_ready = 1; //Ready!
+					}
+				}
+			}
+		}
+	}
+
+	if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) && (datablock_ready==0)) //Past the end of the disk?
+	{
+		ATAPI_readSector_OOR:
 #ifdef ATA_LOG
 		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
 #endif
@@ -1502,7 +1568,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		return 0; //Stop! IRQ and finish!
 	}
 
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
+	if ((ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) && (datablock_ready==0)) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
 	{
 		memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data, 0, 2352); //Clear any data we use!
 		memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data[1], 0xff, 10);

@@ -108,6 +108,7 @@
     <ClCompile Include="..\commonemuframework\support\timers.c" />
     <ClCompile Include="..\commonemuframework\support\wave.c" />
     <ClCompile Include="..\commonemuframework\support\zalloc.c" />
+    <ClCompile Include="basicio\cueimage.c" />
     <ClCompile Include="basicio\dskimage.c" />
     <ClCompile Include="basicio\dynamicimage.c" />
     <ClCompile Include="basicio\io.c" />
@@ -263,6 +264,7 @@
     <ClInclude Include="..\commonemuframework\headers\types_linux.h" />
     <ClInclude Include="..\commonemuframework\headers\types_psp.h" />
     <ClInclude Include="..\commonemuframework\headers\types_win.h" />
+    <ClInclude Include="headers\basicio\cueimage.h" />
     <ClInclude Include="headers\basicio\dskimage.h" />
     <ClInclude Include="headers\basicio\dynamicimage.h" />
     <ClInclude Include="headers\basicio\io.h" />

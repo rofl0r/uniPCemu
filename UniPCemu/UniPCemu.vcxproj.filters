@@ -582,6 +582,9 @@
     <ClCompile Include="..\commonemuframework\support\zalloc.c">
       <Filter>Source Files\common files\support</Filter>
     </ClCompile>
+    <ClCompile Include="basicio\cueimage.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\header_dosbox.h">
@@ -1018,6 +1021,9 @@
     </ClInclude>
     <ClInclude Include="..\commonemuframework\exception\exception.h">
       <Filter>Header Files\common headers\exception</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\basicio\cueimage.h">
+      <Filter>Header Files\basicio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
