@@ -1402,19 +1402,25 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 		bioschanged = 1; //BIOS changed!
 	}
 	//dolog("IO","Checking First CD-ROM (%s)...",BIOS_Settings.cdrom0);
-	if ((!readdata(CDROM0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom0,"")!=0)) //No disk mounted but listed?
+	if (!getCUEimage(CDROM0)) //Not a CUE image?
 	{
-		memset(&BIOS_Settings.cdrom0[0],0,sizeof(BIOS_Settings.cdrom0)); //Unmount!
-		bioschanged = 1; //BIOS changed!
-		//dolog("BIOS","First CD-ROM invalidated!");
+		if ((!readdata(CDROM0, &buffer, 0, sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom0, "") != 0)) //No disk mounted but listed?
+		{
+			memset(&BIOS_Settings.cdrom0[0], 0, sizeof(BIOS_Settings.cdrom0)); //Unmount!
+			bioschanged = 1; //BIOS changed!
+			//dolog("BIOS","First CD-ROM invalidated!");
+		}
 	}
 	
 	//dolog("IO","Checking Second CD-ROM (%s)...",BIOS_Settings.cdrom1);
-	if ((!readdata(CDROM1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom1,"")!=0)) //No disk mounted but listed?
+	if (!getCUEimage(CDROM1))
 	{
-		memset(&BIOS_Settings.cdrom1[0],0,sizeof(BIOS_Settings.cdrom1)); //Unmount!
-		bioschanged = 1; //BIOS changed!
-		//dolog("BIOS","Second CD-ROM invalidated!");
+		if ((!readdata(CDROM1, &buffer, 0, sizeof(buffer))) && (strcmp(BIOS_Settings.cdrom1, "") != 0)) //No disk mounted but listed?
+		{
+			memset(&BIOS_Settings.cdrom1[0], 0, sizeof(BIOS_Settings.cdrom1)); //Unmount!
+			bioschanged = 1; //BIOS changed!
+			//dolog("BIOS","Second CD-ROM invalidated!");
+		}
 	}
 
 	//Unmount/remount!
