@@ -178,6 +178,8 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 
 }
 
+extern char diskpath[256]; //Disk path!
+
 //Result: -1: Out of range, 0: Failed to read, 1: Read successfully
 sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
@@ -201,6 +203,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 	CDROM_TRACK_MODE *curtrackmode;
 	uint_32 LBA,prev_LBA;
 	byte got_startMSF = 0;
+	char fullfilename[256];
 
 	if ((device != CDROM0) && (device != CDROM1)) return 0; //Abort: invalid disk!
 	if (!isext(disks[device].filename, "cue")) return 0; //Not a cue sheet!
@@ -659,7 +662,11 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 		}
 		//Fill the end locations into the current entry, based on the next entry!
 		BIGFILE *source;
-		source = emufopen64(cue_current.status.filename,"rb"); //Open the backend data file!
+		memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
+		safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
+		safestrcat(fullfilename, sizeof(fullfilename), "/");
+		safestrcat(fullfilename, sizeof(fullfilename), cue_current.status.filename); //The full filename!
+		source = emufopen64(fullfilename,"rb"); //Open the backend data file!
 		if (!source) goto finishup; //Couldn't open the source!
 		if (emufseek64(source, 0, SEEK_END) == 0) //Went to EOF?
 		{
@@ -706,7 +713,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				emufclose64(f); //Close the sheet, we're done with it! All data we need is loaded into cue_current!
 				//Check our parameters to be valid!
 				if (size != cue_current.status.track_mode->sectorsize) return 0; //Invalid sector size not matching specified!
-				source = emufopen64(cue_current.status.filename, "rb"); //Open the backend data file!
+				char fullfilename[256];
+				memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
+				safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
+				safestrcat(fullfilename, sizeof(fullfilename), "/");
+				safestrcat(fullfilename, sizeof(fullfilename), cue_current.status.filename); //The full filename!
+				source = emufopen64(fullfilename, "rb"); //Open the backend data file!
 				if (!source) goto finishupno_f; //Couldn't open the source!
 				if (emufseek64(source, 0, SEEK_END) == 0) //Went to EOF?
 				{
