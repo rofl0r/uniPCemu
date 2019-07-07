@@ -1516,7 +1516,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
-			if (cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock)==1) //Try to read as specified!
+			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))==1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 				datablock_ready = 1; //Read and ready to process!
@@ -3796,7 +3796,7 @@ void ATA_DiskChanged(int disk)
 		memset(&ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
 		if (disk_mounted) //Do we even have this drive?
 		{
-			if (cueimage = getCUEimage(disk)) //CUE image?
+			if ((cueimage = getCUEimage(disk))) //CUE image?
 			{
 				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
