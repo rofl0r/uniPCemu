@@ -1893,6 +1893,9 @@ void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
 //read_TOC conversion from http://bochs.sourceforge.net/cgi-bin/lxr/source/iodev/hdimage/cdrom.cc
 byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sword format, byte channel, byte drive)
 {
+	char *cuedisk;
+	sbyte cueresult=0;
+	byte cue_M, cue_S, cue_F;
 	unsigned i;
 	uint_32 blocks;
 	int len = 4;
@@ -1927,19 +1930,48 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				buf[len++] = 0x16; // ADR, control
 				buf[len++] = 0xaa; // Track number
 				buf[len++] = 0; // Reserved
-				blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
-				// Start address
-				if (msf) {
-					buf[len++] = 0; // reserved
-					buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
-					buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
-					buf[len++] = (byte)((blocks + 150) % 75); // frame;
+				if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
+				{
+					if (is_cueimage(cuedisk)) //Valid disk image?
+					{
+						LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+						cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F); //Try to read as specified!
+						cueresult = 1; //Loaded!
+					}
 				}
-				else {
-					buf[len++] = (blocks >> 24) & 0xff;
-					buf[len++] = (blocks >> 16) & 0xff;
-					buf[len++] = (blocks >> 8) & 0xff;
-					buf[len++] = (blocks >> 0) & 0xff;
+				if (cueresult == 0) //Not a cue result?
+				{
+					blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
+					// Start address
+					if (msf) {
+						buf[len++] = 0; // reserved
+						buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
+						buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
+						buf[len++] = (byte)((blocks + 150) % 75); // frame;
+					}
+					else {
+						buf[len++] = (blocks >> 24) & 0xff;
+						buf[len++] = (blocks >> 16) & 0xff;
+						buf[len++] = (blocks >> 8) & 0xff;
+						buf[len++] = (blocks >> 0) & 0xff;
+					}
+				}
+				else
+				{
+					// Start address
+					blocks = MSF2LBAbin(cue_M, cue_S, cue_F); //Take the blocks of the CUE image!
+					if (msf) {
+						buf[len++] = 0; // reserved
+						buf[len++] = cue_M; // minute
+						buf[len++] = cue_S; // second
+						buf[len++] = cue_F; // frame;
+					}
+					else {
+						buf[len++] = (blocks >> 24) & 0xff;
+						buf[len++] = (blocks >> 16) & 0xff;
+						buf[len++] = (blocks >> 8) & 0xff;
+						buf[len++] = (blocks >> 0) & 0xff;
+					}
 				}
 				buf[0] = ((len - 2) >> 8) & 0xff;
 				buf[1] = (len - 2) & 0xff;
@@ -1978,18 +2010,48 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						buf[len++] = 0;
 					}
 					else if (i == 2) {
-						blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Capacity, in 2KB sectors!
-						if (msf) {
-							buf[len++] = 0; // reserved
-							buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
-							buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
-							buf[len++] = (byte)((blocks + 150) % 75); // frame;
+						if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
+						{
+							if (is_cueimage(cuedisk)) //Valid disk image?
+							{
+								LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+								cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F); //Try to read as specified!
+								cueresult = 1; //Loaded!
+							}
 						}
-						else {
-							buf[len++] = (blocks >> 24) & 0xff;
-							buf[len++] = (blocks >> 16) & 0xff;
-							buf[len++] = (blocks >> 8) & 0xff;
-							buf[len++] = (blocks >> 0) & 0xff;
+						if (cueresult == 0) //Not a cue result?
+						{
+							blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
+							// Start address
+							if (msf) {
+								buf[len++] = 0; // reserved
+								buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
+								buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
+								buf[len++] = (byte)((blocks + 150) % 75); // frame;
+							}
+							else {
+								buf[len++] = (blocks >> 24) & 0xff;
+								buf[len++] = (blocks >> 16) & 0xff;
+								buf[len++] = (blocks >> 8) & 0xff;
+								buf[len++] = (blocks >> 0) & 0xff;
+							}
+						}
+						else
+						{
+							// Start address
+							blocks = MSF2LBAbin(cue_M, cue_S, cue_F); //Take the blocks of the CUE image!
+							if (msf) {
+								buf[len++] = 0; // reserved
+								buf[len++] = cue_M; // minute
+								buf[len++] = cue_S; // second
+								buf[len++] = cue_F; // frame;
+							}
+							else {
+								buf[len++] = (blocks >> 24) & 0xff;
+								buf[len++] = (blocks >> 16) & 0xff;
+								buf[len++] = (blocks >> 8) & 0xff;
+								buf[len++] = (blocks >> 0) & 0xff;
+							}
 						}
 					}
 					else {
