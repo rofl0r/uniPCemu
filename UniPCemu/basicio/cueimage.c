@@ -764,7 +764,10 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 sbyte cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte startM, startS, startF, endM, endS, endF;
-	byte M2 = M, S2 = S, F2 = F; //Duplicates for handling!
+	byte M2, S2, F2; //Duplicates for handling!
+	M2 = M; //Requested minute!
+	S2 = S; //Requested second!
+	F2 = F; //Requested frame!
 	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size); //Direct call!
 }
 
