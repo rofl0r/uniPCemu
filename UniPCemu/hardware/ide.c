@@ -1964,8 +1964,9 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				// From atapi specs : start track can be 0-63, AA
 				if ((start_track > 1) && (start_track != 0xaa))
 					return 0;
-				buf[2] = 1;
-				buf[3] = 1;
+				//Lead in track!
+				buf[2] = 1; //First track number
+				buf[3] = 1; //Last track number
 				if (start_track <= 1) {
 					buf[len++] = 0; // Reserved
 					buf[len++] = 0x14; // ADR, control
@@ -2049,35 +2050,37 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 			case 1:
 				// multi session stuff - emulate a single session only
 				buf[0] = 0;
-				buf[1] = 0x0a;
-				buf[2] = 1;
-				buf[3] = 1;
+				buf[1] = 0x0a; //TOC data length
+				buf[2] = 1; //First session number
+				buf[3] = 1; //Last session number
 				for (i = 0; i < 8; i++)
 					buf[4 + i] = 0;
 				len = 12;
 				break;
 			case 2:
 				// raw toc - emulate a single session only (ported from qemu)
-				buf[2] = 1;
-				buf[3] = 1;
+				buf[2] = 1; //First session number
+				buf[3] = 1; //Last session number
 				for (i = 0; i < 4; i++) {
-					buf[len++] = 1;
-					buf[len++] = 0x14;
-					buf[len++] = 0;
+					buf[len++] = 1; //Session number
+					buf[len++] = 0x14; //ADR / control
+					buf[len++] = 0; //Track (TOC = 0)
 					if (i < 3) {
-						buf[len++] = 0xa0 + i;
+						buf[len++] = 0xa0 + i; //Point
 					}
 					else {
-						buf[len++] = 1;
+						buf[len++] = 1; //Point
 					}
-					buf[len++] = 0;
-					buf[len++] = 0;
-					buf[len++] = 0;
-					if (i < 2) {
-						buf[len++] = 0;
-						buf[len++] = 1;
-						buf[len++] = 0;
-						buf[len++] = 0;
+					//MSF start of track!
+					buf[len++] = 0; //Min
+					buf[len++] = 0; //Sec
+					buf[len++] = 0; //Frame
+
+					if (i < 2) { //A0-A2 pointers?
+						buf[len++] = 0; //Zero
+						buf[len++] = 1; //Min
+						buf[len++] = 0; //Sec
+						buf[len++] = 0; //Frame
 					}
 					else if (i == 2) {
 						if (cueresult == 0) //Not a cue result?
@@ -2085,7 +2088,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
 							// Start address
 							if (msf) {
-								buf[len++] = 0; // reserved
+								buf[len++] = 0; // Zero
 								buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
 								buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
 								buf[len++] = (byte)((blocks + 150) % 75); // frame;
@@ -2102,7 +2105,7 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							// Start address
 							blocks = MSF2LBAbin(cue_M, cue_S, cue_F); //Take the blocks of the CUE image!
 							if (msf) {
-								buf[len++] = 0; // reserved
+								buf[len++] = 0; // Zero
 								buf[len++] = cue_M; // minute
 								buf[len++] = cue_S; // second
 								buf[len++] = cue_F; // frame;
