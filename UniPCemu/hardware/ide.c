@@ -1519,7 +1519,17 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))==1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
-				datablock_ready = 1; //Read and ready to process!
+				if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
+				switch (cueresult)
+				{
+				case 2+MODE_MODE1DATA: //Mode 1 block?
+				case 2+MODE_MODEXA: //Mode XA block?
+					datablock_ready = 1; //Read and ready to process!
+					break;
+				case 2+MODE_AUDIO: //Audio block?
+				default: //Unknown/unsupported mode?
+					break; //Unknown data!
+				}
 			}
 			else
 			{
@@ -1537,6 +1547,17 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, datadest, 0x800)) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
+						switch (cueresult)
+						{
+						case 2 + MODE_MODE1DATA: //Mode 1 block?
+							datablock_ready = 1; //Read and ready to process!
+							break;
+						case 2 + MODE_MODEXA: //Mode XA block?
+						case 2 + MODE_AUDIO: //Audio block?
+						default: //Unknown/unsupported mode?
+							break; //Unknown data!
+						}
 						datablock_ready = 1; //Ready!
 					}
 				}
@@ -1545,8 +1566,18 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, &decreasebuffer, 2352)==1) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
-						memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
-						datablock_ready = 1; //Ready!
+						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
+						switch (cueresult)
+						{
+						case 2 + MODE_MODE1DATA: //Mode 1 block?
+						case 2 + MODE_MODEXA: //Mode XA block?
+							memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
+							datablock_ready = 1; //Read and ready to process!
+							break;
+						case 2 + MODE_AUDIO: //Audio block?
+						default: //Unknown/unsupported mode?
+							break; //Unknown data!
+						}
 					}
 				}
 			}
