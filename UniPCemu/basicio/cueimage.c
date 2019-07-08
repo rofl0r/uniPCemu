@@ -1,6 +1,7 @@
 #include "headers/basicio/io.h"
 #include "headers/fopen64.h"
 #include "headers/emu/directorylist.h"
+#include "headers/basicio/cueimage.h" //Our own header!
 
 byte is_cueimage(char *filename)
 {
@@ -121,14 +122,6 @@ char identifier_ISRC[5] = "isrc";
 char identifier_PREGAP[7] = "pregap";
 char identifier_INDEX[6] = "index";
 char identifier_POSTGAP[8] = "postgap";
-
-enum CDROM_MODES {
-	MODE_AUDIO = 0,
-	MODE_KARAOKE = 1,
-	MODE_MODE1DATA = 2,
-	MODE_MODEXA = 3,
-	MODE_MODECDI = 4,
-};
 
 CDROM_TRACK_MODE cdrom_track_modes[10] = {
 	{"AUDIO",2352,MODE_AUDIO},	//Audio / Music(2352 — 588 samples)
@@ -727,7 +720,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				if (!buffer) //No buffer?
 				{
 					emufclose64(source);
-					return 2; //No buffer to read to, silently abort, with an extra result code for being a NOP!
+					return 1; //No buffer to read to, silently abort, with an extra result code for being a NOP!
 				}
 				if (cue_current.status.datafilepos >= fsize) //Past EOF?
 				{
@@ -756,7 +749,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				}
 				//Data has been read from the backend file!
 				emufclose64(source);
-				return 1; //We've found the location of our data!
+				return 2+cue_current.status.track_mode->mode; //We've found the location of our data! Give 2+mode for the read sector type!
 			}
 		}
 	}
