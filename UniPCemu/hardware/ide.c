@@ -1547,6 +1547,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data, 0, 2352); //Clear any data we use!
 					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data[1], 0xff, 10);
 					uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA + 150;
+					if (cuedisk) raw_block -= 150; //Convert back for CUE disk images!
 					ATA[channel].Drive[ATA_activeDrive(channel)].data[12] = (raw_block / 75) / 60;
 					ATA[channel].Drive[ATA_activeDrive(channel)].data[13] = (raw_block / 75) % 60;
 					ATA[channel].Drive[ATA_activeDrive(channel)].data[14] = (raw_block % 75);
