@@ -1519,7 +1519,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
-			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))==1) //Try to read as specified!
+			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))>=1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 				if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
@@ -1553,7 +1553,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					ATA[channel].Drive[ATA_activeDrive(channel)].data[14] = (raw_block % 75);
 					ATA[channel].Drive[ATA_activeDrive(channel)].data[15] = 0x01;
 					datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
-					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, datadest, 0x800)) //Try to read as specified!
+					if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
@@ -1572,12 +1572,11 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 						default: //Unknown/unsupported mode?
 							break; //Unknown data!
 						}
-						datablock_ready = 1; //Ready!
 					}
 				}
 				else if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock == 2048) //Needs stripping from usual size?
 				{
-					if (cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, &decreasebuffer, 2352)==1) //Try to read as specified!
+					if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
