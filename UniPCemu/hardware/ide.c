@@ -1693,6 +1693,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,ATA_activeDrive(channel),SENSE_NOT_READY); //Reason of the error
+		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,ATA_activeDrive(channel),ASC_MEDIUM_NOT_PRESENT); //Extended reason code
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,ATA_activeDrive(channel),0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,ATA_activeDrive(channel),8); //Additional Sense Length = 8?
@@ -2291,6 +2292,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			//Clear sense packet?
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
+			ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
 			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2324,6 +2326,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
+			ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
 			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2925,6 +2928,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2946,6 +2950,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	if (aborted==0) {
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0);
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0);
+		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //Not valid anymore!
 	} //Clear reason on success!
 }
