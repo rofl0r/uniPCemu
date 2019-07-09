@@ -264,7 +264,7 @@ enum {
 #define ATAPI_SENSEPACKET_RESERVED1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[1]=val
 #define ATAPI_SENSEPACKET_REVERVED2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF0)|((val&0xF)<<4))
 #define ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0xF)|(val&0xF))
-#define ATAPI_SENSEPACKET_ILIW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0x0x20)|((val&0x1)<<5))
+#define ATAPI_SENSEPACKET_ILIW(channel,drive,val) ATA[channel].Drive[drive].SensePacket[2]=((ATA[channel].Drive[drive].SensePacket[2]&~0x20)|((val&0x1)<<5))
 #define ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[3]=val
 #define ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[4]=val
 #define ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,val) ATA[channel].Drive[drive].SensePacket[5]=val
@@ -1524,8 +1524,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
-			CDROM_selecttrack(disk,0); //All tracks!
-			CDROM_selectsubtrack(disk,1); //Subtrack 1 only!
+			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))>=1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
@@ -1568,7 +1568,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 						switch (cueresult)
 						{
 						case 2 + MODE_MODE1DATA: //Mode 1 block?
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) &&  && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							datablock_ready = 1; //Read and ready to process!
 							break;
 						case 2 + MODE_AUDIO: //Audio block?
@@ -1616,34 +1616,34 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
 
 					ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
-					ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-					ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
+					ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
 					ATAPI_giveresultsize(channel,0,1); //No result size!
-					ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-					ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
-					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
+					ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+					ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel),abortreason); //Reason of the error
+					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel),additionalsensecode); //Extended reason code
 					if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
 					{
-						ATAPI_SENSEPACKET_ILIW(channnel,drive,1); //ILI bit set!
+						ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),1); //ILI bit set!
 					}
 					else
 					{
-						ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+						ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
 					}
-					ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
-					ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
-					ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
-					ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
-					ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
-					ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
-					ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
+					ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel),0x70); //Default error code?
+					ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel),8); //Additional Sense Length = 8?
+					ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel),0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel),0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel),0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel),0); //No info!
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel),0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel),0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel),0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel),0); //No command specific information?
+					ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel),1); //We're valid!
+					ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+					ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel),1); //Ready!
+					ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel),1); //Ready!
 					ATAPI_aborted = 1; //Aborted!
 					goto ATAPI_erroroutread; //Error out!
 				}
@@ -1696,7 +1696,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_giveresultsize(channel,0,1); //No result size!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,ATA_activeDrive(channel),SENSE_NOT_READY); //Reason of the error
-		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+		ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,ATA_activeDrive(channel),ASC_MEDIUM_NOT_PRESENT); //Extended reason code
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,ATA_activeDrive(channel),0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,ATA_activeDrive(channel),8); //Additional Sense Length = 8?
@@ -2004,8 +2004,8 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
-			CDROM_selecttrack(disk,0); //All tracks!
-			CDROM_selectsubtrack(disk,0); //All subtracks!
+			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)],0); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],0); //All subtracks!
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 			cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 			cueresult = 1; //Loaded!
@@ -2013,8 +2013,8 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	}
 	else //Default track/subtrack!
 	{
-			CDROM_selecttrack(disk,1); //All tracks!
-			CDROM_selectsubtrack(disk,1); //All subtracks!
+			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //All subtracks!
 	}
 	switch (format) {
 		case 0:
@@ -2295,7 +2295,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			//Clear sense packet?
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
-			ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2329,7 +2329,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
-			ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2770,8 +2770,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			else
 			{
-					CDROM_selecttrack(disk,0); //All tracks!
-					CDROM_selectsubtrack(disk,0); //All subtracks!
+					CDROM_selecttrack(ATA_Drives[channel][drive],0); //All tracks!
+					CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
 					LBA2MSFbin(LBA,&Mseek,&Sseek,&Fseek); //Convert to MSF!
 					if (cueimage_readsector(ATA_Drives[channel][drive], Mseek, Sseek, Fseek, NULL, 2048) == -1) //Not found?
 					{
@@ -2931,7 +2931,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+		ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2953,7 +2953,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	if (ATAPI_aborted==0) {
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0);
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0);
-		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
+		ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //Not valid anymore!
 	} //Clear reason on success!
 }
