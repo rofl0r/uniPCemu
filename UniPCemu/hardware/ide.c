@@ -1519,6 +1519,8 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			CDROM_selecttrack(disk,0); //All tracks!
+			CDROM_selectsubtrack(disk,1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))>=1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
@@ -1534,6 +1536,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					datablock_ready = 1; //Read and ready to process!
 					break;
 				case 2+MODE_AUDIO: //Audio block?
+					if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 					if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
 				default: //Unknown/unsupported mode?
 					break; //Unknown data!
@@ -1560,14 +1563,14 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 						switch (cueresult)
 						{
 						case 2 + MODE_MODE1DATA: //Mode 1 block?
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) &&  && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							datablock_ready = 1; //Read and ready to process!
 							break;
 						case 2 + MODE_AUDIO: //Audio block?
 							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
 							break;
 						case 2 + MODE_MODEXA: //Mode XA block?
-							if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+							if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)  && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							break;
 						default: //Unknown/unsupported mode?
 							break; //Unknown data!
@@ -1592,11 +1595,17 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 							datablock_ready = 1; //Read and ready to process!
 							break;
 						case 2 + MODE_AUDIO: //Audio block?
+							if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
 						default: //Unknown/unsupported mode?
+						if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 							break; //Unknown data!
 						}
 					}
+				}
+				if (datablock_ready==0) //Invalid?
+				{
+					//Error out according to specs!
 				}
 			}
 		}
@@ -3932,6 +3941,8 @@ void ATA_DiskChanged(int disk)
 			{
 				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
+					CDROM_selecttrack(disk,0); //All tracks!
+					CDROM_selectsubtrack(disk,0); //All subtracks!
 					disk_size = (MSF2LBA(cue_endM, cue_endS, cue_endF)-MSF2LBA(cue_startM, cue_startS, cue_startF))+1; //The disk size in sectors!
 				}
 				else //Failed to get the geometry?
