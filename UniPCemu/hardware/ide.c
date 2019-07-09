@@ -3131,6 +3131,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	uint_32 disk_size; //For checking against boundaries!
 	if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for non-CD-ROM drives?
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
+	ATA_ERRORREGISTER_COMMANDABORTEDW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (command) //What command?
 	{
 	case 0x90: //Execute drive diagnostic (Mandatory)?
