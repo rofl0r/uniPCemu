@@ -665,7 +665,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			ATAPI_SET_SENSE(channel,drive,0x02,0x04,0x01); //Medium is becoming available
 			return 0;
 		}
-		else //Waiting?
+		else if (dowait) //Waiting?
 		{
 			ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
 			return 2; //Pending to execute!
