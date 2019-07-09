@@ -2316,10 +2316,6 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	{
 		ATA_STATUSREGISTER_ERRORW(channel,slave,1);
 	}
-	else
-	{
-		ATA_STATUSREGISTER_ERRORW(channel,slave,0);
-	}
 	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,slave,0); //No service(when enabled), nor drive seek complete!
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Move to error mode!
 	ATAPI_giveresultsize(channel,0,1); //No result size!
@@ -2360,22 +2356,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			//Valid disk loaded?
-			ATA[channel].Drive[drive].ERRORREGISTER = 0; //Clear error register!
-			//Clear sense packet?
-			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0x00); //Reason of the error
-			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0x00); //Extended reason code
-			ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
-			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
-			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
-			ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //We're invalid!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //OK!
 			ATAPI_giveresultsize(channel,0,1); //No result size!
