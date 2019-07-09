@@ -1626,7 +1626,6 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 					additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
 
-					ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
 					ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
 					ATAPI_giveresultsize(channel,0,1); //No result size!
