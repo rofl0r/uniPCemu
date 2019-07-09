@@ -2382,6 +2382,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(ATA[channel].Drive[drive].SensePacket)); //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
 
+		//Now fill the packet with data!
+		memcpy(&ATA[channel].Drive[drive].data, &ATA[channel].Drive[drive].SensePacket, ATA[channel].Drive[drive].datablock); //Give the result!
+		if (ATA[channel].Drive[drive].SensePacket[2] == SENSE_UNIT_ATTENTION) //Unit attention?
+		{
+			ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, SENSE_NONE); //No sense anymore!
+		}
+
 		if (ATA[channel].Drive[drive].ATAPI_diskchangepending) //Disk change pending? Doesn't matter if an IRQ has been given!
 		{
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
@@ -2401,21 +2408,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
 		}
 
-		//Now fill the packet with data!
-		memcpy(&ATA[channel].Drive[drive].data, &ATA[channel].Drive[drive].SensePacket, ATA[channel].Drive[drive].datablock); //Give the result!
-		if (ATA[channel].Drive[drive].SensePacket[2]==SENSE_UNIT_ATTENTION) //Unit attention?
-		{
-			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_NONE); //No sense anymore!
-		}
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 
 		//Clear the condition!
-		ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
 		ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
-		ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
 		ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
 		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
@@ -3405,8 +3404,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //We're requesting data to be written!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 1; //We're processing an ATAPI/SCSI packet!
 		//Packet doesn't raise an IRQ! Just Busy/DRQ is used here!
 		ATAPI_giveresultsize(channel,12,1); //We're entering a mini-Busy-result phase: raise an IRQ afterwards!
@@ -3546,7 +3543,14 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 		invalidatedcommand:
 		//Present ABRT error! BSY=0 in status, ERR=1 in status, ABRT(4) in error register.
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //ATAPI device?
+		{
+			ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 1); //Set ABRT!
+		}
+		else //ATA device?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
+		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
 		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Error occurred: wee're executing an invalid command!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
