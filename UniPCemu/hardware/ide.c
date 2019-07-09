@@ -2454,13 +2454,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
-
-		//Clear unit attention condition!
-		ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
-		ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
-		ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
-		ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Byte 4 = allocation length
