@@ -1644,7 +1644,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
 					ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 					ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
-					ATAPI_aborted = 0; //Don't handle!
+					ATAPI_aborted = 1; //Aborted!
 					goto ATAPI_erroroutread; //Error out!
 				}
 			}
