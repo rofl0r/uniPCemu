@@ -1673,16 +1673,44 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) && (datablock_ready==0)) //Past the end of the disk?
 	{
 		ATAPI_readSector_OOR:
+		//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a “ILLEGAL MODE FOR THIS TRACK” error!
+		//Fill the Request Sense standard data with “ILLEGAL MODE FOR THIS TRACK”!
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_LOGICAL_BLOCK_OOR; //Illegal mode or incompatible medium!
 #ifdef ATA_LOG
 		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
 #endif
-		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-		ATAPI_giveresultsize(channel,0,1); //No result size!
-		return 0; //Stop! IRQ and finish!
+
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
+		ATAPI_giveresultsize(channel, 0, 1); //No result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
+		{
+			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 1); //ILI bit set!
+		}
+		else
+		{
+			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 0); //ILI bit cleared!
+		}
+		ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel), 0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel), 8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATAPI_aborted = 1; //Aborted!
+		goto ATAPI_erroroutread; //Error out!
 	}
 
 	if ((ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) && (datablock_ready==0)) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
@@ -1759,7 +1787,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 1); //ILI bit set!
+			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), (additionalsensecode==ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM) ? 1:0); //ILI bit set!
 		}
 		else
 		{
