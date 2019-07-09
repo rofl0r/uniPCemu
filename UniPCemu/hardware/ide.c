@@ -1641,6 +1641,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 					ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel),abortreason); //Reason of the error
 					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel),additionalsensecode); //Extended reason code
+					ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
 					if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
 					{
 						ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),1); //ILI bit set!
@@ -1687,6 +1688,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
 			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 1); //ILI bit set!
@@ -1745,6 +1747,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,ATA_activeDrive(channel),SENSE_NOT_READY); //Reason of the error
 		ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,ATA_activeDrive(channel),ASC_MEDIUM_NOT_PRESENT); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,ATA_activeDrive(channel),0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,ATA_activeDrive(channel),8); //Additional Sense Length = 8?
 		ATAPI_SENSEPACKET_INFORMATION0W(channel,ATA_activeDrive(channel),0); //No info!
@@ -1785,6 +1788,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
 			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), (additionalsensecode==ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM) ? 1:0); //ILI bit set!
@@ -2343,7 +2347,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	//Our own stuff!
 	ATAPI_aborted = 0; //Init aborted status!
 	byte abortreason = 5; //Error cause is no disk inserted? Default to 5&additional sense code 0x20 for invalid command.
-	byte additionalsensecode = 0x20; //Invalid command operation code.
+	byte additionalsensecode = 0; //Invalid command operation code.
+	byte ascq = 0; //extra code!
 	byte isvalidpage = 0; //Valid page?
 	uint_32 packet_datapos;
 	byte i;
@@ -2382,6 +2387,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 			ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_UNIT_ATTENTION); //Reason of the error
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_MAY_HAVE_CHANGED); //Extended reason code
+			ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ also is cleared!
 			ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 			ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
@@ -2389,7 +2395,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
 			ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
 			ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
-			ATAPI_SENSEPACKET_ASCQW(channel,drive,0); //ASCQ also is cleared!
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
@@ -2540,6 +2545,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		if (isvalidpage==0) //Invalid page?
 		{
+			abortreason = SENSE_ILLEGAL_REQUEST; //Illegal!
+			additionalsensecode = 26; //Not supported!
+			ascq = 0; //Invalid field in CSB!
 			goto ATAPI_invalidcommand; //Error out!
 		}
 		break;
@@ -3023,6 +3031,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, ascq); //ASCQ code!
 		ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
