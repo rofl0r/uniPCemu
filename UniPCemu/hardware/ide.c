@@ -1748,7 +1748,39 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	else //Error reading?
 	{
 		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
-		ATAPI_erroroutread:
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
+
+		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
+		ATAPI_giveresultsize(channel, 0, 1); //No result size!
+		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
+		{
+			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 1); //ILI bit set!
+		}
+		else
+		{
+			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 0); //ILI bit cleared!
+		}
+		ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel), 0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel), 8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel), 0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATAPI_aborted = 1; //Aborted!
+	ATAPI_erroroutread:
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
