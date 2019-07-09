@@ -2293,7 +2293,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel,drive,0,0))) //Common response OK?
+		if ((spinresponse = ATAPI_common_spin_response(channel,drive,0,0))==1) //Common response OK?
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			//Valid disk loaded?
@@ -2505,7 +2505,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_giveresultsize(channel,0,1); //No result size! Raise and interrupt to end the transfer after busy!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
@@ -2564,7 +2564,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
@@ -2633,7 +2633,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x44: //Read header (mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
@@ -2687,7 +2687,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			MSF = (ATA[channel].Drive[drive].ATAPI_PACKET[1]&2); //MSF bit!
@@ -2743,7 +2743,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x43: //Read TOC (mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
@@ -2785,7 +2785,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x2B: //Seek (Mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			//Clear sense data
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
@@ -2874,7 +2874,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
 	case 0xA8: //Read sectors (12) command(Mandatory)!
-		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
@@ -2913,7 +2913,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
-		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)))
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
