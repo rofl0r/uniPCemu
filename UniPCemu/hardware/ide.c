@@ -3062,12 +3062,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_aborted = 1; //We're aborted!
 		break;
 	}
-	if (ATAPI_aborted==0) {
-		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0);
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0);
-		ATAPI_SENSEPACKET_ILIW(channel,drive,0); //ILI bit cleared!
-		ATAPI_SENSEPACKET_VALIDW(channel,drive,0); //Not valid anymore!
-	} //Clear reason on success!
 }
 
 OPTINLINE void giveATAPISignature(byte channel, byte drive)
