@@ -705,7 +705,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				}
 				emufclose64(f); //Close the sheet, we're done with it! All data we need is loaded into cue_current!
 				//Check our parameters to be valid!
-				if (size != cue_current.status.track_mode->sectorsize) return 0; //Invalid sector size not matching specified!
+				if ((size != cue_current.status.track_mode->sectorsize) && buffer) return 0; //Invalid sector size not matching specified!
+				if (buffer == NULL) return 1; //Finished reading without buffer and size!
 				char fullfilename[256];
 				memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
 				safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
