@@ -2353,11 +2353,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	byte i;
 	uint_32 disk_size,LBA;
 	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 4096 byte sectors!
-	ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
-	ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
-	ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
-	ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
-	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
@@ -2431,6 +2426,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+
+		//Clear the condition!
+		ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
+		ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
+		ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
+		ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
+		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
 		//We do succeed without media?
@@ -2452,6 +2454,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATAPI_giveresultsize(channel,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+
+		//Clear unit attention condition!
+		ATAPI_ERRORREGISTER_EOM(channel, ATA_activeDrive(channel), 0); //No end-of-media!
+		ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
+		ATAPI_ERRORREGISTER_ABRT(channel, ATA_activeDrive(channel), 0); //Signal no Abort!
+		ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
+		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Byte 4 = allocation length
@@ -3145,7 +3154,8 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 	int drive;
 	byte temp;
 	uint_32 disk_size; //For checking against boundaries!
-	ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
+	if (!(ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0)) //Special action for non-CD-ROM drives?
+		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),0); //Error bit is reset when a new command is received, as defined in the documentation!
 	switch (command) //What command?
 	{
 	case 0x90: //Execute drive diagnostic (Mandatory)?
@@ -3583,8 +3593,8 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Hard disk?
 		{
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Not seeking anymore, since we're ready to run!
+			ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //No error!
 		}
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //No error!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) //Reporting non-existant?
 		{
 			ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), 0); //Nothing!
