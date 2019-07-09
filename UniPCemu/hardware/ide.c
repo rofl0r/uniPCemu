@@ -1544,10 +1544,10 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 				switch (cueresult)
 				{
 				case 2+MODE_MODE1DATA: //Mode 1 block?
-					if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+					if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 					goto ready1;
 				case 2+MODE_MODEXA: //Mode XA block?
-					if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+					if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 				ready1:
 					datablock_ready = 1; //Read and ready to process!
 					break;
