@@ -154,8 +154,8 @@ void CUE_LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 
 void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_current, CUESHEET_ENTRYINFO *cue_next, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Current to check and next entries(if any)!
 {
-	if (((disks[device].selectedtrack == cue_current->status.track_number) || (disks[device].selectedtrack == 0xFF)) && //Current track number to lookup?
-		((disks[device].selectedsubtrack == cue_current->status.index) || (disks[device].selectedsubtrack == 0xFF))) //Current subtrack number to lookup?
+	if (((disks[device].selectedtrack == cue_current->status.track_number) || (disks[device].selectedtrack == 0)) && //Current track number to lookup?
+		((disks[device].selectedsubtrack == cue_current->status.index) || (disks[device].selectedsubtrack == 0))) //Current subtrack number to lookup?
 	{
 		if (*got_startMSF == 0)
 		{
