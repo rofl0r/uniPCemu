@@ -1962,10 +1962,17 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
+			CDROM_selecttrack(disk,0); //All tracks!
+			CDROM_selectsubtrack(disk,0); //All subtracks!
 			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 			cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 			cueresult = 1; //Loaded!
 		}
+	}
+	else //Default track/subtrack!
+	{
+			CDROM_selecttrack(disk,1); //All tracks!
+			CDROM_selectsubtrack(disk,1); //All subtracks!
 	}
 	switch (format) {
 		case 0:
@@ -2808,7 +2815,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datapos = 0; //Start of data!
 			ATA[channel].Drive[drive].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
 			ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
-			ATA[channel].Drive[drive].expectedReadDataType = 0; //Any type is allowed!
+			ATA[channel].Drive[drive].expectedReadDataType = 0xFF; //Any read sector(nn) type is allowed!
 			if (ATAPI_readsector(channel)) //Sector read?
 			{
 				ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
