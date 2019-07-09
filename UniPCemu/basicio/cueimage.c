@@ -453,8 +453,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= LBA) goto finishMSFscan; //Invalid to read(non-zero length)?
 				--LBA; //Take the end position of us!
 				CUE_LBA2MSF(LBA, &cue_current.endM, &cue_current.endS, &cue_current.endF); //Save the calculated end position of the selected index!
-				if ((disks[device].selectedtrack == cue_current.status.track_number) &&
-					(disks[device].selectedsubtrack == cue_current.status.index)) //Current track number and subtrack number to lookup?
+				if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
+					((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack==0))) //Current track number and subtrack number to lookup?
 				{
 					if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 					{
@@ -688,8 +688,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 		cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
 
 		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
-		if ((disks[device].selectedtrack == cue_current.status.track_number) &&
-			(disks[device].selectedsubtrack == cue_current.status.index)) //Current track number and subtrack number to lookup?
+		if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
+			((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack==0))) //Current track number and subtrack number to lookup?
 		{
 			if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 			{
