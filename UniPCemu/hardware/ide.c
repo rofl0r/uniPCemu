@@ -546,6 +546,7 @@ void ATAPI_dynamicloadingprocess_SpinUpComplete(byte channel, byte drive)
 		ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //Spin down!
 		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWN_TIMEOUT; //Timeout to spindown!
 		ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+		ATAPI_setModePages(channel, drive); //Update with the new status!
 		break;
 	default:
 		break;
@@ -648,7 +649,15 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 	case LOAD_READY:
 		if (spinupdown)
 		{
-			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			//Tick the timer if needed!
+			if (ATA[channel].Drive[drive].ATAPI_diskchangeTimeout)
+			{
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Wait for availability!
+			}
+			else //Wait more!
+			{
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			}
 			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //We're spinning down!
 		}
