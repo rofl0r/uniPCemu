@@ -2726,6 +2726,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			else
 			{
+					CDROM_selecttrack(disk,0); //All tracks!
+					CDROM_selectsubtrack(disk,0); //All subtracks!
 					LBA2MSFbin(LBA,&Mseek,&Sseek,&Fseek); //Convert to MSF!
 					if (cueimage_readsector(ATA_Drives[channel][drive], Mseek, Sseek, Fseek, NULL, 2048) == -1) //Not found?
 					{
@@ -3946,10 +3948,10 @@ void ATA_DiskChanged(int disk)
 		{
 			if ((cueimage = getCUEimage(disk))) //CUE image?
 			{
+				CDROM_selecttrack(disk,0); //All tracks!
+				CDROM_selectsubtrack(disk,0); //All subtracks!
 				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
-					CDROM_selecttrack(disk,0); //All tracks!
-					CDROM_selectsubtrack(disk,0); //All subtracks!
 					disk_size = (MSF2LBA(cue_endM, cue_endS, cue_endF)-MSF2LBA(cue_startM, cue_startS, cue_startF))+1; //The disk size in sectors!
 				}
 				else //Failed to get the geometry?
