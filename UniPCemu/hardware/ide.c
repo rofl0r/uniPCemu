@@ -1492,6 +1492,8 @@ void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
 
 byte decreasebuffer[2352];
 
+byte ATAPI_aborted=0;
+
 OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 {
 	byte abortreason, additionalsensecode;
@@ -1642,6 +1644,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
 					ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 					ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
+					ATAPI_aborted = 0; //Don't handle!
 					goto ATAPI_erroroutread; //Error out!
 				}
 			}
@@ -2268,7 +2271,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	uint_32 endLBA; //When does the LBA addressing end!
 
 	//Our own stuff!
-	byte aborted = 0;
+	ATAPI_aborted = 0; //Init aborted status!
 	byte abortreason = 5; //Error cause is no disk inserted? Default to 5&additional sense code 0x20 for invalid command.
 	byte additionalsensecode = 0x20; //Invalid command operation code.
 	byte isvalidpage = 0; //Valid page?
@@ -2311,7 +2314,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
@@ -2543,7 +2546,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel, drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0xB9: //Read CD MSF (mandatory)?
@@ -2608,7 +2611,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel, drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x44: //Read header (mandatory)?
@@ -2658,7 +2661,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel, drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x42: //Read sub-channel (mandatory)?
@@ -2710,7 +2713,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x43: //Read TOC (mandatory)?
@@ -2748,7 +2751,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x2B: //Seek (Mandatory)?
@@ -2793,7 +2796,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x4E: //Stop play/scan (Mandatory)?
@@ -2868,7 +2871,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else
 		{
 			ATAPI_command_reportError(channel,drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
@@ -2895,7 +2898,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else
 		{
 			ATAPI_command_reportError(channel, drive); //Report the error!
-			aborted = 1; //We're aborted!
+			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
 	case 0xBD: //Mechanism status(mandatory)
@@ -2944,10 +2947,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		//Reset of the status register is 0!
-		aborted = 1; //We're aborted!
+		ATAPI_aborted = 1; //We're aborted!
 		break;
 	}
-	if (aborted==0) {
+	if (ATAPI_aborted==0) {
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,0);
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,0);
 		ATAPI_SENSEPACKET_ILIW(channnel,drive,0); //ILI bit cleared!
