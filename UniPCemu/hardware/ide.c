@@ -1539,6 +1539,13 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
 
+	if (ATAPI_common_spin_response(channel,ATA_activeDrive(channel),0,0)!=1)
+	{
+		ATAPI_command_reportError(channel,drive); //Report the error!
+		ATAPI_aborted = 1; //We're aborted!
+		return 0; //We're finished!
+	}
+
 	if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
@@ -1898,7 +1905,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				}
 			}
 		}
-        return result; //Give the result!
+	        return result; //Give the result!
 		break;
 	case 0xA0: //PACKET?
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET!=1) //Sending data?
