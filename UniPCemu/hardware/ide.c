@@ -171,6 +171,7 @@ struct
 		DOUBLE BusyTiming; //Timing until we're not busy anymore!
 		byte resetSetsDefaults;
 		byte expectedReadDataType; //Expected read data format!
+		byte IRQraised; //Did we raise the IRQ line?
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -327,8 +328,9 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave, DOUBLE timeout, byte enforceBus
 	}
 	else //No timeout? Fire IRQ immediately!
 	{
-		if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && (ATA_activeDrive(channel)==slave)) //Allow interrupts?
+		if ((!DRIVECONTROLREGISTER_NIENR(channel)) && (!DRIVECONTROLREGISTER_SRSTR(channel)) && ((ATA_activeDrive(channel)==slave) || (ATA_Drives[channel][slave]>=CDROM0))) //Allow interrupts?
 		{
+			ATA[channel].Drive[slave].IRQraised = 1; //Raised!
 			if (is_XT)
 			{
 				switch (channel)
@@ -366,6 +368,7 @@ OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 	if (is_XT)
 	{
 		//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
+		ATA[channel].Drive[slave].IRQraised = 0; //Lowered!
 		switch (channel)
 		{
 		case 0: //Primary channel?
@@ -3574,6 +3577,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
+		ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(((((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */)))||DRIVECONTROLREGISTER_SRSTR(channel)||(ATA[channel].Drive[ATA_activeDrive(channel)].resetTiming))?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming) ? 1 : 0))&(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)))||DRIVECONTROLREGISTER_SRSTR(channel))?0:1)&(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(channel,ATA_activeDrive(channel),0); //No write fault!
@@ -3590,16 +3594,19 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		}
 		break;
 	case 1: //Transferring data IN?
+		ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming)?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 2: //Transferring data OUT?
+		ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming) ? 1 : 0)); //Not busy! You can write to the CBRs! We're busy when waiting.
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming))?0:1); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 3: //Busy waiting?
+		ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),1); //Busy! You can write to the CBRs!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),0); //We're not ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
@@ -3607,6 +3614,7 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	default: //Unknown?
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
 	case 0xFF: //Error? See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Error occurred: wee're executing an invalid command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status: we've reset!
 		break;
