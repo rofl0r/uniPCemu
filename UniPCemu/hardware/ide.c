@@ -4041,6 +4041,7 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 
 void ATA_DiskChanged(int disk)
 {
+	byte abortreason,additionalsensecode,ascq=0;
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF;
 	char *cueimage;
 	char newserial[21]; //A serial to build!
@@ -4086,37 +4087,36 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
 		ATA[disk_channel].Drive[disk_ATA].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_ATA]); //Are we inserted from the emulated point of view?
 		//Run an event handler for the OS!
-		ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATAPI_giveresultsize(channel,0,1); //No result size!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel),abortreason); //Reason of the error
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel),additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
+		if (ATA[disk_channel].Drive[disk_ATA].PARAMETERS.reportReady) //Ready?
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),1); //ILI bit set!
+			ATA[disk_channel].activedrive = disk_ATA; //Make us active! Unknown how real hardware handles this(for interrupts)!
+			abortreason = SENSE_UNIT_ATTENTION;
+			additionalsensecode = ASC_MEDIUM_MAY_HAVE_CHANGED;
+			ATA[disk_channel].Drive[disk_ATA].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[disk_channel].Drive[disk_ATA].commandstatus = 0xFF; //Move to error mode!
+			ATA[disk_channel].activedrive = disk_ATA; //Make us active!
+			ATAPI_giveresultsize(disk_channel,0,1); //No result size!
+			ATA[disk_channel].Drive[disk_ATA].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_ATA,abortreason); //Reason of the error
+			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_ATA,additionalsensecode); //Extended reason code
+			ATAPI_SENSEPACKET_ASCQW(disk_channel, disk_ATA, ascq); //ASCQ code!
+			ATAPI_SENSEPACKET_ILIW(disk_channel, disk_ATA,0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ERRORCODEW(disk_channel, disk_ATA,0x70); //Default error code?
+			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(disk_channel, disk_ATA,8); //Additional Sense Length = 8?
+			ATAPI_SENSEPACKET_INFORMATION0W(disk_channel, disk_ATA,0);	 //No info!
+			ATAPI_SENSEPACKET_INFORMATION1W(disk_channel, disk_ATA,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION2W(disk_channel, disk_ATA,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION3W(disk_channel, disk_ATA,0); //No info!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(disk_channel, disk_ATA,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(disk_channel, disk_ATA,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_ATA,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_ATA,0); //No command specific information?
+			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_ATA,1); //We're valid!
+			ATA[disk_channel].Drive[disk_ATA].STATUSREGISTER = 0; //Clear status!
+			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_ATA,1); //Ready!
+			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_ATA,1); //Ready!
+			ATAPI_generateInterruptReason(disk_channel,drive); //Generate our reason!
 		}
-		else
-		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
-		}
-		ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel),0x70); //Default error code?
-		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel),8); //Additional Sense Length = 8?
-		ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel),1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel),1); //Ready!
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel),1); //Ready!
-		ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
