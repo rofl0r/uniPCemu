@@ -1464,11 +1464,11 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, word size, byte raiseIRQ) //Store the result size to use in the Task file
 {
 	//Apply the maximum size to transfer, saving the full packet size to count down from!
-	ATA[channel].Drive[drive].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 
 	if (size) //Is something left to be transferred? We're not a finished transfer(size=0)?
 	{
 		size = MIN(size,ATA[channel].Drive[drive].ATAPI_bytecount); //Limit the size of a ATAPI-block to transfer in one go!
+		ATA[channel].Drive[drive].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_DATATIMING; //Wait 20us before giving the new data that's to be transferred!
 
@@ -1477,6 +1477,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, word size, byte ra
 	}
 	else //Finishing an transfer and entering result phase? This is what we do when nothing is to be transferred anymore!
 	{
+		ATA[channel].Drive[drive].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ?1:2; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_RESULTTIMING; //Wait a bit before giving the new data that's to be transferred!		
 		if (raiseIRQ) //Raise an IRQ after some time?
@@ -1879,7 +1880,7 @@ OPTINLINE void ATAPI_calculateByteCountLeft(byte channel)
 		--ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft; //Decrease the counter that's transferring!
 		if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft==0) && (ATA[channel].Drive[ATA_activeDrive(channel)].datasize)) //Finished transferring the subblock and something left to transfer?
 		{
-			ATAPI_giveresultsize(channel,ATA_activeDrive(channel),MIN((ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize)-ATA[channel].Drive[ATA_activeDrive(channel)].datapos,0xFFFE),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ); //Start waiting until we're to transfer the next subblock for the remaining data!
+			ATAPI_giveresultsize(channel,ATA_activeDrive(channel),MIN(ATA[channel].Drive[ATA_activeDrive(channel)].datablock-ATA[channel].Drive[ATA_activeDrive(channel)].datapos,0xFFFE),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ); //Start waiting until we're to transfer the next subblock for the remaining data!
 		}
 	}
 }
