@@ -165,6 +165,7 @@ struct
 		uint_32 ATAPI_lastLBA; //ATAPI last LBA storage!
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
 		DOUBLE resetTiming;
+		byte resetTriggersIRQ;
 		DOUBLE ReadyTiming; //Timing until we become ready after executing a command!
 		DOUBLE IRQTimeout; //Timeout until we're to fire an IRQ!
 		byte IRQTimeout_busy; //Busy while timing the IRQ timeout?
@@ -744,6 +745,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			{
 				ATA[0].Drive[0].resetTiming = 0.0; //Timer finished!
 				ATA[0].Drive[0].commandstatus = 0; //We're ready now!
+				if (ATA[0].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
+				{
+					ATAPI_generateInterruptReason(0, 0); //Generate our reason!
+					ATA_IRQ(0, 0, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -754,6 +760,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			{
 				ATA[0].Drive[1].resetTiming = 0.0; //Timer finished!
 				ATA[0].Drive[1].commandstatus = 0; //We're ready now!
+				if (ATA[0].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
+				{
+					ATAPI_generateInterruptReason(0, 1); //Generate our reason!
+					ATA_IRQ(0, 1, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -764,6 +775,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			{
 				ATA[1].Drive[0].resetTiming = 0.0; //Timer finished!
 				ATA[1].Drive[0].commandstatus = 0; //We're ready now!
+				if (ATA[1].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
+				{
+					ATAPI_generateInterruptReason(1, 0); //Generate our reason!
+					ATA_IRQ(1, 0, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -774,6 +790,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			{
 				ATA[1].Drive[1].resetTiming = 0.0; //Timer finished!
 				ATA[1].Drive[1].commandstatus = 0; //We're ready now!
+				if (ATA[1].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
+				{
+					ATAPI_generateInterruptReason(1, 1); //Generate our reason!
+					ATA_IRQ(1, 1, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -3144,6 +3165,15 @@ void ATA_reset(byte channel, byte slave)
 	}
 	giveSignature(channel, slave); //Give the signature!
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
+
+	if ((slave & 0x80) && ((ATA_Drives[channel][(slave & 0x7F)] >= CDROM0))) //ATAPI reset for ATAPI devices that's not a SRST reset?
+	{
+		ATA[channel].Drive[slave].resetTriggersIRQ = 1; //Triggers an IRQ on completion!
+	}
+	else
+	{
+		ATA[channel].Drive[slave].resetTriggersIRQ = 1; //No IRQ on completion!
+	}
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
