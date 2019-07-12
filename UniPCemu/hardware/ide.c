@@ -2336,7 +2336,7 @@ void ATAPI_command_reportError(byte channel, byte slave)
 {
 	ATA[channel].Drive[slave].PARAMETERS.sectorcount = 3; //Interrupt reason!
 	//State=Ready?
-	ATA[channel].Drive[slave].ERRORREGISTER = ((ATA[channel].Drive[slave].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[slave].SensePacket[2]&0xF)?4 /* abort? */ :0);
+	ATA[channel].Drive[slave].ERRORREGISTER = ((ATA[channel].Drive[slave].SensePacket[2]&0xF)<<4)|/*((ATA[channel].Drive[slave].SensePacket[2]&0xF)?4 / abort? / :0)*/ 0;
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Error!
 	ATA_STATUSREGISTER_DRIVEREADYW(channel,slave,1); //Ready!
 	ATA[channel].Drive[slave].STATUSREGISTER = 0x40; //Ready!
