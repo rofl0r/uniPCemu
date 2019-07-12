@@ -4120,7 +4120,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_drive].commandstatus = 0xFF; //Move to error mode!
 			ATA[disk_channel].activedrive = disk_drive; //Make us active!
 			ATAPI_giveresultsize(disk_channel,disk_drive,0,1); //No result size!
-			ATA[disk_channel].Drive[disk_drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+			ATA[disk_channel].Drive[disk_drive].ERRORREGISTER = /*4|*/(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_drive,abortreason); //Reason of the error
 			ATAPI_SENSEPACKET_RESERVED2W(disk_channel, disk_drive, 0); //Reserved field!
 			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_drive,additionalsensecode); //Extended reason code
