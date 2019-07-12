@@ -1674,7 +1674,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel),0); //No command specific information?
 					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel),0); //No command specific information?
 					ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel),1); //We're valid!
-					ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+					ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
 					ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel),1); //Ready!
 					ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel),1); //Ready!
 					ATAPI_aborted = 1; //Aborted!
@@ -1721,7 +1721,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
 		ATAPI_aborted = 1; //Aborted!
@@ -1772,7 +1772,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,ATA_activeDrive(channel),0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,ATA_activeDrive(channel),0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel,ATA_activeDrive(channel),1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Ready!
 		return 0; //Process the error as we're ready!
@@ -1821,7 +1821,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
 		ATAPI_aborted = 1; //Aborted!
@@ -2329,6 +2329,7 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	ATA[channel].Drive[slave].ERRORREGISTER = ((ATA[channel].Drive[slave].SensePacket[2]&0xF)<<4)|((ATA[channel].Drive[slave].SensePacket[2]&0xF)?4 /* abort? */ :0);
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Error!
 	ATA_STATUSREGISTER_DRIVEREADYW(channel,slave,1); //Ready!
+	ATA[channel].Drive[slave].STATUSREGISTER = 0x40; //Ready!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF) //Error?
 	{
 		ATA_STATUSREGISTER_ERRORW(channel,slave,1);
@@ -3056,7 +3057,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
 		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
-		ATA[channel].Drive[drive].STATUSREGISTER = 0; //Clear status!
+		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		//Reset of the status register is 0!
@@ -4123,7 +4124,7 @@ void ATA_DiskChanged(int disk)
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_ATA,0); //No command specific information?
 			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_ATA,0); //No command specific information?
 			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_ATA,1); //We're valid!
-			ATA[disk_channel].Drive[disk_ATA].STATUSREGISTER = 0; //Clear status!
+			ATA[disk_channel].Drive[disk_ATA].STATUSREGISTER = 0x40; //Clear status!
 			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_ATA,1); //Ready!
 			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_ATA,1); //Ready!
 			ATAPI_generateInterruptReason(disk_channel,disk_ATA); //Generate our reason!
