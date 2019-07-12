@@ -622,11 +622,21 @@ void tickATADiskChange(byte channel, byte drive)
 
 void ATAPI_SET_SENSE(byte channel, byte drive, byte SK,byte ASC,byte ASCQ)
 {
-	ATAPI_SENSEPACKET_VALIDW(channel,drive,1);
-	ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SK);
-	ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC);
-	ATAPI_SENSEPACKET_ASCQW(channel,drive,ASCQ);
-	ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Error to report!
+	ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, SK); //Reason of the error
+	ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, ASC); //Extended reason code
+	ATAPI_SENSEPACKET_ASCQW(channel, drive, ASCQ); //ASCQ code!
+	ATAPI_SENSEPACKET_ILIW(channel, drive, 0); //ILI bit cleared!
+	ATAPI_SENSEPACKET_ERRORCODEW(channel, drive, 0x70); //Default error code?
+	ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, drive, 8); //Additional Sense Length = 8?
+	ATAPI_SENSEPACKET_INFORMATION0W(channel, drive, 0); //No info!
+	ATAPI_SENSEPACKET_INFORMATION1W(channel, drive, 0); //No info!
+	ATAPI_SENSEPACKET_INFORMATION2W(channel, drive, 0); //No info!
+	ATAPI_SENSEPACKET_INFORMATION3W(channel, drive, 0); //No info!
+	ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, drive, 0); //No command specific information?
+	ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, drive, 0); //No command specific information?
+	ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, drive, 0); //No command specific information?
+	ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, drive, 0); //No command specific information?
+	ATAPI_SENSEPACKET_VALIDW(channel, drive, 1); //We're valid!
 }
 
 void ATAPI_PendingExecuteCommand(byte channel, byte drive) //We're pending until execution!
