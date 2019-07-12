@@ -1857,7 +1857,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 //ejectRequested: 0=Normal behaviour, 1=Eject/mount from disk mounting request, 2=Eject from CPU.
 byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this disk to be changed?
 {
-	byte disk_ATA, disk_channel, disk_nr;
+	byte disk_drive, disk_channel, disk_nr;
 	switch (disk) //What disk?
 	{
 		//Four disk numbers!
@@ -1877,12 +1877,12 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 		return 1; //Abort, we're unsupported, so allow changes!
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
-	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
-	if ((ejectRequested==1) && (ATA[disk_channel].Drive[disk_ATA].EnableMediaStatusNotification|(ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval&2))) //Requesting eject button from user while media status notification is enabled(the OS itself handes us) or locked by ATAPI?
+	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	if ((ejectRequested==1) && (ATA[disk_channel].Drive[disk_drive].EnableMediaStatusNotification|(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval&2))) //Requesting eject button from user while media status notification is enabled(the OS itself handes us) or locked by ATAPI?
 	{
-		ATA[disk_channel].Drive[disk_ATA].MediumChangeRequested = 1; //We're requesting the medium to change!
+		ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
 	}
-	return (!(ATA[disk_channel].Drive[disk_ATA].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_ATA].allowDiskInsertion); //Are we not preventing removal of this medium?
+	return (!(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_drive].allowDiskInsertion); //Are we not preventing removal of this medium?
 }
 
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
@@ -4074,7 +4074,7 @@ void ATA_DiskChanged(int disk)
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF;
 	char *cueimage;
 	char newserial[21]; //A serial to build!
-	byte disk_ATA, disk_channel, disk_nr;
+	byte disk_drive, disk_channel, disk_nr;
 	switch (disk) //What disk?
 	{
 	//Four disk numbers!
@@ -4094,62 +4094,62 @@ void ATA_DiskChanged(int disk)
 		return; //Abort!
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
-	disk_ATA = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
 	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
 	{
-		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_ATA,1); //We've changed media!
-		ATA[disk_channel].Drive[disk_ATA].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
+		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
+		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
 		//Disable the IRQ for now to let the software know we've changed!
-		if (!ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout) //Not already pending?
+		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
 		}
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
-		ATA[disk_channel].Drive[disk_ATA].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
-		ATA[disk_channel].Drive[disk_ATA].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_diskChanged = 1; //Is the disc changed?
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
-		ATA[disk_channel].Drive[disk_ATA].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
-		ATA[disk_channel].Drive[disk_ATA].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_ATA]); //Are we inserted from the emulated point of view?
+		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
+		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
+		ATA[disk_channel].Drive[disk_drive].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
+		ATA[disk_channel].Drive[disk_drive].ATAPI_diskChanged = 1; //Is the disc changed?
+		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
+		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
+		ATA[disk_channel].Drive[disk_drive].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_drive]); //Are we inserted from the emulated point of view?
 		//Run an event handler for the OS!
-		if (ATA[disk_channel].Drive[disk_ATA].PARAMETERS.reportReady) //Ready?
+		if (ATA[disk_channel].Drive[disk_drive].PARAMETERS.reportReady) //Ready?
 		{
-			ATA[disk_channel].activedrive = disk_ATA; //Make us active! Unknown how real hardware handles this(for interrupts)!
+			ATA[disk_channel].activedrive = disk_drive; //Make us active! Unknown how real hardware handles this(for interrupts)!
 			abortreason = SENSE_UNIT_ATTENTION;
 			additionalsensecode = ASC_MEDIUM_MAY_HAVE_CHANGED;
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_processingPACKET = 3; //Result phase!
-			ATA[disk_channel].Drive[disk_ATA].commandstatus = 0xFF; //Move to error mode!
-			ATA[disk_channel].activedrive = disk_ATA; //Make us active!
-			ATAPI_giveresultsize(disk_channel,disk_ATA,0,1); //No result size!
-			ATA[disk_channel].Drive[disk_ATA].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_ATA,abortreason); //Reason of the error
-			ATAPI_SENSEPACKET_RESERVED2W(disk_channel, disk_ATA, 0); //Reserved field!
-			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_ATA,additionalsensecode); //Extended reason code
-			ATAPI_SENSEPACKET_ASCQW(disk_channel, disk_ATA, ascq); //ASCQ code!
-			ATAPI_SENSEPACKET_ILIW(disk_channel, disk_ATA,0); //ILI bit cleared!
-			ATAPI_SENSEPACKET_ERRORCODEW(disk_channel, disk_ATA,0x70); //Default error code?
-			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(disk_channel, disk_ATA,8); //Additional Sense Length = 8?
-			ATAPI_SENSEPACKET_INFORMATION0W(disk_channel, disk_ATA,0);	 //No info!
-			ATAPI_SENSEPACKET_INFORMATION1W(disk_channel, disk_ATA,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION2W(disk_channel, disk_ATA,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION3W(disk_channel, disk_ATA,0); //No info!
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(disk_channel, disk_ATA,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(disk_channel, disk_ATA,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_ATA,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_ATA,0); //No command specific information?
-			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_ATA,1); //We're valid!
-			ATA[disk_channel].Drive[disk_ATA].STATUSREGISTER = 0x40; //Clear status!
-			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_ATA,1); //Ready!
-			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_ATA,1); //Ready!
-			ATAPI_generateInterruptReason(disk_channel,disk_ATA); //Generate our reason!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[disk_channel].Drive[disk_drive].commandstatus = 0xFF; //Move to error mode!
+			ATA[disk_channel].activedrive = disk_drive; //Make us active!
+			ATAPI_giveresultsize(disk_channel,disk_drive,0,1); //No result size!
+			ATA[disk_channel].Drive[disk_drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_drive,abortreason); //Reason of the error
+			ATAPI_SENSEPACKET_RESERVED2W(disk_channel, disk_drive, 0); //Reserved field!
+			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_drive,additionalsensecode); //Extended reason code
+			ATAPI_SENSEPACKET_ASCQW(disk_channel, disk_drive, ascq); //ASCQ code!
+			ATAPI_SENSEPACKET_ILIW(disk_channel, disk_drive,0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ERRORCODEW(disk_channel, disk_drive,0x70); //Default error code?
+			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(disk_channel, disk_drive,8); //Additional Sense Length = 8?
+			ATAPI_SENSEPACKET_INFORMATION0W(disk_channel, disk_drive,0);	 //No info!
+			ATAPI_SENSEPACKET_INFORMATION1W(disk_channel, disk_drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION2W(disk_channel, disk_drive,0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION3W(disk_channel, disk_drive,0); //No info!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(disk_channel, disk_drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(disk_channel, disk_drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_drive,0); //No command specific information?
+			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_drive,1); //We're valid!
+			ATA[disk_channel].Drive[disk_drive].STATUSREGISTER = 0x40; //Clear status!
+			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_drive,1); //Ready!
+			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_drive,1); //Ready!
+			ATAPI_generateInterruptReason(disk_channel,disk_drive); //Generate our reason!
 		}
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
-	if ((disk_channel == 0xFF) || (disk_ATA == 0xFF)) return; //Not mounted!
+	if ((disk_channel == 0xFF) || (disk_drive == 0xFF)) return; //Not mounted!
 	byte disk_mounted = is_mounted(disk); //Are we mounted?
 	uint_64 disk_size;
 	switch (disk)
@@ -4159,7 +4159,7 @@ void ATA_DiskChanged(int disk)
 	case CDROM0: //CDROM0 changed?
 	case CDROM1: //CDROM1 changed?
 		//Initialize the drive parameters!
-		memset(&ATA[disk_channel].Drive[disk_ATA].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_ATA].driveparams)); //Clear the information on the drive: it's non-existant!
+		memset(&ATA[disk_channel].Drive[disk_drive].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_drive].driveparams)); //Clear the information on the drive: it's non-existant!
 		if (disk_mounted) //Do we even have this drive?
 		{
 			if ((cueimage = getCUEimage(disk))) //CUE image?
@@ -4189,59 +4189,59 @@ void ATA_DiskChanged(int disk)
 		{
 			if (IS_CDROM==0) //Not with CD-ROM?
 			{
-				if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_ATA].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
-				ATA[disk_channel].Drive[disk_ATA].driveparams[1] = ATA[disk_channel].Drive[disk_ATA].driveparams[54] = get_cylinders(disk,disk_size); //1=Number of cylinders
-				ATA[disk_channel].Drive[disk_ATA].driveparams[3] = ATA[disk_channel].Drive[disk_ATA].driveparams[55] = get_heads(disk,disk_size); //3=Number of heads
-				ATA[disk_channel].Drive[disk_ATA].driveparams[6] = ATA[disk_channel].Drive[disk_ATA].driveparams[56] = get_SPT(disk,disk_size); //6=Sectors per track
-				ATA[disk_channel].Drive[disk_ATA].driveparams[5] = 0x200; //512 bytes per sector unformatted!
-				ATA[disk_channel].Drive[disk_ATA].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_ATA].driveparams[6]); //512 bytes per sector per track unformatted!
+				if ((disk ==HDD0) || (disk==HDD1)) ATA[disk_channel].Drive[disk_drive].driveparams[0] = (1<<6)|(1<<10)|(1<<1); //Hard sectored, Fixed drive! Disk transfer rate>10MBs, hard-sectored.
+				ATA[disk_channel].Drive[disk_drive].driveparams[1] = ATA[disk_channel].Drive[disk_drive].driveparams[54] = get_cylinders(disk,disk_size); //1=Number of cylinders
+				ATA[disk_channel].Drive[disk_drive].driveparams[3] = ATA[disk_channel].Drive[disk_drive].driveparams[55] = get_heads(disk,disk_size); //3=Number of heads
+				ATA[disk_channel].Drive[disk_drive].driveparams[6] = ATA[disk_channel].Drive[disk_drive].driveparams[56] = get_SPT(disk,disk_size); //6=Sectors per track
+				ATA[disk_channel].Drive[disk_drive].driveparams[5] = 0x200; //512 bytes per sector unformatted!
+				ATA[disk_channel].Drive[disk_drive].driveparams[4] = 0x200*(ATA[disk_channel].Drive[disk_drive].driveparams[6]); //512 bytes per sector per track unformatted!
 			}
 		}
 		memset(&newserial,0,sizeof(newserial));
 		safestrcpy(&newserial[0],sizeof(newserial),(char *)&SERIAL[IS_CDROM][0]); //Copy the serial to use!
 		if (safestrlen(newserial,sizeof(newserial))) //Any length at all?
 		{
-			newserial[safestrlen(newserial,sizeof(newserial))-1] = 48+((disk_channel<<1)|disk_ATA); //Unique identifier for the disk, acting as the serial number!
+			newserial[safestrlen(newserial,sizeof(newserial))-1] = 48+((disk_channel<<1)|disk_drive); //Unique identifier for the disk, acting as the serial number!
 		}
-		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[10],10,(byte *)newserial);
+		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_drive].driveparams[10],10,(byte *)newserial);
 		if (IS_CDROM==0)
 		{
-			ATA[disk_channel].Drive[disk_ATA].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
+			ATA[disk_channel].Drive[disk_drive].driveparams[20] = 1; //Only single port I/O (no simultaneous transfers) on HDD only(ATA-1)!
 		}
 
 		//Fill text fields, padded with spaces!
-		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[23],4,&FIRMWARE[IS_CDROM][0]);
-		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_ATA].driveparams[27],20,&MODEL[IS_CDROM][0]);
+		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_drive].driveparams[23],4,&FIRMWARE[IS_CDROM][0]);
+		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_drive].driveparams[27],20,&MODEL[IS_CDROM][0]);
 
-		ATA[disk_channel].Drive[disk_ATA].driveparams[47] = IS_CDROM?0:(MIN(sizeof(ATA[disk_channel].Drive[disk_ATA].data)>>9,0x7F)&0xFF); //Amount of read/write multiple supported, in sectors!
-		ATA[disk_channel].Drive[disk_ATA].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
-		ATA[disk_channel].Drive[disk_ATA].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)! Specify mode 2(which is the fastest)!
+		ATA[disk_channel].Drive[disk_drive].driveparams[47] = IS_CDROM?0:(MIN(sizeof(ATA[disk_channel].Drive[disk_drive].data)>>9,0x7F)&0xFF); //Amount of read/write multiple supported, in sectors!
+		ATA[disk_channel].Drive[disk_drive].driveparams[49] = (1<<9); //LBA supported(bit 9), DMA unsupported(bit 8)!
+		ATA[disk_channel].Drive[disk_drive].driveparams[51] = 0x200; //PIO data transfer timing node(high 8 bits)! Specify mode 2(which is the fastest)!
 		--disk_size; //LBA is 0-based, not 1 based!
 		if (IS_CDROM==0) //HDD only!
 		{
-			ATA[disk_channel].Drive[disk_ATA].driveparams[53] = 1; //The data at 54-58 are valid on ATA-1!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[59] = (ATA[disk_channel].Drive[disk_ATA].multiplesectors?0x100:0)|(ATA[disk_channel].Drive[disk_ATA].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
+			ATA[disk_channel].Drive[disk_drive].driveparams[53] = 1; //The data at 54-58 are valid on ATA-1!
+			ATA[disk_channel].Drive[disk_drive].driveparams[59] = (ATA[disk_channel].Drive[disk_drive].multiplesectors?0x100:0)|(ATA[disk_channel].Drive[disk_drive].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
+			ATA[disk_channel].Drive[disk_drive].driveparams[60] = (word)(disk_size & 0xFFFF); //Number of addressable LBA sectors, low word!
+			ATA[disk_channel].Drive[disk_drive].driveparams[61] = (word)(disk_size >> 16); //Number of addressable LBA sectors, high word!
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_ATA].ATAPI_disksize = (uint_32)disk_size; //Number of addressable LBA sectors, minus one!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_disksize = (uint_32)disk_size; //Number of addressable LBA sectors, minus one!
 		}
 		//ATA-1 supports up to word 63 only. Above is filled on ATAPI only(newer ATA versions)!
-		ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Major version! We're ATA/ATAPI 4 on CD-ROM, ATA-1 on HDD!
-		ATA[disk_channel].Drive[disk_ATA].driveparams[72] = 0; //Minor version! We're ATA/ATAPI 4!
+		ATA[disk_channel].Drive[disk_drive].driveparams[72] = 0; //Major version! We're ATA/ATAPI 4 on CD-ROM, ATA-1 on HDD!
+		ATA[disk_channel].Drive[disk_drive].driveparams[72] = 0; //Minor version! We're ATA/ATAPI 4!
 		if (IS_CDROM) //CD-ROM only?
 		{
-			ATA[disk_channel].Drive[disk_ATA].driveparams[80] = (1<<4); //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
-			ATA[disk_channel].Drive[disk_ATA].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
-			ATA[disk_channel].Drive[disk_ATA].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
-			ATA[disk_channel].Drive[disk_ATA].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
+			ATA[disk_channel].Drive[disk_drive].driveparams[80] = (1<<4); //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
+			ATA[disk_channel].Drive[disk_drive].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
+			ATA[disk_channel].Drive[disk_drive].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
+			ATA[disk_channel].Drive[disk_drive].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
 		}
-		ATA_updateCapacity(disk_channel,disk_ATA); //Update the drive capacity!
+		ATA_updateCapacity(disk_channel,disk_drive); //Update the drive capacity!
 		if ((disk == CDROM0) || (disk == CDROM1)) //CDROM?
 		{
-			ATA[disk_channel].Drive[disk_ATA].driveparams[0] = ((2 << 14) /*ATAPI DEVICE*/ | (5 << 8) /* Command packet set used by device */ | (1 << 7) /* Removable media device */ | (2 << 5) /* DRQ within 50us of receiving PACKET command */ | (0 << 0) /* 12-byte command packet */ ); //CDROM drive ID!
+			ATA[disk_channel].Drive[disk_drive].driveparams[0] = ((2 << 14) /*ATAPI DEVICE*/ | (5 << 8) /* Command packet set used by device */ | (1 << 7) /* Removable media device */ | (2 << 5) /* DRQ within 50us of receiving PACKET command */ | (0 << 0) /* 12-byte command packet */ ); //CDROM drive ID!
 		}
 		break;
 	default: //Unknown?
