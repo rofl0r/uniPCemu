@@ -421,6 +421,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	Write Data) from the host
 	1 0 1 Status - Register contains Completion Status
 	*/
+	if ((ATA_Drives[channel][drive] >= CDROM0)) return; //Don't handle for non CD-ROM drives!
 	if (ATA[channel].Drive[drive].ATAPI_diskchangepending==2)
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet!
@@ -429,7 +430,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_ERRORREGISTER_SENSEKEY(channel,drive,SENSE_UNIT_ATTENTION); //Signal an Unit Attention Sense key!
 		ATAPI_ERRORREGISTER_ABRT(channel,drive,0); //Signal no Abort!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Error(Unit Attention)!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //We're triggering the reason read to reset!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We're triggering the reason read to reset!
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 3; //Not pending anymore, pending to give sense packet instead!
 	}
 	else if (ATA[channel].Drive[drive].ATAPI_processingPACKET==1) //We're processing a packet?
@@ -449,7 +450,6 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet: we're data!
 		ATAPI_INTERRUPTREASON_IO(channel,drive,1); //IO is set when reading data to the Host(CPU), through PORT IN!
 		ATAPI_INTERRUPTREASON_REL(channel,drive,0); //Don't Release, to be cleared!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //We're triggering the reason read to reset!
 
 		//Now, also make sure that BSY and DRQ are cleared!
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = (DOUBLE)0; //Don't use any timers anymore!
@@ -483,7 +483,6 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 			ATA_IRQ(channel,drive,(DOUBLE)0,0); //Raise an IRQ!
 		}
 		else //ATAPI drive might have something to do now?
@@ -785,6 +784,7 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[0].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATAPI_generateInterruptReason(0,0); //Generate our reason!
 				ATA_IRQ(0,0,(DOUBLE)0,0); //Finish timeout!
 			}
 		}
@@ -795,6 +795,7 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[0].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATAPI_generateInterruptReason(0,1); //Generate our reason!
 				ATA_IRQ(0,1,(DOUBLE)0,0); //Finish timeout!
 			}
 		}
@@ -805,6 +806,7 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[1].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATAPI_generateInterruptReason(1,0); //Generate our reason!
 				ATA_IRQ(1,0,(DOUBLE)0,0); //Finish timeout!
 			}
 		}
@@ -815,6 +817,7 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[1].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATAPI_generateInterruptReason(1,1); //Generate our reason!
 				ATA_IRQ(1,1,(DOUBLE)0,0); //Finish timeout!
 			}
 		}
@@ -1690,7 +1693,6 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 					ATA_STATUSREGISTER_DRIVEREADYW(channel, drive,1); //Ready!
 					ATA_STATUSREGISTER_ERRORW(channel, drive,1); //Ready!
-					ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 					ATAPI_aborted = 1; //Aborted!
 					goto ATAPI_erroroutread; //Error out!
 				}
@@ -1791,7 +1793,6 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
-		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 		return 0; //Process the error as we're ready!
 	}
 	if (datablock_ready) goto ATAPI_alreadyread; //Already read? Skip normal reading if so!
@@ -1849,7 +1850,6 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Error!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
-		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 		return 0; //Stop! IRQ and finish!
 	}
 	ATA[channel].Drive[drive].commandstatus = 0; //Error!
@@ -1967,7 +1967,6 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				{
 					if (ATAPI_readsector(channel,ATA_activeDrive(channel))) //Next sector read?
 					{
-						ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
 						ATA_IRQ(channel,ATA_activeDrive(channel),ATAPI_FINISHREADYTIMING,0); //Raise an IRQ: we're needing attention!
 					}
 				}
@@ -1988,10 +1987,6 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Fully read?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command!
-			if (ATA_Drives[channel][ATA_activeDrive(channel)] >= CDROM0) //CD-ROM drive?
-			{
-				ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
-			}
 			ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING(1.0),0); //Raise an IRQ: we're needing attention!
 		}
 		return result; //Give the result byte!
@@ -2351,7 +2346,6 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,slave,0); //No service(when enabled), nor drive seek complete!
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Move to error mode!
 	ATAPI_giveresultsize(channel,slave,0,1); //No result size!
-	ATAPI_generateInterruptReason(channel, slave); //Generate our reason!
 }
 
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
@@ -2627,7 +2621,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
 					if (ATAPI_readsector(channel,drive)) //Sector read?
 					{
-						ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 						ATA_IRQ(channel, drive, ATAPI_FINISHREADYTIMING, 0); //Raise an IRQ: we're needing attention!
 					}
 					break;
@@ -2698,7 +2691,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
 					if (ATAPI_readsector(channel,drive)) //Sector read?
 					{
-						ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 						ATA_IRQ(channel, drive, ATAPI_FINISHREADYTIMING, 0); //Raise an IRQ: we're needing attention!
 					}
 					break;
@@ -2985,7 +2977,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].expectedReadDataType = 0xFF; //Any read sector(nn) type is allowed!
 			if (ATAPI_readsector(channel,drive)) //Sector read?
 			{
-				ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 				ATA_IRQ(channel,drive,ATAPI_FINISHREADYTIMING,0); //Raise an IRQ: we're needing attention!
 			}
 		}
@@ -3077,7 +3068,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
-		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 	//Reset of the status register is 0!
 		ATAPI_aborted = 1; //We're aborted!
 		break;
@@ -3164,7 +3154,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 #endif
 	ATA[channel].Drive[ATA_activeDrive(channel)].longop = 0; //Default: no long operation!
 	ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode = 0; //Multiple operation!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not transferring ATAPI data now anymore!
 	int drive;
 	byte temp;
 	uint_32 disk_size; //For checking against boundaries!
@@ -4153,7 +4142,6 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_drive].STATUSREGISTER = 0x40; //Clear status!
 			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_drive,1); //Ready!
 			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_drive,1); //Ready!
-			ATAPI_generateInterruptReason(disk_channel,disk_drive); //Generate our reason!
 		}
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
