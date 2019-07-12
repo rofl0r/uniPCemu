@@ -1689,6 +1689,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 					ATA_STATUSREGISTER_DRIVEREADYW(channel, drive,1); //Ready!
 					ATA_STATUSREGISTER_ERRORW(channel, drive,1); //Ready!
+					ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 					ATAPI_aborted = 1; //Aborted!
 					goto ATAPI_erroroutread; //Error out!
 				}
@@ -1789,6 +1790,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
+		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 		return 0; //Process the error as we're ready!
 	}
 	if (datablock_ready) goto ATAPI_alreadyread; //Already read? Skip normal reading if so!
@@ -1846,6 +1848,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Error!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
+		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 		return 0; //Stop! IRQ and finish!
 	}
 	ATA[channel].Drive[drive].commandstatus = 0; //Error!
@@ -2347,6 +2350,7 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,slave,0); //No service(when enabled), nor drive seek complete!
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Move to error mode!
 	ATAPI_giveresultsize(channel,slave,0,1); //No result size!
+	ATAPI_generateInterruptReason(channel, slave); //Generate our reason!
 }
 
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
@@ -3072,7 +3076,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
-		//Reset of the status register is 0!
+		ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
+	//Reset of the status register is 0!
 		ATAPI_aborted = 1; //We're aborted!
 		break;
 	}
