@@ -482,6 +482,7 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 		{
 			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 			ATA_IRQ(channel,drive,(DOUBLE)0,0); //Raise an IRQ!
 		}
@@ -2337,8 +2338,8 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 
 void ATAPI_command_reportError(byte channel, byte slave)
 {
-	ATA[channel].Drive[slave].PARAMETERS.sectorcount = 3; //Interrupt reason!
 	//State=Ready?
+	ATA[channel].Drive[slave].ATAPI_processingPACKET = 3; //Result phase!
 	ATA[channel].Drive[slave].ERRORREGISTER = ((ATA[channel].Drive[slave].SensePacket[2]&0xF)<<4)|/*((ATA[channel].Drive[slave].SensePacket[2]&0xF)?4 / abort? / :0)*/ 0;
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Error!
 	ATA_STATUSREGISTER_DRIVEREADYW(channel,slave,1); //Ready!
