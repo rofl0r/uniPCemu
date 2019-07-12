@@ -3117,14 +3117,21 @@ OPTINLINE void giveSignature(byte channel, byte drive)
 void ATA_reset(byte channel, byte slave)
 {
 	//Clear errors!
-	if ((slave & 0x80) || (!(ATA_Drives[channel][(slave & 0x7F)] >= CDROM0))) //ATAPI reset or non-ATAPI?
+	if ((slave & 0x80) || (!(ATA_Drives[channel][(slave & 0x7F)] >= CDROM0))) //ATAPI reset for ATAPI devices or non-ATAPI reset for non-ATAPI devices?
 	{
 		slave &= 0x7F;
 		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
 		if ((slave&0x80) || ((ATA_STATUSREGISTER_ERRORR(channel,slave)==0) && ((slave&0x80)==0))) //Pending error for these drives?
 			ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
 		else //SRST reset with error left to handle?
-			ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
+			if (ATA_Drives[channel][(slave & 0x7F)] >= CDROM0) //CD-ROM drive?
+			{
+				ATA[channel].Drive[slave].ERRORREGISTER = (ATA[channel].Drive[slave].ERRORREGISTER&0xF0)|0x01; //No error, but being a reserved value of 1 usually!
+			}
+			else //HDD?
+			{
+				ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
+			}
 	}
 	else
 	{
