@@ -2345,7 +2345,7 @@ void ATAPI_command_reportError(byte channel, byte slave)
 	ATA[channel].Drive[slave].commandstatus = 0xFF; //Error!
 	ATA_STATUSREGISTER_DRIVEREADYW(channel,slave,1); //Ready!
 	ATA[channel].Drive[slave].STATUSREGISTER = 0x40; //Ready!
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].SensePacket[2]&0xF) //Error?
+	if (ATA[channel].Drive[slave].SensePacket[2]&0xF) //Error?
 	{
 		ATA_STATUSREGISTER_ERRORW(channel,slave,1);
 	}
