@@ -452,8 +452,8 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 0; //We're triggering the reason read to reset!
 
 		//Now, also make sure that BSY and DRQ are cleared!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer = (DOUBLE)0; //Don't use any timers anymore!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming = (DOUBLE)0; //We're reedy immediately!
+		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = (DOUBLE)0; //Don't use any timers anymore!
+		ATA[channel].Drive[drive].ReadyTiming = (DOUBLE)0; //We're reedy immediately!
 	}
 	else //Inactive? Indicate command to be sent!
 	{
@@ -1199,10 +1199,10 @@ OPTINLINE void ATA_increasesector(byte channel) //Increase the current sector to
 	++ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Increase the current sector!
 }
 
-OPTINLINE void ATAPI_increasesector(byte channel) //Increase the current sector to the next sector!
+OPTINLINE void ATAPI_increasesector(byte channel, byte drive) //Increase the current sector to the next sector!
 {
-	++ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA; //Increase the current sector!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_lastLBA = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA; //Update the last LBA!
+	++ATA[channel].Drive[drive].ATAPI_LBA; //Increase the current sector!
+	ATA[channel].Drive[drive].ATAPI_lastLBA = ATA[channel].Drive[drive].ATAPI_LBA; //Update the last LBA!
 }
 
 void ATA_readLBACHS(byte channel)
@@ -1498,10 +1498,10 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, word size, byte ra
 	}
 }
 
-OPTINLINE uint_32 ATAPI_getresultsize(byte channel) //Retrieve the current result size from the Task file
+OPTINLINE uint_32 ATAPI_getresultsize(byte channel, byte drive) //Retrieve the current result size from the Task file
 {
 	uint_32 result;
-	result = ((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh<<8)|ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow); //Low byte of the result size!
+	result = ((ATA[channel].Drive[drive].PARAMETERS.cylinderhigh<<8)|ATA[channel].Drive[drive].PARAMETERS.cylinderlow); //Low byte of the result size!
 	if (result==0)
 	{
 		result = 0x10000; //Maximum instead: 0 is illegal!
@@ -1531,7 +1531,7 @@ byte ATAPI_aborted=0;
 
 void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
 
-OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
+OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sector set up!
 {
 	byte abortreason, additionalsensecode;
 	sbyte cueresult;
@@ -1539,115 +1539,115 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 	byte M, S, F;
 	char *cuedisk;
 	byte *datadest = NULL; //Destination of our loaded data!
-	uint_32 disk_size = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_disksize; //The size of the disk in sectors!
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus == 1) //We're reading already?
+	uint_32 disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //The size of the disk in sectors!
+	if (ATA[channel].Drive[drive].commandstatus == 1) //We're reading already?
 	{
-		if (!--ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //Finished?
+		if (!--ATA[channel].Drive[drive].datasize) //Finished?
 		{
 			finishedreadingATAPI: //No logical blocks shall be transferred?
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //Seek complete!
-			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
-			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-			ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //No result size!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,0); //Seek complete!
+			ATA[channel].Drive[drive].commandstatus = 0; //We're back in command mode!
+			EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're not reading anymore!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+			ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 			return 0; //We're finished!
 		}
 	}
 
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
+	if (ATA[channel].Drive[drive].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
 
-	if (ATAPI_common_spin_response(channel,ATA_activeDrive(channel),0,0)!=1)
+	if (ATAPI_common_spin_response(channel,drive,0,0)!=1)
 	{
-		ATAPI_command_reportError(channel, ATA_activeDrive(channel)); //Report the error!
+		ATAPI_command_reportError(channel, drive); //Report the error!
 		ATAPI_aborted = 1; //We're aborted!
 		return 0; //We're finished!
 	}
 
-	if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
+	if ((cuedisk = getCUEimage(ATA_Drives[channel][drive]))) //Is a CUE disk?
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
-			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
-			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //All tracks!
-			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //Subtrack 1 only!
-			if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F,&ATA[channel].Drive[ATA_activeDrive(channel)].data[0], ATA[channel].Drive[ATA_activeDrive(channel)].datablock))>=1) //Try to read as specified!
+			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			CDROM_selecttrack(ATA_Drives[channel][drive], 0); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
+			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 				if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 				switch (cueresult)
 				{
 				case 2+MODE_MODE1DATA: //Mode 1 block?
-					if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+					if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 					goto ready1;
 				case 2+MODE_MODEXA: //Mode XA block?
-					if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+					if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 				ready1:
 					datablock_ready = 1; //Read and ready to process!
 					break;
 				case 2+MODE_AUDIO: //Audio block?
-					if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
-					if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
+					if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 				default: //Unknown/unsupported mode?
 					break; //Unknown data!
 				}
 			}
 			else
 			{
-				if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock == 2352) //Needs extensions from usual size?
+				if (ATA[channel].Drive[drive].datablock == 2352) //Needs extensions from usual size?
 				{
-					datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
-					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data, 0, 2352); //Clear any data we use!
-					memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data[1], 0xff, 10);
-					uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA + 150;
+					datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
+					memset(&ATA[channel].Drive[drive].data, 0, 2352); //Clear any data we use!
+					memset(&ATA[channel].Drive[drive].data[1], 0xff, 10);
+					uint_32 raw_block = ATA[channel].Drive[drive].ATAPI_LBA + 150;
 					if (cuedisk) raw_block -= 150; //Convert back for CUE disk images!
-					ATA[channel].Drive[ATA_activeDrive(channel)].data[12] = (raw_block / 75) / 60;
-					ATA[channel].Drive[ATA_activeDrive(channel)].data[13] = (raw_block / 75) % 60;
-					ATA[channel].Drive[ATA_activeDrive(channel)].data[14] = (raw_block % 75);
-					ATA[channel].Drive[ATA_activeDrive(channel)].data[15] = 0x01;
-					datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
-					if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
+					ATA[channel].Drive[drive].data[12] = (raw_block / 75) / 60;
+					ATA[channel].Drive[drive].data[13] = (raw_block / 75) % 60;
+					ATA[channel].Drive[drive].data[14] = (raw_block % 75);
+					ATA[channel].Drive[drive].data[15] = 0x01;
+					datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
+					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 						switch (cueresult)
 						{
 						case 2 + MODE_MODE1DATA: //Mode 1 block?
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+							if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							datablock_ready = 1; //Read and ready to process!
 							break;
 						case 2 + MODE_AUDIO: //Audio block?
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+							if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 							break;
 						case 2 + MODE_MODEXA: //Mode XA block?
-							if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)  && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+							if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0)  && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							break;
 						default: //Unknown/unsupported mode?
 							break; //Unknown data!
 						}
 					}
 				}
-				else if (ATA[channel].Drive[ATA_activeDrive(channel)].datablock == 2048) //Needs stripping from usual size?
+				else if (ATA[channel].Drive[drive].datablock == 2048) //Needs stripping from usual size?
 				{
-					if ((cueresult = cueimage_readsector(ATA_Drives[channel][ATA_activeDrive(channel)], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
+					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 						switch (cueresult)
 						{
 						case 2 + MODE_MODE1DATA: //Mode 1 block?
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 2) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+							if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							goto ready2;
 						case 2 + MODE_MODEXA: //Mode XA block?
-							if (((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 4) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 5)) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0xFF)) break; //Invalid type to read!
+							if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							ready2:
-							memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
+							memcpy(&ATA[channel].Drive[drive].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
 							datablock_ready = 1; //Read and ready to process!
 							break;
 						case 2 + MODE_AUDIO: //Audio block?
-							if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
-							if ((ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 1) && (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType != 0)) break; //Invalid type to read!
+							if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
+							if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 						default: //Unknown/unsupported mode?
-						if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
+						if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 							break; //Unknown data!
 						}
 					}
@@ -1659,36 +1659,36 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 					abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 					additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
 
-					ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
-					ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-					ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //No result size!
-					ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-					ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel),abortreason); //Reason of the error
-					ATAPI_SENSEPACKET_RESERVED2W(channel, ATA_activeDrive(channel), 0); //Reserved field!
-					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel),additionalsensecode); //Extended reason code
-					ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
-					if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
+					ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+					ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+					ATAPI_giveresultsize(channel,drive,0,1); //No result size!
+					ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+					ATAPI_SENSEPACKET_SENSEKEYW(channel, drive,abortreason); //Reason of the error
+					ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
+					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive,additionalsensecode); //Extended reason code
+					ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
 					{
-						ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),1); //ILI bit set!
+						ATAPI_SENSEPACKET_ILIW(channel, drive,1); //ILI bit set!
 					}
 					else
 					{
-						ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
+						ATAPI_SENSEPACKET_ILIW(channel, drive,0); //ILI bit cleared!
 					}
-					ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel),0x70); //Default error code?
-					ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel),8); //Additional Sense Length = 8?
-					ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel),0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel),0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel),0); //No info!
-					ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel),0); //No info!
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel),0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel),0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel),0); //No command specific information?
-					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel),0); //No command specific information?
-					ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel),1); //We're valid!
-					ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
-					ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel),1); //Ready!
-					ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel),1); //Ready!
+					ATAPI_SENSEPACKET_ERRORCODEW(channel, drive,0x70); //Default error code?
+					ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, drive,8); //Additional Sense Length = 8?
+					ATAPI_SENSEPACKET_INFORMATION0W(channel, drive,0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION1W(channel, drive,0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION2W(channel, drive,0); //No info!
+					ATAPI_SENSEPACKET_INFORMATION3W(channel, drive,0); //No info!
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, drive,0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, drive,0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, drive,0); //No command specific information?
+					ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, drive,0); //No command specific information?
+					ATAPI_SENSEPACKET_VALIDW(channel, drive,1); //We're valid!
+					ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
+					ATA_STATUSREGISTER_DRIVEREADYW(channel, drive,1); //Ready!
+					ATA_STATUSREGISTER_ERRORW(channel, drive,1); //Ready!
 					ATAPI_aborted = 1; //Aborted!
 					goto ATAPI_erroroutread; //Error out!
 				}
@@ -1696,7 +1696,7 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		}
 	}
 
-	if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA > disk_size) && (datablock_ready==0)) //Past the end of the disk?
+	if ((ATA[channel].Drive[drive].ATAPI_LBA > disk_size) && (datablock_ready==0)) //Past the end of the disk?
 	{
 		ATAPI_readSector_OOR:
 		//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a “ILLEGAL MODE FOR THIS TRACK” error!
@@ -1704,153 +1704,153 @@ OPTINLINE byte ATAPI_readsector(byte channel) //Read the current sector set up!
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_LOGICAL_BLOCK_OOR; //Illegal mode or incompatible medium!
 #ifdef ATA_LOG
-		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, disk_size);
+		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, drive, ATA[channel].Drive[drive].ATAPI_LBA, disk_size);
 #endif
 
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel), 0, 1); //No result size!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
-		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
-		ATAPI_SENSEPACKET_RESERVED2W(channel, ATA_activeDrive(channel), 0); //Reserved field!
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+		ATAPI_giveresultsize(channel,drive, 0, 1); //No result size!
+		ATA[channel].Drive[drive].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
+		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		if (ATA[channel].Drive[drive].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 1); //ILI bit set!
+			ATAPI_SENSEPACKET_ILIW(channel, drive, 1); //ILI bit set!
 		}
 		else
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ILIW(channel, drive, 0); //ILI bit cleared!
 		}
-		ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel), 0x70); //Default error code?
-		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel), 8); //Additional Sense Length = 8?
-		ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATAPI_SENSEPACKET_ERRORCODEW(channel, drive, 0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, drive, 8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel, drive, 1); //We're valid!
+		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel, drive, 1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 1); //Ready!
 		ATAPI_aborted = 1; //Aborted!
 		goto ATAPI_erroroutread; //Error out!
 	}
 
-	if ((ATA[channel].Drive[ATA_activeDrive(channel)].datablock==2352) && (datablock_ready==0)) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
+	if ((ATA[channel].Drive[drive].datablock==2352) && (datablock_ready==0)) //Raw CD-ROM data requested? Add the header, based on Bochs cdrom.cc!
 	{
-		memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data, 0, 2352); //Clear any data we use!
-		memset(&ATA[channel].Drive[ATA_activeDrive(channel)].data[1], 0xff, 10);
-		uint_32 raw_block = ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA + 150;
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[12] = (raw_block / 75) / 60;
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[13] = (raw_block / 75) % 60;
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[14] = (raw_block % 75);
-		ATA[channel].Drive[ATA_activeDrive(channel)].data[15] = 0x01;
-		datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0x10]; //Start of our read sector!
+		memset(&ATA[channel].Drive[drive].data, 0, 2352); //Clear any data we use!
+		memset(&ATA[channel].Drive[drive].data[1], 0xff, 10);
+		uint_32 raw_block = ATA[channel].Drive[drive].ATAPI_LBA + 150;
+		ATA[channel].Drive[drive].data[12] = (raw_block / 75) / 60;
+		ATA[channel].Drive[drive].data[13] = (raw_block / 75) % 60;
+		ATA[channel].Drive[drive].data[14] = (raw_block % 75);
+		ATA[channel].Drive[drive].data[15] = 0x01;
+		datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
 	}
 	else
 	{
-		datadest = &ATA[channel].Drive[ATA_activeDrive(channel)].data[0]; //Start of our buffer!
+		datadest = &ATA[channel].Drive[drive].data[0]; //Start of our buffer!
 	}
 
-	EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 1); //We're reading!
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending)
+	EMU_setDiskBusy(ATA_Drives[channel][drive], 1); //We're reading!
+	if (ATA[channel].Drive[drive].ATAPI_diskchangepending)
 	{
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_diskchangepending = 0; //Not pending anymore!
+		ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
 	}
 
-	if (!(is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)])&&ATA[channel].Drive[ATA_activeDrive(channel)].diskInserted)) { //Error out if not present!
+	if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { //Error out if not present!
 		//Handle like an invalid command!
-		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //No result size!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4|(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
-		ATAPI_SENSEPACKET_SENSEKEYW(channel,ATA_activeDrive(channel),SENSE_NOT_READY); //Reason of the error
-		ATAPI_SENSEPACKET_RESERVED2W(channel, ATA_activeDrive(channel), 0); //Reserved field!
-		ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel),0); //ILI bit cleared!
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,ATA_activeDrive(channel),ASC_MEDIUM_NOT_PRESENT); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
-		ATAPI_SENSEPACKET_ERRORCODEW(channel,ATA_activeDrive(channel),0x70); //Default error code?
-		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,ATA_activeDrive(channel),8); //Additional Sense Length = 8?
-		ATAPI_SENSEPACKET_INFORMATION0W(channel,ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION1W(channel,ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION2W(channel,ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION3W(channel,ATA_activeDrive(channel),0); //No info!
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,ATA_activeDrive(channel),0); //No command specific information?
-		ATAPI_SENSEPACKET_VALIDW(channel,ATA_activeDrive(channel),1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Ready!
+		EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're doing nothing!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
+		ATA[channel].Drive[drive].ERRORREGISTER = 4|(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_NOT_READY); //Reason of the error
+		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
+		ATAPI_SENSEPACKET_ILIW(channel, drive,0); //ILI bit cleared!
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_NOT_PRESENT); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel,drive,0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel,drive,0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel,drive,1); //We're valid!
+		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,drive,1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Ready!
 		return 0; //Process the error as we're ready!
 	}
 	if (datablock_ready) goto ATAPI_alreadyread; //Already read? Skip normal reading if so!
-	if (readdata(ATA_Drives[channel][ATA_activeDrive(channel)], datadest, ((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
+	if (readdata(ATA_Drives[channel][drive], datadest, ((uint_64)ATA[channel].Drive[drive].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
 		ATAPI_alreadyread: //Already read!
-		ATAPI_increasesector(channel); //Increase the current sector!
+		ATAPI_increasesector(channel,drive); //Increase the current sector!
 
-		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].datablock*ATA[channel].Drive[ATA_activeDrive(channel)].datasize,1); //Result size!
+		ATA[channel].Drive[drive].datapos = 0; //Initialise our data position!
+		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 		return 0; //Process the block once we're ready!
 	}
 	else //Error reading?
 	{
-		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
+		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,drive,1); //Not found!
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
 
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Move to error mode!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel), 0, 1); //No result size!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
-		ATAPI_SENSEPACKET_SENSEKEYW(channel, ATA_activeDrive(channel), abortreason); //Reason of the error
-		ATAPI_SENSEPACKET_RESERVED2W(channel, ATA_activeDrive(channel), 0); //Reserved field!
-		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, ATA_activeDrive(channel), additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, ATA_activeDrive(channel), 0); //ASCQ code!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+		ATAPI_giveresultsize(channel,drive, 0, 1); //No result size!
+		ATA[channel].Drive[drive].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
+		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
+		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		if (ATA[channel].Drive[drive].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), (additionalsensecode==ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM) ? 1:0); //ILI bit set!
+			ATAPI_SENSEPACKET_ILIW(channel, drive, (additionalsensecode==ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM) ? 1:0); //ILI bit set!
 		}
 		else
 		{
-			ATAPI_SENSEPACKET_ILIW(channel, ATA_activeDrive(channel), 0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ILIW(channel, drive, 0); //ILI bit cleared!
 		}
-		ATAPI_SENSEPACKET_ERRORCODEW(channel, ATA_activeDrive(channel), 0x70); //Default error code?
-		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, ATA_activeDrive(channel), 8); //Additional Sense Length = 8?
-		ATAPI_SENSEPACKET_INFORMATION0W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION1W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION2W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_INFORMATION3W(channel, ATA_activeDrive(channel), 0); //No info!
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, ATA_activeDrive(channel), 0); //No command specific information?
-		ATAPI_SENSEPACKET_VALIDW(channel, ATA_activeDrive(channel), 1); //We're valid!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0x40; //Clear status!
-		ATA_STATUSREGISTER_DRIVEREADYW(channel, ATA_activeDrive(channel), 1); //Ready!
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Ready!
+		ATAPI_SENSEPACKET_ERRORCODEW(channel, drive, 0x70); //Default error code?
+		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel, drive, 8); //Additional Sense Length = 8?
+		ATAPI_SENSEPACKET_INFORMATION0W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION1W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION2W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_INFORMATION3W(channel, drive, 0); //No info!
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(channel, drive, 0); //No command specific information?
+		ATAPI_SENSEPACKET_VALIDW(channel, drive, 1); //We're valid!
+		ATA[channel].Drive[drive].STATUSREGISTER = 0x40; //Clear status!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel, drive, 1); //Ready!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 1); //Ready!
 		ATAPI_aborted = 1; //Aborted!
 	ATAPI_erroroutread:
-		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
-		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Error!
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //No result size!
+		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Set error bit!
+		EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're doing nothing!
+		ATA[channel].Drive[drive].commandstatus = 0xFF; //Error!
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		return 0; //Stop! IRQ and finish!
 	}
-	ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Error!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
-	ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //No result size!
+	ATA[channel].Drive[drive].commandstatus = 0; //Error!
+	ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
+	ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 	return 0; //We're finished!
 }
 
@@ -1888,14 +1888,14 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
 word ATAPI_supportedmodepagecodes_length[0x4] = {0x6,0x6,0xD,0xC}; //The length of the pages stored in our memory!
 
-OPTINLINE void ATAPI_calculateByteCountLeft(byte channel)
+OPTINLINE void ATAPI_calculateByteCountLeft(byte channel, byte drive)
 {
-	if (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft) //Byte counter is running for this device?
+	if (ATA[channel].Drive[drive].ATAPI_bytecountleft) //Byte counter is running for this device?
 	{
-		--ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft; //Decrease the counter that's transferring!
-		if ((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft==0) && (ATA[channel].Drive[ATA_activeDrive(channel)].datasize)) //Finished transferring the subblock and something left to transfer?
+		--ATA[channel].Drive[drive].ATAPI_bytecountleft; //Decrease the counter that's transferring!
+		if ((ATA[channel].Drive[drive].ATAPI_bytecountleft==0) && (ATA[channel].Drive[drive].datasize)) //Finished transferring the subblock and something left to transfer?
 		{
-			ATAPI_giveresultsize(channel,ATA_activeDrive(channel),MIN(ATA[channel].Drive[ATA_activeDrive(channel)].datablock-ATA[channel].Drive[ATA_activeDrive(channel)].datapos,0xFFFE),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecountleft_IRQ); //Start waiting until we're to transfer the next subblock for the remaining data!
+			ATAPI_giveresultsize(channel,drive,MIN(ATA[channel].Drive[drive].datablock-ATA[channel].Drive[drive].datapos,0xFFFE),ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ); //Start waiting until we're to transfer the next subblock for the remaining data!
 		}
 	}
 }
@@ -1950,7 +1950,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				}
 				else //Still transferring data?
 				{
-					ATAPI_calculateByteCountLeft(channel); //Update!
+					ATAPI_calculateByteCountLeft(channel,ATA_activeDrive(channel)); //Update!
 				}
 				return result; //Give the result!
 				break;
@@ -1961,7 +1961,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				result = ATA[channel].Drive[ATA_activeDrive(channel)].data[ATA[channel].Drive[ATA_activeDrive(channel)].datapos++]; //Read the data byte!
 				if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos==ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 				{
-					if (ATAPI_readsector(channel)) //Next sector read?
+					if (ATAPI_readsector(channel,ATA_activeDrive(channel))) //Next sector read?
 					{
 						ATAPI_generateInterruptReason(channel,ATA_activeDrive(channel)); //Generate our reason!
 						ATA_IRQ(channel,ATA_activeDrive(channel),ATAPI_FINISHREADYTIMING,0); //Raise an IRQ: we're needing attention!
@@ -1969,7 +1969,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 				}
 				else //Still transferring data?
 				{
-					ATAPI_calculateByteCountLeft(channel); //Update!
+					ATAPI_calculateByteCountLeft(channel,ATA_activeDrive(channel)); //Update!
 				}
 				return result; //Give the result!
 				break;
@@ -1997,7 +1997,7 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 	return 0; //Unknown data!
 }
 
-void ATAPI_executeData(byte channel); //Prototype for ATAPI data processing!
+void ATAPI_executeData(byte channel, byte drive); //Prototype for ATAPI data processing!
 
 OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 {
@@ -2024,7 +2024,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos==12) //Full packet written?
 			{
 				//Cancel DRQ, Set BSY and read Features and Byte count from the Task File.
-				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = ATAPI_getresultsize(channel); //Read the size to transfer at most!
+				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = ATAPI_getresultsize(channel,ATA_activeDrive(channel)); //Read the size to transfer at most!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
 				ATAPI_PendingExecuteCommand(channel, ATA_activeDrive(channel)); //Execute the ATAPI command!
 			}
@@ -2034,11 +2034,11 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			ATA[channel].Drive[ATA_activeDrive(channel)].data[ATA[channel].Drive[ATA_activeDrive(channel)].datapos++] = data; //Write the data byte!
 			if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Full block read?
 			{
-				ATAPI_executeData(channel); //Execute the data process!
+				ATAPI_executeData(channel,ATA_activeDrive(channel)); //Execute the data process!
 			}
 			else //Still transferring data?
 			{
-				ATAPI_calculateByteCountLeft(channel); //Update!
+				ATAPI_calculateByteCountLeft(channel,ATA_activeDrive(channel)); //Update!
 			}
 		}
 		break;
@@ -2047,49 +2047,44 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 	}
 }
 
-void ATAPI_executeData(byte channel) //Prototype for ATAPI data processing!
+void ATAPI_executeData(byte channel, byte drive)
 {
 	word pageaddr;
 	byte pagelength; //The length of the page!
-	ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 3; //We're not processing a packet anymore! Default to result phase!
-	switch (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PACKET[0]) //What command?
+	ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We're not processing a packet anymore! Default to result phase!
+	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Store the data, just ignore it!
 		//Copy pages that are supported to their location in the Active Mode data!
-		for (pageaddr=0;pageaddr<(ATA[channel].Drive[ATA_activeDrive(channel)].datablock-1);) //Process all available data!
+		for (pageaddr=0;pageaddr<(ATA[channel].Drive[drive].datablock-1);) //Process all available data!
 		{
-			pagelength = ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 1]-1; //This value is the last byte used minus 1(zero-based)!
-			switch (ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr]&0x3F) //What page code?
+			pagelength = ATA[channel].Drive[drive].data[pageaddr + 1]-1; //This value is the last byte used minus 1(zero-based)!
+			switch (ATA[channel].Drive[drive].data[pageaddr]&0x3F) //What page code?
 			{
 				case 0x01: //Read error recovery page (Mandatory)?
 					pagelength = MIN(pagelength, 0x6); //Maximum length to apply!
-					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x01 << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					memcpy(&ATA[channel].Drive[drive].ATAPI_ModeData[0x01 << 8], &ATA[channel].Drive[drive].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x0D: //CD-ROM page?
 					pagelength = MIN(pagelength, 0x6); //Maximum length to apply!
-					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0D << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					memcpy(&ATA[channel].Drive[drive].ATAPI_ModeData[0x0D << 8], &ATA[channel].Drive[drive].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x0E: //CD-ROM audio control page?
 					pagelength = MIN(pagelength,0xD); //Maximum length to apply!
-					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x0E<<8],&ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr+2],pagelength); //Copy the page data to our position, simply copy all data!
+					memcpy(&ATA[channel].Drive[drive].ATAPI_ModeData[0x0E<<8],&ATA[channel].Drive[drive].data[pageaddr+2],pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				case 0x2A: //CD-ROM capabilities & Mechanical Status Page?
 					pagelength = MIN(pagelength, 0xC); //Maximum length to apply!
-					memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_ModeData[0x2A << 8], &ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
+					memcpy(&ATA[channel].Drive[drive].ATAPI_ModeData[0x2A << 8], &ATA[channel].Drive[drive].data[pageaddr + 2], pagelength); //Copy the page data to our position, simply copy all data!
 					break;
 				default: //Unknown page? Ignore it!
 					break;
 			}
-			pageaddr += ATA[channel].Drive[ATA_activeDrive(channel)].data[pageaddr+1]+1; //Jump to the next block, if any!
+			pageaddr += ATA[channel].Drive[drive].data[pageaddr+1]+1; //Jump to the next block, if any!
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: we're done!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
-		break;
-	case 0x28: //Read sectors (10) command(Mandatory)?
-	case 0xA8: //Read sectors command!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: we're done!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
+		ATA[channel].Drive[drive].commandstatus = 0; //Reset status: we're done!
+		ATAPI_giveresultsize(channel,drive,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 		break;
 	default:
 		break;
@@ -2105,21 +2100,21 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	unsigned i;
 	uint_32 blocks;
 	int len = 4;
-	if ((cuedisk = getCUEimage(ATA_Drives[channel][ATA_activeDrive(channel)]))) //Is a CUE disk?
+	if ((cuedisk = getCUEimage(ATA_Drives[channel][drive]))) //Is a CUE disk?
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
-			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)],0); //All tracks!
-			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],0); //All subtracks!
-			LBA2MSFbin(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+			CDROM_selecttrack(ATA_Drives[channel][drive],0); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
+			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 			cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 			cueresult = 1; //Loaded!
 		}
 	}
 	else //Default track/subtrack!
 	{
-			CDROM_selecttrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //All tracks!
-			CDROM_selectsubtrack(ATA_Drives[channel][ATA_activeDrive(channel)],1); //All subtracks!
+			CDROM_selecttrack(ATA_Drives[channel][drive],1); //All tracks!
+			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //All subtracks!
 	}
 	switch (format) {
 		case 0:
@@ -2444,9 +2439,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 
 		//Clear the condition!
-		ATAPI_ERRORREGISTER_SENSEKEY(channel, ATA_activeDrive(channel), SENSE_NONE); //Signal an Unit Attention Sense key!
-		ATAPI_ERRORREGISTER_ILI(channel, ATA_activeDrive(channel), 0); //No Illegal length indication!
-		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
+		ATAPI_ERRORREGISTER_SENSEKEY(channel, drive, SENSE_NONE); //Signal an Unit Attention Sense key!
+		ATAPI_ERRORREGISTER_ILI(channel, drive, 0); //No Illegal length indication!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
 	case 0x12: //INQUIRY(Mandatory)?
 		//We do succeed without media?
@@ -2625,7 +2620,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				case 0xF8: ATA[channel].Drive[drive].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 				case 0x10: //Normal 2KB sectors?
 					ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
-					if (ATAPI_readsector(channel)) //Sector read?
+					if (ATAPI_readsector(channel,drive)) //Sector read?
 					{
 						ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 						ATA_IRQ(channel, drive, ATAPI_FINISHREADYTIMING, 0); //Raise an IRQ: we're needing attention!
@@ -2696,7 +2691,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				case 0xF8: ATA[channel].Drive[drive].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 				case 0x10: //Normal 2KB sectors?
 					ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
-					if (ATAPI_readsector(channel)) //Sector read?
+					if (ATAPI_readsector(channel,drive)) //Sector read?
 					{
 						ATAPI_generateInterruptReason(channel, drive); //Generate our reason!
 						ATA_IRQ(channel, drive, ATAPI_FINISHREADYTIMING, 0); //Raise an IRQ: we're needing attention!
@@ -2983,7 +2978,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
 			ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
 			ATA[channel].Drive[drive].expectedReadDataType = 0xFF; //Any read sector(nn) type is allowed!
-			if (ATAPI_readsector(channel)) //Sector read?
+			if (ATAPI_readsector(channel,drive)) //Sector read?
 			{
 				ATAPI_generateInterruptReason(channel,drive); //Generate our reason!
 				ATA_IRQ(channel,drive,ATAPI_FINISHREADYTIMING,0); //Raise an IRQ: we're needing attention!
