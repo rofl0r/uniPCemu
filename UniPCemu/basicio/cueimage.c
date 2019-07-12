@@ -178,7 +178,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 {
 	byte orig_M, orig_S, orig_F;
 	sbyte result=-1; //The result! Default: out of range!
-	FILEPOS fsize;
+	FILEPOS fsize=0;
 	CUESHEET_STATUS cue_status;
 	CUESHEET_ENTRYINFO cue_current, cue_next; //Current to check and next entries(if any)!
 	char *c;
@@ -674,7 +674,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 		}
 		else //Couldn't goto EOF?
 		{
-			memcpy(&cue_next, &cue_current, sizeof(cue_next)); //Duplicate the current as next, size of 0!
+			return 0; //Couldn't go EOF, so unknown size!
 		}
 		emufclose64(source); //Close the source!
 
@@ -717,6 +717,10 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				if (emufseek64(source, 0, SEEK_END) == 0) //Went to EOF?
 				{
 					fsize = emuftell64(source); //What is the size of the file!
+				}
+				else
+				{
+					return 0; //Can't seek to the end!
 				}
 				if (!buffer) //No buffer?
 				{

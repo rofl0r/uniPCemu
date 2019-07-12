@@ -18,7 +18,7 @@
 #define PIC_RemoveEvents(function) removeMPUTimer()
 #define PIC_AddEvent(function,timeout) setMPUTimer(timeout,function)
 #define PIC_ActivateIRQ(irq) raiseirq(irq)
-#define PIC_DeActivateIRQ(irq) lowerirq(irq);acnowledgeIRQrequest(irq)
+#define PIC_DeActivateIRQ(irq) lowerirq(irq)
 
 #define IO_RegisterWriteHandler(port,handler,name) register_PORTOUT(handler)
 #define IO_RegisterReadHandler(port,handler,name) register_PORTIN(handler)
