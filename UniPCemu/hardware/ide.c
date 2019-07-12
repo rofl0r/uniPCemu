@@ -421,7 +421,7 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 	Write Data) from the host
 	1 0 1 Status - Register contains Completion Status
 	*/
-	if ((ATA_Drives[channel][drive] >= CDROM0)) return; //Don't handle for non CD-ROM drives!
+	if (!(ATA_Drives[channel][drive] >= CDROM0)) return; //Don't handle for non CD-ROM drives!
 	if (ATA[channel].Drive[drive].ATAPI_diskchangepending==2)
 	{
 		ATAPI_INTERRUPTREASON_CD(channel,drive,1); //Not a command packet!
