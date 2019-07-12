@@ -3724,7 +3724,7 @@ byte outATA8(word port, byte value)
 		break;
 	case 1: //Features?
 #ifdef ATA_LOG
-		dolog("ATA", "Feature register write: %02X %u.%u", value,ATA_channel,ATA_activeDrive(ATA_channel));
+		dolog("ATA", "Feature register write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
 		ATA[ATA_channel].Drive[0].PARAMETERS.features = value; //Use the set data! Ignore!
 		ATA[ATA_channel].Drive[1].PARAMETERS.features = value; //Use the set data! Ignore!
@@ -3732,7 +3732,7 @@ byte outATA8(word port, byte value)
 		break;
 	case 2: //Sector count?
 #ifdef ATA_LOG
-		dolog("ATA", "Sector count write: %02X %u.%u", value,ATA_channel, ATA_activeDrive(ATA_channel));
+		dolog("ATA", "Sector count write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
 		//if (!(ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] >= CDROM0)) //ATAPI device? Unsupported! Otherwise, supported and process!
 		{
@@ -3777,13 +3777,16 @@ byte outATA8(word port, byte value)
 #ifdef ATA_LOG
 		dolog("ATA", "Drive/head write: %02X %u.%u", value, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
+		if (ATA[ATA_channel].activedrive!=((value>>4)&1)) //Changing drives between Master and Slave?
+		{
+			ATA[ATA_channel].driveselectTiming = ATA_DRIVESELECT_TIMEOUT; //Drive select timing to use!
+		}
 		ATA[ATA_channel].activedrive = (value >> 4) & 1; //The active drive!
 		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady == 0) //Partial ROM(non-drive bit)
 		{
-			value = (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead&(~0x10)) | (value & 0x10); //ROM all but d4ive bit!
+			value = (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead&(~0x10)) | (value & 0x10); //ROM all but drive bit!
 		}
 		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead = value; //Set drive head!
-		ATA[ATA_channel].driveselectTiming = ATA_DRIVESELECT_TIMEOUT; //Drive select timing to use!
 		return 1; //OK!
 		break;
 	case 7: //Command?
