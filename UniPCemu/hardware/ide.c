@@ -1662,7 +1662,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 					ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 					ATAPI_giveresultsize(channel,drive,0,1); //No result size!
-					ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+					ATA[channel].Drive[drive].ERRORREGISTER = /*4|*/(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 					ATAPI_SENSEPACKET_SENSEKEYW(channel, drive,abortreason); //Reason of the error
 					ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive,additionalsensecode); //Extended reason code
@@ -1710,7 +1710,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,drive, 0, 1); //No result size!
-		ATA[channel].Drive[drive].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATA[channel].Drive[drive].ERRORREGISTER = /*4 |*/ (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
@@ -1769,7 +1769,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
-		ATA[channel].Drive[drive].ERRORREGISTER = 4|(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
+		ATA[channel].Drive[drive].ERRORREGISTER = /*4|*/(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_NOT_READY); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ILIW(channel, drive,0); //ILI bit cleared!
@@ -1812,7 +1812,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,drive, 0, 1); //No result size!
-		ATA[channel].Drive[drive].ERRORREGISTER = 4 | (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+		ATA[channel].Drive[drive].ERRORREGISTER = /*4 |*/ (abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
@@ -3052,7 +3052,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
-		ATA[channel].Drive[drive].ERRORREGISTER = 4|(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
+		ATA[channel].Drive[drive].ERRORREGISTER = /*4|*/(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,additionalsensecode); //Extended reason code
