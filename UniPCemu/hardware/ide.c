@@ -2627,7 +2627,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x55: //MODE SELECT(10)(Mandatory)?
 		//Byte 4 = allocation length
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
-		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
+		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
 		memset(&ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
@@ -2637,7 +2637,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
-		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
+		ATA[channel].Drive[drive].datablock = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Size of a block to transfer!
 		ATA[channel].Drive[drive].datasize = 1; //How many blocks to transfer!
 		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 		memset(&ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
@@ -2880,7 +2880,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
-			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
+			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
@@ -2934,7 +2934,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			sub_Q = (ATA[channel].Drive[drive].ATAPI_PACKET[2] & 0x40); //SubQ bit!
 			data_format = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Sub-channel Data Format
 			//track_number = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //Track number
-			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Allocation length!
+			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Allocation length!
 			ret_len = 4;
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			memset(&ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
@@ -2989,7 +2989,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			MSF = (ATA[channel].Drive[drive].ATAPI_PACKET[1]>>1)&1;
 			starting_track = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //Starting track!
-			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
+			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
 			format = (ATA[channel].Drive[drive].ATAPI_PACKET[9]>>6); //The format of the packet!
 			switch (format)
 			{
@@ -3121,10 +3121,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
-			ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<1)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
+			ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
 			if (ATA[channel].Drive[drive].ATAPI_PACKET[0]==0xA8) //Extended sectors to transfer?
 			{
-				ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[6]<<3) | (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<2) | (ATA[channel].Drive[drive].ATAPI_PACKET[8] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]); //How many sectors to transfer
+				ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[6]<<24) | (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<16) | (ATA[channel].Drive[drive].ATAPI_PACKET[8] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]); //How many sectors to transfer
 			}
 
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
@@ -3183,7 +3183,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0xBD: //Mechanism status(mandatory)
-		ATA[channel].Drive[drive].datablock = MIN((ATA[channel].Drive[drive].ATAPI_PACKET[8] << 1) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]),12); //How much data to transfer
+		ATA[channel].Drive[drive].datablock = MIN((ATA[channel].Drive[drive].ATAPI_PACKET[8] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[9]),12); //How much data to transfer
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
 		ATA[channel].Drive[drive].datasize = 1; //Number of blocks of information to transfer!
 		memset(&ATA[channel].Drive[drive].data,0,12); //Init data to zero!
