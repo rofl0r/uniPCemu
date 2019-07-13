@@ -2213,8 +2213,8 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						if (msf) {
 							buf[len++] = 0; // reserved
 							buf[len++] = cue_startM; // minute
-							buf[len++] = cue_startF; // second
-							buf[len++] = cue_startS; // frame
+							buf[len++] = cue_startS; // second
+							buf[len++] = cue_startF; // frame
 						}
 						else {
 							buf[len++] = (blocks >> 24) & 0xff;
