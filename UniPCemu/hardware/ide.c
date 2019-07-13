@@ -1676,18 +1676,17 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
 			{
 				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
-				if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 				switch (cueresult)
 				{
-				case 2+MODE_MODE1DATA: //Mode 1 block?
+				case 1+MODE_MODE1DATA: //Mode 1 block?
 					if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 					goto ready1;
-				case 2+MODE_MODEXA: //Mode XA block?
+				case 1+MODE_MODEXA: //Mode XA block?
 					if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 				ready1:
 					datablock_ready = 1; //Read and ready to process!
 					break;
-				case 2+MODE_AUDIO: //Audio block?
+				case 1+MODE_AUDIO: //Audio block?
 					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 					if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 				default: //Unknown/unsupported mode?
@@ -1711,17 +1710,16 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
-						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 						switch (cueresult)
 						{
-						case 2 + MODE_MODE1DATA: //Mode 1 block?
+						case 1 + MODE_MODE1DATA: //Mode 1 block?
 							if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							datablock_ready = 1; //Read and ready to process!
 							break;
-						case 2 + MODE_AUDIO: //Audio block?
+						case 1 + MODE_AUDIO: //Audio block?
 							if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 							break;
-						case 2 + MODE_MODEXA: //Mode XA block?
+						case 1 + MODE_MODEXA: //Mode XA block?
 							if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0)  && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							break;
 						default: //Unknown/unsupported mode?
@@ -1734,19 +1732,18 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
 					{
 						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
-						if (cueresult == 1) goto ATAPI_readSector_OOR; //Missing buffer?
 						switch (cueresult)
 						{
-						case 2 + MODE_MODE1DATA: //Mode 1 block?
+						case 1 + MODE_MODE1DATA: //Mode 1 block?
 							if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							goto ready2;
-						case 2 + MODE_MODEXA: //Mode XA block?
+						case 1 + MODE_MODEXA: //Mode XA block?
 							if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							ready2:
 							memcpy(&ATA[channel].Drive[drive].data, &decreasebuffer[0x10], 0x800); //Take the sector data out of the larger buffer!
 							datablock_ready = 1; //Read and ready to process!
 							break;
-						case 2 + MODE_AUDIO: //Audio block?
+						case 1 + MODE_AUDIO: //Audio block?
 							if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 							if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 						default: //Unknown/unsupported mode?
@@ -2260,7 +2257,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							{
 								buf[len++] = 0x14; //ADR / control
 							}
-							else if (cueresult == (2 + MODE_AUDIO)) //Audio track?
+							else if (cueresult == (1 + MODE_AUDIO)) //Audio track?
 							{
 								buf[len++] = 0x10; //ADR / control
 							}
@@ -2415,7 +2412,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 					{
 						buf[len++] = 0x14; //ADR / control
 					}
-					else if (cueresult == (2+MODE_AUDIO)) //Audio track?
+					else if (cueresult == (1+MODE_AUDIO)) //Audio track?
 					{
 						buf[len++] = 0x10; //ADR / control
 					}
