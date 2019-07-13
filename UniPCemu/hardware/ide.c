@@ -295,6 +295,58 @@ enum {
 byte ATA_channel = 0; //What channel are we processing?
 byte ATA_slave = 0; //Are we processing master or slave?
 
+byte encodeBCD8ATA(byte value)
+{
+	INLINEREGISTER byte temp, result = 0;
+	temp = value; //Load the original value!
+	temp %= 100; //Rest to be sure!
+	result |= (0x0010 * (temp / 10)); //Factor 10!
+	temp %= 10;
+	result |= temp; //Factor 1!
+	return result;
+}
+
+byte decodeBCD8ATA(byte bcd)
+{
+	INLINEREGISTER byte temp, result = 0;
+	temp = bcd; //Load the BCD value!
+	result += (temp & 0xF); //Factor 1!
+	temp >>= 4;
+	result += (temp & 0xF) * 10; //Factor 10!
+	return result; //Give the decoded integer value!
+}
+
+uint_32 MSF2LBAbin(byte M, byte S, byte F)
+{
+	return (((M * 60) + S) * 75) + F; //75 frames per second, 60 seconds in a minute!
+}
+
+void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
+{
+	uint_32 rest;
+	rest = LBA; //Load LBA!
+	*M = rest / (60 * 75); //Minute!
+	rest -= *M*(60 * 75); //Rest!
+	*S = rest / 75; //Second!
+	rest -= *S * 75;
+	*F = rest % 75; //Frame, if any!
+}
+
+
+uint_32 MSF2LBA(byte M, byte S, byte F)
+{
+	return MSF2LBAbin(decodeBCD8ATA(M), decodeBCD8ATA(S), decodeBCD8ATA(F));
+}
+
+void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
+{
+	LBA2MSFbin(LBA, M, S, F); //Convert first!
+	//Encode after!
+	*M = encodeBCD8ATA(*M);
+	*S = encodeBCD8ATA(*S);
+	*F = encodeBCD8ATA(*F);
+}
+
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
 	return ATA[channel].activedrive; //Give the drive or 0xFF if invalid!
@@ -1576,22 +1628,6 @@ OPTINLINE uint_32 ATAPI_getresultsize(byte channel, byte drive) //Retrieve the c
 	return result; //Give the result!
 }
 
-uint_32 MSF2LBAbin(byte M, byte S, byte F)
-{
-	return (((M * 60) + S) * 75) + F; //75 frames per second, 60 seconds in a minute!
-}
-
-void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
-{
-	uint_32 rest;
-	rest = LBA; //Load LBA!
-	*M = rest / (60 * 75); //Minute!
-	rest -= *M*(60 * 75); //Rest!
-	*S = rest / 75; //Second!
-	rest -= *S * 75;
-	*F = rest % 75; //Frame, if any!
-}
-
 byte decreasebuffer[2352];
 
 byte ATAPI_aborted=0;
@@ -2352,52 +2388,6 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	}
 	*length = len;
 	return 1;
-}
-
-byte encodeBCD8ATA(byte value)
-{
-	INLINEREGISTER byte temp, result = 0;
-	temp = value; //Load the original value!
-	temp %= 100; //Rest to be sure!
-	result |= (0x0010 * (temp / 10)); //Factor 10!
-	temp %= 10;
-	result |= temp; //Factor 1!
-	return result;
-}
-
-byte decodeBCD8ATA(byte bcd)
-{
-	INLINEREGISTER byte temp, result = 0;
-	temp = bcd; //Load the BCD value!
-	result += (temp & 0xF); //Factor 1!
-	temp >>= 4;
-	result += (temp & 0xF) * 10; //Factor 10!
-	return result; //Give the decoded integer value!
-}
-
-uint_32 MSF2LBA(byte M, byte S, byte F)
-{
-	return MSF2LBAbin(decodeBCD8ATA(M),decodeBCD8ATA(S),decodeBCD8ATA(F));
-}
-
-void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
-{
-	uint_32 rest;
-	rest = LBA; //Load LBA!
-	*M = rest / (60 * 75); //Minute!
-	rest -= *M*(60 * 75); //Rest!
-	*S = rest / 75; //Second!
-	rest -= *S * 75;
-	*F = rest % 75; //Frame, if any!
-}
-
-void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
-{
-	LBA2MSFbin(LBA, M, S, F); //Convert first!
-	//Encode after!
-	*M = encodeBCD8ATA(*M);
-	*S = encodeBCD8ATA(*S);
-	*F = encodeBCD8ATA(*F);
 }
 
 void ATAPI_command_reportError(byte channel, byte slave)
