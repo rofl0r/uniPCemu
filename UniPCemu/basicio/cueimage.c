@@ -446,6 +446,21 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 
 			memcpy(&cue_next.status,&cue_status,MIN(sizeof(cue_next.status),sizeof(cue_status))); //Fill the index entry of cue_next with the currently loaded cue status!
 			cue_next.is_present = cue_status.got_index; //Present?
+			if (cue_current.is_present && cue_next.is_present) //Got current to advance?
+			{
+				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
+				prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the current LBA position we're advancing?
+				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
+				cue_status.datafilepos += ((LBA - prev_LBA) * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
+			}
+			else if (cue_next.is_present) //Only next? Initial entry of a file!
+			{
+				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
+				cue_status.datafilepos += (LBA * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
+			}
+			//Update the data file position in the next entry!
+			memcpy(&cue_next.status, &cue_status, MIN(sizeof(cue_next.status), sizeof(cue_status))); //Fill the index entry of cue_next with the currently loaded cue status!
+
 			if (cue_current.is_present && cue_next.is_present) //Handle the cue_current if it and cue_next are both present!
 			{
 				//Fill the end locations into the current entry, based on the next entry!
@@ -466,18 +481,6 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				}
 			}
 			finishMSFscan:
-			if (cue_current.is_present && cue_next.is_present) //Got current to advance?
-			{
-				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
-				prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the current LBA position we're advancing?
-				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
-				cue_next.status.datafilepos += ((LBA-prev_LBA) * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
-			}
-			else if (cue_next.is_present) //Only next?
-			{
-				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
-				cue_next.status.datafilepos = (LBA * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
-			}
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
 			cue_next.is_present = 0; //Set cue_next to not present!
 		}
