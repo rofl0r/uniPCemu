@@ -237,7 +237,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 1] - (byte)('1') + 1; //Number!
+				track_number_high = (cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 1] - (byte)('1')) + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -258,7 +258,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 2] - (byte)('1') + 1; //Number!
+				track_number_low = (cuesheet_line[safe_strlen(identifier_INDEX, sizeof(identifier_INDEX)) + 2] - (byte)('1')) + 1; //Number!
 				break;
 			case ' ': //Nothing? Single digit?
 				track_number_low = track_number_high;
@@ -291,7 +291,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -312,7 +312,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			case ':': //Nothing? Single digit?
 				track_number_low = track_number_high;
@@ -343,7 +343,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -364,7 +364,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			case ':': //Nothing? Single digit?
 				track_number_low = track_number_high;
@@ -395,7 +395,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			case ':': //Nothing? Single digit?
 				track_number_low = track_number_high;
@@ -420,7 +420,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = *track_mode++ - (byte)('1') + 1; //Number!
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
 				break;
 			case '\0': //Nothing? Single digit?
 				track_number_low = track_number_high;
@@ -508,7 +508,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_high = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK) + 1)] - (byte)('1') + 1; //Number!
+				track_number_high = (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 1] - (byte)('1')) + 1; //Number!
 				break;
 			default:
 				continue; //Ignore the command if incorrect!
@@ -529,7 +529,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			case '7':
 			case '8':
 			case '9':
-				track_number_low = cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 2] - (byte)('1') + 1; //Number!
+				track_number_low = (cuesheet_line[safe_strlen(identifier_TRACK, sizeof(identifier_TRACK)) + 2] - (byte)('1')) + 1; //Number!
 				break;
 			case ' ': //Nothing? Single digit?
 				track_number_low = track_number_high;
