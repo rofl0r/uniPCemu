@@ -2377,18 +2377,24 @@ byte decodeBCD8ATA(byte bcd)
 
 uint_32 MSF2LBA(byte M, byte S, byte F)
 {
-	return (((decodeBCD8ATA(M)*60)+decodeBCD8ATA(S))*75)+decodeBCD8ATA(F); //75 frames per second, 60 seconds in a minute!
+	return MSF2LBAbin(decodeBCD8ATA(M),decodeBCD8ATA(S),decodeBCD8ATA(F));
+}
+
+void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
+{
+	uint_32 rest;
+	rest = LBA; //Load LBA!
+	*M = rest / (60 * 75); //Minute!
+	rest -= *M*(60 * 75); //Rest!
+	*S = rest / 75; //Second!
+	rest -= *S * 75;
+	*F = rest % 75; //Frame, if any!
 }
 
 void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 {
-	uint_32 rest;
-	rest = LBA; //Load LBA!
-	*M = rest/(60*75); //Minute!
-	rest -= *M*(60*75); //Rest!
-	*S = rest/75; //Second!
-	rest -= *S*75;
-	*F = rest%75; //Frame, if any!
+	LBA2MSFbin(LBA, M, S, F); //Convert first!
+	//Encode after!
 	*M = encodeBCD8ATA(*M);
 	*S = encodeBCD8ATA(*S);
 	*F = encodeBCD8ATA(*F);
@@ -2711,8 +2717,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
-			LBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
-			endLBA = MSF2LBA(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
+			LBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
+			endLBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
 
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 			{
@@ -2798,7 +2804,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATA[channel].Drive[drive].ATAPI_PACKET[1] & 2) //MSF packet requested?
 			{
 				ATA[channel].Drive[drive].data[0] = 1; //User data here! 2048 bytes, mode 1 sector!
-				LBA2MSF(LBA, &ATA[channel].Drive[drive].data[5], &ATA[channel].Drive[drive].data[6], &ATA[channel].Drive[drive].data[7]); //Try and get the MSF address based on the LBA!
+				LBA2MSFbin(LBA, &ATA[channel].Drive[drive].data[5], &ATA[channel].Drive[drive].data[6], &ATA[channel].Drive[drive].data[7]); //Try and get the MSF address based on the LBA!
 			}
 			else //LBA packet requested?
 			{
@@ -4246,7 +4252,7 @@ void ATA_DiskChanged(int disk)
 				CDROM_selectsubtrack(disk,0); //All subtracks!
 				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
-					disk_size = (MSF2LBA(cue_endM, cue_endS, cue_endF)-MSF2LBA(cue_startM, cue_startS, cue_startF))+1; //The disk size in sectors!
+					disk_size = (MSF2LBAbin(cue_endM, cue_endS, cue_endF)-MSF2LBAbin(cue_startM, cue_startS, cue_startF))+1; //The disk size in sectors!
 				}
 				else //Failed to get the geometry?
 				{
