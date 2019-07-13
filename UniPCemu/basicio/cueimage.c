@@ -482,7 +482,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			cue_next.is_present = 0; //Set cue_next to not present!
 			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
 			{
-				result = 1; //Result becomes 1 instead of -1(track not found) because the track is found!
+				result = 1 + cue_current.status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
 			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
@@ -729,7 +729,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				if (!buffer) //No buffer?
 				{
 					emufclose64(source);
-					return 1; //No buffer to read to, silently abort, with an extra result code for being a NOP!
+					return 1 + cue_current.status.track_mode->mode; //No buffer to read to, silently abort, with an extra result code for being a NOP!
 				}
 				if (cue_current.status.datafilepos >= fsize) //Past EOF?
 				{
@@ -758,7 +758,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 				}
 				//Data has been read from the backend file!
 				emufclose64(source);
-				return 2+cue_current.status.track_mode->mode; //We've found the location of our data! Give 2+mode for the read sector type!
+				return 1+cue_current.status.track_mode->mode; //We've found the location of our data! Give 2+mode for the read sector type!
 			}
 		}
 	}
