@@ -174,7 +174,7 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 extern char diskpath[256]; //Disk path!
 
 //Result: -1: Out of range, 0: Failed to read, 1: Read successfully
-sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte report1ontrackfound) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte orig_M, orig_S, orig_F;
 	sbyte result=-1; //The result! Default: out of range!
@@ -480,6 +480,10 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			}
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
 			cue_next.is_present = 0; //Set cue_next to not present!
+			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
+			{
+				result = 1; //Result becomes 1 instead of -1(track not found) because the track is found!
+			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
 		{
@@ -773,7 +777,7 @@ sbyte cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word
 	M2 = M; //Requested minute!
 	S2 = S; //Requested second!
 	F2 = F; //Requested frame!
-	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size); //Direct call!
+	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size,0); //Direct call!
 }
 
 sbyte cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
@@ -782,5 +786,5 @@ sbyte cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, 
 	*M = 0xFF;
 	*S = 59;
 	*F = 74;
-	return cueimage_REAL_readsector(device, M, S, F, startM, startS, startF, endM, endS, endF, NULL, 2048); //Just apply a read from the disk without result buffer(nothing to read after all)!
+	return cueimage_REAL_readsector(device, M, S, F, startM, startS, startF, endM, endS, endF, NULL, 2048,1); //Just apply a read from the disk without result buffer(nothing to read after all)!
 }
