@@ -480,10 +480,6 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			}
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
 			cue_next.is_present = 0; //Set cue_next to not present!
-			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
-			{
-				result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
-			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
 		{
@@ -559,6 +555,10 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			cue_status.track_mode = curtrackmode; //Set the current track mode!
 			cue_status.track_number = (track_number_high*10)+track_number_low; //Set the current track number!
 			cue_status.got_track = 1; //Track has been parsed!
+			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
+			{
+				result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
+			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_FILE, safe_strlen(identifier_FILE, sizeof(identifier_FILE))) == 0) //File command?
 		{
