@@ -292,6 +292,8 @@ enum {
 //TAG: ???
 #define ATAPI_INTERRUPTREASON_TAG(channel,drive,val) ATA[channel].Drive[drive].PARAMETERS.sectorcount=(ATA[channel].Drive[drive].PARAMETERS.sectorcount&(~0xF8))|((val&0x1F)<<3)
 
+byte ATA_channel = 0; //What channel are we processing?
+byte ATA_slave = 0; //Are we processing master or slave?
 
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
@@ -747,6 +749,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[0].commandstatus = 0; //We're ready now!
 				if (ATA[0].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
+					ATA_channel = 0;
+					ATA_slave = 0;
 					ATAPI_generateInterruptReason(0, 0); //Generate our reason!
 					ATA_IRQ(0, 0, (DOUBLE)0, 0); //Finish timeout!
 				}
@@ -762,6 +766,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[1].commandstatus = 0; //We're ready now!
 				if (ATA[0].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
+					ATA_channel = 0;
+					ATA_slave = 1;
 					ATAPI_generateInterruptReason(0, 1); //Generate our reason!
 					ATA_IRQ(0, 1, (DOUBLE)0, 0); //Finish timeout!
 				}
@@ -777,6 +783,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[0].commandstatus = 0; //We're ready now!
 				if (ATA[1].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
+					ATA_channel = 1;
+					ATA_slave = 0;
 					ATAPI_generateInterruptReason(1, 0); //Generate our reason!
 					ATA_IRQ(1, 0, (DOUBLE)0, 0); //Finish timeout!
 				}
@@ -792,6 +800,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[1].commandstatus = 0; //We're ready now!
 				if (ATA[1].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
+					ATA_channel = 1;
+					ATA_slave = 1;
 					ATAPI_generateInterruptReason(1, 1); //Generate our reason!
 					ATA_IRQ(1, 1, (DOUBLE)0, 0); //Finish timeout!
 				}
@@ -805,6 +815,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[0].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_channel = 0;
+				ATA_slave = 0;
 				ATAPI_generateInterruptReason(0,0); //Generate our reason!
 				ATA_IRQ(0,0,(DOUBLE)0,0); //Finish timeout!
 			}
@@ -816,6 +828,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[0].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_channel = 0;
+				ATA_slave = 1;
 				ATAPI_generateInterruptReason(0,1); //Generate our reason!
 				ATA_IRQ(0,1,(DOUBLE)0,0); //Finish timeout!
 			}
@@ -827,6 +841,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[0].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[1].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_channel = 1;
+				ATA_slave = 0;
 				ATAPI_generateInterruptReason(1,0); //Generate our reason!
 				ATA_IRQ(1,0,(DOUBLE)0,0); //Finish timeout!
 			}
@@ -838,6 +854,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[1].IRQTimeout<=0.0) //Timeout?
 			{
 				ATA[1].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
+				ATA_channel = 1;
+				ATA_slave = 1;
 				ATAPI_generateInterruptReason(1,1); //Generate our reason!
 				ATA_IRQ(1,1,(DOUBLE)0,0); //Finish timeout!
 			}
@@ -925,6 +943,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[0].ATAPI_PendingExecuteCommand<=0.0) //Finished?
 			{
 				ATA[0].Drive[0].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATA_channel = 0;
+				ATA_slave = 0;
 				ATAPI_executeCommand(0,0); //Execute the command!
 			}
 		}
@@ -934,6 +954,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[1].ATAPI_PendingExecuteCommand<=0.0) //Finished?
 			{
 				ATA[0].Drive[1].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATA_channel = 0;
+				ATA_slave = 1;
 				ATAPI_executeCommand(0,1); //Execute the command!
 			}
 		}
@@ -943,6 +965,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[0].ATAPI_PendingExecuteCommand<=0.0) //Finished?
 			{
 				ATA[1].Drive[0].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATA_channel = 1;
+				ATA_slave = 0;
 				ATAPI_executeCommand(1,0); //Execute the command!
 			}
 		}
@@ -952,6 +976,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[1].ATAPI_PendingExecuteCommand<=0.0) //Finished?
 			{
 				ATA[1].Drive[1].ATAPI_PendingExecuteCommand = 0.0; //Timer finished!
+				ATA_channel = 1;
+				ATA_slave = 1;
 				ATAPI_executeCommand(1,1); //Execute the command!
 			}
 		}
@@ -962,6 +988,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			ATA[0].Drive[0].ATAPI_diskchangeTimeout -= timepassed; //Time until finished!
 			if (ATA[0].Drive[0].ATAPI_diskchangeTimeout<=0.0) //Finished?
 			{
+				ATA_channel = 0;
+				ATA_slave = 0;
 				tickATADiskChange(0,0); //Tick the disk changing mechanism!
 			}
 		}
@@ -971,6 +999,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			ATA[0].Drive[1].ATAPI_diskchangeTimeout -= timepassed; //Time until finished!
 			if (ATA[0].Drive[1].ATAPI_diskchangeTimeout<=0.0) //Finished?
 			{
+				ATA_channel = 0;
+				ATA_slave = 1;
 				tickATADiskChange(0,1); //Tick the disk changing mechanism!
 			}
 		}
@@ -980,6 +1010,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			ATA[1].Drive[0].ATAPI_diskchangeTimeout -= timepassed; //Time until finished!
 			if (ATA[1].Drive[0].ATAPI_diskchangeTimeout<=0.0) //Finished?
 			{
+				ATA_channel = 1;
+				ATA_slave = 0;
 				tickATADiskChange(1,0); //Tick the disk changing mechanism!
 			}
 		}
@@ -989,6 +1021,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			ATA[1].Drive[1].ATAPI_diskchangeTimeout -= timepassed; //Time until finished!
 			if (ATA[1].Drive[1].ATAPI_diskchangeTimeout<=0.0) //Finished?
 			{
+				ATA_channel = 1;
+				ATA_slave = 1;
 				tickATADiskChange(1,1); //Tick the disk changing mechanism!
 			}
 		}
@@ -1002,6 +1036,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
+					ATA_channel = 0;
+					ATA_slave = 0;
 					ATAPI_generateInterruptReason(0,0); //Generate our reason!
 					ATA_IRQ(0,0,(DOUBLE)0,0); //Raise an IRQ!
 				}
@@ -1016,6 +1052,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
+					ATA_channel = 0;
+					ATA_slave = 1;
 					ATAPI_generateInterruptReason(0,1); //Generate our reason!
 					ATA_IRQ(0,1,(DOUBLE)0,0); //Raise an IRQ!
 				}
@@ -1030,6 +1068,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
+					ATA_channel = 1;
+					ATA_slave = 0;
 					ATAPI_generateInterruptReason(1,0); //Generate our reason!
 					ATA_IRQ(1,0,(DOUBLE)0,0); //Raise an IRQ!
 				}
@@ -1044,6 +1084,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
 				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
 				{
+					ATA_channel = 1;
+					ATA_slave = 1;
 					ATAPI_generateInterruptReason(1,1); //Generate our reason!
 					ATA_IRQ(1,1,(DOUBLE)0,0); //Raise an IRQ!
 				}
@@ -3727,8 +3769,6 @@ byte outATA32(word port, uint_32 value)
 	return 1;
 }
 
-byte ATA_channel = 0; //What channel?
-
 byte outATA8(word port, byte value)
 {
 	byte pendingreset = 0;
@@ -3744,6 +3784,7 @@ byte outATA8(word port, byte value)
 		}
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //DATA?
@@ -3836,6 +3877,7 @@ port3_write: //Special port #3?
 	{
 		return 1; //OK!
 	}
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //Control register?
@@ -3868,6 +3910,7 @@ OPTINLINE void ATA_readdata(byte channel, byte *result)
 		*result = 0; //No result!
 		return; //Abort!
 	}
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus) //Current status?
 	{
 	case 1: //DATA IN?
@@ -3947,6 +3990,7 @@ byte inATA8(word port, byte *result)
 		return 1; //OK!
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //DATA?
@@ -4020,6 +4064,7 @@ port3_read: //Special port #3?
 		*result = 0; //Give 0: we're not present!
 		return 1; //OK!
 	}
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //Alternate status register?
@@ -4127,6 +4172,8 @@ void ATA_DiskChanged(int disk)
 	}
 	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
 	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	ATA_channel = disk_channel; //The channel of the access?
+	ATA_slave = disk_drive; //Slave?
 	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
 	{
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
@@ -4372,4 +4419,5 @@ void initATA()
 	ATA_reset(1,1); //Hardware reset!
 	ATAPI_setModePages(CDROM_channel, 0); //Init specific mode pages!
 	ATAPI_setModePages(CDROM_channel, 1); //Init specifc mode pages!
+	ATA_channel = ATA_slave = 0; //Default to channel 0, Master!
 }
