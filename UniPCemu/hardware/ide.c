@@ -2190,7 +2190,8 @@ void ATAPI_executeData(byte channel, byte drive)
 }
 
 //read_TOC conversion from http://bochs.sourceforge.net/cgi-bin/lxr/source/iodev/hdimage/cdrom.cc
-byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sword format, byte channel, byte drive)
+//adjusted to allow multiple tracks to be reported.
+byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sword format, byte channel, byte drive)
 {
 	byte track; //Track counter!
 	char *cuedisk;
@@ -2226,7 +2227,8 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				buf[3] = 1; //Last track number
 				for (track = 1; track < 100; ++track) //Process all possible tracks!
 				{
-					if (track >= start_track) { //Process this track?
+					if (track >= start_track) //Process this track in the result?
+					{
 						if ((track == 1) && (!cueresult)) //Not a cue disk, but track 1?
 						{
 							trackfound = 1; //Found track 1 only!
@@ -2291,6 +2293,38 @@ byte Bochs_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							}
 						}
 						else //Track not found? Last track reached! Start the lead-out!
+						{
+							--track; //One track up to get the last track!
+							goto startleadout; //Stop searching for more tracks!
+						}
+					}
+					else //Maybe exists, but check anyways!
+					{
+						if ((track == 1) && (!cueresult)) //Not a cue disk, but track 1?
+						{
+							trackfound = 1; //Found track 1 only!
+						}
+						else if (cueresult) //Valid CUE disk to report a track for?
+						{
+							CDROM_selecttrack(ATA_Drives[channel][drive], track); //Selected track!
+							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
+							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+							if (cueresult != -1) //Track found?
+							{
+								trackfound = 1; //Track found!
+							}
+							else
+							{
+								trackfound = 0; //Track not found!
+							}
+							cueresult = 1; //Loaded!
+						}
+						else
+						{
+							trackfound = 0; //Track not found!
+						}
+						if (!trackfound) //Track not found? Last track reached! Start the lead-out!
 						{
 							--track; //One track up to get the last track!
 							goto startleadout; //Stop searching for more tracks!
@@ -2944,7 +2978,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			case 0:
 			case 1:
 			case 2:
-				if (!Bochs_generateTOC(&ATA[channel].Drive[drive].data[0],&toc_length,MSF,starting_track,format,channel,drive))
+				if (!ATAPI_generateTOC(&ATA[channel].Drive[drive].data[0],&toc_length,MSF,starting_track,format,channel,drive))
 				{
 					goto invalidTOCrequest; //Invalid TOC request!
 				}
