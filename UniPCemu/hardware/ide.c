@@ -706,7 +706,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 	switch (ATA[channel].Drive[drive].PendingLoadingMode)
 	{
 	case LOAD_IDLE:
-		if (spinupdown)
+		if (spinupdown && (spinupdown!=2)) //To spin up and not a keep spinning operation?
 		{
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING;
 			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
@@ -716,7 +716,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		}
 		break;
 	case LOAD_READY:
-		if (spinupdown)
+		if (spinupdown) //To spin up or a keep spinning operation?
 		{
 			//Tick the timer if needed!
 			if (ATA[channel].Drive[drive].ATAPI_diskchangeTimeout)
@@ -734,32 +734,37 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 	case LOAD_NO_DISC:
 	case LOAD_INSERT_CD:
 		ATAPI_SET_SENSE(channel,drive,0x02,0x3A,0x00); //Medium not present
-		return 0;
+		return 0; //Abort the command!
 		break;
 	case LOAD_DISC_LOADING:
 		applyDiscLoadingState:
 		if ((ATA[channel].Drive[drive].ATAPI_diskChanged || ATA[channel].Drive[drive].ATAPI_mediaChanged2) && (dowait==0))
 		{
 			ATAPI_SET_SENSE(channel,drive,0x02,0x04,0x01); //Medium is becoming available
-			return 0;
+			return 0; //Abort the command!
 		}
 		else if (dowait) //Waiting?
 		{
 			ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
 			return 2; //Pending to execute!
 		}
+		else //Becoming ready and not waiting?
+		{
+			ATAPI_SET_SENSE(channel, drive, 0x02, 0x04, 0x01); //Medium is becoming available
+			return 0; //Abort the command!
+		}
 		break;
 	case LOAD_DISC_READIED:
 		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_READY;
 		if (ATA[channel].Drive[drive].ATAPI_diskChanged || ATA[channel].Drive[drive].ATAPI_mediaChanged2)
 		{
-			if (spinupdown)
+			if (spinupdown==1)
 			{
 				ATA[channel].Drive[drive].ATAPI_diskChanged = 0; //Not changed anymore!
 				ATA[channel].Drive[drive].ATAPI_mediaChanged2 = 0; //Not changed anymore!
 			}
 			ATAPI_SET_SENSE(channel,drive,0x02,0x28,0x00); //Medium is ready (has changed)
-			return 0;
+			return 0; //Abort the command!
 		}
 		break;
 	default: //abort()?
@@ -1636,6 +1641,7 @@ void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
 
 OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sector set up!
 {
+	byte spinresponse;
 	byte abortreason, additionalsensecode;
 	sbyte cueresult;
 	byte datablock_ready = 0;
@@ -1659,11 +1665,15 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 
 	if (ATA[channel].Drive[drive].datasize == 0) goto finishedreadingATAPI; //No logical blocks shall be transferred?
 
-	if (ATAPI_common_spin_response(channel,drive,0,0)!=1)
+	if ((spinresponse = ATAPI_common_spin_response(channel,drive,2,0))!=1)
 	{
-		ATAPI_command_reportError(channel, drive); //Report the error!
-		ATAPI_aborted = 1; //We're aborted!
-		return 0; //We're finished!
+		if (spinresponse != 2) //Not simply waiting?
+		{
+			ATAPI_command_reportError(channel, drive); //Report the error!
+			ATAPI_aborted = 1; //We're aborted!
+		}
+		//When waiting, simply wait!
+		return 0; //We're finished or waiting!
 	}
 
 	if ((cuedisk = getCUEimage(ATA_Drives[channel][drive]))) //Is a CUE disk?
