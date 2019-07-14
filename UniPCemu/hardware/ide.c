@@ -714,6 +714,12 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //We're spinning up!
 			goto applyDiscLoadingState; //We're reporting to load!
 		}
+		else if (spinupdown == 2) //Need to be kept running?
+		{
+			//Not ready!
+			ATAPI_SET_SENSE(channel, drive, 0x02, 0x04, 0x00); //Drive not ready
+			return 0; //Abort the command!
+		}
 		break;
 	case LOAD_READY:
 		if (spinupdown) //To spin up or a keep spinning operation?
@@ -721,11 +727,11 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			//Tick the timer if needed!
 			if (ATA[channel].Drive[drive].ATAPI_diskchangeTimeout)
 			{
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Wait for availability!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWN_TIMEOUT; //Wait for availability!
 			}
 			else //Wait more!
 			{
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_SPINDOWN_TIMEOUT; //Wait for availability!
 			}
 			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //We're spinning down!
