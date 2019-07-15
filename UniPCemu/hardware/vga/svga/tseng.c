@@ -832,7 +832,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	11=High-color 16-bits/pixel
 	*/
 
-	if (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16))) //Attribute misc. register?
+	if (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16)) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10))) //Attribute misc. register?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
@@ -851,6 +851,13 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		else if ((et34k_tempreg&2)==0) //The second is illegal!
 		{
 			et34k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
+		}
+		if (et34k_tempreg&2) //High resolution mode?
+		{
+			if (!VGA->precalcs.BypassPalette) //Not bypassing the palette? We can't be valid!
+			{
+				et34k_tempreg = 0; //Ignore the high-resolution color mode!
+			}
 		}
 		VGA->precalcs.AttributeController_16bitDAC = et34k_tempreg; //Set the new mode to use (mode 2/3 or 0)!
 		//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
