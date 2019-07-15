@@ -2320,7 +2320,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						else //Track not found? Last track reached! Start the lead-out!
 						{
 							--track; //One track up to get the last track!
-							goto startleadout; //Stop searching for more tracks!
+							goto startleadout0; //Stop searching for more tracks!
 						}
 					}
 					else //Maybe exists, but check anyways!
@@ -2351,11 +2351,11 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						if (!trackfound) //Track not found? Last track reached! Start the lead-out!
 						{
 							--track; //One track up to get the last track!
-							goto startleadout; //Stop searching for more tracks!
+							goto startleadout0; //Stop searching for more tracks!
 						}
 					}
 				}
-				startleadout: //Start the leadout!
+				startleadout0: //Start the leadout!
 				if (track >= 1) //Valid track count to report?
 				{
 					buf[3] = track; //The last track number!
@@ -2415,15 +2415,122 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				buf[1] = 0x0a; //TOC data length
 				buf[2] = 1; //First session number
 				buf[3] = 1; //Last session number
-				for (i = 0; i < 8; i++)
-					buf[4 + i] = 0;
+				track = 1; //Track 1 only!
+				if (iscue) //CUE?
+				{
+					CDROM_selecttrack(ATA_Drives[channel][drive], track); //Selected track!
+					CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
+					LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+					cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+					if (cueresult >= 1) //Track found?
+					{
+						trackfound = 1; //Track found!
+					}
+					else
+					{
+						trackfound = 0; //Track not found!
+					}
+					if (trackfound)
+					{
+						blocks = MSF2LBAbin(cue_startM, cue_startS, cue_startF); //Start LBA of the disc!
+					}
+					else
+					{
+						blocks = 0; //Unknown?
+					}
+				}
+				else //Normal disc image?
+				{
+					blocks = 0; //Normal start of the disc! Just a plain LBA at the start of the disc!
+				}
+				buf[4] = 0; //Reserved
+				buf[5] = trackfound ? ((cueresult == 1 + MODE_AUDIO) ? 0x10 : 0x14) : 0x14; //ADR / Control: Audio/data track?
+				buf[6] = 1; //First track number in last complete session
+				buf[7] = 0; //Reserved
+				//Start Address of the first track in Last Session
+				buf[8] = (blocks >> 24) & 0xff;
+				buf[9] = (blocks >> 16) & 0xff;
+				buf[10] = (blocks >> 8) & 0xff;
+				buf[11] = (blocks >> 0) & 0xff;
 				len = 12;
 				break;
 			case 2:
 				// raw toc - emulate a single session only (ported from qemu)
 				buf[2] = 1; //First session number
 				buf[3] = 1; //Last session number
-				for (i = 0; i < 4; i++) {
+
+				//First, check the amount of tracks!
+				for (track = 1; track < 100; ++track) //Process all possible tracks!
+				{
+					if (track >= start_track) //Process this track in the result?
+					{
+						if ((track == 1) && (!iscue)) //Not a cue disk, but track 1?
+						{
+							trackfound = 1; //Found track 1 only!
+						}
+						else if (iscue) //Valid CUE disk to report a track for?
+						{
+							CDROM_selecttrack(ATA_Drives[channel][drive], track); //Selected track!
+							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
+							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+							if (cueresult >= 1) //Track found?
+							{
+								trackfound = 1; //Track found!
+							}
+							else
+							{
+								trackfound = 0; //Track not found!
+							}
+						}
+						else
+						{
+							trackfound = 0; //Track not found!
+						}
+						if (!trackfound) //Track not found? Last track reached! Start the lead-out!
+						{
+							--track; //One track up to get the last track!
+							goto startleadout2; //Stop searching for more tracks!
+						}
+					}
+					else //Maybe exists, but check anyways!
+					{
+						if ((track == 1) && (!iscue)) //Not a cue disk, but track 1?
+						{
+							trackfound = 1; //Found track 1 only!
+						}
+						else if (iscue) //Valid CUE disk to report a track for?
+						{
+							CDROM_selecttrack(ATA_Drives[channel][drive], track); //Selected track!
+							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
+							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+							if (cueresult >= 1) //Track found?
+							{
+								trackfound = 1; //Track found!
+							}
+							else
+							{
+								trackfound = 0; //Track not found!
+							}
+						}
+						else
+						{
+							trackfound = 0; //Track not found!
+						}
+						if (!trackfound) //Track not found? Last track reached! Start the lead-out!
+						{
+							--track; //One track up to get the last track!
+							goto startleadout2; //Stop searching for more tracks!
+						}
+					}
+				}
+			startleadout2:
+				if (!track) track = 1; //One track at least!
+
+				//Now, build the rest of the information!
+				for (i = 0; i < 4+(track-1); i++) { //A0-A2 and all the tracks!
 					buf[len++] = 1; //Session number
 					if (!iscue)
 					{
@@ -2438,11 +2545,13 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						buf[len++] = 0x14; //ADR / control
 					}
 					buf[len++] = 0; //Track (TOC = 0)
-					if (i < 3) {
+					if (i < 3) { //A0-A2 pointers?
 						buf[len++] = 0xa0 + i; //Point
+						//Track is the final track!
 					}
 					else {
-						buf[len++] = 1; //Point
+						track = 1 + (i - 3); //The track number to give!
+						buf[len++] = track; //Point
 					}
 					//MSF start of track!
 					buf[len++] = 0; //Min
@@ -2450,12 +2559,43 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 					buf[len++] = 0; //Frame
 
 					if (i < 2) { //A0-A2 pointers?
-						buf[len++] = 0; //Zero
-						buf[len++] = 1; //Min
-						buf[len++] = 0; //Sec
-						buf[len++] = 0; //Frame
+						switch (i) //What A record?
+						{
+						case 0: //A0? First track number/disk type!
+							if (iscue == 0) //Not a cue result?
+							{
+								buf[len++] = 0; //Zero
+								buf[len++] = 1; //Min: First track number
+								buf[len++] = 0; //Sec: Disc type
+								buf[len++] = 0; //Frame
+							}
+							else //CUE?
+							{
+								buf[len++] = 0; //Zero
+								buf[len++] = 0; //Min
+								buf[len++] = 0; //Sec
+								buf[len++] = 0; //Frame
+							}
+							break;
+						case 1: //A1? Last track number
+							if (iscue == 0) //Not a cue result?
+							{
+								buf[len++] = 0; //Zero
+								buf[len++] = track; //Min: Last track number
+								buf[len++] = 0; //Sec
+								buf[len++] = 0; //Frame
+							}
+							else //CUE?
+							{
+								buf[len++] = 0; //Zero
+								buf[len++] = track; //Min: Last track number
+								buf[len++] = 0; //Sec
+								buf[len++] = 0; //Frame
+							}
+							break;
+						}
 					}
-					else if (i == 2) {
+					else if (i == 2) { //A2? Start position of lead-out!
 						if (iscue == 0) //Not a cue result?
 						{
 							blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
@@ -2491,11 +2631,47 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							}
 						}
 					}
-					else {
-						buf[len++] = 0;
-						buf[len++] = 0;
-						buf[len++] = 0;
-						buf[len++] = 0;
+					else { //The actual tracks?
+						if ((track == 1) && (!iscue)) //Not a cue disk, but track 1?
+						{
+							trackfound = 1; //Found track 1 only!
+							cue_startM = 0;
+							cue_startS = 2;
+							cue_startF = 0;
+						}
+						else if (iscue) //Valid CUE disk to report a track for?
+						{
+							CDROM_selecttrack(ATA_Drives[channel][drive], track); //Selected track!
+							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
+							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
+							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
+							if (cueresult >= 1) //Track found?
+							{
+								trackfound = 1; //Track found!
+							}
+							else
+							{
+								trackfound = 0; //Track not found!
+							}
+						}
+						else
+						{
+							trackfound = 0; //Track not found!
+						}
+						if (!trackfound) //Track not found?
+						{
+							buf[len++] = 0;
+							buf[len++] = 0;
+							buf[len++] = 0;
+							buf[len++] = 0;
+						}
+						else //Start position of the track?
+						{
+							buf[len++] = 0; //Zero
+							buf[len++] = cue_startM; //M
+							buf[len++] = cue_startS; //S
+							buf[len++] = cue_startF; //F
+						}
 					}
 				}
 				buf[0] = ((len - 2) >> 8) & 0xff;
