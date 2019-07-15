@@ -379,7 +379,10 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	return extrastatus & 1; //Read next pixel?
 }
 
-static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_8bit, VGA_AttributeController_16bit }; //Both modes we use!
+//0=VGA-compatible, 1=8-bit, 2=reserved, 3=16-bit
+static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit, VGA_AttributeController_4bit, VGA_AttributeController_16bit }; //Both modes we use!
+//0=4-bit, 1=8-bit
+static VGA_AttributeController_Mode attributecontroller_VGAmodes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
 
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
@@ -391,7 +394,7 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	}
 	else //VGA compatibility mode?
 	{
-		attrmode = attributecontroller_modes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
+		attrmode = attributecontroller_VGAmodes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
 	}
 }
 
