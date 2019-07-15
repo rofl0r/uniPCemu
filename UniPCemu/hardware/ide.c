@@ -2447,7 +2447,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				buf[5] = trackfound ? ((cueresult == 1 + MODE_AUDIO) ? 0x10 : 0x14) : 0x14; //ADR / Control: Audio/data track?
 				buf[6] = 1; //First track number in last complete session
 				buf[7] = 0; //Reserved
-				//Start Address of the first track in Last Session
+				//Start Address of the first track(in LBA format) in Last Session
 				buf[8] = (blocks >> 24) & 0xff;
 				buf[9] = (blocks >> 16) & 0xff;
 				buf[10] = (blocks >> 8) & 0xff;
@@ -2600,35 +2600,19 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						{
 							blocks = ATA[channel].Drive[drive].ATAPI_disksize; //Get the drive size from the disk information, in 2KB blocks!
 							// Start address
-							if (msf) {
-								buf[len++] = 0; // Zero
-								buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
-								buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
-								buf[len++] = (byte)((blocks + 150) % 75); // frame;
-							}
-							else {
-								buf[len++] = (blocks >> 24) & 0xff;
-								buf[len++] = (blocks >> 16) & 0xff;
-								buf[len++] = (blocks >> 8) & 0xff;
-								buf[len++] = (blocks >> 0) & 0xff;
-							}
+							buf[len++] = 0; // Zero
+							buf[len++] = (byte)(((blocks + 150) / 75) / 60); // minute
+							buf[len++] = (byte)(((blocks + 150) / 75) % 60); // second
+							buf[len++] = (byte)((blocks + 150) % 75); // frame;
 						}
 						else
 						{
 							// Start address
 							blocks = MSF2LBAbin(cue_M, cue_S, cue_F); //Take the blocks of the CUE image!
-							if (msf) {
-								buf[len++] = 0; // Zero
-								buf[len++] = cue_M; // minute
-								buf[len++] = cue_S; // second
-								buf[len++] = cue_F; // frame;
-							}
-							else {
-								buf[len++] = (blocks >> 24) & 0xff;
-								buf[len++] = (blocks >> 16) & 0xff;
-								buf[len++] = (blocks >> 8) & 0xff;
-								buf[len++] = (blocks >> 0) & 0xff;
-							}
+							buf[len++] = 0; // Zero
+							buf[len++] = cue_M; // minute
+							buf[len++] = cue_S; // second
+							buf[len++] = cue_F; // frame;
 						}
 					}
 					else { //The actual tracks?
