@@ -849,7 +849,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et34k_tempreg &= 3; //Only 2 bits are used for detection!
 		if (VGA->enable_SVGA==2) et34k_tempreg = 0; //Unused on the ET3000! Force default mode!
 		//Manual says: 00b=Normal power-up default, 01b=High-resolution mode(up to 256 colors), 10b=Reserved, 11b=High-color 16-bit/pixel
-		else if (et34k_tempreg==2) //The third value is illegal(reserved in the manual)!
+		if (et34k_tempreg==2) //The third value is illegal(reserved in the manual)!
 		{
 			et34k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
 		}
