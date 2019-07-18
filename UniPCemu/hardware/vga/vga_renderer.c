@@ -622,8 +622,8 @@ OPTINLINE void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
-	//drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
-	drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank!
+	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	//drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank green for debugging!
 	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
@@ -736,7 +736,7 @@ void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 		else //Normal VGA behaviour?
 		{
 			VGA->CRTC.DACOutput = VGA->precalcs.overscancolor; //Overscan index!
-			VGA->CRTC.DACOutput = 0x2; //Blue!
+			//VGA->CRTC.DACOutput = 0x2; //Blue for debugging the overscan!
 			drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
 		}
 	//}
