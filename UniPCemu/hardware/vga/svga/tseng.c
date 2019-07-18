@@ -166,6 +166,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		if ((val&0xE0)!=et34kdata->hicolorDACcommand) //Command issued?
 		{
 			et34kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
+			getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(val&0x18); //Bits 3-4 accesses the PEL Mask Registers(REG02)!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
 		}
 		return 1; //We're overridden!
@@ -550,6 +551,8 @@ byte Tseng34K_readIO(word port, byte *result)
 		else
 		{
 			*result = et34kdata->hicolorDACcommand;
+			*result |= (getActiveVGA()->registers->DACMaskRegister&0x18); //Bits 3-4 accesses the PEL Mask Registers(REG02)!
+			if (((*result & 0xE0)==0x20) || ((*result&0xE0)==0x60)) *result |= 1; //SC11487: Set if bits 5-7 is 1 or 3!
 			return 1; //Handled!
 		}
 		break;
@@ -1235,27 +1238,36 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		VGA->precalcs.VMemMask = VGA->precalcs.VRAMmask&et34kdata->memwrap; //Apply the SVGA memory wrap on top of the normal memory wrapping!
 	}
 
-	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER)) //DAC Mask register has been updated?
+	if ((whereupdated==WHEREUPDATED_ALL) || (whereupdated==WHEREUPDATED_DACMASKREGISTER) || //DAC Mask register has been updated?
+		(AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x16)) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10))) //Attribute misc. register?
+		) 
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
 		et34k_tempreg = et34k(VGA)->hicolorDACcommand; //Load the command to process! (Process like a SC11487)
 		DACmode = VGA->precalcs.DACmode; //Load the current DAC mode!
-		if ((et34k_tempreg&0xC0)==0x80) //15-bit hicolor mode?
-		{
-			DACmode &= ~1; //Clear bit 0: we're one bit less!
-			DACmode |= 2; //Set bit 1: we're a 16-bit mode!
-		}
-		else if ((et34k_tempreg&0xC0)==0xC0) //16-bit hicolor mode?
+		if (VGA->precalcs.AttributeController_16bitDAC == 3) //In 16-bit mode? Raise the DAC's HICOL input, thus making it 16-bit too!
 		{
 			DACmode |= 3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
 		}
-		else //Normal 8-bit DAC?
+		else //Legacy DAC mode? Use the DAC itself for determining the mode it's rendering in!
 		{
-			DACmode &= ~3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+			if ((et34k_tempreg & 0xC0) == 0x80) //15-bit hicolor mode?
+			{
+				DACmode &= ~1; //Clear bit 0: we're one bit less!
+				DACmode |= 2; //Set bit 1: we're a 16-bit mode!
+			}
+			else if ((et34k_tempreg & 0xC0) == 0xC0) //16-bit hicolor mode?
+			{
+				DACmode |= 3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+			}
+			else //Normal 8-bit DAC?
+			{
+				DACmode &= ~3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+			}
 		}
-		if (et34k_tempreg&0x20) //Two pixel clocks are used to latch the two bytes?
+		if (et34k_tempreg & 0x20) //Two pixel clocks are used to latch the two bytes?
 		{
 			DACmode |= 4; //Use two pixel clocks to latch the two bytes?
 		}
