@@ -547,6 +547,11 @@ void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
 }
 
+void VGA_VRetracePending(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	VGA->CRTC.y = 0; //Reset destination row!
+}
+
 byte CGAMDARenderer = 0; //Render CGA style?
 
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -567,6 +572,11 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		}
 	}
 	++Sequencer->Scanline; //Next scanline to process!
+}
+
+void VGA_HRetracePending(SEQ_DATA *Sequencer, VGA_Type *VGA)
+{
+	VGA->CRTC.x = 0; //Reset destination column!
 }
 
 //All renderers for active display parts:
@@ -612,7 +622,8 @@ OPTINLINE void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
-	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	//drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank!
 	video_updateLightPen(VGA,0); //Update the light pen!
 	++VGA->CRTC.x; //Next x!
 }
@@ -725,6 +736,7 @@ void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 		else //Normal VGA behaviour?
 		{
 			VGA->CRTC.DACOutput = VGA->precalcs.overscancolor; //Overscan index!
+			VGA->CRTC.DACOutput = 0x2; //Blue!
 			drawPixel(VGA, VGA_DAC(VGA, VGA->precalcs.overscancolor)); //Draw overscan!
 		}
 	//}
@@ -1092,7 +1104,11 @@ void exechblankretrace(SEQ_DATA *Sequencer, VGA_Type *VGA, word signal)
 	{
 		if (unlikely(signal&VGA_SIGNAL_HRETRACEEND)) //HRetrace end?
 		{
-			hretrace = 0; //We're not retraing anymore!
+			hretrace = 0; //We're not retracing anymore!
+		}
+		else //HRetrace pending?
+		{
+			VGA_HRetracePending(Sequencer, VGA); //Execute the handler!
 		}
 	}
 }
@@ -1173,6 +1189,7 @@ recalcsignal: //Recalculate the signal to process!
 			else
 			{
 				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,1); //Vertical retrace?
+				VGA_VRetracePending(Sequencer, VGA); //Execute the handler!
 			}
 		}
 		else //No vretrace?
