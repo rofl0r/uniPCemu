@@ -37,6 +37,7 @@
 #include "headers/hardware/vga/svga/tseng.h" //ET3000/ET4000 support!
 #include "headers/hardware/midi/mididevice.h" //For Direct MIDI support!
 #include "headers/mmu/mmuhandler.h" //MMU memory support!
+#include "headers/hardware/vga/vga_precalcs.h" //Precalcs support!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -6545,6 +6546,7 @@ void BIOS_DumpVGA()
 		VGA_DUMPColors(); //Dump all colors!
 		dumpVGATextFonts(); //Dump all fonts used!
 		dump_CRTCTiming(); //Dump all CRTC timing currently in use!
+		VGA_LOGCRTCSTATUS(); //Dump CRTC status itself!
 
 	#ifdef DUMP_VGATEST256COL
 		uint_32 rowwidth = (getActiveVGA()->precalcs.rowsize<<2); //The row width, in bytes and pixels!
