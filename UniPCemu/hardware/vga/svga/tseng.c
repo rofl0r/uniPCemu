@@ -166,7 +166,6 @@ byte Tseng34K_writeIO(word port, byte val)
 		if ((val&0xE0)!=et34kdata->hicolorDACcommand) //Command issued?
 		{
 			et34kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
-			getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(val&0x18); //Bits 3-4 accesses the PEL Mask Registers(REG02)!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
 		}
 		return 1; //We're overridden!
@@ -551,8 +550,6 @@ byte Tseng34K_readIO(word port, byte *result)
 		else
 		{
 			*result = et34kdata->hicolorDACcommand;
-			*result |= (getActiveVGA()->registers->DACMaskRegister&0x18); //Bits 3-4 accesses the PEL Mask Registers(REG02)!
-			if (((*result & 0xE0)==0x20) || ((*result&0xE0)==0x60)) *result |= 1; //SC11487: Set if bits 5-7 is 1 or 3!
 			return 1; //Handled!
 		}
 		break;
