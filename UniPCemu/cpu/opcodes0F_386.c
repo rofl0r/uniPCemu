@@ -571,7 +571,7 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 		}
 	}
 
-	if (((readflags & 0x40) == 0) && (segment!=-128))
+	if ((readflags & 0x40) == 0)
 	{
 		if (checkDirectMMUaccess(realaddress, readflags, CPL)) //Failure in the Paging Unit?
 		{
