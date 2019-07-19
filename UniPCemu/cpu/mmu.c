@@ -219,7 +219,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 	}
 	skipdebugger:
 
-	if ((readflags&0x40)==0) //Checking against paging?
+	if (((readflags&0x40)==0) && (segdesc!=-128)) //Checking against paging?
 	{
 		if (unlikely(checkDirectMMUaccess(realaddress,(readflags&(~0xE0)),CPL))) //Failure in the Paging Unit? Don't give it the special flags we use!
 		{
@@ -268,7 +268,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	byte result;
 	uint_32 originaladdr;
 	originaladdr = realaddress; //The linear address!
-	if (is_paging()) //Are we paging?
+	if (is_paging() && (segdesc!=-128)) //Are we paging?
 	{
 		realaddress = mappage(realaddress,0,CPL); //Map it using the paging mechanism!
 	}
@@ -301,7 +301,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 {
 	uint_32 originaladdr;
 	originaladdr = realaddress; //The linear address!
-	if (is_paging()) //Are we paging?
+	if (is_paging() && (segdesc!=-128)) //Are we paging?
 	{
 		realaddress = mappage(realaddress,1,CPL); //Map it using the paging mechanism!
 	}

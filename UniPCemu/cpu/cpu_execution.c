@@ -18,7 +18,7 @@ byte CPU_request_MMUrb(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrb(offset, (segdesc == -1) ? 1 : 0); //Request a read!
+		return BIU_request_Memoryrb(offset, (segdesc == -128) ? 0 : 1); //Request a read!
 	}
 }
 
@@ -31,7 +31,7 @@ byte CPU_request_MMUrw(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrw(offset,(segdesc==-1)?1:0); //Request a read!
+		return BIU_request_Memoryrw(offset, (segdesc == -128) ? 0 : 1); //Request a read!
 	}
 }
 
@@ -44,7 +44,7 @@ byte CPU_request_MMUrdw(sword segdesc, uint_32 offset, byte is_offset16)
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryrdw(offset, (segdesc == -1) ? 1 : 0); //Request a read!
+		return BIU_request_Memoryrdw(offset, (segdesc == -128) ? 0 : 1); //Request a read!
 	}
 }
 
@@ -57,7 +57,7 @@ byte CPU_request_MMUwb(sword segdesc, uint_32 offset, byte val, byte is_offset16
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memorywb(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
+		return BIU_request_Memorywb(offset,val, (segdesc == -128) ? 0 : 1); //Request a write!
 	}
 }
 
@@ -70,7 +70,7 @@ byte CPU_request_MMUww(sword segdesc, uint_32 offset, word val, byte is_offset16
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memoryww(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
+		return BIU_request_Memoryww(offset,val, (segdesc == -128) ? 0 : 1); //Request a write!
 	}
 }
 
@@ -83,7 +83,7 @@ byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offs
 	}
 	else //Paging/direct access?
 	{
-		return BIU_request_Memorywdw(offset,val, (segdesc == -1) ? 1 : 0); //Request a write!
+		return BIU_request_Memorywdw(offset,val,(segdesc==-128)?0:1); //Request a write!
 	}
 }
 
