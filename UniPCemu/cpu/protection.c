@@ -1245,9 +1245,6 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
 				{
-					//Privilege change!
-					CPU[activeCPU].CPL = getRPL(value); //New privilege level!
-
 					//Now, return to the old prvilege level!
 					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 					if (CPU_Operand_size[activeCPU])
@@ -1275,6 +1272,8 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						return 1; //POPped?
 					}
 					is_stackswitching = 0; //We've finished stack switching!
+					//Privilege change!
+					CPU[activeCPU].CPL = getRPL(value); //New privilege level!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					if (CPU_Operand_size[activeCPU])
 					{
@@ -1309,9 +1308,9 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
 					}
 
-					CPU[activeCPU].CPL = getRPL(value); //New CPL!
-
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
+
+					CPU[activeCPU].CPL = getRPL(value); //New CPL!
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
 					REG_ESP = tempesp;
 
