@@ -1606,43 +1606,43 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 		}
 		break;
 	case 7: //Generate Static HDD?
-		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
-		{
-			generateHDD_type = 3; //Minimal type!
-			BIOS_Menu = 11; //Generate Static HDD!
-		}
-		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Square used?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 1; //Bochs type!
 			BIOS_Menu = 11; //Generate Static HDD!
 		}
+		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Minimal type?
+		{
+			generateHDD_type = 3; //Minimal type!
+			BIOS_Menu = 11; //Generate Static HDD!
+		}
 		break;
 	case 8: //Generate Dynamic HDD?
-		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
-		{
-			generateHDD_type = 2; //Minimal type!
-			BIOS_Menu = 12; //Generate Dynamic HDD!
-		}
-		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Square used?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 3; //Bochs type!
 			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
+		else if (Menu_Stat==BIOSMENU_STAT_SQUARE) //Minimal type?
+		{
+			generateHDD_type = 2; //Minimal type!
+			BIOS_Menu = 12; //Generate Dynamic HDD!
+		}
 		break;
 	case 9: //Convert static to dynamic HDD?
-		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 19; //Convert static to dynamic HDD!
 		}
 		break;
 	case 10: //Convert dynamic to static HDD?
-		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 20; //Convert dynamic to static HDD!
 		}
 		break;
 	case 11: //Defragment a dynamic HDD Image?
-		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
 		}
