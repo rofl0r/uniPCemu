@@ -18,6 +18,9 @@ extern MMU_type MMU; //MMU for direct access!
 //Log invalid memory accesses?
 //#define LOG_INVALID_MEMORY
 
+//Log high memory access during special debugger?
+//#define LOG_HIGH_MEMORY
+
 //Now the core memory support!
 
 byte MMU_logging = 0; //Are we logging?
@@ -487,7 +490,11 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
+#ifdef LOG_HIGH_MEMORY
 	is_debugging = ((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000))); //Are we debugging?
+#else
+	is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
 	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
 		//Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)).
@@ -561,10 +568,17 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 	byte nonexistant = 0;
 	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
 	{
+#ifdef LOG_HIGH_MEMORY
 		if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
 		{
 			debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
 		}
+#else
+		if (unlikely(MMU_logging == 1)) //Data debugging?
+		{
+			debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
+		}
+#endif
 		memoryprotect_FE0000 = ((~value)&2); //Write-protect 128KB RAM at 0xFE0000?
 		if (value&1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
 		{
@@ -589,11 +603,19 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
+#ifdef LOG_HIGH_MEMORY
 	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
 	{
 		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
 		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
+#else
+	if (unlikely(MMU_logging == 1)) //Data debugging?
+	{
+		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
+		debugger_logmemoryaccess(1, realaddress, value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
+	}
+#endif
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
 	DRAM_access(realaddress); //Tick the DRAM!
 	if (unlikely((realaddress+1)>user_memory_used)) //More written than present in memory (first write to addr)?
@@ -630,7 +652,11 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 {
 	byte data;
 	byte is_debugging;
+#ifdef LOG_HIGH_MEMORY
 	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
+#else
+	is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
 	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
 	{
 		data = MMU_INTERNAL_directrb(realaddress, index); //Read the data from memory (and port I/O)!		
@@ -651,7 +677,11 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 		byte addr[4];
 	} addressconverter;
 	byte status;
+#ifdef LOG_HIGH_MEMORY
 	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
+#else
+	is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
 	if (enableMMUbuffer && MMUBuffer) //To buffer all writes?
 	{
 		if (fifobuffer_freesize(MMUBuffer) >= 7) //Enough size left to buffer?
