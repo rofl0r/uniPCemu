@@ -1608,7 +1608,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 		// turn any MIDI notes currently playing:
 		midiOutReset(device);
 		lock(LOCK_INPUT);
-		if (RDPDelta)
+		if (RDPDelta&1)
 		{
 			unlock(LOCK_INPUT);
 			return;
@@ -1654,7 +1654,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	if (direct_midi)
 	{
 		lock(LOCK_INPUT);
-		RDPDelta = 0;
+		RDPDelta &= ~1; //Clear our RDP delta flag!
 		unlock(LOCK_INPUT);
 		// Open the MIDI output port
 		flag = midiOutOpen(&device, 0, 0, 0, CALLBACK_NULL);
