@@ -1691,7 +1691,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
 			{
-				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+				if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
 				switch (cueresult)
 				{
 				case 1+MODE_MODE1DATA: //Mode 1 block?
@@ -1725,7 +1725,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
 					{
-						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+						if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
 						switch (cueresult)
 						{
 						case 1 + MODE_MODE1DATA: //Mode 1 block?
@@ -1747,7 +1747,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				{
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
 					{
-						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
+						if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
 						switch (cueresult)
 						{
 						case 1 + MODE_MODE1DATA: //Mode 1 block?

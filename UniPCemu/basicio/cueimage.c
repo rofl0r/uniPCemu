@@ -476,6 +476,12 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 					if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 					{
 						LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
+						if (cue_status.discard_gap) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
+						{
+							if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)-cue_status.discard_gap) > LBA) result = -2 - cue_status.discard_gap; //Invalid? Current LBA isn't in our range(we're below it)?
+							else if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)-cue_status.discard_gap) < LBA) result = -2 - cue_status.discard_gap; //Invalid? Current LBA isn't in our range(we're above it)!
+						}
+
 						if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_status.total_discard_gap) > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're below it)?
 						if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_status.total_discard_gap) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're above it)!
 						goto foundMSF; //We've found the location of our data!
@@ -484,6 +490,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			}
 			finishMSFscan:
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
+			cue_current.discard_gap = 0; //Next entries in this track don't discard the gap!
 			cue_next.is_present = 0; //Set cue_next to not present!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
@@ -1043,6 +1050,11 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 			{
 				LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
+				if (cue_status.discard_gap) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
+				{
+					if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)-cue_status.discard_gap) > LBA) result = -2 - cue_status.discard_gap; //Invalid? Current LBA isn't in our range(we're below it)?
+					else if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)-cue_status.discard_gap) < LBA) result = -2 - cue_status.discard_gap; //Invalid? Current LBA isn't in our range(we're above it)!
+				}
 				if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.total_discard_gap) > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're below it)?
 				if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.total_discard_gap) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
@@ -1081,17 +1093,17 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if ((cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize))>=fsize) //Past EOF?
+				if ((cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.total_discard_gap)*cue_current.status.track_mode->sectorsize))>=fsize) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if ((cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))+1)*cue_current.status.track_mode->sectorsize)>fsize)) //Past EOF?
+				if ((cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.total_discard_gap)+1)*cue_current.status.track_mode->sectorsize)>fsize)) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if (emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)))*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
+				if (emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.total_discard_gap)*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Couldn't seek to sector!
