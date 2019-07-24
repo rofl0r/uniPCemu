@@ -1128,8 +1128,8 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		{
 			if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 			{
-				if (cue_current.status.MSFPosition > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting before it)?
-				if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting after it)!
+				if (cue_current.status.MSFPosition > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're requesting before it)?
+				if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're requesting after it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
 			foundMSF: //Found the location of our data?
 				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
