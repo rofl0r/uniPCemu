@@ -478,7 +478,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					{
 						if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) > LBA) &&
 							((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap) > LBA) &&
-							(((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap)+(((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA))+LBA)<=((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap)))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
+							((((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA))+LBA)<=((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
 					}
 					if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 					{
@@ -1054,7 +1054,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		{
 			if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) > LBA) &&
 				((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap) > LBA) &&
-				(((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) + (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA)) + LBA) <= ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap)))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
+				((((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA)) + LBA) <= ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
 		}
 		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
 		if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
