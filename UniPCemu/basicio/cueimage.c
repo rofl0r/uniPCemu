@@ -1122,7 +1122,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		*F = *endF;
 
 		LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
-		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
+		if (cue_current.status.MSFPosition >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
 		if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
 			((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack==0))) //Current track number and subtrack number to lookup?
 		{
