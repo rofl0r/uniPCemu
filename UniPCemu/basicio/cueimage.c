@@ -101,6 +101,8 @@ typedef struct
 	byte S; //Current S!
 	byte F; //Current F!
 	byte got_index; //Gotten an index?
+	uint_32 discard_gap; //How much gap to discard has been built up for the current track?
+	uint_32 total_discard_gap; //Total gap for the file!
 } CUESHEET_STATUS;
 
 typedef struct
@@ -124,7 +126,7 @@ char identifier_INDEX[6] = "index";
 char identifier_POSTGAP[8] = "postgap";
 
 CDROM_TRACK_MODE cdrom_track_modes[10] = {
-	{"AUDIO",2352,MODE_AUDIO},	//Audio / Music(2352 � 588 samples)
+	{"AUDIO",2352,MODE_AUDIO},	//Audio / Music(2352 - 588 samples)
 	{"CDG",2448,MODE_KARAOKE}, //Karaoke CD+G (2448)
 	{"MODE1/2048",2048,MODE_MODE1DATA}, //CD - ROM Mode 1 Data(cooked)
 	{"MODE1/2352",2352,MODE_MODE1DATA},	//CD - ROM Mode 1 Data(raw)
@@ -474,8 +476,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 					if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 					{
 						LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
-						if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're below it)?
-						if (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're above it)!
+						if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_status.total_discard_gap) > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're below it)?
+						if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_status.total_discard_gap) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're above it)!
 						goto foundMSF; //We've found the location of our data!
 					}
 				}
@@ -654,6 +656,9 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			index_F = (track_number_high * 10) + track_number_low; //F!
 
 			if (index_F > 74) continue; //Incorrect Frame!
+			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Get the current LBA position we're advancing?
+			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
+			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_POSTGAP, safe_strlen(identifier_POSTGAP, sizeof(identifier_POSTGAP))) == 0) //POSTGAP command?
 		{
@@ -825,6 +830,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			index_F = (track_number_high * 10) + track_number_low; //F!
 
 			if (index_F > 74) continue; //Incorrect Frame!
+			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
+			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_TRACK, safe_strlen(identifier_TRACK, sizeof(identifier_TRACK))) == 0) //Track command?
 		{
@@ -896,6 +903,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			{
 				result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
 			}
+			cue_status.discard_gap = 0; //No gap yet for the current track!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_FILE, safe_strlen(identifier_FILE, sizeof(identifier_FILE))) == 0) //File command?
 		{
@@ -1035,8 +1043,8 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 			{
 				LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
-				if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're below it)?
-				if (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
+				if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.total_discard_gap) > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're below it)?
+				if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.total_discard_gap) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
 			foundMSF: //Found the location of our data?
 				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
