@@ -179,7 +179,7 @@ extern char diskpath[256]; //Disk path!
 int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte report1ontrackfound) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte orig_M, orig_S, orig_F;
-	sbyte result=-1; //The result! Default: out of range!
+	int_64 result=-1; //The result! Default: out of range!
 	FILEPOS fsize=0;
 	CUESHEET_STATUS cue_status;
 	CUESHEET_ENTRYINFO cue_current, cue_next; //Current to check and next entries(if any)!
@@ -662,7 +662,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			index_F = (track_number_high * 10) + track_number_low; //F!
 
 			if (index_F > 74) continue; //Incorrect Frame!
-			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Get the current LBA position we're advancing?
+			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Calculate the amount to be this type of special case!
 			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
 			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
 		}
@@ -836,6 +836,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			index_F = (track_number_high * 10) + track_number_low; //F!
 
 			if (index_F > 74) continue; //Incorrect Frame!
+			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Calculate the amount to be this type of special case!
 			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
 			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
 		}
@@ -907,7 +908,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_status.got_track = 1; //Track has been parsed!
 			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
 			{
-				result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
+				if (result > -2) //Not the special result?
+				{
+					result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
+				}
 			}
 			cue_status.discard_gap = 0; //No gap yet for the current track!
 		}
