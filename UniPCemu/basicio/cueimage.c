@@ -478,7 +478,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 						LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
 						if (cue_status.discard_gap) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
 						{
-							if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) - cue_current.status.discard_gap) >= LBA) && ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - cue_current.status.discard_gap) <= LBA)) result = -2 - cue_current.status.discard_gap; //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
+							if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.status.total_discard_gap - cue_current.status.discard_gap) >= LBA) && ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.status.total_discard_gap - cue_current.status.discard_gap) <= LBA)) result = -2 - cue_current.status.discard_gap; //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
 						}
 
 						if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_status.total_discard_gap) > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're below it)?
@@ -1055,7 +1055,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
 				if (cue_status.discard_gap) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
 				{
-					if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) - cue_current.status.discard_gap) >= LBA) && ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - cue_current.status.discard_gap) <= LBA)) result = -2 - cue_current.status.discard_gap; //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
+					if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap - cue_current.status.discard_gap) >= LBA) && ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap - cue_current.status.discard_gap) <= LBA)) result = -2 - cue_current.status.discard_gap; //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
 				}
 				if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.status.total_discard_gap) > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're below it)?
 				if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.status.total_discard_gap) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
