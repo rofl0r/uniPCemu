@@ -1656,7 +1656,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	char *cuedisk;
 	byte *datadest = NULL; //Destination of our loaded data!
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_track;
-	int_64 cue_trackskip;
+	int_64 cue_trackskip, cue_trackskip2;
 	uint_32 reqLBA;
 	uint_32 disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //The size of the disk in sectors!
 	if (ATA[channel].Drive[drive].commandstatus == 1) //We're reading already?
@@ -1696,11 +1696,10 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			reqLBA = ATA[channel].Drive[drive].ATAPI_LBA; //What LBA are we calculating for?
 			for (cue_track=0;cue_track<100;++cue_track) //Check all tracks!
 			{
-				CDROM_selecttrack(disk,cue_track); //All tracks!
-				CDROM_selectsubtrack(disk,0); //All subtracks!
-				if ((cueresult = cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF)) != 0) //Geometry gotten?
+				CDROM_selecttrack(ATA_Drives[channel][drive],cue_track); //All tracks!
+				CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
+				if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF)) != 0) //Geometry gotten?
 				{
-					if (MSF2LBAbin(cue_startM,cue_startS,cue_startF)>LBA) break; //Stop when OOR!
 					if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], cue_startM, cue_startS, cue_startF, NULL, 0))!=0) //Try to read as specified!
 					{
 						if (cue_trackskip<-2) //Skipping more?
@@ -1708,9 +1707,9 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							skipPregap += -(cue_trackskip+2); //More pregap to skip!
 						}
 						LBA2MSFbin(reqLBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
-						if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, NULL, 0))>=1) //Try to find out if we're here!
+						if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, NULL, 0))>=1) //Try to find out if we're here!
 						{
-							switch (cue_trackskip)
+							switch (cue_trackskip2)
 							{
 							case 1+MODE_MODE1DATA: //Mode 1 block?
 							if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
@@ -1720,6 +1719,10 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							break;
 							case 1+MODE_AUDIO: //Audio block?
 								if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) goto startCUEread; //Invalid type to read!
+								if (cue_trackskip <= -2) //Some pregap for this song? Include the pregap in the read?
+								{
+									skipPregap -= (cue_trackskip + 2); //Undo the pregap, as this is raw audio we're reading in this case!
+								}
 								goto startCUEread; //Ready to process
 							default: //Unknown/unsupported mode/OOR?
 								continue; //Continue searching!
@@ -1738,7 +1741,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
 			{
-				if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
+				if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 				switch (cueresult)
 				{
 				case 1+MODE_MODE1DATA: //Mode 1 block?
@@ -1752,7 +1755,16 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				case 1+MODE_AUDIO: //Audio block?
 					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 					if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
+					datablock_ready = 1; //Read and ready to process!
 				default: //Unknown/unsupported mode?
+					if (cueresult < -2) //Pregap?
+					{
+						if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) //Not audio to read? don't handle!
+							break; //Unknown data!
+						//Otherwise, supported audio read from pregap/postgap!
+						memset(&ATA[channel].Drive[drive].data[0], 0, ATA[channel].Drive[drive].datablock); //Empty block for pregap/postgap!
+						datablock_ready = 1; //Read and ready to process!
+					}
 					break; //Unknown data!
 				}
 			}
@@ -1771,7 +1783,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, datadest, 0x800))!=0) //Try to read as specified!
 					{
-						if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
+						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						switch (cueresult)
 						{
 						case 1 + MODE_MODE1DATA: //Mode 1 block?
@@ -1785,6 +1797,14 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0)  && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 							break;
 						default: //Unknown/unsupported mode?
+							if (cueresult < -2) //Pregap?
+							{
+								if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) //Not audio to read? don't handle!
+									break; //Unknown data!
+								//Otherwise, supported audio read from pregap/postgap!
+								memset(&ATA[channel].Drive[drive].data[0], 0, ATA[channel].Drive[drive].datablock); //Empty block for pregap/postgap!
+								datablock_ready = 1; //Read and ready to process!
+							}
 							break; //Unknown data!
 						}
 					}
@@ -1793,7 +1813,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				{
 					if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &decreasebuffer, 2352))!=0) //Try to read as specified!
 					{
-						if ((cueresult == -1) || (cueresult<-2)) goto ATAPI_readSector_OOR; //Out of range?
+						if (cueresult == -1) goto ATAPI_readSector_OOR; //Out of range?
 						switch (cueresult)
 						{
 						case 1 + MODE_MODE1DATA: //Mode 1 block?
@@ -1809,7 +1829,15 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 							if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 						default: //Unknown/unsupported mode?
-						if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
+							if (ATA[channel].Drive[drive].expectedReadDataType == 0xFF) break; //Invalid in read sector(n) mode!
+							if (cueresult < -2) //Pregap?
+							{
+								if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) //Not audio to read? don't handle!
+									break; //Unknown data!
+								//Otherwise, supported audio read from pregap/postgap!
+								memset(&ATA[channel].Drive[drive].data[0], 0, ATA[channel].Drive[drive].datablock); //Empty block for pregap/postgap!
+								datablock_ready = 1; //Read and ready to process!
+							}
 							break; //Unknown data!
 						}
 					}
@@ -2256,6 +2284,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 	char *cuedisk;
 	int_64 cueresult=0;
 	byte cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_M, cue_S, cue_F;
+	byte cue_skipM, cue_skipS, cue_skipF; //The address after checking the format of the track, where the format starts!
 	unsigned i;
 	uint_32 blocks;
 	int len = 4;
@@ -2303,6 +2332,11 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							if ((cueresult>=1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
+								if (cueresult <= -2) //To skip some tracks?
+								{
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF,NULL,0); //Try to read as specified!
+								}
 							}
 							else
 							{
@@ -2471,6 +2505,11 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 					if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 					{
 						trackfound = 1; //Track found!
+						if (cueresult <= -2) //To skip some tracks?
+						{
+							LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+							cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
+						}
 					}
 					else
 					{
@@ -2524,6 +2563,11 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
+								if (cueresult <= -2) //To skip some tracks?
+								{
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
+								}
 							}
 							else
 							{
@@ -2555,6 +2599,11 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
+								if (cueresult <= -2) //To skip some tracks?
+								{
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
+								}
 							}
 							else
 							{
@@ -2678,6 +2727,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
+								//We don't need the type, so no extra parsing of gaps!
 							}
 							else
 							{
