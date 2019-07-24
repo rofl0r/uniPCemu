@@ -1694,7 +1694,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 
 			//Determine the pregap to use!
 			reqLBA = ATA[channel].Drive[drive].ATAPI_LBA; //What LBA are we calculating for?
-			for (cue_track=0;cue_track<100;++cue_track) //Check all tracks!
+			for (cue_track=1;cue_track<100;++cue_track) //Check all tracks!
 			{
 				CDROM_selecttrack(ATA_Drives[channel][drive],cue_track); //All tracks!
 				CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
