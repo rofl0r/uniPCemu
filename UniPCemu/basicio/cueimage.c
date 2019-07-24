@@ -716,7 +716,6 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				cue_current.status.pregap_pending = 0; //Not pending anymore!
 				cue_status.pregap_pending = 0; //Not pending anymore!
 				cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
-				cue_status.MSFPosition += LBA;
 			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_POSTGAP, safe_strlen(identifier_POSTGAP, sizeof(identifier_POSTGAP))) == 0) //POSTGAP command?
