@@ -492,8 +492,6 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 			if (*track_mode != ' ') continue; //Ignore the command if incorrect!
 			++track_mode; //Start of the MSF tracking!
 
-			index_number = (track_number_high * 10) + track_number_low; //Save the index number!
-											
 			//Now, handle the MSF formatted text!
 			//First, read the index!
 			switch (*track_mode) //Track number, high number!
@@ -661,11 +659,9 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 		{
 			//Handle as an special entry for MSF index only! Don't count towards the file size! Only if a track is specified!
 			if (!cue_status.got_track) continue; //If no track is specified, abort this command!
-			track_mode = &cuesheet_line[safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))];
+			track_mode = &cuesheet_line[safe_strlen(identifier_POSTGAP, sizeof(identifier_POSTGAP))];
 			if (*track_mode != ' ') continue; //Ignore the command if incorrect!
 			++track_mode; //Start of the MSF tracking!
-
-			index_number = (track_number_high * 10) + track_number_low; //Save the index number!
 											
 			//Now, handle the MSF formatted text!
 			//First, read the index!
