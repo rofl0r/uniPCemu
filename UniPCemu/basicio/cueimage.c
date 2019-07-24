@@ -167,7 +167,7 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 			CUE_LBA2MSF(cue_current->status.MSFPosition, startM, startS, startF); //Specify the start position!
 			*got_startMSF = 1; //Got!
 		}
-		CUE_LBA2MSF(cue_next->status.MSFPosition, endM, endS, endF); //Specify the start position!
+		CUE_LBA2MSF(cue_next->status.MSFPosition-1, endM, endS, endF); //Specify the start position!
 	}
 
 }
