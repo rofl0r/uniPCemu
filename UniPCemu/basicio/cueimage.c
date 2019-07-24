@@ -124,7 +124,7 @@ char identifier_INDEX[6] = "index";
 char identifier_POSTGAP[8] = "postgap";
 
 CDROM_TRACK_MODE cdrom_track_modes[10] = {
-	{"AUDIO",2352,MODE_AUDIO},	//Audio / Music(2352 — 588 samples)
+	{"AUDIO",2352,MODE_AUDIO},	//Audio / Music(2352 ï¿½ 588 samples)
 	{"CDG",2448,MODE_KARAOKE}, //Karaoke CD+G (2448)
 	{"MODE1/2048",2048,MODE_MODE1DATA}, //CD - ROM Mode 1 Data(cooked)
 	{"MODE1/2352",2352,MODE_MODE1DATA},	//CD - ROM Mode 1 Data(raw)
@@ -487,10 +487,348 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
 		{
 			//Handle as an special entry for MSF index only! Don't count towards the file size! Only if a track is specified!
+			if (!cue_status.got_track) continue; //If no track is specified, abort this command!
+			track_mode = &cuesheet_line[safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))];
+			if (*track_mode != ' ') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_number = (track_number_high * 10) + track_number_low; //Save the index number!
+											
+			//Now, handle the MSF formatted text!
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode; //Handle!
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode != ':') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_M = (track_number_high * 10) + track_number_low; //M!
+
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode != ':') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_S = (track_number_high * 10) + track_number_low; //S!
+
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case '\0': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode) continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_F = (track_number_high * 10) + track_number_low; //F!
+
+			if (index_F > 74) continue; //Incorrect Frame!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_POSTGAP, safe_strlen(identifier_POSTGAP, sizeof(identifier_POSTGAP))) == 0) //POSTGAP command?
 		{
 			//Handle as an special entry for MSF index only! Don't count towards the file size! Only if a track is specified!
+			if (!cue_status.got_track) continue; //If no track is specified, abort this command!
+			track_mode = &cuesheet_line[safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))];
+			if (*track_mode != ' ') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_number = (track_number_high * 10) + track_number_low; //Save the index number!
+											
+			//Now, handle the MSF formatted text!
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode; //Handle!
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode != ':') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_M = (track_number_high * 10) + track_number_low; //M!
+
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode != ':') continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_S = (track_number_high * 10) + track_number_low; //S!
+
+			//First, read the index!
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_high = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_high = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case ':': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			switch (*track_mode) //Track number, high number!
+			{
+			case '0':
+				track_number_low = 0;
+				++track_mode;
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				track_number_low = (*track_mode++ - (byte)('1')) + 1; //Number!
+				break;
+			case '\0': //Nothing? Single digit?
+				track_number_low = track_number_high;
+				track_number_high = 0;
+				break;
+			default:
+				continue; //Ignore the command if incorrect!
+				break;
+			}
+			if (*track_mode) continue; //Ignore the command if incorrect!
+			++track_mode; //Start of the MSF tracking!
+
+			index_F = (track_number_high * 10) + track_number_low; //F!
+
+			if (index_F > 74) continue; //Incorrect Frame!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_TRACK, safe_strlen(identifier_TRACK, sizeof(identifier_TRACK))) == 0) //Track command?
 		{
