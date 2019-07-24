@@ -1095,9 +1095,9 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		if (cue_next.status.postgap_pending) //Postgap was pending for us?
 		{
 			//Handle postgap using prev_LBA-LBA, postgap info and MSF position!
-			gap_startAddr = (cue_next.status.MSFPosition) + (LBA - prev_LBA); //The start of the gap!
+			gap_startAddr = (cue_next.status.MSFPosition) + (LBA - prev_LBA) + 1; //The start of the gap!
 			gap_endAddr = gap_startAddr + (cue_next.status.postgap_pending_duration - 1); //The end of the gap!
-			cue_next.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+			cue_next.status.MSFPosition += (LBA - prev_LBA) + 1; //Add the previous track size of the final entry!
 			//Handle the postgap for the previous track now!
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)<gap_startAddr) goto notthispostgap2; //Before start? Not us!
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)>gap_endAddr) goto notthispostgap2; //After end? not us!
@@ -1110,7 +1110,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		}
 		else //Calculate the next record for us!
 		{
-			cue_next.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+			cue_next.status.MSFPosition += (LBA - prev_LBA) + 1; //Add the previous track size of the final entry!
 		}
 
 		//Pregap can't be pending at EOF, since there's alway an index after it! Cue files always end with an index and maybe a postgap after it! Otherwise, ignore it!
