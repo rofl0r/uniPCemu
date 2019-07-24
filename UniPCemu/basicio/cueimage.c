@@ -100,9 +100,12 @@ typedef struct
 	byte M; //Current M!
 	byte S; //Current S!
 	byte F; //Current F!
-	byte got_index; //Gotten an index?
-	uint_32 discard_gap; //How much gap to discard has been built up for the current track?
-	uint_32 total_discard_gap; //Total gap for the file!
+	byte got_index; //Gotten an index? 0=none, 1=Current, 2=Previous and current
+	byte pregap_pending; //Pregap is pending?
+	uint_32 pregap_pending_duration; //Pending pregap duration in frames!
+	byte postgap_pending; //Postgap is pending?
+	uint_32 postgap_pending_duration; //Pending postgap duration in frames!
+	uint_32 MSFPosition; //Current MSF position on the disc in LBA format using frames!
 } CUESHEET_STATUS;
 
 typedef struct
@@ -196,7 +199,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 	byte index_F;
 	char *track_mode;
 	CDROM_TRACK_MODE *curtrackmode;
-	uint_32 LBA,prev_LBA;
+	uint_32 LBA,prev_LBA,gap_startAddr,gap_endAddr;
 	byte got_startMSF = 0;
 	char fullfilename[256];
 
@@ -444,7 +447,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_status.M = index_M; //The Minute!
 			cue_status.S = index_S; //The Second!
 			cue_status.F = index_F; //The Frame!
-			cue_status.got_index = 1; //The index field is filled!
+			cue_status.got_index = cue_status.got_index?2:1; //The index field is filled! Become 2 after the first one!
 
 			memcpy(&cue_next.status,&cue_status,MIN(sizeof(cue_next.status),sizeof(cue_status))); //Fill the index entry of cue_next with the currently loaded cue status!
 			cue_next.is_present = cue_status.got_index; //Present?
@@ -454,6 +457,42 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the current LBA position we're advancing?
 				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
 				cue_status.datafilepos += ((LBA - prev_LBA) * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
+				if (cue_current.status.postgap_pending) //Postgap was pending for us?
+				{
+					//Handle postgap using prev_LBA-LBA, postgap info and MSF position!
+					gap_startAddr = (cue_current.status.MSFPosition) + (LBA - prev_LBA); //The start of the gap!
+					gap_endAddr = gap_startAddr + (cue_current.status.postgap_pending_duration-1); //The end of the gap!
+					cue_status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+					//Handle the postgap for the previous track now!
+					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispostgap1; //Before start? Not us!
+					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispostgap1; //After end? not us!
+					//We're this postgap!
+					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+				notthispostgap1:
+					cue_status.MSFPosition += cue_current.status.postgap_pending_duration; //Apply the gap to the physical position!
+					cue_current.status.postgap_pending = 0; //Not pending anymore!
+					cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
+				}
+				else
+				{
+					cue_status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+				}
+
+				if (cue_current.status.pregap_pending) //Pregap was pending for us?
+				{
+					//Handle postgap using MSF position and pregap info!
+					gap_startAddr = cue_status.MSFPosition; //The pregap starts after the previous track!
+					gap_endAddr = gap_startAddr + (cue_current.status.pregap_pending_duration-1); //The end of the gap!
+					//Handle the pregap now!
+					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispregap; //Before start? Not us!
+					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispregap; //After end? not us!
+					//We're this pregap!
+					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+				notthispregap:
+					cue_status.MSFPosition += cue_current.status.pregap_pending_duration;
+					cue_current.status.pregap_pending = 0; //Not pending anymore!
+					cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
+				}
 			}
 			else if (cue_next.is_present) //Only next? Initial entry of a file!
 			{
@@ -474,25 +513,18 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
 					((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack==0))) //Current track number and subtrack number to lookup?
 				{
-					if (cue_current.status.total_discard_gap && cue_current.status.got_file && cue_current.status.got_index) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
-					{
-						if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) > LBA) &&
-							((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap) > LBA) &&
-							((((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA))+LBA)<=((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
-					}
 					if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 					{
 						LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
 
-						if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.status.total_discard_gap) > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're below it)?
-						if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.status.total_discard_gap) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're above it)!
+						if (cue_current.status.MSFPosition > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting before it)?
+						if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting after it)!
 						goto foundMSF; //We've found the location of our data!
 					}
 				}
 			}
 			finishMSFscan:
 			memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
-			cue_status.discard_gap = 0; //New entries don't have a gap anymore! Only the very first index of a track, if any!
 			cue_next.is_present = 0; //Set cue_next to not present!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_PREGAP, safe_strlen(identifier_PREGAP, sizeof(identifier_PREGAP))) == 0) //PREGAP command?
@@ -666,8 +698,27 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 
 			if (index_F > 74) continue; //Incorrect Frame!
 			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Calculate the amount to be this type of special case!
-			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
-			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
+			if (cue_status.postgap_pending || (cue_status.got_index)) //Index already specified or postgap still pending for the previous track?
+			{
+				cue_status.pregap_pending = 1; //Pregap is pending!
+				cue_status.pregap_pending_duration = LBA; //Duration of the pregap!
+			}
+			else if (LBA) //Handle pregap immediately if valid!
+			{
+				//Handle postgap using MSF position and pregap info!
+				gap_startAddr = cue_status.MSFPosition; //The pregap starts after the previous track!
+				gap_endAddr = gap_startAddr + (LBA - 1); //The end of the gap!
+				//Handle the pregap now!
+				if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispregap2; //Before start? Not us!
+				if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispregap2; //After end? not us!
+				//We're this pregap!
+				result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+			notthispregap2:
+				cue_status.MSFPosition += LBA;
+				cue_current.status.pregap_pending = 0; //Not pending anymore!
+				cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
+				cue_status.MSFPosition += LBA;
+			}
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_POSTGAP, safe_strlen(identifier_POSTGAP, sizeof(identifier_POSTGAP))) == 0) //POSTGAP command?
 		{
@@ -840,8 +891,8 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 
 			if (index_F > 74) continue; //Incorrect Frame!
 			LBA = CUE_MSF2LBA(index_M, index_S, index_F); //Calculate the amount to be this type of special case!
-			cue_status.discard_gap += LBA; //Add to the discard gap for the current track!
-			cue_status.total_discard_gap += LBA; //Add to the total gap to apply!
+			cue_status.postgap_pending = 1; //Postgap is pending!
+			cue_status.postgap_pending_duration = LBA; //Duration of the postgap!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_TRACK, safe_strlen(identifier_TRACK, sizeof(identifier_TRACK))) == 0) //Track command?
 		{
@@ -916,7 +967,6 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
 				}
 			}
-			cue_status.discard_gap = 0; //No gap yet for the current track!
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_FILE, safe_strlen(identifier_FILE, sizeof(identifier_FILE))) == 0) //File command?
 		{
@@ -974,7 +1024,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_status.got_file = 1; //File has been parsed!
 			if (cue_status.got_index) //Index was loaded? Remove the memory of the next and current indexes, as a new file has been specified!
 			{
-				cue_status.got_index = 0; //Default: no index anymore!
+				cue_status.got_index = 3; //Default: no index anymore! We're a continuing index!
 				cue_next.is_present = 0; //No next!
 				cue_current.is_present = 0; //No current!
 			}
@@ -1046,24 +1096,37 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		*M = cue_current.endM;
 		*S = cue_current.endS;
 		*F = cue_current.endF;
+		prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Previous LBA for more calculations!
+
+		if (cue_current.status.postgap_pending) //Postgap was pending for us?
+		{
+			//Handle postgap using prev_LBA-LBA, postgap info and MSF position!
+			gap_startAddr = (cue_current.status.MSFPosition) + (LBA - prev_LBA); //The start of the gap!
+			gap_endAddr = gap_startAddr + (cue_current.status.postgap_pending_duration - 1); //The end of the gap!
+			cue_current.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+			//Handle the postgap for the previous track now!
+			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)<gap_startAddr) goto notthispostgap2; //Before start? Not us!
+			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)>gap_endAddr) goto notthispostgap2; //After end? not us!
+			//We're this postgap!
+			result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M,orig_S,orig_F))+1)); //Give the result as the difference until the next track!
+			notthispostgap2:
+			cue_current.status.postgap_pending = 0; //Not pending anymore!
+		}
+		//We don't need to increase the MSF position with and without postgap information, as there is no next item to process!
+
+		//Pregap can't be pending at EOF!
 
 		cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
 
 		LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
-		if (cue_current.status.total_discard_gap && cue_current.status.got_file && cue_current.status.got_index) //Pregap/postgap present? Mark the result the size of the gap for this track below -2 when so for detection!
-		{
-			if (((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) > LBA) &&
-				((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap) > LBA) &&
-				((((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA)) + LBA) <= ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) + cue_current.status.total_discard_gap))) result = -2 - ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) + cue_current.status.total_discard_gap) - LBA); //The LBA requested is in the gap range? Report if that's true, as well as the gap remainder!
-		}
 		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
 		if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack==0)) &&
 			((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack==0))) //Current track number and subtrack number to lookup?
 		{
 			if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
 			{
-				if ((CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)+cue_current.status.total_discard_gap) > LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're below it)?
-				if ((CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF)+cue_current.status.total_discard_gap) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're above it)!
+				if (cue_current.status.MSFPosition > LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting before it)?
+				if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishMSFscan; //Invalid? Current LBA isn't in our range(we're requesting after it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
 			foundMSF: //Found the location of our data?
 				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
@@ -1100,17 +1163,17 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if ((cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.status.total_discard_gap)*cue_current.status.track_mode->sectorsize))>=fsize) //Past EOF?
+				if ((cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - cue_current.status.MSFPosition))*cue_current.status.track_mode->sectorsize))>=fsize) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if ((cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.status.total_discard_gap)+1)*cue_current.status.track_mode->sectorsize)>fsize)) //Past EOF?
+				if ((cue_current.status.datafilepos + ((((CUE_MSF2LBA(orig_M, orig_S, orig_F) - cue_current.status.MSFPosition))+1)*cue_current.status.track_mode->sectorsize)>fsize)) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Past EOF!
 				}
-				if (emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F)) - cue_current.status.total_discard_gap)*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
+				if (emufseek64(source, (cue_current.status.datafilepos + (((CUE_MSF2LBA(orig_M, orig_S, orig_F) - cue_current.status.MSFPosition))*cue_current.status.track_mode->sectorsize)), SEEK_SET) != 0) //Past EOF?
 				{
 					emufclose64(source);
 					return 0; //Couldn't seek to sector!
