@@ -1647,13 +1647,17 @@ void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
 
 OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sector set up!
 {
+	uint_32 skipPregap; //To skip pregap!
 	byte spinresponse;
 	byte abortreason, additionalsensecode;
-	sbyte cueresult;
+	int_64 cueresult;
 	byte datablock_ready = 0;
 	byte M, S, F;
 	char *cuedisk;
 	byte *datadest = NULL; //Destination of our loaded data!
+	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_track;
+	int_64 cue_trackskip;
+	uint_32 reqLBA;
 	uint_32 disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //The size of the disk in sectors!
 	if (ATA[channel].Drive[drive].commandstatus == 1) //We're reading already?
 	{
@@ -1686,7 +1690,50 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	{
 		if (is_cueimage(cuedisk)) //Valid disk image?
 		{
-			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			skipPregap = 0; //Default: don't skip!
+
+			//Determine the pregap to use!
+			reqLBA = ATA[channel].Drive[drive].ATAPI_LBA; //What LBA are we calculating for?
+			for (cue_track=0;cue_track<100;++cue_track) //Check all tracks!
+			{
+				CDROM_selecttrack(disk,cue_track); //All tracks!
+				CDROM_selectsubtrack(disk,0); //All subtracks!
+				if ((cueresult = cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF)) != 0) //Geometry gotten?
+				{
+					if (MSF2LBAbin(cue_startM,cue_startS,cue_startF)>LBA) break; //Stop when OOR!
+					if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], cue_startM, cue_startS, cue_startF, NULL, 0))!=0) //Try to read as specified!
+					{
+						if (cue_trackskip<-2) //Skipping more?
+						{
+							skipPregap += -(cue_trackskip+2); //More pregap to skip!
+						}
+						LBA2MSFbin(reqLBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
+						if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, NULL, 0))>=1) //Try to find out if we're here!
+						{
+							switch (cue_trackskip)
+							{
+							case 1+MODE_MODE1DATA: //Mode 1 block?
+							if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
+							case 1+MODE_MODEXA: //Mode XA block?
+							if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
+							goto startCUEread; //Ready to process!
+							break;
+							case 1+MODE_AUDIO: //Audio block?
+								if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) goto startCUEread; //Invalid type to read!
+								goto startCUEread; //Ready to process
+							default: //Unknown/unsupported mode/OOR?
+								continue; //Continue searching!
+							}
+						}
+						//Not found yet? Continue searching!
+					}
+					//Failed checking the track skip? Ignore the track!
+				}
+			}
+			
+			startCUEread:
+			//Now, start reading past the determined pregap!
+			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
 			CDROM_selecttrack(ATA_Drives[channel][drive], 0); //All tracks!
 			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
@@ -1716,8 +1763,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					datadest = &ATA[channel].Drive[drive].data[0x10]; //Start of our read sector!
 					memset(&ATA[channel].Drive[drive].data, 0, 2352); //Clear any data we use!
 					memset(&ATA[channel].Drive[drive].data[1], 0xff, 10);
-					uint_32 raw_block = ATA[channel].Drive[drive].ATAPI_LBA + 150;
-					if (cuedisk) raw_block -= 150; //Convert back for CUE disk images!
+					uint_32 raw_block = ATA[channel].Drive[drive].ATAPI_LBA + skipPregap;
 					ATA[channel].Drive[drive].data[12] = (raw_block / 75) / 60;
 					ATA[channel].Drive[drive].data[13] = (raw_block / 75) % 60;
 					ATA[channel].Drive[drive].data[14] = (raw_block % 75);
@@ -2208,7 +2254,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 {
 	byte track; //Track counter!
 	char *cuedisk;
-	sbyte cueresult=0;
+	int_64 cueresult=0;
 	byte cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_M, cue_S, cue_F;
 	unsigned i;
 	uint_32 blocks;
@@ -2254,7 +2300,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-							if (cueresult>=1) //Track found?
+							if ((cueresult>=1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
 							}
@@ -2335,7 +2381,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
 							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-							if (cueresult>=1) //Track found?
+							if ((cueresult>=1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
 							}
@@ -2422,7 +2468,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 					CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
 					LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 					cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-					if (cueresult >= 1) //Track found?
+					if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 					{
 						trackfound = 1; //Track found!
 					}
@@ -2475,7 +2521,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-							if (cueresult >= 1) //Track found?
+							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
 							}
@@ -2506,7 +2552,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
 							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-							if (cueresult >= 1) //Track found?
+							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
 							}
@@ -2629,7 +2675,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 							CDROM_selectsubtrack(ATA_Drives[channel][drive], 0); //All subtracks!
 							LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA, &cue_M, &cue_S, &cue_F); //Generate a MSF address to use with CUE images!
 							cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF); //Try to read as specified!
-							if (cueresult >= 1) //Track found?
+							if ((cueresult >= 1) || (cueresult<=-2)) //Track found?
 							{
 								trackfound = 1; //Track found!
 							}

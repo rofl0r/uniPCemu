@@ -176,7 +176,7 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 extern char diskpath[256]; //Disk path!
 
 //Result: -1: Out of range, 0: Failed to read, 1: Read successfully
-sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte report1ontrackfound) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte report1ontrackfound) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte orig_M, orig_S, orig_F;
 	sbyte result=-1; //The result! Default: out of range!
@@ -1127,7 +1127,7 @@ sbyte cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *star
 	return result; //Failed!
 }
 
-sbyte cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+int_64 cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word size) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte startM, startS, startF, endM, endS, endF;
 	byte M2, S2, F2; //Duplicates for handling!
@@ -1137,7 +1137,7 @@ sbyte cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, word
 	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size,0); //Direct call!
 }
 
-sbyte cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
+int_64 cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
 {
 	//Apply maximum numbers!
 	*M = 0xFF;
