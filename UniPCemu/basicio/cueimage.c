@@ -164,14 +164,10 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 	{
 		if (*got_startMSF == 0)
 		{
-			*startM = cue_current->status.M;
-			*startS = cue_current->status.S;
-			*startF = cue_current->status.F;
+			CUE_LBA2MSF(cue_current->status.MSFPosition, startM, startS, startF); //Specify the start position!
 			*got_startMSF = 1; //Got!
 		}
-		*endM = cue_current->endM;
-		*endS = cue_current->endS;
-		*endF = cue_current->endF;
+		CUE_LBA2MSF(cue_next->status.MSFPosition, endM, endS, endF); //Specify the start position!
 	}
 
 }
@@ -471,6 +467,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				notthispostgap1:
 					cue_status.MSFPosition += cue_current.status.postgap_pending_duration; //Apply the gap to the physical position!
 					cue_current.status.postgap_pending = 0; //Not pending anymore!
+					cue_status.postgap_pending = 0; //Not pending anymore!
 					cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
 				}
 				else
@@ -491,6 +488,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				notthispregap:
 					cue_status.MSFPosition += cue_current.status.pregap_pending_duration;
 					cue_current.status.pregap_pending = 0; //Not pending anymore!
+					cue_status.pregap_pending = 0; //Not pending anymore!
 					cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
 				}
 			}
@@ -716,6 +714,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			notthispregap2:
 				cue_status.MSFPosition += LBA;
 				cue_current.status.pregap_pending = 0; //Not pending anymore!
+				cue_status.pregap_pending = 0; //Not pending anymore!
 				cue_current.status.MSFPosition = cue_status.MSFPosition; //Update the current MSF position too!
 				cue_status.MSFPosition += LBA;
 			}
@@ -1093,30 +1092,35 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		//Autodetect final MSF address and give it as a result!
 		--LBA; //Take the end position of us!
 		CUE_LBA2MSF(LBA, &cue_current.endM, &cue_current.endS, &cue_current.endF); //Save the calculated end position of the selected index!
-		*M = cue_current.endM;
-		*S = cue_current.endS;
-		*F = cue_current.endF;
 		prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Previous LBA for more calculations!
-
 		if (cue_current.status.postgap_pending) //Postgap was pending for us?
 		{
 			//Handle postgap using prev_LBA-LBA, postgap info and MSF position!
 			gap_startAddr = (cue_current.status.MSFPosition) + (LBA - prev_LBA); //The start of the gap!
 			gap_endAddr = gap_startAddr + (cue_current.status.postgap_pending_duration - 1); //The end of the gap!
-			cue_current.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+			cue_next.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
 			//Handle the postgap for the previous track now!
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)<gap_startAddr) goto notthispostgap2; //Before start? Not us!
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)>gap_endAddr) goto notthispostgap2; //After end? not us!
 			//We're this postgap!
 			result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M,orig_S,orig_F))+1)); //Give the result as the difference until the next track!
-			notthispostgap2:
+		notthispostgap2:
+			cue_next.status.MSFPosition += cue_current.status.postgap_pending_duration; //Add the postgap to the size!
 			cue_current.status.postgap_pending = 0; //Not pending anymore!
+			cue_status.postgap_pending = 0; //Not pending anymore!
 		}
-		//We don't need to increase the MSF position with and without postgap information, as there is no next item to process!
+		else //Calculate the next record for us!
+		{
+			cue_next.status.MSFPosition += (LBA - prev_LBA); //Add the previous track size of the final entry!
+		}
 
-		//Pregap can't be pending at EOF!
+		//Pregap can't be pending at EOF, since there's alway an index after it! Cue files always end with an index and maybe a postgap after it! Otherwise, ignore it!
 
 		cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Fill info!
+		//Duplicate MSF into the result!
+		*M = *endM;
+		*S = *endS;
+		*F = *endF;
 
 		LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
 		if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= (LBA+1)) goto finishup; //Invalid to read(non-zero length)?
