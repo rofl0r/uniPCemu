@@ -162,12 +162,18 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 	if (((disks[device].selectedtrack == cue_current->status.track_number) || (disks[device].selectedtrack == 0)) && //Current track number to lookup?
 		((disks[device].selectedsubtrack == cue_current->status.index) || (disks[device].selectedsubtrack == 0))) //Current subtrack number to lookup?
 	{
-		if (*got_startMSF == 0)
+		if (cue_current) //Specified?
 		{
-			CUE_LBA2MSF(cue_current->status.MSFPosition, startM, startS, startF); //Specify the start position!
-			*got_startMSF = 1; //Got!
+			if (*got_startMSF == 0)
+			{
+				CUE_LBA2MSF(cue_current->status.MSFPosition, startM, startS, startF); //Specify the start position!
+				*got_startMSF = 1; //Got!
+			}
 		}
-		CUE_LBA2MSF(cue_next->status.MSFPosition-1, endM, endS, endF); //Specify the start position!
+		if (cue_next) //Specified?
+		{
+			CUE_LBA2MSF(cue_next->status.MSFPosition - 1, endM, endS, endF); //Specify the start position!
+		}
 	}
 
 }
@@ -175,7 +181,7 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 extern char diskpath[256]; //Disk path!
 
 //Result: -1: Out of range, 0: Failed to read, 1: Read successfully
-int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte report1ontrackfound) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
+int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, void *buffer, word size, byte specialfeatures) //Read a n-byte sector! Result=Type on success, 0 on error, -1 on not found!
 {
 	byte orig_M, orig_S, orig_F;
 	int_64 result=-1; //The result! Default: out of range!
@@ -465,6 +471,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					//We're this postgap!
 					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 				notthispostgap1:
+					if (specialfeatures & 4) //Special reporting?
+					{
+						cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Special reporting!
+					}
 					cue_status.MSFPosition += cue_next.status.postgap_pending_duration; //Apply the gap to the physical position!
 					cue_next.status.postgap_pending = 0; //Not pending anymore!
 					cue_status.postgap_pending = 0; //Not pending anymore!
@@ -486,6 +496,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					//We're this pregap!
 					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 				notthispregap:
+					if (specialfeatures & 2) //Special reporting?
+					{
+						cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, startM, startS, startF, endM, endS, endF); //Special reporting!
+					}
 					cue_status.MSFPosition += cue_next.status.pregap_pending_duration;
 					cue_next.status.pregap_pending = 0; //Not pending anymore!
 					cue_status.pregap_pending = 0; //Not pending anymore!
@@ -712,6 +726,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				//We're this pregap!
 				result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 			notthispregap2:
+				if (specialfeatures & 2) //Special reporting?
+				{
+					cueimage_fillMSF(device, &got_startMSF, &cue_current, NULL, startM, startS, startF, endM, endS, endF); //Special reporting!
+				}
 				cue_status.MSFPosition += LBA;
 				cue_current.status.pregap_pending = 0; //Not pending anymore!
 				cue_status.pregap_pending = 0; //Not pending anymore!
@@ -958,7 +976,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_status.track_mode = curtrackmode; //Set the current track mode!
 			cue_status.track_number = (track_number_high*10)+track_number_low; //Set the current track number!
 			cue_status.got_track = 1; //Track has been parsed!
-			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && report1ontrackfound) //Track has been found?
+			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && (specialfeatures&1)) //Track has been found?
 			{
 				if (result > -2) //Not the special result?
 				{
@@ -1210,11 +1228,11 @@ int_64 cueimage_readsector(int device, byte M, byte S, byte F, void *buffer, wor
 	return cueimage_REAL_readsector(device, &M2, &S2, &F2,&startM,&startS,&startF,&endM,&endS,&endF, buffer, size,0); //Direct call!
 }
 
-int_64 cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
+int_64 cueimage_getgeometry(int device, byte *M, byte *S, byte *F, byte *startM, byte *startS, byte *startF, byte *endM, byte *endS, byte *endF, byte specialfeatures) //Read a n-byte sector! 1 on read success, 0 on error, -1 on not found!
 {
 	//Apply maximum numbers!
 	*M = 0xFF;
 	*S = 59;
 	*F = 74;
-	return cueimage_REAL_readsector(device, M, S, F, startM, startS, startF, endM, endS, endF, NULL, 2048,1); //Just apply a read from the disk without result buffer(nothing to read after all)!
+	return cueimage_REAL_readsector(device, M, S, F, startM, startS, startF, endM, endS, endF, NULL, 2048,1+(specialfeatures<<1)); //Just apply a read from the disk without result buffer(nothing to read after all)!
 }
