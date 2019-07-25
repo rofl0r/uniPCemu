@@ -919,6 +919,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0xFF,BIOS_Settings_file);
+	BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN = (byte)get_private_profile_uint64("input","DirectInput_remap_RCTRL_to_LWIN",0,BIOS_Settings_file); //Remap RCTRL to LWIN in Direct Input?
+	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL = (byte)get_private_profile_uint64("input","DirectInput_remap_accentgrave_to_tab",0,BIOS_Settings_file); //Remap Accent Grave to Tab during RCTRL remapping?
 	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
 	{
 		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor(c); //Set default color when invalid!
@@ -1265,7 +1267,9 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialcolor",BIOS_Settings.input_settings.specialcolor,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialbordercolor",BIOS_Settings.input_settings.specialbordercolor,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("input",input_commentused,"keyboard_specialactivecolor",BIOS_Settings.input_settings.specialactivecolor,BIOS_Settings_file)) return 0;
-	
+	if (!write_private_profile_uint64("input",input_commentused,"DirectInput_remap_RCTRL_to_LWIN",BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64("input",input_commentused,"DirectInput_remap_accentgrave_to_tab",BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL,BIOS_Settings_file)) return 0;
+
 	//Gamingmode
 	memset(&bioscomment_currentkey,0,sizeof(bioscomment_currentkey)); //Init!
 	for (currentitem=0;currentitem<104;++currentitem) //Give translations for all keys!
