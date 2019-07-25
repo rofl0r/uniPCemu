@@ -537,7 +537,7 @@ void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 
 	//Setup the capabilities and Mechanical Status page(unmodifyable values)!
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (4 - 2)] = 0x09; //Bit 0:1(supports CD-DA), bit 4:1(Mode 2 Format 1(XA) format supported)
-	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (5 - 2)] = 0x03; //Bit 0:1(supports reading audio using Read CD command), bit 1:1(can resume play without loss of position)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (5 - 2)] = 0x03; //Bit 0:1(supports reading audio using Read CD command?), bit 1:1(can resume play without loss of position)
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (6 - 2)] = 0x29|(ATA[disk_channel].Drive[disk_slave].allowDiskInsertion?0:2); //Bit 0:1(lock command available), bit 1:x(media ejection impossible due to locked state: 1; otherwise 0), bit 3:1(ejection possible using the start/stop command, bits 5-7:001(Tray type loading mechanism)
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (8 - 2)] = ((speed>>8)&0xFF); //Maximum speed supported (MSB)
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (9 - 2)] = (speed&0xFF); //Maximum speed supported (LSB)
@@ -3391,6 +3391,96 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		break;
+	case 0x4B: //Pause/Resume (audio mandatory)?
+		#if 1
+		//This is as long as audio is unimplemented!
+		#ifdef ATA_LOG
+		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+		#endif
+
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+
+		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		#endif
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
+		{
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+		}
+		else if (spinresponse == 2) //Busy waiting?
+		{
+			return; //Start busy waiting!
+		}
+		else //Report error!
+		{
+			ATAPI_command_reportError(channel, drive); //Report the error!
+			ATAPI_aborted = 1; //We're aborted!
+		}
+		break;
+	case 0x45: //Play audio (10) (audio mandatory)?
+		#if 1
+		//This is as long as audio is unimplemented!
+		#ifdef ATA_LOG
+		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+		#endif
+
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+
+		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		#endif
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
+		{
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+		}
+		else if (spinresponse == 2) //Busy waiting?
+		{
+			return; //Start busy waiting!
+		}
+		else //Report error!
+		{
+			ATAPI_command_reportError(channel, drive); //Report the error!
+			ATAPI_aborted = 1; //We're aborted!
+		}
+		break;
+	case 0x47: //Play audio MSF (audio mandatory)?
+		#if 1
+		//This is as long as audio is unimplemented!
+		#ifdef ATA_LOG
+		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+		#endif
+
+		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+
+		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		#endif
+		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
+		{
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+		}
+		else if (spinresponse == 2) //Busy waiting?
+		{
+			return; //Start busy waiting!
+		}
+		else //Report error!
+		{
+			ATAPI_command_reportError(channel, drive); //Report the error!
+			ATAPI_aborted = 1; //We're aborted!
+		}
+		break;
 	case 0x1B: //Start/stop unit(Mandatory)?
 		switch (ATA[channel].Drive[drive].ATAPI_PACKET[4] & 3) //What kind of action to take?
 		{
@@ -3510,7 +3600,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 		break;
 	default:
+		#ifdef ATA_LOG
 		dolog("ATAPI","Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
+		#endif
 
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
