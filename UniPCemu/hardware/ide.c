@@ -4616,7 +4616,7 @@ void ATA_DiskChanged(int disk)
 				CDROM_selectsubtrack(disk,0); //All subtracks!
 				if (cueimage_getgeometry(disk, &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF) != 0) //Geometry gotten?
 				{
-					disk_size = (MSF2LBAbin(cue_endM, cue_endS, cue_endF)-MSF2LBAbin(cue_startM, cue_startS, cue_startF))+1; //The disk size in sectors!
+					disk_size = (MSF2LBAbin(cue_endM, cue_endS, cue_endF))+1; //The disk size in sectors!
 				}
 				else //Failed to get the geometry?
 				{
