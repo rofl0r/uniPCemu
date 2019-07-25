@@ -85,6 +85,7 @@ enum
 #define ASC_MEDIUM_MAY_HAVE_CHANGED 0x28
 #define ASC_SAVING_PARAMETERS_NOT_SUPPORTED 0x39
 #define ASC_MEDIUM_NOT_PRESENT 0x3a
+#define ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK 0x63
 #define ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM 0x64
 
 PCI_GENERALCONFIG PCI_IDE;
@@ -2836,6 +2837,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	byte transfer_req;
 	uint_32 endLBA; //When does the LBA addressing end!
 	byte spinresponse;
+	byte startM, startS, startF, endM, endS, endF; //Start/End MSF of an audio play operation!
 
 	//Our own stuff!
 	ATAPI_aborted = 0; //Init aborted status!
@@ -2847,6 +2849,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	byte i;
 	uint_32 disk_size,LBA;
 	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 4096 byte sectors!
+	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //No service(when enabled), nor drive seek complete!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
@@ -3383,6 +3386,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
+	/* Audio support */
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
@@ -3390,6 +3394,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
+
+		//Issuing this command while scanning makes the play command continue. Issuing this command while paused shall stop the play command.
 		break;
 	case 0x4B: //Pause/Resume (audio mandatory)?
 		#if 1
@@ -3410,6 +3416,15 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+			if (ATA[channel].Drive[drive].ATAPI_PACKET[8] & 1) //Resume?
+			{
+				//Resume if paused, otherwise, NOP!
+			}
+			else //Pause?
+			{
+				//Pause if playing, otherwise, NOP!
+			}
+
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3440,6 +3455,30 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
+			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
+			//LBA FFFFFFFF=Current playback position, otherwise, add 150 for the MSF address(00:02:00). So pregap IS skipped with this one.
+			//Add alloc_length to LBA for the finishing frame(same frame also counts and has priority over playing the frame)!
+			//The SOTC bit and settings on page 0E(audio control page) is honoured.
+			//Check the track type. If not an audio track, SENSE KEY: SENSE_ILLEGAL_REQUEST & ASCQ:ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM
+			//If the media changes from audio to data, giving the error: SENSE KEY: SENSE_ILLEGAL_REQUEST & ASCQ: END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK
+			if (LBA == 0xFFFFFFFF) //Current position?
+			{
+				//Take the current position we're at into startM, startS, startF!
+			}
+			else
+			{
+				LBA2MSF(LBA, &startM, &startS, &startF); //Convert to MSF for playback!
+			}
+			//Generate the ending MSF!
+			//Take the end position based on the start position!
+			endLBA = MSF2LBA(startM, startS, startF); //Take the start position!
+			endLBA += alloc_length; //How much to play, or none if the same!
+			LBA2MSF(endLBA, &endM, &endS, &endF); //Where to stop playing, even on the same location as startM, startS, startF!
+			//Start the playback operation with the startMSF and endMSF as beginning and end points, or stop when equal(no error)!
+
+			//Set DSC on completion!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3470,6 +3509,29 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
+			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
+			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
+			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
+			endM = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //End M!
+			endS = ATA[channel].Drive[drive].ATAPI_PACKET[7]; //End S!
+			endF = ATA[channel].Drive[drive].ATAPI_PACKET[8]; //End F!
+			//The SOTC bit and settings on page 0E(audio control page) is honoured.
+
+			if ((startM == 0xFF) && (startS == 0xFF) && (startF == 0xFF)) //Current position?
+			{
+				//Take the current position into startM, startS, startF!
+			}
+			//Otherwise, start MM:SS:FF is already loaded!
+
+			if (MSF2LBA(startM, startS, startF) > MSF2LBA(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
+			{
+				//Throw the error!
+			}
+
+			//Start the playback operation with the startMSF and endMSF as beginning and end points, or stop when equal(no error)!
+
+			//Set DSC on completion!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3481,6 +3543,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
+	/* End of audio support */
 	case 0x1B: //Start/stop unit(Mandatory)?
 		switch (ATA[channel].Drive[drive].ATAPI_PACKET[4] & 3) //What kind of action to take?
 		{
