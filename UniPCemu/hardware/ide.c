@@ -524,7 +524,25 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 
 void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 {
+	word speed = 1024; //Speed in KBPS!
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A<<8)|(6 - 2)] |= 0x28; //CD-ROM capabilities: Eject is supported, tray type loading mechanism!
+
+	//Setup the changable bits!
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8)|(0x02-2)] |= 0x02; //Stop on Track Crossing supported
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8)|(0x06-2)] |= 0xFF; //Logical Block Per Second of Audio supported?
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x08-2)] |= 0x0F; //CDDA Output Port 0 channel selection. 0=Muted, 1=Channel 0, 2=Channel 1, 3=Channel 0&1, 4=Channel 2, 8=Channel 3. Supported?
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x0A-2)] |= 0x0F; //CDDA Output Port 1 channel selection. 0=Muted, 1=Channel 0, 2=Channel 1, 3=Channel 0&1, 4=Channel 2, 8=Channel 3. Supported?
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x09-2)] |= 0xFF; //Output Port 0/1 volume(0-FF). This is an attenuation of 20 log (val/256).
+	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x0B-2)] |= 0xFF; //Output Port 0/1 volume(0-FF). This is an attenuation of 20 log (val/256).
+
+	//Setup the capabilities and Mechanical Status page(unmodifyable values)!
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (4 - 2)] = 0x09; //Bit 0:1(supports CD-DA), bit 4:1(Mode 2 Format 1(XA) format supported)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (5 - 2)] = 0x03; //Bit 0:1(supports reading audio using Read CD command), bit 1:1(can resume play without loss of position)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (6 - 2)] = 0x29|(ATA[disk_channel].Drive[disk_slave].allowDiskInsertion?0:2); //Bit 0:1(lock command available), bit 1:x(media ejection impossible due to locked state: 1; otherwise 0), bit 3:1(ejection possible using the start/stop command, bits 5-7:001(Tray type loading mechanism)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (8 - 2)] = ((speed>>8)&0xFF); //Maximum speed supported (MSB)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (9 - 2)] = (speed&0xFF); //Maximum speed supported (LSB)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (14 - 2)] = ((speed >> 8) & 0xFF); //Current speed selected (MSB)
+	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (15 - 2)] = (speed & 0xFF); //Current speed selected (LSB)
 }
 
 void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
@@ -2286,6 +2304,7 @@ void ATAPI_executeData(byte channel, byte drive)
 			}
 			pageaddr += ATA[channel].Drive[drive].data[pageaddr+1]+1; //Jump to the next block, if any!
 		}
+		ATAPI_setModePages(channel, drive); //Reset any ROM values!
 		ATA[channel].Drive[drive].commandstatus = 0; //Reset status: we're done!
 		ATAPI_giveresultsize(channel,drive,0,1); //Raise an final IRQ to signify we're finished, busy in the meanwhile!
 		break;
@@ -2933,6 +2952,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		memset(&ATA[channel].Drive[drive].data, 0, ATA[channel].Drive[drive].datablock); //Clear the result!
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN for the result!
+		ATAPI_setModePages(channel, drive); //Reset any ROM values to be properly reported!
 
 		for (i=0;i<NUMITEMS(ATAPI_supportedmodepagecodes);i++) //Check all supported codes!
 		{
