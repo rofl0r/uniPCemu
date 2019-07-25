@@ -455,7 +455,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_next.is_present = cue_status.got_index; //Present?
 			if (cue_current.is_present && cue_next.is_present) //Got current to advance?
 			{
-				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+				if ((specialfeatures & 4) == 0)
+				{
+					cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+				}
 				prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the current LBA position we're advancing?
 				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Get the current LBA position we're advancing?
 				cue_status.datafilepos += ((LBA - prev_LBA) * cue_next.status.track_mode->sectorsize); //The physical start of the data in the file with the specified mode!
@@ -474,6 +477,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					if (specialfeatures & 4) //Special reporting?
 					{
 						cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_status.track_number, cue_status.index, startM, startS, startF, endM, endS, endF); //Special reporting!
+						specialfeatures &= ~4; //Clear the flag for properly reporting the end of us!
 					}
 					cue_status.MSFPosition += cue_next.status.postgap_pending_duration; //Apply the gap to the physical position!
 					cue_next.status.postgap_pending = 0; //Not pending anymore!
@@ -496,7 +500,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					//We're this pregap!
 					result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 				notthispregap:
-					if (specialfeatures & 2) //Special reporting?
+					if ((specialfeatures & 2) && ((specialfeatures&4)==0)) //Special reporting?
 					{
 						cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Special reporting!
 					}
@@ -726,7 +730,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				//We're this pregap!
 				result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 			notthispregap2:
-				if (specialfeatures & 2) //Special reporting?
+				if ((specialfeatures & 2) && ((specialfeatures&4)==0)) //Special reporting?
 				{
 					cueimage_fillMSF(device, &got_startMSF,  &cue_current, NULL,cue_status.track_number, cue_status.index, startM, startS, startF, endM, endS, endF); //Special reporting!
 				}
@@ -1133,7 +1137,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 
 		//Pregap can't be pending at EOF, since there's alway an index after it! Cue files always end with an index and maybe a postgap after it! Otherwise, ignore it!
 
-		cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+		if ((specialfeatures & 4) == 0)
+		{
+			cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+		}
 		//Duplicate MSF into the result!
 		*M = *endM;
 		*S = *endS;
@@ -1150,7 +1157,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishup; //Invalid? Current LBA isn't in our range(we're requesting after it)!
 				if (!cue_current.status.index) goto finishup; //Not a valid index(index 0 is a pregap)!
 			foundMSF: //Found the location of our data?
-				cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+				if ((specialfeatures & 4) == 0)
+				{
+					cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+				}
 				if (!(strcmp(cue_current.status.file_type, "binary") == 0)) //Not supported file backend type!
 				{
 					goto finishup; //Finish up!
