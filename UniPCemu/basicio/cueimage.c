@@ -469,7 +469,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispostgap1; //Before start? Not us!
 					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispostgap1; //After end? not us!
 					//We're this postgap!
-					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+					result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 				notthispostgap1:
 					if (specialfeatures & 4) //Special reporting?
 					{
@@ -494,7 +494,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispregap; //Before start? Not us!
 					if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispregap; //After end? not us!
 					//We're this pregap!
-					result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+					result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 				notthispregap:
 					if (specialfeatures & 2) //Special reporting?
 					{
@@ -724,7 +724,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispregap2; //Before start? Not us!
 				if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispregap2; //After end? not us!
 				//We're this pregap!
-				result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
+				result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M, orig_S, orig_F))+1)); //Give the result as the difference until the next track!
 			notthispregap2:
 				if (specialfeatures & 2) //Special reporting?
 				{
@@ -978,7 +978,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			cue_status.got_track = 1; //Track has been parsed!
 			if (((cue_status.track_number == disks[device].selectedtrack) || (disks[device].selectedtrack == 0)) && (specialfeatures&1)) //Track has been found?
 			{
-				if (result > -2) //Not the special result?
+				if (result > -2LL) //Not the special result?
 				{
 					result = 1 + cue_status.track_mode->mode; //Result becomes 1 instead of -1(track not found) because the track is found!
 				}
@@ -1120,7 +1120,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)<gap_startAddr) goto notthispostgap2; //Before start? Not us!
 			if (CUE_MSF2LBA(orig_M,orig_S,orig_F)>gap_endAddr) goto notthispostgap2; //After end? not us!
 			//We're this postgap!
-			result = (-2 - ((gap_endAddr-CUE_MSF2LBA(orig_M,orig_S,orig_F))+1)); //Give the result as the difference until the next track!
+			result = (-2LL - (int_64)((gap_endAddr-CUE_MSF2LBA(orig_M,orig_S,orig_F))+1)); //Give the result as the difference until the next track!
 		notthispostgap2:
 			cue_next.status.MSFPosition += cue_next.status.postgap_pending_duration; //Add the postgap to the size!
 			cue_next.status.postgap_pending = 0; //Not pending anymore!
