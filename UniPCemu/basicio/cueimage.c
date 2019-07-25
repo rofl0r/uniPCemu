@@ -1157,8 +1157,8 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 				}
 				emufclose64(f); //Close the sheet, we're done with it! All data we need is loaded into cue_current!
 				//Check our parameters to be valid!
-				if ((size != cue_current.status.track_mode->sectorsize) && buffer) return 0; //Invalid sector size not matching specified!
-				if (buffer == NULL) return 1; //Finished reading without buffer and size!
+				if ((size != cue_current.status.track_mode->sectorsize) && buffer && size) return 0; //Invalid sector size not matching specified! Only apply when specifying a sector size(non-zero size)!
+				if (buffer == NULL) return 1; //Finished reading without buffer and size! Size 0 with a buffer is allowed!
 				char fullfilename[256];
 				memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
 				safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
@@ -1199,12 +1199,15 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 					emufclose64(source);
 					return 0; //Couldn't seek to sector!
 				}
-				if (emufread64(buffer, 1, size, source) != size) //Failed reading the data?
+				if (size) //Something to read at all?
 				{
-					emufclose64(source);
-					return 0; //Couldn't read the data!
+					if (emufread64(buffer, 1, size, source) != size) //Failed reading the data?
+					{
+						emufclose64(source);
+						return 0; //Couldn't read the data!
+					}
 				}
-				//Data has been read from the backend file!
+				//Data has been read from the backend file(or nothing)!
 				emufclose64(source);
 				return 1+cue_current.status.track_mode->mode; //We've found the location of our data! Give 2+mode for the read sector type!
 			}
