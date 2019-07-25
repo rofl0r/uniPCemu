@@ -205,6 +205,8 @@ void BIOS_BackgroundPolicySetting(); //Background policy!
 void BIOS_AdvancedLogSetting(); //Advanced log policy!
 void BIOS_taskBreakpoint(); //Task breakpoint!
 void BIOS_CR3breakpoint(); //CR3 breakpoint!
+void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
+void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL(); //Remap accent grave to tab during RCTRL to LWIN mapping!
 
 
 //First, global handler!
@@ -282,6 +284,8 @@ Handler BIOS_Menus[] =
 	,BIOS_AdvancedLogSetting //Advanced log if #69!
 	,BIOS_taskBreakpoint //Task breakpoint is #70!
 	,BIOS_CR3breakpoint //CR3 breakpoint is #71!
+	,BIOS_DirectInput_remap_RCTRL_to_LWIN //Remap RCTRL to LWIN is #72!
+	,BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
 };
 
 //Not implemented?
@@ -3849,6 +3853,28 @@ setJoysticktext: //For fixing it!
 	safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Detect joystick"); //Detect the new joystick!
 #endif
 #endif
+
+	optioninfo[advancedoptions] = 4; //BIOS_DirectInput_remap_RCTRL_to_LWIN
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Remap RCTRL to LWIN during Direct Input: "); //Remap RCTRL to LWIN during Direct Input!
+	if (BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN)
+	{
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Enabled");
+	}
+	else
+	{
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
+	}
+
+	optioninfo[advancedoptions] = 5; //BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Remap Accent Grave to Tab during RCTRL remapping: "); //Remap Accent Grave to Tab during RCTRL remapping!
+	if (BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL)
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Enabled");
+	}
+	else
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disabled");
+	}
 }
 
 void BIOS_inputMenu() //Manage stuff concerning input.
@@ -3864,7 +3890,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	case 0:
 	case 1:
 	case 2:
-	case 3: //Valid option?
+	case 3:
+	case 4:
+	case 5: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -3878,6 +3906,12 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			break;
 		case 3:
 			BIOS_Menu = 51; //Joystick connect option!
+			break;
+		case 4:
+			BIOS_Menu = 72; //Remap RCTRL to LWIN is #72!
+			break;
+		case 5:
+			BIOS_Menu = 73; //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
 			break;
 		default:
 			break;
@@ -7752,4 +7786,18 @@ void BIOS_AdvancedLogSetting()
 		break;
 	}
 	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_DirectInput_remap_RCTRL_to_LWIN()
+{
+	BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN = !BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN;
+	BIOS_Changed = 1; //We're changed!
+	BIOS_Menu = 25; //Goto Input menu!
+}
+
+void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL()
+{
+	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL = !BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL;
+	BIOS_Changed = 1; //We're changed!
+	BIOS_Menu = 25; //Goto Input menu!
 }
