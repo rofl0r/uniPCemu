@@ -1707,7 +1707,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							skipPregap += -(cue_trackskip+2); //More pregap to skip!
 						}
 						LBA2MSFbin(reqLBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
-						if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, NULL, 0))>=1) //Try to find out if we're here!
+						if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &ATA[channel].Drive[drive].data[0], 0))>=1) //Try to find out if we're here!
 						{
 							switch (cue_trackskip2)
 							{
