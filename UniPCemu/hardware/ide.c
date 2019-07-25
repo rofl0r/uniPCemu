@@ -1650,13 +1650,14 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	uint_32 skipPregap; //To skip pregap!
 	byte spinresponse;
 	byte abortreason, additionalsensecode;
-	int_64 cueresult;
+	int_64 cueresult, cuepostgapresult, cuepostgappending, cuepostgapactive;
 	byte datablock_ready = 0;
 	byte M, S, F;
 	char *cuedisk;
 	byte *datadest = NULL; //Destination of our loaded data!
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF, cue_track;
-	int_64 cue_trackskip, cue_trackskip2;
+	byte cue_postgapM, cue_postgapS, cue_postgapF, cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, cue_postgapendM, cue_postgapendS, cue_postgapendF;
+	int_64 cue_trackskip, cue_trackskip2, cue_postgapskip;
 	uint_32 reqLBA;
 	uint_32 disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //The size of the disk in sectors!
 	if (ATA[channel].Drive[drive].commandstatus == 1) //We're reading already?
@@ -1694,19 +1695,32 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 
 			//Determine the pregap to use!
 			reqLBA = ATA[channel].Drive[drive].ATAPI_LBA; //What LBA are we calculating for?
+			cuepostgappending = 0; //Default: no postgap pending!
 			for (cue_track=1;cue_track<100;++cue_track) //Check all tracks!
 			{
 				CDROM_selecttrack(ATA_Drives[channel][drive],cue_track); //All tracks!
 				CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
 				if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF,1)) != 0) //Geometry gotten?
 				{
+					cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
 					if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], cue_startM, cue_startS, cue_startF, NULL, 0))!=0) //Try to read as specified!
 					{
+						cue_postgapskip = cueimage_readsector(ATA_Drives[channel][drive], cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, NULL, 0); //Try to read as specified!
 						if (cue_trackskip<-2) //Skipping more?
 						{
 							skipPregap += -(cue_trackskip+2); //More pregap to skip!
 						}
+						skipPregap += cuepostgappending; //Apply pending postgap from the previous track as well!
+						cuepostgapactive = cuepostgappending; //Save the active postgap as well!
+						if (cuepostgapresult != 0) //Gotten postgap?
+						{
+							if (cue_postgapskip < -2) //Skipping more after this track?
+							{
+								cuepostgappending = -(cue_postgapskip + 2); //More postgap to skip for the next track!
+							}
+						}
 						LBA2MSFbin(reqLBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
+						
 						if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][drive], M, S, F, &ATA[channel].Drive[drive].data[0], 0))>=1) //Try to find out if we're here!
 						{
 							switch (cue_trackskip2)
@@ -1722,6 +1736,10 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 								if (cue_trackskip <= -2) //Some pregap for this song? Include the pregap in the read?
 								{
 									skipPregap -= (cue_trackskip + 2); //Undo the pregap, as this is raw audio we're reading in this case!
+								}
+								if (cuepostgapactive <= -2) //Some postgap for this song? Include the postgap in the read?
+								{
+									skipPregap -= (cuepostgapactive + 2); //Undo the pregap, as this is raw audio we're reading in this case!
 								}
 								goto startCUEread; //Ready to process
 							default: //Unknown/unsupported mode/OOR?
