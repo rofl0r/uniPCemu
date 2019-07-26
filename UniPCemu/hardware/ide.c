@@ -1062,11 +1062,13 @@ void ATAPI_tickAudio(byte channel, byte slave)
 			switch (loadstatus) //How did the load go?
 			{
 			case 1+MODE_AUDIO: //Audio track? It's valid!
+				LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
 				break; //Success!
 			default: //Invalid type or gap?
 				if (loadstatus < -2) //Gap?
 				{
 					memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer for silence!
+					LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
 				}
 				else //Invalid type!
 				{
