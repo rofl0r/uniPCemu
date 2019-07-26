@@ -10,6 +10,7 @@
 //Now, for the audio player support:
 #include "headers/emu/sound.h" //Sound support!
 #include "headers/support/sounddoublebuffer.h" //Double buffered sound!
+#include "headers/support/signedness.h" //Sign conversion support!
 
 //#define ATA_LOG
 
