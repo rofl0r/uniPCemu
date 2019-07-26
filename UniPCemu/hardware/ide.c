@@ -3752,11 +3752,15 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 		if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
-		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
-		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 
 		//Issuing this command while scanning makes the play command continue. Issuing this command while paused shall stop the play command.
+		if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
+		{
+			ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Stop playing!
+		}
+		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+		ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 		break;
 	case 0x4B: //Pause/Resume (audio mandatory)?
 		#if 1
@@ -3774,18 +3778,25 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
-			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
-			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			if (ATA[channel].Drive[drive].ATAPI_PACKET[8] & 1) //Resume?
 			{
 				//Resume if paused, otherwise, NOP!
+				if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
+				{
+					ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //Resume playing!
+				}
 			}
 			else //Pause?
 			{
 				//Pause if playing, otherwise, NOP!
+				if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PLAYING) //Playing?
+				{
+					ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PAUSED; //Pause playing!
+				}
 			}
-
+			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3813,9 +3824,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
-			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
-			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
 			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
 			//LBA FFFFFFFF=Current playback position, otherwise, add 150 for the MSF address(00:02:00). So pregap IS skipped with this one.
@@ -3844,6 +3852,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				//Set DSC on completion!
 				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			}
 			else //Otherwise, if errored out, abort!
 			{
@@ -3876,9 +3887,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
-			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
-			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
 			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
 			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
@@ -3909,6 +3917,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				//Set DSC on completion!
 				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
+				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			}
 			else //Otherwise, if errored out, abort!
 			{
