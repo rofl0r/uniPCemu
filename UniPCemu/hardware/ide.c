@@ -106,6 +106,16 @@ enum
 	PLAYER_PAUSED = 3 //Paused
 };
 
+enum
+{
+	PLAYER_STATUS_NOTSUPPORTED = 0,
+	PLAYER_STATUS_PLAYING_IN_PROGRESS = 0x11,
+	PLAYER_STATUS_PAUSED = 0x12,
+	PLAYER_STATUS_FINISHED = 0x13,
+	PLAYER_STATUS_ERROREDOUT = 0x14,
+	PLAYER_STATUS_NONE = 0x15
+};
+
 /* End of the audio player settings and defines */
 
 PCI_GENERALCONFIG PCI_IDE;
@@ -212,6 +222,7 @@ struct
 			byte samples[2352]; //One frame of audio we're playing!
 			word samplepos; //The position of the current sample we're playing!
 			byte status; //The current player status!
+			byte effectiveplaystatus; //Effective play status!
 			SOUNDDOUBLEBUFFER soundbuffer; //Our two sound buffers for our two chips!
 		} AUDIO_PLAYER; //The audio player itself!
 	} Drive[2]; //Two drives!
@@ -1016,6 +1027,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				(ATA[channel].Drive[slave].AUDIO_PLAYER.F == ATA[channel].Drive[slave].AUDIO_PLAYER.endF)) //Final frame reached?
 			{
 				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
+				ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_FINISHED; //We're finished!
 				goto finishPlayback;
 			}
 			//Load a new sample buffer from the disk!
@@ -1024,6 +1036,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 			case 0: //Errored out?
 				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
 				ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+				ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 				ATAPI_command_reportError(channel, slave);
 				goto finishPlayback;
 				break;
@@ -1033,6 +1046,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
 					//Error out on transition of track type!
 					ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+					ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 					ATAPI_command_reportError(channel, slave);
 					goto finishPlayback;
 				}
@@ -1040,6 +1054,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				{
 					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
 					//Error out on transition of track number crossing!
+					ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 					ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
 					ATAPI_command_reportError(channel, slave);
 					goto finishPlayback;
@@ -1048,6 +1063,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				break; //Start playing normally!
 			case -1: //Track not found?
 				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+				ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 				//Error out on the track being out of range!
 				ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
 				ATAPI_command_reportError(channel, slave);
@@ -1072,6 +1088,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 					else //Invalid type!
 					{
 						memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer!
+						ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 						ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
 						if (loadstatus == -1) //End of track reached?
 						{
@@ -1097,6 +1114,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 			{
 				//Error out!
 				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+				ATA[channel].Drive[slave].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 				goto finishPlayback; //Finished playback!
 			}
 		}
@@ -1115,11 +1133,13 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 	ATA[channel].Drive[drive].AUDIO_PLAYER.endS = endS; //Where to stop playing!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.endF = endF; //Where to stop playing!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //We're playing now!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PLAYING_IN_PROGRESS; //We're finished!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.samplepos = 2352; //We're starting a new transfer, start loading the new frame to render!
 	switch (ATAPI_gettrackinfo(channel, drive, startM, startS, startF, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_track, NULL, NULL, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_M, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_S, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_F, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_type)) //Is the track found?
 	{
 	case 0: //Errored out?
 		ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+		ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 		ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
 		ATAPI_command_reportError(channel, drive);
 		break;
@@ -1127,7 +1147,8 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 		if (ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_type != (1 + MODE_AUDIO)) //Invalid track type?
 		{
 			ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
-			//Error out!
+			ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
+					//Error out!
 			ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
 			ATAPI_command_reportError(channel, drive);
 			return 0; //Failure!
@@ -1137,6 +1158,7 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 		break; //Start playing normally!
 	case -1: //Track not found?
 		ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+		ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
 		ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
 		ATAPI_command_reportError(channel, drive);
 		break;
@@ -3616,7 +3638,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			memset(&ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
 			ATA[channel].Drive[drive].data[0] = 0;
-			ATA[channel].Drive[drive].data[1] = 0; //audio not supported
+			ATA[channel].Drive[drive].data[1] = ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus; //Effective play status!
 			ATA[channel].Drive[drive].data[2] = 0;
 			ATA[channel].Drive[drive].data[3] = 0;
 			if (sub_Q) //!sub_q==header only
@@ -3627,10 +3649,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].data[4] = data_format;
 					if (data_format==3)
 					{
-						ATA[channel].Drive[drive].data[5] = 0x14;
+						ATA[channel].Drive[drive].data[5] = (ATA[channel].Drive[drive].AUDIO_PLAYER.status!=PLAYER_INITIALIZED)?0x10:0x14; //During active audio playback, be a audio track, otherwise a data track.
 						ATA[channel].Drive[drive].data[6] = 1;
 					}
-					ATA[channel].Drive[drive].data[8] = 0;
+					ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
 				}
 				else
 				{
@@ -3759,6 +3781,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		//Issuing this command while scanning makes the play command continue. Issuing this command while paused shall stop the play command.
 		if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
 		{
+			ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_FINISHED; //We're finished!
 			ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Stop playing!
 		}
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
@@ -3786,6 +3809,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				//Resume if paused, otherwise, NOP!
 				if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
 				{
+					ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PLAYING_IN_PROGRESS; //We're finished!
 					ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //Resume playing!
 				}
 			}
@@ -3794,6 +3818,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				//Pause if playing, otherwise, NOP!
 				if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PLAYING) //Playing?
 				{
+					ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PAUSED; //We're finished!
 					ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PAUSED; //Pause playing!
 				}
 			}
@@ -5395,7 +5420,9 @@ void initATA()
 
 	//Initialize the CD-ROM player data!
 	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
+	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Initialized player status(stopped)!
 	ATA[CDROM_channel].Drive[1].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
+	ATA[CDROM_channel].Drive[1].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Initialized player status(stopped)!
 	ATA[CDROM_channel].playerTiming = (DOUBLE)0.0f; //Initialize the player timing!
 	ATA[CDROM_channel].playerTick = (DOUBLE)(1000000000.0 / 44100.0); //The time of one sample to render!
 
