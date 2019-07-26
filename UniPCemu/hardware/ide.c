@@ -3838,8 +3838,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				startS = ATA[channel].Drive[drive].AUDIO_PLAYER.S; //Start S!
 				startF = ATA[channel].Drive[drive].AUDIO_PLAYER.F; //Start F!
 			}
-			else
+			else //Start time specified?
 			{
+				LBA += 150; //Add 2 seconds pregap as is documented!
 				LBA2MSF(LBA, &startM, &startS, &startF); //Convert to MSF for playback!
 			}
 			//Generate the ending MSF!
@@ -3902,7 +3903,17 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				startS = ATA[channel].Drive[drive].AUDIO_PLAYER.S; //Start S!
 				startF = ATA[channel].Drive[drive].AUDIO_PLAYER.F; //Start F!
 			}
+			else //Start time specified?
+			{
+				LBA = MSF2LBA(startM, startS, startF);
+				LBA += 150; //Add 2 seconds!
+				LBA2MSF(LBA, &startM, &startS, &startF); //New time!
+			}
 			//Otherwise, start MM:SS:FF is already loaded!
+
+			LBA = MSF2LBA(endM, endS, endF);
+			LBA += 150; //Add 2 seconds!
+			LBA2MSF(LBA, &endM, &endS, &endF); //New time!
 
 			if (MSF2LBA(startM, startS, startF) > MSF2LBA(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
 			{
