@@ -3828,6 +3828,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 
+			if (ATA[channel].Drive[drive].AUDIO_PLAYER.status != PLAYER_INITIALIZED) //Playing or scanning? Stop the player!
+			{
+				ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_FINISHED; //We're finished!
+				ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Stop playing!
+			}
+
+
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 			{
 				if (LBA > disk_size) goto illegalseekaddress; //Illegal address?
