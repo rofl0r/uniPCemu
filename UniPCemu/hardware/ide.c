@@ -1000,6 +1000,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 		if (ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos < 2352) //Rendering a buffer?
 		{
 			samplepos = ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos; //Load the sample position!
+			ATAPI_renderSamplepos:
 			sampleleft = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
 			sampleleft |= (ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]<<8); //High byte!
 			sampleright = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
@@ -1089,13 +1090,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 
 			//Start the new sample playback!
 			samplepos = 0; //The start of the new buffer!
-			sampleleft = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
-			sampleleft |= (ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++] << 8); //High byte!
-			sampleright = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
-			sampleright |= ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++] << 8; //High byte!
-			ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos = samplepos; //Load the new sample position!
-			//Render an audio sample!
-			ATAPI_renderAudioSample(channel, slave, unsigned2signed16(sampleleft), unsigned2signed16(sampleright)); //Render a silent sample!
+			goto ATAPI_renderSamplepos; //Start the normal renderer for the first sample!
 		}
 		else //Failed to load new audio?
 		{
