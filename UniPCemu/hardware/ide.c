@@ -340,6 +340,7 @@ enum {
 byte ATA_channel = 0; //What channel are we processing?
 byte ATA_slave = 0; //Are we processing master or slave?
 
+/*
 byte encodeBCD8ATA(byte value)
 {
 	INLINEREGISTER byte temp, result = 0;
@@ -360,6 +361,7 @@ byte decodeBCD8ATA(byte bcd)
 	result += (temp & 0xF) * 10; //Factor 10!
 	return result; //Give the decoded integer value!
 }
+*/
 
 uint_32 MSF2LBAbin(byte M, byte S, byte F)
 {
@@ -378,6 +380,7 @@ void LBA2MSFbin(uint_32 LBA, byte *M, byte *S, byte *F)
 }
 
 
+/*
 uint_32 MSF2LBA(byte M, byte S, byte F)
 {
 	return MSF2LBAbin(decodeBCD8ATA(M), decodeBCD8ATA(S), decodeBCD8ATA(F));
@@ -391,6 +394,7 @@ void LBA2MSF(uint_32 LBA, byte *M, byte *S, byte *F)
 	*S = encodeBCD8ATA(*S);
 	*F = encodeBCD8ATA(*F);
 }
+*/
 
 OPTINLINE byte ATA_activeDrive(byte channel)
 {
@@ -903,7 +907,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 	byte cue_postgapM, cue_postgapS, cue_postgapF, cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, cue_postgapendM, cue_postgapendS, cue_postgapendF;
 	result = -1; //Default: not found!
 	uint_32 reqLBA;
-	reqLBA = MSF2LBA(M, S, F); //What do we want to find out?
+	reqLBA = MSF2LBAbin(M, S, F); //What do we want to find out?
 	for (cue_track = 1; cue_track < 100; ++cue_track) //Check all tracks!
 	{
 		CDROM_selecttrack(ATA_Drives[channel][slave], cue_track); //Specified track!
@@ -911,7 +915,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 		if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF, 1)) != 0) //Geometry gotten?
 		{
 			cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
-			requestedtrack = ((reqLBA >= MSF2LBA(cue_startM, cue_startS, cue_startF)) && (reqLBA <= MSF2LBA(cue_endM, cue_endS, cue_endF))); //Are we the requested track?
+			requestedtrack = ((reqLBA >= MSF2LBAbin(cue_startM, cue_startS, cue_startF)) && (reqLBA <= MSF2LBAbin(cue_endM, cue_endS, cue_endF))); //Are we the requested track?
 			if (requestedtrack) //Is this track requested into for?
 			{
 				result = 1; //We've found the track that's requested!
@@ -3841,13 +3845,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			else //Start time specified?
 			{
 				LBA += 150; //Add 2 seconds pregap as is documented!
-				LBA2MSF(LBA, &startM, &startS, &startF); //Convert to MSF for playback!
+				LBA2MSFbin(LBA, &startM, &startS, &startF); //Convert to MSF for playback!
 			}
 			//Generate the ending MSF!
 			//Take the end position based on the start position!
-			endLBA = MSF2LBA(startM, startS, startF); //Take the start position!
+			endLBA = MSF2LBAbin(startM, startS, startF); //Take the start position!
 			endLBA += alloc_length; //How much to play, or none if the same!
-			LBA2MSF(endLBA, &endM, &endS, &endF); //Where to stop playing, even on the same location as startM, startS, startF!
+			LBA2MSFbin(endLBA, &endM, &endS, &endF); //Where to stop playing, even on the same location as startM, startS, startF!
 			//Start the playback operation with the startMSF and endMSF as beginning and end points, or stop when equal(no error)!
 			if (ATAPI_audioplayer_startPlayback(channel, drive, startM, startS, startF, endM, endS, endF)) //Start playback in this range!
 			{
@@ -3905,17 +3909,17 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			else //Start time specified?
 			{
-				LBA = MSF2LBA(startM, startS, startF);
+				LBA = MSF2LBAbin(startM, startS, startF);
 				LBA += 150; //Add 2 seconds!
-				LBA2MSF(LBA, &startM, &startS, &startF); //New time!
+				LBA2MSFbin(LBA, &startM, &startS, &startF); //New time!
 			}
 			//Otherwise, start MM:SS:FF is already loaded!
 
-			LBA = MSF2LBA(endM, endS, endF);
+			LBA = MSF2LBAbin(endM, endS, endF);
 			LBA += 150; //Add 2 seconds!
-			LBA2MSF(LBA, &endM, &endS, &endF); //New time!
+			LBA2MSFbin(LBA, &endM, &endS, &endF); //New time!
 
-			if (MSF2LBA(startM, startS, startF) > MSF2LBA(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
+			if (MSF2LBAbin(startM, startS, startF) > MSF2LBAbin(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
 			{
 				//Throw the error!
 				ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
