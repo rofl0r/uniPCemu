@@ -3684,7 +3684,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
 					if (data_format == 1) //CD-ROM Current Position?
 					{
-						ret_len = 15;
+						ret_len = 16;
 						if (getCUEimage(ATA_Drives[channel][drive])) //Supported? Report the current position!
 						{
 							if (MSF)
