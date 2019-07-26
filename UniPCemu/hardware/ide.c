@@ -3678,16 +3678,14 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				if ((data_format==1) || (data_format==2) || (data_format==3)) //Current Position or UPC or ISRC
 				{
 					ret_len = 24;
+					ATA[channel].Drive[drive].data[3] = 24-4; //Data length
 					ATA[channel].Drive[drive].data[4] = data_format;
-					if (data_format==3)
-					{
-						ATA[channel].Drive[drive].data[5] = ATA[channel].Drive[drive].lastformat; //During active audio playback, be a audio track, otherwise a data track.
-						ATA[channel].Drive[drive].data[6] = ATA[channel].Drive[drive].lasttrack;
-					}
 					ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
 					if (data_format == 1) //CD-ROM Current Position?
 					{
 						ret_len = 16;
+						ATA[channel].Drive[drive].data[5] = ATA[channel].Drive[drive].lastformat; //During active audio playback, be a audio track, otherwise a data track.
+						ATA[channel].Drive[drive].data[6] = ATA[channel].Drive[drive].lasttrack;
 						if (getCUEimage(ATA_Drives[channel][drive])) //Supported? Report the current position!
 						{
 							if (MSF)
