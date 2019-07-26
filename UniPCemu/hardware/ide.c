@@ -3763,7 +3763,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 		break;
 	case 0x4B: //Pause/Resume (audio mandatory)?
-		#if 1
+		#if 0
 		//This is as long as audio is unimplemented!
 		#ifdef ATA_LOG
 		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
@@ -3809,7 +3809,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x45: //Play audio (10) (audio mandatory)?
-		#if 1
+		#if 0
 		//This is as long as audio is unimplemented!
 		#ifdef ATA_LOG
 		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
@@ -3872,7 +3872,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x47: //Play audio MSF (audio mandatory)?
-		#if 1
+		#if 0
 		//This is as long as audio is unimplemented!
 		#ifdef ATA_LOG
 		dolog("ATAPI", "Executing unknown SCSI command: %02X", ATA[channel].Drive[drive].ATAPI_PACKET[0]); //Error: invalid command!
