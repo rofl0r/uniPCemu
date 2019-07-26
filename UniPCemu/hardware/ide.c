@@ -3841,7 +3841,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			else //Start time specified?
 			{
-				LBA += 150; //Add 2 seconds pregap as is documented!
+				//LBA += 150; //Add 2 seconds pregap as is documented!
 				LBA2MSFbin(LBA, &startM, &startS, &startF); //Convert to MSF for playback!
 			}
 			//Generate the ending MSF!
@@ -3907,13 +3907,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			else //Start time specified?
 			{
 				LBA = MSF2LBAbin(startM, startS, startF);
-				LBA += 150; //Add 2 seconds!
+				//LBA += 150; //Add 2 seconds!
 				LBA2MSFbin(LBA, &startM, &startS, &startF); //New time!
 			}
 			//Otherwise, start MM:SS:FF is already loaded!
 
 			LBA = MSF2LBAbin(endM, endS, endF);
-			LBA += 150; //Add 2 seconds!
+			//LBA += 150; //Add 2 seconds!
 			LBA2MSFbin(LBA, &endM, &endS, &endF); //New time!
 
 			if (MSF2LBAbin(startM, startS, startF) > MSF2LBAbin(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
