@@ -3249,6 +3249,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	uint_32 endLBA; //When does the LBA addressing end!
 	byte spinresponse;
 	byte startM, startS, startF, endM, endS, endF; //Start/End MSF of an audio play operation!
+	byte curtrack_nr;
+	byte tracktype;
+	int_64 cueresult;
 
 	//Our own stuff!
 	ATAPI_aborted = 0; //Init aborted status!
@@ -3828,18 +3831,48 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 			{
 				if (LBA > disk_size) goto illegalseekaddress; //Illegal address?
+				LBA2MSFbin(LBA, &Mseek, &Sseek, &Fseek); //Convert to MSF address!
+				ATA[channel].Drive[drive].lastformat = 0x14; //Last format: data track!
+				ATA[channel].Drive[drive].lasttrack = 1; //Last track!
+				ATA[channel].Drive[drive].lastM = Mseek; //Last address!
+				ATA[channel].Drive[drive].lastS = Sseek; //Last address!
+				ATA[channel].Drive[drive].lastF = Fseek; //Last address!
 			}
 			else
 			{
 					CDROM_selecttrack(ATA_Drives[channel][drive],0); //All tracks!
 					CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
 					LBA2MSFbin(LBA,&Mseek,&Sseek,&Fseek); //Convert to MSF!
-					if (cueimage_readsector(ATA_Drives[channel][drive], Mseek, Sseek, Fseek, NULL, 2048) == -1) //Not found?
+					if (cueimage_readsector(ATA_Drives[channel][drive], Mseek, Sseek, Fseek, NULL, 0x800) == -1) //Not found as 2048 byte sector?
 					{
+						if (cueimage_readsector(ATA_Drives[channel][drive], Mseek, Sseek, Fseek, NULL, 2352) == -1) //Not found as a 2352 byte sector?
+						{
 						illegalseekaddress:
-						abortreason = SENSE_ILLEGAL_REQUEST;
-						additionalsensecode = ASC_LOGICAL_BLOCK_OOR;
-						goto ATAPI_invalidcommand;
+							abortreason = SENSE_ILLEGAL_REQUEST;
+							additionalsensecode = ASC_LOGICAL_BLOCK_OOR;
+							goto ATAPI_invalidcommand;
+						}
+					}
+
+					if (ATAPI_gettrackinfo(channel, drive, Mseek, Sseek, Fseek, &curtrack_nr, NULL, NULL, &startM, &startS, &startF, &tracktype) == 1) //What track information?
+					{
+						ATA[channel].Drive[drive].lasttrack = curtrack_nr; //Last track!
+						ATA[channel].Drive[drive].lastM = Mseek; //Last address!
+						ATA[channel].Drive[drive].lastS = Sseek; //Last address!
+						ATA[channel].Drive[drive].lastF = Fseek; //Last address!
+						switch (tracktype)
+						{
+						case 1+MODE_AUDIO: //Audio track?
+							ATA[channel].Drive[drive].lastformat = 0x14; //Last format: data track!
+							break;
+						case 1+MODE_MODE1DATA: //Data mode?
+						case 1+MODE_MODEXA: //XA mode?
+							ATA[channel].Drive[drive].lastformat = 0x14; //Last format: data track!
+							break;
+						default: //Unknown mode?
+							ATA[channel].Drive[drive].lastformat = 0x00; //Last format: unknown track!
+							break;
+						}
 					}
 			} //Error out when invalid sector!
 
