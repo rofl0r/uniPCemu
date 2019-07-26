@@ -3710,18 +3710,18 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 								LBA2MSFbin(endLBA, &endM, &endS, &endF); //Get the relative track position as MSF!
 								if (MSF)
 								{
-									ATA[channel].Drive[drive].data[8] = 0;
-									ATA[channel].Drive[drive].data[9] = endM;
-									ATA[channel].Drive[drive].data[10] = endS;
-									ATA[channel].Drive[drive].data[11] = endF;
+									ATA[channel].Drive[drive].data[12] = 0;
+									ATA[channel].Drive[drive].data[13] = endM;
+									ATA[channel].Drive[drive].data[14] = endS;
+									ATA[channel].Drive[drive].data[15] = endF;
 								}
 								else
 								{
 									LBA = MSF2LBAbin(ATA[channel].Drive[drive].lastM, ATA[channel].Drive[drive].lastS, ATA[channel].Drive[drive].lastF);
-									ATA[channel].Drive[drive].data[8] = ((endLBA >> 24) & 0xFF);
-									ATA[channel].Drive[drive].data[9] = ((endLBA >> 16) & 0xFF);
-									ATA[channel].Drive[drive].data[10] = ((endLBA >> 8) & 0xFF);
-									ATA[channel].Drive[drive].data[11] = (endLBA & 0xFF);
+									ATA[channel].Drive[drive].data[12] = ((endLBA >> 24) & 0xFF);
+									ATA[channel].Drive[drive].data[13] = ((endLBA >> 16) & 0xFF);
+									ATA[channel].Drive[drive].data[14] = ((endLBA >> 8) & 0xFF);
+									ATA[channel].Drive[drive].data[15] = (endLBA & 0xFF);
 								}
 							}
 							else //Couldn't get the track information required to handle this?
@@ -3739,6 +3739,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 							ATA[channel].Drive[drive].data[9] = 0; //No MCval(format 2) or TCval(format 3)
 							ATA[channel].Drive[drive].data[10] = 0; //No MCval(format 2) or TCval(format 3)
 							ATA[channel].Drive[drive].data[11] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[12] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[13] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[14] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[15] = 0; //No MCval(format 2) or TCval(format 3)
 						}
 					}
 				}
