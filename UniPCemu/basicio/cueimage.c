@@ -519,6 +519,10 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 
 			if (cue_current.is_present && cue_next.is_present) //Handle the cue_current if it and cue_next are both present!
 			{
+				if ((specialfeatures&(4 | 2)) == 0) //No special handling of pregap/postgap?
+				{
+					cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Report the entire track with the properly updated MSF position!
+				}
 				//Fill the end locations into the current entry, based on the next entry!
 				LBA = CUE_MSF2LBA(cue_next.status.M, cue_next.status.S, cue_next.status.F); //Convert to LBA!
 				if (CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F) >= LBA) goto finishMSFscan; //Invalid to read(non-zero length)?
