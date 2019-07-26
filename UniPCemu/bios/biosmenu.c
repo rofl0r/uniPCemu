@@ -1535,11 +1535,29 @@ void BIOS_InitDisksText()
 
 void BIOS_DisksMenu() //Manages the mounted disks!
 {
+	byte allowsaveresume;
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = ExecuteMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		allowsaveresume = (!(reboot_needed & 2)); //Allow (save)&resume?
+		if (allowsaveresume) //Allow save&resume?
+		{
+			if (BIOS_Changed) //Save&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 1; //Save the BIOS!
+			}
+			else //Discard&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 0; //Discard changes!
+			}
+		}
+		//When not allowed to resume, ignore the return!
+		break;
 	case BIOSMENU_SPEC_LTRIGGER: //L: Main menu?
 		BIOS_Menu = 0; //Goto Main menu!
 		break;
@@ -1874,11 +1892,29 @@ setBackgroundpolicytext: //For fixing it!
 
 void BIOS_AdvancedMenu() //Manages the boot order etc!
 {
+	byte allowsaveresume;
 	BIOS_Title("Advanced Menu");
 	BIOS_InitAdvancedText(); //Init text!
-	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Show the menu options!
+	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options!
 	switch (menuresult)
 	{
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		allowsaveresume = (!(reboot_needed & 2)); //Allow (save)&resume?
+		if (allowsaveresume) //Allow save&resume?
+		{
+			if (BIOS_Changed) //Save&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 1; //Save the BIOS!
+			}
+			else //Discard&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 0; //Discard changes!
+			}
+		}
+		//When not allowed to resume, ignore the return!
+		break;
 	case BIOSMENU_SPEC_LTRIGGER: //L: Disk menu?
 		BIOS_Menu = 1; //Goto Disk Menu!
 		break;
@@ -1942,6 +1978,7 @@ extern byte UniPCEmu_root_dir_setting; //The current root setting to be viewed!
 
 void BIOS_MainMenu() //Shows the main menu to process!
 {
+	byte allowsaveresume;
 	BIOS_Title("Main menu");
 
 	EMU_gotoxy(0,4); //First row of the BIOS!
@@ -2001,7 +2038,7 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		safestrcpy(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Load Setting defaults"); //Load defaults option!
 	}
 
-	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR,&Menu_Stat); //Plain menu, allow L&R triggers!
+	int menuresult = ExecuteMenu(advancedoptions,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Plain menu, allow L&R triggers!
 
 	switch (menuresult) //What option has been chosen?
 	{
@@ -2054,6 +2091,23 @@ void BIOS_MainMenu() //Shows the main menu to process!
 		default:
 			break;
 		}
+		break;
+	case BIOSMENU_SPEC_CANCEL: //Return?
+		allowsaveresume = (!(reboot_needed & 2)); //Allow (save)&resume?
+		if (allowsaveresume) //Allow save&resume?
+		{
+			if (BIOS_Changed) //Save&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 1; //Save the BIOS!
+			}
+			else //Discard&resume?
+			{
+				BIOS_Menu = -1; //Quit!
+				BIOS_SaveStat = 0; //Discard changes!
+			}
+		}
+		//When not allowed to resume, ignore the return!
 		break;
 	case BIOSMENU_SPEC_LTRIGGER: //L?
 		BIOS_Menu = 8; //Goto Advanced menu!
