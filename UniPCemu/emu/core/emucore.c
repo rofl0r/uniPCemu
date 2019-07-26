@@ -626,6 +626,8 @@ void doneEMU()
 		joystickDone();
 		debugrow("doneEMU: Finishing port E9 hack and emulator support functionality...");
 		BIOS_doneDebugger(); //Finish the port E9 hack and emulator support functionality!
+		debugrow("doneEMU: Finishing ATA...");
+		doneATA(); //Finish the ATA!
 		debugrow("doneEMU: Finishing serial modem...");
 		doneModem(); //Finish the serial modem, if present!
 		debugrow("doneEMU: Finishing serial mouse...");

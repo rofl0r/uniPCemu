@@ -2,6 +2,7 @@
 #define __IDE_H
 
 void initATA();
+void doneATA();
 void cleanATA(); //ATA timing reset!
 void updateATA(DOUBLE timepassed); //ATA timing!
 

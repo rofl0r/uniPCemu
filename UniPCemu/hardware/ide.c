@@ -7,6 +7,9 @@
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/support/log.h" //Logging support for debugging!
 #include "headers/basicio/cueimage.h" //CUE image support!
+//Now, for the audio player support:
+#include "headers/emu/sound.h" //Sound support!
+#include "headers/support/sounddoublebuffer.h" //Double buffered sound!
 
 //#define ATA_LOG
 
@@ -87,6 +90,23 @@ enum
 #define ASC_MEDIUM_NOT_PRESENT 0x3a
 #define ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK 0x63
 #define ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM 0x64
+
+/* Start of the audio player settings and defines */
+
+//We're rending seperate samples, so for maximum accuracy, default in the sample buffer!
+#define __CDROM_SAMPLEBUFFERSIZE 4096
+#define __CDROM_VOLUME 100.0f
+
+//sff8020i - figure 15: play sequencing
+enum
+{
+	PLAYER_INITIALIZED = 0, //Stopped
+	PLAYER_PLAYING = 1, //Playing
+	PLAYER_SCANNING = 2, //Scanning(also paused, but using a scan command)
+	PLAYER_PAUSED = 3 //Paused
+};
+
+/* End of the audio player settings and defines */
 
 PCI_GENERALCONFIG PCI_IDE;
 
@@ -174,6 +194,26 @@ struct
 		byte resetSetsDefaults;
 		byte expectedReadDataType; //Expected read data format!
 		byte IRQraised; //Did we raise the IRQ line?
+		struct
+		{
+			//Track related information of the start frame!
+			byte trackref_track; //The track number
+			byte trackref_type; //The type of track!
+			byte trackref_M; //Reference M
+			byte trackref_S; //Reference S
+			byte trackref_F; //Reference F
+			//Normal playback info!
+			byte M; //M address to play next!
+			byte S; //S address to play next!
+			byte F; //F address to play next!
+			byte endM; //End M address to stop playing!
+			byte endS; //End S address to stop playing!
+			byte endF; //End F address to stop playing!
+			byte samples[2352]; //One frame of audio we're playing!
+			word samplepos; //The position of the current sample we're playing!
+			byte status; //The current player status!
+			SOUNDDOUBLEBUFFER soundbuffer; //Our two sound buffers for our two chips!
+		} AUDIO_PLAYER; //The audio player itself!
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -183,7 +223,11 @@ struct
 	byte DMAPending; //DMA pending?
 	byte TC; //Terminal count occurred in DMA transfer?
 	DOUBLE driveselectTiming;
+	DOUBLE playerTiming; //The timer for the player samples!
+	DOUBLE playerTick; //The time of one sample!
 } ATA[2]; //Two channels of ATA drives!
+
+byte CDROM_channel = 0xFF; //Default: no CD-ROM channel!
 
 enum {
 	LOAD_IDLE=0,			/* disc is stationary, not spinning */
@@ -526,10 +570,9 @@ void ATAPI_generateInterruptReason(byte channel, byte drive)
 void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 {
 	word speed = 1024; //Speed in KBPS!
-	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A<<8)|(6 - 2)] |= 0x28; //CD-ROM capabilities: Eject is supported, tray type loading mechanism!
 
 	//Setup the changable bits!
-	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8)|(0x02-2)] |= 0x02; //Stop on Track Crossing supported
+	ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8)|(0x02-2)] |= 0x02; //Stop on Track Crossing supported
 	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8)|(0x06-2)] |= 0xFF; //Logical Block Per Second of Audio supported?
 	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x08-2)] |= 0x0F; //CDDA Output Port 0 channel selection. 0=Muted, 1=Channel 0, 2=Channel 1, 3=Channel 0&1, 4=Channel 2, 8=Channel 3. Supported?
 	//ATA[disk_channel].Drive[disk_slave].ATAPI_SupportedMask[(0x0E << 8) | (0x0A-2)] |= 0x0F; //CDDA Output Port 1 channel selection. 0=Muted, 1=Channel 0, 2=Channel 1, 3=Channel 0&1, 4=Channel 2, 8=Channel 3. Supported?
@@ -546,6 +589,9 @@ void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 	ATA[disk_channel].Drive[disk_slave].ATAPI_ModeData[(0x2A << 8) | (15 - 2)] = (speed & 0xFF); //Current speed selected (LSB)
 }
 
+void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
+void ATAPI_SET_SENSE(byte channel, byte drive, byte SK, byte ASC, byte ASCQ); //Prototype!
+
 void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 {
 	//We do anything a real drive does when a medium is removed or inserted!
@@ -554,10 +600,9 @@ void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 		ATA[channel].Drive[drive].diskInserted = 1; //We're inserted!
 		if (ATA[channel].Drive[drive].EnableMediaStatusNotification) //Enabled the notification of media being inserted?
 		{
-			ATA[channel].Drive[drive].ERRORREGISTER = (SENSE_UNIT_ATTENTION<<4); //Reset error register! This also contains a copy of the Sense Key!
+			ATAPI_SET_SENSE(channel, drive, SENSE_UNIT_ATTENTION, ASC_MEDIUM_MAY_HAVE_CHANGED, 0x00); //Set the error sense!
 			ATA[channel].Drive[drive].ATAPI_diskchangepending = 2; //Special: disk inserted!
-			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATA_IRQ(channel,drive,(DOUBLE)0,0); //Raise an IRQ!
+			ATAPI_command_reportError(channel, drive); //Prototype!
 		}
 		else //ATAPI drive might have something to do now?
 		{
@@ -798,10 +843,328 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 	return 1; //Continue the command normally?
 }
 
+byte CDROM_soundGenerator(void* buf, uint_32 length, byte stereo, void *userdata) //Generate a sample!
+{
+	uint_32 c;
+	c = length; //Init c!
+
+	static uint_32 last = 0;
+	INLINEREGISTER uint_32 buffer;
+
+	SOUNDDOUBLEBUFFER *doublebuffer = (SOUNDDOUBLEBUFFER *)userdata; //Our double buffered sound input to use!
+	int_32 mono_converter;
+	sample_stereo_p data_stereo;
+	sword *data_mono;
+	if (stereo) //Stereo processing?
+	{
+		data_stereo = (sample_stereo_p)buf; //The data in correct samples!
+		for (;;) //Fill it!
+		{
+			//Left and right samples are the same: we're a mono signal!
+			readDoubleBufferedSound32(doublebuffer, &last); //Generate a stereo sample if it's available!
+			buffer = last; //Load the last sample for processing!
+			data_stereo->l = unsigned2signed16((word)buffer); //Load the last generated sample(left)!
+			buffer >>= 16; //Shift low!
+			data_stereo->r = unsigned2signed16((word)buffer); //Load the last generated sample(right)!
+			++data_stereo; //Next stereo sample!
+			if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
+		}
+	}
+	else //Mono processing?
+	{
+		data_mono = (sword *)buf; //The data in correct samples!
+		for (;;) //Fill it!
+		{
+			//Left and right samples are the same: we're a mono signal!
+			readDoubleBufferedSound32(doublebuffer, &last); //Generate a stereo sample if it's available!
+			buffer = last; //Load the last sample for processing!
+			mono_converter = unsigned2signed16((word)buffer); //Load the last generated sample(left)!
+			buffer >>= 16; //Shift low!
+			mono_converter += unsigned2signed16((word)buffer); //Load the last generated sample(right)!
+			mono_converter = LIMITRANGE(mono_converter, SHRT_MIN, SHRT_MAX); //Clip our data to prevent overflow!
+			*data_mono++ = mono_converter; //Save the sample and point to the next mono sample!
+			if (!--c) return SOUNDHANDLER_RESULT_FILLED; //Next item!
+		}
+	}
+}
+
+void ATAPI_renderAudioSample(byte channel, byte slave, sword left, sword right)
+{
+	writeDoubleBufferedSound32(&ATA[channel].Drive[slave].AUDIO_PLAYER.soundbuffer, (signed2unsigned16(right) << 16) | signed2unsigned16(left)); //Output the sample to the renderer!
+}
+
+sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte *tracknumber, uint_32 *pregapsize, uint_32 *postgapsize, byte *startM, byte *startS, byte *startF, byte *tracktype) //Retrieves the track number of a MSF address!
+{
+	sword result = -1; //Default: not found!
+	byte requestedtrack = 0;
+	int_64 cueresult, cuepostgapresult, cue_trackskip, cue_trackskip2, cue_postgapskip;
+	byte cue_track;
+	byte cue_M, cue_S, cue_F, cue_startS, cue_startF, cue_startM, cue_endM, cue_endS, cue_endF;
+	byte cue_postgapM, cue_postgapS, cue_postgapF, cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, cue_postgapendM, cue_postgapendS, cue_postgapendF;
+	result = -1; //Default: not found!
+	uint_32 reqLBA;
+	reqLBA = MSF2LBA(M, S, F); //What do we want to find out?
+	for (cue_track = 1; cue_track < 100; ++cue_track) //Check all tracks!
+	{
+		CDROM_selecttrack(ATA_Drives[channel][slave], cue_track); //Specified track!
+		CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
+		if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF, 1)) != 0) //Geometry gotten?
+		{
+			cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
+			requestedtrack = ((reqLBA >= MSF2LBA(cue_startM, cue_startS, cue_startF)) && (reqLBA <= MSF2LBA(cue_endM, cue_endS, cue_endF))); //Are we the requested track?
+			if (requestedtrack) //Is this track requested into for?
+			{
+				result = 1; //We've found the track that's requested!
+				//Give the start M,S,F for this track!
+				if (startM) *startM = cue_startM; //Start of the track!
+				if (startS) *startS = cue_startS; //Start of the track!
+				if (startF) *startF = cue_startF; //Start of the track!
+				if (tracknumber) *tracknumber = cue_track; //What track number are we!
+			}
+			if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][slave], cue_startM, cue_startS, cue_startF, NULL, 0)) != 0) //Try to read as specified!
+			{
+				cue_postgapskip = cueimage_readsector(ATA_Drives[channel][slave], cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, NULL, 0); //Try to read as specified!
+				if (cue_trackskip < -2) //Skipping more?
+				{
+					if (pregapsize && requestedtrack) //Want to know the pregap size for this track?
+					{
+						*pregapsize = -(cue_trackskip + 2); //More pregap to skip!
+					}
+				}
+				if (cuepostgapresult != 0) //Gotten postgap?
+				{
+					if (cue_postgapskip < -2) //Skipping more after this track?
+					{
+						if (postgapsize && requestedtrack) //Want to know the postgap size?
+						{
+							*postgapsize = -(cue_postgapskip + 2); //More postgap to skip for the next track!
+						}
+					}
+				}
+				if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][slave], M, S, F, &ATA[channel].Drive[slave].data[0], 0)) >= 1) //Try to find out if we're here!
+				{
+					switch (cue_trackskip2)
+					{
+					case 1 + MODE_MODE1DATA: //Mode 1 block?
+					case 1 + MODE_MODEXA: //Mode XA block?
+					case 1 + MODE_AUDIO: //Audio block?
+						//Valid track to use?
+						if (tracktype && requestedtrack) *tracktype = cue_trackskip2; //The track type!
+						continue; //Continue searching!
+					default: //Unknown/unsupported mode/OOR?
+						if (tracktype >= 0) //Valid to report?
+						{
+							if (tracktype && requestedtrack) *tracktype = (byte)cue_trackskip2; //The track type!
+						}
+						else
+						{
+							if (tracktype && requestedtrack) *tracktype = 0; //The unknown track type!
+						}
+						continue; //Continue searching!
+					}
+				}
+				//Not found yet? Continue searching!
+			}
+			//Failed checking the track skip? Ignore the track!
+		}
+	}
+	return result; //Give the result!
+}
+
+void ATAPI_tickAudio(byte channel, byte slave)
+{
+	word sampleleft, sampleright, samplepos;
+	int_64 loadstatus, loadstatus2;
+	byte curtrack_nr, curtrack_type;
+	if (likely(ATA[channel].Drive[slave].AUDIO_PLAYER.status != PLAYER_PLAYING)) //Not running?
+	{
+		finishPlayback: //Playback is finished, no sample!
+		//Render a silent sample!
+		ATAPI_renderAudioSample(channel, slave, 0, 0); //Render a silent sample!
+		switch (ATA[channel].Drive[slave].AUDIO_PLAYER.status) //What are we doing?
+		{
+		case PLAYER_PAUSED: //Being paused?
+		case PLAYER_SCANNING: //Scanning?
+		default: //Default(initialized)?
+		case PLAYER_INITIALIZED: //Initialized?
+			//Do something while idling?
+			break;
+		}
+	}
+	else //Playback?
+	{
+		if (ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos < 2352) //Rendering a buffer?
+		{
+			samplepos = ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos; //Load the sample position!
+			sampleleft = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
+			sampleleft |= (ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]<<8); //High byte!
+			sampleright = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
+			sampleright |= ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]<<8; //High byte!
+			ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos = samplepos; //Load the new sample position!
+			//Render an audio sample!
+			ATAPI_renderAudioSample(channel, slave, unsigned2signed16(sampleleft), unsigned2signed16(sampleright)); //Render a silent sample!
+		}
+		else //Need to load a new frame?
+		{
+			if ((ATA[channel].Drive[slave].AUDIO_PLAYER.M == ATA[channel].Drive[slave].AUDIO_PLAYER.endM) &&
+				(ATA[channel].Drive[slave].AUDIO_PLAYER.S == ATA[channel].Drive[slave].AUDIO_PLAYER.endS) &&
+				(ATA[channel].Drive[slave].AUDIO_PLAYER.F == ATA[channel].Drive[slave].AUDIO_PLAYER.endF)) //Final frame reached?
+			{
+				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
+				goto finishPlayback;
+			}
+			//Load a new sample buffer from the disk!
+			switch (ATAPI_gettrackinfo(channel, slave, ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &curtrack_nr, NULL, NULL, NULL, NULL, NULL, &curtrack_type)) //Is the track found?
+			{
+			case 0: //Errored out?
+				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+				ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+				ATAPI_command_reportError(channel, slave);
+				goto finishPlayback;
+				break;
+			case 1: //Playing?
+				if (curtrack_type != (1 + MODE_AUDIO)) //Invalid track type?
+				{
+					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+					//Error out on transition of track type!
+					ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+					ATAPI_command_reportError(channel, slave);
+					goto finishPlayback;
+				}
+				if ((ATA[channel].Drive[slave].AUDIO_PLAYER.trackref_track != curtrack_nr) && (ATA[channel].Drive[slave].ATAPI_ModeData[(0x0E << 8) | (0x02 - 2)] & 2)) //Stop on track crossing activated?
+				{
+					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+					//Error out on transition of track number crossing!
+					ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+					ATAPI_command_reportError(channel, slave);
+					goto finishPlayback;
+				}
+				//Otherwise, just play the audio track!
+				break; //Start playing normally!
+			case -1: //Track not found?
+				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+				//Error out on the track being out of range!
+				ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+				ATAPI_command_reportError(channel, slave);
+				goto finishPlayback;
+				break;
+			}
+		}
+		if ((loadstatus = cueimage_readsector(ATA_Drives[channel][slave], ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &ATA[channel].Drive[slave].AUDIO_PLAYER.samples[0], sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)))!=0) //Try to find out if we're here!
+		{
+			switch (loadstatus) //How did the load go?
+			{
+			case 1+MODE_AUDIO: //Audio track? It's valid!
+				break; //Success!
+			default: //Invalid type or gap?
+				if (loadstatus < -2) //Gap?
+				{
+					memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer for silence!
+				}
+				else //Invalid type!
+				{
+					memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer!
+					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
+					if (loadstatus == -1) //End of track reached?
+					{
+						//Error out!
+						ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+						ATAPI_command_reportError(channel, slave);
+					}
+					else //Invalid type!
+					{
+						//Error out!
+						ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+						ATAPI_command_reportError(channel, slave);
+					}
+					goto finishPlayback; //Finished playback!
+				}
+			}
+
+			//Start the new sample playback!
+			samplepos = 0; //The start of the new buffer!
+			sampleleft = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
+			sampleleft |= (ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++] << 8); //High byte!
+			sampleright = ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++]; //Low byte!
+			sampleright |= ATA[channel].Drive[slave].AUDIO_PLAYER.samples[samplepos++] << 8; //High byte!
+			ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos = samplepos; //Load the new sample position!
+			//Render an audio sample!
+			ATAPI_renderAudioSample(channel, slave, unsigned2signed16(sampleleft), unsigned2signed16(sampleright)); //Render a silent sample!
+		}
+		else //Failed to load new audio?
+		{
+			//Error out!
+			ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+			goto finishPlayback; //Finished playback!
+		}
+	}
+}
+
+byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte startS, byte startF, byte endM, byte endS, byte endF) //Start playback in this range!
+{
+	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_M = startM; //Where to start playing(track reference)!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_S = startS; //Where to start playing(track reference)!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_F = startF; //Where to start playing(track reference)!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.M = startM; //Where to start playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.S = startS; //Where to start playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.F = startF; //Where to start playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.endM = endM; //Where to stop playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.endS = endS; //Where to stop playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.endF = endF; //Where to stop playing!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //We're playing now!
+	ATA[channel].Drive[drive].AUDIO_PLAYER.samplepos = 2352; //We're starting a new transfer, start loading the new frame to render!
+	switch (ATAPI_gettrackinfo(channel, drive, startM, startS, startF, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_track, NULL, NULL, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_M, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_S, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_F, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_type)) //Is the track found?
+	{
+	case 0: //Errored out?
+		ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+		ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
+		ATAPI_command_reportError(channel, drive);
+		break;
+	case 1: //Playing?
+		if (ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_type != (1 + MODE_AUDIO)) //Invalid track type?
+		{
+			ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+			//Error out!
+			ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+			ATAPI_command_reportError(channel, drive);
+			return 0; //Failure!
+		}
+		//Otherwise, just play!
+		return 1; //OK
+		break; //Start playing normally!
+	case -1: //Track not found?
+		ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+		ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
+		ATAPI_command_reportError(channel, drive);
+		break;
+	}
+	return 0; //Failure!
+}
+
 void updateATA(DOUBLE timepassed) //ATA timing!
 {
+	uint_32 samples;
 	if (timepassed) //Anything passed?
 	{
+		//Tick the audio player!
+		if (CDROM_channel != 0xFF) //Is there a CD-ROM channel?
+		{
+			if (likely(ATA[CDROM_channel].playerTick)) //Valid to tick?
+			{
+				ATA[CDROM_channel].playerTiming += timepassed; //Tick what's needed!
+				if (ATA[CDROM_channel].playerTiming >= ATA[CDROM_channel].playerTick) //One sample or more to be timed?
+				{
+					samples = (uint_32)(ATA[CDROM_channel].playerTiming / ATA[CDROM_channel].playerTick); //How many samples to tick?
+					ATA[CDROM_channel].playerTiming -= (ATA[CDROM_channel].playerTick*((DOUBLE)samples)); //We're ticking them off!
+					for (; samples;--samples) //Samples left to tick?
+					{
+						ATAPI_tickAudio(CDROM_channel, 0); //Tick the Master!
+						ATAPI_tickAudio(CDROM_channel, 1); //Tick the Slave!
+					}
+				}
+			}
+		}
+
 		//Handle ATA drive select timing!
 		if (ATA[0].driveselectTiming) //Timing driveselect?
 		{
@@ -1661,8 +2024,6 @@ OPTINLINE uint_32 ATAPI_getresultsize(byte channel, byte drive) //Retrieve the c
 byte decreasebuffer[2352];
 
 byte ATAPI_aborted=0;
-
-void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
 
 OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sector set up!
 {
@@ -3465,6 +3826,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (LBA == 0xFFFFFFFF) //Current position?
 			{
 				//Take the current position we're at into startM, startS, startF!
+				startM = ATA[channel].Drive[drive].AUDIO_PLAYER.M; //Start M!
+				startS = ATA[channel].Drive[drive].AUDIO_PLAYER.S; //Start S!
+				startF = ATA[channel].Drive[drive].AUDIO_PLAYER.F; //Start F!
 			}
 			else
 			{
@@ -3476,9 +3840,15 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			endLBA += alloc_length; //How much to play, or none if the same!
 			LBA2MSF(endLBA, &endM, &endS, &endF); //Where to stop playing, even on the same location as startM, startS, startF!
 			//Start the playback operation with the startMSF and endMSF as beginning and end points, or stop when equal(no error)!
-
-			//Set DSC on completion!
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+			if (ATAPI_audioplayer_startPlayback(channel, drive, startM, startS, startF, endM, endS, endF)) //Start playback in this range!
+			{
+				//Set DSC on completion!
+				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+			}
+			else //Otherwise, if errored out, abort!
+			{
+				ATAPI_aborted = 1; //We're aborted!
+			}
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3520,18 +3890,30 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if ((startM == 0xFF) && (startS == 0xFF) && (startF == 0xFF)) //Current position?
 			{
 				//Take the current position into startM, startS, startF!
+				startM = ATA[channel].Drive[drive].AUDIO_PLAYER.M; //Start M!
+				startS = ATA[channel].Drive[drive].AUDIO_PLAYER.S; //Start S!
+				startF = ATA[channel].Drive[drive].AUDIO_PLAYER.F; //Start F!
 			}
 			//Otherwise, start MM:SS:FF is already loaded!
 
 			if (MSF2LBA(startM, startS, startF) > MSF2LBA(endM, endS, endF)) //Check condition status of SENSE_ILLEGAL_REQUEST!
 			{
 				//Throw the error!
+				ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
+				ATAPI_command_reportError(channel, drive);
+				goto playAudioMSF_handleMSFpositionerror;
 			}
 
 			//Start the playback operation with the startMSF and endMSF as beginning and end points, or stop when equal(no error)!
-
-			//Set DSC on completion!
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+			if (ATAPI_audioplayer_startPlayback(channel, drive, startM, startS, startF, endM, endS, endF)) //Start playback in this range!
+			{
+				//Set DSC on completion!
+				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+			}
+			else //Otherwise, if errored out, abort!
+			{
+				ATAPI_aborted = 1; //We're aborted!
+			}
 		}
 		else if (spinresponse == 2) //Busy waiting?
 		{
@@ -3540,6 +3922,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		else //Report error!
 		{
 			ATAPI_command_reportError(channel, drive); //Report the error!
+			playAudioMSF_handleMSFpositionerror:
 			ATAPI_aborted = 1; //We're aborted!
 		}
 		break;
@@ -4892,6 +5275,7 @@ void ATA_DiskChanged(int disk)
 
 void initATA()
 {
+	byte slave;
 	memset(&ATA, 0, sizeof(ATA)); //Initialise our data!
 
 	//We don't register a disk change handler, because ATA doesn't change disks when running!
@@ -4911,7 +5295,7 @@ void initATA()
 	memset(&ATA_Drives, 0, sizeof(ATA_Drives)); //Init drives to unused!
 	memset(&ATA_DrivesReverse, 0, sizeof(ATA_DrivesReverse)); //Init reverse drives to unused!
 	ATA[0].Drive[0].resetSetsDefaults = ATA[0].Drive[1].resetSetsDefaults = ATA[1].Drive[0].resetSetsDefaults = ATA[1].Drive[1].resetSetsDefaults = 1; //Reset sets defaults by default after poweron!
-	byte CDROM_channel = 1; //CDROM is the second channel by default!
+	CDROM_channel = 1; //CDROM is the second channel by default!
 	if (is_mounted(HDD0)) //Have HDD0?
 	{
 		ATA_Drives[0][0] = HDD0; //Mount HDD0!
@@ -4983,4 +5367,42 @@ void initATA()
 	ATAPI_setModePages(CDROM_channel, 0); //Init specific mode pages!
 	ATAPI_setModePages(CDROM_channel, 1); //Init specifc mode pages!
 	ATA_channel = ATA_slave = 0; //Default to channel 0, Master!
+
+	//Initialize the CD-ROM player data!
+	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
+	ATA[CDROM_channel].Drive[1].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
+	ATA[CDROM_channel].playerTiming = (DOUBLE)0.0f; //Initialize the player timing!
+	ATA[CDROM_channel].playerTick = (DOUBLE)(1000000000.0 / 44100.0); //The time of one sample to render!
+
+	for (slave = 0; slave < 2; ++slave) //Create the audio outputs!
+	{
+		if (allocDoubleBufferedSound32(__CDROM_SAMPLEBUFFERSIZE, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, 0, 44100.0)) //Valid buffer?
+		{
+			if (!addchannel(&CDROM_soundGenerator, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, "GameBlaster", (float)44100.0, __CDROM_SAMPLEBUFFERSIZE, 1, SMPL16S)) //Start the sound emulation (stereo) with automatic samples buffer?
+			{
+				dolog("CDROM", "Error registering sound channel for output!");
+			}
+			else
+			{
+				setVolume(&CDROM_soundGenerator, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, __CDROM_VOLUME);
+			}
+		}
+		else
+		{
+			dolog("CDROM", "Error registering first double buffer for output!");
+		}
+	}
+}
+
+void doneATA()
+{
+	byte slave;
+	if (CDROM_channel != 0xFF) //Valid?
+	{
+		for (slave = 0; slave < 2; ++slave) //Process all CD-ROM channels!
+		{
+			removechannel(&CDROM_soundGenerator, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, 0); //Stop the sound emulation?
+			freeDoubleBufferedSound(&ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer);
+		}
+	}
 }
