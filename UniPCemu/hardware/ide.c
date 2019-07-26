@@ -912,7 +912,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 	{
 		CDROM_selecttrack(ATA_Drives[channel][slave], cue_track); //Specified track!
 		CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
-		if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF, 1)) != 0) //Geometry gotten?
+		if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF, 0)) != 0) //Geometry gotten?
 		{
 			cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
 			requestedtrack = ((reqLBA >= MSF2LBAbin(cue_startM, cue_startS, cue_startF)) && (reqLBA <= MSF2LBAbin(cue_endM, cue_endS, cue_endF))); //Are we the requested track?
@@ -2084,7 +2084,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			{
 				CDROM_selecttrack(ATA_Drives[channel][drive],cue_track); //All tracks!
 				CDROM_selectsubtrack(ATA_Drives[channel][drive],0); //All subtracks!
-				if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF,1)) != 0) //Geometry gotten?
+				if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF,0)) != 0) //Geometry gotten?
 				{
 					cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][drive], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
 					if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][drive], cue_startM, cue_startS, cue_startF, NULL, 0))!=0) //Try to read as specified!
