@@ -995,7 +995,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 void ATAPI_tickAudio(byte channel, byte slave)
 {
 	word sampleleft, sampleright, samplepos;
-	int_64 loadstatus, loadstatus2;
+	int_64 loadstatus;
 	byte curtrack_nr, curtrack_type;
 	if (likely(ATA[channel].Drive[slave].AUDIO_PLAYER.status != PLAYER_PLAYING)) //Not running?
 	{
@@ -3252,7 +3252,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	byte startM, startS, startF, endM, endS, endF; //Start/End MSF of an audio play operation!
 	byte curtrack_nr;
 	byte tracktype;
-	int_64 cueresult;
 
 	//Our own stuff!
 	ATAPI_aborted = 0; //Init aborted status!
