@@ -175,7 +175,6 @@ void cueimage_fillMSF(int device, byte *got_startMSF, CUESHEET_ENTRYINFO *cue_cu
 			CUE_LBA2MSF(cue_next->status.MSFPosition - 1, endM, endS, endF); //Specify the start position!
 		}
 	}
-
 }
 
 extern char diskpath[256]; //Disk path!
