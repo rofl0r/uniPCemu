@@ -226,6 +226,7 @@ struct
 			SOUNDDOUBLEBUFFER soundbuffer; //Our two sound buffers for our two chips!
 		} AUDIO_PLAYER; //The audio player itself!
 		byte lasttrack; //Last requested track!
+		byte lastformat; //Last requested data format!
 		byte lastM;
 		byte lastS;
 		byte lastF;
@@ -1047,6 +1048,10 @@ void ATAPI_tickAudio(byte channel, byte slave)
 			case 1: //Playing?
 				if (curtrack_type != (1 + MODE_AUDIO)) //Invalid track type?
 				{
+					ATA[channel].Drive[slave].lastformat = 0x14; //Last format seen: data track!
+					ATA[channel].Drive[slave].lastM = ATA[channel].Drive[slave].AUDIO_PLAYER.M; //Our last position!
+					ATA[channel].Drive[slave].lastS = ATA[channel].Drive[slave].AUDIO_PLAYER.S; //Our last position!
+					ATA[channel].Drive[slave].lastF = ATA[channel].Drive[slave].AUDIO_PLAYER.F; //Our last position!
 					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
 					//Error out on transition of track type!
 					ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
@@ -1082,6 +1087,8 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				switch (loadstatus) //How did the load go?
 				{
 				case 1 + MODE_AUDIO: //Audio track? It's valid!
+					ATA[channel].Drive[slave].lasttrack = curtrack_nr; //Last track seen!
+					ATA[channel].Drive[slave].lastformat = 0x10; //Last format seen: audio track!
 					ATA[channel].Drive[slave].lastM = ATA[channel].Drive[slave].AUDIO_PLAYER.M; //Our last position!
 					ATA[channel].Drive[slave].lastS = ATA[channel].Drive[slave].AUDIO_PLAYER.S; //Our last position!
 					ATA[channel].Drive[slave].lastF = ATA[channel].Drive[slave].AUDIO_PLAYER.F; //Our last position!
@@ -2141,7 +2148,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 							case 1+MODE_MODE1DATA: //Mode 1 block?
 							if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
 							case 1+MODE_MODEXA: //Mode XA block?
-							if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
+								if (ATA[channel].Drive[drive].expectedReadDataType == 0) goto startCUEread; //Invalid type to read!
 							goto startCUEread; //Ready to process!
 							break;
 							case 1+MODE_AUDIO: //Audio block?
@@ -2166,14 +2173,13 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			}
 			
 		startCUEread:
-			ATA[channel].Drive[drive].lasttrack = cue_track; //What track are we on!
 
 			//Now, start reading past the determined pregap!
 			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			ATA[channel].Drive[drive].lasttrack = cue_track; //What track are we on!
 			ATA[channel].Drive[drive].lastM = M; //Our last position!
 			ATA[channel].Drive[drive].lastS = S; //Our last position!
 			ATA[channel].Drive[drive].lastF = F; //Our last position!
-
 			CDROM_selecttrack(ATA_Drives[channel][drive], 0); //All tracks!
 			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
@@ -2182,23 +2188,28 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				switch (cueresult)
 				{
 				case 1+MODE_MODE1DATA: //Mode 1 block?
+					ATA[channel].Drive[drive].lastformat = 0x14; //Last format seen: data track!
 					if ((ATA[channel].Drive[drive].expectedReadDataType != 2) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 					goto ready1;
 				case 1+MODE_MODEXA: //Mode XA block?
+					ATA[channel].Drive[drive].lastformat = 0x14; //Last format seen: data track!
 					if (((ATA[channel].Drive[drive].expectedReadDataType != 4) && (ATA[channel].Drive[drive].expectedReadDataType != 5)) && (ATA[channel].Drive[drive].expectedReadDataType != 0) && (ATA[channel].Drive[drive].expectedReadDataType != 0xFF)) break; //Invalid type to read!
 				ready1:
 					datablock_ready = 1; //Read and ready to process!
 					break;
 				case 1+MODE_AUDIO: //Audio block?
+					ATA[channel].Drive[drive].lastformat = 0x10; //Last format seen: audio track!
 					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) break; //Invalid in read sector(n) mode!
 					if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) break; //Invalid type to read!
 					datablock_ready = 1; //Read and ready to process!
 				default: //Unknown/unsupported mode?
 					if (cueresult < -2) //Pregap?
 					{
+						ATA[channel].Drive[drive].lastformat = 0x10; //Last format seen: audio track!
 						if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) //Not audio to read? don't handle!
 							break; //Unknown data!
 						//Otherwise, supported audio read from pregap/postgap!
+						//Lasttrack is already done during the track scan!
 						memset(&ATA[channel].Drive[drive].data[0], 0, ATA[channel].Drive[drive].datablock); //Empty block for pregap/postgap!
 						datablock_ready = 1; //Read and ready to process!
 					}
@@ -3667,7 +3678,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].data[4] = data_format;
 					if (data_format==3)
 					{
-						ATA[channel].Drive[drive].data[5] = (ATA[channel].Drive[drive].AUDIO_PLAYER.status!=PLAYER_INITIALIZED)?0x10:0x14; //During active audio playback, be a audio track, otherwise a data track.
+						ATA[channel].Drive[drive].data[5] = ATA[channel].Drive[drive].lastformat; //During active audio playback, be a audio track, otherwise a data track.
 						ATA[channel].Drive[drive].data[6] = ATA[channel].Drive[drive].lasttrack;
 					}
 					ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
@@ -5253,6 +5264,12 @@ void ATA_DiskChanged(int disk)
 		//Initialize the audio player and make it non-active!
 		ATA[disk_channel].Drive[disk_drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized!
 		ATA[disk_channel].Drive[disk_drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Not playing!
+		ATA[disk_channel].Drive[disk_drive].lastM = 0; //Our last position!
+		ATA[disk_channel].Drive[disk_drive].lastS = 0; //Our last position!
+		ATA[disk_channel].Drive[disk_drive].lastF = 0; //Our last position!
+		ATA[disk_channel].Drive[disk_drive].lastformat = 0x14; //Unknown format, nothing read yet, assume data!
+		ATA[disk_channel].Drive[disk_drive].lasttrack = 1; //Our last track!
+
 
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
 		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
@@ -5499,6 +5516,7 @@ void initATA()
 	ATAPI_setModePages(CDROM_channel, 0); //Init specific mode pages!
 	ATAPI_setModePages(CDROM_channel, 1); //Init specifc mode pages!
 	ATA_channel = ATA_slave = 0; //Default to channel 0, Master!
+	ATA[0].Drive[0].lastformat = 0x14; //Data track last seen(data track)!
 
 	//Initialize the CD-ROM player data!
 	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
