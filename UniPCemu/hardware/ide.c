@@ -1054,51 +1054,51 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				goto finishPlayback;
 				break;
 			}
-		}
-		CDROM_selecttrack(ATA_Drives[channel][slave], 0); //Any track!
-		CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
-		if ((loadstatus = cueimage_readsector(ATA_Drives[channel][slave], ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &ATA[channel].Drive[slave].AUDIO_PLAYER.samples[0], sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)))!=0) //Try to find out if we're here!
-		{
-			switch (loadstatus) //How did the load go?
+			CDROM_selecttrack(ATA_Drives[channel][slave], 0); //Any track!
+			CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
+			if ((loadstatus = cueimage_readsector(ATA_Drives[channel][slave], ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &ATA[channel].Drive[slave].AUDIO_PLAYER.samples[0], sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples))) != 0) //Try to find out if we're here!
 			{
-			case 1+MODE_AUDIO: //Audio track? It's valid!
-				LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
-				break; //Success!
-			default: //Invalid type or gap?
-				if (loadstatus < -2) //Gap?
+				switch (loadstatus) //How did the load go?
 				{
-					memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer for silence!
+				case 1 + MODE_AUDIO: //Audio track? It's valid!
 					LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
-				}
-				else //Invalid type!
-				{
-					memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer!
-					ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
-					if (loadstatus == -1) //End of track reached?
+					break; //Success!
+				default: //Invalid type or gap?
+					if (loadstatus < -2) //Gap?
 					{
-						//Error out!
-						ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
-						ATAPI_command_reportError(channel, slave);
+						memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer for silence!
+						LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
 					}
 					else //Invalid type!
 					{
-						//Error out!
-						ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
-						ATAPI_command_reportError(channel, slave);
+						memset(&ATA[channel].Drive[slave].AUDIO_PLAYER.samples, 0, sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)); //Clear the samples buffer!
+						ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Finished playback, go back to initialized state!
+						if (loadstatus == -1) //End of track reached?
+						{
+							//Error out!
+							ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_END_OF_USER_AREA_ENCOUNTERED_ON_THIS_TRACK, 0x00); //Medium is becoming available
+							ATAPI_command_reportError(channel, slave);
+						}
+						else //Invalid type!
+						{
+							//Error out!
+							ATAPI_SET_SENSE(channel, slave, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+							ATAPI_command_reportError(channel, slave);
+						}
+						goto finishPlayback; //Finished playback!
 					}
-					goto finishPlayback; //Finished playback!
 				}
-			}
 
-			//Start the new sample playback!
-			samplepos = 0; //The start of the new buffer!
-			goto ATAPI_renderSamplepos; //Start the normal renderer for the first sample!
-		}
-		else //Failed to load new audio?
-		{
-			//Error out!
-			ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
-			goto finishPlayback; //Finished playback!
+				//Start the new sample playback!
+				samplepos = 0; //The start of the new buffer!
+				goto ATAPI_renderSamplepos; //Start the normal renderer for the first sample!
+			}
+			else //Failed to load new audio?
+			{
+				//Error out!
+				ATA[channel].Drive[slave].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+				goto finishPlayback; //Finished playback!
+			}
 		}
 	}
 }
