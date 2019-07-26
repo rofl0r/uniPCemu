@@ -1054,6 +1054,8 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				break;
 			}
 		}
+		CDROM_selecttrack(ATA_Drives[channel][slave], 0); //Any track!
+		CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
 		if ((loadstatus = cueimage_readsector(ATA_Drives[channel][slave], ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &ATA[channel].Drive[slave].AUDIO_PLAYER.samples[0], sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples)))!=0) //Try to find out if we're here!
 		{
 			switch (loadstatus) //How did the load go?
