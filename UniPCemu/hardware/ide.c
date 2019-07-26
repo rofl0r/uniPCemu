@@ -225,6 +225,10 @@ struct
 			byte effectiveplaystatus; //Effective play status!
 			SOUNDDOUBLEBUFFER soundbuffer; //Our two sound buffers for our two chips!
 		} AUDIO_PLAYER; //The audio player itself!
+		byte lasttrack; //Last requested track!
+		byte lastM;
+		byte lastS;
+		byte lastF;
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -1070,6 +1074,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				goto finishPlayback;
 				break;
 			}
+			ATA[channel].Drive[slave].lasttrack = curtrack_nr; //What track are we on!
 			CDROM_selecttrack(ATA_Drives[channel][slave], 0); //Any track!
 			CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
 			if ((loadstatus = cueimage_readsector(ATA_Drives[channel][slave], ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F, &ATA[channel].Drive[slave].AUDIO_PLAYER.samples[0], sizeof(ATA[channel].Drive[slave].AUDIO_PLAYER.samples))) != 0) //Try to find out if we're here!
@@ -1077,6 +1082,9 @@ void ATAPI_tickAudio(byte channel, byte slave)
 				switch (loadstatus) //How did the load go?
 				{
 				case 1 + MODE_AUDIO: //Audio track? It's valid!
+					ATA[channel].Drive[slave].lastM = ATA[channel].Drive[slave].AUDIO_PLAYER.M; //Our last position!
+					ATA[channel].Drive[slave].lastS = ATA[channel].Drive[slave].AUDIO_PLAYER.S; //Our last position!
+					ATA[channel].Drive[slave].lastF = ATA[channel].Drive[slave].AUDIO_PLAYER.F; //Our last position!
 					LBA2MSFbin(MSF2LBAbin(ATA[channel].Drive[slave].AUDIO_PLAYER.M, ATA[channel].Drive[slave].AUDIO_PLAYER.S, ATA[channel].Drive[slave].AUDIO_PLAYER.F) + 1, &ATA[channel].Drive[slave].AUDIO_PLAYER.M, &ATA[channel].Drive[slave].AUDIO_PLAYER.S, &ATA[channel].Drive[slave].AUDIO_PLAYER.F); //Increase the MSF address to the next frame to check next!
 					break; //Success!
 				default: //Invalid type or gap?
@@ -2157,9 +2165,15 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				}
 			}
 			
-			startCUEread:
+		startCUEread:
+			ATA[channel].Drive[drive].lasttrack = cue_track; //What track are we on!
+
 			//Now, start reading past the determined pregap!
 			LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA+skipPregap, &M, &S, &F); //Generate a MSF address to use with CUE images!
+			ATA[channel].Drive[drive].lastM = M; //Our last position!
+			ATA[channel].Drive[drive].lastS = S; //Our last position!
+			ATA[channel].Drive[drive].lastF = F; //Our last position!
+
 			CDROM_selecttrack(ATA_Drives[channel][drive], 0); //All tracks!
 			CDROM_selectsubtrack(ATA_Drives[channel][drive],1); //Subtrack 1 only!
 			if ((cueresult = cueimage_readsector(ATA_Drives[channel][drive], M, S, F,&ATA[channel].Drive[drive].data[0], ATA[channel].Drive[drive].datablock))>=1) //Try to read as specified!
@@ -3639,20 +3653,82 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			memset(&ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
 			ATA[channel].Drive[drive].data[0] = 0;
 			ATA[channel].Drive[drive].data[1] = ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus; //Effective play status!
+			if ((ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus == 0x13) || (ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus == 0x14))
+			{
+				ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Subsequent requests become 
+			}
 			ATA[channel].Drive[drive].data[2] = 0;
 			ATA[channel].Drive[drive].data[3] = 0;
 			if (sub_Q) //!sub_q==header only
 			{
-				if ((data_format==2) || (data_format==3)) //UPC or ISRC
+				if ((data_format==1) || (data_format==2) || (data_format==3)) //Current Position or UPC or ISRC
 				{
 					ret_len = 24;
 					ATA[channel].Drive[drive].data[4] = data_format;
 					if (data_format==3)
 					{
 						ATA[channel].Drive[drive].data[5] = (ATA[channel].Drive[drive].AUDIO_PLAYER.status!=PLAYER_INITIALIZED)?0x10:0x14; //During active audio playback, be a audio track, otherwise a data track.
-						ATA[channel].Drive[drive].data[6] = 1;
+						ATA[channel].Drive[drive].data[6] = ATA[channel].Drive[drive].lasttrack;
 					}
 					ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
+					if (data_format == 1) //CD-ROM Current Position?
+					{
+						if (getCUEimage(ATA_Drives[channel][drive])) //Supported? Report the current position!
+						{
+							if (MSF)
+							{
+								ATA[channel].Drive[drive].data[8] = 0;
+								ATA[channel].Drive[drive].data[9] = ATA[channel].Drive[drive].lastM;
+								ATA[channel].Drive[drive].data[10] = ATA[channel].Drive[drive].lastS;
+								ATA[channel].Drive[drive].data[11] = ATA[channel].Drive[drive].lastF;
+							}
+							else
+							{
+								LBA = MSF2LBAbin(ATA[channel].Drive[drive].lastM, ATA[channel].Drive[drive].lastS, ATA[channel].Drive[drive].lastF);
+								ATA[channel].Drive[drive].data[8] = ((LBA>>24)&0xFF);
+								ATA[channel].Drive[drive].data[9] = ((LBA>>16)&0xFF);
+								ATA[channel].Drive[drive].data[10] = ((LBA>>8)&0xFF);
+								ATA[channel].Drive[drive].data[11] = (LBA&0xFF);
+							}
+							if (ATAPI_gettrackinfo(channel, drive, ATA[channel].Drive[drive].lastM, ATA[channel].Drive[drive].lastS, ATA[channel].Drive[drive].lastF, NULL, NULL, NULL, &startM, &startS, &startF, NULL) == 1) //What track information?
+							{
+								endLBA = MSF2LBAbin(ATA[channel].Drive[drive].lastM, ATA[channel].Drive[drive].lastS, ATA[channel].Drive[drive].lastF);
+								LBA = MSF2LBAbin(startM, startS, startF); //Begin position of the track!
+								endLBA -= LBA; //Relative track position!
+								LBA2MSFbin(endLBA, &endM, &endS, &endF); //Get the relative track position as MSF!
+								if (MSF)
+								{
+									ATA[channel].Drive[drive].data[8] = 0;
+									ATA[channel].Drive[drive].data[9] = endM;
+									ATA[channel].Drive[drive].data[10] = endS;
+									ATA[channel].Drive[drive].data[11] = endF;
+								}
+								else
+								{
+									LBA = MSF2LBAbin(ATA[channel].Drive[drive].lastM, ATA[channel].Drive[drive].lastS, ATA[channel].Drive[drive].lastF);
+									ATA[channel].Drive[drive].data[8] = ((endLBA >> 24) & 0xFF);
+									ATA[channel].Drive[drive].data[9] = ((endLBA >> 16) & 0xFF);
+									ATA[channel].Drive[drive].data[10] = ((endLBA >> 8) & 0xFF);
+									ATA[channel].Drive[drive].data[11] = (endLBA & 0xFF);
+								}
+							}
+							else //Couldn't get the track information required to handle this?
+							{
+								//Give MSF 00:00:00 or LBA 0.
+								ATA[channel].Drive[drive].data[12] = 0;
+								ATA[channel].Drive[drive].data[13] = 0;
+								ATA[channel].Drive[drive].data[14] = 0;
+								ATA[channel].Drive[drive].data[15] = 0;
+							}
+						}
+						else //Not supported!
+						{
+							ATA[channel].Drive[drive].data[8] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[9] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[10] = 0; //No MCval(format 2) or TCval(format 3)
+							ATA[channel].Drive[drive].data[11] = 0; //No MCval(format 2) or TCval(format 3)
+						}
+					}
 				}
 				else
 				{
@@ -5172,6 +5248,11 @@ void ATA_DiskChanged(int disk)
 	ATA_slave = disk_drive; //Slave?
 	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
 	{
+		ATA[disk_channel].Drive[disk_drive].lasttrack = 1; //What track are we on!
+		//Initialize the audio player and make it non-active!
+		ATA[disk_channel].Drive[disk_drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized!
+		ATA[disk_channel].Drive[disk_drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Not playing!
+
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
 		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
 		//Disable the IRQ for now to let the software know we've changed!
@@ -5421,6 +5502,8 @@ void initATA()
 	//Initialize the CD-ROM player data!
 	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
 	ATA[CDROM_channel].Drive[0].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Initialized player status(stopped)!
+	ATA[CDROM_channel].Drive[0].lasttrack = 1; //What track are we on!
+	ATA[CDROM_channel].Drive[1].lasttrack = 1; //What track are we on!
 	ATA[CDROM_channel].Drive[1].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //Initialized player status(stopped)!
 	ATA[CDROM_channel].Drive[1].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_NONE; //Initialized player status(stopped)!
 	ATA[CDROM_channel].playerTiming = (DOUBLE)0.0f; //Initialize the player timing!
