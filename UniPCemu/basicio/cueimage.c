@@ -993,6 +993,95 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		}
 		else if (memcmp(&cuesheet_line_lc[0], &identifier_FILE, safe_strlen(identifier_FILE, sizeof(identifier_FILE))) == 0) //File command?
 		{
+			if (cue_status.got_file && cue_status.got_track & cue_status.got_index) //We have a previous index until the end of the file?
+			{
+				//We're handling the EOF case because the running file is ending!
+				if (cue_current.is_present && (!cue_next.is_present) && cue_current.status.got_file && cue_current.status.got_track && cue_current.status.got_index) //Handle the cue_current if it and cue_next isn't present!
+				{
+					if (safe_strlen(cue_current.status.file_type, sizeof(cue_current.status.file_type)) != strlen("binary")) goto finishup; //Invalid file type!
+					if (!(strcmp(cue_current.status.file_type, "binary") == 0)) //Not supported file backend type!
+					{
+						goto finishup; //Finish up!
+					}
+					//Fill the end locations into the current entry, based on the next entry!
+					BIGFILE *source;
+					memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
+					safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
+					safestrcat(fullfilename, sizeof(fullfilename), "/");
+					safestrcat(fullfilename, sizeof(fullfilename), cue_current.status.filename); //The full filename!
+					source = emufopen64(fullfilename, "rb"); //Open the backend data file!
+					if (!source) goto finishup; //Couldn't open the source!
+					if (emufseek64(source, 0, SEEK_END) == 0) //Went to EOF?
+					{
+						fsize = emuftell64(source); //What is the size of the file!
+
+						memcpy(&cue_next, &cue_current, sizeof(cue_current)); //Copy the current as the next!
+						++cue_next.status.index; //Take the index one up!
+						LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Get the LBA of the last block the entry as the start of the final block!
+						fsize -= cue_current.status.datafilepos; //Get the address of the last block the entry starts as!
+						LBA += (uint_32)(fsize / cue_current.status.track_mode->sectorsize); //What LBA are we going to try to read at most!
+						CUE_LBA2MSF(LBA, &cue_next.status.M, &cue_next.status.S, &cue_next.status.F); //Convert the LBA back to MSF for the fake next record based on the file size(for purposes on the final index entry going until EOF of the source file)!
+					}
+					else //Couldn't goto EOF?
+					{
+						return 0; //Couldn't go EOF, so unknown size!
+					}
+					emufclose64(source); //Close the source!
+
+					//Autodetect final MSF address and give it as a result!
+					--LBA; //Take the end position of us!
+					CUE_LBA2MSF(LBA, &cue_current.endM, &cue_current.endS, &cue_current.endF); //Save the calculated end position of the selected index!
+					prev_LBA = CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F); //Previous LBA for more calculations!
+					if (cue_next.status.postgap_pending) //Postgap was pending for us?
+					{
+						//Handle postgap using prev_LBA-LBA, postgap info and MSF position!
+						gap_startAddr = (cue_next.status.MSFPosition) + (LBA - prev_LBA) + 1; //The start of the gap!
+						gap_endAddr = gap_startAddr + (cue_next.status.postgap_pending_duration - 1); //The end of the gap!
+						cue_next.status.MSFPosition += (LBA - prev_LBA) + 1; //Add the previous track size of the final entry!
+						//Handle the postgap for the previous track now!
+						if (CUE_MSF2LBA(orig_M, orig_S, orig_F) < gap_startAddr) goto notthispostgap3; //Before start? Not us!
+						if (CUE_MSF2LBA(orig_M, orig_S, orig_F) > gap_endAddr) goto notthispostgap3; //After end? not us!
+						//We're this postgap!
+						result = (-2LL - (int_64)((gap_endAddr - CUE_MSF2LBA(orig_M, orig_S, orig_F)) + 1)); //Give the result as the difference until the next track!
+					notthispostgap3:
+						cue_next.status.MSFPosition += cue_next.status.postgap_pending_duration; //Add the postgap to the size!
+						cue_next.status.postgap_pending = 0; //Not pending anymore!
+						cue_status.postgap_pending = 0; //Not pending anymore!
+					}
+					else //Calculate the next record for us!
+					{
+						cue_next.status.MSFPosition += (LBA - prev_LBA) + 1; //Add the previous track size of the final entry!
+					}
+
+					//Pregap can't be pending at EOF, since there's alway an index after it! Cue files always end with an index and maybe a postgap after it! Otherwise, ignore it!
+
+					if ((specialfeatures & 4) == 0)
+					{
+						cueimage_fillMSF(device, &got_startMSF, &cue_current, &cue_next, cue_current.status.track_number, cue_current.status.index, startM, startS, startF, endM, endS, endF); //Fill info!
+					}
+					//Duplicate MSF into the result!
+					*M = *endM;
+					*S = *endS;
+					*F = *endF;
+
+					LBA = CUE_MSF2LBA(orig_M, orig_S, orig_F); //What LBA are we going to try to read!
+					if (cue_current.status.MSFPosition >= (LBA + 1)) goto finishMSFscan2; //Invalid to read(non-zero length)?
+					if (((disks[device].selectedtrack == cue_current.status.track_number) || (disks[device].selectedtrack == 0)) &&
+						((disks[device].selectedsubtrack == cue_current.status.index) || (disks[device].selectedsubtrack == 0))) //Current track number and subtrack number to lookup?
+					{
+						if (cue_current.status.got_file && cue_current.status.got_index) //Got file and index to lookup? Otherwise, not found!
+						{
+							if (cue_current.status.MSFPosition > LBA) goto finishMSFscan2; //Invalid? Current LBA isn't in our range(we're requesting before it)?
+							if ((cue_current.status.MSFPosition + (CUE_MSF2LBA(cue_current.endM, cue_current.endS, cue_current.endF) - CUE_MSF2LBA(cue_current.status.M, cue_current.status.S, cue_current.status.F))) < LBA) goto finishMSFscan2; //Invalid? Current LBA isn't in our range(we're requesting after it)!
+							if (!cue_current.status.index) goto finishMSFscan2; //Not a valid index(index 0 is a pregap)!
+							goto foundMSF; //Do the normal MSF being found!
+						}
+					}
+				}
+			finishMSFscan2:
+				memcpy(&cue_current, &cue_next, sizeof(cue_current)); //Set cue_current to cue_next! The next becomes the new current!
+				cue_next.is_present = 0; //Set cue_next to not present!
+			}
 			//Specify a new file and mode to use! Also, reset the virtual position in the file!
 			if (cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE))] != ' ') continue; //Ignore if the command is incorrect!
 			for (c = &cuesheet_line[safe_strlen(cuesheet_line, sizeof(cuesheet_line)) - 1];;--c) //Parse backwards from End of String(EOS)!
@@ -1080,6 +1169,8 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 		}
 		//Otherwise, ignore the unknown command!
 	}
+
+	//Handle the EOF case now!
 
 	if (cue_current.is_present && (!cue_next.is_present) && cue_current.status.got_file && cue_current.status.got_track && cue_current.status.got_index) //Handle the cue_current if it and cue_next isn't present!
 	{
