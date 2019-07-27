@@ -1218,6 +1218,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 
 byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte startS, byte startF, byte endM, byte endS, byte endF) //Start playback in this range!
 {
+	uint_32 noCUELBA;
 	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_M = startM; //Where to start playing(track reference)!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_S = startS; //Where to start playing(track reference)!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_F = startF; //Where to start playing(track reference)!
@@ -1230,6 +1231,40 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 	ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //We're playing now!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PLAYING_IN_PROGRESS; //We're finished!
 	ATA[channel].Drive[drive].AUDIO_PLAYER.samplepos = 2352; //We're starting a new transfer, start loading the new frame to render!
+	if (!getCUEimage(ATA_Drives[channel][drive])) //Not a valid cue image to play back?
+	{
+		noCUELBA = MSF2LBAbin(startM, startS, startF);
+		ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
+		ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
+		if (noCUELBA >= 150)
+		{
+			noCUELBA -= 150; //Discard the pregap, if possible to get the physical LBA address!
+		}
+		else //In the pregap?
+		{
+			goto playback_noCUELBA_invalidtype;
+		}
+		if (noCUELBA > ATA[channel].Drive[drive].ATAPI_disksize) //Block Out of range?
+		{
+		playback_noCUELBA_invalidtype: //Invalid type due to OOR in the pregap?
+			//Error out because it's Out of Range!
+			ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 0x00); //Medium is becoming available
+			ATAPI_command_reportError(channel, drive);
+		}
+		else //Invalid data type?
+		{
+			//Fill our last read data for the request!
+			ATA[channel].Drive[drive].lastM = startM; //Last address
+			ATA[channel].Drive[drive].lastS = startS; //Last address
+			ATA[channel].Drive[drive].lastF = startF; //Last address
+			ATA[channel].Drive[drive].lastformat = 0x14; //Data track!
+			ATA[channel].Drive[drive].lasttrack = 1; //Last track!
+			//Error out because it's data type instead of audio type!
+			ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
+			ATAPI_command_reportError(channel, drive);
+		}
+		return 0; //Failure!
+	}
 	switch (ATAPI_gettrackinfo(channel, drive, startM, startS, startF, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_track, NULL, NULL, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_M, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_S, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_F, &ATA[channel].Drive[drive].AUDIO_PLAYER.trackref_type)) //Is the track found?
 	{
 	case 0: //Errored out?
@@ -1243,7 +1278,7 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 		{
 			ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_INITIALIZED; //We're erroring out!
 			ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_ERROREDOUT; //We're finished!
-					//Error out!
+			//Error out!
 			ATAPI_SET_SENSE(channel, drive, SENSE_ILLEGAL_REQUEST, ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM, 0x00); //Medium is becoming available
 			ATAPI_command_reportError(channel, drive);
 			return 0; //Failure!
@@ -4062,13 +4097,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 
-			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a valid cue image?
-			{
-				abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
-				additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
-				goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
-			}
-
 			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
 			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
 			//LBA FFFFFFFF=Current playback position, otherwise, add 150 for the MSF address(00:02:00). So pregap IS skipped with this one.
@@ -4133,12 +4161,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
-			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a valid cue image?
-			{
-				abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
-				additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
-				goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
-			}
 			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
 			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
 			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
