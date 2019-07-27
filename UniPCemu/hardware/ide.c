@@ -126,6 +126,15 @@ byte MODEL[2][41] = {"Generic HDD","Generic CD-ROM"}; //Word #27-46.
 byte SERIAL[2][21] = {"UniPCemu HDD0","UniPCemu CD-ROM0"}; //Word #5-10.
 byte FIRMWARE[2][9] = {"1.0","1.0"}; //Word #23-26.
 
+typedef struct
+{
+	int_64 cueresult, cuepostgapresult, cue_trackskip, cue_trackskip2, cue_postgapskip;
+	byte cue_M, cue_S, cue_F, cue_startS, cue_startF, cue_startM, cue_endM, cue_endS, cue_endF;
+	byte cue_postgapM, cue_postgapS, cue_postgapF, cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, cue_postgapendM, cue_postgapendS, cue_postgapendF;
+	uint_32 pregapsize, postgapsize;
+	byte tracktype;
+} TRACK_GEOMETRY;
+
 struct
 {
 	struct
@@ -231,6 +240,7 @@ struct
 		byte lastM;
 		byte lastS;
 		byte lastF;
+		TRACK_GEOMETRY geometries[100]; //All possible track geometries preloaded!
 	} Drive[2]; //Two drives!
 
 	byte DriveControlRegister;
@@ -914,68 +924,137 @@ void ATAPI_renderAudioSample(byte channel, byte slave, sword left, sword right)
 	writeDoubleBufferedSound32(&ATA[channel].Drive[slave].AUDIO_PLAYER.soundbuffer, (signed2unsigned16(right) << 16) | signed2unsigned16(left)); //Output the sample to the renderer!
 }
 
-sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte *tracknumber, uint_32 *pregapsize, uint_32 *postgapsize, byte *startM, byte *startS, byte *startF, byte *tracktype) //Retrieves the track number of a MSF address!
+void ATAPI_loadtrackinfo(byte channel, byte slave) //Retrieves the track number of a MSF address!
 {
-	sword result = -1; //Default: not found!
-	byte requestedtrack = 0;
-	int_64 cueresult, cuepostgapresult, cue_trackskip, cue_trackskip2, cue_postgapskip;
+	TRACK_GEOMETRY *g;
 	byte cue_track;
-	byte cue_M, cue_S, cue_F, cue_startS, cue_startF, cue_startM, cue_endM, cue_endS, cue_endF;
-	byte cue_postgapM, cue_postgapS, cue_postgapF, cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, cue_postgapendM, cue_postgapendS, cue_postgapendF;
-	result = -1; //Default: not found!
-	uint_32 reqLBA;
-	reqLBA = MSF2LBAbin(M, S, F); //What do we want to find out?
+	byte M, S, F;
 	for (cue_track = 1; cue_track < 100; ++cue_track) //Check all tracks!
 	{
+		g = &ATA[channel].Drive[slave].geometries[cue_track-1]; //The track's geometry precalcs!
 		CDROM_selecttrack(ATA_Drives[channel][slave], cue_track); //Specified track!
 		CDROM_selectsubtrack(ATA_Drives[channel][slave], 0); //All subtracks!
-		if ((cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_M, &cue_S, &cue_F, &cue_startM, &cue_startS, &cue_startF, &cue_endM, &cue_endS, &cue_endF, 0)) != 0) //Geometry gotten?
+		if ((g->cueresult = cueimage_getgeometry(ATA_Drives[channel][slave], &g->cue_M, &g->cue_S, &g->cue_F, &g->cue_startM, &g->cue_startS, &g->cue_startF, &g->cue_endM, &g->cue_endS, &g->cue_endF, 0)) != 0) //Geometry gotten?
 		{
-			cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][slave], &cue_postgapM, &cue_postgapS, &cue_postgapF, &cue_postgapstartM, &cue_postgapstartS, &cue_postgapstartF, &cue_postgapendM, &cue_postgapendS, &cue_postgapendF, 2); //Geometry gotten?
-			requestedtrack = ((reqLBA >= MSF2LBAbin(cue_startM, cue_startS, cue_startF)) && (reqLBA <= MSF2LBAbin(cue_endM, cue_endS, cue_endF))); //Are we the requested track?
-			if (requestedtrack) //Is this track requested into for?
+			g->cuepostgapresult = cueimage_getgeometry(ATA_Drives[channel][slave], &g->cue_postgapM, &g->cue_postgapS, &g->cue_postgapF, &g->cue_postgapstartM, &g->cue_postgapstartS, &g->cue_postgapstartF, &g->cue_postgapendM, &g->cue_postgapendS, &g->cue_postgapendF, 2); //Geometry gotten?
+			//Give the start M,S,F for this track!
+			if ((g->cue_trackskip = cueimage_readsector(ATA_Drives[channel][slave], g->cue_startM, g->cue_startS, g->cue_startF, NULL, 0)) != 0) //Try to read as specified!
 			{
-				result = 1; //We've found the track that's requested!
-				//Give the start M,S,F for this track!
-				if (startM) *startM = cue_startM; //Start of the track!
-				if (startS) *startS = cue_startS; //Start of the track!
-				if (startF) *startF = cue_startF; //Start of the track!
-				if (tracknumber) *tracknumber = cue_track; //What track number are we!
-			}
-			if ((cue_trackskip = cueimage_readsector(ATA_Drives[channel][slave], cue_startM, cue_startS, cue_startF, NULL, 0)) != 0) //Try to read as specified!
-			{
-				cue_postgapskip = cueimage_readsector(ATA_Drives[channel][slave], cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, NULL, 0); //Try to read as specified!
-				if (cue_trackskip < -2) //Skipping more?
+				g->cue_postgapskip = cueimage_readsector(ATA_Drives[channel][slave], g->cue_postgapstartM, g->cue_postgapstartS, g->cue_postgapstartF, NULL, 0); //Try to read as specified!
+				if (g->cue_trackskip < -2) //Skipping more?
 				{
-					if (pregapsize && requestedtrack) //Want to know the pregap size for this track?
+					g->pregapsize = -(g->cue_trackskip + 2); //More pregap to skip!
+				}
+				else
+				{
+					g->pregapsize = 0;
+				}
+				if (g->cuepostgapresult != 0) //Gotten postgap?
+				{
+					if (g->cue_postgapskip < -2) //Skipping more after this track?
 					{
-						*pregapsize = -(cue_trackskip + 2); //More pregap to skip!
+						g->postgapsize = -(g->cue_postgapskip + 2); //More postgap to skip for the next track!
+					}
+					else
+					{
+						g->cue_postgapskip = 0;
 					}
 				}
-				if (cuepostgapresult != 0) //Gotten postgap?
+				else
 				{
-					if (cue_postgapskip < -2) //Skipping more after this track?
-					{
-						if (postgapsize && requestedtrack) //Want to know the postgap size?
-						{
-							*postgapsize = -(cue_postgapskip + 2); //More postgap to skip for the next track!
-						}
-					}
+					g->cue_postgapskip = 0;
 				}
-				if ((cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][slave], M, S, F, &ATA[channel].Drive[slave].data[0], 0)) >= 1) //Try to find out if we're here!
+				LBA2MSFbin(MSF2LBAbin(g->cue_startM, g->cue_startS, g->cue_startF) + g->pregapsize, &M, &S, &F); //Add the pregap size for a valid start address to get the type!
+				if ((g->cue_trackskip2 = cueimage_readsector(ATA_Drives[channel][slave], M, S, F, &ATA[channel].Drive[slave].data[0], 0)) >= 1) //Try to find out if we're here!
 				{
-					switch (cue_trackskip2)
+					switch (g->cue_trackskip2)
 					{
 					case 1 + MODE_MODE1DATA: //Mode 1 block?
 					case 1 + MODE_MODEXA: //Mode XA block?
 					case 1 + MODE_AUDIO: //Audio block?
 						//Valid track to use?
-						if (tracktype && requestedtrack) *tracktype = cue_trackskip2; //The track type!
+						g->tracktype = g->cue_trackskip2; //The track type!
+						continue; //Continue searching!
+					default: //Unknown/unsupported mode/OOR?
+						if (g->cue_trackskip >= 0) //Valid to report?
+						{
+							g->tracktype = (byte)g->cue_trackskip2; //The track type!
+						}
+						else
+						{
+							g->tracktype = 0; //The unknown track type!
+						}
+						continue; //Continue searching!
+					}
+				}
+				else
+				{
+					g->tracktype = 0; //Unknown track type!
+				}
+				//Not found yet? Continue searching!
+			}
+			//Failed checking the track skip? Ignore the track!
+		}
+	}
+}
+
+sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte *tracknumber, uint_32 *pregapsize, uint_32 *postgapsize, byte *startM, byte *startS, byte *startF, byte *tracktype) //Retrieves the track number of a MSF address!
+{
+	TRACK_GEOMETRY *g;
+	sword result = -1; //Default: not found!
+	byte requestedtrack = 0;
+	byte cue_track;
+	result = -1; //Default: not found!
+	uint_32 reqLBA;
+	reqLBA = MSF2LBAbin(M, S, F); //What do we want to find out?
+	for (cue_track = 1; cue_track < 100; ++cue_track) //Check all tracks!
+	{
+		g = &ATA[channel].Drive[slave].geometries[cue_track-1]; //Get the tracks' geometry information that was preloaded!
+		if ((g->cueresult) != 0) //Geometry gotten?
+		{
+			requestedtrack = ((reqLBA >= MSF2LBAbin(g->cue_startM, g->cue_startS, g->cue_startF)) && (reqLBA <= MSF2LBAbin(g->cue_endM, g->cue_endS, g->cue_endF))); //Are we the requested track?
+			if (requestedtrack) //Is this track requested into for?
+			{
+				result = 1; //We've found the track that's requested!
+				//Give the start M,S,F for this track!
+				if (startM) *startM = g->cue_startM; //Start of the track!
+				if (startS) *startS = g->cue_startS; //Start of the track!
+				if (startF) *startF = g->cue_startF; //Start of the track!
+				if (tracknumber) *tracknumber = cue_track; //What track number are we!
+			}
+			if ((g->cue_trackskip) != 0) //Try to read as specified!
+			{
+				if (g->cue_trackskip < -2) //Skipping more?
+				{
+					if (pregapsize && requestedtrack) //Want to know the pregap size for this track?
+					{
+						*pregapsize = -(g->cue_trackskip + 2); //More pregap to skip!
+					}
+				}
+				if (g->cuepostgapresult != 0) //Gotten postgap?
+				{
+					if (g->cue_postgapskip < -2) //Skipping more after this track?
+					{
+						if (postgapsize && requestedtrack) //Want to know the postgap size?
+						{
+							*postgapsize = -(g->cue_postgapskip + 2); //More postgap to skip for the next track!
+						}
+					}
+				}
+				if ((g->cue_trackskip2) >= 1) //Try to find out if we're here!
+				{
+					switch (g->cue_trackskip2)
+					{
+					case 1 + MODE_MODE1DATA: //Mode 1 block?
+					case 1 + MODE_MODEXA: //Mode XA block?
+					case 1 + MODE_AUDIO: //Audio block?
+						//Valid track to use?
+						if (tracktype && requestedtrack) *tracktype = g->cue_trackskip2; //The track type!
 						continue; //Continue searching!
 					default: //Unknown/unsupported mode/OOR?
 						if (tracktype >= 0) //Valid to report?
 						{
-							if (tracktype && requestedtrack) *tracktype = (byte)cue_trackskip2; //The track type!
+							if (tracktype && requestedtrack) *tracktype = (byte)g->cue_trackskip2; //The track type!
 						}
 						else
 						{
@@ -5385,6 +5464,10 @@ void ATA_DiskChanged(int disk)
 				else //Failed to get the geometry?
 				{
 					disk_size = 0; //No disk size available!
+				}
+				if (IS_CDROM) //CD-ROM drive?
+				{
+					ATAPI_loadtrackinfo(disk_channel, disk_drive); //Refresh the track information!
 				}
 			}
 			else
