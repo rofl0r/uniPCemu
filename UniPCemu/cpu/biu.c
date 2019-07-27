@@ -109,6 +109,8 @@ void BIU_recheckmemory() //Recheck any memory that's preloaded and/or validated 
 	BIU[activeCPU].PIQ_checked = 0; //Recheck anything that's fetching from now on!
 }
 
+byte condflushtriggered = 0;
+
 byte CPU_condflushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
@@ -120,10 +122,12 @@ byte CPU_condflushPIQ(int_64 destaddr)
 
 	//Check for any instruction faults that's pending for the next to be executed instruction!
 #ifdef FAULT_INVALID_JUMPS
+	condflushtriggered = 0;
 	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
 	{
-		return 1; //Abort on fault for the current instruction!
+		condflushtriggered = 1;
 	}
+	if (unlikely(condflushtriggered)) return 1;
 #endif
 	return 0; //No error!
 }
