@@ -109,7 +109,7 @@ void BIU_recheckmemory() //Recheck any memory that's preloaded and/or validated 
 	BIU[activeCPU].PIQ_checked = 0; //Recheck anything that's fetching from now on!
 }
 
-void CPU_flushPIQ(int_64 destaddr)
+byte CPU_condflushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
 	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
@@ -122,10 +122,18 @@ void CPU_flushPIQ(int_64 destaddr)
 #ifdef FAULT_INVALID_JUMPS
 	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
 	{
-		return; //Abort on fault for the current instruction!
+		return 1; //Abort on fault for the current instruction!
 	}
 #endif
+	return 0; //No error!
 }
+
+void CPU_flushPIQ(int_64 destaddr) //Flush the PIQ! Returns 0 without abort, 1 with abort!
+{
+	byte dummy;
+	dummy = CPU_condflushPIQ(destaddr); //Conditional one, but ignore the result!
+}
+
 
 //Internal helper functions for requests and responses!
 OPTINLINE byte BIU_haveRequest() //BIU: Does the BIU have a request?

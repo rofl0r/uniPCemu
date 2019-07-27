@@ -151,7 +151,10 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		#endif
 		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
-		CPU_flushPIQ(-1); //We're jumping to another address!
+		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
+		{
+			return 0; //Errored out!
+		}
 		CPU[activeCPU].executed = 1; //We've executed: process the next instruction!
 		CPU_interruptcomplete(); //Prepare us for new instructions!
 
@@ -368,14 +371,14 @@ void CPU_IRET()
 		REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 		updateCPUmode();
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
-		CPU_flushPIQ(-1); //We're jumping to another address!
-		if (CPU[0].faultraised == 0) //No fault has been raised?
+		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{
-			if ((tempEFLAGS&(F_VIP | F_VIF)) == (F_VIP | F_VIF)) //VIP and VIF both set on the new code?
-			{
-				CPU_commitState(); //Commit to the new instruction!
-				THROWDESCGP(0, 0, 0); //#GP(0)!
-			}
+			return;
+		}
+		if ((tempEFLAGS&(F_VIP | F_VIF)) == (F_VIP | F_VIF)) //VIP and VIF both set on the new code?
+		{
+			CPU_commitState(); //Commit to the new instruction!
+			THROWDESCGP(0, 0, 0); //#GP(0)!
 		}
 	}
 }

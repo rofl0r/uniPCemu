@@ -52,6 +52,7 @@ byte CPU_readOP(byte *result, byte singlefetch); //Reads the operation (byte) at
 byte CPU_readOPw(word *result, byte singlefetch); //Reads the operation (word) at CS:EIP
 byte CPU_readOPdw(uint_32 *result, byte singlefetch); //Reads the operation (32-bit unsigned integer) at CS:EIP
 
+byte CPU_condflushPIQ(int_64 destaddr); //Flush the PIQ! Returns 0 without abort, 1 with abort!
 void CPU_flushPIQ(int_64 destaddr); //Flush the PIQ!
 
 //BIU request/responses!

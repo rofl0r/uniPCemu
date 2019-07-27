@@ -3715,7 +3715,7 @@ OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
     //Near return
 	CPUPROT1
 	CPU_JMPabs((uint_32)RET_val,0);
-	CPU_flushPIQ(-1); //We're jumping to another address!
+	if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 	CPUPROT1
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
 	{

@@ -1469,7 +1469,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			}
 			if (segment == CPU_SEGMENT_CS)
 			{
-				CPU_flushPIQ(-1); //We're jumping to another address!
+				if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 			}
 		}
 		else //A fault has been raised? Abort!
@@ -1544,7 +1544,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	//Real mode doesn't use the descriptors?
 	if (segment == CPU_SEGMENT_CS)
 	{
-		CPU_flushPIQ(-1); //We're jumping to another address!
+		if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 	}
 	return 0; //No fault raised&continue!
 }
