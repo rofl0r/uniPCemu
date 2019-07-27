@@ -4015,8 +4015,11 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				//Resume if paused, otherwise, NOP!
 				if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
 				{
-					ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PLAYING_IN_PROGRESS; //We're finished!
-					ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //Resume playing!
+					if (getCUEimage(ATA_Drives[channel][drive])) //Valid cue image?
+					{
+						ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus = PLAYER_STATUS_PLAYING_IN_PROGRESS; //We're finished!
+						ATA[channel].Drive[drive].AUDIO_PLAYER.status = PLAYER_PLAYING; //Resume playing!
+					}
 				}
 			}
 			else //Pause?
@@ -4058,6 +4061,14 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
+
+			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a valid cue image?
+			{
+				abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+				additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+				goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+			}
+
 			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
 			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
 			//LBA FFFFFFFF=Current playback position, otherwise, add 150 for the MSF address(00:02:00). So pregap IS skipped with this one.
@@ -4122,6 +4133,12 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
 			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
+			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a valid cue image?
+			{
+				abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
+				additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+				goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+			}
 			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
 			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
 			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
