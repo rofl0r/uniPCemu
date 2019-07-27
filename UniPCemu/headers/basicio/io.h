@@ -10,6 +10,7 @@ typedef void(*DISKCHANGEDHANDLER)(int disk); //Disk has been changed!
 typedef struct
 {
 char filename[256]; //The filename of the disk!
+char rawfilename[256]; //The unmodified filename (no paths) of the disk!
 uint_64 start; //Base positions of the images in the files!
 byte readonly; //Readonly!
 uint_64 size; //Disk size!

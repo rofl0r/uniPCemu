@@ -115,6 +115,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 
 	//Register the new disk to be assigned!
 	safestrcpy(disks[device].filename,sizeof(disks[device].filename), fullfilename); //Set file!
+	safestrcpy(disks[device].rawfilename, sizeof(disks[device].rawfilename), filename); //Set given file!
 	disks[device].start = startpos; //Start pos!
 	disks[device].readonly = readonly; //Read only!
 	disks[device].dynamicimage = dynamicimage; //Dynamic image!

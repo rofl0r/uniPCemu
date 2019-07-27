@@ -433,9 +433,15 @@ extern byte advancedlog; //Advanced log setting
 byte VRAMtype[0x10] = { 0,0,0,0,1,2,3,4,5,0,0,0,0,0,0,0 }; //Redetect VTAM size when changing this value for the detected card!
 byte oldVGAMode;
 
+extern byte CDROM_DiskChanged;
+extern IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
+CharacterType oldcdrom0[256];
+CharacterType oldcdrom1[256];
+
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
 {
+	byte tempstorage;
 	if (__HW_DISABLED) return 0; //Abort!
 	EMU_stopInput(); //Stop all emu input!
 	terminateVGA(); //Terminate currently running VGA for a speed up!
@@ -535,11 +541,23 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	}
 
 	BIOSDoneScreen(); //Clean up the screen!
-//Now return to the emulator to reboot!
+	//Now return to the emulator to reboot!
 
-	BIOS_ValidateData(); //Validate&reload all disks!
+	tempstorage = CDROM_DiskChanged; //Store temporarily for restoring later!
+	CDROM_DiskChanged = 0; //Don't trigger special disk changed actions!
+	memset(&oldcdrom0, 0, sizeof(oldcdrom0)); //Init!
+	memset(&oldcdrom1, 0, sizeof(oldcdrom1)); //Init!
+	safestrcpy(oldcdrom0, sizeof(oldcdrom0), disks[CDROM0].rawfilename); //Save away the old filename!
+	safestrcpy(oldcdrom1, sizeof(oldcdrom1), disks[CDROM1].rawfilename); //Save away the old filename!
+	iocdrom0("", 0, 1, 0); //Unmount manually!
+	iocdrom1("", 0, 1, 0); //Unmount manually!
+	BIOS_ValidateData(); //Validate&reload all disks without triggering CD-ROM disk changes!
+	iocdrom0(oldcdrom0, 0, 1, 0); //Restore manually!
+	iocdrom1(oldcdrom1, 0, 1, 0); //Restore manually!
+	CDROM_DiskChanged = tempstorage; //Restore the disk change handler to it's old state!
+	BIOS_ValidateData(); //Validate&reload all disks, handling all disk changes normally(if any)!
 
-//Restore all states saved for the BIOS!
+	//Restore all states saved for the BIOS!
 	startEMUTimers(); //Start our timers up again!
 
 	if (shuttingdown()) return 0; //We're shutting down, discard!
@@ -564,6 +582,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
 	updateEMUSingleStep(); //Update the single-step breakpoint!
+
 	unlock(LOCK_MAINTHREAD); //Continue!
 
 	return (reboot_needed&2) || ((reboot_needed&1) && (BIOS_SaveStat && BIOS_Changed)); //Do we need to reboot: when required or chosen!
