@@ -1400,7 +1400,6 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
 					}
 				}
-				CPU_flushPIQ(-1); //We're jumping to another address!
 			}
 			else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 			{
@@ -1468,9 +1467,17 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					}
 				}
 			}
+			if (segment == CPU_SEGMENT_CS)
+			{
+				CPU_flushPIQ(-1); //We're jumping to another address!
+			}
 		}
 		else //A fault has been raised? Abort!
 		{
+			if (segment == CPU_SEGMENT_CS)
+			{
+				CPU_flushPIQ(-1); //We're jumping to another address!
+			}
 			return 1; //Abort on fault!
 		}
 	}
@@ -1523,7 +1530,6 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
 			CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
-			CPU_flushPIQ(-1); //We're jumping to another address!
 		}
 		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 		{
@@ -1536,6 +1542,10 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		}
 	}
 	//Real mode doesn't use the descriptors?
+	if (segment == CPU_SEGMENT_CS)
+	{
+		CPU_flushPIQ(-1); //We're jumping to another address!
+	}
 	return 0; //No fault raised&continue!
 }
 
@@ -2160,7 +2170,6 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
 			CPU[activeCPU].registers->EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
-			CPU_flushPIQ(-1); //We're jumping to another address!
 
 			FLAGW_TF(0);
 			FLAGW_NT(0);
@@ -2202,12 +2211,14 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 						THROWDESCGP(idtentry.selector,((idtentry.selector&0x400)>>10),(idtentry.selector&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 					}
 				}
+				CPU_flushPIQ(-1); //We're jumping to another address!
 				return 1; //Abort on fault!
 			}
 
 			hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 			CPU_interruptcomplete(); //Prepare us for new instructions!
+			CPU_flushPIQ(-1); //We're jumping to another address!
 			return 1; //OK!
 			break;
 		default: //Unknown descriptor type?

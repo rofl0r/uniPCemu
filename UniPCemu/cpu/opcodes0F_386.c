@@ -676,7 +676,6 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU[activeCPU].registers->ECX = LOADALLDATA.fields.ECX; //DX
 	CPU[activeCPU].registers->EAX = LOADALLDATA.fields.EAX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
-	CPU_flushPIQ(-1); //We're jumping to another address!
 
 	//GDTR/IDTR registers!
 	CPU[activeCPU].registers->GDTR.base = LOADALLDATA.fields.GDTR.BASE; //Base!
@@ -693,6 +692,7 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TRdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL determines CPL!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 }
 
 extern byte didJump; //Did we jump?

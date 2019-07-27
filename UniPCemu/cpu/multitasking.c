@@ -772,7 +772,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
-	CPU_flushPIQ(-1); //We're jumping to another address!
 	/*
 	if ((getRPL(CPU[activeCPU].registers->CS) != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])) && (getcpumode()==CPU_MODE_PROTECTED)) //Non-matching CS RPL vs CS CPL if not V86?
 	{
@@ -854,6 +853,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 
 	CPU[activeCPU].executed = 1; //Task switch completed!
+	CPU_flushPIQ(-1); //We're jumping to another address!
 	return 0; //Abort any running instruction operation, finish up!
 }
 

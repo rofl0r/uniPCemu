@@ -197,8 +197,8 @@ void CPU_IRET()
 		if (CPU8086_internal_POPw(4,&IRET_FLAGS,CPU_Operand_size[activeCPU])) return; //POP FLAGS!
 		destEIP = (uint_32)IRET_IP; //POP IP!
 		if (segmentWritten(CPU_SEGMENT_CS, IRET_CS, 3)) return; //We're loading because of an IRET!
-		CPU_flushPIQ(-1); //We're jumping to another address!
 		REG_FLAGS = IRET_FLAGS; //Pop flags!
+		CPU_flushPIQ(-1); //We're jumping to another address!
 		#ifdef LOG_INTS
 		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
@@ -369,11 +369,13 @@ void CPU_IRET()
 		updateCPUmode();
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 		CPU_flushPIQ(-1); //We're jumping to another address!
-
-		if ((tempEFLAGS&(F_VIP | F_VIF)) == (F_VIP | F_VIF)) //VIP and VIF both set on the new code?
+		if (CPU[0].faultraised == 0) //No fault has been raised?
 		{
-			CPU_commitState(); //Commit to the new instruction!
-			THROWDESCGP(0, 0, 0); //#GP(0)!
+			if ((tempEFLAGS&(F_VIP | F_VIF)) == (F_VIP | F_VIF)) //VIP and VIF both set on the new code?
+			{
+				CPU_commitState(); //Commit to the new instruction!
+				THROWDESCGP(0, 0, 0); //#GP(0)!
+			}
 		}
 	}
 }
