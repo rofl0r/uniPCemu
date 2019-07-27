@@ -2547,6 +2547,13 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	if (datablock_ready) goto ATAPI_alreadyread; //Already read? Skip normal reading if so!
 	if (readdata(ATA_Drives[channel][drive], datadest, ((uint_64)ATA[channel].Drive[drive].ATAPI_LBA << 11), 0x800)) //Read the data from disk?
 	{
+		//Fill out the information for the data track read for the non-CUE image!
+		LBA2MSFbin(ATA[channel].Drive[drive].ATAPI_LBA+150, &M, &S, &F); //Convert to MSF address!
+		ATA[channel].Drive[drive].lastformat = 0x14; //Last format: data track!
+		ATA[channel].Drive[drive].lasttrack = 1; //Last track!
+		ATA[channel].Drive[drive].lastM = M; //Last address!
+		ATA[channel].Drive[drive].lastS = S; //Last address!
+		ATA[channel].Drive[drive].lastF = F; //Last address!
 		ATAPI_alreadyread: //Already read!
 		ATAPI_increasesector(channel,drive); //Increase the current sector!
 
