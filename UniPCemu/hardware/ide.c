@@ -1071,11 +1071,11 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 	return result; //Give the result!
 }
 
+byte curtrack_type = 0, curtrack_nr=0;
 void ATAPI_tickAudio(byte channel, byte slave)
 {
 	word sampleleft, sampleright, samplepos;
 	int_64 loadstatus;
-	byte curtrack_nr, curtrack_type;
 	if (likely(ATA[channel].Drive[slave].AUDIO_PLAYER.status != PLAYER_PLAYING)) //Not running?
 	{
 		finishPlayback: //Playback is finished, no sample!
