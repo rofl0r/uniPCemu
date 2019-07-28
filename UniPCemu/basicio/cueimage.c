@@ -59,13 +59,14 @@ byte cuesheet_readline(BIGFILE *f)
 			if (startedparsingline) //Started parsing the line?
 			{
 				safe_scatnprintf(cuesheet_line, sizeof(cuesheet_line), "%c", c); //Add to the line!
-				safe_scatnprintf(cuesheet_line_lc, sizeof(cuesheet_line_lc), "%c", tolower(c)); //Add to the line!
+				c = (char)tolower((int)c);
+				safe_scatnprintf(cuesheet_line_lc, sizeof(cuesheet_line_lc), "%c", c); //Add to the line!
 			}
 			break; //Counted in!
 		default: //Unknown character? Parse in the line!
 			startedparsingline = 1; //We've started parsing the line if we didn't yet!
 			safe_scatnprintf(cuesheet_line, sizeof(cuesheet_line), "%c", c); //Add to the line!
-			safe_scatnprintf(cuesheet_line_lc, sizeof(cuesheet_line_lc), "%c", tolower(c)); //Add to the line!
+			safe_scatnprintf(cuesheet_line_lc, sizeof(cuesheet_line_lc), "%c", (char)tolower((int)c)); //Add to the line!
 			break; //Counted as a normal character!
 		}
 	}
@@ -1114,7 +1115,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 						}
 						if ((!file_wasescaped) || ((file_string != file_stringend) && (file_string != file_stringstart))) //Not escaped or the end?
 						{
-							safe_scatnprintf(cue_status.filename, sizeof(cue_status.filename), "%c", *file_string); //Add to the result!
+							safe_scatnprintf(cue_status.filename, sizeof(cue_status.filename), "%c", (char)(*file_string)); //Add to the result!
 						}
 					}
 				}
@@ -1130,7 +1131,7 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			{
 				if (*c) //Valid?
 				{
-					*c = tolower(*c); //Convert to lower case!
+					*c = (char)tolower((int)*c); //Convert to lower case!
 				}
 			}
 			cue_status.got_file = 1; //File has been parsed!
