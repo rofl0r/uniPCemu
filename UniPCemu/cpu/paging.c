@@ -468,19 +468,12 @@ OPTINLINE TLBEntry *Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwrit
 //W=Writable, U=User, D=Dirty
 OPTINLINE uint_32 Paging_generateTAG(uint_32 logicaladdress, byte W, byte U, byte D, byte S)
 {
-	return (((((((((S<<1)|D)<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG!
+	return (((((((((S<<1)|D)<<1)|W)<<1)|U)<<1)|1)|(logicaladdress & 0xFFFFF000)); //The used TAG(using a 4KB page, but the lower 10 bits are unused in 4MB pages)!
 }
 
-OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG)
+OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG, uint_32 TAGmask)
 {
-	if (unlikely(TAG & 0x10)) //4MB page?
-	{
-		return (((logicaladdress & 0xFFC00000) | 1) == ((TAG & 0xFFC00000) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
-	}
-	else //4KB page?
-	{
-		return (((logicaladdress & 0xFFFFF000) | 1) == ((TAG & 0xFFFFF000) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
-	}
+	return (((logicaladdress & TAGmask) | 1) == ((TAG & TAGmask) | (TAG & 1))); //The used TAG matches on address and availability only! Ignore US/RW!
 }
 
 //Build for age entry!
@@ -498,19 +491,27 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	TLBEntry *curentry=NULL;
 	TLB_ptr *effectiveentry;
 	uint_32 TAG,TAGMASKED;
+	uint_32 addrmask, searchmask;
 	sbyte TLB_set;
 	byte indexsize;
 	byte whichentry;
-	TLB_set = Paging_TLBSet(logicaladdress,S); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
 	byte entry;
-	TAGMASKED = (TAG&0xFFFFF011); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
+	TLB_set = Paging_TLBSet(logicaladdress,S); //Auto set?
+	//Calculate and store the address mask for matching!
+	addrmask = (~S) & 1; //Mask to 1 bit only. Become 0 when using 4MB(don't clear the high 10 bits), 1 for 4KB(clear the high 10 bits)!
+	addrmask = 0x3FF >> ((addrmask << 3) | (addrmask << 1)); //Shift off the 4MB bits when using 4KB pages!
+	addrmask <<= 12; //Shift to page size addition of bits(12 bits)!
+	addrmask |= 0xFFF; //Fill with the 4KB page mask to get a 4KB or 4MB page mask!
+	addrmask = ~addrmask; //Negate the frame mask for a page mask!	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+	searchmask = (0x11 | addrmask); //Search mask!
+	TAGMASKED = (TAG&searchmask); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
 	entry = 0; //Init for entry search not found!
 	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
 	for (;effectiveentry;) //Verify from MRU to LRU!
 	{
 		if (TLB_way>=0) break; //Don't process when a static way is specified!
-		if ((effectiveentry->entry->TAG & 0xFFFFF011) == TAGMASKED) //Match for our own entry?
+		if ((effectiveentry->entry->TAG & searchmask) == TAGMASKED) //Match for our own entry?
 		{
 			curentry = effectiveentry->entry; //The entry to use!
 			Paging_setNewestTLB(TLB_set, effectiveentry); //We're the newest TLB now!
@@ -538,6 +539,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	//Fill the found entry with our (new) data!
 	curentry->data = result; //The result for the lookup!
 	curentry->TAG = TAG; //The TAG to find it by!
+	curentry->addrmask = addrmask; //Save the address mask for matching a TLB entry after it's stored!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
@@ -548,27 +550,31 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, byte W, byte U, byte 
 	INLINEREGISTER TLB_ptr *curentry;
 	sbyte TLB_set;
 	TLB_set = Paging_TLBSet(logicaladdress,S); //Auto set?
-	TAG = Paging_generateTAG(logicaladdress,W,U,D,S); //Generate a TAG!
-	TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
-	if (likely(WDMask)) //Used?
-	{
-		TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
-	}
-
 	curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
-	for (;curentry;) //Check all entries that are allocated!
+	if (likely(curentry)) //Valid entries to search?
 	{
- 		if (likely((curentry->entry->TAG&TAGMask)==TAG)) //Found and allocated?
+		TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+		TAG &= (curentry->entry->addrmask|0xFFF); //The full search mask, with the address width(KB vs MB) applied!
+		TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
+		if (likely(WDMask)) //Used?
 		{
-			*result = curentry->entry->data; //Give the stored data!
-			Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
-			if (unlikely(TLB_way)) //Requested way?
-			{
-				*TLB_way = curentry->index; //What way was found!
-			}
-			return 1; //Found!
+			TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
 		}
-		curentry = (TLB_ptr *)(curentry->next); //Next entry!
+
+		for (; curentry;) //Check all entries that are allocated!
+		{
+			if (likely((curentry->entry->TAG&TAGMask) == TAG)) //Found and allocated?
+			{
+				*result = curentry->entry->data; //Give the stored data!
+				Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
+				if (unlikely(TLB_way)) //Requested way?
+				{
+					*TLB_way = curentry->index; //What way was found!
+				}
+				return 1; //Found!
+			}
+			curentry = (TLB_ptr *)(curentry->next); //Next entry!
+		}
 	}
 	return 0; //Not found!
 }
@@ -582,7 +588,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 		curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
 		for (;curentry;) //Check all entries that are allocated!
 		{
-			if (Paging_matchTLBaddress(logicaladdress, curentry->entry->TAG)) //Matched and allocated?
+			if (Paging_matchTLBaddress(logicaladdress, curentry->entry->TAG, curentry->entry->addrmask)) //Matched and allocated?
 			{
 				curentry->entry->TAG = 0; //Clear the entry to unused!
 				freeTLB(TLB_set, curentry); //Free this entry from the TLB!
