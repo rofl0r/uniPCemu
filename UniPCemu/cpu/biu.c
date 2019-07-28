@@ -132,10 +132,10 @@ byte CPU_condflushPIQ(int_64 destaddr)
 	return 0; //No error!
 }
 
+byte dummyresult=0;
 void CPU_flushPIQ(int_64 destaddr) //Flush the PIQ! Returns 0 without abort, 1 with abort!
 {
-	byte dummy;
-	dummy = CPU_condflushPIQ(destaddr); //Conditional one, but ignore the result!
+	dummyresult = CPU_condflushPIQ(destaddr); //Conditional one, but ignore the result!
 }
 
 
