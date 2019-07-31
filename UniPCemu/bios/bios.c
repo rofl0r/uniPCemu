@@ -757,6 +757,10 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	CMOS->s10000 = (byte)get_private_profile_uint64(section,"s10000",0,BIOS_Settings_file);
 	CMOS->centuryisbinary = (byte)get_private_profile_uint64(section,"centuryisbinary",0,BIOS_Settings_file);
 	CMOS->cycletiming = (byte)get_private_profile_uint64(section,"cycletiming",0,BIOS_Settings_file);
+	CMOS->floppy0_nodisk_type = (byte)get_private_profile_uint64(section, "floppy0_nodisk_type", 0, BIOS_Settings_file);
+	if (CMOS->floppy0_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy0_nodisk_type = 0; //Default if invalid!
+	CMOS->floppy1_nodisk_type = (byte)get_private_profile_uint64(section, "floppy1_nodisk_type", 0, BIOS_Settings_file);
+	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -900,12 +904,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	//Disks
 	get_private_profile_string("disks","floppy0","",&BIOS_Settings.floppy0[0],sizeof(BIOS_Settings.floppy0),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.floppy0_readonly = (byte)get_private_profile_uint64("disks","floppy0_readonly",0,BIOS_Settings_file);
-	BIOS_Settings.floppy0_nodisk_type = (byte)get_private_profile_uint64("disks", "floppy0_nodisk_type", 0, BIOS_Settings_file);
-	if (BIOS_Settings.floppy0_nodisk_type >= NUMFLOPPYGEOMETRIES) BIOS_Settings.floppy0_nodisk_type = 0; //Default if invalid!
 	get_private_profile_string("disks","floppy1","",&BIOS_Settings.floppy1[0],sizeof(BIOS_Settings.floppy1),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.floppy1_readonly = (byte)get_private_profile_uint64("disks","floppy1_readonly",0,BIOS_Settings_file);
-	BIOS_Settings.floppy1_nodisk_type = (byte)get_private_profile_uint64("disks", "floppy1_nodisk_type", 0, BIOS_Settings_file);
-	if (BIOS_Settings.floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) BIOS_Settings.floppy1_nodisk_type = 0; //Default if invalid!
 	get_private_profile_string("disks","hdd0","",&BIOS_Settings.hdd0[0],sizeof(BIOS_Settings.hdd0),BIOS_Settings_file); //Read entry!
 	BIOS_Settings.hdd0_readonly = (byte)get_private_profile_uint64("disks","hdd0_readonly",0,BIOS_Settings_file);
 	get_private_profile_string("disks","hdd1","",&BIOS_Settings.hdd1[0],sizeof(BIOS_Settings.hdd1),BIOS_Settings_file); //Read entry!
@@ -993,6 +993,8 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	if (!write_private_profile_uint64(section,section_comment,"s10000",CMOS->s10000,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section,section_comment,"centuryisbinary",CMOS->centuryisbinary,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section,section_comment,"cycletiming",CMOS->cycletiming,BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "floppy0_nodisk_type", CMOS->floppy0_nodisk_type, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "floppy1_nodisk_type", CMOS->floppy1_nodisk_type, BIOS_Settings_file)) return 0;
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -1220,19 +1222,12 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&disks_comment,0,sizeof(disks_comment)); //Init!
 	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
 	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only\n");
-	safestrcat(disks_comment, sizeof(disks_comment), "floppy[number]_nodisk_type: The disk geometry to use as a base without a disk mounted. Values: ");
-	for (c = 0; c < NUMITEMS(floppygeometries); ++c) //Parse all possible geometries!
-	{
-		safescatnprintf(disks_comment, sizeof(disks_comment), (c==0)?"%i=%s":", %i=%s", c, floppygeometries[c].text);
-	}
 	char *disks_commentused=NULL;
 	if (disks_comment[0]) disks_commentused = &disks_comment[0];
 	if (!write_private_profile_string("disks",disks_commentused,"floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
 	if (!write_private_profile_uint64("disks",disks_commentused,"floppy0_readonly",BIOS_Settings.floppy0_readonly,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("disks",disks_commentused,"floppy0_nodisk_type", BIOS_Settings.floppy0_nodisk_type,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_string("disks",disks_commentused,"floppy1",&BIOS_Settings.floppy1[0],BIOS_Settings_file)) return 0; //Read entry!
 	if (!write_private_profile_uint64("disks",disks_commentused,"floppy1_readonly",BIOS_Settings.floppy1_readonly,BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("disks",disks_commentused,"floppy1_nodisk_type", BIOS_Settings.floppy1_nodisk_type,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_string("disks",disks_commentused,"hdd0",&BIOS_Settings.hdd0[0],BIOS_Settings_file)) return 0; //Read entry!
 	if (!write_private_profile_uint64("disks",disks_commentused,"hdd0_readonly",BIOS_Settings.hdd0_readonly,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_string("disks",disks_commentused,"hdd1",&BIOS_Settings.hdd1[0],BIOS_Settings_file)) return 0; //Read entry!
@@ -1328,6 +1323,11 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(cmos_comment,sizeof(cmos_comment),"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0), not to be used as a century byte.");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "floppy[number]_nodisk_type: The disk geometry to use as a base without a disk mounted. Values: ");
+	for (c = 0; c < NUMITEMS(floppygeometries); ++c) //Parse all possible geometries!
+	{
+		safescatnprintf(cmos_comment, sizeof(cmos_comment), (c == 0) ? "%i=%s" : ", %i=%s", c, floppygeometries[c].text);
+	}
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
 

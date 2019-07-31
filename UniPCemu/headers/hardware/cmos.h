@@ -39,6 +39,8 @@ typedef struct
 	byte extraRAMdata[8]; //Extra RAM data from XT RTC(UM82C8167), for 56 bits of extra RAM!
 	byte centuryisbinary; //Century is to be read/written as a binary value?
 	byte cycletiming; //Run the CMOS off the CPU clock instead of realtime?
+	byte floppy0_nodisk_type; //No mounted disk type for Floppy A
+	byte floppy1_nodisk_type; //No mounted disk type for Floppy B
 } CMOSDATA;
 
 typedef struct

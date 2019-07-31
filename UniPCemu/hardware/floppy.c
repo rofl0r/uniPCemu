@@ -8,6 +8,7 @@
 #include "headers/hardware/floppy.h" //Our type definitions!
 #include "headers/bios/biosrom.h" //ROM support for Turbo XT BIOS detection!
 #include "headers/emu/debugger/debugger.h" //For logging extra information when debugging!
+#include "headers/hardware/cmos.h" //CMOS setting support!
 
 //Configuration of the FDC...
 
@@ -524,6 +525,7 @@ void FLOPPY_finishrecalibrate(byte drive);
 void FLOPPY_finishseek(byte drive);
 void FLOPPY_checkfinishtiming(byte drive);
 
+extern CMOS_Type CMOS;
 
 OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 {
@@ -592,7 +594,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	//If we reach here, we're an unmounted geometry!
 	if (floppy < 2) //Valid floppy to get the default geometry from??
 	{
-		FLOPPY.geometries[floppy] = &floppygeometries[floppy?BIOS_Settings.floppy0_nodisk_type:BIOS_Settings.floppy1_nodisk_type]; //Set geometry!
+		FLOPPY.geometries[floppy] = &floppygeometries[floppy?CMOS.DATA.floppy0_nodisk_type:CMOS.DATA.floppy1_nodisk_type]; //Set geometry!
 		if (FLOPPY.physicalcylinder[floppy]>(FLOPPY.geometries[floppy]->tracks-1)) //Invalid cylinder?
 		{
 			FLOPPY.physicalcylinder[floppy] = (FLOPPY.geometries[floppy]->tracks - 1); //Return to the last track, physically, since no track exists there!

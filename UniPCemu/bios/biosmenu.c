@@ -1558,8 +1558,26 @@ void BIOS_InitDisksText()
 		safestrcat(menuoptions[5],sizeof(menuoptions[5]),BIOS_Settings.cdrom1); //Add disk image!
 	}
 
-	safestrcat(menuoptions[12],sizeof(menuoptions[12]),floppygeometries[BIOS_Settings.floppy0_nodisk_type].text);
-	safestrcat(menuoptions[13],sizeof(menuoptions[13]),floppygeometries[BIOS_Settings.floppy1_nodisk_type].text);
+	CMOSDATA *currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+
+	safestrcat(menuoptions[12],sizeof(menuoptions[12]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
+	safestrcat(menuoptions[13],sizeof(menuoptions[13]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
 }
 
 
@@ -7855,6 +7873,24 @@ void BIOS_floppy0_nodisk_type()
 	}
 	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
 
+	CMOSDATA *currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+
 	BIOS_Title("Default Floppy A without disk type");
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
@@ -7862,12 +7898,14 @@ void BIOS_floppy0_nodisk_type()
 	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(26, 4, itemlist[BIOS_Settings.floppy0_nodisk_type], 256, NULL); //Get our result!
+	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy0_nodisk_type], 256, NULL); //Get our result!
+	int newtype;
+	newtype = currentCMOS->floppy0_nodisk_type; //Old type!
 	switch (result) //Which result?
 	{
 	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed |= 1; //Changed!
-		BIOS_Settings.floppy0_nodisk_type = 0; //Default!
+		newtype = 0; //Default!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
@@ -7875,15 +7913,57 @@ void BIOS_floppy0_nodisk_type()
 	default: //File?
 		if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
 		{
-			if (result != BIOS_Settings.floppy0_nodisk_type) //Changed?
+			if (result != currentCMOS->floppy0_nodisk_type) //Changed?
 			{
-				BIOS_Settings.floppy0_nodisk_type = result; //Set the new value!
+				newtype = result; //Set the new value!
 				BIOS_Changed |= 1; //Changed!
 			}
 		}
 		break;
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
+
+	BIOS_Changed = 1; //We've changed!
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
+	CMOS.DATA.floppy0_nodisk_type = newtype; //Reverse!
+	unlock(LOCK_CPU); //We're finished with the main thread!
+	if (is_PS2) //PS/2?
+	{
+		if (!BIOS_Settings.got_PS2CMOS)
+		{
+			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
+		}
+		BIOS_Settings.PS2CMOS.floppy0_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_Compaq)
+	{
+		if (!BIOS_Settings.got_CompaqCMOS)
+		{
+			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+		}
+		BIOS_Settings.CompaqCMOS.floppy0_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_XT)
+	{
+		if (!BIOS_Settings.got_XTCMOS)
+		{
+			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
+		}
+		BIOS_Settings.XTCMOS.floppy0_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
+	}
+	else //AT?
+	{
+		if (!BIOS_Settings.got_ATCMOS)
+		{
+			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
+		}
+		BIOS_Settings.ATCMOS.floppy0_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
+	}
 }
 
 void BIOS_floppy1_nodisk_type()
@@ -7900,6 +7980,24 @@ void BIOS_floppy1_nodisk_type()
 	}
 	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
 
+	CMOSDATA *currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+
 	BIOS_Title("Default Floppy B without disk type");
 	EMU_locktext();
 	EMU_gotoxy(0, 4); //Goto 4th row!
@@ -7907,12 +8005,14 @@ void BIOS_floppy1_nodisk_type()
 	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(26, 4, itemlist[BIOS_Settings.floppy1_nodisk_type], 256, NULL); //Get our result!
+	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy1_nodisk_type], 256, NULL); //Get our result!
+	int newtype;
+	newtype = currentCMOS->floppy1_nodisk_type; //Old type!
 	switch (result) //Which result?
 	{
 	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed |= 1; //Changed!
-		BIOS_Settings.floppy1_nodisk_type = 0; //Default!
+		newtype = 0; //Default!
 		break;
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
@@ -7920,13 +8020,55 @@ void BIOS_floppy1_nodisk_type()
 	default: //File?
 		if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
 		{
-			if (result != BIOS_Settings.floppy1_nodisk_type) //Changed?
+			if (result != currentCMOS->floppy1_nodisk_type) //Changed?
 			{
-				BIOS_Settings.floppy1_nodisk_type = result; //Set the new value!
+				newtype = result; //Set the new value!
 				BIOS_Changed |= 1; //Changed!
 			}
 		}
 		break;
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
+
+	BIOS_Changed = 1; //We've changed!
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
+	CMOS.DATA.floppy1_nodisk_type = newtype; //Reverse!
+	unlock(LOCK_CPU); //We're finished with the main thread!
+	if (is_PS2) //PS/2?
+	{
+		if (!BIOS_Settings.got_PS2CMOS)
+		{
+			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
+		}
+		BIOS_Settings.PS2CMOS.floppy1_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_Compaq)
+	{
+		if (!BIOS_Settings.got_CompaqCMOS)
+		{
+			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+		}
+		BIOS_Settings.CompaqCMOS.floppy1_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_XT)
+	{
+		if (!BIOS_Settings.got_XTCMOS)
+		{
+			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
+		}
+		BIOS_Settings.XTCMOS.floppy1_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
+	}
+	else //AT?
+	{
+		if (!BIOS_Settings.got_ATCMOS)
+		{
+			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
+		}
+		BIOS_Settings.ATCMOS.floppy1_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
+	}
 }
