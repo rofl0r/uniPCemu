@@ -2299,7 +2299,7 @@ void updateFloppy(DOUBLE timepassed)
 							}
 							else if (movedcylinder==0) //Reached no destination?
 							{
-								invalidtrackseek:
+								//invalidtrackseek:
 								//Invalid track?
 								FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | drive; //Valid command! Just don't report completion(invalid track to seek to)!
 								FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!

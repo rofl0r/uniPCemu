@@ -7861,8 +7861,6 @@ void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL()
 
 void BIOS_floppy0_nodisk_type()
 {
-	char fullfilename[256];
-	word size; //The size to generate, in KB!
 	byte i;
 	char filename[256]; //Filename container!
 	cleardata(&filename[0], sizeof(filename)); //Init!
@@ -7968,8 +7966,6 @@ void BIOS_floppy0_nodisk_type()
 
 void BIOS_floppy1_nodisk_type()
 {
-	char fullfilename[256];
-	word size; //The size to generate, in KB!
 	byte i;
 	char filename[256]; //Filename container!
 	cleardata(&filename[0], sizeof(filename)); //Init!
