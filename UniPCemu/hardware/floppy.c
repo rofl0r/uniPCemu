@@ -469,20 +469,20 @@ enum FloppyCommands
 
 FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES] = { //Differently formatted disks, and their corresponding geometries
 	//First, 5"
-	{ 160,  8,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFE,512 , 1, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300}, //160K 5.25" supports 250kbits, 300kbits SD!
-	{ 180,  9,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300}, //180K 5.25" supports 250kbits, 300kbits SD!
-	{ 200, 10,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300}, //200K 5.25" supports 250kbits, 300kbits SD!
-	{ 320,  8,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFF,512 , 1, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300}, //320K 5.25" supports 250kbits, 300kbits SD!
-	{ 360,  9,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFD,1024, 2, 112,DENSITY_DOUBLE           ,GAPLENGTH_5_14,    0x00, 300}, //360K 5.25" supports 250kbits, 300kbits DD!
-	{ 400, 10,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFD,1024, 2, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300}, //400K 5.25" supports 250kbits, 300kbits SD!
-	{1200, 15,  2, 80, FLOPPYTYPE_12MB, 0, FLOPPYDISK_MIDSPEED, 0xF9,512 , 7, 224,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 360}, //1200K 5.25" supports 300kbits, 500kbits SD!
+	{ 160,  8,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFE,512 , 1, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300, "160KB disk 5.25\"" }, //160K 5.25" supports 250kbits, 300kbits SD!
+	{ 180,  9,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300, "180KB disk 5.25\"" }, //180K 5.25" supports 250kbits, 300kbits SD!
+	{ 200, 10,  1, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFC,512 , 2, 64 ,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300, "200KB disk 5.25\"" }, //200K 5.25" supports 250kbits, 300kbits SD!
+	{ 320,  8,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFF,512 , 1, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300, "320KB disk 5.25\"" }, //320K 5.25" supports 250kbits, 300kbits SD!
+	{ 360,  9,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFD,1024, 2, 112,DENSITY_DOUBLE           ,GAPLENGTH_5_14,    0x00, 300, "360KB disk 5.25\"" }, //360K 5.25" supports 250kbits, 300kbits DD!
+	{ 400, 10,  2, 40, FLOPPYTYPE_12MB, 0, FLOPPYDISK_LOWSPEED, 0xFD,1024, 2, 112,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 300, "400KB disk 5.25\"" }, //400K 5.25" supports 250kbits, 300kbits SD!
+	{1200, 15,  2, 80, FLOPPYTYPE_12MB, 0, FLOPPYDISK_MIDSPEED, 0xF9,512 , 7, 224,DENSITY_SINGLE           ,GAPLENGTH_5_14,    0x00, 360, "1.2MB disk 5.25\"" }, //1200K 5.25" supports 300kbits, 500kbits SD!
 	//Now 3.5"
-	{ 720,  9,  2, 80, FLOPPYTYPE_720K, 1, FLOPPYDISK_LOWSPEED, 0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_3_5,     0xC0, 300 }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT?
-	{1440, 18,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300 }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT?
-	{1680, 21,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300 }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{1722, 21,  2, 82, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300 }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{1840, 23,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300 }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
-	{2880, 36,  2, 80, FLOPPYTYPE_28MB, 1, FLOPPYDISK_HIGHSPEED,0xF0,1024, 9, 240,DENSITY_IGNORE|DENSITY_ED,GAPLENGTH_IGNORE,  0x40, 300 } //2.88M 3.5" supports 1Mbits ED!
+	{ 720,  9,  2, 80, FLOPPYTYPE_720K, 1, FLOPPYDISK_LOWSPEED, 0xF9,1024, 3, 112,DENSITY_DOUBLE           ,GAPLENGTH_3_5,     0xC0, 300, "720KB disk 3.5\"" }, //720K 3.5" supports 250kbits, 300kbits DD! Disable gap length checking here because we need to work without it on a XT?
+	{1440, 18,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300, "1.44MB disk 3.5\"" }, //1.44M 3.5" supports 250kbits, 500kbits HD! Disable gap length checking here because we need to work without it on a XT?
+	{1680, 21,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300, "1.68MB disk 3.5\"" }, //1.68M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1722, 21,  2, 82, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300, "1.722MB disk 3.5\"" }, //1.722M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{1840, 23,  2, 80, FLOPPYTYPE_14MB, 1, FLOPPYDISK_MIDSPEED, 0xF0,512 , 9, 224,DENSITY_IGNORE|DENSITY_HD,GAPLENGTH_3_5,     0x80, 300, "1.84MB disk 3.5\"" }, //1.84M 3.5" supports 250kbits, 500kbits HD! Supporting BIOS only!
+	{2880, 36,  2, 80, FLOPPYTYPE_28MB, 1, FLOPPYDISK_HIGHSPEED,0xF0,1024, 9, 240,DENSITY_IGNORE|DENSITY_ED,GAPLENGTH_IGNORE,  0x40, 300, "2.88MB disk 3.5\"" } //2.88M 3.5" supports 1Mbits ED!
 };
 
 //BPS=512 always(except differently programmed)!
@@ -589,10 +589,21 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 		return; //Stop searching!
 	}
 	
-	//If we reach here, we're an invalid geometry!
-	if (FLOPPY.physicalcylinder[floppy]) //Invalid cylinder?
+	//If we reach here, we're an unmounted geometry!
+	if (floppy < 2) //Valid floppy to get the default geometry from??
 	{
-		FLOPPY.physicalcylinder[floppy] = 0; //Return to track 0, physically, since no track exists there!
+		FLOPPY.geometries[floppy] = &floppygeometries[floppy?BIOS_Settings.floppy0_nodisk_type:BIOS_Settings.floppy1_nodisk_type]; //Set geometry!
+		if (FLOPPY.physicalcylinder[floppy]>(FLOPPY.geometries[floppy]->tracks-1)) //Invalid cylinder?
+		{
+			FLOPPY.physicalcylinder[floppy] = (FLOPPY.geometries[floppy]->tracks - 1); //Return to the last track, physically, since no track exists there!
+		}
+	}
+	else //Unmountable floppy?
+	{
+		if (FLOPPY.physicalcylinder[floppy]) //Invalid cylinder?
+		{
+			FLOPPY.physicalcylinder[floppy] = 0; //Return to track 0, physically, since no track exists there!
+		}
 	}
 }
 
@@ -1076,7 +1087,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
 
-	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //Not inserted or valid?
+	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
 		FLOPPY.ST0 = 0x40; //Abnormal termination!
@@ -1117,7 +1128,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
-	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
+	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) ||  ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		goto floppy_errorread; //Error out!
 	}
@@ -1176,7 +1187,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	char *DSKImageFile;
 	SECTORINFORMATIONBLOCK sectorinfo;
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
-	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
+	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		goto floppy_errorformat; //Error out!
 	}
@@ -1339,7 +1350,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 		return;
 	}
 
-	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
+	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY.ST0 = 0x40; //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
@@ -1366,7 +1377,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 OPTINLINE void floppy_executeWriteData()
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
-	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
+	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
 		FLOPPY.ST0 = 0x40; //Abnormal termination!
@@ -1690,7 +1701,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
 			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR&3].steprate; //Step rate!
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < floppy_tracks(disksize(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
+			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
 			{
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
@@ -1742,7 +1753,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				FLOPPY.ST2 = 0x00; //Clear ST2!
 				updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update track 0!
 				updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Update write protected related flags!
-				if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //Valid geometry?
+				if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] && ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 0)) //Valid geometry?
 				{
 					if ((int_32)floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) >= (int_32)(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->KB * 1024)) //Invalid address within our image!
 					{
@@ -1790,7 +1801,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 				return;
 			}
 
-			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //No geometry?
+			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
 			{
 				FLOPPY.ST0 = 0x40; //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
@@ -1847,7 +1858,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[3]; //Give the cylinder as a result!
 			FLOPPY.resultbuffer[4] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[0]; //Give the cylinder as a result!
 			FLOPPY.resultbuffer[5] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].data[1]; //Give the cylinder as a result!
-			if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR])
+			if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] && ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 0))
 			{
 				FLOPPY.resultbuffer[6] = (byte)((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT)&0xFF); //Give the cylinder size in sectors as a result!
 			}
@@ -2249,11 +2260,7 @@ void updateFloppy(DOUBLE timepassed)
 					{
 						case SEEK: //Seek/park head
 							updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
-							if ((drive >= 2) /*|| (drive!=(FLOPPY.commandbuffer[1]&3))*/) //Invalid drive specified?
-							{
-								goto invalidtrackseek; //Error out!
-							}
-							if (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) //Floppy not inserted?
+							if ((drive>=2) || (!FLOPPY.geometries[drive])) //Floppy not inserted?
 							{
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Error: drive not ready!
 								clearDiskChanged(); //Clear the disk changed flag for the new command!
@@ -2283,7 +2290,7 @@ void updateFloppy(DOUBLE timepassed)
 							updateST3(drive); //Update ST3 only!
 
 							//Check if we're there!
-							if ((drive<2) && (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < floppy_tracks(disksize(drive ? FLOPPY1 : FLOPPY0))) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0)))) //Found and existant?
+							if ((drive<2) && (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < FLOPPY.geometries[drive]->tracks) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0)))) //Found and existant?
 							{
 								FLOPPY_finishseek(drive); //Finish!
 								goto finishdrive; //Give an error!

@@ -207,6 +207,8 @@ void BIOS_taskBreakpoint(); //Task breakpoint!
 void BIOS_CR3breakpoint(); //CR3 breakpoint!
 void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
 void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL(); //Remap accent grave to tab during RCTRL to LWIN mapping!
+void BIOS_floppy0_nodisk_type();
+void BIOS_floppy1_nodisk_type();
 
 
 //First, global handler!
@@ -286,6 +288,8 @@ Handler BIOS_Menus[] =
 	,BIOS_CR3breakpoint //CR3 breakpoint is #71!
 	,BIOS_DirectInput_remap_RCTRL_to_LWIN //Remap RCTRL to LWIN is #72!
 	,BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
+	,BIOS_floppy0_nodisk_type //Floppy A without disk type is #74!
+	,BIOS_floppy1_nodisk_type //Floppy B without disk type is #75!
 };
 
 //Not implemented?
@@ -1454,10 +1458,12 @@ word Menu_Stat; //Menu status!
 
 byte generateHDD_type = 1; //Generate static/dynamic HDD type!
 
+extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES];
+
 void BIOS_InitDisksText()
 {
 	int i;
-	for (i=0; i<12; i++)
+	for (i=0; i<14; i++)
 	{
 		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
@@ -1473,6 +1479,8 @@ void BIOS_InitDisksText()
 	safestrcpy(menuoptions[9],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
 	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
 	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
+	safestrcpy(menuoptions[12], sizeof(menuoptions[0]), "Floppy A without disk type: ");
+	safestrcpy(menuoptions[13], sizeof(menuoptions[0]), "Floppy B without disk type: ");
 
 //FLOPPY0
 	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
@@ -1549,6 +1557,9 @@ void BIOS_InitDisksText()
 	{
 		safestrcat(menuoptions[5],sizeof(menuoptions[5]),BIOS_Settings.cdrom1); //Add disk image!
 	}
+
+	safestrcat(menuoptions[12],sizeof(menuoptions[12]),floppygeometries[BIOS_Settings.floppy0_nodisk_type].text);
+	safestrcat(menuoptions[13],sizeof(menuoptions[13]),floppygeometries[BIOS_Settings.floppy1_nodisk_type].text);
 }
 
 
@@ -1557,7 +1568,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	byte allowsaveresume;
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = ExecuteMenu(12,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(14,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -1686,6 +1697,18 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
+		}
+		break;
+	case 12: //Floppy A without disk type?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 74; //Floppy A without disk type!
+		}
+		break;
+	case 13: //Floppy B without disk type?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 75; //Floppy B without disk type!
 		}
 		break;
 	default: //Unknown option?
@@ -6248,64 +6271,7 @@ void BIOS_GenerateFloppyDisk()
 	for (i=0;i<NUMFLOPPYGEOMETRIES;i++) //Process all geometries into a list!
 	{
 		memset(&itemlist[i],0,sizeof(itemlist[i])); //Reset!
-		if (floppygeometries[i].KB>=1024) //1024K+?
-		{
-			if (floppygeometries[i].measurement) //3.5"?
-			{
-				if (floppygeometries[i].KB%1000) //Not whole MB?
-				{
-					if (floppygeometries[i].KB%10) //3 digits?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.3fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-					else if (floppygeometries[i].KB%100) //2 digits?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.2fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-					else //1 digit?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.1fMB disk 3.5\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-				}
-				else //Whole MB?
-				{
-					snprintf(itemlist[i],sizeof(itemlist[0]),"%uMB disk 3.5\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
-				}
-			}
-			else //5.25"?
-			{
-				if (floppygeometries[i].KB%1000) //Not whole MB?
-				{
-					if (floppygeometries[i].KB%10) //3 digits?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.3fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-					else if (floppygeometries[i].KB%100) //2 digits?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.2fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-					else //1 digit?
-					{
-						snprintf(itemlist[i],sizeof(itemlist[0]),"%01.1fMB disk 5.25\"",floppygeometries[i].KB/1000.0f); //Disk!
-					}
-				}
-				else //Whole MB?
-				{
-					snprintf(itemlist[i],sizeof(itemlist[0]),"%uMB disk 5.25\"",(uint_32)(floppygeometries[i].KB/1000)); //Disk!
-				}
-			}
-		}
-		else //<1MB?
-		{
-			if (floppygeometries[i].measurement) //3.5"?
-			{
-				snprintf(itemlist[i],sizeof(itemlist[0]),"%uKB disk 3.5\"",floppygeometries[i].KB); //Disk!
-			}
-			else //5.25"?
-			{
-				snprintf(itemlist[i],sizeof(itemlist[0]),"%uKB disk 5.25\"",floppygeometries[i].KB); //Disk!
-			}
-		}
+		strcpy(itemlist[i], floppygeometries[i].text); 
 	}
 	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
 
@@ -7873,4 +7839,94 @@ void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL()
 	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL = !BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL;
 	BIOS_Changed = 1; //We're changed!
 	BIOS_Menu = 25; //Goto Input menu!
+}
+
+void BIOS_floppy0_nodisk_type()
+{
+	char fullfilename[256];
+	word size; //The size to generate, in KB!
+	byte i;
+	char filename[256]; //Filename container!
+	cleardata(&filename[0], sizeof(filename)); //Init!
+	for (i = 0; i < NUMFLOPPYGEOMETRIES; i++) //Process all geometries into a list!
+	{
+		memset(&itemlist[i], 0, sizeof(itemlist[i])); //Reset!
+		strcpy(itemlist[i], floppygeometries[i].text);
+	}
+	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
+
+	BIOS_Title("Default Floppy A without disk type");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
+	EMU_unlocktext();
+	int result;
+	result = ExecuteList(26, 4, itemlist[BIOS_Settings.floppy0_nodisk_type], 256, NULL); //Get our result!
+	switch (result) //Which result?
+	{
+	case FILELIST_DEFAULT: //Unmount?
+		BIOS_Changed |= 1; //Changed!
+		BIOS_Settings.floppy0_nodisk_type = 0; //Default!
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break;
+	default: //File?
+		if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
+		{
+			if (result != BIOS_Settings.floppy0_nodisk_type) //Changed?
+			{
+				BIOS_Settings.floppy0_nodisk_type = result; //Set the new value!
+				BIOS_Changed |= 1; //Changed!
+			}
+		}
+		break;
+	}
+	BIOS_Menu = 1; //Return to Disk Menu!
+}
+
+void BIOS_floppy1_nodisk_type()
+{
+	char fullfilename[256];
+	word size; //The size to generate, in KB!
+	byte i;
+	char filename[256]; //Filename container!
+	cleardata(&filename[0], sizeof(filename)); //Init!
+	for (i = 0; i < NUMFLOPPYGEOMETRIES; i++) //Process all geometries into a list!
+	{
+		memset(&itemlist[i], 0, sizeof(itemlist[i])); //Reset!
+		strcpy(itemlist[i], floppygeometries[i].text);
+	}
+	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
+
+	BIOS_Title("Default Floppy B without disk type");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
+	EMU_unlocktext();
+	int result;
+	result = ExecuteList(26, 4, itemlist[BIOS_Settings.floppy1_nodisk_type], 256, NULL); //Get our result!
+	switch (result) //Which result?
+	{
+	case FILELIST_DEFAULT: //Unmount?
+		BIOS_Changed |= 1; //Changed!
+		BIOS_Settings.floppy1_nodisk_type = 0; //Default!
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break;
+	default: //File?
+		if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
+		{
+			if (result != BIOS_Settings.floppy1_nodisk_type) //Changed?
+			{
+				BIOS_Settings.floppy1_nodisk_type = result; //Set the new value!
+				BIOS_Changed |= 1; //Changed!
+			}
+		}
+		break;
+	}
+	BIOS_Menu = 1; //Return to Disk Menu!
 }

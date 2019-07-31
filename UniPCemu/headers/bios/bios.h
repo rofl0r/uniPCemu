@@ -37,7 +37,9 @@ typedef struct
 
 //First, the mounted harddisks:
 	CharacterType floppy0[256];
+	byte floppy0_nodisk_type;
 	CharacterType floppy1[256];
+	byte floppy1_nodisk_type;
 	CharacterType hdd0[256];
 	CharacterType hdd1[256];
 	CharacterType cdrom0[256];
