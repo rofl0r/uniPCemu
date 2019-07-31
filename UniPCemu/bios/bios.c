@@ -1320,9 +1320,9 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(cmos_comment,sizeof(cmos_comment),"s100: 100th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"s10000: 10000th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"RAM[hexnumber]: The contents of the CMOS RAM location(0-255)\n");
-	safestrcat(cmos_comment,sizeof(cmos_comment),"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)");
-	safestrcat(cmos_comment,sizeof(cmos_comment),"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0), not to be used as a century byte.");
-	safestrcat(cmos_comment,sizeof(cmos_comment),"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"extraRAM[hexnumber]: The contents of the extra RAM location(0-255)\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"centuryisbinary: The contents of the century byte is to be en/decoded as binary(value 1) instead of BCD(value 0), not to be used as a century byte.\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"cycletiming: 0=Time divergeance is relative to realtime. Not 0=Time is relative to 1-1-1970 midnight and running on the CPU timing.\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "floppy[number]_nodisk_type: The disk geometry to use as a base without a disk mounted. Values: ");
 	for (c = 0; c < NUMITEMS(floppygeometries); ++c) //Parse all possible geometries!
 	{
