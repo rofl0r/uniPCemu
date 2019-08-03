@@ -1289,6 +1289,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
 				{
 					THROWDESCGP(value, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+					return 1; //Abort on fault!
 				}
 				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 				{
@@ -1398,6 +1399,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 					{
 						THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
+						return 1; //Abort on fault!
 					}
 				}
 			}
