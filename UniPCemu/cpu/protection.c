@@ -760,7 +760,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We're an invalid descriptor to use!
 	}
 
-	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && (isJMPorCALL&0x1FF) && ((isJMPorCALL&0x200)==0)) //Handling of gate descriptors? Disable on task code/data segment loading!
+	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && (((isJMPorCALL&0x1FF)==1) || ((isJMPorCALL&0x1FF)==2)) && ((isJMPorCALL&0x200)==0)) //Handling of gate descriptors? Disable on task code/data segment loading!
 	{
 		is_gated = 1; //We're gated!
 		memcpy(&GATEDESCRIPTOR, &LOADEDDESCRIPTOR, sizeof(GATEDESCRIPTOR)); //Copy the loaded descriptor to the GATE!
@@ -956,7 +956,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //Don't actually load CS with the descriptor: we've caused a task switch after all!
 	}
 
-	if ((segment == CPU_SEGMENT_CS) && (is_gated == 0) && (((isJMPorCALL & 0x1FF) == 2)||((isJMPorCALL & 0x1FF) == 1))) //CALL/JMP to lower or different privilege?
+	if ((segment == CPU_SEGMENT_CS) && (is_gated == 0) && (getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (((isJMPorCALL & 0x1FF) == 2)||((isJMPorCALL & 0x1FF) == 1))) //CALL/JMP to lower or different privilege?
 	{
 		if ((GENERALSEGMENT_DPL(LOADEDDESCRIPTOR) > getCPL()) && EXECSEGMENT_C(LOADEDDESCRIPTOR)) //Conforming and lower privilege?
 		{
