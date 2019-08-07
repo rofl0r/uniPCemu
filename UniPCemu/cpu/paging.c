@@ -502,7 +502,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	addrmask = 0x3FF >> ((addrmask << 3) | (addrmask << 1)); //Shift off the 4MB bits when using 4KB pages!
 	addrmask <<= 12; //Shift to page size addition of bits(12 bits)!
 	addrmask |= 0xFFF; //Fill with the 4KB page mask to get a 4KB or 4MB page mask!
-	addrmask = ~addrmask; //Negate the frame mask for a page mask!	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+	addrmask = ~addrmask; //Negate the frame mask for a page mask!
 	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
 	searchmask = (0x11 | addrmask); //Search mask!
 	TAGMASKED = (TAG&searchmask); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
@@ -553,13 +553,10 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, byte W, byte U, byte 
 	curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
 	if (likely(curentry)) //Valid entries to search?
 	{
-		TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
-		TAG &= (curentry->entry->addrmask|0xFFF); //The full search mask, with the address width(KB vs MB) applied!
 		TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
-		if (likely(WDMask)) //Used?
-		{
-			TAG &= TAGMask; //Ignoring these bits, so mask them off when comparing!
-		}
+		TAGMask &= (curentry->entry->addrmask | 0xFFF); //The full search mask, with the address width(KB vs MB) applied!
+		TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+		TAG &= TAGMask; //Premask the search tag for faster comparison!
 
 		for (; curentry;) //Check all entries that are allocated!
 		{
