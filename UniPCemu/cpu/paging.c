@@ -32,6 +32,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define PXE_A 0x00000020
 //Page size (0 for 4KB, 1 for 4MB)
 #define PDE_S 0x00000080
+//Dirty: we've been written to(4MB Page Directory only)!
+#define PDE_Dirty 0x00000040
 //Dirty: we've been written to!
 #define PTE_D 0x00000040
 //Global flag! Must be on PTE only (PDE is cleared always)
@@ -114,7 +116,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
-	byte PTEUPDATED = 0; //Not update!
+	byte PTEUPDATED = 0, PDEUPDATED = 0; //Not update!
 	uint_32 PDE, PTE=0; //PDE/PTE entries currently used!
 	if (!CPU[activeCPU].registers) return 0; //No registers available!
 	DIR = (address>>22)&0x3FF; //The directory entry!
@@ -205,10 +207,21 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 			PTE |= PTE_D; //Dirty!
 		}
 	}
+	else //Large page?
+	{
+		if (iswrite) //Writing?
+		{
+			if (!(PDE&PDE_Dirty))
+			{
+				PDEUPDATED = 1; //Updated!
+			}
+			PDE |= PDE_Dirty; //Dirty!
+		}
+	}
 	if (!(PDE&PXE_A)) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
-		memory_BIUdirectwdw(PDBR+(DIR<<2),PDE); //Update in memory!
+		PDEUPDATED = 1; //Updated!
 	}
 	if (likely(isS == 0)) //PTE-only?
 	{
@@ -218,11 +231,15 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 			PTE |= PXE_A; //Accessed!
 		}
 	}
+	if (PDEUPDATED) //Updated?
+	{
+		memory_BIUdirectwdw(PDBR + (DIR << 2), PDE); //Update in memory!
+	}
 	if (PTEUPDATED) //Updated?
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):1,isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 4MB pages!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0),isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 4MB pages!
 	return 1; //Valid!
 }
 
