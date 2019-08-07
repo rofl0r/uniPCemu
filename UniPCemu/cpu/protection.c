@@ -1020,7 +1020,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	}
 
 	//Make sure we're present last!
-	if ((GENERALSEGMENT_P(LOADEDDESCRIPTOR)==0) && ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_SS) || (segment==CPU_SEGMENT_TR) || (*segmentval&~3))) //Not present loaded into non-data register?
+	if (GENERALSEGMENT_P(LOADEDDESCRIPTOR)==0) //Not present loaded into non-data NULL register?
 	{
 		if (segment==CPU_SEGMENT_SS) //Stack fault?
 		{
