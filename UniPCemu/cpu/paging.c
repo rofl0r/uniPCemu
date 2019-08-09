@@ -302,7 +302,9 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 
 OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress, byte S) //Automatic set determination when using a set number <0!
 {
-	return ((logicaladdress&0x7000)>>12)|(S<<3); //The set is determined by the lower 3 bits of the entry(according to the i486 programmer's reference manual), the memory block!
+	//The set is determined by the lower 3 bits of the entry(according to the i486 programmer's reference manual), the memory block!
+	//Assume that 4MB entries do the same, but on a larger scale(10 times as large, due to 10 times more logical address bits being covered)!
+	return (((logicaladdress>>((S<<3)|(S<<1)))&0x7000)>>12)|(S<<3);
 }
 
 OPTINLINE void PagingTLB_initlists()
@@ -508,40 +510,35 @@ OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG, uint_
 
 void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
 {
-	TLBEntry *curentry = NULL;
 	TLB_ptr *effectiveentry;
 	uint_32 TAG, TAGMASKED;
 	uint_32 addrmask, searchmask;
-	sbyte TLB_reverseSet;
+	sbyte TLB_set;
 	byte indexsize;
-	byte whichentry;
-	byte entry;
-	S = ((~S)&1); //Opposite!
-	TLB_reverseSet = Paging_TLBSet(logicaladdress, S); //Reversed size set!
+	S = ((~S)&1); //Opposite page size to search!
+	TLB_set = Paging_TLBSet(logicaladdress, S); //Reversed size set!
 
-	/* First, invalidate any entries in the reversed size set(S=0 for S=1 and vice versa)! */
+	/* Invalidate any entries in the reversed size set(S=0 for S=1 and vice versa)! Always take the 4MB mask for either one of them(all associated 4MB pages for 4KB logical address or all associated 4KB pages for 4MB logical address) */
 	//Calculate and store the address mask for matching!
-	addrmask = (S) & 1; //Mask to 1 bit only. Become 1 when using 4MB(don't clear the high 10 bits), 0 for 4KB(clear the high 10 bits)!
-	addrmask = 0x3FF >> ((addrmask << 3) | (addrmask << 1)); //Shift off the 4MB bits when using 4KB pages!
-	addrmask <<= 12; //Shift to page size addition of bits(12 bits)!
-	addrmask |= 0xFFF; //Fill with the 4KB page mask to get a 4KB or 4MB page mask!
-	addrmask = ~addrmask; //Negate the frame mask for a page mask!
-	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
-	searchmask = (0x11 | addrmask); //Search mask!
-	TAGMASKED = (TAG&searchmask); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
-	entry = 0; //Init for entry search not found!
-	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_reverseSet]; //The first entry to verify, in order of MRU to LRU!
+	//Take 4MB pages for both 4MB and 4KB matches(only match based on 4MB granularity on the opposite size(4MB clearing all 4KB associated with it, 4KB clearing all 4MB associated with it))!
+	addrmask = 0xFFC00000; //Only 4MB matching, even on 4KB pages! So that handles the opposite page size in 4MB blocks, matching all that handle the linear address!
+	TAG = Paging_generateTAG(logicaladdress, W, U, D, 0); //Generate a TAG! S-bit unused for this lookup!
+	searchmask = (0x01 | addrmask); //Search mask! Ignore the S-bit!
+	TAGMASKED = (TAG&searchmask); //Masked tag for fast lookup! Match P/U/W/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
+	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
 	for (; effectiveentry;) //Verify from MRU to LRU!
 	{
 		if (TLB_way >= 0) break; //Don't process when a static way is specified!
 		if ((effectiveentry->entry->TAG & searchmask) == TAGMASKED) //Match for our own entry?
 		{
 			effectiveentry->entry->TAG = 0; //Clear the entry to unused!
-			freeTLB(TLB_reverseSet, effectiveentry); //Free this entry from the TLB!
-			effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_reverseSet]; //The first entry to verify, in order of MRU to LRU!
-			continue; //Handle from the first entry again!
+			freeTLB(TLB_set, effectiveentry); //Free this entry from the TLB!
+			effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
 		}
-		effectiveentry = (TLB_ptr *)(effectiveentry->next); //The next entry to check!
+		else
+		{
+			effectiveentry = (TLB_ptr *)(effectiveentry->next); //The next entry to check!
+		}
 	}
 }
 
