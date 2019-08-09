@@ -113,6 +113,8 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	return 1; //OK: verified!
 }
 
+void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result);
+
 byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
@@ -239,6 +241,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
+	Paging_freeOppositeTLB(-1, address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS, (((isS == 0) ? (PTE&PXE_ADDRESSMASK) : (PDE&PDE_LARGEADDRESSMASK)))); //Clear the opposite TLB entry from existence!
 	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0),isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 4MB pages!
 	return 1; //Valid!
 }
@@ -502,6 +505,45 @@ OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG, uint_
 #define AGEENTRY_ENTRY(entry) (entry>>8)
 
 #define SWAP(a,b) if (unlikely(AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a]))) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
+
+void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
+{
+	TLBEntry *curentry = NULL;
+	TLB_ptr *effectiveentry;
+	uint_32 TAG, TAGMASKED;
+	uint_32 addrmask, searchmask;
+	sbyte TLB_reverseSet;
+	byte indexsize;
+	byte whichentry;
+	byte entry;
+	S = ((~S)&1); //Opposite!
+	TLB_reverseSet = Paging_TLBSet(logicaladdress, S); //Reversed size set!
+
+	/* First, invalidate any entries in the reversed size set(S=0 for S=1 and vice versa)! */
+	//Calculate and store the address mask for matching!
+	addrmask = (S) & 1; //Mask to 1 bit only. Become 1 when using 4MB(don't clear the high 10 bits), 0 for 4KB(clear the high 10 bits)!
+	addrmask = 0x3FF >> ((addrmask << 3) | (addrmask << 1)); //Shift off the 4MB bits when using 4KB pages!
+	addrmask <<= 12; //Shift to page size addition of bits(12 bits)!
+	addrmask |= 0xFFF; //Fill with the 4KB page mask to get a 4KB or 4MB page mask!
+	addrmask = ~addrmask; //Negate the frame mask for a page mask!
+	TAG = Paging_generateTAG(logicaladdress, W, U, D, S); //Generate a TAG!
+	searchmask = (0x11 | addrmask); //Search mask!
+	TAGMASKED = (TAG&searchmask); //Masked tag for fast lookup! Match P/U/W/S/address only! Thus dirty updates the existing entry, while other bit changing create a new entry!
+	entry = 0; //Init for entry search not found!
+	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_reverseSet]; //The first entry to verify, in order of MRU to LRU!
+	for (; effectiveentry;) //Verify from MRU to LRU!
+	{
+		if (TLB_way >= 0) break; //Don't process when a static way is specified!
+		if ((effectiveentry->entry->TAG & searchmask) == TAGMASKED) //Match for our own entry?
+		{
+			effectiveentry->entry->TAG = 0; //Clear the entry to unused!
+			freeTLB(TLB_reverseSet, effectiveentry); //Free this entry from the TLB!
+			effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_reverseSet]; //The first entry to verify, in order of MRU to LRU!
+			continue; //Handle from the first entry again!
+		}
+		effectiveentry = (TLB_ptr *)(effectiveentry->next); //The next entry to check!
+	}
+}
 
 void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
 {
