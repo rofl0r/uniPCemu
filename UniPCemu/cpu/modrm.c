@@ -435,8 +435,11 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			{
 				CPU_writeCR0(backupval, value); //Update CR0!
 			}
-			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
-			{
+			else if (
+				(result==&CPU[activeCPU].registers->CR3) || //CR3 has been updated?
+				((result == &CPU[activeCPU].registers->CR4) && ((*result^backupval)&0x10) && (EMULATED_CPU>=CPU_PENTIUM)) //PSE changed when supported?
+				) 
+			{ //Clear the TLB!
 				Paging_clearTLB(); //Clear the TLB!
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
@@ -512,8 +515,11 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				}
 				updateCPUmode(); //Try to update the CPU mode, if needed!
 			}
-			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated? Clear the TLB!
-			{
+			else if (
+				(result == &CPU[activeCPU].registers->CR3) || //CR3 has been updated?
+				((result == &CPU[activeCPU].registers->CR4) && ((*result^backupval) & 0x10) && (EMULATED_CPU >= CPU_PENTIUM)) //PSE changed when supported?
+				)
+			{ //Clear the TLB!
 				Paging_clearTLB(); //Clear the TLB!
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
