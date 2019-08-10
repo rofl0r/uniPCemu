@@ -106,9 +106,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	else //System? Allow read/write if supervisor only! Otherwise, fault!
 	{
 		rwlevel = 1; //Are we writable, from either kernel or user perspective?
-	}
-	if (userlevel == 0) //We're the kernel? Special privileges to apply!
-	{
+		//We're the kernel? Special privileges to apply!
 		rwlevel |= ((CPU[activeCPU].registers->CR0 & 0x10000) && (EMULATED_CPU >= CPU_80486)) ? 2 : 0; //Set bit 2 when to inhibit writes at kernel level, otherwise legacy, allow all writes on kernel level!
 	}
 	//Now that we know the read/write permissions and user level, determine errors!
