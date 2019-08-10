@@ -115,7 +115,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 
 void Paging_freeOppositeTLB(uint_32 logicaladdress, byte W, byte U, byte D, byte S);
 
-byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte markdirty) //Do we have paging without error? userlevel=CPL usually.
+byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte markaccess) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0, PDEUPDATED = 0; //Not update!
@@ -200,7 +200,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	//RW=Are we writable?
 	if (likely(isS == 0)) //PTE-only?
 	{
-		if (iswrite && markdirty) //Writing and marking dirty?
+		if (iswrite && markaccess) //Writing and marking dirty?
 		{
 			if (!(PTE&PTE_D))
 			{
@@ -211,7 +211,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	}
 	else //Large page?
 	{
-		if (iswrite && markdirty) //Writing and marking dirty?
+		if (iswrite && markaccess) //Writing and marking dirty?
 		{
 			if (!(PDE&PDE_Dirty))
 			{
@@ -220,14 +220,14 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 			PDE |= PDE_Dirty; //Dirty!
 		}
 	}
-	if (!(PDE&PXE_A)) //Not accessed yet?
+	if ((!(PDE&PXE_A)) && markaccess) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
 		PDEUPDATED = 1; //Updated!
 	}
 	if (likely(isS == 0)) //PTE-only?
 	{
-		if (!(PTE&PXE_A))
+		if ((!(PTE&PXE_A)) && (markaccess))
 		{
 			PTEUPDATED = 1; //Updated!
 			PTE |= PXE_A; //Accessed!
