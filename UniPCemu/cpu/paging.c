@@ -13,6 +13,9 @@
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
+//Enable below to only set the access bit when actually reading/writing the memory address(and all checks have passed).
+//#define ACCESS_ON_READWRITE
+
 //20-bit PDBR. Could also be CR3 in total?
 #define PDBR (CPU[activeCPU].registers->CR3&0xFFFFF000)
 //#define PDBR ((CPU[activeCPU].registers->CR3>>12)&0xFFFFF)
@@ -50,7 +53,14 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define TLB_IGNOREREADMASK 0xC
 //Ignore the accessed bit when reading the TLB?
 #define TLB_IGNOREACCESSMASK 0x20
+
+#ifdef ACCESS_ON_READWRITE
+//Only access on actual reads/writes? Don't access on check!
 #define TLB_NOIGNOREACCESSMASK 0
+#else
+//Access always on check?
+#define TLB_NOIGNOREACCESSMASK TLB_IGNOREACCESSMASK
+#endif
 
 //1=User, 0=Supervisor
 #define getUserLevel(CPL) ((CPL&1)&(CPL>>1))
@@ -206,32 +216,32 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	{
 		if (iswrite && markaccess) //Writing and marking dirty?
 		{
-			if (!(PTE&PTE_D))
+			if (unlikely(!(PTE&PTE_D)))
 			{
 				PTEUPDATED = 1; //Updated!
+				PTE |= PTE_D; //Dirty!
 			}
-			PTE |= PTE_D; //Dirty!
 		}
 	}
 	else //Large page?
 	{
 		if (iswrite && markaccess) //Writing and marking dirty?
 		{
-			if (!(PDE&PDE_Dirty))
+			if (unlikely(!(PDE&PDE_Dirty)))
 			{
 				PDEUPDATED = 1; //Updated!
+				PDE |= PDE_Dirty; //Dirty!
 			}
-			PDE |= PDE_Dirty; //Dirty!
 		}
 	}
-	if ((!(PDE&PXE_A)) && markaccess) //Not accessed yet?
+	if ((!(PDE&PXE_A)) && (markaccess || (TLB_NOIGNOREACCESSMASK == TLB_IGNOREACCESSMASK))) //Not accessed yet?
 	{
 		PDE |= PXE_A; //Accessed!
 		PDEUPDATED = 1; //Updated!
 	}
 	if (likely(isS == 0)) //PTE-only?
 	{
-		if ((!(PTE&PXE_A)) && (markaccess))
+		if ((!(PTE&PXE_A)) && (markaccess || (TLB_NOIGNOREACCESSMASK == TLB_IGNOREACCESSMASK)))
 		{
 			PTEUPDATED = 1; //Updated!
 			PTE |= PXE_A; //Accessed!
